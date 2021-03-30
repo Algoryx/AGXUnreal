@@ -38,7 +38,7 @@ void UAGX_TerrainMaterialInstance::SetRoughness(float Roughness)
 		ShapeMaterialNativeBarrier->SetRoughness(static_cast<double>(Roughness));
 	}
 
-	Surface.bFrictionEnabled = static_cast<double>(Roughness);
+	Surface.Roughness = static_cast<double>(Roughness);
 }
 
 float UAGX_TerrainMaterialInstance::GetRoughness() const
