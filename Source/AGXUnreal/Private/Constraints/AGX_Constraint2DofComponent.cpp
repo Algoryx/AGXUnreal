@@ -197,6 +197,7 @@ void UAGX_Constraint2DofComponent::PostEditChangeChainProperty(
 	// apply all our changes before that so that they are carried over to the copy.
 	Super::PostEditChangeChainProperty(Event);
 }
+#endif
 
 void UAGX_Constraint2DofComponent::Serialize(FArchive& Archive)
 {
@@ -206,5 +207,3 @@ void UAGX_Constraint2DofComponent::Serialize(FArchive& Archive)
 		Controller->Serialize(Archive);
 	}
 }
-
-#endif
