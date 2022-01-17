@@ -7,6 +7,9 @@
 #include "Math/Interval.h"
 #include "Math/UnrealMathUtility.h"
 
+// Standard library includes.
+#include <algorithm>
+
 #include "DoubleInterval.generated.h"
 
 #if 0

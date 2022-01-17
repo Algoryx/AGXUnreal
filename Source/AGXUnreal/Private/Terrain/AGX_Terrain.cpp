@@ -32,6 +32,9 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 
+// Standard library includes.
+#include <algorithm>
+
 AAGX_Terrain::AAGX_Terrain()
 {
 	PrimaryActorTick.bCanEverTick = true;
