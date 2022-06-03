@@ -14,20 +14,6 @@
 UAGX_TrimeshShapeComponent::UAGX_TrimeshShapeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-
-	// This is a workaround for
-	//    Skipping dirty area creation because of empty bounds
-	// warning being printed by the navigation system when it finds an object
-	// with empty bound. A Trimesh Shape Component doesn't do any rendering so
-	// its bound is always empty. UAGX_TrimeshShapeComponent::CreateVisualMesh
-	// does nothing and UAGX_SimpleMeshComponent::CalcBounds looks at that emtpy
-	// mesh to compute the bound.
-	//
-	// To silence the warning we disable affect navigation here. The intention
-	// is, just like with rendering, that a regular Unreal Engine Static Mesh
-	// Component should handle this part.
-	SetCanEverAffectNavigation(false);
-
 	MeshSourceLocation = TSL_PARENT_STATIC_MESH_COMPONENT;
 	bOverrideMeshSourceLodIndex = true;
 	MeshSourceLodIndex = 0;

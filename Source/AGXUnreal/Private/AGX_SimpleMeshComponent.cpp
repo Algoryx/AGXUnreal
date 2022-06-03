@@ -337,6 +337,15 @@ UAGX_SimpleMeshComponent::UAGX_SimpleMeshComponent(const FObjectInitializer& Obj
 	PrimaryComponentTick.bCanEverTick = false;
 
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+
+	// This is a workaround for
+	// Skipping dirty area creation because of empty bounds
+	// warning being printed by the navigation system when it finds an object
+	// with empty bound.
+	// To silence the warning we disable affect navigation here. The intention
+	// is, just like with rendering, that a regular Unreal Engine Static Mesh
+	// Component should handle this part.
+	SetCanEverAffectNavigation(false);
 }
 
 bool UAGX_SimpleMeshComponent::SetMeshData(const TSharedPtr<FAGX_SimpleMeshData>& Data)
