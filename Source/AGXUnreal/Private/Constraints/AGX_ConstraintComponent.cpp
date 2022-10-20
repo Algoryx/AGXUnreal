@@ -189,6 +189,19 @@ namespace AGX_ConstraintComponent_helpers
 			Barrier.SetLocalLocation(BodyIndex, LocalLocation);
 		}
 	}
+	void SetLocalRotation(
+		FAGX_ConstraintBodyAttachment& Attachment, const FQuat& LocalRotation,
+		FConstraintBarrier& Barrier, int32 BodyIndex)
+	{
+		Attachment.LocalFrameRotation = FRotator(LocalRotation);
+		if (Barrier.HasNative())
+		{
+			/// \todo Need to compute what the location is relative to the constraint body for the
+			/// cases where the FrameDefiningSource is anything other than
+			/// EAGX_FrameDefiningSource::RigidBody.
+			Barrier.SetLocalRotation(BodyIndex, LocalRotation);
+		}
+	}
 }
 
 bool UAGX_ConstraintComponent::SetBody1(UAGX_RigidBodyComponent* Body)
@@ -226,6 +239,18 @@ void UAGX_ConstraintComponent::SetConstraintAttachmentLocation2(const FVector& L
 {
 	AGX_ConstraintComponent_helpers::SetLocalLocation(
 		BodyAttachment2, LocalLocation, *NativeBarrier, 1);
+}
+
+void UAGX_ConstraintComponent::SetConstraintAttachmentRotation1(const FQuat& LocalRotation)
+{
+	AGX_ConstraintComponent_helpers::SetLocalRotation(
+		BodyAttachment1, LocalRotation, *NativeBarrier, 0);
+}
+
+void UAGX_ConstraintComponent::SetConstraintAttachmentRotation2(const FQuat& LocalRotation)
+{
+	AGX_ConstraintComponent_helpers::SetLocalRotation(
+		BodyAttachment2, LocalRotation, *NativeBarrier, 0);
 }
 
 void UAGX_ConstraintComponent::SetEnable(bool InEnabled)
