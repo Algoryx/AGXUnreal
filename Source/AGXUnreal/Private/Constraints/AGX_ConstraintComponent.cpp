@@ -189,6 +189,7 @@ namespace AGX_ConstraintComponent_helpers
 			Barrier.SetLocalLocation(BodyIndex, LocalLocation);
 		}
 	}
+
 	void SetLocalRotation(
 		FAGX_ConstraintBodyAttachment& Attachment, const FQuat& LocalRotation,
 		FConstraintBarrier& Barrier, int32 BodyIndex)
@@ -250,7 +251,7 @@ void UAGX_ConstraintComponent::SetConstraintAttachmentRotation1(const FQuat& Loc
 void UAGX_ConstraintComponent::SetConstraintAttachmentRotation2(const FQuat& LocalRotation)
 {
 	AGX_ConstraintComponent_helpers::SetLocalRotation(
-		BodyAttachment2, LocalRotation, *NativeBarrier, 0);
+		BodyAttachment2, LocalRotation, *NativeBarrier, 1);
 }
 
 void UAGX_ConstraintComponent::SetEnable(bool InEnabled)
