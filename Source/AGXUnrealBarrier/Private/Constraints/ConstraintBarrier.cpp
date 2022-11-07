@@ -306,6 +306,13 @@ void FConstraintBarrier::SetLocalLocation(int32 BodyIndex, const FVector& LocalL
 	GetFrame(*NativeRef->Native, BodyIndex)->setLocalTranslate(LocalLocationAGX);
 }
 
+void FConstraintBarrier::SetLocalRotator(int32 BodyIndex, const FRotator& LocalRotator)
+{
+	check(HasNative());
+	const agx::Quat LocalRotationAGX = Convert(FQuat(LocalRotator));
+	GetFrame(*NativeRef->Native, BodyIndex)->setLocalRotate(LocalRotationAGX);
+}
+
 void FConstraintBarrier::SetLocalRotation(int32 BodyIndex, const FQuat& LocalRotation)
 {
 	check(HasNative());
@@ -313,18 +320,26 @@ void FConstraintBarrier::SetLocalRotation(int32 BodyIndex, const FQuat& LocalRot
 	GetFrame(*NativeRef->Native, BodyIndex)->setLocalRotate(LocalRotationAGX);
 }
 
-FVector FConstraintBarrier::GetLocalLocation(int32 Index) const
+FVector FConstraintBarrier::GetLocalLocation(int32 BodyIndex) const
 {
 	check(HasNative());
-	agx::Vec3 TranslateAGX = GetFrame(*NativeRef->Native, Index)->getLocalTranslate();
+	agx::Vec3 TranslateAGX = GetFrame(*NativeRef->Native, BodyIndex)->getLocalTranslate();
 	FVector TranslateUnreal = ConvertDisplacement(TranslateAGX);
 	return TranslateUnreal;
 }
 
-FQuat FConstraintBarrier::GetLocalRotation(int32 Index) const
+FRotator FConstraintBarrier::GetLocalRotator(int32 BodyIndex) const
 {
 	check(HasNative());
-	agx::Quat RotateAGX = GetFrame(*NativeRef->Native, Index)->getLocalRotate();
+	const agx::Quat RotateAGX = GetFrame(*NativeRef->Native, BodyIndex)->getLocalRotate();
+	const FRotator RotatorUnreal = FRotator(Convert(RotateAGX));
+	return RotatorUnreal;
+}
+
+FQuat FConstraintBarrier::GetLocalRotation(int32 BodyIndex) const
+{
+	check(HasNative());
+	agx::Quat RotateAGX = GetFrame(*NativeRef->Native, BodyIndex)->getLocalRotate();
 	FQuat RotateUnreal = Convert(RotateAGX);
 	return RotateUnreal;
 }

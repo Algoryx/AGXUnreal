@@ -57,13 +57,10 @@ public:
 	void SetConstraintAttachmentLocation1(const FVector& BodyLocalLocation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
-	void SetConstraintAttachmentLocation2(const FVector& BodyLocalLocation);
+	void SetConstraintAttachmentRotator1(const FRotator& BodyLocalRotator);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
 	void SetConstraintAttachmentRotation1(const FQuat& BodyLocalRotation);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
-	void SetConstraintAttachmentRotation2(const FQuat& BodyLocalRotation);
 
 	/**
 	 * The second Rigid Body bound by this constraint, and its Attachment Frame definition.
@@ -77,6 +74,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
 	bool SetBody2(UAGX_RigidBodyComponent* Body);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
+	void SetConstraintAttachmentLocation2(const FVector& BodyLocalLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
+	void SetConstraintAttachmentRotator2(const FRotator& BodyLocalRotator);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
+	void SetConstraintAttachmentRotation2(const FQuat& BodyLocalRotation);
 
 	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
 	bool bEnable = true;
