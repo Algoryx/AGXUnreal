@@ -94,7 +94,7 @@ namespace AGX_HeightFieldUtilities_helpers
 		const double SizeX = static_cast<double>(std::get<0>(NumQuadsXY)) * QuadSideSizeX;
 		const double SizeY = static_cast<double>(std::get<1>(NumQuadsXY)) * QuadSideSizeY;
 
-		return std::tuple<double, double>(SizeX, SizeX);
+		return std::tuple<double, double>(SizeX, SizeY);
 	}
 
 	std::tuple<double, double> GetLandscapeSizeXYOpenWorld(const ALandscape& Landscape)
