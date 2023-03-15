@@ -2166,12 +2166,12 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		}
 	}
 
-	// Returns the GUID of all Render Material that will be deleted.
-	TSet<FGuid> CollectRemovedRenderMaterialAssets(
+	// Returns all Render Material that will be deleted.
+	TSet<UMaterialInterface*> CollectRemovedRenderMaterialAssets(
 		SCSNodeCollection& SCSNodes, const FSimulationObjectCollection& SimulationObjects,
 		FAGX_SimObjectsImporterHelper& Helper, TArray<UObject*>& AssetsToDelete)
 	{
-		TSet<FGuid> RenderMaterialsToDelete;
+		TSet<UMaterialInterface*> RenderMaterialsToDelete;
 
 		if (SCSNodes.ModelSourceComponent == nullptr)
 		{
@@ -2245,7 +2245,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 			if (!InSimulation.Contains(Guid))
 			{
 				// Not part of the current import data, delete the asset.
-				RenderMaterialsToDelete.Add(Guid);
+				RenderMaterialsToDelete.Add(Asset);
 				AssetsToDelete.Add(Asset);
 				ModelSourceComponent->UnrealMaterialToImportGuid.Remove(AssetRelativePath);
 			}
@@ -2304,7 +2304,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 	}
 
 	TMap<UStaticMeshComponent*, UMaterialInterface*> GetRenderMaterials(
-		const SCSNodeCollection& SCSNodes, const TSet<FGuid>& IgnoreFilter)
+		const SCSNodeCollection& SCSNodes, const TSet<UMaterialInterface*>& IgnoreFilter)
 	{
 		TMap<UStaticMeshComponent*, UMaterialInterface*> RenderMaterials;
 		RenderMaterials.Reserve(
@@ -2315,17 +2315,20 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		{
 			for (auto StaticMeshNodeTuple : StaticMeshes)
 			{
-				if (IgnoreFilter.Contains(StaticMeshNodeTuple.Key))
-					continue;
-
 				UStaticMeshComponent* Smc =
 					Cast<UStaticMeshComponent>(StaticMeshNodeTuple.Value->ComponentTemplate);
 				if (Smc == nullptr)
 					continue;
 
+				if (IgnoreFilter.Contains(Smc->GetMaterial(0)))
+					continue;
+
 				RenderMaterials.Add(Smc, Smc->GetMaterial(0));
 				for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*Smc))
 				{
+					if (IgnoreFilter.Contains(Instance->GetMaterial(0)))
+						continue;
+
 					RenderMaterials.Add(Instance, Instance->GetMaterial(0));
 				}
 			}
@@ -2342,6 +2345,17 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 	{
 		auto MatchAndSetRenderMaterials = [&RenderMaterials](TMap<FGuid, USCS_Node*>& StaticMeshes)
 		{
+			auto IsMaterialValid = [](UMaterialInterface* M)
+			{
+				if (M == nullptr || !IsValid(M))
+					return false;
+
+				if (M->HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed))
+					return false;
+
+				return true;
+			};
+
 			for (auto StaticMeshNodeTuple : StaticMeshes)
 			{
 				UStaticMeshComponent* Smc =
@@ -2351,14 +2365,16 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 
 				if (UMaterialInterface* Mat = RenderMaterials.FindRef(Smc))
 				{
-					Smc->SetMaterial(0, Mat);
+					if (IsMaterialValid(Mat))
+						Smc->SetMaterial(0, Mat);
 				}
 
 				for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*Smc))
 				{
 					if (UMaterialInterface* Mat = RenderMaterials.FindRef(Instance))
 					{
-						Instance->SetMaterial(0, Mat);
+						if (IsMaterialValid(Mat))
+							Instance->SetMaterial(0, Mat);
 					}
 				}
 			}
@@ -2412,7 +2428,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		CollectRemovedContactMaterialAssets(SCSNodes, SimulationObjects, Helper, AssetsToDelete);
 		CollectRemovedMergeSplitThresholdsAssets(SimulationObjects, Helper, AssetsToDelete);
 		CollectAllImportedStaticMeshAssets(SCSNodes, Helper, AssetsToDelete);
-		TSet<FGuid> RenderMaterialsToDelete =
+		TSet<UMaterialInterface*> RenderMaterialsToDelete =
 			CollectRemovedRenderMaterialAssets(SCSNodes, SimulationObjects, Helper, AssetsToDelete);
 		CollectRemovedShapeMaterialAssets(SimulationObjects, Helper, AssetsToDelete);
 
