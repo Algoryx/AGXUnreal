@@ -161,7 +161,7 @@ bool UAGX_CylinderShapeComponent::AutoFitFromVertices(const TArray<FVector>& Ver
 		return false;
 	}
 
-	FAGX_ObjectUtilities::SetAnyComponentWorldTransform(*this, TransformBounding);
+	SetWorldTransform(TransformBounding);
 	SetRadius(RadiusBounding);
 	SetHeight(HeightBounding);
 	return true;
@@ -253,7 +253,8 @@ void UAGX_CylinderShapeComponent::InitPropertyDispatcher()
 	// Cannot use the base class Property Dispatcher because there are name collisions for UProperty
 	// names, for example Radius is in both Sphere and Cylinder.
 
-	FAGX_PropertyChangedDispatcher<ThisClass>& Dispatcher = FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	FAGX_PropertyChangedDispatcher<ThisClass>& Dispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
 	if (Dispatcher.IsInitialized())
 	{
 		return;

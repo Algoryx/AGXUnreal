@@ -140,7 +140,7 @@ bool UAGX_BoxShapeComponent::AutoFitFromVertices(const TArray<FVector>& Vertices
 		return false;
 	}
 
-	FAGX_ObjectUtilities::SetAnyComponentWorldTransform(*this, TransformBounding);
+	SetWorldTransform(TransformBounding);
 	SetHalfExtent(HalfExtentsBounding);
 	return true;
 }

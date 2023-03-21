@@ -143,7 +143,7 @@ bool UAGX_CapsuleShapeComponent::AutoFitFromVertices(const TArray<FVector>& Vert
 		return false;
 	}
 
-	FAGX_ObjectUtilities::SetAnyComponentWorldTransform(*this, TransformBounding);
+	SetWorldTransform(TransformBounding);
 	SetRadius(RadiusBounding);
 	SetHeight(HeightBounding);
 	return true;
