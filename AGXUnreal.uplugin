@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 6,
-	"VersionName": "1.4.0",
+	"Version": 7,
+	"VersionName": "1.4.1",
 	"FriendlyName": "AGX Dynamics for Unreal",
 	"Description": "Integration of AGX Dynamics, a professional multi-purpose physics engine for simulators, Virtual Reality (VR), engineering, large scale granular simulations and more, into Unreal Engine.",
 	"Category": "Physics",
