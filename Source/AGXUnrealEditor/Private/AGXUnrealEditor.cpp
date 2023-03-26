@@ -254,6 +254,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_ConstraintCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_ConstraintComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_ConstraintCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_AgxEdModeConstraints::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_AgxEdModeConstraintsCustomization::MakeInstance));
