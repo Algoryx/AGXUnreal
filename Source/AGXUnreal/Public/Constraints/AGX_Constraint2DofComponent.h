@@ -75,6 +75,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraints")
 	FAGX_ConstraintScrewController ScrewController;
 
+	/**
+	 * Get the current angle or position of one of the free degrees of freedom. If a translational
+	 * degree of freedom is passed then the returned value is in [cm], if it is a rotational
+	 * degree of freedom then the returned value is in [deg].
+	 * @return The angle [deg] or position [cm] of the selected free degree of freedom.
+	 */
+	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
+
+	/**
+	 * Get the current angle or position of one of the free degrees of freedom. If a translational
+	 * degree of freedom is passed then the returned value is in [cm], if it is a rotational
+	 * degree of freedom then the returned value is in [deg].
+	 * @return The angle [deg] or position [cm] of the selected free degree of freedom.
+	 */
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Constraint",
+		META = (DisplayName = "GetAngle"))
+	float GetAngle_BP(EAGX_Constraint2DOFFreeDOF Dof) const;
+
+
 	UAGX_Constraint2DofComponent();
 
 	UAGX_Constraint2DofComponent(

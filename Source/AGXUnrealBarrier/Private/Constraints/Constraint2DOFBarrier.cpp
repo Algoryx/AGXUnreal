@@ -24,9 +24,9 @@ FConstraint2DOFBarrier::~FConstraint2DOFBarrier()
 }
 
 // A collection of template specializations to fetch the AGX Dynamics controller constraint
-// from an AGX Dynamics Constraint2DOF. Each template specialization knows if getMotor1D, getRange1D,
-// or something else should be called for the particular Barrier type that the template is
-// specialized for.
+// from an AGX Dynamics Constraint2DOF. Each template specialization knows if getMotor1D,
+// getRange1D, or something else should be called for the particular Barrier type that the template
+// is specialized for.
 namespace
 {
 	agx::Constraint2DOF* Get2DOF(std::unique_ptr<FConstraintRef>& NativeRef)
@@ -52,6 +52,31 @@ namespace
 		auto* Controller = ControllerGetter(Get2DOF(NativeRef));
 		return TUniquePtr<FControllerBarrier>(
 			new FControllerBarrier(std::make_unique<FConstraintControllerRef>(Controller)));
+	}
+}
+
+double FConstraint2DOFBarrier::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	check(HasNative());
+	const agx::Constraint2DOF* Constraint = Get2DOF(NativeRef);
+	const agx::Real AngleAGX = Constraint->getAngle(Convert(Dof));
+	switch (Dof)
+	{
+		// Not sure if we can really know if the given degree of freedom is translational or
+		// rotational. Here we assume that the first is translational and the second is rotational.
+		// That is based on the implementation of agx::addSecondaryConstraints2DOF, which adds
+		// secondary constraints for the translational degree of freedom before the rotational
+		// degrees of freedom.
+		case EAGX_Constraint2DOFFreeDOF::FIRST:
+			return ConvertDistanceToUnreal<double>(AngleAGX);
+		case EAGX_Constraint2DOFFreeDOF::SECOND:
+			return ConvertAngleToUnreal<double>(AngleAGX);
+		default:
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Invalid degree of freedom passed to FConstraint2DOFBarrier::GetAngle. "
+					 "Cannot convert to Unreal Engine unit. AGX Dynamics unit returned"));
+			return AngleAGX;
 	}
 }
 

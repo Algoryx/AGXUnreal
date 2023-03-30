@@ -26,6 +26,8 @@ public:
 	FConstraint2DOFBarrier(std::unique_ptr<FConstraintRef> Native);
 	virtual ~FConstraint2DOFBarrier();
 
+	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
+
 	TUniquePtr<FElectricMotorControllerBarrier> GetElectricMotorController(
 		EAGX_Constraint2DOFFreeDOF Dof);
 	TUniquePtr<FFrictionControllerBarrier> GetFrictionController(EAGX_Constraint2DOFFreeDOF Dof);

@@ -42,6 +42,11 @@ namespace
 	{
 		return static_cast<FConstraint2DOFBarrier*>(Constraint.GetNative());
 	}
+
+	const FConstraint2DOFBarrier* Get2DofBarrier(const UAGX_Constraint2DofComponent& Constraint)
+	{
+		return static_cast<const FConstraint2DOFBarrier*>(Constraint.GetNative());
+	}
 }
 
 namespace AGX_Constraint2DofComponent_helpers
@@ -71,6 +76,20 @@ namespace AGX_Constraint2DofComponent_helpers
 
 		Constraint.ScrewController.InitializeBarrier(Barrier->GetScrewController());
 	}
+}
+
+double UAGX_Constraint2DofComponent::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	if (!HasNative())
+	{
+		return 0.0;
+	}
+	return Get2DofBarrier(*this)->GetAngle(Dof);
+}
+
+float UAGX_Constraint2DofComponent::GetAngle_BP(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	return static_cast<float>(GetAngle(Dof));
 }
 
 void UAGX_Constraint2DofComponent::CreateNativeImpl()
