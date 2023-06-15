@@ -665,14 +665,56 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 
 			// Copy needed Components/agx/Web dirs.
-			if (!CopyDirectoryRecursively(Path.Combine(WebDirSource, "NewPlot"), Path.Combine(WebDirDest, "NewPlot")))
+			RelativeCopyer WebCopyer = new RelativeCopyer(this, WebDirSource, WebDirDest);
+			if (!WebCopyer.CopyDir("css"))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyDir("NewPlot"))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyDir(Path.Combine("lib", "agx")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyDir(Path.Combine("lib", "external", "jquery-contextmenu")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyDir(Path.Combine("lib", "external", "flot-0.8.3")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyDir(Path.Combine("lib", "external", "flot-plugins")))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
 			}
 
+
 			// Copy needed Components/agx/Web single files.
-			if (!CopyFile(Path.Combine(WebDirSource, "index.html"), Path.Combine(WebDirDest, "index.html")))
+			if (!WebCopyer.CopyFile("index.html"))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyFile(Path.Combine("lib", "agx", "Fallbacks.js")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyFile(Path.Combine("lib", "external", "jQuery", "jquery-1.7.2.min.js")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+			if (!WebCopyer.CopyFile(Path.Combine("lib", "external", "jQuery", "jquery-ui-1.8.18.custom.min.js")))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -700,6 +742,34 @@ public class AGXDynamicsLibrary : ModuleRules
 		Console.WriteLine(
 			"\nAGX Dynamics resources bundled from {0} to {1}.",
 			Environment.GetEnvironmentVariable("AGX_DIR"), GetBundledAGXResourcesPath());
+	}
+
+	private class RelativeCopyer
+	{
+		AGXDynamicsLibrary Owner;
+		private string Source;
+		private string Dest;
+
+		public RelativeCopyer(AGXDynamicsLibrary InOwner, String SourceDir, string DestDir)
+		{
+			Owner = InOwner;
+			Source = SourceDir;
+			Dest = DestDir;
+		}
+
+		public bool CopyDir(string Relative)
+		{
+			string SourceDir = Path.Combine(Source, Relative);
+			string DestDir = Path.Combine(Dest, Relative);
+			return Owner.CopyDirectoryRecursively(SourceDir, DestDir);
+		}
+
+		public bool CopyFile(string Relative)
+		{
+			string SourceFile = Path.Combine(Source, Relative);
+			string DestFile = Path.Combine(Dest, Relative);
+			return Owner.CopyFile(SourceFile, DestFile);
+		}
 	}
 
 	private bool CopyFile(string Source, string Dest)
