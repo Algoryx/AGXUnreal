@@ -19,6 +19,23 @@ UAGX_TrimeshShapeComponent::UAGX_TrimeshShapeComponent()
 	MeshSourceLodIndex = 0;
 }
 
+bool UAGX_TrimeshShapeComponent::SetMeshSourceAsset(UStaticMesh* Mesh)
+{
+	if (HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Trimesh Shape '%s' in '%s' cannot replace the Mesh Source Asset because an AGX "
+				 "Dynamics native has already been created."),
+			*GetName(), *GetNameSafe(GetOwner()));
+		return false;
+	}
+
+	MeshSourceAsset = Mesh;
+	MeshSourceLocation = EAGX_StaticMeshSourceLocation::TSL_STATIC_MESH_ASSET;
+	return true;
+}
+
 FShapeBarrier* UAGX_TrimeshShapeComponent::GetNative()
 {
 	if (!NativeBarrier.HasNative())
@@ -151,7 +168,7 @@ bool UAGX_TrimeshShapeComponent::CanEditChange(
 #else
 	const FProperty* InProperty
 #endif
-	) const
+) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
 	if (!SuperCanEditChange)

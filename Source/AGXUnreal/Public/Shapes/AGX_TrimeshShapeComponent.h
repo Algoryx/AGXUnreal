@@ -39,11 +39,14 @@ public:
 	 * which Static Mesh Asset to use.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Shape",
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Shape",
 		Meta =
 			(EditCondition =
 				 "MeshSourceLocation == EAGX_StaticMeshSourceLocation::TSL_STATIC_MESH_ASSET"))
 	UStaticMesh* MeshSourceAsset;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool SetMeshSourceAsset(UStaticMesh* Mesh);
 
 	/**
 	 * Whether to explicitly set LOD Level to read triangle data from here
@@ -89,7 +92,7 @@ public:
 #else
 		const FProperty* InProperty
 #endif
-		) const override;
+	) const override;
 #endif
 	// ~End UObject interface.
 
