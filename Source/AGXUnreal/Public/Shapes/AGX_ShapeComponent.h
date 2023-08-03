@@ -135,6 +135,18 @@ public:
 	/** Subclasses that overrides this MUST invoke the parent's version! */
 	virtual void UpdateNativeProperties();
 
+	/**
+	 * This function should be called when creating new Shape Components using
+	 * Add AGX Sphere|Box|... Shape Component nodes in Blueprint Visual Scripts with
+	 * bDelayedNativeAllocation set to true. Call it after the Shape has been configured and
+	 * attached to the Scene Component tree, typically to a Rigid Body Component, with an Attach
+	 * Component To Component node.
+	 *
+	 * The Manual Attachment parameter in Add AGX Sphere|Box|... Shape Component should be set to
+	 * true when using delayed native allocation and the Shape is to be part of a Rigid Body
+	 * Component. If the shape is part of a Rigid Body then the Shape must be attached to the Rigid
+	 * Body before calling Finish Native Allocation.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	void FinishNativeAllocation();
 

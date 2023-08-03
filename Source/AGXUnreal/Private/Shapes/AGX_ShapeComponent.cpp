@@ -22,11 +22,14 @@
 // Standard library includes.
 #include <tuple>
 
+#include "ComponentUtils.h"
+
 // Sets default values for this component's properties
 UAGX_ShapeComponent::UAGX_ShapeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
+
 
 bool UAGX_ShapeComponent::HasNative() const
 {
@@ -36,6 +39,10 @@ bool UAGX_ShapeComponent::HasNative() const
 void UAGX_ShapeComponent::FinishNativeAllocation()
 {
 	GetOrCreateNative();
+	if (!HasNative())
+	{
+		return;
+	}
 	UAGX_RigidBodyComponent* RigidBody =
 		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
 	if (RigidBody == nullptr)
@@ -46,14 +53,17 @@ void UAGX_ShapeComponent::FinishNativeAllocation()
 	}
 	else
 	{
-		if (bDelayedNativeAllocation)
+		if (bDelayedNativeAllocation && RigidBody->HasNative())
 		{
+			// Delayed native allocation should only be used when creating, configuring and
+			// adding a Shape at runtime, in which case the Shape didn't exist when the Rigid
+			// Body got Begin Play. Since the body's Begin Play couldn't add the new Shape
+			// that didn't exist at the time, let's add it now.
 			RigidBody->GetNative()->AddShape(GetNative());
 		}
 	}
 
-	if (HasNative())
-		MergeSplitProperties.OnBeginPlay(*this);
+	MergeSplitProperties.OnBeginPlay(*this);
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)
