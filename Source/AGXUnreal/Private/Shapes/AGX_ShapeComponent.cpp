@@ -22,10 +22,54 @@
 // Standard library includes.
 #include <tuple>
 
+#include "ComponentUtils.h"
+
 // Sets default values for this component's properties
 UAGX_ShapeComponent::UAGX_ShapeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+}
+
+void UAGX_ShapeComponent::FinalizeNative(bool bAddToBody)
+{
+	GetOrCreateNative();
+	if (!HasNative())
+	{
+		return;
+	}
+
+	UAGX_RigidBodyComponent* RigidBody =
+		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+	if (RigidBody == nullptr)
+	{
+		// This shape doesn't have a parent body so the native shape's local transform will become
+		// its world transform. Push the entire Unreal world transform down into the native shape.
+		UpdateNativeGlobalTransform();
+	}
+	else
+	{
+		if (bAddToBody && RigidBody->HasNative())
+		{
+
+			RigidBody->GetNative()->AddShape(GetNative());
+		}
+	}
+
+	MergeSplitProperties.OnBeginPlay(*this);
+
+	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	if (Simulation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Shape '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
+				 "returned nullptr."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	Simulation->Add(*this);
+	UpdateVisualMesh();
 }
 
 bool UAGX_ShapeComponent::HasNative() const
@@ -231,32 +275,26 @@ void UAGX_ShapeComponent::BeginPlay()
 		return;
 	}
 
-	GetOrCreateNative();
-	UAGX_RigidBodyComponent* RigidBody =
-		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
-	if (RigidBody == nullptr)
+	if (GetAttachParent() == nullptr)
 	{
-		// This shape doesn't have a parent body so the native shape's local transform will become
-		// its world transform. Push the entire Unreal world transform down into the native shape.
-		UpdateNativeGlobalTransform();
-	}
-
-	if (HasNative())
-		MergeSplitProperties.OnBeginPlay(*this);
-
-	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
-	if (Simulation == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Shape '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
-				 "returned nullptr."),
-			*GetName(), *GetLabelSafe(GetOwner()));
+		// This is a hack, find a better solution.
+		//
+		// The current Shape::CreateNative design assume that Shapes already exists at Begin Play
+		// is called, i.e. the Shapes must be created in Unreal Editor. Sometimes we want to
+		// create Shapes dynamically at runtime. In that case we cannot create the AGX Dynamics
+		// native at Begin Play because the user may want to do some configuration before the
+		// native is created and Unreal Engine call Begin Play immediately in Add NAME Component,
+		// before the Blueprint Visual Script has had a chance to do that configuration.
+		//
+		// Here we use the Manual Attachment parameter to Add NAME Component as an indication that
+		// we are in this situation. If Manual Attachment is true then we won't have an attach
+		// parent and we take that as a sign that we should delay creating the native. The user
+		// must call FinalizeNative when configuration of the Shape is complete to create the
+		// AGX Dynamics instance.
 		return;
 	}
 
-	Simulation->Add(*this);
-	UpdateVisualMesh();
+	FinalizeNative(false);
 }
 
 void UAGX_ShapeComponent::EndPlay(const EEndPlayReason::Type Reason)

@@ -141,6 +141,21 @@ public:
 	virtual FShapeBarrier* GetOrCreateNative()
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetOrCreateNative, return nullptr;);
 
+	/**
+	 * This function should be called when creating new Shape Components using
+	 * Add AGX Sphere|Box|... Shape Component nodes in Blueprint Visual Scripts. Call it after
+	 * the Shape has been configured and after the Shape has been attached to the Scene Component
+	 * tree.
+	 *
+	 * The Manual Attachment parameter in Add AGX Sphere|Box|... Shape Component must be set to
+	 * false in order to use delayed Shape native finalization.
+	 *
+	 * If the shape is part of a Rigid Body then the Shape must be attached to the Rigid Body before
+	 * calling Finalize Native, and bAddToBody should be true.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void FinalizeNative(bool bAddToBody);
+
 	// ~Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
