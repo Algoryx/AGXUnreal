@@ -30,6 +30,9 @@ class AGXUNREAL_API UAGX_ShapeComponent : public UAGX_SimpleMeshComponent, publi
 public:
 	UAGX_ShapeComponent();
 
+	UPROPERTY(BlueprintReadOnly, Category = "AGX Shape", Meta = (ExposeOnSpawn = "true"))
+	bool bDelayedNativeAllocation = false;
+
 	/**
 	 * Defines physical properties of both the surface and the bulk of this shape.
 	 *
@@ -131,6 +134,9 @@ public:
 
 	/** Subclasses that overrides this MUST invoke the parent's version! */
 	virtual void UpdateNativeProperties();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void FinishNativeAllocation();
 
 	/**
 	 * Get the Native Barrier for this shape. Create the native AGX Dynamics object if it does not

@@ -33,6 +33,43 @@ bool UAGX_ShapeComponent::HasNative() const
 	return GetNative() != nullptr;
 }
 
+void UAGX_ShapeComponent::FinishNativeAllocation()
+{
+	GetOrCreateNative();
+	UAGX_RigidBodyComponent* RigidBody =
+		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+	if (RigidBody == nullptr)
+	{
+		// This shape doesn't have a parent body so the native shape's local transform will become
+		// its world transform. Push the entire Unreal world transform down into the native shape.
+		UpdateNativeGlobalTransform();
+	}
+	else
+	{
+		if (bDelayedNativeAllocation)
+		{
+			RigidBody->GetNative()->AddShape(GetNative());
+		}
+	}
+
+	if (HasNative())
+		MergeSplitProperties.OnBeginPlay(*this);
+
+	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	if (Simulation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Shape '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
+				 "returned nullptr."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	Simulation->Add(*this);
+	UpdateVisualMesh();
+}
+
 uint64 UAGX_ShapeComponent::GetNativeAddress() const
 {
 	return static_cast<uint64>(GetNativeBarrier()->GetNativeAddress());
@@ -231,32 +268,12 @@ void UAGX_ShapeComponent::BeginPlay()
 		return;
 	}
 
-	GetOrCreateNative();
-	UAGX_RigidBodyComponent* RigidBody =
-		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
-	if (RigidBody == nullptr)
+	if (bDelayedNativeAllocation)
 	{
-		// This shape doesn't have a parent body so the native shape's local transform will become
-		// its world transform. Push the entire Unreal world transform down into the native shape.
-		UpdateNativeGlobalTransform();
-	}
-
-	if (HasNative())
-		MergeSplitProperties.OnBeginPlay(*this);
-
-	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
-	if (Simulation == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Shape '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
-				 "returned nullptr."),
-			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
 
-	Simulation->Add(*this);
-	UpdateVisualMesh();
+	FinishNativeAllocation();
 }
 
 void UAGX_ShapeComponent::EndPlay(const EEndPlayReason::Type Reason)
