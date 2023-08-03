@@ -45,6 +45,9 @@ public:
 				 "MeshSourceLocation == EAGX_StaticMeshSourceLocation::TSL_STATIC_MESH_ASSET"))
 	UStaticMesh* MeshSourceAsset;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool SetMeshSourceAsset(UStaticMesh* Mesh);
+
 	/**
 	 * Whether to explicitly set LOD Level to read triangle data from here
 	 * or to use the setting that already exists on the Static Mesh source.
