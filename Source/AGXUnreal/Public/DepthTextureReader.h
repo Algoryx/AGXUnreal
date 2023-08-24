@@ -24,5 +24,5 @@ public:
 	UTextureRenderTarget2D* DepthTexture;
 	
 	UFUNCTION(BlueprintCallable, Category = "Depth")
-	void Execute();
+	void Execute(const FVector& RefPos, const FQuat& RefRot);
 };
