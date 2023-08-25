@@ -39,9 +39,11 @@ void UDepthTextureReader::Execute(const FVector& RefPos, const FQuat& RefRot)
 
 	for (int x = 500; x < 700; x++)
 	{
-		for (int y = 100; y < 150; y++)
+		for (int y = 80; y < 170; y++)
 		{
-			DrawDebugPoint(GetWorld(), GetWorldPoint(x, y), 5.f, FColor::Red, false, -1.f, 99);
+			const FVector WorldPoint = GetWorldPoint(x, y);
+			if (WorldPoint.X < 10000.0)
+				DrawDebugPoint(GetWorld(), GetWorldPoint(x, y), 5.f, FColor::Red, false, -1.f, 99);
 		}
 	}
 }
