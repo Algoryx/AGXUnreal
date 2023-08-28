@@ -62,6 +62,18 @@
 			"BlacklistPlatforms": [
 				"IOS"
 			]
+		},
+		{
+			"Name": "AGXShaders",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit",
+			"WhitelistPlatforms": [
+				"Linux",
+				"Win64"
+			],
+			"BlacklistPlatforms": [
+				"IOS"
+			]
 		}
 	],
 	"Plugins": [
