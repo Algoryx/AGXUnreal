@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Kismet/BlueprintAsyncActionBase.h"
-
+#include "Engine/TextureRenderTarget2D.h"
 #include "MySimpleComputeShader.generated.h"
 
 struct AGXSHADERS_API FMySimpleComputeShaderDispatchParams
@@ -15,7 +15,7 @@ struct AGXSHADERS_API FMySimpleComputeShaderDispatchParams
 	
 	int Input[3];
 	int Output;
-	
+	FRenderTarget* RenderTarget;
 	
 
 	FMySimpleComputeShaderDispatchParams(int x, int y, int z)
@@ -77,10 +77,11 @@ public:
 	// Execute the actual load
 	virtual void Activate() override {
 		// Create a dispatch parameters struct and fill it the input array with our args
-		FMySimpleComputeShaderDispatchParams Params(1, 1, 1);
+		FMySimpleComputeShaderDispatchParams Params(RT->SizeX, RT->SizeY, 1);
 		Params.Input[0] = Arg1;
 		Params.Input[1] = Arg2;
 		Params.Input[2] = Arg3;
+		Params.RenderTarget = RT->GameThread_GetRenderTargetResource();
 
 		// Dispatch the compute shader and wait until it completes
 		FMySimpleComputeShaderInterface::Dispatch(Params, [this](int OutputVal) {
@@ -89,11 +90,15 @@ public:
 	}
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", Category = "ComputeShader", WorldContext = "WorldContextObject"))
-	static UMySimpleComputeShaderLibrary_AsyncExecution* ExecuteBaseComputeShader(UObject* WorldContextObject, int Arg1, int Arg2, int Arg3) {
+	static UMySimpleComputeShaderLibrary_AsyncExecution* ExecuteBaseComputeShader(
+		UObject* WorldContextObject, int Arg1, int Arg2, int Arg3,
+		UTextureRenderTarget2D* RenderTarget)
+	{
 		UMySimpleComputeShaderLibrary_AsyncExecution* Action = NewObject<UMySimpleComputeShaderLibrary_AsyncExecution>();
 		Action->Arg1 = Arg1;
 		Action->Arg2 = Arg2;
 		Action->Arg3 = Arg3;
+		Action->RT = RenderTarget;
 		Action->RegisterWithGameInstance(WorldContextObject);
 
 		return Action;
@@ -105,4 +110,5 @@ public:
 	int Arg1;
 	int Arg2;
 	int Arg3;
+	UTextureRenderTarget2D* RT;
 };

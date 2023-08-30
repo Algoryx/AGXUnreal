@@ -54,6 +54,7 @@ public:
 		
 		SHADER_PARAMETER_RDG_BUFFER_SRV(Buffer<int>, Input)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<int>, Output)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, RenderTarget)
 		
 
 	END_SHADER_PARAMETER_STRUCT()
@@ -134,6 +135,16 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmedi
 			PassParameters->Output = GraphBuilder.CreateUAV(FRDGBufferUAVDesc(OutputBuffer, PF_R32_SINT));
 			
 
+			FRDGTextureDesc Desc(FRDGTextureDesc::Create2D(
+				Params.RenderTarget->GetSizeXY(), PF_A32B32G32R32F, FClearValueBinding::White,
+				TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_UAV));
+			FRDGTextureRef TmpTexture =
+				GraphBuilder.CreateTexture(Desc, TEXT("ExampleComputeShader_TempTexture"));
+			FRDGTextureRef TargetTexture = RegisterExternalTexture(
+				GraphBuilder, Params.RenderTarget->GetRenderTargetTexture(),
+				TEXT("ExampleComputeShader_RT"));
+			PassParameters->RenderTarget = GraphBuilder.CreateUAV(TmpTexture);
+
 			auto GroupCount = FComputeShaderUtils::GetGroupCount(FIntVector(Params.X, Params.Y, Params.Z), FComputeShaderUtils::kGolden2DGroupSize);
 			GraphBuilder.AddPass(
 				RDG_EVENT_NAME("ExecuteMySimpleComputeShader"),
@@ -143,6 +154,21 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmedi
 			{
 				FComputeShaderUtils::Dispatch(RHICmdList, ComputeShader, *PassParameters, GroupCount);
 			});
+
+			if (TargetTexture->Desc.Format == PF_A32B32G32R32F)
+			{
+				AddCopyTexturePass(GraphBuilder, TmpTexture, TargetTexture, FRHICopyTextureInfo());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Invalid texture format in MySimpleComputeShader, use RGBA32F."));
+#if WITH_EDITOR
+				GEngine->AddOnScreenDebugMessage(
+					(uint64) 42145125184, 6.f, FColor::Red,
+					FString(TEXT("The provided render target has an incompatible format (Please "
+								 "change the RT format to: RGBA32F).")));
+#endif
+			}
 
 			
 			FRHIGPUBufferReadback* GPUBufferReadback = new FRHIGPUBufferReadback(TEXT("ExecuteMySimpleComputeShaderOutput"));
