@@ -110,7 +110,7 @@ IMPLEMENT_GLOBAL_SHADER(
 
 void FMySimpleComputeShaderInterface::DispatchRenderThread(
 	FRHICommandListImmediate& RHICmdList, FMySimpleComputeShaderDispatchParams Params,
-	TFunction<void(TArray<FVector4f> OutputVal)> AsyncCallback)
+	TFunction<void(const TArray<FVector4f>& OutputVal)> AsyncCallback)
 {
 	FRDGBuilder GraphBuilder(RHICmdList);
 

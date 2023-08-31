@@ -32,12 +32,12 @@ public:
 	// Executes this shader on the render thread
 	static void DispatchRenderThread(
 		FRHICommandListImmediate& RHICmdList, FMySimpleComputeShaderDispatchParams Params,
-		TFunction<void(TArray<FVector4f> OutputVal)> AsyncCallback);
+		TFunction<void(const TArray<FVector4f>& OutputVal)> AsyncCallback);
 
 	// Executes this shader on the render thread from the game thread via EnqueueRenderThreadCommand
 	static void DispatchGameThread(
 		FMySimpleComputeShaderDispatchParams Params,
-		TFunction<void(TArray<FVector4f> OutputVal)> AsyncCallback)
+		TFunction<void(const TArray<FVector4f>& OutputVal)> AsyncCallback)
 	{
 		ENQUEUE_RENDER_COMMAND(SceneDrawCompletion)
 		([Params, AsyncCallback](FRHICommandListImmediate& RHICmdList)
@@ -47,7 +47,7 @@ public:
 	// Dispatches this shader. Can be called from any thread
 	static void Dispatch(
 		FMySimpleComputeShaderDispatchParams Params,
-		TFunction<void(TArray<FVector4f> OutputVal)> AsyncCallback)
+		TFunction<void(const TArray<FVector4f>& OutputVal)> AsyncCallback)
 	{
 		if (IsInRenderingThread())
 		{
@@ -82,7 +82,7 @@ public:
 		// Dispatch the compute shader and wait until it completes
 		FMySimpleComputeShaderInterface::Dispatch(
 			Params,
-			[this](TArray<FVector4f> OutputVal)
+			[this](const TArray<FVector4f>& OutputVal)
 			{
 				TArray<FVector4> Result;
 				Result.Reserve(OutputVal.Num());
