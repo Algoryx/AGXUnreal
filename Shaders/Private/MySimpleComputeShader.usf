@@ -3,14 +3,22 @@
 RWBuffer<float4> Output;
 RWTexture2D<float> RenderTarget;
 
-[numthreads(1, 1, 1)]
+[numthreads(THREADS_XY, THREADS_XY, 1)]
 void MySimpleComputeShader(
 	uint3 DispatchThreadId : SV_DispatchThreadID,
 	uint GroupIndex : SV_GroupIndex )
 {
+    
     uint Width = 0;
     uint Height = 0;
     RenderTarget.GetDimensions(Width, Height);
+    
+    if (DispatchThreadId.x >= Width)
+        return;
+    
+    if (DispatchThreadId.y >= Height)
+        return;
+    
     
     float Width_f = (float)Width;
     float Height_f = (float)Height;
