@@ -1,6 +1,5 @@
 #include "/Engine/Public/Platform.ush"
 
-Buffer<int> Input;
 RWBuffer<float> Output;
 RWTexture2D<float3> RenderTarget;
 
@@ -9,8 +8,6 @@ void MySimpleComputeShader(
 	uint3 DispatchThreadId : SV_DispatchThreadID,
 	uint GroupIndex : SV_GroupIndex )
 {
-    //Output[0] = Input[0] * Input[1] * Input[2];
-    
 	// Simple checkerboard
     int x = floor(DispatchThreadId.x / 16.f);
     int y = floor(DispatchThreadId.y / 16.f);
@@ -18,5 +15,4 @@ void MySimpleComputeShader(
 	
     RenderTarget[DispatchThreadId.xy] = float3(c, c, c);
     Output[DispatchThreadId.x + DispatchThreadId.y * 256] = float(c);
-
 }

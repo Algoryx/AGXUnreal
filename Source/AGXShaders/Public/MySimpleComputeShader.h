@@ -12,8 +12,6 @@ struct AGXSHADERS_API FMySimpleComputeShaderDispatchParams
 	int Y;
 	int Z;
 
-	
-	int Input[3];
 	TArray<float> Output;
 	FRenderTarget* RenderTarget;
 	
@@ -79,9 +77,6 @@ public:
 	virtual void Activate() override {
 		// Create a dispatch parameters struct and fill it the input array with our args
 		FMySimpleComputeShaderDispatchParams Params(RT->SizeX, RT->SizeY, 1);
-		Params.Input[0] = Arg1;
-		Params.Input[1] = Arg2;
-		Params.Input[2] = Arg3;
 		Params.RenderTarget = RT->GameThread_GetRenderTargetResource();
 		Params.Output = FloatArr;
 
@@ -94,13 +89,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", Category = "ComputeShader", WorldContext = "WorldContextObject"))
 	static UMySimpleComputeShaderLibrary_AsyncExecution* ExecuteBaseComputeShader(
-		UObject* WorldContextObject, int Arg1, int Arg2, int Arg3,
-		UTextureRenderTarget2D* RenderTarget)
+		UObject* WorldContextObject, UTextureRenderTarget2D* RenderTarget)
 	{
 		UMySimpleComputeShaderLibrary_AsyncExecution* Action = NewObject<UMySimpleComputeShaderLibrary_AsyncExecution>();
-		Action->Arg1 = Arg1;
-		Action->Arg2 = Arg2;
-		Action->Arg3 = Arg3;
 		Action->RT = RenderTarget;
 		Action->RegisterWithGameInstance(WorldContextObject);
 
@@ -110,9 +101,6 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted Completed;
 
-	int Arg1;
-	int Arg2;
-	int Arg3;
 	UTextureRenderTarget2D* RT;
 	TArray<float> FloatArr;
 };

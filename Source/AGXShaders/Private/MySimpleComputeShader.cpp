@@ -51,8 +51,6 @@ public:
 
 		// SHADER_PARAMETER_STRUCT_REF(FMyCustomStruct, MyCustomStruct)
 
-		
-		SHADER_PARAMETER_RDG_BUFFER_SRV(Buffer<int>, Input)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, Output)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, RenderTarget)
 		
@@ -120,21 +118,12 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmedi
 		if (bIsShaderValid) {
 			FMySimpleComputeShader::FParameters* PassParameters = GraphBuilder.AllocParameters<FMySimpleComputeShader::FParameters>();
 
-			
-			const void* RawData = (void*)Params.Input;
-			int NumInputs = 3;
-			int InputSize = sizeof(int);
-			FRDGBufferRef InputBuffer = CreateUploadBuffer(GraphBuilder, TEXT("InputBuffer"), InputSize, NumInputs, RawData, InputSize * NumInputs);
-
-			PassParameters->Input = GraphBuilder.CreateSRV(FRDGBufferSRVDesc(InputBuffer, PF_R32_FLOAT));
-
 			FRDGBufferRef OutputBuffer = GraphBuilder.CreateBuffer(
 				FRDGBufferDesc::CreateBufferDesc(sizeof(float), 256*256),
 				TEXT("OutputBuffer"));
 
 			PassParameters->Output =
 				GraphBuilder.CreateUAV(FRDGBufferUAVDesc(OutputBuffer, PF_R32_FLOAT));
-			
 
 			FRDGTextureDesc Desc(FRDGTextureDesc::Create2D(
 				Params.RenderTarget->GetSizeXY(), PF_A32B32G32R32F, FClearValueBinding::White,
