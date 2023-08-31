@@ -228,8 +228,11 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 }
 
 void UMySimpleComputeShaderLibrary_AsyncExecution::DrawDebugPoints(
-	UObject* WorldContextObject, const TArray<FVector4>& Points)
+	UObject* WorldContextObject, const TArray<FVector4f>& Points)
 {
+	if (WorldContextObject == nullptr)
+		return;
+
 	UWorld* World = WorldContextObject->GetWorld();
 	if (World == nullptr)
 	{

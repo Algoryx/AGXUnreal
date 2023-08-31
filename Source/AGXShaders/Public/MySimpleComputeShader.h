@@ -61,7 +61,7 @@ public:
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted, const TArray<FVector4>&, Value);
+	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted, float, foo);
 
 UCLASS() // Change the _API to match your project
 class AGXSHADERS_API UMySimpleComputeShaderLibrary_AsyncExecution : public UBlueprintAsyncActionBase
@@ -84,15 +84,8 @@ public:
 			Params,
 			[this](const TArray<FVector4f>& OutputVal)
 			{
-				TArray<FVector4> Result;
-				Result.Reserve(OutputVal.Num());
-				
-				for (const auto& F : OutputVal)
-				{
-					Result.Add(FVector4(F.X, F.Y, F.Z, F.W));
-				}
-
-				this->Completed.Broadcast(Result);
+				DrawDebugPoints(this->World, OutputVal);
+				this->Completed.Broadcast(3.1415f);
 			});
 	}
 
@@ -108,6 +101,7 @@ public:
 		Action->RT = RenderTarget;
 		Action->Width = RenderTarget->SizeX;
 		Action->Height = RenderTarget->SizeY;
+		Action->World = WorldContextObject->GetWorld();
 
 		Action->RegisterWithGameInstance(WorldContextObject);
 		return Action;
@@ -116,13 +110,11 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted Completed;
 
-
-	UFUNCTION(
-		BlueprintCallable, meta = (WorldContext = "WorldContextObject"))
-	static void DrawDebugPoints(UObject* WorldContextObject, const TArray<FVector4>& Points);
+	static void DrawDebugPoints(UObject* WorldContextObject, const TArray<FVector4f>& Points);
 
 	UTextureRenderTarget2D* RT;
 	TArray<FVector4f> FloatArr;
+	UWorld* World;
 	int Width;
 	int Height;
 };
