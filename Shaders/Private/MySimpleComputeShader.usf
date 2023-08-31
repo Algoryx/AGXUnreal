@@ -1,7 +1,7 @@
 #include "/Engine/Public/Platform.ush"
 
 Buffer<int> Input;
-RWBuffer<int> Output;
+RWBuffer<float> Output;
 RWTexture2D<float3> RenderTarget;
 
 [numthreads(THREADS_X, THREADS_Y, THREADS_Z)]
@@ -16,5 +16,7 @@ void MySimpleComputeShader(
     int y = floor(DispatchThreadId.y / 16.f);
     int c = (x + y % 2) % 2;
 	
-    RenderTarget[DispatchThreadId.xy] = float3(c, c, c);	
+    RenderTarget[DispatchThreadId.xy] = float3(c, c, c);
+    Output[DispatchThreadId.x + DispatchThreadId.y * 256] = float(c);
+
 }
