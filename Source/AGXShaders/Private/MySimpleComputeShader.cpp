@@ -121,8 +121,6 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 		if (bIsShaderValid) {
 			FMySimpleComputeShader::FParameters* PassParameters = GraphBuilder.AllocParameters<FMySimpleComputeShader::FParameters>();
 
-			//const auto RTSize = Params->RenderTarget->GetSizeXY(); todo: fix this.
-
 			FRDGBufferRef OutputBuffer = GraphBuilder.CreateBuffer(
 				FRDGBufferDesc::CreateBufferDesc(sizeof(FVector4f), Params.Width * Params.Height),
 				TEXT("OutputBuffer"));
@@ -130,15 +128,28 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 			PassParameters->Output =
 				GraphBuilder.CreateUAV(FRDGBufferUAVDesc(OutputBuffer, PF_A32B32G32R32F));
 
-			FRDGTextureDesc Desc(FRDGTextureDesc::Create2D(
-				Params.RenderTarget->GetSizeXY(), PF_A32B32G32R32F, FClearValueBinding::White,
-				TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_UAV));
-			FRDGTextureRef TmpTexture =
-				GraphBuilder.CreateTexture(Desc, TEXT("ExampleComputeShader_TempTexture"));
-			FRDGTextureRef TargetTexture = RegisterExternalTexture(
-				GraphBuilder, Params.RenderTarget->GetRenderTargetTexture(),
-				TEXT("ExampleComputeShader_RT"));
+			FRDGTextureDesc Desc(FRDGTextureDesc::Create2D(Params.RenderTarget->GetSizeXY(), PF_R32_FLOAT, FClearValueBinding::White,TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_UAV));
+			FRDGTextureRef TmpTexture =GraphBuilder.CreateTexture(Desc, TEXT("ExampleComputeShader_TempTexture"));
+			FRDGTextureRef TargetTexture = RegisterExternalTexture(GraphBuilder, Params.RenderTarget->GetRenderTargetTexture(),TEXT("ExampleComputeShader_RT"));
 			PassParameters->RenderTarget = GraphBuilder.CreateUAV(TmpTexture);
+
+			if (TargetTexture->Desc.Format == PF_R32_FLOAT)
+			{
+				AddCopyTexturePass(GraphBuilder, TargetTexture, TmpTexture, FRHICopyTextureInfo());
+			}
+			else
+			{
+				UE_LOG(
+					LogTemp, Error,
+					TEXT("Invalid texture format in MySimpleComputeShader, use RGBA32F."));
+#if WITH_EDITOR
+				GEngine->AddOnScreenDebugMessage(
+					(uint64) 42145125184, 6.f, FColor::Red,
+					FString(TEXT("The provided render target has an incompatible format (Please "
+								 "change the RT format to: RGBA32F).")));
+#endif
+			}
+
 
 			auto GroupCount = FComputeShaderUtils::GetGroupCount(FIntVector(Params.X, Params.Y, Params.Z), FComputeShaderUtils::kGolden2DGroupSize);
 			GraphBuilder.AddPass(
@@ -150,20 +161,6 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 				FComputeShaderUtils::Dispatch(RHICmdList, ComputeShader, *PassParameters, GroupCount);
 			});
 
-			if (TargetTexture->Desc.Format == PF_A32B32G32R32F)
-			{
-				AddCopyTexturePass(GraphBuilder, TmpTexture, TargetTexture, FRHICopyTextureInfo());
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("Invalid texture format in MySimpleComputeShader, use RGBA32F."));
-#if WITH_EDITOR
-				GEngine->AddOnScreenDebugMessage(
-					(uint64) 42145125184, 6.f, FColor::Red,
-					FString(TEXT("The provided render target has an incompatible format (Please "
-								 "change the RT format to: RGBA32F).")));
-#endif
-			}
 
 			
 			FRHIGPUBufferReadback* GPUBufferReadback = new FRHIGPUBufferReadback(TEXT("ExecuteMySimpleComputeShaderOutput"));

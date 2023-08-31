@@ -1,7 +1,7 @@
 #include "/Engine/Public/Platform.ush"
 
 RWBuffer<float4> Output;
-RWTexture2D<float3> RenderTarget;
+RWTexture2D<float> RenderTarget;
 
 [numthreads(THREADS_X, THREADS_Y, THREADS_Z)]
 void MySimpleComputeShader(
@@ -17,6 +17,8 @@ void MySimpleComputeShader(
     uint height = 0;
     
     RenderTarget.GetDimensions(width, height);
-    RenderTarget[DispatchThreadId.xy] = float3(c, c, c);
-    Output[DispatchThreadId.x + DispatchThreadId.y * width] = float4(c, c, c, c);
+    
+    float Val = RenderTarget[DispatchThreadId.xy];
+ 
+    Output[DispatchThreadId.x + DispatchThreadId.y * width] = float4(Val, Val, Val, Val);
 }
