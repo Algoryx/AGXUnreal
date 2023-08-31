@@ -116,6 +116,11 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted Completed;
 
+
+	UFUNCTION(
+		BlueprintCallable, meta = (WorldContext = "WorldContextObject"))
+	static void DrawDebugPoints(UObject* WorldContextObject, const TArray<FVector4>& Points);
+
 	UTextureRenderTarget2D* RT;
 	TArray<FVector4f> FloatArr;
 	int Width;

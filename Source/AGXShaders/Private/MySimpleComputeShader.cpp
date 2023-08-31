@@ -226,3 +226,18 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 
 	GraphBuilder.Execute();
 }
+
+void UMySimpleComputeShaderLibrary_AsyncExecution::DrawDebugPoints(
+	UObject* WorldContextObject, const TArray<FVector4>& Points)
+{
+	UWorld* World = WorldContextObject->GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("World object in DrawDebugPoints was nullptr."));
+		return;
+	}
+
+	for (const auto& P : Points)
+		if (P.X < 10000)
+			DrawDebugPoint(World, FVector(P.X, P.Y, P.Z), 5.f, FColor::Red, false, -1.f, 99);
+}
