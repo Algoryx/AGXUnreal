@@ -151,7 +151,8 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 			}
 
 
-			auto GroupCount = FComputeShaderUtils::GetGroupCount(FIntVector(Params.X, Params.Y, Params.Z), FComputeShaderUtils::kGolden2DGroupSize);
+			auto GroupCount = FComputeShaderUtils::GetGroupCount(FIntVector(Params.Width, Params.Height, 1), 1);
+
 			GraphBuilder.AddPass(
 				RDG_EVENT_NAME("ExecuteMySimpleComputeShader"),
 				PassParameters,

@@ -3,7 +3,7 @@
 RWBuffer<float4> Output;
 RWTexture2D<float> RenderTarget;
 
-[numthreads(THREADS_X, THREADS_Y, THREADS_Z)]
+[numthreads(1, 1, 1)]
 void MySimpleComputeShader(
 	uint3 DispatchThreadId : SV_DispatchThreadID,
 	uint GroupIndex : SV_GroupIndex )
@@ -15,6 +15,9 @@ void MySimpleComputeShader(
     float Width_f = (float)Width;
     float Height_f = (float)Height;
     
+    float IndexX_f = (float)DispatchThreadId.x;
+    float IndexY_f = (float)DispatchThreadId.y;
+    
     float FlatDistance = RenderTarget[DispatchThreadId.xy];
     
 	// From 120 deg POV and unit distance 1 to plane.
@@ -25,11 +28,12 @@ void MySimpleComputeShader(
     float Stride = NearPlaneWidth / (Width_f - 1.0);
     float3 NearPlaneTopLeftCorner = float3(1.0, -NearPlaneWidth / 2.0, NearPlaneHeight / 2.0);
     // X and Y is texture coordinates, so +y and -z directions on local space.
-    float3 NearPlanePoint = NearPlaneTopLeftCorner + float3(0.0, DispatchThreadId.x * Stride, -DispatchThreadId.y * Stride);
+    float3 NearPlanePoint = NearPlaneTopLeftCorner + float3(0.0, IndexX_f * Stride, -IndexY_f * Stride);
     float3 PointDir = normalize(NearPlanePoint);
     float ActualDistance = FlatDistance / dot(PointDir, float3(1.0, 0.0, 0.0));
     float3 PointLocal = PointDir * ActualDistance;
  
     Output[DispatchThreadId.x + DispatchThreadId.y * Width] = float4(PointLocal.x, PointLocal.y, PointLocal.z, 1.0 / ActualDistance);
+    //Output[DispatchThreadId.x + DispatchThreadId.y * Width] = float4(Stride, NearPlaneTopLeftCorner.z, DispatchThreadId.y, NearPlanePoint.z);
 
 }
