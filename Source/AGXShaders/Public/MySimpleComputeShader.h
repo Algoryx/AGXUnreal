@@ -12,6 +12,8 @@ struct AGXSHADERS_API FMySimpleComputeShaderDispatchParams
 	int Y;
 	int Z;
 
+	int Width;
+	int Height;
 	TArray<FVector4f> Output;
 	FRenderTarget* RenderTarget;
 
@@ -74,6 +76,8 @@ public:
 		FMySimpleComputeShaderDispatchParams Params(RT->SizeX, RT->SizeY, 1);
 		Params.RenderTarget = RT->GameThread_GetRenderTargetResource();
 		Params.Output = FloatArr;
+		Params.Width = Width;
+		Params.Height = Height;
 
 		// Dispatch the compute shader and wait until it completes
 		FMySimpleComputeShaderInterface::Dispatch(
@@ -102,8 +106,10 @@ public:
 		UMySimpleComputeShaderLibrary_AsyncExecution* Action =
 			NewObject<UMySimpleComputeShaderLibrary_AsyncExecution>();
 		Action->RT = RenderTarget;
-		Action->RegisterWithGameInstance(WorldContextObject);
+		Action->Width = RenderTarget->SizeX;
+		Action->Height = RenderTarget->SizeY;
 
+		Action->RegisterWithGameInstance(WorldContextObject);
 		return Action;
 	}
 
@@ -112,4 +118,6 @@ public:
 
 	UTextureRenderTarget2D* RT;
 	TArray<FVector4f> FloatArr;
+	int Width;
+	int Height;
 };

@@ -124,7 +124,7 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 			//const auto RTSize = Params->RenderTarget->GetSizeXY(); todo: fix this.
 
 			FRDGBufferRef OutputBuffer = GraphBuilder.CreateBuffer(
-				FRDGBufferDesc::CreateBufferDesc(sizeof(FVector4f), 256 * 256),
+				FRDGBufferDesc::CreateBufferDesc(sizeof(FVector4f), Params.Width * Params.Height),
 				TEXT("OutputBuffer"));
 
 			PassParameters->Output =
@@ -169,14 +169,16 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 			FRHIGPUBufferReadback* GPUBufferReadback = new FRHIGPUBufferReadback(TEXT("ExecuteMySimpleComputeShaderOutput"));
 			AddEnqueueCopyPass(GraphBuilder, GPUBufferReadback, OutputBuffer, 0u);
 
-			auto RunnerFunc = [GPUBufferReadback, AsyncCallback](auto&& RunnerFunc) -> void
+
+
+			auto RunnerFunc = [GPUBufferReadback, AsyncCallback](auto&& RunnerFunc, int Width, int Height) -> void
 			{
 				if (GPUBufferReadback->IsReady()) {
 					
 					FVector4f* Buffer = (FVector4f*) GPUBufferReadback->Lock(1);
 					TArray<FVector4f> OutVal;
 
-					for (int i = 0; i < 256 * 256; i++)
+					for (int i = 0; i < Width * Height; i++)
 						OutVal.Add(Buffer[i]);
 					
 					GPUBufferReadback->Unlock();
@@ -187,14 +189,17 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 
 					delete GPUBufferReadback;
 				} else {
-					AsyncTask(ENamedThreads::ActualRenderingThread, [RunnerFunc]() {
-						RunnerFunc(RunnerFunc);
+					AsyncTask(ENamedThreads::ActualRenderingThread, [RunnerFunc, Width, Height]() {
+						RunnerFunc(RunnerFunc, Width, Height);
 					});
 				}
 			};
 
-			AsyncTask(ENamedThreads::ActualRenderingThread, [RunnerFunc]() {
-				RunnerFunc(RunnerFunc);
+
+			const int Width = Params.Width;
+			const int Height = Params.Height;
+			AsyncTask(ENamedThreads::ActualRenderingThread, [RunnerFunc, Width, Height]() {
+				RunnerFunc(RunnerFunc, Width, Height);
 			});
 			
 		} else {
