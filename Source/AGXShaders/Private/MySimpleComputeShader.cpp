@@ -51,7 +51,7 @@ public:
 
 		// SHADER_PARAMETER_STRUCT_REF(FMyCustomStruct, MyCustomStruct)
 
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<float>, Output)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<FVector4f>, Output)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture2D, RenderTarget)
 		
 
@@ -96,7 +96,10 @@ private:
 //                            ShaderType                            ShaderPath                     Shader function name    Type
 IMPLEMENT_GLOBAL_SHADER(FMySimpleComputeShader, "/AGXShadersShaders/MySimpleComputeShader.usf", "MySimpleComputeShader", SF_Compute);
 
-void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmediate& RHICmdList, FMySimpleComputeShaderDispatchParams Params, TFunction<void(TArray<float> OutputVal)> AsyncCallback) {
+void FMySimpleComputeShaderInterface::DispatchRenderThread(
+	FRHICommandListImmediate& RHICmdList, FMySimpleComputeShaderDispatchParams Params,
+	TFunction<void(TArray<FVector4f> OutputVal)> AsyncCallback)
+{
 	FRDGBuilder GraphBuilder(RHICmdList);
 
 	{
@@ -118,12 +121,14 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmedi
 		if (bIsShaderValid) {
 			FMySimpleComputeShader::FParameters* PassParameters = GraphBuilder.AllocParameters<FMySimpleComputeShader::FParameters>();
 
+			//const auto RTSize = Params->RenderTarget->GetSizeXY(); todo: fix this.
+
 			FRDGBufferRef OutputBuffer = GraphBuilder.CreateBuffer(
-				FRDGBufferDesc::CreateBufferDesc(sizeof(float), 256*256),
+				FRDGBufferDesc::CreateBufferDesc(sizeof(FVector4f), 256 * 256),
 				TEXT("OutputBuffer"));
 
 			PassParameters->Output =
-				GraphBuilder.CreateUAV(FRDGBufferUAVDesc(OutputBuffer, PF_R32_FLOAT));
+				GraphBuilder.CreateUAV(FRDGBufferUAVDesc(OutputBuffer, PF_A32B32G32R32F));
 
 			FRDGTextureDesc Desc(FRDGTextureDesc::Create2D(
 				Params.RenderTarget->GetSizeXY(), PF_A32B32G32R32F, FClearValueBinding::White,
@@ -164,13 +169,14 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(FRHICommandListImmedi
 			FRHIGPUBufferReadback* GPUBufferReadback = new FRHIGPUBufferReadback(TEXT("ExecuteMySimpleComputeShaderOutput"));
 			AddEnqueueCopyPass(GraphBuilder, GPUBufferReadback, OutputBuffer, 0u);
 
-			auto RunnerFunc = [GPUBufferReadback, AsyncCallback](auto&& RunnerFunc) -> void {
+			auto RunnerFunc = [GPUBufferReadback, AsyncCallback](auto&& RunnerFunc) -> void
+			{
 				if (GPUBufferReadback->IsReady()) {
 					
-					float* Buffer = (float*)GPUBufferReadback->Lock(1);
-					TArray<float> OutVal;
+					FVector4f* Buffer = (FVector4f*) GPUBufferReadback->Lock(1);
+					TArray<FVector4f> OutVal;
 
-					for (int i = 0; i < 256*256; i++)
+					for (int i = 0; i < 256 * 256; i++)
 						OutVal.Add(Buffer[i]);
 					
 					GPUBufferReadback->Unlock();
