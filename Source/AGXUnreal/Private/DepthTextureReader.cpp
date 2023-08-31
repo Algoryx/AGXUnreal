@@ -47,3 +47,10 @@ void UDepthTextureReader::Execute(const FVector& RefPos, const FQuat& RefRot)
 		}
 	}
 }
+
+void UDepthTextureReader::DrawDebugPoints(const TArray<FVector4>& Points)
+{
+	for (const auto& P : Points)
+		if (P.X < 10000)
+			DrawDebugPoint(GetWorld(), FVector(P.X, P.Y, P.Z), 5.f, FColor::Red, true, -1.f, 99);
+}

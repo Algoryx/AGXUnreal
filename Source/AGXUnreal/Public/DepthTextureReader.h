@@ -25,4 +25,7 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Depth")
 	void Execute(const FVector& RefPos, const FQuat& RefRot);
+
+	UFUNCTION(BlueprintCallable, Category = "Depth")
+	void DrawDebugPoints(const TArray<FVector4>& Points);
 };
