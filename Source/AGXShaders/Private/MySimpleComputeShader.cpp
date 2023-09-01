@@ -110,7 +110,7 @@ IMPLEMENT_GLOBAL_SHADER(
 
 void FMySimpleComputeShaderInterface::DispatchRenderThread(
 	FRHICommandListImmediate& RHICmdList, FMySimpleComputeShaderDispatchParams Params,
-	TFunction<void(const TArray<FVector4f>& OutputVal)> AsyncCallback)
+	TFunction<void(const TArray<FVector4>& OutputVal)> AsyncCallback)
 {
 	FRDGBuilder GraphBuilder(RHICmdList);
 
@@ -190,10 +190,10 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 				if (GPUBufferReadback->IsReady())
 				{
 					FVector4f* Buffer = (FVector4f*) GPUBufferReadback->Lock(1);
-					TArray<FVector4f> OutVal;
-
+					TArray<FVector4> OutVal;
+					OutVal.Reserve(Width * Height);
 					for (int i = 0; i < Width * Height; i++)
-						OutVal.Add(Buffer[i]);
+						OutVal.Add(FVector4(Buffer[i].X, Buffer[i].Y, Buffer[i].Z, Buffer[i].W));
 
 					GPUBufferReadback->Unlock();
 
@@ -228,15 +228,10 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 }
 
 void UMySimpleComputeShaderLibrary_AsyncExecution::DrawDebugPoints(
-	UObject* WorldContextObject, const TArray<FVector4f>& Points)
+	UWorld* World, const TArray<FVector4>& Points)
 {
-	if (WorldContextObject == nullptr)
-		return;
-
-	UWorld* World = WorldContextObject->GetWorld();
-	if (World == nullptr)
+	if (!IsValid(World) || World->HasAnyFlags(EObjectFlags::RF_PendingKill))
 	{
-		UE_LOG(LogTemp, Error, TEXT("World object in DrawDebugPoints was nullptr."));
 		return;
 	}
 
