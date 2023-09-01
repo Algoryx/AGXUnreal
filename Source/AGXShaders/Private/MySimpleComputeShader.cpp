@@ -230,16 +230,24 @@ void FMySimpleComputeShaderInterface::DispatchRenderThread(
 }
 
 void UMySimpleComputeShaderLibrary_AsyncExecution::DrawDebugPoints(
-	UWorld* World, const TArray<FVector4>& Points)
+	UObject* WorldContextObject, const TArray<FVector4>& Points)
 {
-	if (!IsValid(World) || World->HasAnyFlags(EObjectFlags::RF_PendingKill))
+	if (!IsValid(WorldContextObject))
 	{
 		return;
 	}
 
-	FROS2Handler::SendPointCloud(Points);
+	UWorld* World = WorldContextObject->GetWorld();
 
 	for (const auto& P : Points)
 		if (P.X < 10000)
 			DrawDebugPoint(World, FVector(P.X, P.Y, P.Z), 5.f, FColor::Red, false, -1.f, 99);
+}
+
+void UMySimpleComputeShaderLibrary_AsyncExecution::SendAsROS2Msg(const TArray<FVector4>& Points)
+{
+	if (Points.Num() == 0)
+		return;
+
+	FROS2Handler::SendPointCloud(Points);
 }

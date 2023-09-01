@@ -83,13 +83,11 @@ public:
 			Params,
 			[this](const TArray<FVector4>& OutputVal)
 			{
-				if (!IsValid(this) || this->HasAnyFlags(EObjectFlags::RF_PendingKill) ||
-					!IsValid(World) || World->HasAnyFlags(EObjectFlags::RF_PendingKill))
+				if (!IsValid(this) || !IsValid(this->World))
 				{
 					return;
 				}
 
-				DrawDebugPoints(this->World, OutputVal);
 				this->Completed.Broadcast(OutputVal);
 			});
 	}
@@ -115,7 +113,11 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnMySimpleComputeShaderLibrary_AsyncExecutionCompleted Completed;
 
-	static void DrawDebugPoints(UWorld* World, const TArray<FVector4>& Points);
+	UFUNCTION(BlueprintCallable, meta = (Category = "ComputeShader", WorldContext = "WorldContextObject"))
+	static void DrawDebugPoints(UObject* WorldContextObject, const TArray<FVector4>& Points);
+
+	UFUNCTION(BlueprintCallable, meta = (Category = "ComputeShader"))
+	static void SendAsROS2Msg(const TArray<FVector4>& Points);
 
 	UTextureRenderTarget2D* RT;
 	UWorld* World;
