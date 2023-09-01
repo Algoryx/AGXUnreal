@@ -31,7 +31,7 @@ void FROS2Handler::SendPointCloud(const TArray<FVector4>& Points)
 		const uint8_t* p = reinterpret_cast<const uint8_t*>(&Points[i].X);
 		// Don't do this in production code, here we assume that X,Y,Z,W is packed together in
 		// sequence in memory.
-		for (int j = 0; j < ELEM_SIZE * 2; j++) 
+		for (int j = 0; j < ELEM_SIZE * 4; j++) 
 		{
 			msg.data.push_back(p[j]);
 		}
