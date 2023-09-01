@@ -28,7 +28,8 @@ public class AGXShaders : ModuleRules
       "Renderer",
       "RenderCore",
       "RHI",
-      "Projects"
+      "Projects",
+      "AGXUnrealBarrier"
     });
   }
 }

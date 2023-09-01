@@ -260,6 +260,9 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 		}
 
+		// Temp hacked in...
+		PublicAdditionalLibraries.Add("C:\\Users\\Admin\\git\\agxunreal\\AGXUnrealDev\\Plugins\\AGXUnreal\\Source\\ThirdParty\\agx\\lib\\Win64\\agxROS2.lib");
+
 		// Bundle AGX Dynamics resources in plugin if no bundled resources exists.
 		if (!IsAGXResourcesBundled())
 		{
@@ -335,6 +338,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			PublicDelayLoadDLLs.Add(FileName);
 			PreprocessorDynamicLibraries += FileName + " ";
 		}
+
+		// Temp hacked in...
+		PublicDelayLoadDLLs.Add("agxROS2.dll");
+		PreprocessorDynamicLibraries += "agxROS2.dll" + " ";
 
 		// Add the list of library names as a preprocessor definition so that it can be used at runtime
 		// to find and load the dynamic libraries.

@@ -11,6 +11,8 @@
 #include "CanvasTypes.h"
 #include "MaterialShader.h"
 
+#include "ROS2Handler.h"
+
 DECLARE_STATS_GROUP(
 	TEXT("MySimpleComputeShader"), STATGROUP_MySimpleComputeShader, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(
@@ -234,6 +236,8 @@ void UMySimpleComputeShaderLibrary_AsyncExecution::DrawDebugPoints(
 	{
 		return;
 	}
+
+	FROS2Handler::SendPointCloud(Points);
 
 	for (const auto& P : Points)
 		if (P.X < 10000)
