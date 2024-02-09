@@ -69,20 +69,12 @@ void UAGX_ShapeComponent::UpdateVisualMesh()
 
 	TSharedPtr<FAGX_SimpleMeshData> Data(new FAGX_SimpleMeshData());
 
-	if (ShouldCreateVisualMesh())
-	{
-		CreateVisualMesh(*Data.Get());
-	}
+	CreateVisualMesh(*Data.Get());
 
 	SetMeshData(Data);
 
 	if (SupportsShapeBodySetup() && GetWorld() && GetWorld()->IsGameWorld())
 		UpdateBodySetup(); // Used only in runtime.
-}
-
-bool UAGX_ShapeComponent::ShouldCreateVisualMesh() const
-{
-	return ShouldRender();
 }
 
 void UAGX_ShapeComponent::UpdateNativeProperties()

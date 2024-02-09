@@ -160,11 +160,6 @@ public:
 	virtual void OnAttachmentChanged() override;
 	//~ End USceneComponent Interface
 
-	/**
-	 * Returns whether this shape needs have a visual mesh representation.
-	 */
-	bool ShouldCreateVisualMesh() const;
-
 	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	void AddCollisionGroup(const FName& GroupName);
 
