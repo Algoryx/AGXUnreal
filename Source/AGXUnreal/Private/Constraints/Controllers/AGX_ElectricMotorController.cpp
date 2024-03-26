@@ -66,13 +66,18 @@ double FAGX_ConstraintElectricMotorController::GetVoltage() const
 	}
 }
 
-void FAGX_ConstraintElectricMotorController::SetArmatureRestistance(double InArmatureResistance)
+void FAGX_ConstraintElectricMotorController::SetArmatureResistance(double InArmatureResistance)
 {
 	if (HasNative())
 	{
 		GetElectricMotorBarrier(*this)->SetArmatureResistance(InArmatureResistance);
 	}
 	ArmatureResistance = InArmatureResistance;
+}
+
+void FAGX_ConstraintElectricMotorController::SetArmatureRestistance(double InArmatureResistance)
+{
+	SetArmatureResistance(InArmatureResistance);
 }
 
 double FAGX_ConstraintElectricMotorController::GetArmatureResistance() const

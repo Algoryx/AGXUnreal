@@ -43,6 +43,8 @@ struct AGXUNREAL_API FAGX_ConstraintElectricMotorController : public FAGX_Constr
 		Meta = (EditCondition = "bEnable"))
 	double ArmatureResistance {1.0};
 
+	void SetArmatureResistance(double InArmatureResistance);
+
 	void SetArmatureRestistance(double InArmatureResistance);
 
 	double GetArmatureResistance() const;
@@ -75,12 +77,49 @@ private:
 };
 
 /**
- * This class acts as an API that exposes functions of FAGX_TargetSpeedController in Blueprints.
+ * This class acts as an API that exposes functions of FAGX_ConstraintElectricMotorController in Blueprints.
  */
 UCLASS()
 class AGXUNREAL_API UAGX_ConstraintElectricMotorController_FL : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
+
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Electric Motor Controller")
+	static void SetVoltage(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller, double InVoltage)
+	{
+		Controller.SetVoltage(InVoltage);
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Electric Motor Controller")
+	static double GetVoltage(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller)
+	{
+		return Controller.GetVoltage();
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Electric Motor Controller")
+	static void SetArmatureRestistance(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller, double InArmatureResistance)
+	{
+		Controller.SetArmatureResistance(InArmatureResistance);
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Electric Motor Controller")
+	static double GetArmatureResistance(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller)
+	{
+		return Controller.GetArmatureResistance();
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Electric Motor Controller")
+	static void SetTorqueConstant(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller, double InTorqueConstant)
+	{
+		Controller.SetTorqueConstant(InTorqueConstant);
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Electric Motor Controller")
+	static double GetTorqueConstant(UPARAM(ref) FAGX_ConstraintElectricMotorController& Controller)
+	{
+		return Controller.GetTorqueConstant();
+	}
 
 	//~ Begin AGX_ConstraintController Blueprint Library interface.
 	// These are copy/pasted from FAGX_ConstraintController.h. See the comment in that file.
