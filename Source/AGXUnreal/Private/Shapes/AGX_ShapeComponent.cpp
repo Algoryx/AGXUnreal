@@ -73,7 +73,9 @@ void UAGX_ShapeComponent::UpdateVisualMesh()
 
 	SetMeshData(Data);
 
-	if (SupportsShapeBodySetup() && GetWorld() && GetWorld()->IsGameWorld())
+	//TODO: Check if this is legit way. Needed to raycast bedgeometries In-Editor
+	//if (SupportsShapeBodySetup() && GetWorld() && GetWorld()->IsGameWorld())
+	if (SupportsShapeBodySetup() && GetWorld() && IsValid(GetWorld()))
 		UpdateBodySetup(); // Used only in runtime.
 }
 
