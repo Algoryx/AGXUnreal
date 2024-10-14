@@ -36,33 +36,30 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	}
 }
 
-TArray<float> UAGX_MovableTerrainComponent::GenerateHeights(
-	int resX, int resY, float cellSize, bool flipYAxis) const
+bool UAGX_MovableTerrainComponent::HasNative() const
 {
-	TArray<UMeshComponent*> bedMeshComponents = GetBedGeometriesUMeshComponents();
-
-	float ySign = flipYAxis ? -1.0 : 1.0;
-	FVector origin = FVector(
-		-resX * cellSize / 2.0 + cellSize / 2, -ySign * resY * cellSize / 2.0 + cellSize / 2, 0.0);
-
-	TArray<float> heights;
-	heights.SetNumZeroed(resX * resY);
-	for (int y = 0; y < resY; y++)
-	{
-		for (int x = 0; x < resX; x++)
-		{
-			FVector pos = GetComponentTransform().TransformPosition(origin + FVector(x * cellSize, ySign * y * cellSize, 0));
-
-			float noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(pos, 3, 100, 0.5, 2.0, 2.0);
-			float bedHeight = UAGX_TerrainMeshUtilities::GetRaycastedHeight(pos, bedMeshComponents);
-
-			heights[y * resX + x] = bedHeight + noise * 50.0f;
-		}
-	}
-
-	return heights;
+	return NativeBarrier.HasNative();
 }
 
+FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative()
+{
+	if (!NativeBarrier.HasNative())
+	{
+		return nullptr;
+	}
+
+	return &NativeBarrier;
+}
+
+const FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative() const
+{
+	if (!NativeBarrier.HasNative())
+	{
+		return nullptr;
+	}
+
+	return &NativeBarrier;
+}
 
 void UAGX_MovableTerrainComponent::CreateNative(const FIntVector2& resolutionXY, double cellSize)
 {
@@ -130,67 +127,6 @@ TArray<UAGX_RigidBodyComponent*> UAGX_MovableTerrainComponent::GetBedGeometries(
 	return bodies;
 }
 
-
-void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
-{
-	if (UWorld* world = GetWorld(); IsValid(world) && !world->IsGameWorld() && !IsTemplate())
-	{
-		// In-Editor: Postpone the initialization for the next tick
-		world->GetTimerManager().SetTimerForNextTick(
-			[this, world]
-			{
-				// TEMP: Clamp Size/Resolution to avoid potential crashes
-				Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
-				FIntVector2 resolutionXY = FIntVector2(
-					FMath::Clamp(Resolution, 1, 256),
-					FMath::Clamp((Size.Y / Size.X) * Resolution, 1, 256));
-				float cellSize = FMath::Max(Size.X / resolutionXY.X, Size.Y / resolutionXY.Y);
-
-				auto heightArray =
-					this->GenerateHeights(resolutionXY.X, resolutionXY.Y, cellSize, false);
-				this->RebuildHeightMesh(Size, resolutionXY, heightArray);
-			});
-	}
-}
-void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
-{
-	Super::PostEditChangeProperty(event);
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeProperty"));
-	UpdateInEditorMesh();
-}
-
-void UAGX_MovableTerrainComponent::PostInitProperties()
-{
-	Super::PostInitProperties();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
-	UpdateInEditorMesh();
-}
-
-bool UAGX_MovableTerrainComponent::HasNative() const
-{
-	return NativeBarrier.HasNative();
-}
-
-FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative()
-{
-	if (!NativeBarrier.HasNative())
-	{
-		return nullptr;
-	}
-
-	return &NativeBarrier;
-}
-
-const FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative() const
-{
-	if (!NativeBarrier.HasNative())
-	{
-		return nullptr;
-	}
-
-	return &NativeBarrier;
-}
-
 TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
 {
 	TArray<FString> options;
@@ -215,6 +151,40 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
 		}
 	}
 	return options;
+}
+
+void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
+{
+	Super::PostEditChangeProperty(event);
+	UpdateInEditorMesh();
+}
+
+void UAGX_MovableTerrainComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	UpdateInEditorMesh();
+}
+
+void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
+{
+	if (UWorld* world = GetWorld(); IsValid(world) && !world->IsGameWorld() && !IsTemplate())
+	{
+		// In-Editor: Postpone the initialization for the next tick
+		world->GetTimerManager().SetTimerForNextTick(
+			[this, world]
+			{
+				// TEMP: Clamp Size/Resolution to avoid potential crashes
+				Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
+				FIntVector2 resolutionXY = FIntVector2(
+					FMath::Clamp(Resolution, 1, 256),
+					FMath::Clamp((Size.Y / Size.X) * Resolution, 1, 256));
+				float cellSize = FMath::Max(Size.X / resolutionXY.X, Size.Y / resolutionXY.Y);
+
+				auto heightArray =
+					this->GenerateHeights(resolutionXY.X, resolutionXY.Y, cellSize, false);
+				this->RebuildHeightMesh(Size, resolutionXY, heightArray);
+			});
+	}
 }
 
 TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshComponents() const
@@ -243,4 +213,32 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshCompo
 	}
 
 	return meshes;
+}
+
+TArray<float> UAGX_MovableTerrainComponent::GenerateHeights(
+	int resX, int resY, float cellSize, bool flipYAxis) const
+{
+	TArray<UMeshComponent*> bedMeshComponents = GetBedGeometriesUMeshComponents();
+
+	float ySign = flipYAxis ? -1.0 : 1.0;
+	FVector origin = FVector(
+		-resX * cellSize / 2.0 + cellSize / 2, -ySign * resY * cellSize / 2.0 + cellSize / 2, 0.0);
+
+	TArray<float> heights;
+	heights.SetNumZeroed(resX * resY);
+	for (int y = 0; y < resY; y++)
+	{
+		for (int x = 0; x < resX; x++)
+		{
+			FVector pos = GetComponentTransform().TransformPosition(
+				origin + FVector(x * cellSize, ySign * y * cellSize, 0));
+
+			float noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(pos, 3, 100, 0.5, 2.0, 2.0);
+			float bedHeight = UAGX_TerrainMeshUtilities::GetRaycastedHeight(pos, bedMeshComponents);
+
+			heights[y * resX + x] = bedHeight + noise * 50.0f;
+		}
+	}
+
+	return heights;
 }
