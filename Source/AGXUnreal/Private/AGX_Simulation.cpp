@@ -22,6 +22,7 @@
 #include "Shapes/ShapeBarrier.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -318,6 +319,40 @@ void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 				 "false. The Log category AGXDynamicsLog may contain more information about "
 				 "the failure."),
 			*Terrain.GetName());
+	}
+}
+
+void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	EnsureStepperCreated();
+
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' to Simulation that does not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' that does not have a native to Simulation."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	bool result = GetNative()->Add(*MovableTerrain.GetNative());
+
+	if (!result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Failed to add '%s' to Simulation. FSimulationBarrier::Add returned "
+				 "false. The Log category AGXDynamicsLog may contain more information about "
+				 "the failure."),
+			*MovableTerrain.GetName());
 	}
 }
 

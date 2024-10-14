@@ -20,6 +20,7 @@
 
 class AAGX_Stepper;
 class AAGX_Terrain;
+class UAGX_MovableTerrainComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_RigidBodyComponent;
@@ -460,6 +461,7 @@ public: // Member functions.
 	void Add(UAGX_ShapeMaterial& Shape);
 	void Add(UAGX_StaticMeshComponent& Body);
 	void Add(AAGX_Terrain& Terrain);
+	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
 	void Add(UAGX_TireComponent& Tire);
 	void Add(UAGX_WireComponent& Wire);
 
