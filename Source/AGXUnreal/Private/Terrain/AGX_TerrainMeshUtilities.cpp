@@ -130,7 +130,6 @@ float UAGX_TerrainMeshUtilities::GetRaycastedHeight(
 	float bedHeight = 0.0f;
 	for (auto uMesh : meshComponents)
 	{
-		float rayLength = 1000.0f;
 		FHitResult hit;
 		FCollisionQueryParams params;
 		FVector start = pos + FVector::UpVector * rayLength;
@@ -145,7 +144,7 @@ float UAGX_TerrainMeshUtilities::GetRaycastedHeight(
 	return bedHeight;
 }
 
-float UAGX_TerrainMeshUtilities::SampleHeightArrayBiLerp(
+float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
 {
 	// Normalize UV coordinates to the range [0, 1]
@@ -175,14 +174,3 @@ float UAGX_TerrainMeshUtilities::SampleHeightArrayBiLerp(
 	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
 }
 
-float UAGX_TerrainMeshUtilities::SampleHeightArray(
-	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
-{
-	UV.X = FMath::Clamp(UV.X, 0.0f, 1.0f);
-	UV.Y = FMath::Clamp(UV.Y, 0.0f, 1.0f);
-
-	int32 X = FMath::FloorToInt(UV.X * (Width - 1));
-	int32 Y = FMath::FloorToInt(UV.Y * (Height - 1));
-
-	return HeightArray[Y * Width + X];
-}

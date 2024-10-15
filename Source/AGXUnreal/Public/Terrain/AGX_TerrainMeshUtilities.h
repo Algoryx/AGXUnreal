@@ -50,8 +50,6 @@ public:
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
-	static float SampleHeightArrayBiLerp(
-		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
 
 private:
 	static void GenerateTriangles(
