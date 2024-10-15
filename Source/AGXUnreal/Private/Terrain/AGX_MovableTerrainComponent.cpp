@@ -105,6 +105,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		// Create Native using Heightfield
 		double maxDepth = 200.0;
 		NativeBarrier.AllocateNative(HeightField, maxDepth);
+
+		//Set transform
+		NativeBarrier.SetRotation(this->GetComponentQuat());
+		NativeBarrier.SetPosition(this->GetComponentLocation());
 	}
 	else
 	{
@@ -114,12 +118,13 @@ void UAGX_MovableTerrainComponent::CreateNative()
 			bedBarriers.Push(rb->GetOrCreateNative());
 
 		// Create Native using BedGeometries
-		NativeBarrier.AllocateNative(Resolution, bedBarriers, 10.0);
+		NativeBarrier.AllocateNative(Resolution, bedBarriers, 10.0, 1.0);
+
+		
+		// Set transform
+		NativeBarrier.SetRotation(this->GetComponentQuat());
+		this->SetWorldLocation(NativeBarrier.GetPosition());
 	}
-
-
-	NativeBarrier.SetRotation(this->GetComponentQuat());
-	NativeBarrier.SetPosition(this->GetComponentLocation());
 
 	// Copy Native Heights
 	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());

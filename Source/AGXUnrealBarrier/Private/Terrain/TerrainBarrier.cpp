@@ -58,7 +58,8 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 }
 
 void FTerrainBarrier::AllocateNative(
-	int resolution, const TArray<FRigidBodyBarrier*>& bedRigidBodyBarriers, double edgeMarigin)
+	int resolution, const TArray<FRigidBodyBarrier*>& bedRigidBodyBarriers, double edgeMarigin,
+	double bedZOffset)
 {
 	check(!HasNative());
 
@@ -74,7 +75,7 @@ void FTerrainBarrier::AllocateNative(
 
 	
 	NativeRef->Native = agxTerrain::Terrain::createTerrainBedFromGeometries(
-		resolution, bedGeoms, ConvertDistanceToAGX(edgeMarigin));
+		resolution, bedGeoms, ConvertDistanceToAGX(edgeMarigin), ConvertDistanceToAGX(bedZOffset));
 }
 
 FTerrainRef* FTerrainBarrier::GetNative()
