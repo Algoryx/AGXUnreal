@@ -20,7 +20,7 @@ class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshCompone
 	GENERATED_BODY()
 public:
 	bool HasNative() const;
-	void CreateNative(const FIntVector2& resolutionXY, double cellSize);
+	void CreateNative();
 	FTerrainBarrier* GetNative();
 	const FTerrainBarrier* GetNative() const;
 	TArray<UAGX_RigidBodyComponent*> GetBedGeometries() const;
@@ -46,13 +46,13 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void RebuildHeightMesh(
-		const FVector2D& size, const FIntVector2& resolutionXY, const TArray<float>& heightArray);
+		const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray);
 
 private:
 	FTerrainBarrier NativeBarrier;
 	TArray<float> CurrentHeights;
 
 	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
-	TArray<float> GenerateHeights(int resX, int resY, float cellSize, bool flipYAxis) const;
+	TArray<float> GenerateEditorHeights(int resX, int resY, float cellSize, bool flipYAxis) const;
 	void UpdateInEditorMesh();
 };

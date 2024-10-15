@@ -13,25 +13,31 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
-	FIntVector2 resolutionXY = FIntVector2(
-		FMath::Clamp(Resolution, 1, 256), FMath::Clamp((Size.Y / Size.X) * Resolution, 1, 256));
-	double cellSize = FMath::Max(Size.X / resolutionXY.X, Size.Y / resolutionXY.Y);
+	//Create Native
+	CreateNative();
+	
+	//Get Native size and resolution
+	int resX = NativeBarrier.GetGridSizeX();
+	int resY = NativeBarrier.GetGridSizeY();
+	FVector2D size = NativeBarrier.GetSize();
 
-	CreateNative(resolutionXY, cellSize);
-	RebuildHeightMesh(Size, resolutionXY, CurrentHeights);
+	//Rebuild mesh
+	RebuildHeightMesh(size, resX, resY, CurrentHeights);
 
+	//Check to update mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
-		// Call NativeBarrier.GetHeights and RebuildHeightMesh
 		auto PostStepForwardHandle =
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.AddLambda(
-					[this, resolutionXY](double)
+					[this, resX, resY, size](double)
 					{
+						//Update CurrentHeights
 						NativeBarrier.GetHeights(CurrentHeights, true);
+
+						//Rebuild mesh if needed
 						if (NativeBarrier.GetModifiedVertices().Num() > 0)
-							RebuildHeightMesh(Size, resolutionXY, CurrentHeights);
+							RebuildHeightMesh(size, resX, resY, CurrentHeights);
 					});
 	}
 }
@@ -61,24 +67,43 @@ const FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative() const
 	return &NativeBarrier;
 }
 
-void UAGX_MovableTerrainComponent::CreateNative(const FIntVector2& resolutionXY, double cellSize)
+void UAGX_MovableTerrainComponent::CreateNative()
 {
-	// Create Heightfield
-	FHeightFieldShapeBarrier HeightField;
-	HeightField.AllocateNative(
-		resolutionXY.X, resolutionXY.Y, resolutionXY.X * cellSize, resolutionXY.Y * cellSize);
-	TArray<float> generatedHeights =
-		GenerateHeights(resolutionXY.X, resolutionXY.Y, cellSize, true);
-	HeightField.SetHeights(generatedHeights);
+	if (GetBedGeometries().Num() == 0)
+	{
+		// Create Heightfield
+		int resX = Resolution;
+		int resY = (Size.Y / Size.X) * Resolution;
 
-	// Create Native
-	double maxDepth = 200.0;
-	NativeBarrier.AllocateNative(HeightField, maxDepth);
+		double cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
+		FHeightFieldShapeBarrier HeightField;
+		HeightField.AllocateNative(resX, resY, resX * cellSize, resY * cellSize);
+		TArray<float> heights;
+		heights.SetNumZeroed(resX * resY);
+		HeightField.SetHeights(heights);
+
+		// Create Native using Heightfield
+		double maxDepth = 200.0;
+		NativeBarrier.AllocateNative(HeightField, maxDepth);
+	}
+	else
+	{
+		// Create Bed
+		TArray<FRigidBodyBarrier*> bedBarriers;
+		for (auto rb : GetBedGeometries())
+			bedBarriers.Push(rb->GetOrCreateNative());
+			//bedBarriers.Push(rb->GetNative());
+
+		// Create Native using BedGeometries
+		NativeBarrier.AllocateNative(Resolution, bedBarriers);
+	}
+
+
 	NativeBarrier.SetRotation(this->GetComponentQuat());
 	NativeBarrier.SetPosition(this->GetComponentLocation());
 
 	// Copy Native Heights
-	CurrentHeights.Reserve(resolutionXY.X * resolutionXY.Y);
+	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
 	NativeBarrier.GetHeights(CurrentHeights, false);
 
 	// Add Native
@@ -87,18 +112,17 @@ void UAGX_MovableTerrainComponent::CreateNative(const FIntVector2& resolutionXY,
 }
 
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
-	const FVector2D& size, const FIntVector2& resolutionXY, const TArray<float>& heightArray)
+	const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray)
 {
 	auto HeightFunction = [&](const FVector& pos) -> float
 	{
-		return UAGX_TerrainMeshUtilities::SampleHeightArrayBiLerp(
-			FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resolutionXY.X,
-			resolutionXY.Y);
+		return UAGX_TerrainMeshUtilities::SampleHeightArray(
+			FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
 	};
 
 	// Create mesh description
 	auto meshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-		FVector::Zero(), size, resolutionXY, 1.0f / 100.0f, HeightFunction);
+		FVector::Zero(), size, FIntVector2(resX, resY), 1.0f / 100.0f, HeightFunction);
 
 	// Create procedural mesh section
 	CreateMeshSection(
@@ -175,14 +199,15 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 			{
 				// TEMP: Clamp Size/Resolution to avoid potential crashes
 				Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
-				FIntVector2 resolutionXY = FIntVector2(
-					FMath::Clamp(Resolution, 1, 256),
-					FMath::Clamp((Size.Y / Size.X) * Resolution, 1, 256));
-				float cellSize = FMath::Max(Size.X / resolutionXY.X, Size.Y / resolutionXY.Y);
+				Resolution = FMath::Clamp(Resolution, 1, 256);
 
-				auto heightArray =
-					this->GenerateHeights(resolutionXY.X, resolutionXY.Y, cellSize, false);
-				this->RebuildHeightMesh(Size, resolutionXY, heightArray);
+				int resX = Resolution;
+				int resY = (Size.Y / Size.X) * Resolution;
+
+				float cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
+
+				auto heightArray = this->GenerateEditorHeights(resX, resY, cellSize, false);
+				this->RebuildHeightMesh(Size, resX, resY, heightArray);
 			});
 	}
 }
@@ -215,7 +240,7 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshCompo
 	return meshes;
 }
 
-TArray<float> UAGX_MovableTerrainComponent::GenerateHeights(
+TArray<float> UAGX_MovableTerrainComponent::GenerateEditorHeights(
 	int resX, int resY, float cellSize, bool flipYAxis) const
 {
 	TArray<UMeshComponent*> bedMeshComponents = GetBedGeometriesUMeshComponents();
