@@ -20,6 +20,7 @@ class FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
+class FRigidBodyBarrier;
 
 /**
  *
@@ -34,6 +35,7 @@ public:
 
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
+	void AllocateNative(int resolution, const TArray<FRigidBodyBarrier*>& bedGeometries);
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;
 	void ReleaseNative();
@@ -80,6 +82,8 @@ public:
 
 	int32 GetGridSizeX() const;
 	int32 GetGridSizeY() const;
+
+	FVector2D GetSize() const;
 
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.

@@ -19,6 +19,7 @@
 #include <agxCollide/HeightField.h>
 #include <agx/Physics/GranularBodySystem.h>
 #include "EndAGXIncludes.h"
+#include <AGX_AgxDynamicsObjectsAccess.h>
 
 FTerrainBarrier::FTerrainBarrier()
 	: NativeRef {new FTerrainRef}
@@ -54,6 +55,24 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 	agxCollide::HeightField* HeightFieldAGX =
 		SourceHeightField.GetNativeShape<agxCollide::HeightField>();
 	NativeRef->Native = agxTerrain::Terrain::createFromHeightField(HeightFieldAGX, MaxDepthAGX);
+}
+
+void FTerrainBarrier::AllocateNative(
+	int resolution, const TArray<FRigidBodyBarrier*>& bedRigidBodyBarriers)
+{
+	check(!HasNative());
+
+	agxCollide::GeometryPtrVector bedGeoms;
+	for (const FRigidBodyBarrier* rigidBodyBarrier : bedRigidBodyBarriers)
+	{
+		agx::RigidBody* rigidBody = FAGX_AgxDynamicsObjectsAccess::GetFrom(rigidBodyBarrier);
+
+		agxCollide::GeometryRefVector geometries = rigidBody->getGeometries();
+		for (const agxCollide::GeometryRef& geometry : geometries)
+			bedGeoms.push_back(geometry.get());
+	}
+
+	NativeRef->Native = agxTerrain::Terrain::createTerrainBedFromGeometries(resolution, bedGeoms);
 }
 
 FTerrainRef* FTerrainBarrier::GetNative()
@@ -265,6 +284,12 @@ int32 FTerrainBarrier::GetGridSizeY() const
 	size_t GridSize = NativeRef->Native->getResolutionY();
 	check(GridSize < static_cast<size_t>(std::numeric_limits<int32>::max()));
 	return static_cast<int32>(GridSize);
+}
+
+FVector2D FTerrainBarrier::GetSize() const
+{
+	check(HasNative());
+	return ConvertDistance(NativeRef->Native->getSize());
 }
 
 TArray<std::tuple<int32, int32>> FTerrainBarrier::GetModifiedVertices() const
