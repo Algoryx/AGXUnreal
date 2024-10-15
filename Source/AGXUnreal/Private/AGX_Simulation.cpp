@@ -462,6 +462,44 @@ void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	}
 }
 
+void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from a Simulation that does not have a "
+				 "native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but the Terrain does "
+				 "not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	const bool Result = [this, &MovableTerrain]()
+	{ 
+		return GetNative()->Remove(*MovableTerrain.GetNative());
+	}();
+
+	if (!Result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but "
+				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
+				 "contain more information about the failure."),
+			*MovableTerrain.GetName());
+	}
+}
+
 void UAGX_Simulation::Remove(UAGX_TireComponent& Tire)
 {
 	AGX_Simulation_helpers::Remove(*this, Tire);

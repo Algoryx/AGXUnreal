@@ -27,7 +27,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	//Check to update mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
-		auto PostStepForwardHandle =
+		PostStepForwardHandle =
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.AddLambda(
 					[this, resX, resY, size](double)
@@ -39,6 +39,26 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 						if (NativeBarrier.GetModifiedVertices().Num() > 0)
 							RebuildHeightMesh(size, resX, resY, CurrentHeights);
 					});
+	}
+}
+
+void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+		{
+			// @todo Figure out how to handle Terrain Materials. A Terrain Material can be
+			// shared between many Terrains in theory. We only want to remove the Terrain
+			// Material from the simulation if this Terrain is the last one using it. Some
+			// reference counting may be needed.
+			Simulation->Remove(*this);
+
+			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+				.Remove(PostStepForwardHandle);
+		}
 	}
 }
 
@@ -95,7 +115,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 			//bedBarriers.Push(rb->GetNative());
 
 		// Create Native using BedGeometries
-		NativeBarrier.AllocateNative(Resolution, bedBarriers);
+		NativeBarrier.AllocateNative(Resolution, bedBarriers, 1.0);
 	}
 
 
@@ -116,8 +136,14 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 {
 	auto HeightFunction = [&](const FVector& pos) -> float
 	{
-		return UAGX_TerrainMeshUtilities::SampleHeightArray(
-			FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
+		int x = FMath::Clamp(static_cast<int>((pos.X / size.X + 0.5f) * resX), 0, resX - 1);
+		int y = FMath::Clamp(static_cast<int>((pos.Y / size.Y + 0.5f) * resY), 0, resY - 1);
+
+		//int x = (pos.X / size.X + 0.5) * resX;
+		//int y = (pos.Y / size.Y + 0.5) * resY;
+		return heightArray[y * resX + x];
+		//return UAGX_TerrainMeshUtilities::SampleHeightArray(
+		//	FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
 	};
 
 	// Create mesh description
@@ -258,10 +284,10 @@ TArray<float> UAGX_MovableTerrainComponent::GenerateEditorHeights(
 			FVector pos = GetComponentTransform().TransformPosition(
 				origin + FVector(x * cellSize, ySign * y * cellSize, 0));
 
-			float noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(pos, 3, 100, 0.5, 2.0, 2.0);
+			//float noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(pos, 3, 100, 0.5, 2.0, 2.0);
 			float bedHeight = UAGX_TerrainMeshUtilities::GetRaycastedHeight(pos, bedMeshComponents);
 
-			heights[y * resX + x] = bedHeight + noise * 50.0f;
+			heights[y * resX + x] = bedHeight;// + noise * 50.0f;
 		}
 	}
 

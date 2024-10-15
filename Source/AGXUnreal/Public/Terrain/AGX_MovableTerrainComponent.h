@@ -35,15 +35,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
 
-	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedGeometryOptions() const;
-
 	virtual void PostInitProperties() override;
-
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
 
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	virtual void RebuildHeightMesh(
 		const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray);
@@ -51,6 +48,10 @@ protected:
 private:
 	FTerrainBarrier NativeBarrier;
 	TArray<float> CurrentHeights;
+	FDelegateHandle PostStepForwardHandle;
+
+	UFUNCTION(CallInEditor)
+	TArray<FString> GetBedGeometryOptions() const;
 
 	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
 	TArray<float> GenerateEditorHeights(int resX, int resY, float cellSize, bool flipYAxis) const;

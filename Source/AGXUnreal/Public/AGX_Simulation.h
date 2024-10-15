@@ -471,6 +471,7 @@ public: // Member functions.
 	void Remove(UAGX_ShapeMaterial& Shape);
 	void Remove(UAGX_StaticMeshComponent& Body);
 	void Remove(AAGX_Terrain& Terrain);
+	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
 	void Remove(UAGX_TireComponent& Tire);
 	void Remove(UAGX_WireComponent& Wire);
 
