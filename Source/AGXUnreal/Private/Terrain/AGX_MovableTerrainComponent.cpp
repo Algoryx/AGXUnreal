@@ -112,10 +112,9 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		TArray<FRigidBodyBarrier*> bedBarriers;
 		for (auto rb : GetBedGeometries())
 			bedBarriers.Push(rb->GetOrCreateNative());
-			//bedBarriers.Push(rb->GetNative());
 
 		// Create Native using BedGeometries
-		NativeBarrier.AllocateNative(Resolution, bedBarriers, 1.0);
+		NativeBarrier.AllocateNative(Resolution, bedBarriers, 10.0);
 	}
 
 
@@ -136,14 +135,8 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 {
 	auto HeightFunction = [&](const FVector& pos) -> float
 	{
-		int x = FMath::Clamp(static_cast<int>((pos.X / size.X + 0.5f) * resX), 0, resX - 1);
-		int y = FMath::Clamp(static_cast<int>((pos.Y / size.Y + 0.5f) * resY), 0, resY - 1);
-
-		//int x = (pos.X / size.X + 0.5) * resX;
-		//int y = (pos.Y / size.Y + 0.5) * resY;
-		return heightArray[y * resX + x];
-		//return UAGX_TerrainMeshUtilities::SampleHeightArray(
-		//	FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
+		return UAGX_TerrainMeshUtilities::SampleHeightArray(
+			FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
 	};
 
 	// Create mesh description
@@ -287,7 +280,7 @@ TArray<float> UAGX_MovableTerrainComponent::GenerateEditorHeights(
 			//float noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(pos, 3, 100, 0.5, 2.0, 2.0);
 			float bedHeight = UAGX_TerrainMeshUtilities::GetRaycastedHeight(pos, bedMeshComponents);
 
-			heights[y * resX + x] = bedHeight;// + noise * 50.0f;
+			heights[y * resX + x] = bedHeight;
 		}
 	}
 
