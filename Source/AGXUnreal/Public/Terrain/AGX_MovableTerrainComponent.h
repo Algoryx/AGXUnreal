@@ -9,7 +9,7 @@
 #include "AGX_MovableTerrainComponent.generated.h"
 
 
-class UAGX_RigidBodyComponent;
+class UAGX_ShapeComponent;
 
 /**
  *
@@ -23,7 +23,7 @@ public:
 	void CreateNative();
 	FTerrainBarrier* GetNative();
 	const FTerrainBarrier* GetNative() const;
-	TArray<UAGX_RigidBodyComponent*> GetBedGeometries() const;
+	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 protected:
 	UPROPERTY(EditAnywhere)

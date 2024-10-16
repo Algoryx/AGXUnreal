@@ -20,7 +20,7 @@ class FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
-class FRigidBodyBarrier;
+class FShapeBarrier;
 
 /**
  *
@@ -36,7 +36,7 @@ public:
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
 	void AllocateNative(
-		int resolution, const TArray<FRigidBodyBarrier*>& bedGeometries, double edgeMarigin = 0.0,
+		int resolution, const TArray<FShapeBarrier*>& bedGeometries, double edgeMarigin = 0.0,
 		double bedZOffset = 0.0);
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;

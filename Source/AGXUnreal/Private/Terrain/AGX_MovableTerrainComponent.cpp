@@ -1,6 +1,7 @@
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
+#include "Shapes/AGX_ShapeComponent.h"
 #include "AGX_InternalDelegateAccessor.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_LogCategory.h"
@@ -91,11 +92,12 @@ void UAGX_MovableTerrainComponent::CreateNative()
 {
 	if (GetBedGeometries().Num() == 0)
 	{
-		// Create Heightfield
+		// Size and resolution
 		int resX = Resolution;
 		int resY = (Size.Y / Size.X) * Resolution;
-
 		double cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
+
+		// Create HeightfieldBarrier
 		FHeightFieldShapeBarrier HeightField;
 		HeightField.AllocateNative(resX, resY, resX * cellSize, resY * cellSize);
 		TArray<float> heights;
@@ -112,15 +114,21 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	}
 	else
 	{
-		// Create Bed
-		TArray<FRigidBodyBarrier*> bedBarriers;
-		for (auto rb : GetBedGeometries())
-			bedBarriers.Push(rb->GetOrCreateNative());
+		// Create Bed ShapeBarriers
+		TArray<FShapeBarrier*> bedShapeBarriers;
+		for (UAGX_ShapeComponent* shape : GetBedGeometries())
+		{
+			auto sb = shape->GetOrCreateNative();
+			sb->SetWorldPosition(
+				shape->GetComponentTransform().GetLocation());
+			sb->SetWorldRotation(
+				shape->GetComponentTransform().GetRotation());
+			bedShapeBarriers.Push(sb);
+		}
 
 		// Create Native using BedGeometries
-		NativeBarrier.AllocateNative(Resolution, bedBarriers, 10.0, 1.0);
+		NativeBarrier.AllocateNative(Resolution, bedShapeBarriers, 10.0, 1.0);
 
-		
 		// Set transform
 		NativeBarrier.SetRotation(this->GetComponentQuat());
 		this->SetWorldLocation(NativeBarrier.GetPosition());
@@ -138,8 +146,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray)
 {
+	//Creeate height function
 	auto HeightFunction = [&](const FVector& pos) -> float
 	{
+		//Samples heightArray
 		return UAGX_TerrainMeshUtilities::SampleHeightArray(
 			FVector2D(pos.X / size.X + 0.5, (pos.Y / size.Y + 0.5)), heightArray, resX, resY);
 	};
@@ -148,31 +158,31 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	auto meshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
 		FVector::Zero(), size, FIntVector2(resX, resY), 1.0f / 100.0f, HeightFunction);
 
-	// Create procedural mesh section
+	// Create mesh section
 	CreateMeshSection(
 		0, meshDesc->Vertices, meshDesc->Triangles, meshDesc->Normals, meshDesc->UV0,
 		meshDesc->Colors, meshDesc->Tangents, false);
 }
 
-TArray<UAGX_RigidBodyComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() const
+TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() const
 {
-	TArray<UAGX_RigidBodyComponent*> bodies;
+	TArray<UAGX_ShapeComponent*> shapes;
 	if (GetOwner() != nullptr)
 	{
 		for (auto component : GetOwner()->GetComponents())
 		{
-			UAGX_RigidBodyComponent* rbComponent = Cast<UAGX_RigidBodyComponent>(component);
-			if (rbComponent != nullptr)
+			UAGX_ShapeComponent* sComponent = Cast<UAGX_ShapeComponent>(component);
+			if (sComponent != nullptr)
 			{
 				FName name = component->GetFName();
 				if (BedGeometries.Contains(name))
 				{
-					bodies.Add(rbComponent);
+					shapes.Add(sComponent);
 				}
 			}
 		}
 	}
-	return bodies;
+	return shapes;
 }
 
 TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
@@ -189,9 +199,9 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
 
 	for (const USCS_Node* component : constructionScript->GetAllNodes())
 	{
-		const UAGX_RigidBodyComponent* rbComponent =
-			Cast<UAGX_RigidBodyComponent>(component->ComponentTemplate);
-		if (rbComponent != nullptr)
+		const UAGX_ShapeComponent* sComponent =
+			Cast<UAGX_ShapeComponent>(component->ComponentTemplate);
+		if (sComponent != nullptr)
 		{
 			FName name = component->GetVariableName();
 			if (!BedGeometries.Contains(name))
@@ -242,21 +252,15 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshCompo
 
 	if (GetOwner() != nullptr)
 	{
-		auto rigidBodies = GetBedGeometries();
+		auto shapes = GetBedGeometries();
 
-		for (auto rb : rigidBodies)
+		for (auto shape : shapes)
 		{
-			TArray<USceneComponent*> children;
-			rb->GetChildrenComponents(true, children);
+			UMeshComponent* uMeshComponent = Cast<UMeshComponent>(shape);
 
-			for (auto child : children)
+			if (uMeshComponent != nullptr)
 			{
-				UMeshComponent* uMeshComponent = Cast<UMeshComponent>(child);
-
-				if (uMeshComponent != nullptr)
-				{
-					meshes.Add(uMeshComponent);
-				}
+				meshes.Add(uMeshComponent);
 			}
 		}
 	}
@@ -267,7 +271,7 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshCompo
 TArray<float> UAGX_MovableTerrainComponent::GenerateEditorHeights(
 	int resX, int resY, float cellSize, bool flipYAxis) const
 {
-	TArray<UMeshComponent*> bedMeshComponents = GetBedGeometriesUMeshComponents();
+	auto bedMeshComponents = GetBedGeometriesUMeshComponents();
 
 	float ySign = flipYAxis ? -1.0 : 1.0;
 	FVector origin = FVector(

@@ -58,19 +58,17 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 }
 
 void FTerrainBarrier::AllocateNative(
-	int resolution, const TArray<FRigidBodyBarrier*>& bedRigidBodyBarriers, double edgeMarigin,
+	int resolution, const TArray<FShapeBarrier*>& bedShapeBarriers, double edgeMarigin,
 	double bedZOffset)
 {
 	check(!HasNative());
 
 	agxCollide::GeometryPtrVector bedGeoms;
-	for (const FRigidBodyBarrier* rigidBodyBarrier : bedRigidBodyBarriers)
+	for (const FShapeBarrier* shapeBarrier : bedShapeBarriers)
 	{
-		agx::RigidBody* rigidBody = FAGX_AgxDynamicsObjectsAccess::GetFrom(rigidBodyBarrier);
-
-		agxCollide::GeometryRefVector geometries = rigidBody->getGeometries();
-		for (const agxCollide::GeometryRef& geometry : geometries)
-			bedGeoms.push_back(geometry.get());
+		
+		agxCollide::Geometry* geometry = FAGX_AgxDynamicsObjectsAccess::GetGeometryFrom(shapeBarrier);
+		bedGeoms.push_back(geometry);
 	}
 
 	
