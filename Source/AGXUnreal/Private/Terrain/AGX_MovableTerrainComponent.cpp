@@ -108,33 +108,49 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		double maxDepth = 200.0;
 		NativeBarrier.AllocateNative(HeightField, maxDepth);
 
-		//Set transform
-		NativeBarrier.SetRotation(this->GetComponentQuat());
-		NativeBarrier.SetPosition(this->GetComponentLocation());
 	}
 	else
 	{
-		// Create Bed ShapeBarriers
 		TArray<FShapeBarrier*> bedShapeBarriers;
+		TArray<FTransform> storedTransforms;
 		for (UAGX_ShapeComponent* shape : GetBedGeometries())
 		{
+			// Get Bed ShapeBarrier
 			auto sb = shape->GetOrCreateNative();
-
-			//TODO: Should we restore this to their former values after Native is created?
-			sb->SetWorldPosition(
-				shape->GetComponentTransform().GetLocation());
-			sb->SetWorldRotation(
-				shape->GetComponentTransform().GetRotation());
 			bedShapeBarriers.Push(sb);
+
+			// Store its current transform
+			storedTransforms.Push(
+				FTransform(sb->GetLocalRotation(), sb->GetWorldPosition(), FVector::One()));
+
+			// Temporarily set its transform to this component's frame of refernce
+			FVector localPos = shape->GetAttachParent()
+								   ->GetComponentTransform().InverseTransformPosition(
+					this->GetComponentTransform().InverseTransformPosition(sb->GetWorldPosition()));
+			FQuat localRot = shape->GetAttachParent()->GetComponentQuat().Inverse() *
+							 this->GetComponentQuat().Inverse() * sb->GetWorldRotation();
+
+			sb->SetLocalPosition(localPos);
+			sb->SetLocalRotation(localRot);
 		}
 
 		// Create Native using BedGeometries
 		NativeBarrier.AllocateNative(Resolution, bedShapeBarriers, 10.0, 1.0);
 
-		// Set transform
-		NativeBarrier.SetRotation(this->GetComponentQuat());
-		this->SetWorldLocation(NativeBarrier.GetPosition());
+		// Restore original shape transforms
+		for (int i = 0; i < bedShapeBarriers.Num(); i++)
+		{
+			auto sb = bedShapeBarriers[i];
+			auto st = storedTransforms[i];
+
+			sb->SetLocalPosition(st.GetLocation());
+			sb->SetLocalRotation(st.GetRotation());
+		}
 	}
+
+	// Set transform
+	NativeBarrier.SetRotation(this->GetComponentQuat());
+	NativeBarrier.SetPosition(this->GetComponentLocation());
 
 	// Copy Native Heights
 	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
