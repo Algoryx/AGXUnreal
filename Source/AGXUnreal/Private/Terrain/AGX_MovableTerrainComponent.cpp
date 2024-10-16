@@ -119,6 +119,8 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		for (UAGX_ShapeComponent* shape : GetBedGeometries())
 		{
 			auto sb = shape->GetOrCreateNative();
+
+			//TODO: Should we restore this to their former values after Native is created?
 			sb->SetWorldPosition(
 				shape->GetComponentTransform().GetLocation());
 			sb->SetWorldRotation(
@@ -231,17 +233,20 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 		world->GetTimerManager().SetTimerForNextTick(
 			[this, world]
 			{
-				// TEMP: Clamp Size/Resolution to avoid potential crashes
-				Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
-				Resolution = FMath::Clamp(Resolution, 1, 256);
+				if (IsValid(world))
+				{
+					// TEMP: Clamp Size/Resolution to avoid potential crashes
+					Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
+					Resolution = FMath::Clamp(Resolution, 1, 256);
 
-				int resX = Resolution;
-				int resY = (Size.Y / Size.X) * Resolution;
+					int resX = Resolution;
+					int resY = (Size.Y / Size.X) * Resolution;
 
-				float cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
+					float cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
 
-				auto heightArray = this->GenerateEditorHeights(resX, resY, cellSize, false);
-				this->RebuildHeightMesh(Size, resX, resY, heightArray);
+					auto heightArray = this->GenerateEditorHeights(resX, resY, cellSize, false);
+					this->RebuildHeightMesh(Size, resX, resY, heightArray);
+				}
 			});
 	}
 }
