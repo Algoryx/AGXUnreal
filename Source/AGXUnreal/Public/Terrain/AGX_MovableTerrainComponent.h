@@ -30,6 +30,9 @@ protected:
 	int Resolution = 20;
 
 	UPROPERTY(EditAnywhere)
+	UMaterialInterface* Material;
+
+	UPROPERTY(EditAnywhere)
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
@@ -40,6 +43,13 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	double BedZOffset = 1.0;
+
+	UPROPERTY(EditAnywhere)
+	float NoiseHeight = 50.0f;
+
+	UPROPERTY(EditAnywhere)
+	float StartHeight = 0.0f;
+	
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -60,9 +70,12 @@ private:
 	TArray<FString> GetBedGeometryOptions() const;
 
 	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
-	float CreateRaycastedHeights(
-		const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY,
-		float cellSize, bool flipYAxis, TArray<float>& heights) const;
+	float AddRaycastedHeights(
+		TArray<float>& heights,
+		const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY, float cellSize, bool flipYAxis) const;
+	
+	void AddNoiseHeights(
+		TArray<float>& heights, int resX, int resY, float cellSize, bool flipYAxis) const;
 	FBox CreateEncapsulatingBoundingBox(
 		const TArray<UMeshComponent*>& Meshes, const FTransform& origoTransform);
 	void UpdateInEditorMesh();

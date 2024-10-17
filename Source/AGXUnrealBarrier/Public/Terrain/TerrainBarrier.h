@@ -86,6 +86,7 @@ public:
 	int32 GetGridSizeY() const;
 
 	FVector2D GetSize() const;
+	double GetElementSize() const;
 
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.

@@ -293,6 +293,12 @@ FVector2D FTerrainBarrier::GetSize() const
 	return ConvertDistance(NativeRef->Native->getSize());
 }
 
+double FTerrainBarrier::GetElementSize() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getElementSize());
+}
+
 TArray<std::tuple<int32, int32>> FTerrainBarrier::GetModifiedVertices() const
 {
 	check(HasNative());
