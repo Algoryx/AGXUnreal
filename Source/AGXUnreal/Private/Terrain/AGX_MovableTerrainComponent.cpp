@@ -289,21 +289,33 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 				if (IsValid(world))
 				{
 					bool hasBed = BedGeometries.Num() > 0;
-					Size = FVector2D(FMath::Max(Size.X, 1.0f), FMath::Max(Size.Y, 1.0f));
-					Resolution = FMath::Clamp(Resolution, 1, 256);
-					int resX = Resolution;
-					int resY = (Size.Y / Size.X) * Resolution;
-					double elementSize = Size.X / (Resolution - 1);
+					
+					int resX, resY;
+					double elementSize;
 					TArray<float> heightArray;
-					heightArray.SetNumZeroed(resX * resY);
-			
-					if (hasBed)
-					{
-						//Store world transform and temporarily move to origo
-						auto storedTransform = FTransform(this->GetAttachmentRoot()->GetComponentTransform());
-						this->GetAttachmentRoot()->SetWorldLocationAndRotation(
-							FVector::Zero(), FQuat::Identity);
 
+					// Store world transform and temporarily move to origo
+					auto storedTransform =
+						FTransform(this->GetAttachmentRoot()->GetComponentTransform());
+					this->GetAttachmentRoot()->SetWorldLocationAndRotation(
+						FVector::Zero(), FQuat::Identity);
+
+
+					if (!hasBed)
+					{
+						// Setup size and resolution
+						resX = Resolution;
+						resY = (Size.Y / Size.X) * Resolution;
+						elementSize = Size.X / (Resolution - 1);
+						
+						// Setup heightArray
+						heightArray.SetNumZeroed(resX * resY); 
+						for (float& h : heightArray)
+							h += StartHeight;
+						AddNoiseHeights(heightArray, resX, resY, elementSize, false);
+					}
+					else
+					{
 						//Calculate Bounds and BottomCenter
 						auto bedMeshComponents = GetBedGeometriesUMeshComponents();
 						FBox bounds = CreateEncapsulatingBoundingBox(
@@ -311,23 +323,18 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 						FVector bottomCenter =
 							bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
 
-						// Overwrite Size, elementSize, resY
+						// Setup size and resolution
 						Size = FVector2D(bounds.GetExtent().X*2, bounds.GetExtent().Y*2) - FVector2D(BedMarigin*2, BedMarigin*2);
 						elementSize = Size.X / (Resolution - 1);
+						resX = Resolution;
 						resY = (Size.Y / elementSize) + 1;
 						
-
-
-						// Overwrite HeightArray
+						// Setup heightArray
 						heightArray.SetNumZeroed(resX * resY);
-
-						// Add noiseHeight
-						AddNoiseHeights(heightArray, resX, resY, elementSize, false);
-
-						// Add startHeight
 						for (float& h : heightArray)
 							h += StartHeight;
-
+						AddNoiseHeights(heightArray, resX, resY, elementSize, false);
+				
 						// Add bedHeight
 						TArray<float> bedHeights;
 						bedHeights.SetNumZeroed(resX * resY);
@@ -341,17 +348,14 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 						for (int i = 0; i < heightArray.Num(); i++)
 							heightArray[i] = FMath::Max(heightArray[i], bedHeights[i]);
 
-
-
-
-						// Overwrite Position with minHeight + BedZOffset
+						// Overwrite Position
 						this->SetRelativeLocation(
 							bottomCenter + FVector(0, 0, minHeight + BedZOffset));
-
-						// Restore world transform
-						this->GetAttachmentRoot()->SetWorldLocationAndRotation(
-							storedTransform.GetLocation(), storedTransform.GetRotation());
 					}
+
+					// Restore world transform
+					this->GetAttachmentRoot()->SetWorldLocationAndRotation(
+						storedTransform.GetLocation(), storedTransform.GetRotation());
 
 					//Build heightmesh
 					if (resX * resY == heightArray.Num() && heightArray.Num() != 0)
