@@ -90,6 +90,13 @@ const FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative() const
 
 void UAGX_MovableTerrainComponent::CreateNative()
 {
+	UAGX_RigidBodyComponent* OwningRigidBody =
+		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+
+	if (OwningRigidBody)
+		OwningRigidBody->GetOrCreateNative();
+
+
 	if (GetBedGeometries().Num() == 0)
 	{
 		// Size and resolution
@@ -118,6 +125,14 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		TArray<FTransform> storedTransforms;
 		for (UAGX_ShapeComponent* shape : GetBedGeometries())
 		{
+			FTransform rootTransform = shape->GetAttachmentRoot()->GetComponentTransform();
+			if (UAGX_RigidBodyComponent* OwningBody =
+					FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*shape))
+			{
+				OwningBody->GetOrCreateNative();
+				rootTransform = OwningBody->GetComponentTransform();
+			}
+
 			// Get Bed ShapeBarrier
 			auto sb = shape->GetOrCreateNative();
 			bedShapeBarriers.Push(sb);
@@ -125,12 +140,12 @@ void UAGX_MovableTerrainComponent::CreateNative()
 			// Store its current transform
 			storedTransforms.Push(
 				FTransform(sb->GetLocalRotation(), sb->GetLocalPosition(), FVector::One()));
-
-			// Calculate transform to this component's frame of refernce
-			FVector localPos = shape->GetAttachParent()->GetComponentTransform().InverseTransformPosition(
+			
+			// Calculate transform to this component's frame of reference
+			FVector localPos = rootTransform.InverseTransformPosition(
 					this->GetComponentTransform().InverseTransformPosition(
 						shape->GetComponentLocation()));
-			FQuat localRot = shape->GetAttachParent()->GetComponentTransform().InverseTransformRotation(
+			FQuat localRot = rootTransform.InverseTransformRotation(
 					this->GetComponentTransform().InverseTransformRotation(
 						shape->GetComponentQuat()));
 			
@@ -156,9 +171,17 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		this->SetRelativeLocation(NativeBarrier.GetPosition());
 	}
 
+	// Attach to RigidBody
+	if (OwningRigidBody)
+		OwningRigidBody->GetNative()->AddTerrain(&NativeBarrier);
+
 	// Set transform
 	NativeBarrier.SetRotation(this->GetComponentQuat());
 	NativeBarrier.SetPosition(this->GetComponentLocation());
+
+
+	this->SetWorldLocation(NativeBarrier.GetPosition());
+	this->SetWorldRotation(NativeBarrier.GetRotation());
 
 	// Copy Native Heights
 	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());

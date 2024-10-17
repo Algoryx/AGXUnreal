@@ -12,6 +12,7 @@
 #include "Shapes/ShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
+#include "Terrain/TerrainBarrier.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
@@ -240,6 +241,18 @@ void FRigidBodyBarrier::RemoveShape(FShapeBarrier* Shape)
 {
 	check(HasNative());
 	NativeRef->Native->remove(Shape->GetNative()->NativeGeometry);
+}
+
+void FRigidBodyBarrier::AddTerrain(FTerrainBarrier* Terrain)
+{
+	check(HasNative());
+	NativeRef->Native->add(Terrain->GetNative()->Native->getGeometry());
+}
+
+void FRigidBodyBarrier::RemoveTerrain(FTerrainBarrier* Terrain)
+{
+	check(HasNative());
+	NativeRef->Native->remove(Terrain->GetNative()->Native->getGeometry());
 }
 
 void FRigidBodyBarrier::AddForceAtCenterOfMass(const FVector& Force)
