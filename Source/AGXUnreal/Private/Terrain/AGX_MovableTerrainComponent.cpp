@@ -121,7 +121,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 			// Store its current transform
 			storedTransforms.Push(
-				FTransform(sb->GetLocalRotation(), sb->GetWorldPosition(), FVector::One()));
+				FTransform(sb->GetLocalRotation(), sb->GetLocalPosition(), FVector::One()));
 
 			// Temporarily set its transform to this component's frame of refernce
 			FVector localPos = shape->GetAttachParent()
