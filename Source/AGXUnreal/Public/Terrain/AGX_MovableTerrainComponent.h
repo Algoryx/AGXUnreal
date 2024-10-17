@@ -27,13 +27,19 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere)
-	FVector2D Size = FVector2D(200.0f, 200.0f);
+	int Resolution = 20;
 
 	UPROPERTY(EditAnywhere)
-	int Resolution = 20;
+	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
+
+	UPROPERTY(EditAnywhere)
+	double BedMarigin = 10.0;
+	
+	UPROPERTY(EditAnywhere)
+	double BedZOffset = 1.0;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -54,6 +60,10 @@ private:
 	TArray<FString> GetBedGeometryOptions() const;
 
 	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
-	TArray<float> GenerateEditorHeights(int resX, int resY, float cellSize, bool flipYAxis) const;
+	float CreateRaycastedHeights(
+		const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY,
+		float cellSize, bool flipYAxis, TArray<float>& heights) const;
+	FBox CreateEncapsulatingBoundingBox(
+		const TArray<UMeshComponent*>& Meshes, const FTransform& origoTransform);
 	void UpdateInEditorMesh();
 };
