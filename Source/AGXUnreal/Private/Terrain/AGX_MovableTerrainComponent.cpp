@@ -282,21 +282,27 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 						FVector bottomCenter =
 							bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
 
-						// Overwrite Size, resY;
+						// Overwrite Size
 						Size = FVector2D(bounds.GetExtent().X*2, bounds.GetExtent().Y*2) - FVector2D(BedMarigin*2, BedMarigin*2);
-						resY = (Size.Y / Size.X) * Resolution;
+						
+						// Calc elementSize
+						double elementSize = Size.X / (Resolution - 1);
+						
+						// Overwrite resY
+						resY = (Size.Y / elementSize) + 1;
 
-						//Overwrite Position
+						// Overwrite Position
 						this->SetRelativeLocation(bottomCenter);
 						
 						// Overwrite HeightArray
 						float minHeight = CreateRaycastedHeights(
 							bedMeshComponents, this->GetComponentTransform(), resX, resY,
-							FMath::Min(Size.X / resX, Size.Y / resY), false, heightArray);
+							elementSize, false, heightArray);
+
 						for (float& h : heightArray)
 							h -= minHeight;
 
-						// Overwrite Position with minHeight and BedZOffset
+						// Overwrite Position with minHeight + BedZOffset
 						this->SetRelativeLocation(
 							bottomCenter + FVector(0, 0, minHeight + BedZOffset));
 
