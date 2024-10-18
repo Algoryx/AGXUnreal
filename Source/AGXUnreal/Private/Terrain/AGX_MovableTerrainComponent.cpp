@@ -98,9 +98,9 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		OwningRigidBody->GetOrCreateNative();
 
 	// Size and resolution
-	double elementSize = Size.X / Resolution;
+	double elementSize = Size.X / (Resolution-1);
 	int resX = Resolution;
-	int resY = Size.Y / elementSize;
+	int resY = Size.Y / (elementSize) + 1;
 
 	// Create heightfields
 	TArray<float> initialHeights;
@@ -226,9 +226,9 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 					AutoFitToBed();
 					
 				// Size and resolution
-				double elementSize = Size.X / Resolution;
+				double elementSize = Size.X / (Resolution - 1);
 				int resX = Resolution;
-				int resY = Size.Y / elementSize;
+				int resY = Size.Y / (elementSize) + 1;
 
 				// Create heightfields
 				TArray<float> initialHeights;
