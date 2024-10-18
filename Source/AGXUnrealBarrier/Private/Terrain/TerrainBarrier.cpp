@@ -76,6 +76,26 @@ void FTerrainBarrier::AllocateNative(
 		resolution, bedGeoms, ConvertDistanceToAGX(edgeMarigin), ConvertDistanceToAGX(bedZOffset));
 }
 
+void FTerrainBarrier::AllocateNative(
+	int resolutionX, int resolutionY, double elementSize, const TArray<float>& initialHeights, const TArray<float>& minimumHeights)
+{
+	check(!HasNative());
+	agx::VectorPOD<agx::Real> InitialHeightsAGX, MinimumHeightsAGX;
+	InitialHeightsAGX.reserve(static_cast<size_t>(initialHeights.Num()));
+	MinimumHeightsAGX.reserve(static_cast<size_t>(minimumHeights.Num()));
+
+	for (auto& Height : initialHeights)
+		InitialHeightsAGX.push_back(ConvertDistanceToAGX(Height));
+
+	for (auto& Height : minimumHeights)
+		MinimumHeightsAGX.push_back(ConvertDistanceToAGX(Height));
+
+
+	NativeRef->Native = new agxTerrain::Terrain(
+		resolutionX, resolutionY, ConvertDistanceToAGX(elementSize), InitialHeightsAGX,
+		MinimumHeightsAGX);
+}
+
 FTerrainRef* FTerrainBarrier::GetNative()
 {
 	check(HasNative());

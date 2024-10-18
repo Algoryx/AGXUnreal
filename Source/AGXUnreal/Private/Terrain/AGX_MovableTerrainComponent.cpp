@@ -20,10 +20,11 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	//Get Native size and resolution
 	int resX = NativeBarrier.GetGridSizeX();
 	int resY = NativeBarrier.GetGridSizeY();
-	FVector2D size = NativeBarrier.GetSize();
+	float elementSize = NativeBarrier.GetElementSize();
+	// FVector2D size = FVector2D(resX * elementSize, resY * elementSize);
 
 	//Rebuild mesh
-	RebuildHeightMesh(size, resX, resY, CurrentHeights);
+	RebuildHeightMesh(Size, resX, resY, CurrentHeights);
 
 	//Check to update mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -31,14 +32,14 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 		PostStepForwardHandle =
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.AddLambda(
-					[this, resX, resY, size](double)
+					[this, resX, resY](double)
 					{
 						//Update CurrentHeights
 						NativeBarrier.GetHeights(CurrentHeights, true);
 
 						//Rebuild mesh if needed
 						if (NativeBarrier.GetModifiedVertices().Num() > 0)
-							RebuildHeightMesh(size, resX, resY, CurrentHeights);
+							RebuildHeightMesh(Size, resX, resY, CurrentHeights);
 					});
 	}
 }
@@ -96,83 +97,18 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	if (OwningRigidBody)
 		OwningRigidBody->GetOrCreateNative();
 
+	// Size and resolution
+	double elementSize = Size.X / Resolution;
+	int resX = Resolution;
+	int resY = Size.Y / elementSize;
 
-	if (GetBedGeometries().Num() == 0)
-	{
-		// Size and resolution
-		int resX = Resolution;
-		int resY = (Size.Y / Size.X) * Resolution;
-		double cellSize = FMath::Min(Size.X / resX, Size.Y / resY);
+	// Create heightfields
+	TArray<float> initialHeights;
+	TArray<float> minimumHeights;
+	SetupHeights(initialHeights, minimumHeights, resX, resY, elementSize, true);
 
-		// Create HeightfieldBarrier
-		FHeightFieldShapeBarrier HeightField;
-		HeightField.AllocateNative(resX, resY, resX * cellSize, resY * cellSize);
-		TArray<float> heights;
-		heights.SetNumZeroed(resX * resY);
-		for (float& h : heights)
-			h += StartHeight;
-		AddNoiseHeights(heights, resX, resY, cellSize, true);
-		HeightField.SetHeights(heights);
-
-		// Create Native using Heightfield
-		double maxDepth = 200.0;
-		NativeBarrier.AllocateNative(HeightField, maxDepth);
-
-	}
-	else
-	{
-		//Set local position to origo
-		this->SetRelativeLocation(FVector::Zero());
-
-		TArray<FShapeBarrier*> bedShapeBarriers;
-		TArray<FTransform> storedTransforms;
-		for (UAGX_ShapeComponent* shape : GetBedGeometries())
-		{
-			FTransform rootTransform = shape->GetAttachmentRoot()->GetComponentTransform();
-			if (UAGX_RigidBodyComponent* OwningBody =
-					FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*shape))
-			{
-				OwningBody->GetOrCreateNative();
-				rootTransform = OwningBody->GetComponentTransform();
-			}
-
-			// Get Bed ShapeBarrier
-			auto sb = shape->GetOrCreateNative();
-			bedShapeBarriers.Push(sb);
-
-			// Store its current transform
-			storedTransforms.Push(
-				FTransform(sb->GetLocalRotation(), sb->GetLocalPosition(), FVector::One()));
-			
-			// Calculate transform to this component's frame of reference
-			FVector localPos = rootTransform.InverseTransformPosition(
-					this->GetComponentTransform().InverseTransformPosition(
-						shape->GetComponentLocation()));
-			FQuat localRot = rootTransform.InverseTransformRotation(
-					this->GetComponentTransform().InverseTransformRotation(
-						shape->GetComponentQuat()));
-			
-			// Temporarily overwrite transform
-			sb->SetLocalPosition(localPos);
-			sb->SetLocalRotation(localRot);
-		}
-
-		// Create Native using BedGeometries
-		NativeBarrier.AllocateNative(Resolution, bedShapeBarriers, BedMarigin, BedZOffset);
-
-		// Restore original shape transforms
-		for (int i = 0; i < bedShapeBarriers.Num(); i++)
-		{
-			auto sb = bedShapeBarriers[i];
-			auto st = storedTransforms[i];
-
-			sb->SetLocalPosition(st.GetLocation());
-			sb->SetLocalRotation(st.GetRotation());
-		}
-
-		// Set local position to nativebarrier
-		this->SetRelativeLocation(NativeBarrier.GetPosition());
-	}
+	// Create native
+	NativeBarrier.AllocateNative(resX, resY, elementSize, initialHeights, minimumHeights);
 
 	// Attach to RigidBody
 	if (OwningRigidBody)
@@ -182,15 +118,9 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetRotation(this->GetComponentQuat());
 	NativeBarrier.SetPosition(this->GetComponentLocation());
 
-
-	this->SetWorldLocation(NativeBarrier.GetPosition());
-	this->SetWorldRotation(NativeBarrier.GetRotation());
-
 	// Copy Native Heights
 	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
-
 	NativeBarrier.GetHeights(CurrentHeights, false);
-
 
 	// Add Native
 	UAGX_Simulation* simulation = UAGX_Simulation::GetFrom(this);
@@ -286,83 +216,42 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 		world->GetTimerManager().SetTimerForNextTick(
 			[this, world]
 			{
-				if (IsValid(world))
-				{
-					bool hasBed = BedGeometries.Num() > 0;
+				if (!IsValid(world))
+					return;
+
+				bool hasBed = BedGeometries.Num() > 0;
+				bool isAutoFit = false;
+
+				if (hasBed && isAutoFit)
+					AutoFitToBed();
 					
-					int resX, resY;
-					double elementSize;
-					TArray<float> heightArray;
+				// Size and resolution
+				double elementSize = Size.X / Resolution;
+				int resX = Resolution;
+				int resY = Size.Y / elementSize;
 
-					// Store world transform and temporarily move to origo
-					auto storedTransform =
-						FTransform(this->GetAttachmentRoot()->GetComponentTransform());
-					this->GetAttachmentRoot()->SetWorldLocationAndRotation(
-						FVector::Zero(), FQuat::Identity);
-
-
-					if (!hasBed)
-					{
-						// Setup size and resolution
-						resX = Resolution;
-						resY = (Size.Y / Size.X) * Resolution;
-						elementSize = Size.X / (Resolution - 1);
-						
-						// Setup heightArray
-						heightArray.SetNumZeroed(resX * resY); 
-						for (float& h : heightArray)
-							h += StartHeight;
-						AddNoiseHeights(heightArray, resX, resY, elementSize, false);
-					}
-					else
-					{
-						//Calculate Bounds and BottomCenter
-						auto bedMeshComponents = GetBedGeometriesUMeshComponents();
-						FBox bounds = CreateEncapsulatingBoundingBox(
-							bedMeshComponents, this->GetComponentTransform());
-						FVector bottomCenter =
-							bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
-
-						// Setup size and resolution
-						Size = FVector2D(bounds.GetExtent().X*2, bounds.GetExtent().Y*2) - FVector2D(BedMarigin*2, BedMarigin*2);
-						elementSize = Size.X / (Resolution - 1);
-						resX = Resolution;
-						resY = (Size.Y / elementSize) + 1;
-						
-						// Setup heightArray
-						heightArray.SetNumZeroed(resX * resY);
-						for (float& h : heightArray)
-							h += StartHeight;
-						AddNoiseHeights(heightArray, resX, resY, elementSize, false);
+				// Create heightfields
+				TArray<float> initialHeights;
+				TArray<float> minimumHeights;
+				SetupHeights(initialHeights, minimumHeights, resX, resY, elementSize, false);
 				
-						// Add bedHeight
-						TArray<float> bedHeights;
-						bedHeights.SetNumZeroed(resX * resY);
-						this->SetRelativeLocation(bottomCenter);
-						float minHeight = AddRaycastedHeights(
-							bedHeights,
-							bedMeshComponents, this->GetComponentTransform(), resX, resY,
-							elementSize, false);
-						for (float& h : bedHeights)
-							h -= minHeight;
-						for (int i = 0; i < heightArray.Num(); i++)
-							heightArray[i] = FMath::Max(heightArray[i], bedHeights[i]);
-
-						// Overwrite Position
-						this->SetRelativeLocation(
-							bottomCenter + FVector(0, 0, minHeight + BedZOffset));
-					}
-
-					// Restore world transform
-					this->GetAttachmentRoot()->SetWorldLocationAndRotation(
-						storedTransform.GetLocation(), storedTransform.GetRotation());
-
-					//Build heightmesh
-					if (resX * resY == heightArray.Num() && heightArray.Num() != 0)
-						this->RebuildHeightMesh(Size, resX, resY, heightArray);
-				}
+				// Rebuild Mesh
+				if (resX * resY == initialHeights.Num() && initialHeights.Num() != 0)
+					this->RebuildHeightMesh(Size, resX, resY, initialHeights);
 			});
 	}
+}
+
+void UAGX_MovableTerrainComponent::AutoFitToBed()
+{
+	// Calculate Bounds and BottomCenter
+	auto bedMeshComponents = GetBedGeometriesUMeshComponents();
+	FBox bounds = CreateEncapsulatingBoundingBox(bedMeshComponents, this->GetComponentTransform());
+	FVector bottomCenter = bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
+
+	// Overwrite Size and Position
+	Size = FVector2D(bounds.GetExtent().X * 2, bounds.GetExtent().Y * 2);
+	this->SetRelativeLocation(bottomCenter);
 }
 
 TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshComponents() const
@@ -387,17 +276,38 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshCompo
 	return meshes;
 }
 
-float UAGX_MovableTerrainComponent::AddRaycastedHeights(
+void UAGX_MovableTerrainComponent::SetupHeights(
+	TArray<float>& initialHeights, TArray<float>& minimumHeights, int resX, int resY,
+	double elementSize, bool flipYAxis) const
+{
+	initialHeights.SetNumZeroed(resX * resY);
+
+	for (float& h : initialHeights)
+		h += StartHeight;
+	AddNoiseHeights(initialHeights, resX, resY, elementSize, flipYAxis);
+
+	minimumHeights.SetNumZeroed(resX * resY);
+	if (GetBedGeometries().Num() != 0)
+	{
+		AddRaycastedHeights(
+			minimumHeights, GetBedGeometriesUMeshComponents(), GetComponentTransform(), resX, resY,
+			elementSize, flipYAxis);
+		for (float& h : minimumHeights)
+			h += BedZOffset;
+		for (int i = 0; i < initialHeights.Num(); i++)
+			initialHeights[i] = FMath::Max(initialHeights[i], minimumHeights[i]);
+	}
+}
+
+void UAGX_MovableTerrainComponent::AddRaycastedHeights(
 	TArray<float>& heights,
 	const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY,
 	float cellSize, bool flipYAxis) const
 {
 	float rayLength = 1000.0f;
 	float ySign = flipYAxis ? -1.0 : 1.0;
-	FVector origin = FVector(
-		-resX * cellSize / 2.0 + cellSize / 2, -ySign * resY * cellSize / 2.0 + cellSize / 2, 0.0);
+	FVector origin = FVector(cellSize * (1 - resX) / 2.0, cellSize * ySign * (1 - resY) / 2.0, 0.0);
 
-	float minElement = rayLength;
 	FVector up = origoTransform.GetRotation().GetUpVector();
 
 	for (int y = 0; y < resY; y++)
@@ -410,11 +320,8 @@ float UAGX_MovableTerrainComponent::AddRaycastedHeights(
 				UAGX_TerrainMeshUtilities::GetRaycastedHeight(pos, meshes, up, rayLength);
 
 			heights[y * resX + x] += bedHeight;
-			minElement = FMath::Min(minElement, bedHeight);
 		}
 	}
-
-	return minElement;
 }
 
 void UAGX_MovableTerrainComponent::AddNoiseHeights(

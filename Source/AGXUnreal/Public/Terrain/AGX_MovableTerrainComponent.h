@@ -39,17 +39,13 @@ protected:
 	TArray<FName> BedGeometries;
 
 	UPROPERTY(EditAnywhere)
-	double BedMarigin = 10.0;
-	
-	UPROPERTY(EditAnywhere)
-	double BedZOffset = 1.0;
+	double BedZOffset = -1.0;
 
 	UPROPERTY(EditAnywhere)
 	float NoiseHeight = 50.0f;
 
 	UPROPERTY(EditAnywhere)
 	float StartHeight = 0.0f;
-	
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -70,7 +66,11 @@ private:
 	TArray<FString> GetBedGeometryOptions() const;
 
 	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
-	float AddRaycastedHeights(
+	void AutoFitToBed();
+	void SetupHeights(
+		TArray<float>& initialHeights, TArray<float>& minimumHeights, int resX, int resY,
+		double elementSize, bool flipYAxis) const;
+	void AddRaycastedHeights(
 		TArray<float>& heights,
 		const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY, float cellSize, bool flipYAxis) const;
 	
