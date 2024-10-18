@@ -289,9 +289,18 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 	minimumHeights.SetNumZeroed(resX * resY);
 	if (GetBedGeometries().Num() != 0)
 	{
+		//Transform to origo before raycasting
+		const FTransform oldTransform = this->GetAttachmentRoot()->GetComponentTransform();
+		this->GetAttachmentRoot()->SetWorldLocationAndRotation(FVector::Zero(), FQuat::Identity);
+		
 		AddRaycastedHeights(
 			minimumHeights, GetBedGeometriesUMeshComponents(), GetComponentTransform(), resX, resY,
 			elementSize, flipYAxis);
+
+		//Restore transform
+		this->GetAttachmentRoot()->SetWorldLocationAndRotation(
+			oldTransform.GetLocation(), oldTransform.GetRotation());
+
 		for (float& h : minimumHeights)
 			h += BedZOffset;
 		for (int i = 0; i < initialHeights.Num(); i++)
