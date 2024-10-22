@@ -52,10 +52,6 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 	{
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		{
-			// @todo Figure out how to handle Terrain Materials. A Terrain Material can be
-			// shared between many Terrains in theory. We only want to remove the Terrain
-			// Material from the simulation if this Terrain is the last one using it. Some
-			// reference counting may be needed.
 			Simulation->Remove(*this);
 
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
@@ -127,6 +123,43 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	simulation->Add(*this);
 }
 
+
+void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
+{
+	if (UWorld* world = GetWorld(); IsValid(world) && !world->IsGameWorld() && !IsTemplate())
+	{
+		// In-Editor: Postpone the initialization for the next tick because all properties are not
+		// copied yet
+		world->GetTimerManager().SetTimerForNextTick(
+			[this, world]
+			{
+				if (!IsValid(world))
+					return;
+
+				bool hasBed = BedGeometries.Num() > 0;
+				bool isAutoFit = false;
+
+				if (hasBed && isAutoFit)
+					AutoFitToBed();
+
+				// Size and resolution
+				double elementSize = Size.X / (Resolution - 1);
+				int resX = Resolution;
+				int resY = Size.Y / (elementSize) + 1;
+
+				// Create heightfields
+				TArray<float> initialHeights;
+				TArray<float> minimumHeights;
+				SetupHeights(initialHeights, minimumHeights, resX, resY, elementSize, false);
+
+				// Rebuild Mesh
+				if (resX * resY == initialHeights.Num() && initialHeights.Num() != 0)
+					this->RebuildHeightMesh(Size, resX, resY, initialHeights);
+			});
+	}
+}
+
+
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray)
 {
@@ -154,44 +187,24 @@ TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() co
 	TArray<UAGX_ShapeComponent*> shapes;
 	if (GetOwner() != nullptr)
 	{
-		for (auto component : GetOwner()->GetComponents())
+		for (UAGX_ShapeComponent* shapeComponent :
+			 FAGX_ObjectUtilities::Filter<UAGX_ShapeComponent>(GetOwner()->GetComponents()))
 		{
-			UAGX_ShapeComponent* sComponent = Cast<UAGX_ShapeComponent>(component);
-			if (sComponent != nullptr)
-			{
-				FName name = component->GetFName();
-				if (BedGeometries.Contains(name))
-				{
-					shapes.Add(sComponent);
-				}
-			}
+			if (BedGeometries.Contains(shapeComponent->GetFName()))
+				shapes.Add(shapeComponent);
 		}
 	}
+
 	return shapes;
 }
 
 TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
 {
 	TArray<FString> options;
-	UBlueprintGeneratedClass* owningGenClass = Cast<UBlueprintGeneratedClass>(GetOuter());
-	if (owningGenClass == nullptr)
-		return options;
-
-	const TObjectPtr<USimpleConstructionScript> constructionScript =
-		owningGenClass->SimpleConstructionScript;
-	if (constructionScript == nullptr)
-		return options;
-
-	for (const USCS_Node* component : constructionScript->GetAllNodes())
+	for (FName name : UAGX_TerrainMeshUtilities::GetComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
 	{
-		const UAGX_ShapeComponent* sComponent =
-			Cast<UAGX_ShapeComponent>(component->ComponentTemplate);
-		if (sComponent != nullptr)
-		{
-			FName name = component->GetVariableName();
-			if (!BedGeometries.Contains(name))
-				options.Add(name.ToString());
-		}
+		if (!BedGeometries.Contains(name))
+			options.Add(name.ToString());
 	}
 	return options;
 }
@@ -208,73 +221,6 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	UpdateInEditorMesh();
 }
 
-void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
-{
-	if (UWorld* world = GetWorld(); IsValid(world) && !world->IsGameWorld() && !IsTemplate())
-	{
-		// In-Editor: Postpone the initialization for the next tick because all properties are not copied yet
-		world->GetTimerManager().SetTimerForNextTick(
-			[this, world]
-			{
-				if (!IsValid(world))
-					return;
-
-				bool hasBed = BedGeometries.Num() > 0;
-				bool isAutoFit = false;
-
-				if (hasBed && isAutoFit)
-					AutoFitToBed();
-					
-				// Size and resolution
-				double elementSize = Size.X / (Resolution - 1);
-				int resX = Resolution;
-				int resY = Size.Y / (elementSize) + 1;
-
-				// Create heightfields
-				TArray<float> initialHeights;
-				TArray<float> minimumHeights;
-				SetupHeights(initialHeights, minimumHeights, resX, resY, elementSize, false);
-				
-				// Rebuild Mesh
-				if (resX * resY == initialHeights.Num() && initialHeights.Num() != 0)
-					this->RebuildHeightMesh(Size, resX, resY, initialHeights);
-			});
-	}
-}
-
-void UAGX_MovableTerrainComponent::AutoFitToBed()
-{
-	// Calculate Bounds and BottomCenter
-	auto bedMeshComponents = GetBedGeometriesUMeshComponents();
-	FBox bounds = CreateEncapsulatingBoundingBox(bedMeshComponents, this->GetComponentTransform());
-	FVector bottomCenter = bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
-
-	// Overwrite Size and Position
-	Size = FVector2D(bounds.GetExtent().X * 2, bounds.GetExtent().Y * 2);
-	this->SetRelativeLocation(bottomCenter);
-}
-
-TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedGeometriesUMeshComponents() const
-{
-	TArray<UMeshComponent*> meshes;
-
-	if (GetOwner() != nullptr)
-	{
-		auto shapes = GetBedGeometries();
-
-		for (auto shape : shapes)
-		{
-			UMeshComponent* uMeshComponent = Cast<UMeshComponent>(shape);
-
-			if (uMeshComponent != nullptr)
-			{
-				meshes.Add(uMeshComponent);
-			}
-		}
-	}
-
-	return meshes;
-}
 
 void UAGX_MovableTerrainComponent::SetupHeights(
 	TArray<float>& initialHeights, TArray<float>& minimumHeights, int resX, int resY,
@@ -282,35 +228,43 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 {
 	initialHeights.SetNumZeroed(resX * resY);
 
+	//Add start height
 	for (float& h : initialHeights)
 		h += StartHeight;
+
+	//Add noise
 	AddNoiseHeights(initialHeights, resX, resY, elementSize, flipYAxis);
 
 	minimumHeights.SetNumZeroed(resX * resY);
-	if (GetBedGeometries().Num() != 0)
+	TArray<UMeshComponent*> bedMeshes = FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedGeometries());
+	if (bedMeshes.Num() != 0)
 	{
 		//Transform to origo before raycasting
 		const FTransform oldTransform = this->GetAttachmentRoot()->GetComponentTransform();
 		this->GetAttachmentRoot()->SetWorldLocationAndRotation(FVector::Zero(), FQuat::Identity);
 		
+		//Add raycasted heights
 		AddRaycastedHeights(
-			minimumHeights, GetBedGeometriesUMeshComponents(), GetComponentTransform(), resX, resY,
+			minimumHeights, bedMeshes, GetComponentTransform(), resX, resY,
 			elementSize, flipYAxis);
 
 		//Restore transform
 		this->GetAttachmentRoot()->SetWorldLocationAndRotation(
 			oldTransform.GetLocation(), oldTransform.GetRotation());
 
+		//Add bedZOffset
 		for (float& h : minimumHeights)
 			h += BedZOffset;
+
+		//Put minimumHeights in initialHeights
 		for (int i = 0; i < initialHeights.Num(); i++)
 			initialHeights[i] = FMath::Max(initialHeights[i], minimumHeights[i]);
 	}
 }
 
 void UAGX_MovableTerrainComponent::AddRaycastedHeights(
-	TArray<float>& heights,
-	const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY,
+	TArray<float>& heights, const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform,
+	int resX, int resY,
 	float cellSize, bool flipYAxis) const
 {
 	float rayLength = 1000.0f;
@@ -351,23 +305,18 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 	}
 }
 
-FBox UAGX_MovableTerrainComponent::CreateEncapsulatingBoundingBox(
-	const TArray<UMeshComponent*>& Meshes, const FTransform& origoTransform)
+
+void UAGX_MovableTerrainComponent::AutoFitToBed()
 {
-	FBox EncapsulatingBoundingBox(EForceInit::ForceInit);
-	for (auto* Mesh : Meshes)
-	{
-		if (Mesh)
-		{
-			FVector Origin, BoxExtent;
-			BoxExtent = origoTransform.InverseTransformVector(Mesh->Bounds.BoxExtent);
-			Origin = origoTransform.InverseTransformPosition(Mesh->Bounds.Origin);
+	// Calculate Bounds and BottomCenter
+	TArray<UMeshComponent*> bedMeshComponents =
+		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedGeometries());
+	FBox bounds = UAGX_TerrainMeshUtilities::CreateEncapsulatingBoundingBox(
+		bedMeshComponents, this->GetComponentTransform());
+	FVector bottomCenter = bounds.GetCenter() - FVector(0, 0, bounds.GetExtent().Z);
 
-			FBox ComponentBox(Origin - BoxExtent, Origin + BoxExtent);
-
-			EncapsulatingBoundingBox += ComponentBox;
-		}
-
-	}
-	return EncapsulatingBoundingBox;
+	// Overwrite Size and Position
+	Size = FVector2D(bounds.GetExtent().X * 2, bounds.GetExtent().Y * 2);
+	this->SetRelativeLocation(bottomCenter);
 }
+

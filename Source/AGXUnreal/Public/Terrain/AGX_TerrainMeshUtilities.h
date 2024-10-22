@@ -51,9 +51,46 @@ public:
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
 
+	static FBox CreateEncapsulatingBoundingBox(
+		const TArray<UMeshComponent*>& Meshes, const FTransform& worldTransform);
+
+	template <typename T>
+	static TArray<FName> GetComponentNamesOfType(UObject* outer);
+
 private:
 	static void GenerateTriangles(
 		HfMeshDescription& meshDesc, const FVector& center, const FVector2D& size,
 		const FIntVector2& resolution, double uvScale,
 		std::function<float(const FVector&)> heightFunction, bool isUseSkirt);
 };
+
+template <typename T>
+inline TArray<FName> UAGX_TerrainMeshUtilities::GetComponentNamesOfType(UObject* Outer)
+{
+	TArray<FName> Names;
+
+	// Check if the outer object is a BlueprintGeneratedClass
+	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
+	if (OwningGenClass == nullptr)
+		return Names;
+
+	// Get the construction script associated with the BlueprintGeneratedClass
+	const TObjectPtr<USimpleConstructionScript> ConstructionScript =
+		OwningGenClass->SimpleConstructionScript;
+	if (ConstructionScript == nullptr)
+		return Names;
+
+	// Iterate over all nodes in the construction script
+	for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+	{
+		// Try casting each component to the type T
+		T* CastComponent = Cast<T>(Component->ComponentTemplate);
+		if (CastComponent != nullptr)
+		{
+			// Get the component's variable name and add it to the list
+			Names.Add(Component->GetVariableName());
+		}
+	}
+
+	return Names;
+}

@@ -65,7 +65,6 @@ private:
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedGeometryOptions() const;
 
-	TArray<UMeshComponent*> GetBedGeometriesUMeshComponents() const;
 	void AutoFitToBed();
 	void SetupHeights(
 		TArray<float>& initialHeights, TArray<float>& minimumHeights, int resX, int resY,
@@ -76,7 +75,5 @@ private:
 	
 	void AddNoiseHeights(
 		TArray<float>& heights, int resX, int resY, float cellSize, bool flipYAxis) const;
-	FBox CreateEncapsulatingBoundingBox(
-		const TArray<UMeshComponent*>& Meshes, const FTransform& origoTransform);
 	void UpdateInEditorMesh();
 };
