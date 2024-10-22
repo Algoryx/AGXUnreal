@@ -67,6 +67,8 @@ public:
 	template <typename T>
 	static T* FindFirstAncestorOfType(const USceneComponent& Start);
 
+	template <typename T>
+	static TArray<FName> GetChildComponentNamesOfType(UObject* Outer);
 	/**
 	 * Returns the number children of type T of the actor.
 	 */
@@ -321,6 +323,37 @@ T* FAGX_ObjectUtilities::FindFirstAncestorOfType(const USceneComponent& Start)
 		Parent = Parent->GetAttachParent();
 	}
 	return nullptr;
+}
+
+template <typename T>
+inline TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
+{
+	TArray<FName> Names;
+
+	// Check if the outer object is a BlueprintGeneratedClass
+	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
+	if (OwningGenClass == nullptr)
+		return Names;
+
+	// Get the construction script associated with the BlueprintGeneratedClass
+	const TObjectPtr<USimpleConstructionScript> ConstructionScript =
+		OwningGenClass->SimpleConstructionScript;
+	if (ConstructionScript == nullptr)
+		return Names;
+
+	// Iterate over all nodes in the construction script
+	for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+	{
+		// Try casting each component to the type T
+		T* CastComponent = Cast<T>(Component->ComponentTemplate);
+		if (CastComponent != nullptr)
+		{
+			// Get the component's variable name and add it to the list
+			Names.Add(Component->GetVariableName());
+		}
+	}
+
+	return Names;
 }
 
 template <typename UDerived, typename UBaseContainer>

@@ -54,43 +54,9 @@ public:
 	static FBox CreateEncapsulatingBoundingBox(
 		const TArray<UMeshComponent*>& Meshes, const FTransform& worldTransform);
 
-	template <typename T>
-	static TArray<FName> GetComponentNamesOfType(UObject* Outer);
-
 private:
 	static void GenerateTriangles(
 		HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
 		const FIntVector2& Resolution, double UvScale,
 		std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt);
 };
-
-template <typename T>
-inline TArray<FName> UAGX_TerrainMeshUtilities::GetComponentNamesOfType(UObject* Outer)
-{
-	TArray<FName> Names;
-
-	// Check if the outer object is a BlueprintGeneratedClass
-	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
-	if (OwningGenClass == nullptr)
-		return Names;
-
-	// Get the construction script associated with the BlueprintGeneratedClass
-	const TObjectPtr<USimpleConstructionScript> ConstructionScript =
-		OwningGenClass->SimpleConstructionScript;
-	if (ConstructionScript == nullptr)
-		return Names;
-
-	// Iterate over all nodes in the construction script
-	for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
-	{
-		// Try casting each component to the type T
-		T* CastComponent = Cast<T>(Component->ComponentTemplate);
-		if (CastComponent != nullptr)
-		{
-			// Get the component's variable name and add it to the list
-			Names.Add(Component->GetVariableName());
-		}
-	}
-
-	return Names;
-}

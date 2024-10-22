@@ -122,7 +122,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	Simulation->Add(*this);
 }
 
-
 void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 {
 	if (UWorld* World = GetWorld(); IsValid(World) && !World->IsGameWorld() && !IsTemplate())
@@ -156,7 +155,6 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 			});
 	}
 }
-
 
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& MeshSize, const int ResX, const int ResY, const TArray<float>& HeightArray)
@@ -202,7 +200,8 @@ TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() co
 TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
 {
 	TArray<FString> Options;
-	for (FName Name : UAGX_TerrainMeshUtilities::GetComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
+	for (FName Name :
+		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
 	{
 		if (!BedGeometries.Contains(Name))
 			Options.Add(Name.ToString());
@@ -221,7 +220,6 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	Super::PostInitProperties();
 	UpdateInEditorMesh();
 }
-
 
 void UAGX_MovableTerrainComponent::SetupHeights(
 	TArray<float>& InitialHeights, TArray<float>& MinimumHeights, int ResX, int ResY,
@@ -303,7 +301,6 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 		}
 	}
 }
-
 
 void UAGX_MovableTerrainComponent::AutoFitToBed()
 {
