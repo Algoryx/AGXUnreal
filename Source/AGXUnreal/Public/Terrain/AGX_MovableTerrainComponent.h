@@ -23,7 +23,6 @@ public:
 	void CreateNative();
 	FTerrainBarrier* GetNative();
 	const FTerrainBarrier* GetNative() const;
-	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 protected:
 	UPROPERTY(EditAnywhere)
@@ -37,6 +36,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
+	UFUNCTION(CallInEditor)
+	TArray<FString> GetBedGeometryOptions() const;
 
 	UPROPERTY(EditAnywhere)
 	double BedZOffset = -1.0;
@@ -47,33 +48,37 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float StartHeight = 0.0f;
 
+
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
-
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	virtual void RebuildHeightMesh(
-		const FVector2D& size, const int resX, const int resY, const TArray<float>& heightArray);
+	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
+
+	void UpdateInEditorMesh();
+
+	void AutoFitToBed();
+
+	void RebuildHeightMesh(
+		const FVector2D& MeshSize, const int ResX, const int ResY,
+		const TArray<float>& HeightArray);
+
+	void SetupHeights(
+		TArray<float>& InitialHeights, TArray<float>& MinimumHeights, int ResX, int ResY,
+		double ElementSize, bool FlipYAxis) const;
+
+	void AddBedHeights(
+		TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const;
+
+	void AddNoiseHeights(
+		TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const;
+
 
 private:
 	FTerrainBarrier NativeBarrier;
 	TArray<float> CurrentHeights;
 	FDelegateHandle PostStepForwardHandle;
 
-	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedGeometryOptions() const;
-
-	void AutoFitToBed();
-	void SetupHeights(
-		TArray<float>& initialHeights, TArray<float>& minimumHeights, int resX, int resY,
-		double elementSize, bool flipYAxis) const;
-	void AddRaycastedHeights(
-		TArray<float>& heights,
-		const TArray<UMeshComponent*>& meshes, const FTransform& origoTransform, int resX, int resY, float cellSize, bool flipYAxis) const;
-	
-	void AddNoiseHeights(
-		TArray<float>& heights, int resX, int resY, float cellSize, bool flipYAxis) const;
-	void UpdateInEditorMesh();
 };

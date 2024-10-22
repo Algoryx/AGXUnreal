@@ -4,144 +4,144 @@
 #include <KismetProceduralMeshLibrary.h>
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	const FVector& center, const FVector2D& size, const FIntVector2& resolution, double uvScale,
-	std::function<float(const FVector&)> heightFunction, bool isUseSkirt)
+	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
+	std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt)
 {
 	// Vertex count with or without skirt
-	FIntVector2 nrOfVerts;
-	if (isUseSkirt)
-		nrOfVerts = FIntVector2(resolution.X + 3, resolution.Y + 3);
+	FIntVector2 NrOfVerts;
+	if (IsUseSkirt)
+		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
 	else
-		nrOfVerts = FIntVector2(resolution.X + 1, resolution.Y + 1);
+		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
 
 	// Create pointer
-	auto meshDescPtr = MakeShared<HfMeshDescription>(nrOfVerts);
-	auto& meshDesc = *meshDescPtr;
+	auto MeshDescPtr = MakeShared<HfMeshDescription>(NrOfVerts);
+	auto& MeshDesc = *MeshDescPtr;
 
 	// Populate vertices, uvs, colors
-	GenerateTriangles(meshDesc, center, size, resolution, uvScale, heightFunction, isUseSkirt);
+	GenerateTriangles(MeshDesc, Center, Size, Resolution, UvScale, HeightFunction, IsUseSkirt);
 
 	// Compute tangents and normals, while skirt is still being flat
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
-		meshDesc.Vertices, meshDesc.Triangles, meshDesc.UV0, meshDesc.Normals, meshDesc.Tangents);
+		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 
 	// Move skirt vertices downwards
-	if (isUseSkirt)
+	if (IsUseSkirt)
 	{
-		FVector skirtOffset = FVector::UpVector * size.Length() * 0.05f;
-		int vertexIndex = 0;
-		for (int32 y = 0; y < nrOfVerts.Y; ++y)
+		FVector SkirtOffset = FVector::UpVector * Size.Length() * 0.05f;
+		int VertexIndex = 0;
+		for (int32 y = 0; y < NrOfVerts.Y; ++y)
 		{
-			for (int32 x = 0; x < nrOfVerts.X; ++x)
+			for (int32 x = 0; x < NrOfVerts.X; ++x)
 			{
-				if (x == 0 || x == nrOfVerts.X - 1 || y == 0 || y == nrOfVerts.Y - 1)
+				if (x == 0 || x == NrOfVerts.X - 1 || y == 0 || y == NrOfVerts.Y - 1)
 				{
-					meshDesc.Vertices[vertexIndex] -= skirtOffset;
+					MeshDesc.Vertices[VertexIndex] -= SkirtOffset;
 				}
-				vertexIndex++;
+				VertexIndex++;
 			}
 		}
 	}
 
-	return meshDescPtr;
+	return MeshDescPtr;
 }
 
 void UAGX_TerrainMeshUtilities::GenerateTriangles(
-	HfMeshDescription& meshDesc, const FVector& center, const FVector2D& size,
-	const FIntVector2& resolution, double uvScale,
-	std::function<float(const FVector&)> heightFunction, bool isUseSkirt)
+	HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
+	const FIntVector2& Resolution, double UvScale,
+	std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt)
 {
 	// Vertex count with or without skirt
-	FIntVector2 nrOfVerts;
-	if (isUseSkirt)
-		nrOfVerts = FIntVector2(resolution.X + 3, resolution.Y + 3);
+	FIntVector2 NrOfVerts;
+	if (IsUseSkirt)
+		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
 	else
-		nrOfVerts = FIntVector2(resolution.X + 1, resolution.Y + 1);
+		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
 
-	FVector2D triangleSize = FVector2D(size.X / resolution.X, size.Y / resolution.Y);
+	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
 	// Fill the vertices and triangles
-	int startOffset = isUseSkirt ? -1 : 0;
-	int32 vertexIndex = 0;
-	int32 triangleIndex = 0;
-	for (int32 y = 0; y < nrOfVerts.Y; ++y)
+	int StartOffset = IsUseSkirt ? -1 : 0;
+	int32 VertexIndex = 0;
+	int32 TriangleIndex = 0;
+	for (int32 y = 0; y < NrOfVerts.Y; ++y)
 	{
-		for (int32 x = 0; x < nrOfVerts.X; ++x)
+		for (int32 x = 0; x < NrOfVerts.X; ++x)
 		{
-			FVector planePosition = FVector(
-				(x + startOffset) * triangleSize.X - size.X / 2,
-				(y + startOffset) * triangleSize.Y - size.Y / 2, 0.0f);
-			FVector localPosition = planePosition + center;
+			FVector PlanePosition = FVector(
+				(x + StartOffset) * TriangleSize.X - Size.X / 2,
+				(y + StartOffset) * TriangleSize.Y - Size.Y / 2, 0.0f);
+			FVector LocalPosition = PlanePosition + Center;
 
 			// Call height function
-			float height = heightFunction(localPosition);
+			float Height = HeightFunction(LocalPosition);
 
-			meshDesc.Vertices[vertexIndex] = planePosition + FVector::UpVector * height;
-			meshDesc.UV0[vertexIndex] =
-				FVector2D(uvScale * localPosition.X, uvScale * localPosition.Y);
+			MeshDesc.Vertices[VertexIndex] = PlanePosition + FVector::UpVector * Height;
+			MeshDesc.UV0[VertexIndex] =
+				FVector2D(UvScale * LocalPosition.X, UvScale * LocalPosition.Y);
 
 			// Skip last row and column for triangles
-			if (x < nrOfVerts.X - 1 && y < nrOfVerts.Y - 1)
+			if (x < NrOfVerts.X - 1 && y < NrOfVerts.Y - 1)
 			{
-				int32 bottomLeft = vertexIndex;
-				int32 bottomRIght = bottomLeft + 1;
-				int32 topLeft = bottomLeft + nrOfVerts.X;
-				int32 topRight = topLeft + 1;
+				int32 BottomLeft = VertexIndex;
+				int32 BottomRight = BottomLeft + 1;
+				int32 TopLeft = BottomLeft + NrOfVerts.X;
+				int32 TopRight = TopLeft + 1;
 
 				// First triangle
-				meshDesc.Triangles[triangleIndex++] = bottomLeft;
-				meshDesc.Triangles[triangleIndex++] = topLeft;
-				meshDesc.Triangles[triangleIndex++] = topRight;
+				MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+				MeshDesc.Triangles[TriangleIndex++] = TopLeft;
+				MeshDesc.Triangles[TriangleIndex++] = TopRight;
 
 				// Second triangle
-				meshDesc.Triangles[triangleIndex++] = bottomLeft;
-				meshDesc.Triangles[triangleIndex++] = topRight;
-				meshDesc.Triangles[triangleIndex++] = bottomRIght;
+				MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+				MeshDesc.Triangles[TriangleIndex++] = TopRight;
+				MeshDesc.Triangles[TriangleIndex++] = BottomRight;
 			}
 
-			++vertexIndex;
+			++VertexIndex;
 		}
 	}
 }
 
 float UAGX_TerrainMeshUtilities::GetBrownianNoise(
-	const FVector& pos, int octaves, float scale, float persistance, float lacunarity, float exp)
+	const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity, float Exp)
 {
-	float amplitude = 1.0;
-	float frequency = 1.0;
-	float normalization = 0;
-	float total = 0;
-	for (int o = 0; o < octaves; o++)
+	float Amplitude = 1.0;
+	float Frequency = 1.0;
+	float Normalization = 0;
+	float Total = 0;
+	for (int o = 0; o < Octaves; o++)
 	{
-		float noiseValue = FMath::PerlinNoise3D(pos * frequency / scale) * 0.5f + 0.5f;
-		total += noiseValue * amplitude;
-		normalization += amplitude;
-		amplitude *= persistance;
-		frequency *= lacunarity;
+		float noiseValue = FMath::PerlinNoise3D(Pos * Frequency / Scale) * 0.5f + 0.5f;
+		Total += noiseValue * Amplitude;
+		Normalization += Amplitude;
+		Amplitude *= Persistance;
+		Frequency *= Lacunarity;
 	}
-	total /= normalization;
-	return FMath::Pow(total, exp);
+	Total /= Normalization;
+	return FMath::Pow(Total, Exp);
 }
 
 float UAGX_TerrainMeshUtilities::GetRaycastedHeight(
-	const FVector& pos, const TArray<UMeshComponent*>& meshComponents, const FVector& up,
-	const float rayLength)
+	const FVector& Pos, const TArray<UMeshComponent*>& MeshComponents, const FVector& Up,
+	const float RayLength)
 {
-	float bedHeight = 0.0f;
-	for (auto uMesh : meshComponents)
+	float BedHeight = 0.0f;
+	for (auto uMesh : MeshComponents)
 	{
-		FHitResult hit;
-		FCollisionQueryParams params;
-		FVector start = pos + FVector::UpVector * rayLength;
-		FVector stop = pos;
+		FHitResult Hit;
+		FCollisionQueryParams Params;
+		FVector start = Pos + Up * RayLength;
+		FVector stop = Pos;
 
-		if (uMesh->LineTraceComponent(hit, start, stop, params))
+		if (uMesh->LineTraceComponent(Hit, start, stop, Params))
 		{
-			bedHeight = FMath::Max(bedHeight, rayLength - hit.Distance);
+			BedHeight = FMath::Max(BedHeight, RayLength - Hit.Distance);
 		}
 	}
 
-	return bedHeight;
+	return BedHeight;
 }
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(

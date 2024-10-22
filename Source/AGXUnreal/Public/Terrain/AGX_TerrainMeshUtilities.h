@@ -8,16 +8,16 @@
 
 struct HfMeshDescription
 {
-	HfMeshDescription(FIntVector2 vertexRes)
+	HfMeshDescription(FIntVector2 VertexRes)
 	{
-		int nrOfVerts = vertexRes.X * vertexRes.Y;
-		Vertices.SetNum(nrOfVerts);
-		Triangles.SetNum((vertexRes.X - 1) * (vertexRes.Y - 1) * 6);
-		UV0.SetNum(nrOfVerts);
-		UV1.SetNum(nrOfVerts);
-		Tangents.SetNum(nrOfVerts);
-		Normals.SetNum(nrOfVerts);
-		Colors.SetNum(nrOfVerts);
+		int NrOfVerts = VertexRes.X * VertexRes.Y;
+		Vertices.SetNum(NrOfVerts);
+		Triangles.SetNum((VertexRes.X - 1) * (VertexRes.Y - 1) * 6);
+		UV0.SetNum(NrOfVerts);
+		UV1.SetNum(NrOfVerts);
+		Tangents.SetNum(NrOfVerts);
+		Normals.SetNum(NrOfVerts);
+		Colors.SetNum(NrOfVerts);
 	}
 
 	TArray<FVector> Vertices;
@@ -37,16 +37,16 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static TSharedPtr<HfMeshDescription> CreateMeshDescription(
-		const FVector& center, const FVector2D& size, const FIntVector2& resolution, double uvScale,
-		std::function<float(const FVector&)> heightFunction, bool isUseSkirt = false);
+		const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
+		std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt = false);
 
 	static float GetBrownianNoise(
-		const FVector& pos, int octaves, float scale, float persistance, float lacunarity,
-		float exp);
+		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
+		float Exp);
 
 	static float GetRaycastedHeight(
-		const FVector& pos, const TArray<UMeshComponent*>& meshComponents,
-		const FVector& up = FVector::UpVector, const float rayLength = 1000.0f);
+		const FVector& Pos, const TArray<UMeshComponent*>& MeshComponents,
+		const FVector& Up = FVector::UpVector, const float RayLength = 1000.0f);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
@@ -55,13 +55,13 @@ public:
 		const TArray<UMeshComponent*>& Meshes, const FTransform& worldTransform);
 
 	template <typename T>
-	static TArray<FName> GetComponentNamesOfType(UObject* outer);
+	static TArray<FName> GetComponentNamesOfType(UObject* Outer);
 
 private:
 	static void GenerateTriangles(
-		HfMeshDescription& meshDesc, const FVector& center, const FVector2D& size,
-		const FIntVector2& resolution, double uvScale,
-		std::function<float(const FVector&)> heightFunction, bool isUseSkirt);
+		HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
+		const FIntVector2& Resolution, double UvScale,
+		std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt);
 };
 
 template <typename T>
