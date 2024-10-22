@@ -261,7 +261,7 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 }
 
 void UAGX_MovableTerrainComponent::AddBedHeights(
-	TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const
+	TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const
 {
 	float RayLength = 1000.0f;
 	float SignY = FlipYAxis ? -1.0 : 1.0;
@@ -288,7 +288,7 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 }
 
 void UAGX_MovableTerrainComponent::AddNoiseHeights(
-	TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const
+	TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const
 {
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	for (int y = 0; y < ResY; y++)

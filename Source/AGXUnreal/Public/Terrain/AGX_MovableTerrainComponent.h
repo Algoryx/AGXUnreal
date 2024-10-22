@@ -38,6 +38,7 @@ protected:
 	TArray<FName> BedGeometries;
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedGeometryOptions() const;
+	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 	UPROPERTY(EditAnywhere)
 	double BedZOffset = -1.0;
@@ -48,14 +49,11 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float StartHeight = 0.0f;
 
-
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 	void UpdateInEditorMesh();
 
@@ -70,10 +68,10 @@ protected:
 		double ElementSize, bool FlipYAxis) const;
 
 	void AddBedHeights(
-		TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const;
+		TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const;
 
 	void AddNoiseHeights(
-		TArray<float>& Heights, int ResX, int ResY, float ElementSize, bool FlipYAxis) const;
+		TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const;
 
 
 private:
