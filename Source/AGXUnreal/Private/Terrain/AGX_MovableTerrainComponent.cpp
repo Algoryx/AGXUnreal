@@ -225,15 +225,8 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 	TArray<float>& InitialHeights, TArray<float>& MinimumHeights, int ResX, int ResY,
 	double ElementSize, bool FlipYAxis) const
 {
-	InitialHeights.SetNumZeroed(ResX * ResY);
 
-	//Add start height
-	for (float& h : InitialHeights)
-		h += StartHeight;
-
-	//Add noise
-	AddNoiseHeights(InitialHeights, ResX, ResY, ElementSize, FlipYAxis);
-
+	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(ResX * ResY);
 	if (GetBedGeometries().Num() != 0)
 	{
@@ -251,11 +244,21 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 		//Add bedZOffset
 		for (float& h : MinimumHeights)
 			h += BedZOffset;
-
-		//Put MinimumHeights in InitialHeights
-		for (int i = 0; i < InitialHeights.Num(); i++)
-			InitialHeights[i] = FMath::Max(InitialHeights[i], MinimumHeights[i]);
 	}
+	
+	// Setup InitialHeights
+	InitialHeights.SetNumZeroed(ResX * ResY);
+
+	//Add StartHeight
+	for (float& h : InitialHeights)
+		h += StartHeight;
+
+	//Add Noise
+	AddNoiseHeights(InitialHeights, ResX, ResY, ElementSize, FlipYAxis);
+	
+	// Put MinimumHeights in InitialHeights
+	for (int i = 0; i < InitialHeights.Num(); i++)
+		InitialHeights[i] = FMath::Max(InitialHeights[i], MinimumHeights[i]);
 }
 
 void UAGX_MovableTerrainComponent::AddBedHeights(
@@ -317,4 +320,23 @@ void UAGX_MovableTerrainComponent::AutoFitToBed()
 	// Overwrite Position
 	this->SetRelativeLocation(BottomCenter);
 }
+
+bool UAGX_MovableTerrainComponent::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
+{
+	return false;
+}
+
+bool UAGX_MovableTerrainComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
+{
+	return false;
+}
+
+void UAGX_MovableTerrainComponent::AddCollisionGroup(FName GroupName)
+{
+}
+
+void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
+{
+}
+
 
