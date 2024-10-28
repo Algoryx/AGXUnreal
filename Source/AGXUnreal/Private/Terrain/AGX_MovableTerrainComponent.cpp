@@ -1,9 +1,12 @@
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_TerrainMeshUtilities.h"
+#include "Terrain/AGX_ShovelComponent.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Utilities/AGX_StringUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "AGX_InternalDelegateAccessor.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_LogCategory.h"
@@ -119,13 +122,16 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetRotation(this->GetComponentQuat());
 	NativeBarrier.SetPosition(this->GetComponentLocation());
 
-	// Set Native Terrain and Shape properties
+	// Set Native Properties
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
 	NativeBarrier.SetCreateParticles(bCreateParticles);
 	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+
+	CreateNativeShovels();
+
 
 	if (!UpdateNativeTerrainMaterial())
 	{
@@ -594,4 +600,67 @@ void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
 	CollisionGroups.RemoveAt(Index);
 	if (HasNative())
 		NativeBarrier.RemoveCollisionGroup(GroupName);
+}
+
+void UAGX_MovableTerrainComponent::CreateNativeShovels()
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("CreateNativeShovels called on MovableTerrain '%s' which doesn't have a native "
+				 "representation."),
+			*GetName());
+	}
+
+	for (FAGX_ShovelReference& ShovelRef : ShovelComponents)
+	{
+		UAGX_ShovelComponent* ShovelComponent = ShovelRef.GetShovelComponent();
+		if (ShovelComponent == nullptr)
+		{
+			const FString Message = FString::Printf(
+				TEXT("AGX MovableTerrain '%s' have a Shovel reference to '%s' in '%s' that does not "
+					 "reference a valid Shovel."),
+				*GetName(), *ShovelRef.Name.ToString(),
+				*GetLabelSafe(ShovelRef.OwningActor));
+			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+			continue;
+		}
+
+		FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
+		if (ShovelBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Shovel '%s' in AGX MovableTerrain '%s' could not create AGX Dynamics "
+					 "representation. Ignoring this shovel. It will not be able to deform the "
+					 "Terrain."),
+				*ShovelComponent->GetName(), *GetName());
+			continue;
+		}
+		check(ShovelBarrier->HasNative());
+
+		bool Added = NativeBarrier.AddShovel(*ShovelBarrier);
+		if (!Added)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions and "
+					 "trying again."),
+				*GetName(), *ShovelComponent->GetName(),
+				*GetLabelSafe(ShovelComponent->GetOwner()));
+			ShovelComponent->SwapEdgeDirections();
+			Added = NativeBarrier.AddShovel(*ShovelBarrier);
+			if (!Added)
+			{
+				UE_LOG(
+					LogAGX, Error,
+					TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s' after edge directions flip. "
+						 "Abandoning shovel."),
+					*GetName(), *GetNameSafe(ShovelComponent),
+					*GetLabelSafe(ShovelComponent->GetOwner()));
+			}
+		}
+
+	}
 }

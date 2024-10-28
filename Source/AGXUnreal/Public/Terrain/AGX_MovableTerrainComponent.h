@@ -177,7 +177,8 @@ protected:
 
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FAGX_ShovelReference> ShovelReferences;
+	TArray<FAGX_ShovelReference> ShovelComponents;
+	void CreateNativeShovels();
 
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
