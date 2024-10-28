@@ -3,15 +3,17 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Vehicle/ExampleDriveTrainBarrier.h"
 
 // Unreal Engine includes.
+#include "CoreMinimal.h"
+#include "Components/ActorComponent.h"
 
 #include "AGX_ExampleDriveTrainComponent.generated.h"
 
 /**
  *
  */
-
 UCLASS(Category = "AGX", ClassGroup = "AGX_Vehicle", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_ExampleDriveTrainComponent : public UActorComponent
 {
@@ -20,4 +22,7 @@ class AGXUNREAL_API UAGX_ExampleDriveTrainComponent : public UActorComponent
 public:
 	UAGX_ExampleDriveTrainComponent();
 	virtual ~UAGX_ExampleDriveTrainComponent() = default;
+
+private:
+
 };
