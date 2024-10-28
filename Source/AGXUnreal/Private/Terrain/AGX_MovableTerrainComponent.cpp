@@ -2,6 +2,8 @@
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/AGX_ShapeComponent.h"
+#include "Materials/AGX_ShapeMaterial.h"
+#include "Materials/AGX_TerrainMaterial.h"
 #include "AGX_InternalDelegateAccessor.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_LogCategory.h"
@@ -105,6 +107,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Create native
 	NativeBarrier.AllocateNative(ResX, ResY, ElementSize, InitialHeights, MinimumHeights);
 
+	// Copy Native Heights to CurrentHeights
+	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
+	NativeBarrier.GetHeights(CurrentHeights, false);
+
 	// Attach to RigidBody
 	if (OwningRigidBody)
 		OwningRigidBody->GetNative()->AddTerrain(&NativeBarrier);
@@ -113,9 +119,32 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetRotation(this->GetComponentQuat());
 	NativeBarrier.SetPosition(this->GetComponentLocation());
 
-	// Copy Native Heights
-	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
-	NativeBarrier.GetHeights(CurrentHeights, false);
+	// Set Native Terrain and Shape properties
+	NativeBarrier.SetCanCollide(bCanCollide);
+	NativeBarrier.AddCollisionGroups(CollisionGroups);
+	NativeBarrier.SetCreateParticles(bCreateParticles);
+	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
+	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
+	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+
+	if (!UpdateNativeTerrainMaterial())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UpdateNativeTerrainMaterial returned false in AGX_Terrain '%s'. "
+				 "Ensure the selected Terrain Material is valid."),
+			*GetName());
+	}
+
+	if (!UpdateNativeShapeMaterial())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UpdateNativeShapeMaterial returned false in AGX_Terrain '%s'. "
+				 "Ensure the selected Shape Material is valid."),
+			*GetName());
+	}
+
 
 	// Add Native
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
@@ -321,22 +350,248 @@ void UAGX_MovableTerrainComponent::AutoFitToBed()
 	this->SetRelativeLocation(BottomCenter);
 }
 
+
+/*
+	--- AGX_Terrain Implementation
+	------------------------------
+*/
+
+void UAGX_MovableTerrainComponent::SetCanCollide(bool bInCanCollide)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetCanCollide(bInCanCollide);
+	}
+
+	bCanCollide = bInCanCollide;
+}
+
+bool UAGX_MovableTerrainComponent::GetCanCollide() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetCanCollide();
+	}
+
+	return bCanCollide;
+}
+
+void UAGX_MovableTerrainComponent::SetCreateParticles(bool CreateParticles)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetCreateParticles(CreateParticles);
+	}
+
+	bCreateParticles = CreateParticles;
+}
+
+
+bool UAGX_MovableTerrainComponent::GetCreateParticles() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetCreateParticles();
+	}
+
+	return bCreateParticles;
+}
+
+void UAGX_MovableTerrainComponent::SetDeleteParticlesOutsideBounds(
+	bool DeleteParticlesOutsideBounds)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetDeleteParticlesOutsideBounds(DeleteParticlesOutsideBounds);
+	}
+
+	bDeleteParticlesOutsideBounds = DeleteParticlesOutsideBounds;
+}
+
+bool UAGX_MovableTerrainComponent::GetDeleteParticlesOutsideBounds() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetDeleteParticlesOutsideBounds();
+	}
+
+	return bDeleteParticlesOutsideBounds;
+}
+
+void UAGX_MovableTerrainComponent::SetPenetrationForceVelocityScaling(
+	double InPenetrationForceVelocityScaling)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetPenetrationForceVelocityScaling(InPenetrationForceVelocityScaling);
+	}
+
+	PenetrationForceVelocityScaling = InPenetrationForceVelocityScaling;
+}
+
+double UAGX_MovableTerrainComponent::GetPenetrationForceVelocityScaling() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetPenetrationForceVelocityScaling();
+	}
+
+	return PenetrationForceVelocityScaling;
+}
+
+void UAGX_MovableTerrainComponent::SetMaximumParticleActivationVolume(
+	double InMaximumParticleActivationVolume)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetMaximumParticleActivationVolume(InMaximumParticleActivationVolume);
+	}
+
+	MaximumParticleActivationVolume = InMaximumParticleActivationVolume;
+}
+
+double UAGX_MovableTerrainComponent::GetMaximumParticleActivationVolume() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetMaximumParticleActivationVolume();
+	}
+
+	return MaximumParticleActivationVolume;
+}
+
+
 bool UAGX_MovableTerrainComponent::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
 {
-	return false;
+	UAGX_TerrainMaterial* TerrainMaterialOrig = TerrainMaterial;
+	TerrainMaterial = InTerrainMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeTerrainMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeTerrainMaterial())
+	{
+		// Something went wrong, restore original TerrainMaterial.
+		TerrainMaterial = TerrainMaterialOrig;
+		return false;
+	}
+
+	return true;
 }
 
 bool UAGX_MovableTerrainComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
 {
-	return false;
+	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
+	ShapeMaterial = InShapeMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeShapeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeShapeMaterial())
+	{
+		// Something went wrong, restore original ShapeMaterial.
+		ShapeMaterial = ShapeMaterialOrig;
+		return false;
+	}
+
+	return true;
 }
 
+bool UAGX_MovableTerrainComponent::UpdateNativeTerrainMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainMaterial == nullptr)
+	{
+		GetNative()->ClearTerrainMaterial();
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot update native Terrain material because don't have a world to create "
+				 "the material instance in."));
+		return false;
+	}
+
+	UAGX_TerrainMaterial* Instance = TerrainMaterial->GetOrCreateInstance(World);
+	check(Instance);
+
+	if (TerrainMaterial != Instance)
+		TerrainMaterial = Instance;
+
+	FTerrainMaterialBarrier* TerrainMaterialBarrier =
+		Instance->GetOrCreateTerrainMaterialNative(World);
+	check(TerrainMaterialBarrier);
+
+	GetNative()->SetTerrainMaterial(*TerrainMaterialBarrier);
+
+	return true;
+}
+
+bool UAGX_MovableTerrainComponent::UpdateNativeShapeMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (ShapeMaterial == nullptr)
+	{
+		GetNative()->ClearShapeMaterial();
+		return true;
+	}
+
+	UAGX_ShapeMaterial* Instance =
+		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
+	check(Instance);
+
+	if (ShapeMaterial != Instance)
+		ShapeMaterial = Instance;
+
+	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(GetWorld());
+	check(MaterialBarrier);
+
+	GetNative()->SetShapeMaterial(*MaterialBarrier);
+	return true;
+}
 void UAGX_MovableTerrainComponent::AddCollisionGroup(FName GroupName)
 {
+	if (GroupName.IsNone())
+	{
+		return;
+	}
+
+	if (CollisionGroups.Contains(GroupName))
+		return;
+
+	CollisionGroups.Add(GroupName);
+	if (HasNative())
+		NativeBarrier.AddCollisionGroup(GroupName);
 }
 
 void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
 {
+	if (GroupName.IsNone())
+		return;
+
+	auto Index = CollisionGroups.IndexOfByKey(GroupName);
+	if (Index == INDEX_NONE)
+		return;
+
+	CollisionGroups.RemoveAt(Index);
+	if (HasNative())
+		NativeBarrier.RemoveCollisionGroup(GroupName);
 }
-
-

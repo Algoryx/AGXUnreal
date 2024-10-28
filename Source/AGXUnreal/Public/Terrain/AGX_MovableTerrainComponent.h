@@ -13,15 +13,20 @@
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
 class UAGX_ShovelComponent;
+class UNiagaraSystem;
+
 
 /**
  *
  */
-UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
+UCLASS(
+	ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent),
+	Hidecategories = (Cooking, Collision, Input, LOD, Physics, Replication))
 class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshComponent
 {
 	GENERATED_BODY()
 public:
+
 	bool HasNative() const;
 	void CreateNative();
 	FTerrainBarrier* GetNative();
@@ -81,12 +86,65 @@ private:
 	TArray<float> CurrentHeights;
 	FDelegateHandle PostStepForwardHandle;
 
-	
 	/*
 	--- AGX_Terrain Implementation
 	------------------------------
 	*/
 protected:
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	bool bCanCollide {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetCanCollide(bool bInCanCollide);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool GetCanCollide() const;
+
+	/** Whether the native terrain should generate particles or not during shovel interactions. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	bool bCreateParticles = true;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetCreateParticles(bool CreateParticles);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool GetCreateParticles() const;
+
+	/**
+	 * Whether the native terrain simulation should auto-delete particles that are out of bounds.
+	 *
+	 * Cannot be combined with Terrain Paging.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain")
+	bool bDeleteParticlesOutsideBounds = false;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool GetDeleteParticlesOutsideBounds() const;
+
+	/**
+	 * Scales the penetration force with the shovel velocity squared in the cutting
+	 * direction according to: ( 1.0 + C * v^2 ).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	double PenetrationForceVelocityScaling = 0.0f;
+
+	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
+
+	double GetPenetrationForceVelocityScaling() const;
+
+	/**
+	 * Sets the maximum volume of active zone wedges that should wake particles [cm^3].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	double MaximumParticleActivationVolume = std::numeric_limits<double>::infinity();
+
+	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
+
+	double GetMaximumParticleActivationVolume() const;
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -94,6 +152,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
+	bool UpdateNativeTerrainMaterial();
 
 	/** Defines physical properties of the surface of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -101,7 +160,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
+	bool UpdateNativeShapeMaterial();
 
+	
 	/**
 	 * List of collision groups that this Terrain is part of.
 	 */
@@ -117,4 +178,24 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelReferences;
+
+	/** Whether soil particles should be rendered or not. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bEnableParticleRendering = true;
+
+	/**
+	 * Rough estimation of number of particles that will exist at once. Should not be too low,
+	 * or some particles might not be rendered.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta =
+			(EditCondition = "bEnableParticleRendering", ClampMin = "1", UIMin = "1",
+			 UIMax = "4096"))
+	int32 MaxNumRenderParticles = 2048;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (EditCondition = "bEnableParticleRendering"))
+	UNiagaraSystem* ParticleSystemAsset;
 };
