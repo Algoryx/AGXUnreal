@@ -31,6 +31,7 @@ public:
 	void ReleaseNative();
 
 	void Add(FPowerLineUnitBarrier& Unit);
+
 private:
 	std::unique_ptr<FPowerLineRef> NativeRef;
 };

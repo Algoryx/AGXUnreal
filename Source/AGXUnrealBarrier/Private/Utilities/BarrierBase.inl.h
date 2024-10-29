@@ -53,3 +53,16 @@ void FBarrierBase<BarrierT>::ReleaseNative()
 	check(Barrier().HasNative());
 	Barrier().GetNative()->Native = nullptr;
 }
+
+
+template <typename BarrierT>
+BarrierT& FBarrierBase<BarrierT>::Barrier()
+{
+	return static_cast<BarrierT&>(*this);
+}
+
+template <typename BarrierT>
+const BarrierT& FBarrierBase<BarrierT>::Barrier() const
+{
+	return static_cast<const BarrierT&>(*this);
+}

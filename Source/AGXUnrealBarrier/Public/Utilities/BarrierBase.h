@@ -26,13 +26,6 @@ private:
 		return Barrier().GetNative();
 	}
 
-	BarrierT& Barrier()
-	{
-		return static_cast<BarrierT&>(*this);
-	}
-
-	const BarrierT& Barrier() const
-	{
-		return static_cast<const BarrierT&>(*this);
-	}
+	BarrierT& Barrier();
+	const BarrierT& Barrier() const;
 };

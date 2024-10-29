@@ -4,8 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/PowerLine/PowerLineRefs.h"
-#include "BarrierOnly/BarrierUtilities.h"
 #include "Utilities/BarrierBase.inl.h"
+
+template class AGXUNREALBARRIER_API FBarrierBase<FPowerLineUnitBarrier>;
 
 FPowerLineUnitBarrier::FPowerLineUnitBarrier(std::unique_ptr<FUnitRef>&& Native)
 	: NativeRef {std::move(Native)}
@@ -25,5 +26,3 @@ const FUnitRef* FPowerLineUnitBarrier::GetNative() const
 {
 	return NativeRef.get();
 }
-
-template class AGXUNREALBARRIER_API FBarrierBase<FPowerLineUnitBarrier>;

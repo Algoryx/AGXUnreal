@@ -23,8 +23,3 @@
 		{                                                \
 		}                                                \
 	}
-
-
-
-static_assert(sizeof(agx::ref_ptr<agx::Referenced>) == sizeof(void*));
-static_assert(alignof(agx::ref_ptr<agx::Referenced>) == alignof(void*));
