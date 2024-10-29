@@ -212,7 +212,8 @@ bool UAGX_PreconfiguredDriveTrainComponent::CreateNative()
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Preconfigured Drive-Train '%s' in '%s' tried to add itself to the Simulation, "
-				 "but the Add call failed on the AGX Dynamics side."));
+				 "but the Add call failed on the AGX Dynamics side."),
+			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
 
