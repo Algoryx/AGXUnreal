@@ -3,9 +3,11 @@
 #include "PowerLine/PowerLineBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/PowerLine/PowerLineRefs.h"
 #include "BarrierOnly/PowerLine/PowerLineRefs.h"
 #include "PowerLine/PowerLineUnitBarrier.h"
+#include "SimulationBarrier.h"
 #include "Utilities/BarrierBase.inl.h"
 
 FPowerLineBarrier::FPowerLineBarrier()
@@ -104,4 +106,11 @@ void FPowerLineBarrier::Add(FPowerLineUnitBarrier& Unit)
 	check(HasNative());
 	check(Unit.HasNative());
 	NativeRef->Native->add(Unit.GetNative()->Native);
+}
+
+bool FPowerLineBarrier::AddTo(FSimulationBarrier& Simulation)
+{
+	check(HasNative());
+	check(Simulation.HasNative());
+	return Simulation.GetNative()->Native->add(NativeRef->Native);
 }

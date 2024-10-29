@@ -4,7 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_Simulation.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
@@ -136,7 +138,7 @@ void UAGX_PreconfiguredDriveTrainComponent::BeginPlay()
 // End Actor Component interface.
 //
 
-void UAGX_PreconfiguredDriveTrainComponent::CreateNative()
+bool UAGX_PreconfiguredDriveTrainComponent::CreateNative()
 {
 	check(!HasNative());
 	check(!GIsReconstructingBlueprintInstances);
@@ -148,7 +150,7 @@ void UAGX_PreconfiguredDriveTrainComponent::CreateNative()
 			LogAGX, Warning,
 			TEXT("Preconfigured Drive Train Component could not create native power-line. Aborting "
 				 "drive-train initialization."));
-		return;
+		return false;
 	}
 
 	NativeBarriers.CombustionEngine.AllocateNative(CombustionEngineParameters);
@@ -156,5 +158,47 @@ void UAGX_PreconfiguredDriveTrainComponent::CreateNative()
 	{
 		NativeBarriers.PowerLine.Add(NativeBarriers.CombustionEngine);
 	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Preconfigured Drive-Train '%s' in '%s' tried to allocate native AGX Dynamics "
+				 "Combustion Engine, but the allocation failed."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+	}
 	UpdateNativeProperties();
+
+	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	if (!Simulation)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Preconfigured Drive-Train '%s' in '%s' tried to get Simulation, but "
+				 "UAGX_Simulation::GetFrom returned nullptr."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!Simulation->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Preconfigured Drive-Train '%s' in '%s' tried to add itself to the Simulation, but "
+				"UAGX_Simulation::GetFrom returned a Simulation without a native AGX Dynamics "
+				"representation."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!NativeBarriers.PowerLine.AddTo(*Simulation->GetNative()))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Preconfigured Drive-Train '%s' in '%s' tried to add itself to the Simulation, "
+				 "but the Add call failed on the AGX Dynamics side."));
+		return false;
+	}
+
+	return true;
 }

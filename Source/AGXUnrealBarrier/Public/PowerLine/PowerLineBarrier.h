@@ -11,6 +11,7 @@
 struct FPowerLineRef;
 
 class FPowerLineUnitBarrier;
+class FSimulationBarrier;
 
 class AGXUNREALBARRIER_API FPowerLineBarrier
 {
@@ -31,6 +32,8 @@ public:
 	void ReleaseNative();
 
 	void Add(FPowerLineUnitBarrier& Unit);
+
+	bool AddTo(FSimulationBarrier& Simulation);
 
 private:
 	std::unique_ptr<FPowerLineRef> NativeRef;

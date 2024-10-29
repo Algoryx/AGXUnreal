@@ -90,7 +90,7 @@ public:
 	//~ End UActorComponent interface.
 
 private:
-	void CreateNative();
+	bool CreateNative();
 
 private:
 	FPreconfiguredDriveTrainBarriers NativeBarriers;
