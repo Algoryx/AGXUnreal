@@ -35,6 +35,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Combustion Engine")
 	FAGX_CombustionEngineParameters CombustionEngineParameters; // TODO Make an asset.
 
+	UPROPERTY(EditAnywhere, Category = "Combustion Engine", Meta = (DisplayName = "Enable"))
+	bool bCombustionEngineEnabled {true};
 	/**
 	 * Current engine throttle. A value between 0.0 and 1.0.
 	 */

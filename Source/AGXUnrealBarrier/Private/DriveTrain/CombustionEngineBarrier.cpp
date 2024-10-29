@@ -77,8 +77,8 @@ void FCombustionEngineBarrier::AllocateNative(FAGX_CombustionEngineParameters In
 void FCombustionEngineBarrier::SetCombustionEngineParameters(
 	const FAGX_CombustionEngineParameters& InParameters)
 {
-	check(HasNative());
 	using namespace CombustionEngineBarrier_helpers;
+	check(HasNative());
 	agxDriveTrain::CombustionEngineParameters Parameters = Convert(InParameters);
 	NativeRef->Native->setCombustionEngineParameters(Parameters);
 }
@@ -91,6 +91,22 @@ void FCombustionEngineBarrier::SetCombustionEngineParameters(const FAGX_Combusti
 			 "parameters on an already initialized combustion engine. Doing nothing."));
 }
 #endif
+
+
+void FCombustionEngineBarrier::SetEnabled(bool bEnabled)
+{
+	using namespace CombustionEngineBarrier_helpers;
+	check(HasNative());
+	GetAGX(*this)->setEnable(bEnabled);
+}
+
+bool FCombustionEngineBarrier::GetEnabled() const
+{
+	using namespace CombustionEngineBarrier_helpers;
+	check(HasNative());
+	return GetAGX(*this)->getEnable();
+}
+
 
 void FCombustionEngineBarrier::SetThrottle(double Throttle)
 {

@@ -59,6 +59,7 @@ void UAGX_PreconfiguredDriveTrainComponent::UpdateNativeProperties()
 	if (HasNativeCombustionEngine())
 	{
 		NativeBarriers.CombustionEngine.SetCombustionEngineParameters(CombustionEngineParameters);
+		NativeBarriers.CombustionEngine.SetEnabled(bCombustionEngineEnabled);
 		NativeBarriers.CombustionEngine.SetThrottle(Throttle);
 	}
 }
