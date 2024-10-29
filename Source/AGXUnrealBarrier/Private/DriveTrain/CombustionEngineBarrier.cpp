@@ -73,7 +73,6 @@ void FCombustionEngineBarrier::AllocateNative(FAGX_CombustionEngineParameters In
 	NativeRef->Native = new agxDriveTrain::CombustionEngine(Parameters);
 }
 
-
 #if AGX_VERSION_GREATER_OR_EQUAL(2, 39, 0, 0)
 void FCombustionEngineBarrier::SetCombustionEngineParameters(
 	const FAGX_CombustionEngineParameters& InParameters)
@@ -97,6 +96,12 @@ void FCombustionEngineBarrier::SetThrottle(double Throttle)
 {
 	using namespace CombustionEngineBarrier_helpers;
 	check(HasNative());
-	agx::Real VolumeAGX = ConvertVolumeToAGX(Throttle);
 	GetAGX(*this)->setThrottle(Throttle);
+}
+
+double FCombustionEngineBarrier::GetThrottle() const
+{
+	using namespace CombustionEngineBarrier_helpers;
+	check(HasNative());
+	return GetAGX(*this)->getThrottle();
 }

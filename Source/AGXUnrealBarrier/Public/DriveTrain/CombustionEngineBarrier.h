@@ -24,4 +24,5 @@ public:
 
 	void SetCombustionEngineParameters(const FAGX_CombustionEngineParameters& Parameters);
 	void SetThrottle(double Throttle);
+	double GetThrottle() const;
 };

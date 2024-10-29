@@ -55,7 +55,8 @@ cases we want to handle:
  *
  * void UMyComponent::UMyComponent()
  * {
- *     MyComponentReference.SetLocalScope(GetTypedOuter<AActor>());
+ *     AActor* LocalScope = FAGX_ComponentReference::FindLocalScope(*this);
+ *     MyComponentReference.SetLocalScope(LocalScope);
  * }
  *
  * void AMyActor::AMyActor()
@@ -139,8 +140,18 @@ struct AGXUNREAL_API FAGX_ComponentReference
 	AActor* LocalScope {nullptr};
 
 	/**
-	 * Let the Component Reference know which Actor is the local scope. If the given Actor is a
-	 * Child Actor then the parent actor chain will be traversed until a non-Child-Actor is found.
+	 * Find the Actor that is the default local scope of the give Component.
+	 *
+	 * The local scope is usually the Component's owner, but if that Actor is a Child Actor then the
+	 * parent actor chain will be traversed until a non-Child-Actor is found.
+	 *
+	 * @param Component The Component to find the local scope of.
+	 * @return The default local scope of the Component.
+	 */
+	static AActor* FindLocalScope(const UActorComponent& Component);
+
+	/**
+	 * Let the Component Reference know which Actor is the local scope.
 	 */
 	void SetLocalScope(AActor* InLocalScope);
 

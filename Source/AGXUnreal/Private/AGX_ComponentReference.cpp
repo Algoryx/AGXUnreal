@@ -19,7 +19,7 @@ FAGX_ComponentReference::FAGX_ComponentReference(TSubclassOf<UActorComponent> In
 {
 }
 
-void FAGX_ComponentReference::SetLocalScope(AActor* InLocalScope)
+AActor* FAGX_ComponentReference::FindLocalScope(const UActorComponent& Component)
 {
 	// This is a workaround for the case where the Component that owns this Component Reference
 	// is part of a Child Actor and a Blueprint instance[1]. In that case, the Child Actor does not
@@ -45,7 +45,14 @@ void FAGX_ComponentReference::SetLocalScope(AActor* InLocalScope)
 	// [1] Doesn't actually test for being a Blueprint instance, since traversing the Parent Actor
 	// chain is valid either way, and it is preferable to limit the number of special cases as much
 	// as possible.
-	LocalScope = FAGX_ObjectUtilities::GetRootParentActor(InLocalScope);
+	AActor* Owner = Component.GetTypedOuter<AActor>();
+	AActor* LocalScope = FAGX_ObjectUtilities::GetRootParentActor(Owner);
+	return LocalScope;
+}
+
+void FAGX_ComponentReference::SetLocalScope(AActor* InLocalScope)
+{
+	LocalScope = InLocalScope;
 }
 
 AActor* FAGX_ComponentReference::GetScope() const

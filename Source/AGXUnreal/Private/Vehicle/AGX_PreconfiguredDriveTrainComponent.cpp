@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
@@ -11,10 +12,12 @@
 
 namespace AGX_PreconfiguredDriveTrainBarriers_helpers
 {
+	// Update the Local Scope of all Component References in the drive-train.
 	void SetLocalScope(UAGX_PreconfiguredDriveTrainComponent& DriveTrain)
 	{
-		AActor* LocalScope = DriveTrain.GetTypedOuter<AActor>();
+		AActor* LocalScope = FAGX_ComponentReference::FindLocalScope(DriveTrain);
 		DriveTrain.FrontLeftHinge.SetLocalScope(LocalScope);
+		DriveTrain.FrontRightHinge.SetLocalScope(LocalScope);
 	}
 }
 
@@ -33,6 +36,17 @@ void UAGX_PreconfiguredDriveTrainComponent::SetThrottle(double InThrottle)
 	Throttle = InThrottle;
 }
 
+double UAGX_PreconfiguredDriveTrainComponent::GetThrottle() const
+{
+	if (HasNativeCombustionEngine())
+	{
+		return NativeBarriers.CombustionEngine.GetThrottle();
+	}
+	else
+	{
+		return Throttle;
+	}
+}
 
 //
 // Begin Native Owner interface.
@@ -46,7 +60,6 @@ void UAGX_PreconfiguredDriveTrainComponent::UpdateNativeProperties()
 		NativeBarriers.CombustionEngine.SetThrottle(Throttle);
 	}
 }
-
 
 bool UAGX_PreconfiguredDriveTrainComponent::HasNative() const
 {
@@ -64,21 +77,36 @@ void UAGX_PreconfiguredDriveTrainComponent::SetNativeAddress(uint64 NativeAddres
 	NativeBarriers.PowerLine.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 }
 
+FPowerLineBarrier* UAGX_PreconfiguredDriveTrainComponent::GetNative()
+{
+	if (!HasNative())
+	{
+		return nullptr;
+	}
+	return &NativeBarriers.PowerLine;
+}
+
+const FPowerLineBarrier* UAGX_PreconfiguredDriveTrainComponent::GetNative() const
+{
+	if (!HasNative())
+	{
+		return nullptr;
+	}
+	return &NativeBarriers.PowerLine;
+}
+
 //
 // End Native Owner interface.
 //
 
-void UAGX_PreconfiguredDriveTrainComponent::CreateNative()
+FPowerLineBarrier* UAGX_PreconfiguredDriveTrainComponent::GetOrCreateNative()
 {
-	check(!HasNative());
-	check(!GIsReconstructingBlueprintInstances);
-
-	NativeBarriers.PowerLine.AllocateNative();
-	NativeBarriers.CombustionEngine.AllocateNative(CombustionEngineParameters);
-	NativeBarriers.PowerLine.Add(NativeBarriers.CombustionEngine);
-	UpdateNativeProperties();
+	if (!HasNative())
+	{
+		CreateNative();
+	}
+	return GetNative();
 }
-
 
 bool UAGX_PreconfiguredDriveTrainComponent::HasNativeCombustionEngine() const
 {
@@ -100,7 +128,7 @@ void UAGX_PreconfiguredDriveTrainComponent::BeginPlay()
 	Super::BeginPlay();
 	if (!HasNative() && !GIsReconstructingBlueprintInstances)
 	{
-		CreateNative();
+		GetOrCreateNative();
 	}
 }
 
@@ -108,6 +136,25 @@ void UAGX_PreconfiguredDriveTrainComponent::BeginPlay()
 // End Actor Component interface.
 //
 
-void UAGX_PreconfiguredDriveTrainComponent::AllocateNative()
+void UAGX_PreconfiguredDriveTrainComponent::CreateNative()
 {
+	check(!HasNative());
+	check(!GIsReconstructingBlueprintInstances);
+
+	NativeBarriers.PowerLine.AllocateNative();
+	if (!NativeBarriers.PowerLine.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Preconfigured Drive Train Component could not create native power-line. Aborting "
+				 "drive-train initialization."));
+		return;
+	}
+
+	NativeBarriers.CombustionEngine.AllocateNative(CombustionEngineParameters);
+	if (HasNativeCombustionEngine())
+	{
+		NativeBarriers.PowerLine.Add(NativeBarriers.CombustionEngine);
+	}
+	UpdateNativeProperties();
 }
