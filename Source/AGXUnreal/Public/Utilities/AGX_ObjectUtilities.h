@@ -330,26 +330,47 @@ inline TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject*
 {
 	TArray<FName> Names;
 
-	// Check if the outer object is a BlueprintGeneratedClass
-	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
-	if (OwningGenClass == nullptr)
-		return Names;
-
-	// Get the construction script associated with the BlueprintGeneratedClass
-	const TObjectPtr<USimpleConstructionScript> ConstructionScript =
-		OwningGenClass->SimpleConstructionScript;
-	if (ConstructionScript == nullptr)
-		return Names;
-
-	// Iterate over all nodes in the construction script
-	for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+	//If Outer is an Actor, we are in the World Editor
+	AActor* Actor = Cast<AActor>(Outer);
+	if (Actor)
 	{
-		// Try casting each component to the type T
-		T* CastComponent = Cast<T>(Component->ComponentTemplate);
-		if (CastComponent != nullptr)
+		// Loop through all actor components
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
 		{
-			// Get the component's variable name and add it to the list
-			Names.Add(Component->GetVariableName());
+			// Try casting each component to the type T
+			T* CastComponent = Cast<T>(Component);
+			if (CastComponent != nullptr)
+			{
+				// Get the component's variable name and add it to the list
+				Names.Add(Component->GetFName());
+			}
+		}
+
+	}
+
+	// If Outer is a UBlueprintGeneratedClass, we are in the Blueprint Editor
+	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
+	if (OwningGenClass != nullptr)
+	{
+		// Get the construction script associated with the BlueprintGeneratedClass
+		const TObjectPtr<USimpleConstructionScript> ConstructionScript =
+			OwningGenClass->SimpleConstructionScript;
+		if (ConstructionScript == nullptr)
+			return Names;
+
+		// Iterate over all nodes in the construction script
+		for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+		{
+			// Try casting each component to the type T
+			T* CastComponent = Cast<T>(Component->ComponentTemplate);
+			if (CastComponent != nullptr)
+			{
+				// Get the component's variable name and add it to the list
+				Names.Add(Component->GetVariableName());
+			}
 		}
 	}
 
