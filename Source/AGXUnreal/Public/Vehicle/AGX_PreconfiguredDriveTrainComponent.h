@@ -57,6 +57,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Preconfigured Drive-Train|Combustion Engine")
 	double GetThrottle() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Preconfigured Drive-Train|Combustion Engine")
+	double GetRPM() const;
+
+
 	/**
 	 * The hinge attaching the front left wheel of the vehicle.
 	 */

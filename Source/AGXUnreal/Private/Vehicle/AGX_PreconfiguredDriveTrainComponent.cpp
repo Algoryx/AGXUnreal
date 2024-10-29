@@ -50,6 +50,21 @@ double UAGX_PreconfiguredDriveTrainComponent::GetThrottle() const
 	}
 }
 
+double UAGX_PreconfiguredDriveTrainComponent::GetRPM() const
+{
+	if (!HasNativeCombustionEngine())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get RPM called on a Preconfigured Drive-Train that doesn't have a native "
+				 "Combustion Engine. RPM is a dynamic property which means that it is owned by the "
+				 "native."));
+		return 0.0;
+	}
+
+	return NativeBarriers.CombustionEngine.GetRPM();
+}
+
 //
 // Begin Native Owner interface.
 //

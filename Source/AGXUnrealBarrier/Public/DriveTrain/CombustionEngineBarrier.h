@@ -29,4 +29,5 @@ public:
 	bool GetEnabled() const;
 	void SetThrottle(double Throttle);
 	double GetThrottle() const;
+	double GetRPM() const;
 };

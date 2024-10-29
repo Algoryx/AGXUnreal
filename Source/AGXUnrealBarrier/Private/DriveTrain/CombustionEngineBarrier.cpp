@@ -122,3 +122,10 @@ double FCombustionEngineBarrier::GetThrottle() const
 	check(HasNative());
 	return GetAGX(*this)->getThrottle();
 }
+
+double FCombustionEngineBarrier::GetRPM() const
+{
+	using namespace CombustionEngineBarrier_helpers;
+	check(HasNative());
+	return GetAGX(*this)->getRPM();
+}
