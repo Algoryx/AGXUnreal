@@ -19,7 +19,8 @@ namespace CombustionEngineBarrier_helpers
 	agxDriveTrain::CombustionEngineParameters Convert(
 		const FAGX_CombustionEngineParameters& Parameters)
 	{
-		agxDriveTrain::CombustionEngineParameters Result;
+		agxDriveTrain::CombustionEngineParameters Result =
+			agxDriveTrain::CombustionEngineParameters::VolvoV60();
 		Result.displacementVolume = ConvertVolumeToAGX(Parameters.DisplacementVolume);
 		UE_LOG(
 			LogAGX, Warning, TEXT("Volume: %f cm^3 = %f m^3"), Parameters.DisplacementVolume.Value,
