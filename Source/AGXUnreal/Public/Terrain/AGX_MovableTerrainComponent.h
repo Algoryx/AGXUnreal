@@ -14,6 +14,7 @@ class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
 class UAGX_ShovelComponent;
 class UNiagaraSystem;
+class UNiagaraComponent;
 
 
 /**
@@ -31,16 +32,24 @@ public:
 	void CreateNative();
 	FTerrainBarrier* GetNative();
 	const FTerrainBarrier* GetNative() const;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 protected:
 	UPROPERTY(EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "256", UIMax = "256"))
 	int Resolution = 20;
 
 	UPROPERTY(EditAnywhere)
-	UMaterialInterface* Material;
+	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(EditAnywhere)
-	FVector2D Size = FVector2D(200.0f, 200.0f);
+	float StartHeight = 0.0f;
+
+	UPROPERTY(EditAnywhere)
+	float NoiseHeight = 50.0f;
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
@@ -49,13 +58,7 @@ protected:
 	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 	UPROPERTY(EditAnywhere)
-	double BedZOffset = -1.0;
-
-	UPROPERTY(EditAnywhere)
-	float NoiseHeight = 50.0f;
-
-	UPROPERTY(EditAnywhere)
-	float StartHeight = 0.0f;
+	double BedOffset = -1.0;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -110,11 +113,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetCreateParticles() const;
 
-	/**
-	 * Whether the native terrain simulation should auto-delete particles that are out of bounds.
-	 *
-	 * Cannot be combined with Terrain Paging.
-	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain")
 	bool bDeleteParticlesOutsideBounds = false;
@@ -174,7 +172,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void RemoveCollisionGroupIfExists(FName GroupName);
-
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
@@ -199,4 +196,8 @@ protected:
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (EditCondition = "bEnableParticleRendering"))
 	UNiagaraSystem* ParticleSystemAsset;
+	UNiagaraComponent* ParticleSystemComponent = nullptr;
+
+	bool InitializeParticles();
+	void UpdateParticles();
 };
