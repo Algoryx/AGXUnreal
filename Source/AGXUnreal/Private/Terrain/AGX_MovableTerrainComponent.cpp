@@ -57,6 +57,18 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 					});
 	}
 
+	// Init particles
+	if (bEnableParticleRendering)
+	{
+		if (!InitializeParticles())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("InitializeParticles returned false in AGX_MovableTerrainComponent '%s'. "
+					 "Ensure the selected Niagara System is valid."),
+				*GetName());
+		}
+	}
 }
 
 void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
@@ -128,6 +140,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
 
+	// Create/Add Shovels
 	CreateNativeShovels();
 
 
@@ -147,19 +160,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 			TEXT("UpdateNativeShapeMaterial returned false in AGX_MovableTerrainComponent '%s'. "
 				 "Ensure the selected Shape Material is valid."),
 			*GetName());
-	}
-
-	// Init particles
-	if (bEnableParticleRendering)
-	{
-		if (!InitializeParticles())
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("InitializeParticles returned false in AGX_MovableTerrainComponent '%s'. "
-					 "Ensure the selected Niagara System is valid."),
-				*GetName());
-		}
 	}
 
 	// Add Native
