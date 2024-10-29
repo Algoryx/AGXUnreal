@@ -59,8 +59,10 @@
 #include "Constraints/AGX_ConstraintFrameActor.h"
 #include "Constraints/AGX_ConstraintFrameComponent.h"
 #include "Constraints/AGX_ConstraintFrameComponentVisualizer.h"
+#include "Constraints/AGX_ConstraintReferences.h"
 #include "Constraints/AGX_CylindricalConstraintActor.h"
 #include "Constraints/AGX_DistanceConstraintActor.h"
+#include "Constraints/AGX_HingeConstraintComponent.h"
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
@@ -266,6 +268,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_FrameCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_HingeReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_Real::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAGX_RealDetails::MakeInstance));
 
@@ -440,16 +447,21 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	 * Class Customizations.
 	 */
 
+	// clang-format off
+
 	/// \todo Not sure if this should be AAGX_ConstraintActor,
 	/// UAGX_ConstraintComponent, or both.
-	PropertyModule.UnregisterCustomClassLayout(AAGX_ConstraintActor::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		AAGX_ConstraintActor::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_AgxEdModeConstraints::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_AgxEdModeFile::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_AgxEdModeFile::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_AgxEdModeTerrain::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_AgxEdModeTerrain::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_CameraSensorBase::StaticClass()->GetFName());
@@ -460,28 +472,38 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_CollisionGroupDisablerComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_ContactMaterial::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_ContactMaterial::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_ContactMaterialRegistrarComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
+		FAGX_HingeReference::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_TerrainMaterial::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_ModelSourceComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_PlotComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_PlotComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_RigidBodyComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_RigidBodyComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_ShapeComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_ShapeComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_Simulation::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_Simulation::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_TrackComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_TrackComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_TrackRenderer::StaticClass()->GetFName());
@@ -489,9 +511,13 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_TwoBodyTireComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_WireComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_WireComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_WireWinchComponent::StaticClass()->GetFName());
+
+	// clang-format on
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
