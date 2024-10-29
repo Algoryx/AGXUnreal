@@ -22,7 +22,7 @@ namespace CombustionEngineBarrier_helpers
 		agxDriveTrain::CombustionEngineParameters Result;
 		Result.displacementVolume = ConvertVolumeToAGX(Parameters.DisplacementVolume);
 		UE_LOG(
-			LogAGX, Warning, TEXT("Volume: %f cm^3 = %f m^3"), Parameters.DisplacementVolume,
+			LogAGX, Warning, TEXT("Volume: %f cm^3 = %f m^3"), Parameters.DisplacementVolume.Value,
 			Result.displacementVolume);
 		return Result;
 	}
