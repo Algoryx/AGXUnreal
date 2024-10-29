@@ -230,36 +230,28 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 	TArray<float>& InitialHeights, TArray<float>& MinimumHeights, int ResX, int ResY,
 	double ElementSize, bool FlipYAxis) const
 {
-
 	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(ResX * ResY);
 	if (GetBedGeometries().Num() != 0)
 	{
-		//Transform to origo before raycasting
-		const FTransform OldTransform = this->GetAttachmentRoot()->GetComponentTransform();
-		this->GetAttachmentRoot()->SetWorldLocationAndRotation(FVector::Zero(), FQuat::Identity);
-		
 		//Add raycasted heights
 		AddBedHeights(MinimumHeights, ResX, ResY, ElementSize, FlipYAxis);
-
-		//Restore transform
-		this->GetAttachmentRoot()->SetWorldLocationAndRotation(
-			OldTransform.GetLocation(), OldTransform.GetRotation());
 
 		//Add bedZOffset
 		for (float& h : MinimumHeights)
 			h += BedOffset;
 	}
 	
+
 	// Setup InitialHeights
 	InitialHeights.SetNumZeroed(ResX * ResY);
+
+	// Add Noise
+	AddNoiseHeights(InitialHeights, ResX, ResY, ElementSize, FlipYAxis);
 
 	//Add StartHeight
 	for (float& h : InitialHeights)
 		h += StartHeight;
-
-	//Add Noise
-	AddNoiseHeights(InitialHeights, ResX, ResY, ElementSize, FlipYAxis);
 	
 	// Put MinimumHeights in InitialHeights
 	for (int i = 0; i < InitialHeights.Num(); i++)
@@ -269,13 +261,16 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 void UAGX_MovableTerrainComponent::AddBedHeights(
 	TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const
 {
-	float RayLength = 1000.0f;
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	TArray<UMeshComponent*> BedMeshes =
 		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedGeometries());
 
-	FTransform WorldTransform = GetComponentTransform();
-	FVector Up = WorldTransform.GetRotation().GetUpVector();
+	// Transform owning actor to origo before raycasting
+	const FTransform OldTransform = this->GetAttachmentRoot()->GetComponentTransform();
+	this->GetAttachmentRoot()->SetWorldLocationAndRotation(FVector::Zero(), FQuat::Identity);
+
+	
+	FVector Up = GetComponentQuat().GetUpVector();
 	FVector Origin =
 		FVector(ElementSize * (1 - ResX) / 2.0, ElementSize * SignY * (1 - ResY) / 2.0, 0.0);
 
@@ -283,14 +278,18 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 	{
 		for (int x = 0; x < ResX; x++)
 		{
-			FVector Pos = WorldTransform.TransformPosition(
+			FVector Pos = GetComponentTransform().TransformPosition(
 				Origin + FVector(x * ElementSize, SignY * y * ElementSize, 0));
 			float BedHeight =
-				UAGX_TerrainMeshUtilities::GetRaycastedHeight(Pos, BedMeshes, Up, RayLength);
+				UAGX_TerrainMeshUtilities::GetRaycastedHeight(Pos, BedMeshes, Up);
 
 			Heights[y * ResX + x] += BedHeight;
 		}
 	}
+	
+	// Restore owning actor's transform
+	this->GetAttachmentRoot()->SetWorldLocationAndRotation(
+		OldTransform.GetLocation(), OldTransform.GetRotation());
 }
 
 void UAGX_MovableTerrainComponent::AddNoiseHeights(
