@@ -27,6 +27,7 @@ class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshCompone
 {
 	GENERATED_BODY()
 public:
+	UAGX_MovableTerrainComponent(const FObjectInitializer& ObjectInitializer);
 
 	bool HasNative() const;
 	void CreateNative();
@@ -198,6 +199,13 @@ protected:
 	UNiagaraSystem* ParticleSystemAsset;
 	UNiagaraComponent* ParticleSystemComponent = nullptr;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UNiagaraComponent* GetSpawnedParticleSystemComponent();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	int32 GetNumParticles() const;
+
+	
 	bool InitializeParticles();
 	void UpdateParticles();
 };

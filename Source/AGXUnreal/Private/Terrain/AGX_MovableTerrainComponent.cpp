@@ -18,6 +18,13 @@
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 
+UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
+	const FObjectInitializer& ObjectInitializer)
+	: UProceduralMeshComponent(ObjectInitializer)
+{
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -71,6 +78,7 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 // Called every frame
 void UAGX_MovableTerrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+
 	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (bEnableParticleRendering)
@@ -690,6 +698,20 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 		}
 
 	}
+}
+
+UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()
+{
+	return ParticleSystemComponent;
+}
+
+int32 UAGX_MovableTerrainComponent::GetNumParticles() const
+{
+	if (!HasNative())
+		return 0;
+
+	check(HasNative());
+	return static_cast<int32>(NativeBarrier.GetNumParticles());
 }
 
 bool UAGX_MovableTerrainComponent::InitializeParticles()
