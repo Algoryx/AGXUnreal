@@ -7,6 +7,7 @@
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
+#include "GameFramework/Actor.h"
 
 namespace AGX_PreconfiguredDriveTrainBarriers_helpers
 {

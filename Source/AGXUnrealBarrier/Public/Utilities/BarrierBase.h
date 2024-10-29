@@ -2,6 +2,9 @@
 
 #pragma once
 
+// Unreal Engine includes.
+#include "CoreMinimal.h"
+
 template <typename BarrierT>
 class AGXUNREALBARRIER_API FBarrierBase
 {
