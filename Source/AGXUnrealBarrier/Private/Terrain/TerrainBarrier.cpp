@@ -19,7 +19,6 @@
 #include <agxCollide/HeightField.h>
 #include <agx/Physics/GranularBodySystem.h>
 #include "EndAGXIncludes.h"
-#include <AGX_AgxDynamicsObjectsAccess.h>
 
 FTerrainBarrier::FTerrainBarrier()
 	: NativeRef {new FTerrainRef}
@@ -55,25 +54,6 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 	agxCollide::HeightField* HeightFieldAGX =
 		SourceHeightField.GetNativeShape<agxCollide::HeightField>();
 	NativeRef->Native = agxTerrain::Terrain::createFromHeightField(HeightFieldAGX, MaxDepthAGX);
-}
-
-void FTerrainBarrier::AllocateNative(
-	int resolution, const TArray<FShapeBarrier*>& bedShapeBarriers, double edgeMarigin,
-	double bedZOffset)
-{
-	check(!HasNative());
-
-	agxCollide::GeometryPtrVector bedGeoms;
-	for (const FShapeBarrier* shapeBarrier : bedShapeBarriers)
-	{
-		
-		agxCollide::Geometry* geometry = FAGX_AgxDynamicsObjectsAccess::GetGeometryFrom(shapeBarrier);
-		bedGeoms.push_back(geometry);
-	}
-
-	
-	NativeRef->Native = agxTerrain::Terrain::createTerrainBedFromGeometries(
-		resolution, bedGeoms, ConvertDistanceToAGX(edgeMarigin), ConvertDistanceToAGX(bedZOffset));
 }
 
 void FTerrainBarrier::AllocateNative(

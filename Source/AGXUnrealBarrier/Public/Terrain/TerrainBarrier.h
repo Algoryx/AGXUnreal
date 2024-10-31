@@ -36,10 +36,6 @@ public:
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
 	void AllocateNative(
-		int resolution, const TArray<FShapeBarrier*>& bedGeometries, double edgeMarigin = 0.0,
-		double bedZOffset = 0.0);
-
-	void AllocateNative(
 		int resolutionX, int resolutionY, double elementSize, const TArray<float>& initialHeights,
 		const TArray<float>& minimumHeights);
 
