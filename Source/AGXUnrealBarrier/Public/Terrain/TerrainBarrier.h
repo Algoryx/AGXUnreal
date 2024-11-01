@@ -65,6 +65,9 @@ public:
 	double GetMaximumParticleActivationVolume() const;
 
 	bool AddShovel(FShovelBarrier& Shovel);
+	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
+	void SetNoMerge(bool IsNoMerge);
+
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 

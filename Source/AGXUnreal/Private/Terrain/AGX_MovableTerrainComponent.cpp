@@ -690,6 +690,18 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 	}
 }
 
+void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape)
+{
+	if (HasNative() && Shape->HasNative())
+		NativeBarrier.ConvertToDynamicMassInShape(Shape->GetNative());
+}
+
+void UAGX_MovableTerrainComponent::SetNoMerge(bool IsNoMerge)
+{
+	if (HasNative())
+		NativeBarrier.SetNoMerge(IsNoMerge);
+}
+
 UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()
 {
 	return ParticleSystemComponent;

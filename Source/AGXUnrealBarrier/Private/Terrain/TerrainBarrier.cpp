@@ -199,6 +199,20 @@ bool FTerrainBarrier::AddShovel(FShovelBarrier& Shovel)
 	return NativeRef->Native->add(Shovel.GetNative()->Native);
 }
 
+void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier * Shape)
+{
+	check(HasNative());
+	check(Shape->HasNative());
+	auto shapeNative = Shape->GetNative();
+	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
+}
+
+void FTerrainBarrier::SetNoMerge(bool IsNoMerge)
+{
+	check(HasNative());
+	NativeRef->Native->setNoMerge(IsNoMerge);
+}
+
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());

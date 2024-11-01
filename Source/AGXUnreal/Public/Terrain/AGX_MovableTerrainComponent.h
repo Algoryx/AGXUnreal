@@ -161,7 +161,6 @@ protected:
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
-	
 	/**
 	 * List of collision groups that this Terrain is part of.
 	 */
@@ -177,6 +176,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
 	void CreateNativeShovels();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetNoMerge(bool IsNoMerge);
 
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
