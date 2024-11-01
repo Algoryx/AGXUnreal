@@ -204,20 +204,23 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& MeshSize, const int ResX, const int ResY, const TArray<float>& HeightArray)
 {
+	FVector MeshCenter = FVector::Zero();
+	FIntVector2 MeshRes = FIntVector2(ResX, ResY);
+	float UvScaling = 1.0f / 100.0f;
+
+
 	//Create height function
 	auto HeightFunction = [&](const FVector& Pos) -> float
 	{
+		FVector2D UvCord = FVector2D((Pos.X - MeshCenter.X) / MeshSize.X + 0.5, (Pos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
+
 		//Samples HeightArray
-		return UAGX_TerrainMeshUtilities::SampleHeightArray(
-			FVector2D(Pos.X / MeshSize.X + 0.5, (Pos.Y / MeshSize.Y + 0.5)), HeightArray, ResX,
-			ResY);
+		return UAGX_TerrainMeshUtilities::SampleHeightArray(UvCord, HeightArray, ResX, ResY);
 	};
 
 	// Create mesh description
-	FIntVector2 MeshRes = FIntVector2(ResX, ResY);
-	float UvScaling = 1.0f / 100.0f;
 	auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-		FVector::Zero(), MeshSize, MeshRes, UvScaling, HeightFunction);
+		MeshCenter, MeshSize, MeshRes, UvScaling, HeightFunction);
 
 	// Create mesh section
 	CreateMeshSection(

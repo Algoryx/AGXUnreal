@@ -5,63 +5,19 @@
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
-	std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt)
+	std::function<float(const FVector&)> HeightFunction)
 {
-	// Vertex count with or without skirt
-	FIntVector2 NrOfVerts;
-	if (IsUseSkirt)
-		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
-	else
-		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+	// Vertex count in X and Y direction
+	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
 
-	// Create pointer
+	// Allocate memory
 	auto MeshDescPtr = MakeShared<HfMeshDescription>(NrOfVerts);
 	auto& MeshDesc = *MeshDescPtr;
 
-	// Populate vertices, uvs, colors
-	GenerateTriangles(MeshDesc, Center, Size, Resolution, UvScale, HeightFunction, IsUseSkirt);
-
-	// Compute tangents and normals, while skirt is still being flat
-	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
-		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
-
-	// Move skirt vertices downwards
-	if (IsUseSkirt)
-	{
-		FVector SkirtOffset = FVector::UpVector * Size.Length() * 0.05f;
-		int VertexIndex = 0;
-		for (int32 y = 0; y < NrOfVerts.Y; ++y)
-		{
-			for (int32 x = 0; x < NrOfVerts.X; ++x)
-			{
-				if (x == 0 || x == NrOfVerts.X - 1 || y == 0 || y == NrOfVerts.Y - 1)
-				{
-					MeshDesc.Vertices[VertexIndex] -= SkirtOffset;
-				}
-				VertexIndex++;
-			}
-		}
-	}
-
-	return MeshDescPtr;
-}
-
-void UAGX_TerrainMeshUtilities::GenerateTriangles(
-	HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
-	const FIntVector2& Resolution, double UvScale,
-	std::function<float(const FVector&)> HeightFunction, bool IsUseSkirt)
-{
-	// Vertex count with or without skirt
-	FIntVector2 NrOfVerts;
-	if (IsUseSkirt)
-		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
-	else
-		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
-
+	// Size of individual triangle
 	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
-	// Fill the vertices and triangles
-	int StartOffset = IsUseSkirt ? -1 : 0;
+	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
 	for (int32 y = 0; y < NrOfVerts.Y; ++y)
@@ -69,8 +25,7 @@ void UAGX_TerrainMeshUtilities::GenerateTriangles(
 		for (int32 x = 0; x < NrOfVerts.X; ++x)
 		{
 			FVector PlanePosition = FVector(
-				(x + StartOffset) * TriangleSize.X - Size.X / 2,
-				(y + StartOffset) * TriangleSize.Y - Size.Y / 2, 0.0f);
+				x * TriangleSize.X - Size.X / 2, y * TriangleSize.Y - Size.Y / 2, 0.0f);
 			FVector LocalPosition = PlanePosition + Center;
 
 			// Call height function
@@ -102,7 +57,14 @@ void UAGX_TerrainMeshUtilities::GenerateTriangles(
 			++VertexIndex;
 		}
 	}
+
+	// Compute tangents and normals, while skirt is still being flat
+	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
+
+	return MeshDescPtr;
 }
+
 
 float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity, float Exp)
