@@ -37,6 +37,10 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	int ResY = NativeBarrier.GetGridSizeY();
 	float ElementSize = NativeBarrier.GetElementSize();
 
+	// Copy Native Heights to CurrentHeights
+	CurrentHeights.Reserve(ResX * ResY);
+	NativeBarrier.GetHeights(CurrentHeights, false);
+
 	//Rebuild mesh
 	RebuildHeightMesh(Size, ResX, ResY, CurrentHeights);
 
@@ -119,10 +123,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 	// Create native
 	NativeBarrier.AllocateNative(ResX, ResY, ElementSize, InitialHeights, MinimumHeights);
-
-	// Copy Native Heights to CurrentHeights
-	CurrentHeights.Reserve(NativeBarrier.GetGridSizeX() * NativeBarrier.GetGridSizeY());
-	NativeBarrier.GetHeights(CurrentHeights, false);
 
 	// Attach to RigidBody
 	if (OwningRigidBody)
