@@ -699,11 +699,18 @@ void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeCompone
 		NativeBarrier.ConvertToDynamicMassInShape(Shape->GetNative());
 }
 
-void UAGX_MovableTerrainComponent::SetNoMerge(bool IsNoMerge)
+void UAGX_MovableTerrainComponent::SetIsNoMerge(bool IsNoMerge)
 {
 	if (HasNative())
 		NativeBarrier.SetNoMerge(IsNoMerge);
 }
+bool UAGX_MovableTerrainComponent::GetIsNoMerge() const
+{
+	if (HasNative())
+		return NativeBarrier.GetNoMerge();
+	return false;
+}
+
 
 UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()
 {

@@ -181,7 +181,9 @@ protected:
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetNoMerge(bool IsNoMerge);
+	void SetIsNoMerge(bool IsNoMerge);
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool GetIsNoMerge() const;
 
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")

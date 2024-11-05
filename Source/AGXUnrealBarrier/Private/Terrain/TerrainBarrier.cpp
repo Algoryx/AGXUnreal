@@ -213,6 +213,12 @@ void FTerrainBarrier::SetNoMerge(bool IsNoMerge)
 	NativeRef->Native->setNoMerge(IsNoMerge);
 }
 
+bool FTerrainBarrier::GetNoMerge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getNoMerge();
+}
+
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());

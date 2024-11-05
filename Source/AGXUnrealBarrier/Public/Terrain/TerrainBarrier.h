@@ -67,6 +67,7 @@ public:
 	bool AddShovel(FShovelBarrier& Shovel);
 	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
 	void SetNoMerge(bool IsNoMerge);
+	bool GetNoMerge() const;
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
