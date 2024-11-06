@@ -58,7 +58,7 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 		}
 	}
 
-	// Compute tangents and normals, while skirt is still being flat
+	// Compute tangents and normals
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 

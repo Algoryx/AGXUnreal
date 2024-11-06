@@ -200,7 +200,6 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 			});
 	}
 }
-
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& MeshSize, const int ResX, const int ResY, const TArray<float>& HeightArray)
 {
