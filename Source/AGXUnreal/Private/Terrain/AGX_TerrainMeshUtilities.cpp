@@ -5,10 +5,14 @@
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
-	std::function<float(const FVector&)> HeightFunction)
+	std::function<float(const FVector&)> HeightFunction, bool UseSkirt)
 {
 	// Vertex count in X and Y direction
-	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+	FIntVector2 NrOfVerts;
+	if (UseSkirt)
+		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
+	else
+		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
 
 	// Allocate memory
 	auto MeshDescPtr = MakeShared<HfMeshDescription>(NrOfVerts);
@@ -16,7 +20,8 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 
 	// Size of individual triangle
 	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
-
+	
+	int StartIndex = UseSkirt ? -1 : 0;
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
@@ -25,13 +30,13 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 		for (int32 x = 0; x < NrOfVerts.X; ++x)
 		{
 			FVector PlanePosition = FVector(
-				x * TriangleSize.X - Size.X / 2, y * TriangleSize.Y - Size.Y / 2, 0.0f);
+				(x + StartIndex) * TriangleSize.X - Size.X / 2, (y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0f);
 			FVector LocalPosition = PlanePosition + Center;
 
 			// Call height function
 			float Height = HeightFunction(LocalPosition);
 
-			MeshDesc.Vertices[VertexIndex] = PlanePosition + FVector::UpVector * Height;
+			MeshDesc.Vertices[VertexIndex] = LocalPosition + FVector::UpVector * Height;
 			MeshDesc.UV0[VertexIndex] =
 				FVector2D(UvScale * LocalPosition.X, UvScale * LocalPosition.Y);
 
@@ -61,6 +66,32 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	// Compute tangents and normals
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
+
+	
+	// Move skirt vertices downwards
+	if (UseSkirt)
+	{
+		FVector SkirtOffset = FVector::UpVector * Size.Length() * 0.05f;
+		VertexIndex = 0;
+		for (int32 y = 0; y < NrOfVerts.Y; ++y)
+		{
+			for (int32 x = 0; x < NrOfVerts.X; ++x)
+			{
+				if (x == 0 || x == NrOfVerts.X - 1 || y == 0 || y == NrOfVerts.Y - 1)
+				{
+					FVector VertPosition = FVector(
+						FMath::Clamp(x, 0, Resolution.X) * TriangleSize.X - Size.X / 2,
+							FMath::Clamp(y, 0, Resolution.Y) * TriangleSize.Y - Size.Y / 2,
+							MeshDesc.Vertices[VertexIndex].Z) +
+						Center - SkirtOffset;
+					MeshDesc.Vertices[VertexIndex] = VertPosition; 
+					//MeshDesc.Vertices[VertexIndex] -= SkirtOffset; 
+				}
+				VertexIndex++;
+			}
+		}
+	}
+
 
 	return MeshDescPtr;
 }

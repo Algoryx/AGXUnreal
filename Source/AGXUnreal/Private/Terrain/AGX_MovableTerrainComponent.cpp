@@ -112,10 +112,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		OwningRigidBody->GetOrCreateNative();
 
 	// Size and resolution
-	double ElementSize = Size.X / (Resolution-1);
-	int ResX = Resolution;
+	double ElementSize = 10.0;//Size.X / (Resolution - 1);
+	int ResX = Size.X / (ElementSize) + 1;
 	int ResY = Size.Y / (ElementSize) + 1;
-
+	//Resolution = Size.X/ElementSize + 1  
 	// Create heightfields
 	TArray<float> InitialHeights;
 	TArray<float> MinimumHeights;
@@ -185,9 +185,12 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 				//	AutoFitToBed();
 
 				// Size and resolution
-				double ElementSize = Size.X / (Resolution - 1);
-				int ResX = Resolution;
+				double ElementSize = 10.0; // Size.X / (Resolution - 1);
+				int ResX = Size.X / (ElementSize) + 1;
 				int ResY = Size.Y / (ElementSize) + 1;
+				//double ElementSize = Size.X / (Resolution - 1);
+				//int ResX = Resolution;
+				//int ResY = Size.Y / (ElementSize) + 1;
 
 				// Create heightfields
 				TArray<float> InitialHeights;
@@ -209,23 +212,55 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 
 
 	//Create height function
-	auto HeightFunction = [&](const FVector& Pos) -> float
+	auto HeightFunction = [&](const FVector& LocalPos) -> float
 	{
-		FVector2D UvCord = FVector2D((Pos.X - MeshCenter.X) / MeshSize.X + 0.5, (Pos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
+		FVector2D UvCord = FVector2D(
+			(LocalPos.X - MeshCenter.X) / MeshSize.X + 0.5,
+			(LocalPos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
 
-		//Samples HeightArray
-		return UAGX_TerrainMeshUtilities::SampleHeightArray(UvCord, HeightArray, ResX, ResY);
+		// Samples HeightArray
+		return UAGX_TerrainMeshUtilities::SampleHeightArray(UvCord, HeightArray, ResX, ResY) + ZOffset;
 	};
 
-	// Create mesh description
-	auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-		MeshCenter, MeshSize, MeshRes, UvScaling, HeightFunction);
+	ClearAllMeshSections();
+	double ElementSize = 10.0;
+	int FacesPerTile = 10;
+	float TileSize = FacesPerTile * ElementSize; 
 
-	// Create mesh section
-	CreateMeshSection(
-		0, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals, MeshDesc->UV0,
-		MeshDesc->Colors, MeshDesc->Tangents, false);
-	SetMaterial(0, Material);
+	int Nx = (ResX-1) / FacesPerTile + 1;
+	int Ny = (ResY-1) / FacesPerTile + 1;
+
+	int MeshIndex = 0;
+	for (int Tx = 0; Tx < Nx; Tx++)
+	{
+		for (int Ty = 0; Ty < Ny; Ty++)
+		{
+
+			FIntVector2 SubMeshRes = FIntVector2(
+				FMath::Min(FacesPerTile, (ResX-1) - Tx * FacesPerTile),
+				FMath::Min(FacesPerTile, (ResY-1) - Ty * FacesPerTile));
+			FVector2D SubMeshSize =
+				FVector2D(SubMeshRes.X * ElementSize, SubMeshRes.Y * ElementSize);
+			FVector SubMeshCenter = MeshCenter 
+									- FVector(Size.X / 2, Size.Y / 2, 0) 
+									//- FVector(ElementSize / 2, ElementSize / 2, 0)
+									+ FVector(Tx * FacesPerTile * ElementSize, Ty * FacesPerTile * ElementSize, 0)
+									+ FVector(SubMeshSize.X, SubMeshSize.Y, 0.0) / 2;
+			// Create mesh description
+			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
+				SubMeshCenter, SubMeshSize, SubMeshRes, UvScaling, HeightFunction, true);
+
+			// Create mesh section
+			CreateMeshSection(
+				MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
+				MeshDesc->UV0,
+				MeshDesc->Colors, MeshDesc->Tangents, false);
+			SetMaterial(MeshIndex, Material);
+			SetMeshSectionVisible(MeshIndex, true);
+
+			MeshIndex++;
+		}
+	}
 }
 
 void UAGX_MovableTerrainComponent::SetupHeights(
@@ -239,9 +274,9 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 		//Add raycasted heights
 		AddBedHeights(MinimumHeights, ResX, ResY, ElementSize, FlipYAxis);
 
-		//Add bedZOffset
-		for (float& h : MinimumHeights)
-			h += BedOffset;
+		////Add bedZOffset
+		//for (float& h : MinimumHeights)
+		//	h += BedOffset;
 	}
 	
 

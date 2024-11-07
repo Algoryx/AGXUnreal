@@ -38,7 +38,7 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 public:
 	static TSharedPtr<HfMeshDescription> CreateMeshDescription(
 		const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
-		std::function<float(const FVector&)> HeightFunction);
+		std::function<float(const FVector&)> HeightFunction, bool UseSkirt = false);
 
 	static float GetBrownianNoise(
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,

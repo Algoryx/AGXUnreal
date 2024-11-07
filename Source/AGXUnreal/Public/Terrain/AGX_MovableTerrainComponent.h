@@ -59,7 +59,7 @@ protected:
 	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
 	UPROPERTY(EditAnywhere)
-	double BedOffset = -0.1;
+	double ZOffset = -0.1;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
