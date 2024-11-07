@@ -215,30 +215,24 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	};
 
 	ClearAllMeshSections();
-	int FacesPerTile = 10;
-	float TileSize = FacesPerTile * ElementSize; 
-	int ResX = HeightFieldRes.X - 1;
-	int ResY = HeightFieldRes.Y - 1;
+	int FacesPerTile = 16;
+	int ResX = (HeightFieldRes.X - 1)*ResolutionScaling;
+	int ResY = (HeightFieldRes.Y - 1)*ResolutionScaling;
 
 
 	int Nx = ResX / FacesPerTile + 1;
 	int Ny = ResY / FacesPerTile + 1;
 
 	int MeshIndex = 0;
+	FIntVector2 SubMeshRes = FIntVector2(FacesPerTile, FacesPerTile);
+	FVector2D SubMeshSize = FVector2D(Size.X / Nx, Size.Y / Ny);
 	for (int Tx = 0; Tx < Nx; Tx++)
 	{
 		for (int Ty = 0; Ty < Ny; Ty++)
 		{
-
-			FIntVector2 SubMeshRes = FIntVector2(
-				FMath::Min(FacesPerTile, ResX - Tx * FacesPerTile),
-				FMath::Min(FacesPerTile, ResY - Ty * FacesPerTile));
-			FVector2D SubMeshSize =
-				FVector2D(SubMeshRes.X * ElementSize, SubMeshRes.Y * ElementSize);
 			FVector SubMeshCenter = MeshCenter 
 									- FVector(Size.X / 2, Size.Y / 2, 0) 
-									//- FVector(ElementSize / 2, ElementSize / 2, 0)
-									+ FVector(Tx * FacesPerTile * ElementSize, Ty * FacesPerTile * ElementSize, 0)
+									+ FVector(Tx * SubMeshSize.X, Ty * SubMeshSize.Y, 0)
 									+ FVector(SubMeshSize.X, SubMeshSize.Y, 0.0) / 2;
 			// Create mesh description
 			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(

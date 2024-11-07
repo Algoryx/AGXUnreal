@@ -36,21 +36,10 @@ public:
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
-protected:
-	UPROPERTY(EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
-	double ElementSize = 10;
 
+protected:
 	UPROPERTY(EditAnywhere)
 	FVector2D Size = FVector2D(200.0f, 200.0f);
-
-	UPROPERTY(EditAnywhere)
-	float StartHeight = 0.0f;
-
-	UPROPERTY(EditAnywhere)
-	float NoiseHeight = 50.0f;
-
-	UPROPERTY(EditAnywhere)
-	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
@@ -58,8 +47,6 @@ protected:
 	TArray<FString> GetBedGeometryOptions() const;
 	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
 
-	UPROPERTY(EditAnywhere)
-	double ZOffset = -0.1;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -88,20 +75,51 @@ private:
 	TArray<float> CurrentHeights;
 	FDelegateHandle PostStepForwardHandle;
 
-	/*
-	--- AGX_Terrain Implementation
-	------------------------------
-	*/
+	
+/*
+--- AGX_Terrain Implementation
+------------------------------
+*/
 protected:
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, Category = "AGX Shape")
 	bool bCanCollide {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	void SetCanCollide(bool bInCanCollide);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	bool GetCanCollide() const;
 
+	/** Defines physical properties of the surface of the Terrain. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shape")
+	UAGX_ShapeMaterial* ShapeMaterial;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
+	bool UpdateNativeShapeMaterial();
+
+	/**
+	 * List of collision groups that this Terrain is part of.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Shape")
+	TArray<FName> CollisionGroups;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void AddCollisionGroup(FName GroupName);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void RemoveCollisionGroupIfExists(FName GroupName);
+protected:
+	UPROPERTY(
+		EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"),
+		Category = "AGX Terrain")
+	double ElementSize = 10;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	float StartHeight = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	float NoiseHeight = 50.0f;
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCreateParticles = true;
@@ -151,25 +169,6 @@ protected:
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
 	bool UpdateNativeTerrainMaterial();
 
-	/** Defines physical properties of the surface of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
-	UAGX_ShapeMaterial* ShapeMaterial;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
-	bool UpdateNativeShapeMaterial();
-
-	/**
-	 * List of collision groups that this Terrain is part of.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FName> CollisionGroups;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void AddCollisionGroup(FName GroupName);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void RemoveCollisionGroupIfExists(FName GroupName);
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
@@ -183,9 +182,27 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetIsNoMerge() const;
 
+	
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UNiagaraComponent* GetSpawnedParticleSystemComponent();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	int32 GetNumParticles() const;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	UMaterialInterface* Material;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (ClampMin = "0.1", UIMin = "01", ClampMax = "1.5", UIMax = "1.5"))
+	float ResolutionScaling = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	double ZOffset = -0.1;
+
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableParticleRendering = true;
+	bool bEnableParticleRendering = false;
 
 	/**
 	 * Rough estimation of number of particles that will exist at once. Should not be too low,
@@ -203,12 +220,6 @@ protected:
 		Meta = (EditCondition = "bEnableParticleRendering"))
 	UNiagaraSystem* ParticleSystemAsset;
 	UNiagaraComponent* ParticleSystemComponent = nullptr;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	UNiagaraComponent* GetSpawnedParticleSystemComponent();
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	int32 GetNumParticles() const;
 
 	
 	bool InitializeParticles();
