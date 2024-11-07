@@ -56,8 +56,9 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 						NativeBarrier.GetHeights(CurrentHeights, true);
 
 						//Rebuild mesh if needed
-						if (NativeBarrier.GetModifiedVertices().Num() > 0)
-							RebuildHeightMesh(Size, HeightFieldRes, CurrentHeights);
+						auto DirtyHeights = NativeBarrier.GetModifiedVertices();
+						if (DirtyHeights.Num() > 0)
+							RebuildHeightMesh(Size, HeightFieldRes, CurrentHeights, DirtyHeights);
 					});
 	}
 
@@ -195,7 +196,8 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 	}
 }
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
-	const FVector2D& MeshSize, const FIntVector2& HeightFieldRes, const TArray<float>& HeightArray)
+	const FVector2D& MeshSize, const FIntVector2& HeightFieldRes, const TArray<float>& HeightArray,
+	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
 	FVector MeshCenter = FVector::Zero();
 	float UvScaling = 1.0f / 100.0f;
@@ -214,37 +216,61 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			   ZOffset;
 	};
 
-	ClearAllMeshSections();
-	int FacesPerTile = 16;
 	int ResX = (HeightFieldRes.X - 1)*ResolutionScaling;
 	int ResY = (HeightFieldRes.Y - 1)*ResolutionScaling;
 
-
+	int FacesPerTile = 16;
 	int Nx = ResX / FacesPerTile + 1;
 	int Ny = ResY / FacesPerTile + 1;
 
+	FIntVector2 TileRes = FIntVector2(FacesPerTile, FacesPerTile);
+	FVector2D TileSize = FVector2D(Size.X / Nx, Size.Y / Ny);
+	
+	bool IsRebuildAll = DirtyHeights.Num() == 0;
+
+	if (IsRebuildAll)
+		ClearAllMeshSections();
+
 	int MeshIndex = 0;
-	FIntVector2 SubMeshRes = FIntVector2(FacesPerTile, FacesPerTile);
-	FVector2D SubMeshSize = FVector2D(Size.X / Nx, Size.Y / Ny);
 	for (int Tx = 0; Tx < Nx; Tx++)
 	{
 		for (int Ty = 0; Ty < Ny; Ty++)
 		{
-			FVector SubMeshCenter = MeshCenter 
+			FVector TileCenter = MeshCenter 
 									- FVector(Size.X / 2, Size.Y / 2, 0) 
-									+ FVector(Tx * SubMeshSize.X, Ty * SubMeshSize.Y, 0)
-									+ FVector(SubMeshSize.X, SubMeshSize.Y, 0.0) / 2;
-			// Create mesh description
-			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-				SubMeshCenter, SubMeshSize, SubMeshRes, UvScaling, HeightFunction, true);
+									+
+									FVector(Tx * TileSize.X, Ty * TileSize.Y, 0) +
+									FVector(TileSize.X, TileSize.Y, 0.0) / 2;
 
-			// Create mesh section
-			CreateMeshSection(
-				MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
-				MeshDesc->UV0,
-				MeshDesc->Colors, MeshDesc->Tangents, false);
-			SetMaterial(MeshIndex, Material);
-			SetMeshSectionVisible(MeshIndex, true);
+			FBox2D Tile(
+				FVector2D(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2),
+				FVector2D(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2));
+
+			bool IsTileDirty = false; 
+			for (auto d : DirtyHeights)
+			{
+				float x = std::get<0>(d)*ElementSize;
+				float y = std::get<1>(d) * ElementSize;
+				FVector2D HeightPos = FVector2D(x, y) - Size / 2;
+				if (Tile.IsInside(HeightPos))
+				{
+					IsTileDirty = true;
+					break;
+				}
+			}
+			if (IsRebuildAll || IsTileDirty)
+			{
+				// Create mesh description
+				auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
+					TileCenter, TileSize, TileRes, UvScaling, HeightFunction, true);
+
+				// Create mesh section
+				CreateMeshSection(
+					MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
+					MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, false);
+				SetMaterial(MeshIndex, Material);
+				SetMeshSectionVisible(MeshIndex, true);
+			}
 
 			MeshIndex++;
 		}
@@ -314,7 +340,7 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 		{
 			FVector Pos = FVector(x * ElementSize, SignY * y * ElementSize, 0);
 			
-			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(Pos, 3, 20, 0.5f, 2.0f, 2.0f);
+			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(Pos, 3, 200, 0.5f, 2.0f, 2.0f);
 
 			Heights[y * Res.X + x] += Noise * NoiseHeight;
 		}
