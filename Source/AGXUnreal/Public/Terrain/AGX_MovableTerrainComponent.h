@@ -37,8 +37,8 @@ public:
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 protected:
-	UPROPERTY(EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "256", UIMax = "256"))
-	int Resolution = 20;
+	UPROPERTY(EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
+	double ElementSize = 10;
 
 	UPROPERTY(EditAnywhere)
 	FVector2D Size = FVector2D(200.0f, 200.0f);
@@ -72,18 +72,16 @@ protected:
 	void AutoFitToBed();
 
 	void RebuildHeightMesh(
-		const FVector2D& MeshSize, const int ResX, const int ResY,
+		const FVector2D& MeshSize, const FIntVector2& HightFieldRes,
 		const TArray<float>& HeightArray);
 
 	void SetupHeights(
-		TArray<float>& InitialHeights, TArray<float>& MinimumHeights, int ResX, int ResY,
-		double ElementSize, bool FlipYAxis) const;
+		TArray<float>& InitialHeights, TArray<float>& MinimumHeights, const FIntVector2& Res,
+		bool FlipYAxis) const;
 
-	void AddBedHeights(
-		TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const;
+	void AddBedHeights(TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const;
 
-	void AddNoiseHeights(
-		TArray<float>& Heights, int ResX, int ResY, double ElementSize, bool FlipYAxis) const;
+	void AddNoiseHeights(TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const;
 
 private:
 	FTerrainBarrier NativeBarrier;
