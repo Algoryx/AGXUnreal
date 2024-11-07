@@ -216,12 +216,11 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			   ZOffset;
 	};
 
-	int ResX = (HeightFieldRes.X - 1)*ResolutionScaling;
-	int ResY = (HeightFieldRes.Y - 1)*ResolutionScaling;
-
-	int FacesPerTile = 16;
-	int Nx = ResX / FacesPerTile + 1;
-	int Ny = ResY / FacesPerTile + 1;
+	int FacesPerTile = 10;
+	int Nx = FMath::Max(1, 
+		FMath::RoundToInt((HeightFieldRes.X - 1) * ResolutionScaling / FacesPerTile));
+	int Ny = FMath::Max(1, 
+		FMath::RoundToInt((HeightFieldRes.Y - 1) * ResolutionScaling / FacesPerTile));
 
 	FIntVector2 TileRes = FIntVector2(FacesPerTile, FacesPerTile);
 	FVector2D TileSize = FVector2D(Size.X / Nx, Size.Y / Ny);

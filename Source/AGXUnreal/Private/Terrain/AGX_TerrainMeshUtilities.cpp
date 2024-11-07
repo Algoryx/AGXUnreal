@@ -63,7 +63,7 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 		}
 	}
 
-	// Compute tangents and normals
+	// Compute tangents and normals (before moving skirt)
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 
@@ -71,7 +71,7 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	// Move skirt vertices downwards
 	if (UseSkirt)
 	{
-		FVector SkirtOffset = FVector::UpVector * Size.Length() * 0.01f;
+		FVector SkirtOffset = FVector::UpVector * Size.Length() * 0.025f;
 		VertexIndex = 0;
 		for (int32 y = 0; y < NrOfVerts.Y; ++y)
 		{
@@ -79,13 +79,11 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 			{
 				if (x == 0 || x == NrOfVerts.X - 1 || y == 0 || y == NrOfVerts.Y - 1)
 				{
-					FVector VertPosition = FVector(
-						FMath::Clamp(x, 0, Resolution.X) * TriangleSize.X - Size.X / 2,
-							FMath::Clamp(y, 0, Resolution.Y) * TriangleSize.Y - Size.Y / 2,
-							MeshDesc.Vertices[VertexIndex].Z) +
-						Center - SkirtOffset;
-					MeshDesc.Vertices[VertexIndex] = VertPosition; 
-					//MeshDesc.Vertices[VertexIndex] -= SkirtOffset; 
+					FVector V = MeshDesc.Vertices[VertexIndex] - Center;
+					V = FVector(
+						FMath::Clamp(V.X, -Size.X / 2, Size.X / 2),
+						FMath::Clamp(V.Y, -Size.Y / 2, Size.Y / 2), V.Z);
+					MeshDesc.Vertices[VertexIndex] = V - SkirtOffset + Center; 
 				}
 				VertexIndex++;
 			}
