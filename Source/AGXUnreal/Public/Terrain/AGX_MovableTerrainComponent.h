@@ -121,6 +121,19 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	float NoiseHeight = 50.0f;
+
+	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UAGX_TerrainMaterial* TerrainMaterial;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
+	bool UpdateNativeTerrainMaterial();
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	TArray<FAGX_ShovelReference> ShovelComponents;
+	void CreateNativeShovels();
+
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCreateParticles = true;
@@ -162,18 +175,7 @@ protected:
 
 	double GetMaximumParticleActivationVolume() const;
 
-	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
-	UAGX_TerrainMaterial* TerrainMaterial;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
-	bool UpdateNativeTerrainMaterial();
-
-	
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FAGX_ShovelReference> ShovelComponents;
-	void CreateNativeShovels();
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
@@ -196,7 +198,7 @@ protected:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0.1", UIMin = "01", ClampMax = "1.5", UIMax = "1.5"))
-	float ResolutionScaling = 1.0f;
+	float ResolutionScaling = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	double ZOffset = -0.1;
