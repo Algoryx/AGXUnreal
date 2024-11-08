@@ -62,7 +62,7 @@ protected:
 
 	void RebuildHeightMesh(
 		const FVector2D& MeshSize, const FIntVector2& HightFieldRes,
-		const TArray<float>& HeightArray,
+		const TArray<float>& HeightArray, const TArray<float>& MinimumHeightsArray,
 		const TArray<std::tuple<int32, int32>>& DirtyHeights = TArray<std::tuple<int32, int32>>());
 
 	void SetupHeights(

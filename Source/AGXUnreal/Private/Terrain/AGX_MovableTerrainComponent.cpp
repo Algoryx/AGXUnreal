@@ -41,8 +41,14 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	CurrentHeights.Reserve(HeightFieldRes.X * HeightFieldRes.Y);
 	NativeBarrier.GetHeights(CurrentHeights, false);
 
-	//Rebuild mesh
-	RebuildHeightMesh(Size, HeightFieldRes, CurrentHeights);
+	
+	// TODO: Copy Minimum from Native
+	TArray<float> temp1;
+	TArray<float> MinimumHeights;
+	SetupHeights(temp1, MinimumHeights, HeightFieldRes, false);
+
+	//Rebuild meshs
+	RebuildHeightMesh(Size, HeightFieldRes, CurrentHeights, MinimumHeights);
 
 	//Check to update mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -50,7 +56,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 		PostStepForwardHandle =
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.AddLambda(
-					[this, HeightFieldRes](double)
+					[this, HeightFieldRes, MinimumHeights](double)
 					{
 						//Update CurrentHeights
 						NativeBarrier.GetHeights(CurrentHeights, true);
@@ -58,7 +64,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 						//Rebuild mesh if needed
 						auto DirtyHeights = NativeBarrier.GetModifiedVertices();
 						if (DirtyHeights.Num() > 0)
-							RebuildHeightMesh(Size, HeightFieldRes, CurrentHeights, DirtyHeights);
+							RebuildHeightMesh(
+								Size, HeightFieldRes, CurrentHeights, MinimumHeights, DirtyHeights);
 					});
 	}
 
@@ -191,12 +198,14 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 				// Rebuild Mesh
 				if (HeightFieldRes.X * HeightFieldRes.Y == InitialHeights.Num() &&
 					InitialHeights.Num() != 0)
-					this->RebuildHeightMesh(Size, HeightFieldRes, InitialHeights);
+					this->RebuildHeightMesh(Size, HeightFieldRes, InitialHeights, MinimumHeights);
 			});
 	}
 }
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
-	const FVector2D& MeshSize, const FIntVector2& HeightFieldRes, const TArray<float>& HeightArray,
+	const FVector2D& MeshSize, const FIntVector2& HeightFieldRes, 
+	const TArray<float>& HeightArray,
+	const TArray<float>& MinimumHeightsArray,
 	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
 	FVector MeshCenter = FVector::Zero();
@@ -209,11 +218,25 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 		FVector2D UvCord = FVector2D(
 			(LocalPos.X - MeshCenter.X) / MeshSize.X + 0.5,
 			(LocalPos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
-
-		// Samples HeightArray
-		return UAGX_TerrainMeshUtilities::SampleHeightArray(
-				   UvCord, HeightArray, HeightFieldRes.X, HeightFieldRes.Y) +
-			   ZOffset;
+		
+		bool IsOnBorder =
+			UvCord.X < 0.01f || UvCord.Y < 0.01 || UvCord.X > 0.99f || UvCord.Y > 0.99f;
+		if (!IsOnBorder)
+		{
+			// return current heights
+			return UAGX_TerrainMeshUtilities::SampleHeightArray(
+					   UvCord, HeightArray, HeightFieldRes.X, HeightFieldRes.Y) +
+				   ZOffset;
+		
+		} 
+		else
+		{
+			// return minimum heights
+			return UAGX_TerrainMeshUtilities::SampleHeightArray(
+					   UvCord, MinimumHeightsArray, HeightFieldRes.X, HeightFieldRes.Y) +
+				   ZOffset;
+			
+		}
 	};
 
 	bool IsRebuildAll = DirtyHeights.Num() == 0;
