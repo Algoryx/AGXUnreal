@@ -38,10 +38,12 @@ public:
 
 
 protected:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (GetOptions = "GetBedGeometryOptions"))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		Meta = (GetOptions = "GetBedGeometryOptions"))
 	TArray<FName> BedGeometries;
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedGeometryOptions() const;
@@ -82,33 +84,33 @@ private:
 ------------------------------
 */
 protected:
-	UPROPERTY(EditAnywhere, Category = "AGX Shape")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	bool bCanCollide {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	void SetCanCollide(bool bInCanCollide);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	bool GetCanCollide() const;
 
 	/** Defines physical properties of the surface of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shape")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Shape")
 	UAGX_ShapeMaterial* ShapeMaterial;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
 	/**
 	 * List of collision groups that this Terrain is part of.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Shape")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	TArray<FName> CollisionGroups;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	void AddCollisionGroup(FName GroupName);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	void RemoveCollisionGroupIfExists(FName GroupName);
 protected:
 	UPROPERTY(
