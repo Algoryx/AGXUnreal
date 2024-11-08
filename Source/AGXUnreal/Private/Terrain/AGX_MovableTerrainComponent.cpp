@@ -216,7 +216,11 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			   ZOffset;
 	};
 
-	int FacesPerTile = 10;
+	bool IsRebuildAll = DirtyHeights.Num() == 0;
+	if (IsRebuildAll)
+		ClearAllMeshSections();
+
+	//TODO: Clean up Tile-logics
 	int Nx = FMath::Max(1, 
 		FMath::RoundToInt((HeightFieldRes.X - 1) * ResolutionScaling / FacesPerTile));
 	int Ny = FMath::Max(1, 
@@ -224,11 +228,7 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 
 	FIntVector2 TileRes = FIntVector2(FacesPerTile, FacesPerTile);
 	FVector2D TileSize = FVector2D(Size.X / Nx, Size.Y / Ny);
-	
-	bool IsRebuildAll = DirtyHeights.Num() == 0;
 
-	if (IsRebuildAll)
-		ClearAllMeshSections();
 
 	int MeshIndex = 0;
 	for (int Tx = 0; Tx < Nx; Tx++)

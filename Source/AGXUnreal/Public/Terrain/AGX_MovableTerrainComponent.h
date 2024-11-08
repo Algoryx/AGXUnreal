@@ -199,11 +199,15 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32"))
+	int FacesPerTile = 10;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0.1", UIMin = "01", ClampMax = "1.5", UIMax = "1.5"))
 	float ResolutionScaling = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	double ZOffset = -0.1;
+	double ZOffset = -0.5;
 
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
