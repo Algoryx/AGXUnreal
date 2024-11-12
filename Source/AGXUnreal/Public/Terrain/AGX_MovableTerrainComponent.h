@@ -16,6 +16,27 @@ class UAGX_ShovelComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
+/*
+ *
+ */
+USTRUCT()
+struct AGXUNREAL_API FAGX_BrownianNoiseParams
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(EditAnywhere)
+	float Height = 50.0f;
+	UPROPERTY(EditAnywhere)
+	float Scale = 100;
+	UPROPERTY(EditAnywhere)
+	int Octaves = 3;
+	UPROPERTY(EditAnywhere)
+	float Persistance = 0.5f;
+	UPROPERTY(EditAnywhere)
+	float Lacunarity = 2.0f;
+	UPROPERTY(EditAnywhere)
+	float Exp = 2.0f;
+};
 
 /**
  *
@@ -122,7 +143,11 @@ protected:
 	float StartHeight = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	float NoiseHeight = 50.0f;
+	bool bEnableNoise = false;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain", meta = (EditCondition = "bEnableNoise"))
+	FAGX_BrownianNoiseParams BrownianNoise;
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")

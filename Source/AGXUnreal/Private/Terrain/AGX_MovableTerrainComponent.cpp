@@ -43,6 +43,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 
 	
 	// TODO: Copy Minimum from Native
+	//NativeBarrier.GetMinimumHeights(Minimumheights);
 	TArray<float> temp1;
 	TArray<float> MinimumHeights;
 	SetupHeights(temp1, MinimumHeights, HeightFieldRes, false);
@@ -307,23 +308,21 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 {
 	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(Res.X * Res.Y);
+	// Add raycasted heights
 	if (GetBedGeometries().Num() != 0)
-	{
-		//Add raycasted heights
 		AddBedHeights(MinimumHeights, Res, FlipYAxis);
-	}
-	
 
+	
 	// Setup InitialHeights
 	InitialHeights.SetNumZeroed(Res.X * Res.Y);
-
 	// Add Noise
-	AddNoiseHeights(InitialHeights, Res, FlipYAxis);
-
+	if (bEnableNoise)
+		AddNoiseHeights(InitialHeights, Res, FlipYAxis);
 	//Add StartHeight
 	for (float& h : InitialHeights)
 		h += StartHeight;
 	
+
 	// Put MinimumHeights in InitialHeights
 	for (int i = 0; i < InitialHeights.Num(); i++)
 		InitialHeights[i] = FMath::Max(InitialHeights[i], MinimumHeights[i]);
@@ -358,15 +357,25 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
 {
 	float SignY = FlipYAxis ? -1.0 : 1.0;
+	FVector Up = GetComponentQuat().GetUpVector();
+	FVector Origin =
+		FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * SignY * (1 - Res.Y) / 2.0, 0.0);
+
 	for (int y = 0; y < Res.Y; y++)
 	{
 		for (int x = 0; x < Res.X; x++)
 		{
-			FVector Pos = FVector(x * ElementSize, SignY * y * ElementSize, 0);
-			
-			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(Pos, 3, 200, 0.5f, 2.0f, 2.0f);
+			FVector Pos = GetComponentTransform().TransformPosition(
+				Origin + FVector(x * ElementSize, SignY * y * ElementSize, 0));
 
-			Heights[y * Res.X + x] += Noise * NoiseHeight;
+			//Project to plane
+			Pos = Pos -  Up*FVector::DotProduct(Pos, Up);
+			
+			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(
+				Pos, BrownianNoise.Octaves, BrownianNoise.Scale, BrownianNoise.Persistance,
+				BrownianNoise.Lacunarity, BrownianNoise.Exp);
+
+			Heights[y * Res.X + x] += Noise * BrownianNoise.Height;
 		}
 	}
 }
