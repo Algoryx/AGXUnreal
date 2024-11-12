@@ -227,7 +227,7 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			UvCord.X < 0.01f || UvCord.Y < 0.01 || UvCord.X > 0.99f || UvCord.Y > 0.99f;
 
 		//Sample from Heights or MinimumHeights
-		auto& sampleArray = IsOnBorder ? MinimumHeightsArray : HeightArray;
+		auto& sampleArray = ClampToBorders && IsOnBorder ? MinimumHeightsArray : HeightArray;
 
 
 		return UAGX_TerrainMeshUtilities::SampleHeightArray(
@@ -290,7 +290,7 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 		{
 			// Create mesh description
 			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-				TileCenter, TileSize, TileRes, UvScaling, HeightFunction, true);
+				TileCenter, TileSize, TileRes, UvScaling, HeightFunction, UseTileSkirts);
 
 			// Create mesh section
 			CreateMeshSection(

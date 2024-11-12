@@ -232,6 +232,12 @@ protected:
 	float ResolutionScaling = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool UseTileSkirts = true;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool ClampToBorders = true;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	double ZOffset = -0.5;
 
 	/** Whether soil particles should be rendered or not. */
