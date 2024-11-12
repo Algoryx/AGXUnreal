@@ -217,27 +217,34 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	int32 GetNumParticles() const;
 
+protected:
+
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	UMaterialInterface* Material;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32"))
-	int FacesPerTile = 10;
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0.1", UIMin = "01", ClampMax = "1.5", UIMax = "1.5"))
 	float ResolutionScaling = 0.5f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool UseTileSkirts = true;
-
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool ClampToBorders = true;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	double ZOffset = -0.5;
+	bool bEnableTiles = true;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32",
+			EditCondition = "bEnableTiles"))
+	int TileResolution = 10;
 
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (EditCondition = "bEnableTiles"))
+	bool bTileSkirts = true;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	double ZOffset = -0.5;
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bEnableParticleRendering = false;
