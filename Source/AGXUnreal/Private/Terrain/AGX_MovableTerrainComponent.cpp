@@ -223,12 +223,13 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			(LocalPos.X - MeshCenter.X) / MeshSize.X + 0.5,
 			(LocalPos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
 
-		// Sample from MinimumHeights when close to border
 		float Epsilon = 1e-6;
 		bool IsOnBorder = UvCord.X < Epsilon || UvCord.Y < Epsilon || UvCord.X > 1 - Epsilon ||
 						  UvCord.Y > 1 - Epsilon;
-		auto& SampleArray = ClampToBorders && IsOnBorder ? MinimumHeightsArray : HeightArray;
 
+		
+		// Sample from MinimumHeights when close to border
+		auto& SampleArray = ClampToBorders && IsOnBorder ? MinimumHeightsArray : HeightArray;
 
 		return UAGX_TerrainMeshUtilities::SampleHeightArray(
 			UvCord, SampleArray, HeightFieldRes.X, HeightFieldRes.Y);
