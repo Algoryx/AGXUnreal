@@ -222,16 +222,15 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 		FVector2D UvCord = FVector2D(
 			(LocalPos.X - MeshCenter.X) / MeshSize.X + 0.5,
 			(LocalPos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
-		
+
+		// Sample from MinimumHeights when close to border
 		bool IsOnBorder =
 			UvCord.X < 0.01f || UvCord.Y < 0.01 || UvCord.X > 0.99f || UvCord.Y > 0.99f;
-
-		//Sample from Heights or MinimumHeights
-		auto& sampleArray = ClampToBorders && IsOnBorder ? MinimumHeightsArray : HeightArray;
+		auto& SampleArray = ClampToBorders && IsOnBorder ? MinimumHeightsArray : HeightArray;
 
 
 		return UAGX_TerrainMeshUtilities::SampleHeightArray(
-			UvCord, sampleArray, HeightFieldRes.X, HeightFieldRes.Y);
+			UvCord, SampleArray, HeightFieldRes.X, HeightFieldRes.Y);
 	};
 
 	int Nx = FMath::Max(1, 
