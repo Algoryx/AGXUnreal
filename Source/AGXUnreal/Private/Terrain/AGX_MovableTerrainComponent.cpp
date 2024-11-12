@@ -210,7 +210,10 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 {
 	FVector MeshCenter = FVector::Zero();
 	float UvScaling = 1.0f / 100.0f;
+	bool IsRebuildAll = DirtyHeights.Num() == 0;
 
+	if (IsRebuildAll)
+		ClearAllMeshSections();
 
 	//Create height function
 	auto HeightFunction = [&](const FVector& LocalPos) -> float
@@ -221,29 +224,15 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 		
 		bool IsOnBorder =
 			UvCord.X < 0.01f || UvCord.Y < 0.01 || UvCord.X > 0.99f || UvCord.Y > 0.99f;
-		if (!IsOnBorder)
-		{
-			// return current heights
-			return UAGX_TerrainMeshUtilities::SampleHeightArray(
-					   UvCord, HeightArray, HeightFieldRes.X, HeightFieldRes.Y) +
-				   ZOffset;
-		
-		} 
-		else
-		{
-			// return minimum heights
-			return UAGX_TerrainMeshUtilities::SampleHeightArray(
-					   UvCord, MinimumHeightsArray, HeightFieldRes.X, HeightFieldRes.Y) +
-				   ZOffset;
-			
-		}
+
+		//Sample from Heights or MinimumHeights
+		auto& sampleArray = IsOnBorder ? MinimumHeightsArray : HeightArray;
+
+
+		return UAGX_TerrainMeshUtilities::SampleHeightArray(
+			UvCord, sampleArray, HeightFieldRes.X, HeightFieldRes.Y);
 	};
 
-	bool IsRebuildAll = DirtyHeights.Num() == 0;
-	if (IsRebuildAll)
-		ClearAllMeshSections();
-
-	//TODO: Clean up Tile-logics
 	int Nx = FMath::Max(1, 
 		FMath::RoundToInt((HeightFieldRes.X - 1) * ResolutionScaling / FacesPerTile));
 	int Ny = FMath::Max(1, 
@@ -253,48 +242,61 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	FVector2D TileSize = FVector2D(Size.X / Nx, Size.Y / Ny);
 
 
+	//Create map MeshIndex => Tile 
 	int MeshIndex = 0;
+	TMap<int, FBox2D> MeshTiles;
 	for (int Tx = 0; Tx < Nx; Tx++)
 	{
 		for (int Ty = 0; Ty < Ny; Ty++)
 		{
-			FVector TileCenter = MeshCenter 
-									- FVector(Size.X / 2, Size.Y / 2, 0) 
-									+
-									FVector(Tx * TileSize.X, Ty * TileSize.Y, 0) +
-									FVector(TileSize.X, TileSize.Y, 0.0) / 2;
+			FVector TileCenter = MeshCenter - FVector(Size.X / 2, Size.Y / 2, 0) +
+								 FVector(Tx * TileSize.X, Ty * TileSize.Y, 0) +
+								 FVector(TileSize.X, TileSize.Y, 0.0) / 2;
 
 			FBox2D Tile(
 				FVector2D(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2),
 				FVector2D(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2));
-
-			bool IsTileDirty = false; 
-			for (auto d : DirtyHeights)
-			{
-				float x = std::get<0>(d)*ElementSize;
-				float y = std::get<1>(d) * ElementSize;
-				FVector2D HeightPos = FVector2D(x, y) - Size / 2;
-				if (Tile.IsInside(HeightPos))
-				{
-					IsTileDirty = true;
-					break;
-				}
-			}
-			if (IsRebuildAll || IsTileDirty)
-			{
-				// Create mesh description
-				auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-					TileCenter, TileSize, TileRes, UvScaling, HeightFunction, true);
-
-				// Create mesh section
-				CreateMeshSection(
-					MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
-					MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, false);
-				SetMaterial(MeshIndex, Material);
-				SetMeshSectionVisible(MeshIndex, true);
-			}
-
+			MeshTiles.Add(MeshIndex, Tile);
 			MeshIndex++;
+		}
+	}
+
+
+	//Create map MeshIndex => IsDirty
+	TMap<int, bool> IsTileDirty;
+	for (auto& kvp : MeshTiles)
+	{
+		MeshIndex = kvp.Key;
+		IsTileDirty.Add(MeshIndex, false);
+		for (auto d : DirtyHeights)
+		{
+			float x = std::get<0>(d) * ElementSize;
+			float y = std::get<1>(d) * ElementSize;
+			FVector2D HeightPos = FVector2D(x, y) - Size / 2;
+			if (kvp.Value.IsInside(HeightPos))
+			{
+				IsTileDirty[MeshIndex] = true;
+				break;
+			}
+		}
+	}
+
+	for (auto& kvp : MeshTiles)
+	{
+		MeshIndex = kvp.Key;
+		FVector TileCenter = FVector(kvp.Value.GetCenter().X, kvp.Value.GetCenter().Y, ZOffset);
+		if (IsRebuildAll || IsTileDirty[kvp.Key])
+		{
+			// Create mesh description
+			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
+				TileCenter, TileSize, TileRes, UvScaling, HeightFunction, true);
+
+			// Create mesh section
+			CreateMeshSection(
+				MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
+				MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, false);
+			SetMaterial(MeshIndex, Material);
+			SetMeshSectionVisible(MeshIndex, true);
 		}
 	}
 }
