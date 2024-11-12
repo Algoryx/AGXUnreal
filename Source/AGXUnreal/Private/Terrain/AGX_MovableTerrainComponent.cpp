@@ -308,7 +308,7 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(Res.X * Res.Y);
 	// Add raycasted heights
-	if (GetBedGeometries().Num() != 0)
+	if (GetBedShapes().Num() != 0)
 		AddBedHeights(MinimumHeights, Res, FlipYAxis);
 
 	
@@ -332,7 +332,7 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 {
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	TArray<UMeshComponent*> BedMeshes =
-		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedGeometries());
+		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedShapes());
 
 	FVector Up = GetComponentQuat().GetUpVector();
 	FVector Origin =
@@ -383,7 +383,7 @@ void UAGX_MovableTerrainComponent::AutoFitToBed()
 {
 	// Calculate Bounds and BottomCenter
 	TArray<UMeshComponent*> BedMeshComponents =
-		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedGeometries());
+		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedShapes());
 	FBox BoundingBox = UAGX_TerrainMeshUtilities::CreateEncapsulatingBoundingBox(
 		BedMeshComponents, this->GetComponentTransform());
 	FVector BottomCenter = BoundingBox.GetCenter() - FVector(0, 0, BoundingBox.GetExtent().Z);
@@ -408,7 +408,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	UpdateInEditorMesh();
 }
 
-TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() const
+TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 {
 	TArray<UAGX_ShapeComponent*> Shapes;
 	if (GetOwner() != nullptr)
@@ -416,7 +416,7 @@ TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() co
 		for (UAGX_ShapeComponent* ShapeComponent :
 			 FAGX_ObjectUtilities::Filter<UAGX_ShapeComponent>(GetOwner()->GetComponents()))
 		{
-			if (BedGeometries.Contains(ShapeComponent->GetFName()))
+			if (BedShapes.Contains(ShapeComponent->GetFName()))
 				Shapes.Add(ShapeComponent);
 		}
 	}
@@ -424,13 +424,13 @@ TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedGeometries() co
 	return Shapes;
 }
 
-TArray<FString> UAGX_MovableTerrainComponent::GetBedGeometryOptions() const
+TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
 	TArray<FString> Options;
 	for (FName Name :
 		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
 	{
-		if (!BedGeometries.Contains(Name))
+		if (!BedShapes.Contains(Name))
 			Options.Add(Name.ToString());
 	}
 	return Options;

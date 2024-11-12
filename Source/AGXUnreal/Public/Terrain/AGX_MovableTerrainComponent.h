@@ -63,13 +63,26 @@ protected:
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
-		Meta = (GetOptions = "GetBedGeometryOptions"))
-	TArray<FName> BedGeometries;
-	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedGeometryOptions() const;
-	TArray<UAGX_ShapeComponent*> GetBedGeometries() const;
+		EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"),
+		Category = "AGX Terrain Shape")
+	double ElementSize = 10;
 
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		Meta = (GetOptions = "GetBedShapesOptions"))
+	TArray<FName> BedShapes;
+	UFUNCTION(CallInEditor)
+	TArray<FString> GetBedShapesOptions() const;
+	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
+	
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
+	float StartHeight = 0.0f;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
+	bool bEnableNoise = false;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableNoise"))
+	FAGX_BrownianNoiseParams BrownianNoise;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -133,22 +146,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	void RemoveCollisionGroupIfExists(FName GroupName);
+
+
 protected:
-	UPROPERTY(
-		EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"),
-		Category = "AGX Terrain")
-	double ElementSize = 10;
-
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	float StartHeight = 0.0f;
-
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	bool bEnableNoise = false;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain", meta = (EditCondition = "bEnableNoise"))
-	FAGX_BrownianNoiseParams BrownianNoise;
-
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
 	UAGX_TerrainMaterial* TerrainMaterial;
@@ -201,8 +201,6 @@ protected:
 	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
 
 	double GetMaximumParticleActivationVolume() const;
-
-
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
