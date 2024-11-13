@@ -73,7 +73,7 @@ protected:
 	TArray<FName> BedShapes;
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedShapesOptions() const;
-	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
+	TArray<UMeshComponent*> GetBedShapes() const;
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	float StartHeight = 0.0f;
@@ -234,7 +234,7 @@ protected:
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32",
 			EditCondition = "bEnableTiles"))
-	int TileResolution = 16;
+	int TileResolution = 10;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",

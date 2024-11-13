@@ -428,13 +428,13 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	UpdateInEditorMesh();
 }
 
-TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
+TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 {
-	TArray<UAGX_ShapeComponent*> Shapes;
+	TArray<UMeshComponent*> Shapes;
 	if (GetOwner() != nullptr)
 	{
-		for (UAGX_ShapeComponent* ShapeComponent :
-			 FAGX_ObjectUtilities::Filter<UAGX_ShapeComponent>(GetOwner()->GetComponents()))
+		for (UMeshComponent* ShapeComponent :
+			 FAGX_ObjectUtilities::Filter<UMeshComponent>(GetOwner()->GetComponents()))
 		{
 			if (BedShapes.Contains(ShapeComponent->GetFName()))
 				Shapes.Add(ShapeComponent);
@@ -448,7 +448,7 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
 	TArray<FString> Options;
 	for (FName Name :
-		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
+		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
 		if (!BedShapes.Contains(Name))
 			Options.Add(Name.ToString());
