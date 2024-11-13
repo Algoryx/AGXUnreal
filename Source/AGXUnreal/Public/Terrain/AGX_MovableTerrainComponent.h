@@ -234,7 +234,7 @@ protected:
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32",
 			EditCondition = "bEnableTiles"))
-	int TileResolution = 10;
+	int TileResolution = 16;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",

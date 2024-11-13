@@ -327,17 +327,17 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 {
 	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(Res.X * Res.Y);
-	// Add raycasted heights
+
 	if (GetBedShapes().Num() != 0)
 		AddBedHeights(MinimumHeights, Res, FlipYAxis);
 
 	
 	// Setup InitialHeights
 	InitialHeights.SetNumZeroed(Res.X * Res.Y);
-	// Add Noise
+
 	if (bEnableNoise)
 		AddNoiseHeights(InitialHeights, Res, FlipYAxis);
-	//Add StartHeight
+
 	for (float& h : InitialHeights)
 		h += StartHeight;
 	
