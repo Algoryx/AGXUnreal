@@ -327,20 +327,15 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 {
 	//Setup MinimumHeights
 	MinimumHeights.SetNumZeroed(Res.X * Res.Y);
-
 	if (GetBedShapes().Num() != 0)
 		AddBedHeights(MinimumHeights, Res, FlipYAxis);
-
 	
 	// Setup InitialHeights
 	InitialHeights.SetNumZeroed(Res.X * Res.Y);
-
 	if (bEnableNoise)
 		AddNoiseHeights(InitialHeights, Res, FlipYAxis);
-
 	for (float& h : InitialHeights)
 		h += StartHeight;
-	
 
 	// Put MinimumHeights in InitialHeights
 	for (int i = 0; i < InitialHeights.Num(); i++)
@@ -350,12 +345,12 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 void UAGX_MovableTerrainComponent::AddBedHeights(
 	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
 {
-	float SignY = FlipYAxis ? -1.0 : 1.0;
 	TArray<UMeshComponent*> BedMeshes =
 		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedShapes());
 
+	float SignY = FlipYAxis ? -1.0 : 1.0;
 	FVector Up = GetComponentQuat().GetUpVector();
-	FVector Origin =
+	FVector Center =
 		FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * SignY * (1 - Res.Y) / 2.0, 0.0);
 
 	for (int y = 0; y < Res.Y; y++)
@@ -363,7 +358,7 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 		for (int x = 0; x < Res.X; x++)
 		{
 			FVector Pos = GetComponentTransform().TransformPosition(
-				Origin + FVector(x * ElementSize, SignY * y * ElementSize, 0));
+				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
 			float BedHeight =
 				UAGX_TerrainMeshUtilities::GetRaycastedHeight(Pos, BedMeshes, Up);
 
@@ -377,7 +372,7 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 {
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	FVector Up = GetComponentQuat().GetUpVector();
-	FVector Origin =
+	FVector Center =
 		FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * SignY * (1 - Res.Y) / 2.0, 0.0);
 
 	for (int y = 0; y < Res.Y; y++)
@@ -385,7 +380,7 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 		for (int x = 0; x < Res.X; x++)
 		{
 			FVector Pos = GetComponentTransform().TransformPosition(
-				Origin + FVector(x * ElementSize, SignY * y * ElementSize, 0));
+				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
 
 			//Project to plane
 			Pos = Pos -  Up*FVector::DotProduct(Pos, Up);
