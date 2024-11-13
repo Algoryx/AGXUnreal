@@ -450,7 +450,7 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 	for (FName Name :
 		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
-		if (!BedShapes.Contains(Name))
+		if (!BedShapes.Contains(Name) && this->GetName() != Name.ToString())
 			Options.Add(Name.ToString());
 	}
 	return Options;
