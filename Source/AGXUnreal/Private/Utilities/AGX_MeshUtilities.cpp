@@ -148,14 +148,20 @@ namespace
 		const uint32 VertexColumns = CircleSegments + 1;
 
 		// 3 indices per triangle, 1 triangles per "blade".
-		Indices.Reserve(OrigIndNum + (CircleSegments - 2) * 3);
-		Vertices.Reserve(OrigVertNum + VertexColumns);
-		Normals.Reserve(OrigNormNum + VertexColumns); // 1 normal per vertex.
-		TexCoords.Reserve(OrigTexNum + VertexColumns); // 1 tex coord per vertex.
+		Indices.Reserve(OrigIndNum + CircleSegments * 3);
+		Vertices.Reserve(OrigVertNum + VertexColumns + 1);
+		Normals.Reserve(OrigNormNum + VertexColumns + 1); // 1 normal per vertex.
+		TexCoords.Reserve(OrigTexNum + VertexColumns + 1); // 1 tex coord per vertex.
+
 
 		const float SegmentSize = 2.0 * PI / CircleSegments;
 		const float RadiusInv = 1.0f / Radius;
 		const FVector3f Normal = IsBottom ? FVector3f(0.f, -1.f, 0.f) : FVector3f(0.f, 1.f, 0.f);
+
+		// Add center vertex
+		Vertices.Add(FVector3f(0, Offset, 0));
+		Normals.Add(Normal);
+		TexCoords.Add(FVector2f(0.5, 0.5));
 
 		// Vertex position and texture coordinates.
 		float X, Y, Z, U, V;
@@ -182,7 +188,7 @@ namespace
 		uint32 K0 = OrigVertNum;
 		uint32 K1 = K0 + 1; // Second vertex.
 		uint32 K2 = K1 + 1; // Third vertex.
-		for (uint32 seg = 0; seg < CircleSegments - 2; ++seg)
+		for (uint32 seg = 0; seg < CircleSegments; ++seg)
 		{
 			// 1 triangles per non-centered "blade".
 
@@ -206,10 +212,10 @@ namespace
 			K2++;
 		}
 
-		check(Vertices.Num() == OrigVertNum + VertexColumns);
-		check(Normals.Num() == OrigNormNum + VertexColumns);
-		check(TexCoords.Num() == OrigTexNum + VertexColumns);
-		check(Indices.Num() == OrigIndNum + (CircleSegments - 2) * 3);
+		check(Vertices.Num() == OrigVertNum + VertexColumns + 1);
+		check(Normals.Num() == OrigNormNum + VertexColumns + 1);
+		check(TexCoords.Num() == OrigTexNum + VertexColumns + 1);
+		check(Indices.Num() == OrigIndNum + CircleSegments * 3);
 	}
 
 	void AppendHalfSphere(
