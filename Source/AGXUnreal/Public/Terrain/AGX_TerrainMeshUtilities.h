@@ -4,6 +4,7 @@
 #include <functional>
 #include "ProceduralMeshComponent.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine/EngineTypes.h"
 #include "AGX_TerrainMeshUtilities.generated.h"
 
 struct HfMeshDescription
@@ -28,6 +29,9 @@ struct HfMeshDescription
 	TArray<struct FProcMeshTangent> Tangents;
 	TArray<FColor> Colors;
 };
+
+class UAGX_ShapeComponent;
+
 /**
  *
  */
@@ -44,9 +48,13 @@ public:
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
 		float Exp);
 
-	static float GetRaycastedHeight(
-		const FVector& Pos, const TArray<UMeshComponent*>& MeshComponents,
-		const FVector& Up = FVector::UpVector, const float RayLength = 1000.0f);
+	static float GetLineTracedHeight(
+		const FVector& Pos, const TArray<UAGX_ShapeComponent*>& ShapeComponents,
+		const FVector& Up = FVector::UpVector, const float MaxHeight = 1000.0f);
+
+	static bool LineTraceShapes(
+		FHitResult& OutHit, FVector Start, FVector Stop,
+		const TArray<UAGX_ShapeComponent*>& ShapeComponents);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);

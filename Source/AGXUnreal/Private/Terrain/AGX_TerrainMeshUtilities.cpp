@@ -2,6 +2,7 @@
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 
 #include <KismetProceduralMeshLibrary.h>
+#include "Shapes/AGX_ShapeComponent.h"
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
@@ -117,25 +118,44 @@ float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	return FMath::Pow(Total, Exp);
 }
 
-float UAGX_TerrainMeshUtilities::GetRaycastedHeight(
-	const FVector& Pos, const TArray<UMeshComponent*>& MeshComponents, const FVector& Up,
-	const float RayLength)
+float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
+	const FVector& Pos, const TArray<UAGX_ShapeComponent*>& ShapeComponents, const FVector& Up,
+	const float MaxHeight)
 {
 	float BedHeight = 0.0f;
-	for (auto uMesh : MeshComponents)
-	{
-		FHitResult Hit;
-		FCollisionQueryParams Params;
+	FVector Start = Pos + Up * MaxHeight;
+	FVector Stop = Pos;
 
-		FVector Start = Pos + Up * RayLength;
-		FVector Stop = Pos;
-		if (uMesh->LineTraceComponent(Hit, Start, Stop, Params))
+	FHitResult OutHit;
+
+	if (LineTraceShapes(OutHit, Start, Stop, ShapeComponents) && MaxHeight - OutHit.Distance > 0)
+	{
+		BedHeight = MaxHeight - OutHit.Distance;
+	}
+
+
+	return BedHeight;
+}
+
+bool UAGX_TerrainMeshUtilities::LineTraceShapes(
+	FHitResult& OutHit, FVector Start, FVector Stop,
+	const TArray<UAGX_ShapeComponent*>& ShapeComponents)
+{
+	FHitResult TempOutHit;
+	float ClosestDistance = std::numeric_limits<float>::max();
+	bool IsHit = false;
+
+	for (auto Shape : ShapeComponents)
+	{
+		if (Shape->LineTraceShape(TempOutHit, Start, Stop) && TempOutHit.Distance < ClosestDistance)
 		{
-			BedHeight = FMath::Max(BedHeight, RayLength - Hit.Distance);
+			OutHit = TempOutHit;
+			ClosestDistance = TempOutHit.Distance;
+			IsHit = true;
 		}
 	}
 
-	return BedHeight;
+	return IsHit;
 }
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(

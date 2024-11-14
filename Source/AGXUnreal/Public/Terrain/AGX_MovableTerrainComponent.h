@@ -73,7 +73,7 @@ protected:
 	TArray<FName> BedShapes;
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedShapesOptions() const;
-	TArray<UMeshComponent*> GetBedShapes() const;
+	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	float StartHeight = 0.0f;

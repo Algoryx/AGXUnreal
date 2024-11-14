@@ -345,9 +345,7 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 void UAGX_MovableTerrainComponent::AddBedHeights(
 	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
 {
-	TArray<UMeshComponent*> BedMeshes =
-		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedShapes());
-
+	auto Shapes = GetBedShapes();
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	FVector Up = GetComponentQuat().GetUpVector();
 	FVector Center =
@@ -359,8 +357,7 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 		{
 			FVector Pos = GetComponentTransform().TransformPosition(
 				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
-			float BedHeight =
-				UAGX_TerrainMeshUtilities::GetRaycastedHeight(Pos, BedMeshes, Up);
+			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, Shapes, Up);
 
 			Heights[y * Res.X + x] += BedHeight;
 		}
@@ -423,13 +420,13 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	UpdateInEditorMesh();
 }
 
-TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
+TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 {
-	TArray<UMeshComponent*> Shapes;
+	TArray<UAGX_ShapeComponent*> Shapes;
 	if (GetOwner() != nullptr)
 	{
-		for (UMeshComponent* ShapeComponent :
-			 FAGX_ObjectUtilities::Filter<UMeshComponent>(GetOwner()->GetComponents()))
+		for (UAGX_ShapeComponent* ShapeComponent :
+			 FAGX_ObjectUtilities::Filter<UAGX_ShapeComponent>(GetOwner()->GetComponents()))
 		{
 			if (BedShapes.Contains(ShapeComponent->GetFName()))
 				Shapes.Add(ShapeComponent);
@@ -443,7 +440,7 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
 	TArray<FString> Options;
 	for (FName Name :
-		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
+		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
 	{
 		if (!BedShapes.Contains(Name) && this->GetName() != Name.ToString())
 			Options.Add(Name.ToString());
