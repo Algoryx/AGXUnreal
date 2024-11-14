@@ -335,4 +335,9 @@ public:
 
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
+
+
+	static bool LineTracePrimitive(
+		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
+		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
 };

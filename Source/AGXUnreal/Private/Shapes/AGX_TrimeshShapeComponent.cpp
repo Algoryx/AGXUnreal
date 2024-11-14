@@ -278,3 +278,16 @@ bool UAGX_TrimeshShapeComponent::GetStaticMeshCollisionData(
 	return AGX_MeshUtilities::GetStaticMeshCollisionData(
 		Mesh, ComponentTransformNoScale, OutVertices, OutIndices, LodIndex);
 }
+
+bool UAGX_TrimeshShapeComponent::LineTraceShape(FHitResult& OutHit, FVector Start, FVector Stop)
+{
+	TArray<FVector> Vertices;
+	TArray<FTriIndices> Indices;
+	if (GetStaticMeshCollisionData(Vertices, Indices))
+	{
+		return AGX_MeshUtilities::LineTracePrimitive(
+			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
+	}
+
+	return false;
+}

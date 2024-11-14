@@ -2024,3 +2024,76 @@ TArray<FAGX_MeshWithTransform> AGX_MeshUtilities::ToMeshWithTransformArray(
 
 	return Meshes;
 }
+
+
+bool AGX_MeshUtilities::LineTracePrimitive(
+	FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
+	const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices)
+{
+	FVector LocalStart = Transform.InverseTransformPosition(Start);
+	FVector LocalStop = Transform.InverseTransformPosition(Stop);
+
+	float ClosestDistance = std::numeric_limits<float>::max();
+	bool HitFound = false;
+
+	// Direction vector from Start to Stop
+	FVector LocalDirection = LocalStop - LocalStart;
+	float LineLength = LocalDirection.Length();
+	LocalDirection.Normalize();
+
+	// Iterate through each triangle in the mesh
+	for (const FTriIndices& Triangle : Indices)
+	{
+		// Get the vertices of the current triangle
+		FVector V0 = Vertices[Triangle.v0];
+		FVector V1 = Vertices[Triangle.v1];
+		FVector V2 = Vertices[Triangle.v2];
+
+		// Ray-Triangle intersection test (Moller-Trumbore algorithm)
+		FVector Edge1 = V1 - V0;
+		FVector Edge2 = V2 - V0;
+		FVector Pvec = FVector::CrossProduct(LocalDirection, Edge2);
+		float Det = FVector::DotProduct(Edge1, Pvec);
+
+		// If the determinant is near zero, the ray lies in the plane of the triangle
+		if (FMath::Abs(Det) < KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		float InvDet = 1.0f / Det;
+		FVector Tvec = LocalStart - V0;
+		float U = FVector::DotProduct(Tvec, Pvec) * InvDet;
+
+		// Check if the intersection lies within the triangle
+		if (U < 0.0f || U > 1.0f)
+		{
+			continue;
+		}
+
+		FVector Qvec = FVector::CrossProduct(Tvec, Edge1);
+		float V = FVector::DotProduct(LocalDirection, Qvec) * InvDet;
+		if (V < 0.0f || U + V > 1.0f)
+		{
+			continue;
+		}
+
+		// Calculate the distance along the ray to the intersection point
+		float T = FVector::DotProduct(Edge2, Qvec) * InvDet;
+		if (T > 0.0f && T <= LineLength)
+		{
+			float Distance = T * LineLength;
+			if (Distance < ClosestDistance)
+			{
+				ClosestDistance = Distance;
+
+				FVector Location = Transform.TransformPosition(LocalStart + LocalDirection * T);
+				OutHit.Distance = (Start - Location).Length();
+				OutHit.Location = Location;
+				HitFound = true;
+			}
+		}
+	}
+
+	return HitFound;
+}

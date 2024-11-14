@@ -208,6 +208,8 @@ public:
 	 * @see UAGX_RigidBodyComponent::SynchronizeShapes
 	 */
 	void UpdateNativeLocalTransform();
+	
+	virtual bool LineTraceShape(FHitResult& OutHit, FVector Start, FVector Stop);
 
 protected:
 	/**

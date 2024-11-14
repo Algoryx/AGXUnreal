@@ -15,6 +15,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Utilities/AGX_MeshUtilities.h"
 
 // Unreal Engine includes.
 #include "Materials/Material.h"
@@ -73,9 +74,7 @@ void UAGX_ShapeComponent::UpdateVisualMesh()
 
 	SetMeshData(Data);
 
-	//TODO: Check if this is legit way. Needed to raycast bedgeometries In-Editor
-	//if (SupportsShapeBodySetup() && GetWorld() && GetWorld()->IsGameWorld())
-	if (SupportsShapeBodySetup() && GetWorld() && IsValid(GetWorld()))
+	if (SupportsShapeBodySetup() && GetWorld() && GetWorld()->IsGameWorld())
 		UpdateBodySetup(); // Used only in runtime.
 }
 
@@ -670,4 +669,46 @@ void UAGX_ShapeComponent::AddShapeBodySetupGeometry()
 bool UAGX_ShapeComponent::SupportsShapeBodySetup()
 {
 	return false; // Default behavior.
+}
+
+bool UAGX_ShapeComponent::LineTraceShape(FHitResult& OutHit, FVector Start, FVector Stop)
+{
+	if (GetWorld() && GetWorld()->IsGameWorld())
+	{
+		// In-Game
+		FCollisionQueryParams Params;
+		return LineTraceComponent(OutHit, Start, Stop, Params);
+	} 
+	else if (MeshData.Get())
+	{
+		// In-Editor			
+		auto Data = *MeshData.Get();
+		int VertexCount = Data.Vertices.Num();
+		TArray<FVector> Vertices;
+		Vertices.Reserve(VertexCount);
+		for (int i = 0; i < VertexCount; i++)
+		{
+			FVector3f V = Data.Vertices[i];
+			Vertices.Push(FVector(V.X, V.Y, V.Z));
+		}
+
+		int TriangleCount = Data.Indices.Num() / 3;
+		TArray<FTriIndices> Indices;
+		Indices.Reserve(TriangleCount);
+		for (int i = 0; i < TriangleCount; i++)
+		{
+			FTriIndices tId;
+			tId.v0 = Data.Indices[i * 3 + 0];
+			tId.v1 = Data.Indices[i * 3 + 1];
+			tId.v2 = Data.Indices[i * 3 + 2];
+			Indices.Push(tId);
+		}
+
+		return AGX_MeshUtilities::LineTracePrimitive(
+			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
+	}
+	else
+	{
+		return false;
+	}
 }
