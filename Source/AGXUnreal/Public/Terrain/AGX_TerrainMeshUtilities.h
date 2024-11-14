@@ -52,10 +52,6 @@ public:
 		const FVector& Pos, const TArray<UAGX_ShapeComponent*>& ShapeComponents,
 		const FVector& Up = FVector::UpVector, const float MaxHeight = 1000.0f);
 
-	static bool LineTraceShapes(
-		FHitResult& OutHit, FVector Start, FVector Stop,
-		const TArray<UAGX_ShapeComponent*>& ShapeComponents);
-
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
 

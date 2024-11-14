@@ -712,3 +712,24 @@ bool UAGX_ShapeComponent::LineTraceShape(FHitResult& OutHit, FVector Start, FVec
 		return false;
 	}
 }
+
+bool UAGX_ShapeComponent::LineTraceShapes(
+	FHitResult& OutHit, FVector Start, FVector Stop,
+	const TArray<UAGX_ShapeComponent*>& ShapeComponents)
+{
+	FHitResult TempOutHit;
+	float ClosestDistance = std::numeric_limits<float>::max();
+	bool IsHit = false;
+
+	for (auto Shape : ShapeComponents)
+	{
+		if (Shape->LineTraceShape(TempOutHit, Start, Stop) && TempOutHit.Distance < ClosestDistance)
+		{
+			OutHit = TempOutHit;
+			ClosestDistance = TempOutHit.Distance;
+			IsHit = true;
+		}
+	}
+
+	return IsHit;
+}

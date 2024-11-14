@@ -128,34 +128,14 @@ float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
 
 	FHitResult OutHit;
 
-	if (LineTraceShapes(OutHit, Start, Stop, ShapeComponents) && MaxHeight - OutHit.Distance > 0)
+	if (UAGX_ShapeComponent::LineTraceShapes(OutHit, Start, Stop, ShapeComponents) &&
+		MaxHeight - OutHit.Distance > 0)
 	{
 		BedHeight = MaxHeight - OutHit.Distance;
 	}
 
 
 	return BedHeight;
-}
-
-bool UAGX_TerrainMeshUtilities::LineTraceShapes(
-	FHitResult& OutHit, FVector Start, FVector Stop,
-	const TArray<UAGX_ShapeComponent*>& ShapeComponents)
-{
-	FHitResult TempOutHit;
-	float ClosestDistance = std::numeric_limits<float>::max();
-	bool IsHit = false;
-
-	for (auto Shape : ShapeComponents)
-	{
-		if (Shape->LineTraceShape(TempOutHit, Start, Stop) && TempOutHit.Distance < ClosestDistance)
-		{
-			OutHit = TempOutHit;
-			ClosestDistance = TempOutHit.Distance;
-			IsHit = true;
-		}
-	}
-
-	return IsHit;
 }
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(

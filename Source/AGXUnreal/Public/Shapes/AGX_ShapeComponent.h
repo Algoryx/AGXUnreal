@@ -211,6 +211,10 @@ public:
 	
 	virtual bool LineTraceShape(FHitResult& OutHit, FVector Start, FVector Stop);
 
+	static bool LineTraceShapes(
+		FHitResult& OutHit, FVector Start, FVector Stop,
+		const TArray<UAGX_ShapeComponent*>& ShapeComponents);
+
 protected:
 	/**
 	 * Get a pointer to the actual member Barrier object. This will never return nullptr. The
