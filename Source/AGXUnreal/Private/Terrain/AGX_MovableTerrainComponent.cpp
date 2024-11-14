@@ -391,23 +391,6 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 	}
 }
 
-void UAGX_MovableTerrainComponent::AutoFitToBed()
-{
-	// Calculate Bounds and BottomCenter
-	TArray<UMeshComponent*> BedMeshComponents =
-		FAGX_ObjectUtilities::Filter<UMeshComponent>(GetBedShapes());
-	FBox BoundingBox = UAGX_TerrainMeshUtilities::CreateEncapsulatingBoundingBox(
-		BedMeshComponents, this->GetComponentTransform());
-	FVector BottomCenter = BoundingBox.GetCenter() - FVector(0, 0, BoundingBox.GetExtent().Z);
-
-	// Overwrite Size
-	Size = FVector2D(BoundingBox.GetExtent().X * 2, BoundingBox.GetExtent().Y * 2);
-
-	// Overwrite Position
-	this->SetRelativeLocation(BottomCenter);
-}
-
-
 void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
 {
 	Super::PostEditChangeProperty(event);

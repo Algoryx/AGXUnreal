@@ -55,8 +55,5 @@ public:
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
 
-	static FBox CreateEncapsulatingBoundingBox(
-		const TArray<UMeshComponent*>& Meshes, const FTransform& worldTransform);
-
 private:
 };

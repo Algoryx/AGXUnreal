@@ -167,23 +167,3 @@ float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	// Bilinear interpolation
 	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
 }
-
-FBox UAGX_TerrainMeshUtilities::CreateEncapsulatingBoundingBox(
-	const TArray<UMeshComponent*>& Meshes, const FTransform& worldTransform)
-{
-	FBox EncapsulatingBoundingBox(EForceInit::ForceInit);
-	for (auto* Mesh : Meshes)
-	{
-		if (Mesh)
-		{
-			FVector Origin, BoxExtent;
-			BoxExtent = worldTransform.InverseTransformVector(Mesh->Bounds.BoxExtent);
-			Origin = worldTransform.InverseTransformPosition(Mesh->Bounds.Origin);
-
-			FBox ComponentBox(Origin - BoxExtent, Origin + BoxExtent);
-
-			EncapsulatingBoundingBox += ComponentBox;
-		}
-	}
-	return EncapsulatingBoundingBox;
-}

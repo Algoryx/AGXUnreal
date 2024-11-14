@@ -92,8 +92,6 @@ protected:
 
 	void UpdateInEditorMesh();
 
-	void AutoFitToBed();
-
 	void RebuildHeightMesh(
 		const FVector2D& MeshSize, const FIntVector2& HightFieldRes,
 		const TArray<float>& HeightArray, const TArray<float>& MinimumHeightsArray,
