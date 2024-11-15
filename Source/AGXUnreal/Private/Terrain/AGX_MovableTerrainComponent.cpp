@@ -31,9 +31,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 
 	//Create Native
 	CreateNative();
-
 	
-	// TODO: Copy BedHeights and CurrentHeights from Native
+	// TODO: Copy BedHeights and CurrentHeights from Native and remove call to SetupHeights
 	// CurrentHeights.Reserve(TerrainResolution.X * TerrainResolution.Y);
 	// NativeBarrier.GetHeights(CurrentHeights, false);
 	// BedHeights.Reserve(TerrainResolution.X * TerrainResolution.Y);
@@ -41,7 +40,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	SetupHeights(CurrentHeights, BedHeights, GetTerrainResolution(), false);
 
 	// Create Mesh(s) and Tile(s)
-	InitializeHeightMesh();
+	InitializeMesh();
 
 	//Check to update mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -57,7 +56,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 						//Rebuild mesh if needed
 						auto DirtyHeights = NativeBarrier.GetModifiedVertices();
 						if (DirtyHeights.Num() > 0)
-							UpdateHeightMesh(DirtyHeights);
+							UpdateMesh(DirtyHeights);
 					});
 	}
 
@@ -199,7 +198,7 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 					return;
 
 				SetupHeights(CurrentHeights, BedHeights, GetTerrainResolution(), false);
-				InitializeHeightMesh();
+				InitializeMesh();
 			});
 	}
 }
@@ -220,17 +219,13 @@ float UAGX_MovableTerrainComponent::SampleHeight(FVector LocalPos) const
 		UvCord, SampleArray, GetTerrainResolution().X, GetTerrainResolution().Y);
 }
 
-void UAGX_MovableTerrainComponent::InitializeHeightMesh()
+void UAGX_MovableTerrainComponent::InitializeMesh()
 {
-	//Clear MeshSections and MeshTiles
-	MeshTiles.Reset();
-	ClearAllMeshSections();
-
-
 	// Height Function
 	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeight(LocalPos); };
 
-	// Number of Tiles, Tile Resolution and Size
+	// Create MeshTiles
+	MeshTiles.Reset();
 	{
 		FIntVector2 NrOfTiles;
 		FIntVector2 TileRes;
@@ -256,7 +251,6 @@ void UAGX_MovableTerrainComponent::InitializeHeightMesh()
 
 		FVector2D TileSize = FVector2D(Size.X / NrOfTiles.X, Size.Y / NrOfTiles.Y);
 
-		// Create MeshTiles
 		for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
 		{
 			for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
@@ -270,6 +264,7 @@ void UAGX_MovableTerrainComponent::InitializeHeightMesh()
 	}
 
 	// Create MeshSections
+	ClearAllMeshSections();
 	for (auto& kvp : MeshTiles)
 	{
 		int TileIndex = kvp.Key;
@@ -291,7 +286,7 @@ void UAGX_MovableTerrainComponent::InitializeHeightMesh()
 	}
 }
 
-void UAGX_MovableTerrainComponent::UpdateHeightMesh(
+void UAGX_MovableTerrainComponent::UpdateMesh(
 	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
 	// Height Function

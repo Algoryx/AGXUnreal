@@ -122,8 +122,8 @@ private:
 
 	TMap<int, MeshTile> MeshTiles;
 
-	void InitializeHeightMesh();
-	void UpdateHeightMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
+	void InitializeMesh();
+	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
 
 	float SampleHeight(FVector LocalPos) const;
 
