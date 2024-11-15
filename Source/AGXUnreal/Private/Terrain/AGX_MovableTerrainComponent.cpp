@@ -82,6 +82,9 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 				*GetName());
 		}
 	}
+
+	// Unreal Collision
+	this->SetCollisionEnabled(AdditionalUnrealCollision);
 }
 
 void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
@@ -187,11 +190,11 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 				if (!IsValid(World))
 					return;
 
-				// Size and resolution
+				// Heightfield Resolution
 				FIntVector2 HeightFieldRes =
 					FIntVector2(Size.X / (ElementSize) + 1, Size.Y / (ElementSize) + 1);
 
-				// Create heightfields
+				// Create Heightfields
 				TArray<float> InitialHeights;
 				TArray<float> MinimumHeights;
 				SetupHeights(InitialHeights, MinimumHeights, HeightFieldRes, false);
@@ -203,25 +206,19 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 			});
 	}
 }
+
 void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	const FVector2D& MeshSize, const FIntVector2& HeightFieldRes, 
 	const TArray<float>& HeightArray,
 	const TArray<float>& MinimumHeightsArray,
 	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
-	FVector MeshCenter = FVector::Zero();
-	float UvScaling = 1.0f / 100.0f;
-	bool IsRebuildAll = DirtyHeights.Num() == 0;
-
-	if (IsRebuildAll)
-		ClearAllMeshSections();
-
-	//Create height function
+	//Height Function
 	auto HeightFunction = [&](const FVector& LocalPos) -> float
 	{
 		FVector2D UvCord = FVector2D(
-			(LocalPos.X - MeshCenter.X) / MeshSize.X + 0.5,
-			(LocalPos.Y - MeshCenter.Y) / MeshSize.Y + 0.5);
+			LocalPos.X / MeshSize.X + 0.5,
+			LocalPos.Y / MeshSize.Y + 0.5);
 
 		float Epsilon = 1e-6;
 		bool IsOnBorder = UvCord.X < Epsilon || UvCord.Y < Epsilon || UvCord.X > 1 - Epsilon ||
@@ -235,15 +232,13 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 			UvCord, SampleArray, HeightFieldRes.X, HeightFieldRes.Y);
 	};
 
-	// Tile Size and Resolution
+	// Number of Tiles, Size and Resolution
+	int Nx, Ny;
 	FVector2D TileSize;
 	FIntVector2 TileRes;
-
-	//Number of Tiles in each axis
-	int Nx, Ny;
-
 	if (!bEnableTiles)
 	{
+		// Single tile
 		Nx = 1;
 		Ny = 1;
 		TileSize = FVector2D(Size.X, Size.Y);
@@ -253,6 +248,7 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 	}
 	else
 	{
+		// Multiple tiles
 		Nx = FMath::Max(
 			1, FMath::RoundToInt((HeightFieldRes.X - 1) * ResolutionScaling / TileResolution));
 		Ny = FMath::Max(
@@ -262,61 +258,96 @@ void UAGX_MovableTerrainComponent::RebuildHeightMesh(
 		TileRes = FIntVector2(TileResolution, TileResolution);
 	}
 
-	//Create map TileIndex => Tile 
-	int TileIndex = 0;
+	// Map TileIndex => Tile
 	TMap<int, FBox2D> MeshTiles;
-	for (int Tx = 0; Tx < Nx; Tx++)
 	{
-		for (int Ty = 0; Ty < Ny; Ty++)
+		int TileIndex = 0;
+		for (int Tx = 0; Tx < Nx; Tx++)
 		{
-			FVector TileCenter = MeshCenter - FVector(Size.X / 2, Size.Y / 2, 0) +
-								 FVector(Tx * TileSize.X, Ty * TileSize.Y, 0) +
-								 FVector(TileSize.X, TileSize.Y, 0.0) / 2;
-
-			FBox2D Tile(
-				FVector2D(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2),
-				FVector2D(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2));
-			MeshTiles.Add(TileIndex, Tile);
-			TileIndex++;
-		}
-	}
-
-	//Create map TileIndex => IsDirty
-	TMap<int, bool> IsTileDirty;
-	for (auto& kvp : MeshTiles)
-	{
-		TileIndex = kvp.Key;
-		IsTileDirty.Add(TileIndex, false);
-		for (auto d : DirtyHeights)
-		{
-			float x = std::get<0>(d) * ElementSize;
-			float y = std::get<1>(d) * ElementSize;
-			FVector2D HeightPos = FVector2D(x, y) - Size / 2;
-			if (kvp.Value.IsInside(HeightPos))
+			for (int Ty = 0; Ty < Ny; Ty++)
 			{
-				IsTileDirty[TileIndex] = true;
-				break;
+				FVector TileCenter = FVector(TileSize.X, TileSize.Y, 0.0) / 2 -
+									 FVector(Size.X, Size.Y, 0) / 2 +
+									 FVector(Tx * TileSize.X, Ty * TileSize.Y, 0);
+
+				FBox2D Tile(
+					FVector2D(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2),
+					FVector2D(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2));
+				MeshTiles.Add(TileIndex, Tile);
+				TileIndex++;
 			}
 		}
 	}
 
-	for (auto& kvp : MeshTiles)
+	bool IsRebuildAll = DirtyHeights.Num() == 0;
+	if (IsRebuildAll)
 	{
-		TileIndex = kvp.Key;
-		FVector TileCenter = FVector(kvp.Value.GetCenter().X, kvp.Value.GetCenter().Y, ZOffset);
-		if (IsRebuildAll || IsTileDirty[kvp.Key])
+		//Clear meshes
+		ClearAllMeshSections();
+
+		// Create meshes
+		for (auto& kvp : MeshTiles)
 		{
+			int TileIndex = kvp.Key;
+			FVector TileCenter = FVector(kvp.Value.GetCenter().X, kvp.Value.GetCenter().Y, ZOffset);
+
+			// Create mesh description
+			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
+				TileCenter, TileSize, TileRes, UvScaling, HeightFunction,
+				bTileSkirts && bEnableTiles);
+
+			bool IsCreateUnrealCollision =
+				AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
+			
+			// Create mesh section
+			CreateMeshSection(
+				TileIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
+				MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, IsCreateUnrealCollision);
+			SetMaterial(TileIndex, Material);
+			SetMeshSectionVisible(TileIndex, true);
+		}
+	} 
+	else
+	{
+		// Create map TileIndex => IsDirty
+		TMap<int, bool> IsTileDirty;
+		for (auto& kvp : MeshTiles)
+		{
+			int TileIndex = kvp.Key;
+			IsTileDirty.Add(TileIndex, false);
+
+			// Loop over DirtyHeights (ModifiedVertices)
+			for (auto d : DirtyHeights)
+			{
+				float x = std::get<0>(d) * ElementSize;
+				float y = std::get<1>(d) * ElementSize;
+				FVector2D HeightPos = FVector2D(x, y) - Size / 2;
+				if (kvp.Value.IsInside(HeightPos))
+				{
+					IsTileDirty[TileIndex] = true;
+					break;
+				}
+			}
+		}
+		
+		// Update meshes
+		for (auto& kvp : MeshTiles)
+		{
+			if (!IsTileDirty[kvp.Key])
+				continue;
+
+			int TileIndex = kvp.Key;
+			FVector TileCenter = FVector(kvp.Value.GetCenter().X, kvp.Value.GetCenter().Y, ZOffset);
+
 			// Create mesh description
 			auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
 				TileCenter, TileSize, TileRes, UvScaling, HeightFunction,
 				bTileSkirts && bEnableTiles);
 
 			// Create mesh section
-			CreateMeshSection(
-				TileIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
-				MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, false);
-			SetMaterial(TileIndex, Material);
-			SetMeshSectionVisible(TileIndex, true);
+			UpdateMeshSection(
+				TileIndex, MeshDesc->Vertices, MeshDesc->Normals, MeshDesc->UV0, MeshDesc->Colors,
+				MeshDesc->Tangents);
 		}
 	}
 }
@@ -390,6 +421,7 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 		}
 	}
 }
+
 
 void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
 {

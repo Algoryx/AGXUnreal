@@ -110,7 +110,6 @@ private:
 	TArray<float> CurrentHeights;
 	FDelegateHandle PostStepForwardHandle;
 
-	
 /*
 --- AGX_Terrain Implementation
 ------------------------------
@@ -145,6 +144,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Shape")
 	void RemoveCollisionGroupIfExists(FName GroupName);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape", AdvancedDisplay)
+	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
+		ECollisionEnabled::NoCollision};
 
 protected:
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
@@ -219,6 +221,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	UMaterialInterface* Material;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	float UvScaling = 1.0f / 100.0f;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
