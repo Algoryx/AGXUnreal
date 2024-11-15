@@ -38,6 +38,19 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 	float Exp = 2.0f;
 };
 
+struct MeshTile
+{
+	FVector2D Center;
+	FVector2D Size;
+	FIntVector2 Resolution;
+	MeshTile(FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
+	{
+		Center = TileCenter;
+		Size = TileSize;
+		Resolution = TileRes;
+	}
+};
+
 /**
  *
  */
@@ -92,11 +105,6 @@ protected:
 
 	void UpdateInEditorMesh();
 
-	void RebuildHeightMesh(
-		const FVector2D& MeshSize, const FIntVector2& HightFieldRes,
-		const TArray<float>& HeightArray, const TArray<float>& MinimumHeightsArray,
-		const TArray<std::tuple<int32, int32>>& DirtyHeights = TArray<std::tuple<int32, int32>>());
-
 	void SetupHeights(
 		TArray<float>& InitialHeights, TArray<float>& MinimumHeights, const FIntVector2& Res,
 		bool FlipYAxis) const;
@@ -107,8 +115,22 @@ protected:
 
 private:
 	FTerrainBarrier NativeBarrier;
-	TArray<float> CurrentHeights;
 	FDelegateHandle PostStepForwardHandle;
+
+	TArray<float> CurrentHeights;
+	TArray<float> BedHeights;
+
+	TMap<int, MeshTile> MeshTiles;
+
+	void InitializeHeightMesh();
+	void UpdateHeightMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
+
+	float SampleHeight(FVector LocalPos) const;
+
+	FIntVector2 GetTerrainResolution() const
+	{
+		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
+	};
 
 /*
 --- AGX_Terrain Implementation
