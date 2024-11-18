@@ -89,13 +89,13 @@ protected:
 	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
-	float StartHeight = 0.0f;
+	float InitialHeight = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
-	bool bEnableNoise = false;
+	bool bEnableInitialNoise = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableNoise"))
-	FAGX_BrownianNoiseParams BrownianNoise;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableInitialNoise"))
+	FAGX_BrownianNoiseParams InitialNoise;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;

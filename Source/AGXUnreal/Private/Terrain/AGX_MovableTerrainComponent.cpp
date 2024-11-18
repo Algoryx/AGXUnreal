@@ -341,10 +341,10 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 	// Setup InitialHeights
 	InitialHeights.Reset();
 	InitialHeights.SetNumZeroed(Res.X * Res.Y);
-	if (bEnableNoise)
+	if (bEnableInitialNoise)
 		AddNoiseHeights(InitialHeights, Res, FlipYAxis);
 	for (float& h : InitialHeights)
-		h += StartHeight;
+		h += InitialHeight;
 
 	// Put MinimumHeights in InitialHeights
 	for (int i = 0; i < InitialHeights.Num(); i++)
@@ -392,10 +392,10 @@ void UAGX_MovableTerrainComponent::AddNoiseHeights(
 			Pos = Pos -  Up*FVector::DotProduct(Pos, Up);
 			
 			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(
-				Pos, BrownianNoise.Octaves, BrownianNoise.Scale, BrownianNoise.Persistance,
-				BrownianNoise.Lacunarity, BrownianNoise.Exp);
+				Pos, InitialNoise.Octaves, InitialNoise.Scale, InitialNoise.Persistance,
+				InitialNoise.Lacunarity, InitialNoise.Exp);
 
-			Heights[y * Res.X + x] += Noise * BrownianNoise.Height;
+			Heights[y * Res.X + x] += Noise * InitialNoise.Height;
 		}
 	}
 }
