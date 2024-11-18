@@ -452,30 +452,9 @@ bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, 
 	else if (MeshData.Get())
 	{
 		// In-Editor
-		auto Data = *MeshData.Get();
-		int VertexCount = Data.Vertices.Num();
-		TArray<FVector> Vertices;
-		Vertices.Reserve(VertexCount);
-		for (int i = 0; i < VertexCount; i++)
-		{
-			FVector3f V = Data.Vertices[i];
-			Vertices.Push(FVector(V.X, V.Y, V.Z));
-		}
-
-		int TriangleCount = Data.Indices.Num() / 3;
-		TArray<FTriIndices> Indices;
-		Indices.Reserve(TriangleCount);
-		for (int i = 0; i < TriangleCount; i++)
-		{
-			FTriIndices tId;
-			tId.v0 = Data.Indices[i * 3 + 0];
-			tId.v1 = Data.Indices[i * 3 + 1];
-			tId.v2 = Data.Indices[i * 3 + 2];
-			Indices.Push(tId);
-		}
-
-		return AGX_MeshUtilities::LineTraceMesh(
-			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
+		auto& Data = *MeshData.Get();
+		return AGX_MeshUtilities::LineTraceMesh<FVector3f, uint32>(
+			OutHit, Start, Stop, GetComponentTransform(), Data.Vertices, Data.Indices);
 	}
 	else
 	{

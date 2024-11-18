@@ -336,8 +336,82 @@ public:
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
 
-
+	template <typename VectorType, typename IndexType>
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
-		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
+		const TArray<VectorType>& Vertices, const TArrayView<const IndexType> Indices);
 };
+
+template <typename VectorType, typename IndexType>
+inline bool AGX_MeshUtilities::LineTraceMesh(
+	FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
+	const TArray<VectorType>& Vertices, const TArrayView<const IndexType> Indices)
+{
+	VectorType LocalStart = VectorType(Transform.InverseTransformPosition(Start));
+	VectorType LocalStop = VectorType(Transform.InverseTransformPosition(Stop));
+
+	float ClosestDistance = std::numeric_limits<float>::max();
+	bool HitFound = false;
+
+	// Direction vector from Start to Stop
+	VectorType LocalDirection = LocalStop - LocalStart;
+	float LineLength = LocalDirection.Length();
+	LocalDirection.Normalize();
+
+	// Iterate through each triangle in the mesh
+	for (int i = 0; i < Indices.Num(); i += 3)
+	{
+		// Get the vertices of the current triangle
+		VectorType V0 = Vertices[Indices[i + 0]];
+		VectorType V1 = Vertices[Indices[i + 1]];
+		VectorType V2 = Vertices[Indices[i + 2]];
+
+		// Ray-Triangle intersection test (Moller-Trumbore algorithm)
+		VectorType Edge1 = V1 - V0;
+		VectorType Edge2 = V2 - V0;
+		VectorType Pvec = VectorType::CrossProduct(LocalDirection, Edge2);
+		float Det = VectorType::DotProduct(Edge1, Pvec);
+
+		// If the determinant is near zero, the ray lies in the plane of the triangle
+		if (FMath::Abs(Det) < KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		float InvDet = 1.0f / Det;
+		VectorType Tvec = LocalStart - V0;
+		float U = VectorType::DotProduct(Tvec, Pvec) * InvDet;
+
+		// Check if the intersection lies within the triangle
+		if (U < 0.0f || U > 1.0f)
+		{
+			continue;
+		}
+
+		VectorType Qvec = VectorType::CrossProduct(Tvec, Edge1);
+		float V = VectorType::DotProduct(LocalDirection, Qvec) * InvDet;
+		if (V < 0.0f || U + V > 1.0f)
+		{
+			continue;
+		}
+
+		// Calculate the distance along the ray to the intersection point
+		float T = VectorType::DotProduct(Edge2, Qvec) * InvDet;
+		if (T > 0.0f && T <= LineLength)
+		{
+			float Distance = T * LineLength;
+			if (Distance < ClosestDistance)
+			{
+				ClosestDistance = Distance;
+
+				FVector Location = Transform.TransformPosition(FVector(LocalStart + LocalDirection * T));
+				OutHit.Distance = (Start - Location).Length();
+				OutHit.Location = Location;
+				HitFound = true;
+			}
+		}
+	}
+
+	return HitFound;
+}
+
