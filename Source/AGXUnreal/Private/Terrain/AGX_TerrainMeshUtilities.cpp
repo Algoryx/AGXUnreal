@@ -1,8 +1,7 @@
 
 #include "Terrain/AGX_TerrainMeshUtilities.h"
-
+#include "AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
-#include "Shapes/AGX_ShapeComponent.h"
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
@@ -119,7 +118,7 @@ float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 }
 
 float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
-	const FVector& Pos, const TArray<UAGX_ShapeComponent*>& ShapeComponents, const FVector& Up,
+	const FVector& Pos, const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents, const FVector& Up,
 	const float MaxHeight)
 {
 	float BedHeight = 0.0f;
@@ -128,7 +127,7 @@ float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
 
 	FHitResult OutHit;
 
-	if (UAGX_ShapeComponent::LineTraceShapes(OutHit, Start, Stop, ShapeComponents) &&
+	if (UAGX_SimpleMeshComponent::LineTraceMeshes(OutHit, Start, Stop, SimpleMeshComponents) &&
 		MaxHeight - OutHit.Distance > 0)
 	{
 		BedHeight = MaxHeight - OutHit.Distance;

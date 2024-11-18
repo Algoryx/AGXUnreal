@@ -2026,7 +2026,7 @@ TArray<FAGX_MeshWithTransform> AGX_MeshUtilities::ToMeshWithTransformArray(
 }
 
 
-bool AGX_MeshUtilities::LineTracePrimitive(
+bool AGX_MeshUtilities::LineTraceMesh(
 	FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 	const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices)
 {

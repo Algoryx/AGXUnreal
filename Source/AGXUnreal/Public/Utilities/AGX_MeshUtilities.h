@@ -337,7 +337,7 @@ public:
 		const TArray<AStaticMeshActor*> Actors);
 
 
-	static bool LineTracePrimitive(
+	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
 };

@@ -3,6 +3,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_SimpleMeshComponent.h"
 #include "AGX_UE4Compatibility.h"
+#include "Utilities/AGX_MeshUtilities.h"
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
@@ -438,4 +439,67 @@ FBoxSphereBounds UAGX_SimpleMeshComponent::CalcBounds(const FTransform& LocalToW
 	NewBounds.SphereRadius = NewBounds.BoxExtent.Size();
 
 	return NewBounds;
+}
+
+bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop)
+{
+	if (GetWorld() && GetWorld()->IsGameWorld())
+	{
+		// In-Game, use UMeshComponent's built-in LineTrace
+		FCollisionQueryParams Params;
+		return LineTraceComponent(OutHit, Start, Stop, Params);
+	}
+	else if (MeshData.Get())
+	{
+		// In-Editor
+		auto Data = *MeshData.Get();
+		int VertexCount = Data.Vertices.Num();
+		TArray<FVector> Vertices;
+		Vertices.Reserve(VertexCount);
+		for (int i = 0; i < VertexCount; i++)
+		{
+			FVector3f V = Data.Vertices[i];
+			Vertices.Push(FVector(V.X, V.Y, V.Z));
+		}
+
+		int TriangleCount = Data.Indices.Num() / 3;
+		TArray<FTriIndices> Indices;
+		Indices.Reserve(TriangleCount);
+		for (int i = 0; i < TriangleCount; i++)
+		{
+			FTriIndices tId;
+			tId.v0 = Data.Indices[i * 3 + 0];
+			tId.v1 = Data.Indices[i * 3 + 1];
+			tId.v2 = Data.Indices[i * 3 + 2];
+			Indices.Push(tId);
+		}
+
+		return AGX_MeshUtilities::LineTraceMesh(
+			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
+	}
+	else
+	{
+		return false;
+	}
+}
+
+bool UAGX_SimpleMeshComponent::LineTraceMeshes(
+	FHitResult& OutHit, FVector Start, FVector Stop,
+	const TArray<UAGX_SimpleMeshComponent*>& ShapeComponents)
+{
+	FHitResult TempOutHit;
+	float ClosestDistance = std::numeric_limits<float>::max();
+	bool IsHit = false;
+
+	for (auto Shape : ShapeComponents)
+	{
+		if (Shape->LineTraceMesh(TempOutHit, Start, Stop) && TempOutHit.Distance < ClosestDistance)
+		{
+			OutHit = TempOutHit;
+			ClosestDistance = TempOutHit.Distance;
+			IsHit = true;
+		}
+	}
+
+	return IsHit;
 }

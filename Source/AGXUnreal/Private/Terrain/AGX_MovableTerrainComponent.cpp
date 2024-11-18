@@ -354,7 +354,7 @@ void UAGX_MovableTerrainComponent::SetupHeights(
 void UAGX_MovableTerrainComponent::AddBedHeights(
 	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
 {
-	auto Shapes = GetBedShapes();
+	auto BedMeshes = FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
 	float SignY = FlipYAxis ? -1.0 : 1.0;
 	FVector Up = GetComponentQuat().GetUpVector();
 	FVector Center =
@@ -366,7 +366,7 @@ void UAGX_MovableTerrainComponent::AddBedHeights(
 		{
 			FVector Pos = GetComponentTransform().TransformPosition(
 				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
-			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, Shapes, Up);
+			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, BedMeshes, Up);
 
 			Heights[y * Res.X + x] += BedHeight;
 		}

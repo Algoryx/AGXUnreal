@@ -41,6 +41,12 @@ class AGXUNREAL_API UAGX_SimpleMeshComponent : public UMeshComponent
 	/** Removes all geometry from this triangle mesh. */
 	void ClearMeshData();
 
+	virtual bool LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop);
+
+	static bool LineTraceMeshes(
+		FHitResult& OutHit, FVector Start, FVector Stop,
+		const TArray<UAGX_SimpleMeshComponent*>& ShapeComponents);
+
 protected:
 	TSharedPtr<FAGX_SimpleMeshData> MeshData;
 

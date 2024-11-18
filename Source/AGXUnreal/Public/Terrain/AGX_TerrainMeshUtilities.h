@@ -30,7 +30,7 @@ struct HfMeshDescription
 	TArray<FColor> Colors;
 };
 
-class UAGX_ShapeComponent;
+class UAGX_SimpleMeshComponent;
 
 /**
  *
@@ -49,7 +49,7 @@ public:
 		float Exp);
 
 	static float GetLineTracedHeight(
-		const FVector& Pos, const TArray<UAGX_ShapeComponent*>& ShapeComponents,
+		const FVector& Pos, const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents,
 		const FVector& Up = FVector::UpVector, const float MaxHeight = 1000.0f);
 
 	static float SampleHeightArray(
