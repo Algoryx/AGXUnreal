@@ -36,8 +36,8 @@ public:
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
 	void AllocateNative(
-		int resolutionX, int resolutionY, double elementSize, const TArray<float>& initialHeights,
-		const TArray<float>& minimumHeights);
+		int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+		const TArray<float>& MinimumHeights);
 
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;

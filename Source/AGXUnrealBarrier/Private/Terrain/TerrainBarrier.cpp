@@ -57,22 +57,22 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 }
 
 void FTerrainBarrier::AllocateNative(
-	int resolutionX, int resolutionY, double elementSize, const TArray<float>& initialHeights, const TArray<float>& minimumHeights)
+	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights, const TArray<float>& MinimumHeights)
 {
 	check(!HasNative());
 	agx::VectorPOD<agx::Real> InitialHeightsAGX, MinimumHeightsAGX;
-	InitialHeightsAGX.reserve(static_cast<size_t>(initialHeights.Num()));
-	MinimumHeightsAGX.reserve(static_cast<size_t>(minimumHeights.Num()));
+	InitialHeightsAGX.reserve(static_cast<size_t>(InitialHeights.Num()));
+	MinimumHeightsAGX.reserve(static_cast<size_t>(MinimumHeights.Num()));
 
-	for (auto& Height : initialHeights)
+	for (auto& Height : InitialHeights)
 		InitialHeightsAGX.push_back(ConvertDistanceToAGX(Height));
 
-	for (auto& Height : minimumHeights)
+	for (auto& Height : MinimumHeights)
 		MinimumHeightsAGX.push_back(ConvertDistanceToAGX(Height));
 
 
 	NativeRef->Native = new agxTerrain::Terrain(
-		resolutionX, resolutionY, ConvertDistanceToAGX(elementSize), InitialHeightsAGX,
+		ResolutionX, ResolutionY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
 		MinimumHeightsAGX);
 }
 

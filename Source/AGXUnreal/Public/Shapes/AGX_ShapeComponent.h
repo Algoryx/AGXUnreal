@@ -208,6 +208,7 @@ public:
 	 * @see UAGX_RigidBodyComponent::SynchronizeShapes
 	 */
 	void UpdateNativeLocalTransform();
+
 protected:
 	/**
 	 * Get a pointer to the actual member Barrier object. This will never return nullptr. The

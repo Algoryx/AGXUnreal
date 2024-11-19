@@ -15,7 +15,6 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
-#include "Utilities/AGX_MeshUtilities.h"
 
 // Unreal Engine includes.
 #include "Materials/Material.h"
