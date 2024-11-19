@@ -336,6 +336,11 @@ public:
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
 
+	
+	static bool LineTraceMesh(
+		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
+		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
+
 	template <typename VectorType, typename IndexType>
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,

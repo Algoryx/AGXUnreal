@@ -2024,3 +2024,15 @@ TArray<FAGX_MeshWithTransform> AGX_MeshUtilities::ToMeshWithTransformArray(
 
 	return Meshes;
 }
+
+bool AGX_MeshUtilities::LineTraceMesh(
+	FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
+	const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices)
+{
+	// Use TArrayView to flatten and access Indices data without copying
+	const int32* IntArrayPtr = reinterpret_cast<const int32*>(Indices.GetData());
+	int32 NumInts = Indices.Num() * 3;
+	auto IndicesView = TArrayView<const int32>(IntArrayPtr, NumInts);
+
+	return AGX_MeshUtilities::LineTraceMesh(OutHit, Start, Stop, Transform, Vertices, IndicesView);
+}

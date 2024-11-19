@@ -285,13 +285,8 @@ bool UAGX_TrimeshShapeComponent::LineTraceMesh(FHitResult& OutHit, FVector Start
 	TArray<FTriIndices> Indices;
 	if (GetStaticMeshCollisionData(Vertices, Indices))
 	{
-		//Use TArrayView to flatten and access data without copying
-		const int32* IntArrayPtr = reinterpret_cast<const int32*>(Indices.GetData());
-		int32 NumInts = Indices.Num() * 3;
-		auto IndicesView = TArrayView<const int32>(IntArrayPtr, NumInts);
-
 		return AGX_MeshUtilities::LineTraceMesh(
-			OutHit, Start, Stop, GetComponentTransform(), Vertices, IndicesView);
+			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
 	}
 
 	return false;
