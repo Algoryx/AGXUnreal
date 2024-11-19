@@ -187,7 +187,8 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 {
-	if (UWorld* World = GetWorld(); IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+	UWorld* World = GetWorld();
+	if (World != nullptr && IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
 		// In-Editor: Postpone the initialization for the next tick because all properties are not
 		// copied yet
@@ -200,6 +201,11 @@ void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
 				SetupHeights(CurrentHeights, BedHeights, GetTerrainResolution(), false);
 				InitializeMesh();
 			});
+	}
+	else if (World != nullptr && IsValid(World) && World->IsGameWorld())
+	{
+		// In-Game: Just re-create the mesh
+		InitializeMesh();
 	}
 }
 
