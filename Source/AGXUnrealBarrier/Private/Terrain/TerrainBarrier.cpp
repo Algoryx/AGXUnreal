@@ -70,9 +70,14 @@ void FTerrainBarrier::AllocateNative(
 	for (auto& Height : MinimumHeights)
 		MinimumHeightsAGX.push_back(ConvertDistanceToAGX(Height));
 
+	size_t ResX = static_cast<size_t>(ResolutionX);
+	size_t ResY = static_cast<size_t>(ResolutionY);
+
+	check(ResX < static_cast<size_t>(std::numeric_limits<int32>::max()));
+	check(ResY < static_cast<size_t>(std::numeric_limits<int32>::max()));
 
 	NativeRef->Native = new agxTerrain::Terrain(
-		ResolutionX, ResolutionY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
+		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
 		MinimumHeightsAGX);
 }
 
