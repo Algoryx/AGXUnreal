@@ -126,7 +126,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		TerrainResolution.X, TerrainResolution.Y, ElementSize, InitialHeights, MinimumHeights);
 
 
-	// Make sure Native Resoltion and ElementSize are correct
+	// Make sure Native Resolution and ElementSize are correct
 	ensureMsgf(
 		FMath::IsNearlyEqual(ElementSize, NativeBarrier.GetElementSize(), KINDA_SMALL_NUMBER),
 		TEXT("ElementSize and NativeBarrier.GetElementSize() are not nearly equal. ElementSize: "
@@ -311,8 +311,8 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 		{
 			float x = std::get<0>(d) * ElementSize;
 			float y = std::get<1>(d) * ElementSize;
-			FVector2D HeightPos = FVector2D(x, y) - Size / 2;
-			if (TileBox.IsInside(HeightPos))
+			FVector2D DirtyPos = FVector2D(x, y) - Size / 2;
+			if (TileBox.IsInside(DirtyPos))
 			{
 				IsTileDirty = true;
 				break;
@@ -688,6 +688,7 @@ bool UAGX_MovableTerrainComponent::UpdateNativeShapeMaterial()
 	GetNative()->SetShapeMaterial(*MaterialBarrier);
 	return true;
 }
+
 void UAGX_MovableTerrainComponent::AddCollisionGroup(FName GroupName)
 {
 	if (GroupName.IsNone())
@@ -797,7 +798,6 @@ bool UAGX_MovableTerrainComponent::GetIsNoMerge() const
 		return NativeBarrier.GetNoMerge();
 	return false;
 }
-
 
 UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()
 {
