@@ -19,22 +19,22 @@ class UNiagaraComponent;
 /*
  *
  */
-USTRUCT()
+USTRUCT(BlueprintType, Category = "AGX Procedural")
 struct AGXUNREAL_API FAGX_BrownianNoiseParams
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	float Height = 50.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	float Scale = 100;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	int Octaves = 3;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	float Persistance = 0.5f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	float Lacunarity = 2.0f;
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
 	float Exp = 2.0f;
 };
 
