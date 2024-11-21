@@ -7,11 +7,9 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
 	std::function<float(const FVector&)> HeightFunction, bool UseSkirt)
 {
-	// Vertex count (number of faces + 1)
+	// Number of vertices (number of faces + 1)
 	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
-
-	//Add two extra rows/columns as skirt around the plane
-	if (UseSkirt)
+	if (UseSkirt) // With skirt, add two extra rows/columns
 		NrOfVerts = FIntVector2(NrOfVerts.X + 2, NrOfVerts.Y + 2);
 
 	// Allocate memory
@@ -20,8 +18,11 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 
 	// Size of individual triangle
 	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
-	
-	int StartIndex = UseSkirt ? -1 : 0;
+
+	int StartIndex = 0;
+	if (UseSkirt) // With skirt, begin one row/column outside plane
+		StartIndex = -1;
+
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
@@ -125,7 +126,6 @@ float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	// Bilinear interpolation
 	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
 }
-
 
 float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity, float Exp)

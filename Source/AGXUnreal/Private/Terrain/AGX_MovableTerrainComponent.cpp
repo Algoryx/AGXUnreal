@@ -74,9 +74,9 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 
 void UAGX_MovableTerrainComponent::CreateNative()
 {
+	// Make sure OwningRigidBody is created, if there is one
 	UAGX_RigidBodyComponent* OwningRigidBody =
 		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
-
 	if (OwningRigidBody)
 		OwningRigidBody->GetOrCreateNative();
 
@@ -129,7 +129,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	Simulation->Add(*this);
 }
 
-
 void UAGX_MovableTerrainComponent::InitializeHeights()
 {
 	FIntVector2 Res = GetTerrainResolution();
@@ -166,6 +165,7 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 
 float UAGX_MovableTerrainComponent::SampleHeight(FVector LocalPos) const
 {
+	//Normalized/UVCoord,somewhere between: [0.0, 0.0] - [1.0, 1.0]
 	FVector2D UvCord = FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
 	
 	bool IsOnBorder = UvCord.X < SMALL_NUMBER || UvCord.Y < SMALL_NUMBER ||
@@ -528,7 +528,6 @@ double UAGX_MovableTerrainComponent::GetMaximumParticleActivationVolume() const
 
 	return MaximumParticleActivationVolume;
 }
-
 
 bool UAGX_MovableTerrainComponent::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
 {
