@@ -464,15 +464,16 @@ bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, 
 
 bool UAGX_SimpleMeshComponent::LineTraceMeshes(
 	FHitResult& OutHit, FVector Start, FVector Stop,
-	const TArray<UAGX_SimpleMeshComponent*>& ShapeComponents)
+	const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents)
 {
 	FHitResult TempOutHit;
 	float ClosestDistance = std::numeric_limits<float>::max();
 	bool IsHit = false;
 
-	for (auto Shape : ShapeComponents)
+	for (auto SimpleMesh : SimpleMeshComponents)
 	{
-		if (Shape->LineTraceMesh(TempOutHit, Start, Stop) && TempOutHit.Distance < ClosestDistance)
+		if (SimpleMesh->LineTraceMesh(TempOutHit, Start, Stop) &&
+			TempOutHit.Distance < ClosestDistance)
 		{
 			OutHit = TempOutHit;
 			ClosestDistance = TempOutHit.Distance;

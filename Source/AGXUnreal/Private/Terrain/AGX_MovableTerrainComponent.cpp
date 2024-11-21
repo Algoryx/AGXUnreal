@@ -28,10 +28,10 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//Create Heightfield
+	// Create Heights
 	InitializeHeights();
 
-	//Create Native
+	// Create Native
 	CreateNative();
 	
 	// Create Mesh(s) and Tile(s)
@@ -72,34 +72,6 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	this->SetCollisionEnabled(AdditionalUnrealCollision);
 }
 
-void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
-{
-	Super::EndPlay(Reason);
-	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
-		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
-	{
-		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
-		{
-			Simulation->Remove(*this);
-
-			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
-				.Remove(PostStepForwardHandle);
-		}
-	}
-}
-
-// Called every frame
-void UAGX_MovableTerrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-
-	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (bEnableParticleRendering)
-	{
-		UpdateParticles();
-	}
-}
-
 void UAGX_MovableTerrainComponent::CreateNative()
 {
 	UAGX_RigidBodyComponent* OwningRigidBody =
@@ -111,7 +83,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Resolution
 	FIntVector2 TerrainResolution = GetTerrainResolution();
 
-	// Create native
+	// Allocate Native
 	NativeBarrier.AllocateNative(
 		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
 
@@ -157,52 +129,50 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	Simulation->Add(*this);
 }
 
-void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
+
+void UAGX_MovableTerrainComponent::InitializeHeights()
 {
-	UWorld* World = GetWorld();
+	FIntVector2 Res = GetTerrainResolution();
 
-	if (World == nullptr || !IsValid(World))
-		return;
-	
-	if (!World->IsGameWorld() && !IsTemplate())
+	// BedHeights
+	BedHeights.Reset();
+	BedHeights.SetNumZeroed(Res.X * Res.Y);
+	if (GetBedShapes().Num() > 0)
 	{
-		// In-Editor
-		
-		// Postpone the initialization for the next tick 
-		// because all properties are not copied yet
-		World->GetTimerManager().SetTimerForNextTick(
-			[this, World]
-			{
-				if (!IsValid(World))
-					return;
-
-				//Recreate Heights
-				InitializeHeights();
-
-				//Recreate Mesh
-				InitializeMesh();
-			});
+		TArray<UAGX_SimpleMeshComponent*> BedMeshes =
+			FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
+		UAGX_TerrainMeshUtilities::AddBedHeights(
+			BedHeights, Res, ElementSize, GetComponentTransform(), BedMeshes);
 	}
-	else if (World->IsGameWorld())
+
+	// CurrentHeights
+	CurrentHeights.Reset();
+	CurrentHeights.SetNumZeroed(Res.X * Res.Y);
+	if (bInitialNoise)
 	{
-		// In-Game	
-
-		// Recreate Mesh
-		InitializeMesh();
+		UAGX_TerrainMeshUtilities::AddNoiseHeights(
+			CurrentHeights, Res, ElementSize, GetComponentTransform(), InitialNoiseParams);
 	}
+	if (InitialHeight > 0)
+	{
+		for (float& h : CurrentHeights)
+			h += InitialHeight;
+	}
+
+	// Put BedHeights in CurrentHeights
+	for (int i = 0; i < CurrentHeights.Num(); i++)
+		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
 }
-
 
 float UAGX_MovableTerrainComponent::SampleHeight(FVector LocalPos) const
 {
 	FVector2D UvCord = FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
+	
+	bool IsOnBorder = UvCord.X < SMALL_NUMBER || UvCord.Y < SMALL_NUMBER ||
+					  UvCord.X > 1 - SMALL_NUMBER || UvCord.Y > 1 - SMALL_NUMBER;
 
-	float Epsilon = 1e-6;
-	bool IsOnBorder = UvCord.X < Epsilon || UvCord.Y < Epsilon || UvCord.X > 1 - Epsilon ||
-					  UvCord.Y > 1 - Epsilon;
-
-	// Sample from MinimumHeights when close to border
-	auto& SampleArray = ClampToBorders && IsOnBorder ? BedHeights : CurrentHeights;
+	// Sample from BedHeights (MinimumHeights) when close to border
+	auto& SampleArray = (IsOnBorder && ClampToBorders) ? BedHeights : CurrentHeights;
 
 	return UAGX_TerrainMeshUtilities::SampleHeightArray(
 		UvCord, SampleArray, GetTerrainResolution().X, GetTerrainResolution().Y);
@@ -287,7 +257,7 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 		int TileIndex = kvp.Key;
 		MeshTile Tile = kvp.Value;
 
-		//Check if we need to update this Tile
+		//Check if we need to update this Tile (this can be done more efficiently..)
 		bool IsTileDirty = false;
 		FBox2D TileBox = FBox2D(Tile.Center - Tile.Size / 2, Tile.Center + Tile.Size / 2); 
 		for (auto d : DirtyHeights)
@@ -317,39 +287,41 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 	}
 }
 
-void UAGX_MovableTerrainComponent::InitializeHeights()
+void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 {
-	FIntVector2 Res = GetTerrainResolution();
+	bRebuildMesh = false;
 
-	//Setup BedHeights
-	BedHeights.Reset();
-	BedHeights.SetNumZeroed(Res.X * Res.Y);
-	if (GetBedShapes().Num() > 0)
-	{
-		TArray <UAGX_SimpleMeshComponent*> BedMeshes =
-			FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
-		UAGX_TerrainMeshUtilities::AddBedHeights(
-			BedHeights, Res, ElementSize, GetComponentTransform(), BedMeshes);
-	}
-	
-	// Setup CurrentHeights
-	CurrentHeights.Reset();
-	CurrentHeights.SetNumZeroed(Res.X * Res.Y);
-	if (bInitialNoise)
-	{
-		UAGX_TerrainMeshUtilities::AddNoiseHeights(
-			CurrentHeights, Res, ElementSize, GetComponentTransform(), InitialNoiseParams);
-	}
+	UWorld* World = GetWorld();
 
-	if (InitialHeight > 0)
-	{
-		for (float& h : CurrentHeights)
-			h += InitialHeight;
-	}
+	if (World == nullptr || !IsValid(World))
+		return;
 
-	// Put BedHeights in CurrentHeights
-	for (int i = 0; i < CurrentHeights.Num(); i++)
-		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
+	if (!World->IsGameWorld() && !IsTemplate())
+	{
+		// In-Editor
+
+		// Postpone the initialization until the next tick
+		// because all properties are not copied yet
+		World->GetTimerManager().SetTimerForNextTick(
+			[this, World]
+			{
+				if (!IsValid(World))
+					return;
+
+				// Recreate Heights
+				InitializeHeights();
+
+				// Recreate Mesh
+				InitializeMesh();
+			});
+	}
+	else if (World->IsGameWorld())
+	{
+		// In-Game
+
+		// Recreate Mesh
+		InitializeMesh();
+	}
 }
 
 void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
@@ -366,6 +338,33 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 
 	// TODO: Only UpdateMesh on certain Property changes
 	UpdateMeshOnPropertyChanged();
+}
+
+void UAGX_MovableTerrainComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (bEnableParticleRendering)
+	{
+		UpdateParticles();
+	}
+}
+
+void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+		{
+			Simulation->Remove(*this);
+
+			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+				.Remove(PostStepForwardHandle);
+		}
+	}
 }
 
 TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const

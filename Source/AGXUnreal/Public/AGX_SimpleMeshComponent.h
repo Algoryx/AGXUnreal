@@ -45,7 +45,7 @@ class AGXUNREAL_API UAGX_SimpleMeshComponent : public UMeshComponent
 
 	static bool LineTraceMeshes(
 		FHitResult& OutHit, FVector Start, FVector Stop,
-		const TArray<UAGX_SimpleMeshComponent*>& ShapeComponents);
+		const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents);
 
 protected:
 	TSharedPtr<FAGX_SimpleMeshData> MeshData;

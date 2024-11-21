@@ -96,6 +96,36 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	return MeshDescPtr;
 }
 
+float UAGX_TerrainMeshUtilities::SampleHeightArray(
+	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
+{
+	// Normalize UV coordinates to the range [0, 1]
+	UV.X = FMath::Clamp(UV.X, 0.0f, 1.0f);
+	UV.Y = FMath::Clamp(UV.Y, 0.0f, 1.0f);
+
+	// Calculate the positions of the four surrounding texels
+	double X = UV.X * (Width - 1);
+	double Y = UV.Y * (Height - 1);
+
+	int32 X1 = FMath::FloorToInt(X);
+	int32 Y1 = FMath::FloorToInt(Y);
+	int32 X2 = FMath::Clamp(X1 + 1, 0, Width - 1);
+	int32 Y2 = FMath::Clamp(Y1 + 1, 0, Height - 1);
+
+	double FracX = X - X1;
+	double FracY = Y - Y1;
+
+	auto GetValue = [&](int32 X, int32 Y) -> float { return HeightArray[Y * Width + X]; };
+
+	float C00 = GetValue(X1, Y1);
+	float C10 = GetValue(X2, Y1);
+	float C01 = GetValue(X1, Y2);
+	float C11 = GetValue(X2, Y2);
+
+	// Bilinear interpolation
+	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
+}
+
 
 float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity, float Exp)
@@ -136,58 +166,6 @@ float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
 	return BedHeight;
 }
 
-float UAGX_TerrainMeshUtilities::SampleHeightArray(
-	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
-{
-	// Normalize UV coordinates to the range [0, 1]
-	UV.X = FMath::Clamp(UV.X, 0.0f, 1.0f);
-	UV.Y = FMath::Clamp(UV.Y, 0.0f, 1.0f);
-
-	// Calculate the positions of the four surrounding texels
-	double X = UV.X * (Width - 1);
-	double Y = UV.Y * (Height - 1);
-
-	int32 X1 = FMath::FloorToInt(X);
-	int32 Y1 = FMath::FloorToInt(Y);
-	int32 X2 = FMath::Clamp(X1 + 1, 0, Width - 1);
-	int32 Y2 = FMath::Clamp(Y1 + 1, 0, Height - 1);
-
-	double FracX = X - X1;
-	double FracY = Y - Y1;
-
-	auto GetValue = [&](int32 X, int32 Y) -> float { return HeightArray[Y * Width + X]; };
-
-	float C00 = GetValue(X1, Y1);
-	float C10 = GetValue(X2, Y1);
-	float C01 = GetValue(X1, Y2);
-	float C11 = GetValue(X2, Y2);
-
-	// Bilinear interpolation
-	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
-}
-
-
-void UAGX_TerrainMeshUtilities::AddBedHeights(
-	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
-	const TArray<UAGX_SimpleMeshComponent*>& BedMeshes)
-{
-	FVector Up = Transform.GetRotation().GetUpVector();
-	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
-
-	for (int y = 0; y < Res.Y; y++)
-	{
-		for (int x = 0; x < Res.X; x++)
-		{
-			FVector Pos =
-				Transform.TransformPosition(
-				Center + FVector(x * ElementSize, y * ElementSize, 0));
-			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, BedMeshes, Up);
-
-			Heights[y * Res.X + x] += BedHeight;
-		}
-	}
-}
-
 void UAGX_TerrainMeshUtilities::AddNoiseHeights(
 	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
 	const FAGX_BrownianNoiseParams& NoiseParams)
@@ -200,14 +178,13 @@ void UAGX_TerrainMeshUtilities::AddNoiseHeights(
 		for (int x = 0; x < Res.X; x++)
 		{
 			FVector Pos =
-				Transform.TransformPosition(
-				Center + FVector(x * ElementSize, y * ElementSize, 0));
+				Transform.TransformPosition(Center + FVector(x * ElementSize, y * ElementSize, 0));
 
 			// To make it easier to align blocks of noise together
 			// we project the sampleposition to a plane
 			Pos = Pos - Up * FVector::DotProduct(Pos, Up);
 
-			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(
+			float Noise = GetBrownianNoise(
 				Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
 				NoiseParams.Lacunarity, NoiseParams.Exp);
 
@@ -215,3 +192,25 @@ void UAGX_TerrainMeshUtilities::AddNoiseHeights(
 		}
 	}
 }
+
+void UAGX_TerrainMeshUtilities::AddBedHeights(
+	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
+	const TArray<UAGX_SimpleMeshComponent*>& BedMeshes, const float MaxHeight)
+{
+	FVector Up = Transform.GetRotation().GetUpVector();
+	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+
+	for (int y = 0; y < Res.Y; y++)
+	{
+		for (int x = 0; x < Res.X; x++)
+		{
+			FVector Pos =
+				Transform.TransformPosition(
+				Center + FVector(x * ElementSize, y * ElementSize, 0));
+			float BedHeight = GetLineTracedHeight(Pos, BedMeshes, Up, MaxHeight);
+
+			Heights[y * Res.X + x] += BedHeight;
+		}
+	}
+}
+

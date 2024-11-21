@@ -51,6 +51,9 @@ public:
 
 
 protected:
+	UPROPERTY(EditAnywhere)
+	bool bRebuildMesh = false;
+
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 

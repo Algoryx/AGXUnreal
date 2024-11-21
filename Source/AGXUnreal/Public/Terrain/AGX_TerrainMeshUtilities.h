@@ -67,6 +67,9 @@ public:
 		const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
 		std::function<float(const FVector&)> HeightFunction, bool UseSkirt = false);
 
+	static float SampleHeightArray(
+		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
+
 	static float GetBrownianNoise(
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
 		float Exp);
@@ -75,16 +78,15 @@ public:
 		const FVector& Pos, const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents,
 		const FVector& Up = FVector::UpVector, const float MaxHeight = 1000.0f);
 
-	static float SampleHeightArray(
-		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
-	
 	static void AddNoiseHeights(
 		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
 		const FTransform Transform, const FAGX_BrownianNoiseParams& NoiseParams);
 
 	static void AddBedHeights(
 		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
-		const FTransform Transform, const TArray<UAGX_SimpleMeshComponent*>& BedMeshes);
+		const FTransform Transform, const TArray<UAGX_SimpleMeshComponent*>& BedMeshes,
+		const float MaxHeight = 1000.0f);
+
 
 private:
 };
