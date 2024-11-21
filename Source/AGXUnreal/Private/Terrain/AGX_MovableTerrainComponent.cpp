@@ -289,6 +289,7 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 
 void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 {
+	//Hacky: This bool is just used to force an update of the mesh through the editor
 	bRebuildMesh = false;
 
 	UWorld* World = GetWorld();
@@ -454,7 +455,6 @@ void UAGX_MovableTerrainComponent::SetCreateParticles(bool CreateParticles)
 
 	bCreateParticles = CreateParticles;
 }
-
 
 bool UAGX_MovableTerrainComponent::GetCreateParticles() const
 {
@@ -739,6 +739,7 @@ void UAGX_MovableTerrainComponent::SetIsNoMerge(bool IsNoMerge)
 	if (HasNative())
 		NativeBarrier.SetNoMerge(IsNoMerge);
 }
+
 bool UAGX_MovableTerrainComponent::GetIsNoMerge() const
 {
 	if (HasNative())
