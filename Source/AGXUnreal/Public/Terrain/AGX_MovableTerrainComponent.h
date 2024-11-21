@@ -3,6 +3,7 @@
 // AGX Dynamics for Unreal include.s
 #include "AGX_NativeOwner.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "AGX_ShovelReference.h"
 
 #include "CoreMinimal.h"
@@ -15,28 +16,6 @@ class UAGX_TerrainMaterial;
 class UAGX_ShovelComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
-
-/*
- *
- */
-USTRUCT(BlueprintType, Category = "AGX Procedural")
-struct AGXUNREAL_API FAGX_BrownianNoiseParams
-{
-	GENERATED_BODY()
-	
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	float Height = 50.0f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	float Scale = 100;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	int Octaves = 3;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	float Persistance = 0.5f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	float Lacunarity = 2.0f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
-	float Exp = 2.0f;
-};
 
 struct MeshTile
 {
@@ -92,10 +71,10 @@ protected:
 	float InitialHeight = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
-	bool bEnableInitialNoise = false;
+	bool bInitialNoise = false;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableInitialNoise"))
-	FAGX_BrownianNoiseParams InitialNoise;
+	FAGX_BrownianNoiseParams InitialNoiseParams;
 
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
@@ -103,15 +82,12 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	void UpdateInEditorMesh();
+	void UpdateMeshOnPropertyChanged();
 
-	void SetupHeights(
-		TArray<float>& InitialHeights, TArray<float>& MinimumHeights, const FIntVector2& Res,
-		bool FlipYAxis) const;
-
-	void AddBedHeights(TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const;
-
-	void AddNoiseHeights(TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const;
+	FIntVector2 GetTerrainResolution() const
+	{
+		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
+	};
 
 private:
 	FTerrainBarrier NativeBarrier;
@@ -122,15 +98,12 @@ private:
 
 	TMap<int, MeshTile> MeshTiles;
 
+	float SampleHeight(FVector LocalPos) const;
+
 	void InitializeMesh();
 	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
 
-	float SampleHeight(FVector LocalPos) const;
-
-	FIntVector2 GetTerrainResolution() const
-	{
-		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
-	};
+	void InitializeHeights();
 
 /*
 --- AGX_Terrain Implementation

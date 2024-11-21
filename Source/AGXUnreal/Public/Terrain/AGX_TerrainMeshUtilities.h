@@ -7,6 +7,28 @@
 #include "Engine/EngineTypes.h"
 #include "AGX_TerrainMeshUtilities.generated.h"
 
+/*
+ *
+ */
+USTRUCT(BlueprintType, Category = "AGX Procedural")
+struct AGXUNREAL_API FAGX_BrownianNoiseParams
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	float Height = 50.0f;
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	float Scale = 100;
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	int Octaves = 3;
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	float Persistance = 0.5f;
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	float Lacunarity = 2.0f;
+	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	float Exp = 2.0f;
+};
+
 struct HfMeshDescription
 {
 	HfMeshDescription(FIntVector2 VertexRes)
@@ -29,6 +51,7 @@ struct HfMeshDescription
 	TArray<struct FProcMeshTangent> Tangents;
 	TArray<FColor> Colors;
 };
+
 
 class UAGX_SimpleMeshComponent;
 
@@ -54,6 +77,14 @@ public:
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
+	
+	static void AddNoiseHeights(
+		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
+		const FTransform Transform, const FAGX_BrownianNoiseParams& NoiseParams);
+
+	static void AddBedHeights(
+		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
+		const FTransform Transform, const TArray<UAGX_SimpleMeshComponent*>& BedMeshes);
 
 private:
 };

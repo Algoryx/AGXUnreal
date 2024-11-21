@@ -1,5 +1,4 @@
 #include "Terrain/AGX_MovableTerrainComponent.h"
-#include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/AGX_ShapeComponent.h"
@@ -29,16 +28,12 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//Create Heightfield
+	InitializeHeights();
+
 	//Create Native
 	CreateNative();
 	
-	// TODO: Copy BedHeights and CurrentHeights from Native and remove call to SetupHeights
-	// CurrentHeights.Reserve(TerrainResolution.X * TerrainResolution.Y);
-	// NativeBarrier.GetHeights(CurrentHeights, false);
-	// BedHeights.Reserve(TerrainResolution.X * TerrainResolution.Y);
-	// NativeBarrier.GetMinimumHeights(BedHeights);
-	SetupHeights(CurrentHeights, BedHeights, GetTerrainResolution(), false);
-
 	// Create Mesh(s) and Tile(s)
 	InitializeMesh();
 
@@ -115,33 +110,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 	// Resolution
 	FIntVector2 TerrainResolution = GetTerrainResolution();
-	
-	// Create heightfields
-	TArray<float> InitialHeights;
-	TArray<float> MinimumHeights;
-	SetupHeights(InitialHeights, MinimumHeights, TerrainResolution, true);
 
 	// Create native
 	NativeBarrier.AllocateNative(
-		TerrainResolution.X, TerrainResolution.Y, ElementSize, InitialHeights, MinimumHeights);
-
-
-	// Make sure Native Resolution and ElementSize are correct
-	ensureMsgf(
-		FMath::IsNearlyEqual(ElementSize, NativeBarrier.GetElementSize(), KINDA_SMALL_NUMBER),
-		TEXT("ElementSize and NativeBarrier.GetElementSize() are not nearly equal. ElementSize: "
-			 "%f, NativeBarrier.GetElementSize(): %f"),
-		ElementSize, NativeBarrier.GetElementSize());
-
-	ensureMsgf(
-		FMath::IsNearlyEqual(
-			TerrainResolution.X, NativeBarrier.GetGridSizeX(), KINDA_SMALL_NUMBER) &&
-			FMath::IsNearlyEqual(
-				TerrainResolution.Y, NativeBarrier.GetGridSizeY(), KINDA_SMALL_NUMBER),
-		TEXT("TerrainResolution (X: %f, Y: %f) and NativeBarrier grid size (X: %f, Y: %f) are not "
-			 "nearly equal."),
-		TerrainResolution.X, TerrainResolution.Y, NativeBarrier.GetGridSizeX(),
-		NativeBarrier.GetGridSizeY());
+		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
 
 	// Attach to RigidBody
 	if (OwningRigidBody)
@@ -185,26 +157,37 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	Simulation->Add(*this);
 }
 
-void UAGX_MovableTerrainComponent::UpdateInEditorMesh()
+void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 {
 	UWorld* World = GetWorld();
-	if (World != nullptr && IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+
+	if (World == nullptr || !IsValid(World))
+		return;
+	
+	if (!World->IsGameWorld() && !IsTemplate())
 	{
-		// In-Editor: Postpone the initialization for the next tick because all properties are not
-		// copied yet
+		// In-Editor
+		
+		// Postpone the initialization for the next tick 
+		// because all properties are not copied yet
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
 				if (!IsValid(World))
 					return;
 
-				SetupHeights(CurrentHeights, BedHeights, GetTerrainResolution(), false);
+				//Recreate Heights
+				InitializeHeights();
+
+				//Recreate Mesh
 				InitializeMesh();
 			});
 	}
-	else if (World != nullptr && IsValid(World) && World->IsGameWorld())
+	else if (World->IsGameWorld())
 	{
-		// In-Game: Just re-create the mesh
+		// In-Game	
+
+		// Recreate Mesh
 		InitializeMesh();
 	}
 }
@@ -334,89 +317,55 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 	}
 }
 
-void UAGX_MovableTerrainComponent::SetupHeights(
-	TArray<float>& InitialHeights, TArray<float>& MinimumHeights, const FIntVector2& Res,
-	bool FlipYAxis) const
+void UAGX_MovableTerrainComponent::InitializeHeights()
 {
-	//Setup MinimumHeights
-	MinimumHeights.Reset();
-	MinimumHeights.SetNumZeroed(Res.X * Res.Y);
-	if (GetBedShapes().Num() != 0)
-		AddBedHeights(MinimumHeights, Res, FlipYAxis);
+	FIntVector2 Res = GetTerrainResolution();
+
+	//Setup BedHeights
+	BedHeights.Reset();
+	BedHeights.SetNumZeroed(Res.X * Res.Y);
+	if (GetBedShapes().Num() > 0)
+	{
+		TArray <UAGX_SimpleMeshComponent*> BedMeshes =
+			FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
+		UAGX_TerrainMeshUtilities::AddBedHeights(
+			BedHeights, Res, ElementSize, GetComponentTransform(), BedMeshes);
+	}
 	
-	// Setup InitialHeights
-	InitialHeights.Reset();
-	InitialHeights.SetNumZeroed(Res.X * Res.Y);
-	if (bEnableInitialNoise)
-		AddNoiseHeights(InitialHeights, Res, FlipYAxis);
-	for (float& h : InitialHeights)
-		h += InitialHeight;
-
-	// Put MinimumHeights in InitialHeights
-	for (int i = 0; i < InitialHeights.Num(); i++)
-		InitialHeights[i] = FMath::Max(InitialHeights[i], MinimumHeights[i]);
-}
-
-void UAGX_MovableTerrainComponent::AddBedHeights(
-	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
-{
-	auto BedMeshes = FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
-	float SignY = FlipYAxis ? -1.0 : 1.0;
-	FVector Up = GetComponentQuat().GetUpVector();
-	FVector Center =
-		FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * SignY * (1 - Res.Y) / 2.0, 0.0);
-
-	for (int y = 0; y < Res.Y; y++)
+	// Setup CurrentHeights
+	CurrentHeights.Reset();
+	CurrentHeights.SetNumZeroed(Res.X * Res.Y);
+	if (bInitialNoise)
 	{
-		for (int x = 0; x < Res.X; x++)
-		{
-			FVector Pos = GetComponentTransform().TransformPosition(
-				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
-			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, BedMeshes, Up);
-
-			Heights[y * Res.X + x] += BedHeight;
-		}
+		UAGX_TerrainMeshUtilities::AddNoiseHeights(
+			CurrentHeights, Res, ElementSize, GetComponentTransform(), InitialNoiseParams);
 	}
-}
 
-void UAGX_MovableTerrainComponent::AddNoiseHeights(
-	TArray<float>& Heights, const FIntVector2& Res, bool FlipYAxis) const
-{
-	float SignY = FlipYAxis ? -1.0 : 1.0;
-	FVector Up = GetComponentQuat().GetUpVector();
-	FVector Center =
-		FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * SignY * (1 - Res.Y) / 2.0, 0.0);
-
-	for (int y = 0; y < Res.Y; y++)
+	if (InitialHeight > 0)
 	{
-		for (int x = 0; x < Res.X; x++)
-		{
-			FVector Pos = GetComponentTransform().TransformPosition(
-				Center + FVector(x * ElementSize, SignY * y * ElementSize, 0));
-
-			//Project to plane
-			Pos = Pos -  Up*FVector::DotProduct(Pos, Up);
-			
-			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(
-				Pos, InitialNoise.Octaves, InitialNoise.Scale, InitialNoise.Persistance,
-				InitialNoise.Lacunarity, InitialNoise.Exp);
-
-			Heights[y * Res.X + x] += Noise * InitialNoise.Height;
-		}
+		for (float& h : CurrentHeights)
+			h += InitialHeight;
 	}
-}
 
+	// Put BedHeights in CurrentHeights
+	for (int i = 0; i < CurrentHeights.Num(); i++)
+		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
+}
 
 void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
 {
 	Super::PostEditChangeProperty(event);
-	UpdateInEditorMesh();
+
+	// TODO: Only UpdateMesh on certain Property changes
+	UpdateMeshOnPropertyChanged();
 }
 
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
-	UpdateInEditorMesh();
+
+	// TODO: Only UpdateMesh on certain Property changes
+	UpdateMeshOnPropertyChanged();
 }
 
 TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const

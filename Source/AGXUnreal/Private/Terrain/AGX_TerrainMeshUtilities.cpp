@@ -7,12 +7,12 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
 	std::function<float(const FVector&)> HeightFunction, bool UseSkirt)
 {
-	// Vertex count in X and Y direction
-	FIntVector2 NrOfVerts;
+	// Vertex count (number of faces + 1)
+	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+
+	//Add two extra rows/columns as skirt around the plane
 	if (UseSkirt)
-		NrOfVerts = FIntVector2(Resolution.X + 3, Resolution.Y + 3);
-	else
-		NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+		NrOfVerts = FIntVector2(NrOfVerts.X + 2, NrOfVerts.Y + 2);
 
 	// Allocate memory
 	auto MeshDescPtr = MakeShared<HfMeshDescription>(NrOfVerts);
@@ -92,8 +92,7 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 			}
 		}
 	}
-
-
+	
 	return MeshDescPtr;
 }
 
@@ -165,4 +164,54 @@ float UAGX_TerrainMeshUtilities::SampleHeightArray(
 
 	// Bilinear interpolation
 	return FMath::BiLerp(C00, C10, C01, C11, FracX, FracY);
+}
+
+
+void UAGX_TerrainMeshUtilities::AddBedHeights(
+	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
+	const TArray<UAGX_SimpleMeshComponent*>& BedMeshes)
+{
+	FVector Up = Transform.GetRotation().GetUpVector();
+	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+
+	for (int y = 0; y < Res.Y; y++)
+	{
+		for (int x = 0; x < Res.X; x++)
+		{
+			FVector Pos =
+				Transform.TransformPosition(
+				Center + FVector(x * ElementSize, y * ElementSize, 0));
+			float BedHeight = UAGX_TerrainMeshUtilities::GetLineTracedHeight(Pos, BedMeshes, Up);
+
+			Heights[y * Res.X + x] += BedHeight;
+		}
+	}
+}
+
+void UAGX_TerrainMeshUtilities::AddNoiseHeights(
+	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
+	const FAGX_BrownianNoiseParams& NoiseParams)
+{
+	FVector Up = Transform.GetRotation().GetUpVector();
+	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+
+	for (int y = 0; y < Res.Y; y++)
+	{
+		for (int x = 0; x < Res.X; x++)
+		{
+			FVector Pos =
+				Transform.TransformPosition(
+				Center + FVector(x * ElementSize, y * ElementSize, 0));
+
+			// To make it easier to align blocks of noise together
+			// we project the sampleposition to a plane
+			Pos = Pos - Up * FVector::DotProduct(Pos, Up);
+
+			float Noise = UAGX_TerrainMeshUtilities::GetBrownianNoise(
+				Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
+				NoiseParams.Lacunarity, NoiseParams.Exp);
+
+			Heights[y * Res.X + x] += Noise * NoiseParams.Height;
+		}
+	}
 }
