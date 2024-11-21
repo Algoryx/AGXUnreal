@@ -60,21 +60,26 @@ void FTerrainBarrier::AllocateNative(
 	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights, const TArray<float>& MinimumHeights)
 {
 	check(!HasNative());
+
+	size_t ResX = static_cast<size_t>(ResolutionX);
+	size_t ResY = static_cast<size_t>(ResolutionY);
+	check(ResX < static_cast<size_t>(std::numeric_limits<int>::max()));
+	check(ResY < static_cast<size_t>(std::numeric_limits<int>::max()));
+
 	agx::VectorPOD<agx::Real> InitialHeightsAGX, MinimumHeightsAGX;
 	InitialHeightsAGX.reserve(static_cast<size_t>(InitialHeights.Num()));
 	MinimumHeightsAGX.reserve(static_cast<size_t>(MinimumHeights.Num()));
 
-	for (auto& Height : InitialHeights)
-		InitialHeightsAGX.push_back(ConvertDistanceToAGX(Height));
-
-	for (auto& Height : MinimumHeights)
-		MinimumHeightsAGX.push_back(ConvertDistanceToAGX(Height));
-
-	size_t ResX = static_cast<size_t>(ResolutionX);
-	size_t ResY = static_cast<size_t>(ResolutionY);
-
-	check(ResX < static_cast<size_t>(std::numeric_limits<int32>::max()));
-	check(ResY < static_cast<size_t>(std::numeric_limits<int32>::max()));
+	// Flip along Y-axis
+	for (size_t y = 0; y < ResY; ++y)
+	{
+		for (size_t x = 0; x < ResX; ++x)
+		{
+			size_t sourceIndex = x + (ResY - 1 - y) * ResX;
+			InitialHeightsAGX.push_back(ConvertDistanceToAGX(InitialHeights[sourceIndex]));
+			MinimumHeightsAGX.push_back(ConvertDistanceToAGX(MinimumHeights[sourceIndex]));
+		}
+	}
 
 	NativeRef->Native = new agxTerrain::Terrain(
 		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
