@@ -163,7 +163,7 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
 }
 
-float UAGX_MovableTerrainComponent::SampleHeight(FVector LocalPos) const
+float UAGX_MovableTerrainComponent::SampleHeights(FVector LocalPos) const
 {
 	//Normalized/UVCoord,somewhere between: [0.0, 0.0] - [1.0, 1.0]
 	FVector2D UvCord = FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
@@ -181,7 +181,7 @@ float UAGX_MovableTerrainComponent::SampleHeight(FVector LocalPos) const
 void UAGX_MovableTerrainComponent::InitializeMesh()
 {
 	// Height Function
-	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeight(LocalPos); };
+	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeights(LocalPos); };
 
 	// Create MeshTiles
 	MeshTiles.Reset();
@@ -249,7 +249,7 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
 	// Height Function
-	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeight(LocalPos); };
+	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeights(LocalPos); };
 
 	// Update meshes
 	for (auto& kvp : MeshTiles)
@@ -260,10 +260,10 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 		// Check if we need to update Tile
 		bool IsTileDirty = false;
 		FBox2D TileBox = FBox2D(Tile.Center - Tile.Size / 2, Tile.Center + Tile.Size / 2); 
-		for (auto d : DirtyHeights)
+		for (auto& d : DirtyHeights)
 		{
-			float x = std::get<0>(d) * ElementSize;
-			float y = std::get<1>(d) * ElementSize;
+			double x = std::get<0>(d) * ElementSize;
+			double y = std::get<1>(d) * ElementSize;
 			FVector2D DirtyPos = FVector2D(x, y) - Size / 2;
 			if (TileBox.IsInside(DirtyPos))
 			{

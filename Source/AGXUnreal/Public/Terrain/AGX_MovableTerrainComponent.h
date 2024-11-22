@@ -46,11 +46,12 @@ public:
 	void CreateNative();
 	FTerrainBarrier* GetNative();
 	const FTerrainBarrier* GetNative() const;
-	virtual void TickComponent(
-		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
@@ -102,12 +103,11 @@ private:
 
 	TMap<int, MeshTile> MeshTiles;
 
-	float SampleHeight(FVector LocalPos) const;
+	void InitializeHeights();
+	float SampleHeights(FVector LocalPos) const;
 
 	void InitializeMesh();
 	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
-
-	void InitializeHeights();
 
 /*
 --- AGX_Terrain Implementation
@@ -226,7 +226,7 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (ClampMin = "0.1", UIMin = "01", ClampMax = "1.5", UIMax = "1.5"))
+		Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "1.5", UIMax = "1.5"))
 	float ResolutionScaling = 0.5f;
 
 
