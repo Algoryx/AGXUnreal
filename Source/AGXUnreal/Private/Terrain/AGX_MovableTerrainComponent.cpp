@@ -37,7 +37,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	// Create Mesh(s) and Tile(s)
 	InitializeMesh();
 
-	//Check to update mesh each tick
+	// Update Mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
 		PostStepForwardHandle =
@@ -257,7 +257,7 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 		int TileIndex = kvp.Key;
 		MeshTile Tile = kvp.Value;
 
-		//Check if we need to update this Tile (this can be done more efficiently..)
+		// Check if we need to update Tile
 		bool IsTileDirty = false;
 		FBox2D TileBox = FBox2D(Tile.Center - Tile.Size / 2, Tile.Center + Tile.Size / 2); 
 		for (auto d : DirtyHeights)
@@ -289,7 +289,7 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 
 void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 {
-	//Hacky: This bool is just used to force an update of the mesh through the editor
+	//Hacky: This bool is used to force an update of the mesh in-editor
 	bRebuildMesh = false;
 
 	UWorld* World = GetWorld();
