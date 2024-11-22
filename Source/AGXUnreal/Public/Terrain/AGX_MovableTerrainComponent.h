@@ -51,7 +51,7 @@ public:
 
 
 protected:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Editor")
 	bool bRebuildMesh = false;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
