@@ -78,18 +78,20 @@ FRigidBodyBarrier FShapeContactBarrier::GetBody2() const
 	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
 }
 
-FEmptyShapeBarrier FShapeContactBarrier::GetShape1() const
+FShapeBarrier FShapeContactBarrier::GetShape1() const
 {
 	check(HasNative());
 	agxCollide::Geometry* Geometry = NativeEntity->Native.geometry(0);
-	return AGXBarrierFactories::CreateEmptyShapeBarrier(Geometry);
+	agxCollide::Shape* Shape = Geometry ? Geometry->getShape() : nullptr;
+	return {std::make_unique<FGeometryAndShapeRef>(Geometry, Shape)};
 }
 
-FEmptyShapeBarrier FShapeContactBarrier::GetShape2() const
+FShapeBarrier FShapeContactBarrier::GetShape2() const
 {
 	check(HasNative());
 	agxCollide::Geometry* Geometry = NativeEntity->Native.geometry(1);
-	return AGXBarrierFactories::CreateEmptyShapeBarrier(Geometry);
+	agxCollide::Shape* Shape = Geometry ? Geometry->getShape() : nullptr;
+	return {std::make_unique<FGeometryAndShapeRef>(Geometry, Shape)};
 }
 
 bool FShapeContactBarrier::Contains(const FRigidBodyBarrier& Body) const

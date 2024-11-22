@@ -380,13 +380,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Wire Winch")
 	static bool IsBrakeEnabled(FAGX_WireWinchRef Winch);
 
-	UFUNCTION(BlueprintCallable, Category = "Wire Winch", Meta = (DisplayName = "SetTargetSpeed"))
+	UFUNCTION(BlueprintCallable, Category = "Wire Winch")
 	static void SetTargetSpeed(FAGX_WireWinchRef Winch, float InTargetSpeed);
 
-	UFUNCTION(BlueprintPure, Category = "Wire Winch", Meta = (DisplayName = "GetTargetSpeed"))
+	UFUNCTION(BlueprintPure, Category = "Wire Winch")
 	static float GetTargetSpeed(FAGX_WireWinchRef Winch);
 
-	UFUNCTION(BlueprintPure, Category = "Wire Winch", Meta = (DisplayName = "GetCurrentSpeed"))
+	UFUNCTION(BlueprintPure, Category = "Wire Winch")
 	static float GetCurrentSpeed(FAGX_WireWinchRef Winch);
 
 	UFUNCTION(BlueprintPure, Category = "Wire Winch")

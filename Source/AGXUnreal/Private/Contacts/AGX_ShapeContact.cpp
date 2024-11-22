@@ -72,22 +72,22 @@ FRigidBodyBarrier FAGX_ShapeContact::GetBody2() const
 	return Barrier.GetBody2();
 }
 
-FEmptyShapeBarrier FAGX_ShapeContact::GetShape1() const
+FShapeBarrier FAGX_ShapeContact::GetShape1() const
 {
 	using namespace AGX_ShapeContact_helpers;
 	if (!TestHasNative(*this, TEXT("First Shape")))
 	{
-		return FEmptyShapeBarrier();
+		return FShapeBarrier();
 	}
 	return Barrier.GetShape1();
 }
 
-FEmptyShapeBarrier FAGX_ShapeContact::GetShape2() const
+FShapeBarrier FAGX_ShapeContact::GetShape2() const
 {
 	using namespace AGX_ShapeContact_helpers;
 	if (!TestHasNative(*this, TEXT("Second Shape")))
 	{
-		return FEmptyShapeBarrier();
+		return FShapeBarrier();
 	}
 	return Barrier.GetShape2();
 }

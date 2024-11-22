@@ -7,6 +7,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Math/Color.h"
 
 #include "AGX_TerrainPagingSettings.generated.h"
 
@@ -41,6 +42,19 @@ struct AGXUNREAL_API FAGX_TerrainPagingSettings
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Paging Settings")
 	bool bDrawDebugLoadRadii {true};
+
+#if WITH_EDITORONLY_DATA
+	/** Color of the lines showing tile boundaries in the editor. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Paging Editor Settings")
+	FLinearColor TileOutlineColor {FLinearColor::Gray};
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Paging Editor Settings")
+	FLinearColor LoadedTileOutlineColor {FLinearColor::White};
+
+	/** Width of the lines showing tile boundaries in the editor. Loaded tile lines are thicker. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Paging Editor Settings")
+	float TileOutlineThickness {4.0};
+#endif
 
 	/**
 	 * Rigid Bodies tracked by the Terrain Pager. These will be used when deciding which Terrain

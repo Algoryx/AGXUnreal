@@ -7,7 +7,7 @@
 #include "Contacts/AGX_ContactState.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
-#include "Shapes/EmptyShapeBarrier.h"
+#include "Shapes/ShapeBarrier.h"
 
 struct FShapeContactEntity;
 
@@ -32,8 +32,8 @@ public:
 	FRigidBodyBarrier GetBody1() const;
 	FRigidBodyBarrier GetBody2() const;
 
-	FEmptyShapeBarrier GetShape1() const;
-	FEmptyShapeBarrier GetShape2() const;
+	FShapeBarrier GetShape1() const;
+	FShapeBarrier GetShape2() const;
 
 	bool Contains(const FRigidBodyBarrier& Body) const;
 	bool Contains(const FShapeBarrier& Shape) const;

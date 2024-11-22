@@ -411,7 +411,7 @@ T* FAGX_EditorUtilities::GetSingleObjectBeingCustomized(
 
 		// This is a special case where the Component we want is a default subobject to an actor,
 		// and the Component's details panel can be seen while the selected Component is actually
-		// the actors root Component, not the Componetn we are after. This happens for our AGXUnreal
+		// the actors root Component, not the Component we are after. This happens for our AGXUnreal
 		// Actor classes, which have their corresponding Component type as a default subobject. We
 		// simply look for a Component inside the actor of the correct type and return that. If
 		// multiple Components of type T is a default subobject to the actor, then we currently

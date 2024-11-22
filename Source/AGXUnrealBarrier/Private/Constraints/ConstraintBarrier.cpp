@@ -68,6 +68,12 @@ void FConstraintBarrier::ReleaseNative()
 	NativeRef->Native = nullptr;
 }
 
+bool FConstraintBarrier::GetValid() const
+{
+	check(HasNative());
+	return NativeRef->Native->getValid();
+}
+
 void FConstraintBarrier::SetName(const FString& NameUnreal)
 {
 	check(HasNative());

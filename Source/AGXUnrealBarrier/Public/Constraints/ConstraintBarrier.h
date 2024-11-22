@@ -50,6 +50,8 @@ public:
 
 	void ReleaseNative();
 
+	bool GetValid() const;
+
 	void SetEnable(bool Enable);
 	bool GetEnable() const;
 

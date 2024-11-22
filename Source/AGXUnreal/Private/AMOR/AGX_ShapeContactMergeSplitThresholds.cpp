@@ -255,7 +255,7 @@ UAGX_ShapeContactMergeSplitThresholds* UAGX_ShapeContactMergeSplitThresholds::Ge
 	return Instance.Get();
 }
 
-void UAGX_ShapeContactMergeSplitThresholds::CreateNative(UWorld* PlayingWorld)
+void UAGX_ShapeContactMergeSplitThresholds::CreateNative()
 {
 	if (!IsInstance())
 	{
@@ -271,7 +271,7 @@ void UAGX_ShapeContactMergeSplitThresholds::CreateNative(UWorld* PlayingWorld)
 			return;
 		}
 
-		Instance->CreateNative(PlayingWorld);
+		Instance->CreateNative();
 		return;
 	}
 
@@ -304,7 +304,7 @@ FShapeContactMergeSplitThresholdsBarrier* UAGX_ShapeContactMergeSplitThresholds:
 	AGX_CHECK(IsInstance());
 	if (!HasNative())
 	{
-		CreateNative(PlayingWorld);
+		CreateNative();
 	}
 
 	return &NativeBarrier;
@@ -367,7 +367,7 @@ UAGX_ShapeContactMergeSplitThresholds* UAGX_ShapeContactMergeSplitThresholds::Cr
 		RF_Transient);
 	NewInstance->Asset = &Source;
 	NewInstance->CopyFrom(Source);
-	NewInstance->CreateNative(PlayingWorld);
+	NewInstance->CreateNative();
 
 	return NewInstance;
 }

@@ -75,26 +75,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
 	void SetConstraintAttachmentLocation2(FVector BodyLocalLocation);
 
-	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	bool bEnable = true;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetEnable(bool InEnable);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetEnable() const;
 
 	/**
 	 * Specifies whether any contacts can be generated between the attached Rigid Bodies.
 	 * If less than two Rigid Bodies are attached to this Constraint, this has no effect.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	bool bSelfCollision = true;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetEnableSelfCollision(bool InEnable);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetEnableSelfCollision() const;
 
 	/**
@@ -104,13 +104,13 @@ public:
 	 *
 	 * Note that solve type is ignored by iterative solvers.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	TEnumAsByte<enum EAGX_SolveType> SolveType;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetSolveType(EAGX_SolveType InSolveType);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	EAGX_SolveType GetSolveType() const;
 
 	/**
@@ -118,32 +118,20 @@ public:
 	 * rotational DOFs.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Constraint Dynamics",
+		EditAnywhere, Category = "AGX Constraint",
 		Meta = (SliderMin = "0", SliderMax = "1", SliderExponent = "10000"))
 	FAGX_ConstraintDoublePropertyPerDof Compliance;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
-	void SetCompliance(EGenericDofIndex Index, float InCompliance);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetCompliance(EGenericDofIndex Index, double InCompliance);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Constraint Dynamics",
-		Meta = (DisplayName = "Get Compliance"))
-	float GetComplianceFloat(EGenericDofIndex Index) const;
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	double GetCompliance(EGenericDofIndex Index) const;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
-	void SetElasticity(EGenericDofIndex Index, float InElasticity);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetElasticity(EGenericDofIndex Index, double InElasticity);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Constraint Dynamics",
-		Meta = (DisplayName = "Get Elasticity"))
-	float GetElasticityFloat(EGenericDofIndex Index) const;
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	double GetElasticity(EGenericDofIndex Index) const;
 
 	/**
@@ -151,56 +139,45 @@ public:
 	 * The value is the time the constraint has to fulfill its violation.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Constraint Dynamics",
+		EditAnywhere, Category = "AGX Constraint",
 		Meta = (SliderMin = "1e-2", SliderMax = "5.0", SliderExponent = "2"))
 	FAGX_ConstraintDoublePropertyPerDof SpookDamping;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
-	void SetSpookDamping(EGenericDofIndex Index, float InSpookDamping);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetSpookDamping(EGenericDofIndex Index, double InSpookDamping);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Constraint Dynamics",
-		Meta = (DisplayName = "Get Spook Damping"))
-	float GetSpookDampingFloat(EGenericDofIndex Index) const;
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	double GetSpookDamping(EGenericDofIndex Index) const;
 
 	/**
 	 * The force range in a certain DOF. Measured in [N] for translational DOFs and [Nm] for
 	 * rotational DOFs.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	FAGX_ConstraintRangePropertyPerDof ForceRange;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
-	void SetForceRange(EGenericDofIndex Index, float RangeMin, float RangeMax);
 
 	void SetForceRange(EGenericDofIndex Index, const FAGX_RealInterval& InForceRange);
 
-	double GetForceRangeMin(EGenericDofIndex Index) const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Constraint Dynamics",
-		Meta = (DisplayName = "Get Force Range Min"))
-	float GetForceRangeMinFloat(EGenericDofIndex Index) const;
-
-	double GetForceRangeMax(EGenericDofIndex Index) const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Constraint Dynamics",
-		Meta = (DisplayName = "Get Force Range Max"))
-	float GetForceRangeMaxFloat(EGenericDofIndex Index) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	void SetForceRange(EGenericDofIndex Index, double Min, double Max);
 
 	FAGX_RealInterval GetForceRange(EGenericDofIndex Index) const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	void GetForceRange(EGenericDofIndex Index, double& Min, double& Max) const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetForceRangeMin(EGenericDofIndex Index) const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetForceRangeMax(EGenericDofIndex Index) const;
 
 	/**
 	 * Enable or disable computation of the forces applied to the dynamic bodies in this constraint.
 	 * This adds the cost of a matrix-vector operation to compute the forces after solve.
 	 * @see GetLastForce
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Constraint Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	bool bComputeForces = false;
 
 	/**
@@ -209,14 +186,14 @@ public:
 	 * @see GetLastForce
 	 * @param bInComputeForces True to enable force computation, false to disable it.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetComputeForces(bool bInComputeForces);
 
 	/**
 	 * @return True if this constraint has been enabled to compute the forces applied to its bodies,
 	 * false otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetComputeForces() const;
 
 	/**
@@ -227,15 +204,27 @@ public:
 	 * @see GetLastForce
 	 * @param bInComputeForces True to enable force computation, false to disable it.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	void SetEnableComputeForces(bool bInEnable);
 
 	/**
 	 * @return True if this constraint has been enabled to compute the forces applied to its bodies,
 	 * false otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetEnableComputeForces() const;
+
+	/**
+	 * Check if the native AGX Dynamics constraint has been successfully created and initialized.
+	 *
+	 * Not to be confused with Unreal Engine's Is Valid. A Constraint Component can be a valid
+	 * Unreal Engine Component without having a valid native AGX Dynamics constraint.
+	 *
+	 * @return True if the native AGX Dynamics constraint has been successfully created and
+	 * initialized.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	bool GetValid() const;
 
 	/**
 	 * If Compute Forces is enabled, returns the last force [N] and torque [Nm] applied by this
@@ -260,7 +249,7 @@ public:
 	 * \return True if resulting force and torque was written to \p OutForce and \p OutTorque, false
 	 * otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetLastForceIndex(
 		int32 BodyIndex, FVector& OutForce, FVector& OutTorque, bool bForceAtCm = false) const;
 
@@ -285,7 +274,7 @@ public:
 	 * \return true if resulting force and torque was written to \p OutForce and \p OutTorque, false
 	 * otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetLastForceBody(
 		const UAGX_RigidBodyComponent* Body, FVector& OutForce, FVector& OutTorque,
 		bool bForceAtCm = false) const;
@@ -310,7 +299,7 @@ public:
 	 * \return True if resulting force and torque was written to \p OutForce and \p OutTorque, false
 	 * otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetLastLocalForceIndex(
 		int32 BodyIndex, FVector& OutForce, FVector& OutTorque, bool bForceAtCm = false) const;
 
@@ -335,7 +324,7 @@ public:
 	 * \return True if resulting force and torque was written to \p OutForce and \p OutTorque, false
 	 * otherwise.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetLastLocalForceBody(
 		const UAGX_RigidBodyComponent* Body, FVector& OutForce, FVector& OutTorque,
 		bool bForceAtCm = false) const;
@@ -347,7 +336,7 @@ public:
 	 * Returns true if for any of the locked DOFs both the global attachment frame transforms do no
 	 * match.
 	 *
-	 * This function should never be used after the constraint has begun play.*
+	 * This function should never be used after the constraint has begun play.
 	 *
 	 * Can be overriden for specialized constraint checks.
 	 */
@@ -424,6 +413,77 @@ public:
 	 */
 	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
+
+public: // Deprecated functions.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetCompliance instead of SetComplianceFloat"))
+	void SetComplianceFloat(EGenericDofIndex Index, float InCompliance);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetCompliance instead of GetComplianceFloat"))
+	float GetComplianceFloat(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetElasticity instead of SetElasticityFloat"))
+	void SetElasticityFloat(EGenericDofIndex Index, float InElasticity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetElasticity instead of GetElasticityFloat"))
+	float GetElasticityFloat(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetSpookDamping instead of SetSpookDampinFloat"))
+	void SetSpookDampingFloat(EGenericDofIndex Index, float InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetSpookDamping instead of GetSpookDampingFloat"))
+	float GetSpookDampingFloat(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetForceRange instead of SetForceRangeFloat"))
+	void SetForceRangeFloat(EGenericDofIndex Index, float RangeMin, float RangeMax);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetForceRangeMin instead of GetForceRangeMinFloat"))
+	float GetForceRangeMinFloat(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetForceRangeMax instead of GetForceRangeMaxFloat"))
+	float GetForceRangeMaxFloat(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetForceRange instead of GetForceRangeFloat"))
+	void GetForceRangeFloat(EGenericDofIndex Index, float& Min, float& Max) const;
 
 protected:
 	/**

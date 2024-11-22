@@ -109,19 +109,11 @@ public:
 			 ClampMin = "0.0"))
 	FAGX_Real LockToReachMergeConditionCompliance {1.0e-11};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	void SetLockToReachMergeConditionCompliance(double Compliance);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	double GetLockToReachMergeConditionCompliance() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DisplayName = "Set Lock To Reach Merge Condition Compliance"))
-	void SetLockToReachMergeConditionCompliance_BP(float Compliance);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DisplayName = "Get Lock To Reach Merge Condition Compliance"))
-	float GetLockToReachMergeConditionCompliance_BP() const;
 
 	/**
 	 * Damping of the hinge lock used to reach merge condition [s].
@@ -133,19 +125,11 @@ public:
 			 ClampMin = "0.0"))
 	FAGX_Real LockToReachMergeConditionSpookDamping {3.0 / 60.0};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	void SetLockToReachMergeConditionSpookDamping(double Damping);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	double GetLockToReachMergeConditionSpookDamping() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DisplayName = "Set Lock To Reach Merge Condition Spook Damping"))
-	void SetLockToReachMergeConditionSpookDamping_BP(float Damping);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DislayName = "Get Lock To Reach Merge Condition Spook Damping"))
-	float GetLockToReachMergeConditionSpookDamping_BP() const;
 
 	/**
 	 * Maximum angle to trigger merge between nodes [deg].
@@ -157,19 +141,11 @@ public:
 		Meta = (EditCondition = "bMergeEnabled"))
 	FAGX_Real MaxAngleMergeCondition {FMath::RadiansToDegrees(1.0e-5)};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	void SetMaxAngleMergeCondition(double MaxAngleToMerge);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
 	double GetMaxAngleMergeCondition() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DisplayName = "Set Max Angle Merge Condition"))
-	void SetMaxAngleMergeCondition_BP(float MaxAngleToMerge);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DisplayName = "Get Max Angle Merge Condition"))
-	float GetMaxAngleMergeCondition_BP() const;
 
 public:
 	UAGX_TrackInternalMergeProperties() = default;
@@ -200,6 +176,49 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.
+
+public: // Deprecated functions.
+	// clang-format off
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetLockToReachMergeConditionCompliance instead of SetLockToReachMergeConditionCompliance_BP"))
+	void SetLockToReachMergeConditionCompliance_BP(float Compliance);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use GetLockToReachMergeConditionCompliance instead of GetLockToReachMergeConditionCompliance_BP"))
+	float GetLockToReachMergeConditionCompliance_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetLockToReachMergeConditionSpookDamping instead of SetLockToReachMergeConditionSpookDamping_BP"))
+	void SetLockToReachMergeConditionSpookDamping_BP(float Damping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use GetLockToReachMergeConditionSpookDamping instead of GetLockToReachMergeConditionSpookDamping_BP"))
+	float GetLockToReachMergeConditionSpookDamping_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use SetMaxAngleMergeCondition instead of SetMaxAngleMergeCondition_BP"))
+	void SetMaxAngleMergeCondition_BP(float MaxAngleToMerge);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use GetMaxAngleMergeCondition instead of GetMaxAngleMergeCondition_BP"))
+	float GetMaxAngleMergeCondition_BP() const;
+
+	// clang-format on
 
 private:
 #if WITH_EDITOR

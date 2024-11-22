@@ -1046,10 +1046,10 @@ void FAGX_SimObjectsImporterHelper::UpdateRenderDataComponent(
 	Component.SetMaterial(0, NewRenderMaterial);
 	Component.SetVisibility(Visible);
 
-	const FGuid RenderDataGuid = RenderDataBarrier.GetGuid();
-	if (!ProcessedRenderStaticMeshComponents.Contains(RenderDataGuid))
+	const FGuid ShapeGuid = ShapeBarrier.GetShapeGuid();
+	if (!ProcessedRenderStaticMeshComponents.Contains(ShapeGuid))
 	{
-		ProcessedRenderStaticMeshComponents.Add(RenderDataGuid, &Component);
+		ProcessedRenderStaticMeshComponents.Add(ShapeGuid, &Component);
 	}
 }
 
@@ -2020,12 +2020,12 @@ void FAGX_SimObjectsImporterHelper::UpdateModelSourceComponent(UAGX_ModelSourceC
 			C->StaticMeshComponentToOwningTrimesh.Add(Name, ProcessedSMCTuple.Key);
 		}
 
-		C->StaticMeshComponentToOwningRenderData.Empty();
-		for (const auto& ProcessedSMCTuple : ProcessedRenderStaticMeshComponents)
+		C->StaticMeshComponentToOwningShape.Empty();
+		for (const auto& [ShapeGuid, RenderComponent] : ProcessedRenderStaticMeshComponents)
 		{
-			const FString Name = ProcessedSMCTuple.Value->GetName();
-			AGX_CHECK(!C->StaticMeshComponentToOwningTrimesh.Contains(Name));
-			C->StaticMeshComponentToOwningRenderData.Add(Name, ProcessedSMCTuple.Key);
+			const FString Name = RenderComponent->GetName();
+			AGX_CHECK(!C->StaticMeshComponentToOwningShape.Contains(Name));
+			C->StaticMeshComponentToOwningShape.Add(Name, ShapeGuid);
 		}
 
 		C->UnrealMaterialToImportGuid.Empty(ProcessedRenderMaterials.Num());

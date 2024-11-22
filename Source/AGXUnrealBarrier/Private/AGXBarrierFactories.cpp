@@ -37,11 +37,6 @@ FRigidBodyBarrier AGXBarrierFactories::CreateRigidBodyBarrier(agx::RigidBody* Bo
 	return {std::make_unique<FRigidBodyRef>(Body)};
 }
 
-FEmptyShapeBarrier AGXBarrierFactories::CreateEmptyShapeBarrier(agxCollide::Geometry* Geometry)
-{
-	return {std::make_unique<FGeometryAndShapeRef>(Geometry, nullptr)};
-}
-
 FAnyShapeBarrier AGXBarrierFactories::CreateAnyShapeBarrier(agxCollide::Shape* Shape)
 {
 	return {std::make_unique<FGeometryAndShapeRef>(Shape->getGeometry(), Shape)};

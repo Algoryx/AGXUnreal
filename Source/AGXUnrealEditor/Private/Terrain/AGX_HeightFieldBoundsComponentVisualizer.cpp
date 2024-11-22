@@ -31,10 +31,21 @@ namespace AGX_HeightFieldBoundsComponentVisualizer_helpers
 
 		// We use a large DepthBias here so that the lines are drawn clearly and not dark
 		// (underneath the landscape).
+#if PLATFORM_LINUX
+		// As of Unreal Engine 5.2 and NVIDIA graphics drivers 525,
+		// SDPG_World + DepthOffset=BIG_NUMBER does not make the lines render on top of the
+		// Landscape on Linux. Using SDPG_Foreground instead. The lines are weirdly shaded and not
+		// clear when under the Landscape, but better than nothing.
+		PDI->DrawLine(Corner0, Corner1, Color, SDPG_Foreground, LineThickness);
+		PDI->DrawLine(Corner1, Corner2, Color, SDPG_Foreground, LineThickness);
+		PDI->DrawLine(Corner2, Corner3, Color, SDPG_Foreground, LineThickness);
+		PDI->DrawLine(Corner3, Corner0, Color, SDPG_Foreground, LineThickness);
+#else
 		PDI->DrawLine(Corner0, Corner1, Color, SDPG_World, LineThickness, BIG_NUMBER, false);
 		PDI->DrawLine(Corner1, Corner2, Color, SDPG_World, LineThickness, BIG_NUMBER, false);
 		PDI->DrawLine(Corner2, Corner3, Color, SDPG_World, LineThickness, BIG_NUMBER, false);
 		PDI->DrawLine(Corner3, Corner0, Color, SDPG_World, LineThickness, BIG_NUMBER, false);
+#endif
 	}
 
 	void DrawCircle(
@@ -113,13 +124,14 @@ namespace AGX_HeightFieldBoundsComponentVisualizer_helpers
 		check(Terrain.SourceLandscape != nullptr);
 		check(Terrain.HasNativeTerrainPager());
 
+		const FAGX_TerrainPagingSettings& Settings = Terrain.TerrainPagingSettings;
+
 		const FTerrainPagerBarrier* TPBarrier = Terrain.GetNativeTerrainPager();
 		if (TPBarrier == nullptr)
 			return;
 
 		const auto QuadSize = Terrain.SourceLandscape->GetActorScale().X;
-		const int32 TileNumQuadsSide =
-			FMath::RoundToInt(Terrain.TerrainPagingSettings.TileSize / QuadSize);
+		const int32 TileNumQuadsSide = FMath::RoundToInt(Settings.TileSize / QuadSize);
 		const double TileSize = QuadSize * TileNumQuadsSide;
 
 		const FVector BoundsPosGlobal = BoundsTransform.GetLocation();
@@ -132,7 +144,9 @@ namespace AGX_HeightFieldBoundsComponentVisualizer_helpers
 			// tiles may have a z-offset that depends on the first loaded tile average height (set
 			// by AGX Dynamics automatically).
 			TileTransform.SetLocation(FVector(TilePosGlobal.X, TilePosGlobal.Y, BoundsPosGlobal.Z));
-			DrawRectangle(TileTransform, TileSize, TileSize, FLinearColor::White, 8.f, PDI);
+			DrawRectangle(
+				TileTransform, TileSize, TileSize, Settings.LoadedTileOutlineColor,
+				2.f * Settings.TileOutlineThickness, PDI);
 		}
 	}
 
@@ -143,11 +157,11 @@ namespace AGX_HeightFieldBoundsComponentVisualizer_helpers
 		check(Terrain.bEnableTerrainPaging);
 		check(Terrain.SourceLandscape != nullptr);
 
+		const FAGX_TerrainPagingSettings& Settings = Terrain.TerrainPagingSettings;
+
 		const auto QuadSize = Terrain.SourceLandscape->GetActorScale().X;
-		const int32 TileNumQuadsSide =
-			FMath::RoundToInt(Terrain.TerrainPagingSettings.TileSize / QuadSize);
-		const int32 TileOverlapNumQuads =
-			FMath::RoundToInt(Terrain.TerrainPagingSettings.TileOverlap / QuadSize);
+		const int32 TileNumQuadsSide = FMath::RoundToInt(Settings.TileSize / QuadSize);
+		const int32 TileOverlapNumQuads = FMath::RoundToInt(Settings.TileOverlap / QuadSize);
 
 		const double TileSize = QuadSize * TileNumQuadsSide;
 		const double TileOverlap = QuadSize * TileOverlapNumQuads;
@@ -192,7 +206,8 @@ namespace AGX_HeightFieldBoundsComponentVisualizer_helpers
 
 				const FTransform RectangleTransform(BoundsTransform.GetRotation(), StartPosGlobal);
 				DrawRectangle(
-					RectangleTransform, TileSize, -TileSize, FLinearColor::Gray, 4.f, PDI);
+					RectangleTransform, TileSize, -TileSize, Settings.TileOutlineColor,
+					Settings.TileOutlineThickness, PDI);
 			}
 		}
 	}

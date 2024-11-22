@@ -301,7 +301,7 @@ private:
 	void InitPropertyDispatcher();
 #endif
 
-	void CreateTerrainMaterialNative(UWorld* PlayingWorld);
+	void CreateTerrainMaterialNative();
 	bool HasTerrainMaterialNative() const;
 	FTerrainMaterialBarrier* GetTerrainMaterialNative();
 	void UpdateTerrainMaterialNativeProperties();

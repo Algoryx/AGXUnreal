@@ -151,15 +151,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	FAGX_Real PenetrationForceVelocityScaling = 0.0f;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	double GetPenetrationForceVelocityScaling() const;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetPenetrationForceVelocityScaling_BP(float InPenetrationForceVelocityScaling);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	float GetPenetrationForceVelocityScaling_BP() const;
 
 	/**
 	 * The maximum depth of the terrain, from local origin [cm].
@@ -178,15 +174,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	FAGX_Real MaximumParticleActivationVolume = std::numeric_limits<double>::infinity();
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	double GetMaximumParticleActivationVolume() const;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetMaximumParticleActivationVolume_BP(float InMaximumParticleActivationVolume);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	float GetMaximumParticleActivationVolume_BP() const;
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -378,6 +370,42 @@ private:
 	virtual void Serialize(FArchive& Archive) override;
 
 	friend class FAGX_TerrainHeightFetcher;
+
+private: // Deprecated functions.
+
+	// clang-format off
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Terrain",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetPenetrationForceVelocityScaling instead of SetPenetrationForceVelocityScaling_BP"))
+	void SetPenetrationForceVelocityScaling_BP(float InPenetrationForceVelocityScaling);
+
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Terrain",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				"Use GetPenetrationForceVelocityScaling instead of GetPenetrationForceVelocityScaling_BP"))
+	float GetPenetrationForceVelocityScaling_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Terrain",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use SetMaximumParticleActivationVolume instead of SetMaximumParticleActivationVolume_BP"))
+	void SetMaximumParticleActivationVolume_BP(float InMaximumParticleActivationVolume);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Terrain",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage = "Use GetMaximumParticleActivationVolume instead of GetMaximumParticleActivationVolume_BP"))
+	float GetMaximumParticleActivationVolume_BP() const;
+
+	// clang-format on
 
 private:
 	/**

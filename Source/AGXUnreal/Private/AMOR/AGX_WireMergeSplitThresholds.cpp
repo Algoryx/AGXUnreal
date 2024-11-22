@@ -120,7 +120,7 @@ UAGX_WireMergeSplitThresholds* UAGX_WireMergeSplitThresholds::GetInstance()
 	return Instance.Get();
 }
 
-void UAGX_WireMergeSplitThresholds::CreateNative(UWorld* PlayingWorld)
+void UAGX_WireMergeSplitThresholds::CreateNative()
 {
 	if (!IsInstance())
 	{
@@ -136,7 +136,7 @@ void UAGX_WireMergeSplitThresholds::CreateNative(UWorld* PlayingWorld)
 			return;
 		}
 
-		Instance->CreateNative(PlayingWorld);
+		Instance->CreateNative();
 		return;
 	}
 
@@ -169,7 +169,7 @@ FWireMergeSplitThresholdsBarrier* UAGX_WireMergeSplitThresholds::GetOrCreateNati
 	AGX_CHECK(IsInstance());
 	if (!HasNative())
 	{
-		CreateNative(PlayingWorld);
+		CreateNative();
 	}
 
 	return &NativeBarrier;
@@ -231,7 +231,7 @@ UAGX_WireMergeSplitThresholds* UAGX_WireMergeSplitThresholds::CreateFromAsset(
 		RF_Transient);
 	NewInstance->Asset = &Source;
 	NewInstance->CopyFrom(Source);
-	NewInstance->CreateNative(PlayingWorld);
+	NewInstance->CreateNative();
 
 	return NewInstance;
 }

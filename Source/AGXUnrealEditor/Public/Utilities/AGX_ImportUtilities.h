@@ -235,7 +235,7 @@ template <typename TComponent>
 TComponent* FAGX_ImportUtilities::CreateComponent(AActor& Owner, USceneComponent& AttachParent)
 {
 	TComponent* Component = NewObject<TComponent>(
-		&AttachParent, FName(FAGX_ImportUtilities::GetUnsetUniqueImportName()));
+		&Owner, FName(FAGX_ImportUtilities::GetUnsetUniqueImportName()));
 
 	Owner.AddInstanceComponent(Component);
 	Component->RegisterComponent();

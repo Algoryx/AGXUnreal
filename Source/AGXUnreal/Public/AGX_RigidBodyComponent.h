@@ -182,10 +182,9 @@ public:
 	 * @return The total mass of this rigid body, calculated given volume and density of added
 	 * geometries.
 	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
 	double CalculateMass() const;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics", Meta = (DisplayName = "CalculateMass"))
-	float CalculateMass_BP() const;
 
 	/**
 	 * The three-component diagonal of the inertia tensor [kgm^2].
@@ -514,7 +513,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
+private: // Deprecated functions.
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Dynamics",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use CalculateMass instead of CalculateMass_BP"))
+	float CalculateMass_BP() const;
+
 private:
+
 #if WITH_EDITOR
 	// Fill in a bunch of callbacks in PropertyDispatcher so we don't have to manually check each
 	// and every UPROPERTY in PostEditChangeProperty and PostEditChangeChainProperty.

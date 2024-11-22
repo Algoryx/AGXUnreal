@@ -115,33 +115,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	bool GetUseContactAreaApproach();
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetMinElasticRestLength(double InMinLength);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetMinElasticRestLength() const;
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Min Elastic Rest Length"))
-	void SetMinElasticRestLength_BP(float InMinLength);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Min Elastic Rest Length"))
-	float GetMinElasticRestLength_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetMaxElasticRestLength(double InMaxLength);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetMaxElasticRestLength() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Max Elastic Rest Length"))
-	void SetMaxElasticRestLength_BP(float InMaxLength);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Max Elastic Rest Length"))
-	float GetMaxElasticRestLength_BP() const;
 
 	/**
 	 * The friction model used when two objects with this contact material collides.
@@ -170,19 +154,11 @@ public:
 				 "FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
 	FAGX_Real NormalForceMagnitude {100.0};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetNormalForceMagnitude(double InNormalForceMagnitude);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetNormalForceMagnitude() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Normal Force Magnitude"))
-	void SetNormalForceMagnitude_BP(float InNormalForceMagnitude);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Normal Force Magnitude"))
-	float GetNormalForceMagnitude_BP() const;
 
 	/**
 	 * Whether the 'Normal Force Magnitude' should be scaled by contact point depth.
@@ -220,19 +196,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real FrictionCoefficient {0.25 / (2 * 0.3)};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetFrictionCoefficient(double InFrictionCoefficient);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetFrictionCoefficient() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Friction Coefficient"))
-	void SetFrictionCoefficient_BP(float InFrictionCoefficient);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Friction Coefficient"))
-	float GetFrictionCoefficient_BP();
 
 	/**
 	 * Friction in the secondary direction, if enabled.
@@ -249,18 +217,11 @@ public:
 			 EditCondition = "bUseSecondaryFrictionCoefficient"))
 	FAGX_Real SecondaryFrictionCoefficient {0.25 / (2 * 0.3)};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetSecondaryFrictionCoefficient(double InFrictionCoefficient);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetSecondaryFrictionCoefficient() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Secondary Friction Coefficient"))
-	void SetSecondaryFrictionCoefficient_BP(float InFrictionCoefficient);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Secondary Friction Coefficient"))
-	float GetSecondaryFrictionCoefficient_BP() const;
 
 	/**
 	 * Whether it should be possible to define friction coefficient per each of the two
@@ -292,18 +253,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real SurfaceViscosity {5.0e-9};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetSurfaceViscosity(double InSurfaceViscosity);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetSurfaceViscosity() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Surface Viscosity"))
-	void SetSurfaceViscosity_BP(float InSurfaceViscosity);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Surface Viscosity"))
-	float GetSurfaceViscosity_BP() const;
 
 	/**
 	 * Surface viscosity in the secondary direction, if enabled.
@@ -320,18 +274,11 @@ public:
 			 EditCondition = "bUseSecondarySurfaceViscosity"))
 	FAGX_Real SecondarySurfaceViscosity {5.0e-9};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetSecondarySurfaceViscosity() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Secondary Surface Viscosity"))
-	void SetSecondarySurfaceViscosity_BP(float InSecondarySurfaceViscosity);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Secondary Surface Viscosity"))
-	float GetSecondarySurfaceViscosity_BP() const;
 
 	/**
 	 * Whether it should be possible to define surface viscosity per each of the two perpendicular
@@ -365,9 +312,10 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
 		Meta =
-			(EditCondition =
-			"FrictionModel == EAGX_FrictionModel::OrientedBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
-	FVector PrimaryDirection {FVector::ForwardVector};
+		(EditCondition =
+			"FrictionModel == EAGX_FrictionModel::OrientedBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"
+		))
+	FVector PrimaryDirection{FVector::ForwardVector};
 	// clang-format on
 
 	/**
@@ -399,9 +347,10 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
 		Meta =
-			(EditCondition =
-				 "FrictionModel == EAGX_FrictionModel::OrientedBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
-	FName OrientedFrictionReferenceFrameActor {NAME_None};
+		(EditCondition =
+			"FrictionModel == EAGX_FrictionModel::OrientedBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction  || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"
+		))
+	FName OrientedFrictionReferenceFrameActor{NAME_None};
 	// clang-format on
 
 	// clang-format off
@@ -420,9 +369,10 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
 		Meta =
-			(EditCondition =
-				 "FrictionModel == EAGX_FrictionModel::OrientedBoxFriction || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
-	FName OrientedFrictionReferenceFrameComponent {NAME_None};
+		(EditCondition =
+			"FrictionModel == EAGX_FrictionModel::OrientedBoxFriction || FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction || FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction || FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"
+		))
+	FName OrientedFrictionReferenceFrameComponent{NAME_None};
 	// clang-format on
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -438,18 +388,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real Restitution {0.5};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetRestitution(double InRestitution);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetRestitution() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Restitution"))
-	void SetRestitution_BP(float InRestitution);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Restitution"))
-	float GetRestitution_BP() const;
 
 	/**
 	 * Young's modulus of the contact material. Same as spring coefficient k [Pa].
@@ -457,18 +400,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real YoungsModulus {2.0 / 5.0e-9};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetYoungsModulus(double InYoungsModulus);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetYoungsModulus() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Youngs Modulus"))
-	void SetYoungsModulus_BP(float InYoungsModulus);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Youngs Modulus"))
-	float GetYoungsModulus_BP() const;
 
 	/**
 	 * Spook Damping which represents the time the contact constraint has to fulfill its violation
@@ -477,18 +413,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real SpookDamping {4.5 / 60.0};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetSpookDamping(double InSpookDamping);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetSpookDamping() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Spook Damping"))
-	void SetSpookDamping_BP(float InSpookDamping);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Spook Damping"))
-	float GetSpookDamping_BP() const;
 
 	/**
 	 * The attractive force between two colliding objects [N].
@@ -496,18 +425,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real AdhesiveForce {0.0};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetAdhesiveForce(double InAdhesiveForce);
-	float GetAdhesiveForce() const;
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DislayName = "Set Adhesive Force"))
-	void SetAdhesiveForce_BP(float InAdhesiveForce);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DislayName = "Get Adhesive Force"))
-	float GetAdhesiveForce_BP() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	double GetAdhesiveForce() const;
 
 	/**
 	 * Allowed overlap from surface for resting contact [cm].
@@ -519,18 +441,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real AdhesiveOverlap {0.0};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetAdhesiveOverlap(double InAdhesiveOverlap);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetAdhesiveOverlap() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Set Adhesive Overlap"))
-	void SetAdhesiveOverlap_BP(float InAdhesiveOverlap);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Contact Material",
-		Meta = (DisplayName = "Get Adhesive Overlap"))
-	float GetAdhesiveOverlap_BP() const;
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
@@ -605,6 +520,192 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.
+
+public: // Deprecated functions.
+
+	// clang-format off
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetMinElasticRestLength instead of SetMinElasticRestLength_BP"))
+	void SetMinElasticRestLength_BP(float InMinLength);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetMinElasticRestLength instead of GetMinElasticRestLength_BP"))
+	float GetMinElasticRestLength_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetMaxElasticRestLength instead of SetMaxElasticRestLength_BP"))
+	void SetMaxElasticRestLength_BP(float InMaxLength);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetMaxElasticRestLength instead of GetMaxElasticRestLength_BP"))
+	float GetMaxElasticRestLength_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetNormalForceMagnitude instead of SetNormalForceMagnitude_BP"))
+	void SetNormalForceMagnitude_BP(float InNormalForceMagnitude);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetNormalForceMagnitude instead of GetNormalForceMagnitude_BP"))
+	float GetNormalForceMagnitude_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetFrictionCoefficient instead of SetFrictionCoefficient_BP"))
+	void SetFrictionCoefficient_BP(float InFrictionCoefficient);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetFrictionCoefficient instead of GetFrictionCoefficient_BP"))
+	float GetFrictionCoefficient_BP();
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use SetSecondaryFrictionCoefficient instead of SetSecondaryFrictionCoefficient_BP"))
+	void SetSecondaryFrictionCoefficient_BP(float InFrictionCoefficient);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use GetSecondaryFrictionCoefficient instead of GetSecondaryFrictionCoefficient_BP"))
+	float GetSecondaryFrictionCoefficient_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetSurfaceViscosity instead of SetSurfaceViscosity_BP"))
+	void SetSurfaceViscosity_BP(float InSurfaceViscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetSurfaceViscosity instead of GetSurfaceViscosity_BP"))
+	float GetSurfaceViscosity_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetSecondarySurfaceViscosity instead of SetSecondarySurfaceViscosity_BP"))
+	void SetSecondarySurfaceViscosity_BP(float InSecondarySurfaceViscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetSecondarySurfaceViscosity instead of GetSecondarySurfaceViscosity_BP"))
+	float GetSecondarySurfaceViscosity_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetRestitution instead of SetRestitution_BP"))
+	void SetRestitution_BP(float InRestitution);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetRestitution instead of GetRestitution_BP"))
+	float GetRestitution_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetYoungsModulus instead of SetYoungsModulus_BP"))
+	void SetYoungsModulus_BP(float InYoungsModulus);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetYoungsModulus instead of GetYoungsModulus_BP"))
+	float GetYoungsModulus_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetSpookDamping instead of SetSpookDamping_BP"))
+	void SetSpookDamping_BP(float InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetSpookDamping instead of GetSpookDamping_BP"))
+	float GetSpookDamping_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAdhesiveForce instead of SetAdhesiveForce_BP"))
+	void SetAdhesiveForce_BP(float InAdhesiveForce);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAdhesiveForce instead of GetAdhesiveForce_BP"))
+	float GetAdhesiveForce_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAdhesiveOverlap instead of SetAdhesiveOverlap_BP"))
+	void SetAdhesiveOverlap_BP(float InAdhesiveOverlap);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAdhesiveOverlap instead of GetAdhesiveOverlap_BP"))
+	float GetAdhesiveOverlap_BP() const;
+
+	// clang-format on
 
 private:
 #if WITH_EDITOR

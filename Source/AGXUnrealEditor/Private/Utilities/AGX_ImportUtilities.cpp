@@ -301,7 +301,11 @@ namespace
 			return Component.GetName() + FGuid::NewGuid().ToString();
 		}
 
-		for (int i = 0; FAGX_BlueprintUtilities::NameExists(*Blueprint, ComponentName); i++)
+		// Find a suffix number that makes the name unique within the Blueprint. Start at 1 because
+		// that is what FComponentEditorUtils::GenerateValidVariableName does, and that function is
+		// called when the model is first imported, as opposed to synchronized which is what we're
+		// doing here.
+		for (int i = 1; FAGX_BlueprintUtilities::NameExists(*Blueprint, ComponentName); i++)
 		{
 			ComponentName = FString::Printf(TEXT("%s%d"), *ComponentName, i);
 		}

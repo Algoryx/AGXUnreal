@@ -633,7 +633,7 @@ void UAGX_ContactMaterial::SetAdhesiveForce(double InAdhesiveForce)
 	AGX_ASSET_SETTER_IMPL_VALUE(AdhesiveForce, InAdhesiveForce, SetAdhesiveForce);
 }
 
-float UAGX_ContactMaterial::GetAdhesiveForce() const
+double UAGX_ContactMaterial::GetAdhesiveForce() const
 {
 	AGX_ASSET_GETTER_IMPL_VALUE(AdhesiveForce, GetAdhesiveForce);
 }

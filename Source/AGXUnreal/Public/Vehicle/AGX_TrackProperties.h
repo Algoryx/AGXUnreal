@@ -45,25 +45,24 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
 	FAGX_Real HingeComplianceTranslational_Z = DefaultHingeCompliance;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceTranslational(
 		double ComplianceX, double ComplianceY, double ComplianceZ);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceTranslationalX(double ComplianceX);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceTranslationalY(double ComplianceY);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceTranslationalZ(double ComplianceZ);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Hinge Compliance Translational"))
-	void SetHingeComplianceTranslational_BP(float X, float Y, float Z);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void GetHingeComplianceTranslational(double& X, double& Y, double& Z) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeComplianceTranslationalX() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeComplianceTranslationalY() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeComplianceTranslationalZ() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (Displayname = "Get Hinge Compliance Translational"))
-	void GetHingeComplianceTranslational_BP(float& X, float& Y, float& Z);
 
 	/**
 	 * Compliance of the hinges between track nodes, around the axis pointing vertically
@@ -78,22 +77,19 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
 	FAGX_Real HingeComplianceRotational_Y = DefaultHingeCompliance;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceRotational(double ComplianceX, double ComplianceY);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceRotationalX(double Compliance);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeComplianceRotationalY(double Compliance);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Hinge Compliance Rotational"))
-	void SetHingeComplianceRotational_BP(float X, float Y);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void GetHingeComplianceRotational(double& X, double& Y) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeComplianceRotationalX() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeComplianceRotationalY() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Get Hinge Compliance Rotational"))
-	void GetHingeComplianceRotational_BP(float& X, float& Y);
 
 	/**
 	 * Spook damping of the hinges between track nodes, along the axis pointing vertically
@@ -115,24 +111,24 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
 	FAGX_Real HingeSpookDampingTranslational_Z = DefaultHingeSpookDamping;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingTranslational(double DampingX, double DampingY, double DampingZ);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingTranslationalX(double Damping);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingTranslationalY(double Damping);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingTranslationalZ(double Damping);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Hinge Spook Damping Translational"))
-	void SetHingeSpookDampingTranslational_BP(float DampingX, float DampingY, float DampingZ);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void GetHingeSpookDampingTranslational(
+		double& DampingX, double& DampingY, double& DampingZ) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeSpookDampingTranslationalX() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeSpookDampingTranslationalY() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeSpookDampingTranslationalZ() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Get Hinge Spook Damping Translational"))
-	void GetHingeSpookDampingTranslational_BP(float& DampingX, float& DampingY, float& DampingZ);
 
 	/**
 	 * Spook damping of the hinges between track nodes, around the axis pointing vertically
@@ -147,22 +143,19 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
 	FAGX_Real HingeSpookDampingRotational_Y = DefaultHingeSpookDamping;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingRotational(double DampingX, double DampingY);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingRotationalX(double Damping);
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeSpookDampingRotationalY(double Damping);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Hinge Spook Damping Rotational"))
-	void SetHingeSpookDampingRotational_BP(float X, float Y);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void GetHingeSpookDampingRotational(double& X, double& Y) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeSpookDampingRotationalX() const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetHingeSpookDampingRotationalY() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Get Hinge Spook Damping Rotational"))
-	void GetHingeSpookDampingRotational_BP(float& X, float& Y);
 
 	/**
 	 * Whether to enable the range in the hinges between the track nodes
@@ -184,20 +177,14 @@ public:
 	FAGX_RealInterval HingeRange {-120, 20};
 
 	void SetHingeRange(FAGX_RealInterval InHingeRange);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetHingeRange(double Min, double Max);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Hinge Range"))
-	void SetHingeRange_BP(float Min, float Max);
-
 	FAGX_RealInterval GetHingeRange() const;
-	void GetHingeRange(double& Min, double& Max) const;
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Get Hinge Range"))
-	void GetHingeRange_BP(float& Min, float& Max) const;
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void GetHingeRange(double& Min, double& Max) const;
 
 	/**
 	 * When the track has been initialized some nodes are in contact with the wheels.
@@ -233,19 +220,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Merge/Split Properties")
 	FAGX_Real TransformNodesToWheelsOverlap = 0.1;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetTransformNodesToWheelsOverlap(double Overlap);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Transform Nodes To Wheels Overlap"))
-	void SetTransformNodesToWheelsOverlap_BP(float Overlap);
-
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	double GetTransformNodesToWheelsOverlap() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Get Transform Nodes To Wheels Overlap"))
-	float GetTransformNodesToWheelsOverlap_BP() const;
 
 	/**
 	 * Threshold when to merge a node to a wheel.
@@ -258,12 +237,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Merge/Split Properties")
 	FAGX_Real NodesToWheelsMergeThreshold = -0.1;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetNodesToWheelsMergeThreshold(double MergeThreshold);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Nodes To Wheels Merge Threshold"))
-	void SetNodesToWheelsMergeThreshold_BP(float MergeThreshold);
 
 	/**
 	 * Threshold when to split a node from a wheel.
@@ -276,12 +251,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Merge/Split Properties")
 	FAGX_Real NodesToWheelsSplitThreshold = -0.05;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetNodesToWheelsSplitThreshold(double SplitThreshold);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Nodes To Wheels Split Threshold"))
-	void SetNodesToWheelsSplitThreshold_BP(float SplitThreshold);
 
 	/**
 	 * Average direction of non-merged nodes entering or exiting a wheel is used as
@@ -309,12 +280,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Stabilizing Properties", Meta = (ClampMin = "0.0"))
 	FAGX_Real MinStabilizingHingeNormalForce = 100.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetMinStabilizingHingeNormalForce(double MinNormalForce);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DislayName = "Set Min Stabilizing Hinge Normal Force"))
-	void SetMinStabilizingHingeNormalForce_BP(float MinNormalForce);
 
 	/**
 	 * Friction parameter of the internal friction in the node hinges.
@@ -327,12 +294,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Stabilizing Properties", Meta = (ClampMin = "0.0"))
 	FAGX_Real StabilizingHingeFrictionParameter = 1.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetStabilizingHingeFrictionParameter(double FrictionParameter);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (DisplayName = "Set Stabilizing Hinge Friction Parameter"))
-	void SetStabilizingHingeFrictionParameter_BP(float FrictionParameter);
 
 public:
 	UAGX_TrackProperties() = default;
@@ -394,6 +357,137 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.
+
+public: // Deprecated functions.
+	// clang-format off
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use SetHingeComplianceTranslational instead of SetHingeComplianceTranslational_BP"))
+	void SetHingeComplianceTranslational_BP(float X, float Y, float Z);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use GetHingeComplianceTranslational instead of GetHingeComplianceTranslational_BP"))
+	void GetHingeComplianceTranslational_BP(float& X, float& Y, float& Z);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetHingeComplianceRotational instead of SetHingeComplianceRotational_BP"))
+	void SetHingeComplianceRotational_BP(float X, float Y);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetHingeComplianceRotational instead of GetHingeComplianceRotational_BP"))
+	void GetHingeComplianceRotational_BP(float& X, float& Y);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use SetHingeSpookDampingTranslational instead of SetHingeSpookDampingTranslational_BP"))
+	void SetHingeSpookDampingTranslational_BP(float DampingX, float DampingY, float DampingZ);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use GetHingeSpookDampingTranslational instead of GetHingeSpookDampingTranslational_BP"))
+	void GetHingeSpookDampingTranslational_BP(float& DampingX, float& DampingY, float& DampingZ);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetHingeSpookDampingRotational instead of SetHingeSpookDampingRotational_BP"))
+	void SetHingeSpookDampingRotational_BP(float X, float Y);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetHingeSpookDampingRotational instead of GetHingeSpookDampingRotational_BP"))
+	void GetHingeSpookDampingRotational_BP(float& X, float& Y);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetHingeRange instead of SetHingeRange_BP"))
+	void SetHingeRange_BP(float Min, float Max);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetHingeRange instead of GetHingeRange_BP"))
+	void GetHingeRange_BP(float& Min, float& Max) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				"Use SetTransformNodesToWheelsOverlap instead of SetTransformNodesToWheelsOverlap_BP"))
+	void SetTransformNodesToWheelsOverlap_BP(float Overlap);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				"Use GetTransformNodesToWheelsOverlap instead of GetTransformNodesToWheelsOverlap_BP"))
+	float GetTransformNodesToWheelsOverlap_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetNodesToWheelsMergeThreshold instead of SetNodesToWheelsMergeThreshold_BP"))
+	void SetNodesToWheelsMergeThreshold_BP(float MergeThreshold);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetNodesToWheelsSplitThreshold instead of SetNodesToWheelsSplitThreshold_BP"))
+	void SetNodesToWheelsSplitThreshold_BP(float SplitThreshold);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta = (
+			DeprecatedFunction,
+			DeprecationMessage =
+				"Use SetStabilizingHingeFrictionParameter instead of SetStabilizingHingeFrictionParameter_BP"))
+	void SetStabilizingHingeFrictionParameter_BP(float FrictionParameter);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				"Use SetMinStabilizingHingeNormalForce instead of SetMinStabilizingHingeNormalForce_BP"))
+	void SetMinStabilizingHingeNormalForce_BP(float MinNormalForce);
+
+	// clang-format on
 
 private:
 #if WITH_EDITOR

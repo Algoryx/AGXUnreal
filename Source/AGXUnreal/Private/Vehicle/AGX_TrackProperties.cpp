@@ -48,6 +48,13 @@ void UAGX_TrackProperties::SetHingeComplianceTranslational_BP(float X, float Y, 
 		static_cast<double>(X), static_cast<double>(Y), static_cast<double>(Z));
 }
 
+void UAGX_TrackProperties::GetHingeComplianceTranslational(double& X, double& Y, double& Z) const
+{
+	X = GetHingeComplianceTranslationalX();
+	Y = GetHingeComplianceTranslationalY();
+	Z = GetHingeComplianceTranslationalZ();
+}
+
 double UAGX_TrackProperties::GetHingeComplianceTranslationalX() const
 {
 	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceTranslational_X, GetHingeComplianceTranslationalX);
@@ -95,6 +102,18 @@ void UAGX_TrackProperties::SetHingeComplianceRotationalY(double Compliance)
 void UAGX_TrackProperties::SetHingeComplianceRotational_BP(float X, float Y)
 {
 	SetHingeComplianceRotational(static_cast<double>(X), static_cast<double>(Y));
+}
+
+void UAGX_TrackProperties::GetHingeComplianceRotational(double& X, double& Y) const
+{
+	X = GetHingeComplianceRotationalX();
+	Y = GetHingeComplianceRotationalY();
+}
+
+void UAGX_TrackProperties::GetHingeSpookDampingRotational(double& X, double& Y) const
+{
+	X = GetHingeSpookDampingRotationalX();
+	Y = GetHingeSpookDampingRotationalY();
 }
 
 double UAGX_TrackProperties::GetHingeComplianceRotationalX() const
@@ -146,9 +165,19 @@ void UAGX_TrackProperties::SetHingeSpookDampingTranslationalZ(double Damping)
 void UAGX_TrackProperties::SetHingeSpookDampingTranslational_BP(
 	float DampingX, float DampingY, float DampingZ)
 {
+	// clang-format off
 	SetHingeSpookDampingTranslational(
-		static_cast<double>(DampingX), static_cast<double>(DampingY),
+		static_cast<double>(DampingX),
+		static_cast<double>(DampingY),
 		static_cast<double>(DampingZ));
+	// clang-format on
+}
+
+void UAGX_TrackProperties::GetHingeSpookDampingTranslational(double& DampingX, double& DampingY, double& DampingZ) const
+{
+	DampingX = GetHingeSpookDampingTranslationalX();
+	DampingY = GetHingeSpookDampingTranslationalY();
+	DampingZ = GetHingeSpookDampingTranslationalZ();
 }
 
 double UAGX_TrackProperties::GetHingeSpookDampingTranslationalX() const

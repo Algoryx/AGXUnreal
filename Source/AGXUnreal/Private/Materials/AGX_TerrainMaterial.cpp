@@ -937,7 +937,7 @@ FTerrainMaterialBarrier* UAGX_TerrainMaterial::GetOrCreateTerrainMaterialNative(
 	AGX_CHECK(IsInstance());
 	if (!HasTerrainMaterialNative())
 	{
-		CreateTerrainMaterialNative(PlayingWorld);
+		CreateTerrainMaterialNative();
 	}
 	return GetTerrainMaterialNative();
 }
@@ -959,12 +959,12 @@ UAGX_TerrainMaterial* UAGX_TerrainMaterial::CreateFromAsset(
 	// Copy the terrain material properties
 	NewInstance->CopyTerrainMaterialProperties(Source);
 
-	NewInstance->CreateTerrainMaterialNative(PlayingWorld);
+	NewInstance->CreateTerrainMaterialNative();
 
 	return NewInstance;
 }
 
-void UAGX_TerrainMaterial::CreateTerrainMaterialNative(UWorld* PlayingWorld)
+void UAGX_TerrainMaterial::CreateTerrainMaterialNative()
 {
 	if (!IsInstance())
 	{
@@ -979,7 +979,7 @@ void UAGX_TerrainMaterial::CreateTerrainMaterialNative(UWorld* PlayingWorld)
 			return;
 		}
 
-		Instance->CreateTerrainMaterialNative(PlayingWorld);
+		Instance->CreateTerrainMaterialNative();
 		return;
 	}
 

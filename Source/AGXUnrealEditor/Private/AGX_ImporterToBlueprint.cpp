@@ -808,22 +808,23 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		TMap<FGuid, bool> CylinderShapeGuids;
 		TMap<FGuid, bool> CapsuleShapeGuids;
 		TMap<FGuid, bool> TrimeshShapeGuids;
-		TArray<FGuid> RenderDataGuids;
+
+		// The GUIDs of all Shapes that have render data.
+		TArray<FGuid> RenderedShapeGuids;
 	};
 
 	FShapeGuidsCollection GetShapeGuids(const FSimulationObjectCollection& SimulationObjects)
 	{
 		FShapeGuidsCollection Infos;
 
-		auto GetRenderDataGuidFrom = [](const FShapeBarrier& ShapeBarrier) -> TOptional<FGuid>
+		auto AddGuid = [&Infos](const FShapeBarrier& ShapeBarrier, TMap<FGuid, bool>& TypedShapeGuids)
 		{
+			const FGuid ShapeGuid = ShapeBarrier.GetShapeGuid();
+			TypedShapeGuids.Add(ShapeGuid, ShapeBarrier.GetEnableCollisions());
 			if (ShapeBarrier.HasValidRenderData())
 			{
-				FRenderDataBarrier Rd = ShapeBarrier.GetRenderData();
-				return Rd.GetGuid();
+				Infos.RenderedShapeGuids.Add(ShapeGuid);
 			}
-
-			return {};
 		};
 
 		// Iterate all Shapes owned by a Rigid Body.
@@ -831,66 +832,46 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		{
 			for (const auto& Shape : Body.GetSphereShapes())
 			{
-				Infos.SphereShapeGuids.Add(Shape.GetShapeGuid(), Shape.GetEnableCollisions());
-				if (auto RenderDataGuid = GetRenderDataGuidFrom(Shape))
-					Infos.RenderDataGuids.Add(*RenderDataGuid);
+				AddGuid(Shape, Infos.SphereShapeGuids);
 			}
 			for (const auto& Shape : Body.GetBoxShapes())
 			{
-				Infos.BoxShapeGuids.Add(Shape.GetShapeGuid(), Shape.GetEnableCollisions());
-				if (auto RenderDataGuid = GetRenderDataGuidFrom(Shape))
-					Infos.RenderDataGuids.Add(*RenderDataGuid);
+				AddGuid(Shape, Infos.BoxShapeGuids);
 			}
 			for (const auto& Shape : Body.GetCylinderShapes())
 			{
-				Infos.CylinderShapeGuids.Add(Shape.GetShapeGuid(), Shape.GetEnableCollisions());
-				if (auto RenderDataGuid = GetRenderDataGuidFrom(Shape))
-					Infos.RenderDataGuids.Add(*RenderDataGuid);
+				AddGuid(Shape, Infos.CylinderShapeGuids);
 			}
 			for (const auto& Shape : Body.GetCapsuleShapes())
 			{
-				Infos.CapsuleShapeGuids.Add(Shape.GetShapeGuid(), Shape.GetEnableCollisions());
-				if (auto RenderDataGuid = GetRenderDataGuidFrom(Shape))
-					Infos.RenderDataGuids.Add(*RenderDataGuid);
+				AddGuid(Shape, Infos.CapsuleShapeGuids);
 			}
 			for (const auto& Shape : Body.GetTrimeshShapes())
 			{
-				Infos.TrimeshShapeGuids.Add(Shape.GetShapeGuid(), Shape.GetEnableCollisions());
-				if (auto RenderDataGuid = GetRenderDataGuidFrom(Shape))
-					Infos.RenderDataGuids.Add(*RenderDataGuid);
+				AddGuid(Shape, Infos.TrimeshShapeGuids);
 			}
 		}
 
 		// Iterate all "free" Shapes, not owned by a Rigid Body.
 		for (const auto& Barrier : SimulationObjects.GetSphereShapes())
 		{
-			Infos.SphereShapeGuids.Add(Barrier.GetShapeGuid(), Barrier.GetEnableCollisions());
-			if (auto RenderDataGuid = GetRenderDataGuidFrom(Barrier))
-				Infos.RenderDataGuids.Add(*RenderDataGuid);
+			AddGuid(Barrier, Infos.SphereShapeGuids);
 		}
 		for (const auto& Barrier : SimulationObjects.GetBoxShapes())
 		{
-			Infos.BoxShapeGuids.Add(Barrier.GetShapeGuid(), Barrier.GetEnableCollisions());
-			if (auto RenderDataGuid = GetRenderDataGuidFrom(Barrier))
-				Infos.RenderDataGuids.Add(*RenderDataGuid);
+			AddGuid(Barrier, Infos.BoxShapeGuids);
 		}
 		for (const auto& Barrier : SimulationObjects.GetCylinderShapes())
 		{
-			Infos.CylinderShapeGuids.Add(Barrier.GetShapeGuid(), Barrier.GetEnableCollisions());
-			if (auto RenderDataGuid = GetRenderDataGuidFrom(Barrier))
-				Infos.RenderDataGuids.Add(*RenderDataGuid);
+			AddGuid(Barrier, Infos.CylinderShapeGuids);
 		}
 		for (const auto& Barrier : SimulationObjects.GetCapsuleShapes())
 		{
-			Infos.CapsuleShapeGuids.Add(Barrier.GetShapeGuid(), Barrier.GetEnableCollisions());
-			if (auto RenderDataGuid = GetRenderDataGuidFrom(Barrier))
-				Infos.RenderDataGuids.Add(*RenderDataGuid);
+			AddGuid(Barrier, Infos.CapsuleShapeGuids);
 		}
 		for (const auto& Barrier : SimulationObjects.GetTrimeshShapes())
 		{
-			Infos.TrimeshShapeGuids.Add(Barrier.GetShapeGuid(), Barrier.GetEnableCollisions());
-			if (auto RenderDataGuid = GetRenderDataGuidFrom(Barrier))
-				Infos.TrimeshShapeGuids.Add(*RenderDataGuid);
+			AddGuid(Barrier, Infos.TrimeshShapeGuids);
 		}
 
 		return Infos;
@@ -1025,18 +1006,26 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 							CollisionStaticMeshComponents.Add(Guid, StaticMeshComponentNode);
 						}
 					}
-					for (const auto& SMCTuple : Re->StaticMeshComponentToOwningRenderData)
-					{
-						if (USCS_Node* StaticMeshComponentNode =
-								Bp.SimpleConstructionScript->FindSCSNode(FName(SMCTuple.Key)))
-						{
-							const FGuid Guid = SMCTuple.Value;
-							if (!Guid.IsValid())
-								continue;
 
-							AGX_CHECK(!RenderStaticMeshComponents.Contains(Guid));
-							RenderStaticMeshComponents.Add(Guid, StaticMeshComponentNode);
+					for (const auto& [MeshName, ShapeGuid] : Re->StaticMeshComponentToOwningShape)
+					{
+						if (!ShapeGuid.IsValid())
+							continue;
+
+						USCS_Node* MeshNode =
+							Bp.SimpleConstructionScript->FindSCSNode(FName(MeshName));
+						if (MeshNode == nullptr)
+						{
+							UE_LOG(
+								LogAGX, Warning,
+								TEXT("  Model Source Component knows of a Static Mesh Component "
+									 "named '%s' that there is no SCS Node for."),
+								*MeshName);
+							continue;
 						}
+
+						AGX_CHECK(!RenderStaticMeshComponents.Contains(ShapeGuid));
+						RenderStaticMeshComponents.Add(ShapeGuid, MeshNode);
 					}
 				}
 				else if (auto St = Cast<UStaticMeshComponent>(Component))
@@ -1093,8 +1082,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 			}
 		}
 
-		// The key is the AGX Dynamics object's UUID converted to an FGuid at the time of the
-		// previous import.
+		// The key is the AGX Dynamics object's GUID at the time of the previous import.
 		TMap<FGuid, USCS_Node*> RigidBodies;
 
 		// Shapes are all Shapes, including Shapes owned by Rigid Bodies.
@@ -1117,7 +1105,8 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		// Guid is the AGX Dynamics shape (Trimesh) guid.
 		TMap<FGuid, USCS_Node*> CollisionStaticMeshComponents;
 
-		// Guid is the AGX Dynamics RenderData guid.
+		// The key is the GUID of the Shape Component for which the render data Static Mesh
+		// Component has been created.
 		TMap<FGuid, USCS_Node*> RenderStaticMeshComponents;
 
 		USCS_Node* CollisionGroupDisablerComponent = nullptr;
@@ -1380,15 +1369,15 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		if (!RenderDataBarrier.HasMesh())
 			return;
 
-		const FGuid RenderDataGuid = RenderDataBarrier.GetGuid();
-		USCS_Node* RenderDataNode = SCSNodes.RenderStaticMeshComponents.FindRef(RenderDataGuid);
+		const FGuid ShapeGuid = ShapeBarrier.GetShapeGuid();
+		USCS_Node* RenderDataNode = SCSNodes.RenderStaticMeshComponents.FindRef(ShapeGuid);
 		if (RenderDataNode == nullptr)
 		{
 			RenderDataNode = BaseBP.SimpleConstructionScript->CreateNode(
 				UStaticMeshComponent::StaticClass(),
 				FName(FAGX_ImportUtilities::GetUnsetUniqueImportName()));
 			AttachParent.AddChildNode(RenderDataNode);
-			SCSNodes.RenderStaticMeshComponents.Add(RenderDataGuid, RenderDataNode);
+			SCSNodes.RenderStaticMeshComponents.Add(ShapeGuid, RenderDataNode);
 		}
 		else
 		{
@@ -2007,7 +1996,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 		// Delete removed Render Data.
 		for (auto It = SCSNodes.RenderStaticMeshComponents.CreateIterator(); It; ++It)
 		{
-			if (!NewShapeGuids.RenderDataGuids.Contains(It->Key))
+			if (!NewShapeGuids.RenderedShapeGuids.Contains(It->Key))
 			{
 				BaseBP.SimpleConstructionScript->RemoveNodeAndPromoteChildren(It->Value);
 				It.RemoveCurrent();
@@ -2591,7 +2580,7 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 	/**
 	 * Delete assets that are no longer used.
 	 *
-	 * We find such assets by enumerating either the the SCS collection of the assets on drive and
+	 * We find such assets by enumerating either the SCS collection of the assets on drive and
 	 * comparing each with the simulation object collection. Any asset that is found in the SCS
 	 * collection or on drive but not found in the simulation object collection is deleted.
 	 *

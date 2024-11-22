@@ -29,18 +29,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real MaxImpactSpeed {0.01};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Max Impact Speed"))
-	void SetMaxImpactSpeed_BP(float InMaxImpactSpeed);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetMaxImpactSpeed(double InMaxImpactSpeed);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Max Impact Speed"))
-	float GetMaxImpactSpeed_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	double GetMaxImpactSpeed() const;
 
 	/**
@@ -49,18 +41,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real MaxRelativeNormalSpeed {0.01};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Max Relative Normal Speed"))
-	void SetMaxRelativeNormalSpeed_BP(float InMaxRelativeNormalSpeed);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetMaxRelativeNormalSpeed(double InMaxRelativeNormalSpeed);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Max Relative Normal Speed"))
-	float GetMaxRelativeNormalSpeed_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	double GetMaxRelativeNormalSpeed() const;
 
 	/**
@@ -70,18 +54,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real MaxRelativeTangentSpeed {0.01};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Max Relative Tangent Speed"))
-	void SetMaxRelativeTangentSpeed_BP(float InMaxRelativeTangentSpeed);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetMaxRelativeTangentSpeed(double InMaxRelativeTangentSpeed);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Max Relative Tangent Speed"))
-	float GetMaxRelativeTangentSpeed_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	double GetMaxRelativeTangentSpeed() const;
 
 	/**
@@ -90,17 +66,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real MaxRollingSpeed {0.01};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Max Rolling Speed"))
-	void SetMaxRollingSpeed_BP(float InMaxRollingSpeed);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetMaxRollingSpeed(double InMaxRollingSpeed);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Max Rolling Speed"))
-	float GetMaxRollingSpeed_BP() const;
 
 	double GetMaxRollingSpeed() const;
 
@@ -111,18 +78,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real NormalAdhesion {0.0};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Normal Adhesion"))
-	void SetNormalAdhesion_BP(float InNormalAdhesion);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetNormalAdhesion(double InNormalAdhesion);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Normal Adhesion"))
-	float GetNormalAdhesion_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	double GetNormalAdhesion() const;
 
 	/**
@@ -132,18 +91,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Shape Contact Merge Split Thresholds")
 	FAGX_Real TangentialAdhesion {0.0};
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Set Tangential Adhesion"))
-	void SetTangentialAdhesion_BP(float InTangentialAdhesion);
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	void SetTangentialAdhesion(double InTangentialAdhesion);
 
-	UFUNCTION(
-		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
-		Meta = (DisplayName = "Get Tangential Adhesion"))
-	float GetTangentialAdhesion_BP() const;
-
+	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	double GetTangentialAdhesion() const;
 
 	/**
@@ -172,7 +123,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Shape Contact Merge Split Thresholds")
 	bool GetSplitOnLogicalImpact() const;
 
-	void CreateNative(UWorld* PlayingWorld);
+	void CreateNative();
 	bool HasNative() const;
 	FShapeContactMergeSplitThresholdsBarrier* GetOrCreateNative(UWorld* PlayingWorld);
 	FShapeContactMergeSplitThresholdsBarrier* GetNative();
@@ -192,6 +143,95 @@ public:
 	 * Assigns the property values of this class to the passed barrier.
 	 */
 	void CopyTo(FShapeContactMergeSplitThresholdsBarrier& Barrier);
+
+public: // Deprecated function.
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetMaxImpactSpeed instead of SetMaxImpactSpeed_BP"))
+	void SetMaxImpactSpeed_BP(float InMaxImpactSpeed);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetMaxImpactSpeed instead of GetMaxImpactSpeed_BP"))
+	float GetMaxImpactSpeed_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetMaxRelativeNormalSpeed instead of SetMaxRelativeNormalSpeed_BP"))
+	void SetMaxRelativeNormalSpeed_BP(float InMaxRelativeNormalSpeed);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetMaxRelativeNormalSpeed instead of GetMaxRelativeNormalSpeed_BP"))
+	float GetMaxRelativeNormalSpeed_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetMaxRelativeTangentSpeed instead of SetMaxRelativeTangentSpeed_BP"))
+	void SetMaxRelativeTangentSpeed_BP(float InMaxRelativeTangentSpeed);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetMaxRelativeTangentSpeed instead of GetMaxRelativeTangentSpeed_BP"))
+	float GetMaxRelativeTangentSpeed_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetMaxRollingSpeed instead of SetMaxRollingSpeed_BP"))
+	void SetMaxRollingSpeed_BP(float InMaxRollingSpeed);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetMaxRollingSpeed instead of GetMaxRollingSpeed_BP"))
+	float GetMaxRollingSpeed_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetNormalAdhesion instead of SetNormalAdhesion_BP"))
+	void SetNormalAdhesion_BP(float InNormalAdhesion);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetNormalAdhesion instead of GetNormalAdhesion_BP"))
+	float GetNormalAdhesion_BP() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetTangentialAdhesion instead of SetTangentialAdhesion_BP"))
+	void SetTangentialAdhesion_BP(float InTangentialAdhesion);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "Shape Contact Merge Split Thresholds",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetTangentialAdhesion instead of GetTangentialAdhesion_BP"))
+	float GetTangentialAdhesion_BP() const;
 
 private:
 #if WITH_EDITOR

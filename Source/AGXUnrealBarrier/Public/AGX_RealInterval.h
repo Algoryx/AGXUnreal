@@ -32,7 +32,7 @@ struct AGXUNREALBARRIER_API FAGX_RealInterval
 
 	FAGX_RealInterval() = default;
 
-	explicit FAGX_RealInterval(double InMin, double InMax)
+	FAGX_RealInterval(double InMin, double InMax)
 		: Min(InMin)
 		, Max(InMax)
 	{

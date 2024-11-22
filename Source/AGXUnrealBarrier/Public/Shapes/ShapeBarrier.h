@@ -161,8 +161,8 @@ private:
 	creates the agxCollide::Geometry, in AllocateNative, and adds the
 	agxCollide::Shape to it.
 	*/
-	virtual void AllocateNativeShape() = 0;
-	virtual void ReleaseNativeShape() = 0;
+	virtual void AllocateNativeShape() {};
+	virtual void ReleaseNativeShape() {};
 
 protected:
 	std::unique_ptr<FGeometryAndShapeRef> NativeRef;

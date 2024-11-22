@@ -2,8 +2,10 @@
 
 #pragma once
 
+// Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
+#include "Layout/Visibility.h"
 
 /**
  * Detail Customization of AGX_Constraint, which does the following:
@@ -16,5 +18,12 @@ class AGXUNREALEDITOR_API FAGX_ConstraintCustomization : public IDetailCustomiza
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder) override;
+
+private:
+	EVisibility VisibleWhenBodySetupError() const;
+	FText GetBodySetupErrorText() const;
+
+private:
+	IDetailLayoutBuilder* DetailBuilder;
 };

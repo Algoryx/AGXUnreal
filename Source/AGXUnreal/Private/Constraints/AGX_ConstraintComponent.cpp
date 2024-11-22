@@ -295,7 +295,7 @@ namespace
 	}
 }
 
-void UAGX_ConstraintComponent::SetCompliance(EGenericDofIndex Index, float InCompliance)
+void UAGX_ConstraintComponent::SetComplianceFloat(EGenericDofIndex Index, float InCompliance)
 {
 	SetCompliance(Index, static_cast<double>(InCompliance));
 }
@@ -303,8 +303,7 @@ void UAGX_ConstraintComponent::SetCompliance(EGenericDofIndex Index, float InCom
 void UAGX_ConstraintComponent::SetCompliance(EGenericDofIndex Index, double InCompliance)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetCompliance"),
-		[this, InCompliance](int32 NativeDof)
+		*this, Index, TEXT("SetCompliance"), [this, InCompliance](int32 NativeDof)
 		{ NativeBarrier->SetCompliance(InCompliance, NativeDof); });
 	Compliance.Set(Index, InCompliance);
 }
@@ -321,7 +320,7 @@ double UAGX_ConstraintComponent::GetCompliance(EGenericDofIndex Index) const
 		[this](int32 NativeDof) { return NativeBarrier->GetCompliance(NativeDof); });
 }
 
-void UAGX_ConstraintComponent::SetElasticity(EGenericDofIndex Index, float InElasticity)
+void UAGX_ConstraintComponent::SetElasticityFloat(EGenericDofIndex Index, float InElasticity)
 {
 	SetElasticity(Index, static_cast<double>(InElasticity));
 }
@@ -341,7 +340,7 @@ double UAGX_ConstraintComponent::GetElasticity(EGenericDofIndex Index) const
 	return 1.0 / GetCompliance(Index);
 }
 
-void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, float InSpookDamping)
+void UAGX_ConstraintComponent::SetSpookDampingFloat(EGenericDofIndex Index, float InSpookDamping)
 {
 	SetSpookDamping(Index, static_cast<double>(InSpookDamping));
 }
@@ -349,8 +348,7 @@ void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, float InS
 void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, double InSpookDamping)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetSpookDamping"),
-		[this, InSpookDamping](int32 NativeDof)
+		*this, Index, TEXT("SetSpookDamping"), [this, InSpookDamping](int32 NativeDof)
 		{ NativeBarrier->SetSpookDamping(InSpookDamping, NativeDof); });
 	SpookDamping.Set(Index, InSpookDamping);
 }
@@ -367,7 +365,13 @@ double UAGX_ConstraintComponent::GetSpookDamping(EGenericDofIndex Index) const
 		[this](int32 NativeDof) { return NativeBarrier->GetSpookDamping(NativeDof); });
 }
 
-void UAGX_ConstraintComponent::SetForceRange(EGenericDofIndex Index, float RangeMin, float RangeMax)
+void UAGX_ConstraintComponent::SetForceRange(EGenericDofIndex Index, double Min, double Max)
+{
+	SetForceRange(Index, {Min, Max});
+}
+
+void UAGX_ConstraintComponent::SetForceRangeFloat(
+	EGenericDofIndex Index, float RangeMin, float RangeMax)
 {
 	SetForceRange(
 		Index, FAGX_RealInterval(static_cast<double>(RangeMin), static_cast<double>(RangeMax)));
@@ -377,8 +381,7 @@ void UAGX_ConstraintComponent::SetForceRange(
 	EGenericDofIndex Index, const FAGX_RealInterval& InForceRange)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetForceRange"),
-		[this, InForceRange](int32 NativeDof)
+		*this, Index, TEXT("SetForceRange"), [this, InForceRange](int32 NativeDof)
 		{ NativeBarrier->SetForceRange(InForceRange.Min, InForceRange.Max, NativeDof); });
 	ForceRange.Set(Index, InForceRange);
 }
@@ -403,11 +406,27 @@ float UAGX_ConstraintComponent::GetForceRangeMaxFloat(EGenericDofIndex Index) co
 	return static_cast<float>(GetForceRangeMax(Index));
 }
 
+void UAGX_ConstraintComponent::GetForceRange(EGenericDofIndex Index, double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetForceRange(Index);
+	Min = Range.Min;
+	Max = Range.Max;
+}
+
+
 FAGX_RealInterval UAGX_ConstraintComponent::GetForceRange(EGenericDofIndex Index) const
 {
 	return GetFromBarrier(
 		*this, Index, TEXT("GetForceRange"), ForceRange[Index],
 		[this](int32 NativeDof) { return NativeBarrier->GetForceRange(NativeDof); });
+}
+
+void UAGX_ConstraintComponent::GetForceRangeFloat(
+	EGenericDofIndex Index, float& Min, float& Max) const
+{
+	FAGX_RealInterval Range = GetForceRange(Index);
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 void UAGX_ConstraintComponent::SetComputeForces(bool bInComputeForces)
@@ -440,6 +459,16 @@ void UAGX_ConstraintComponent::SetEnableComputeForces(bool bInEnable)
 bool UAGX_ConstraintComponent::GetEnableComputeForces() const
 {
 	return GetComputeForces();
+}
+
+bool UAGX_ConstraintComponent::GetValid() const
+{
+	if (!HasNative())
+	{
+		return false;
+	}
+
+	return NativeBarrier->GetValid();
 }
 
 bool UAGX_ConstraintComponent::GetLastForceIndex(
@@ -1031,16 +1060,14 @@ namespace
 void UAGX_ConstraintComponent::UpdateNativeCompliance()
 {
 	UpdateNativePerDof(
-		HasNative(), NativeDofIndexMap,
-		[this](EGenericDofIndex GenericDof, int32 NativeDof)
+		HasNative(), NativeDofIndexMap, [this](EGenericDofIndex GenericDof, int32 NativeDof)
 		{ NativeBarrier->SetCompliance(Compliance[GenericDof], NativeDof); });
 }
 
 void UAGX_ConstraintComponent::UpdateNativeSpookDamping()
 {
 	UpdateNativePerDof(
-		HasNative(), NativeDofIndexMap,
-		[this](EGenericDofIndex GenericDof, int32 NativeDof)
+		HasNative(), NativeDofIndexMap, [this](EGenericDofIndex GenericDof, int32 NativeDof)
 		{ NativeBarrier->SetSpookDamping(SpookDamping[GenericDof], NativeDof); });
 }
 
@@ -1161,12 +1188,23 @@ void UAGX_ConstraintComponent::CreateNative()
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error, TEXT("Constraint %s in %s: Unable to create constraint."),
+			LogAGX, Error, TEXT("Constraint '%s' in '%s': Unable to create constraint."),
 			*GetFName().ToString(), *GetOwner()->GetName());
 		return;
 	}
 
 	NativeBarrier->SetName(GetName());
+
+	if (!GetValid())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Constraint '%s' in '%s': Created invalid constraint. See the LogAGXDynamics "
+				 "categoty in the Output Log."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
 	UpdateNativeProperties();
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)

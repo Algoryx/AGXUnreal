@@ -264,14 +264,15 @@ private:
 		const TMap<FGuid, UAGX_MergeSplitThresholdsBase*>& MSTsOnDisk,
 		bool ForceOverwritePropertiesInInstances, bool ForceReassignRenderMaterialInInstances);
 
-	TMap<FGuid, UStaticMesh*> ProcessedMeshes; // Static Mesh Assets.
+	TMap<FGuid, UStaticMesh*> ProcessedMeshes; // Static Mesh assets.
 	TMap<FGuid, UAGX_MergeSplitThresholdsBase*> ProcessedThresholds;
 	TMap<FGuid, UAGX_RigidBodyComponent*> ProcessedBodies;
 	TMap<FGuid, UAGX_ShapeMaterial*> ProcessedShapeMaterials;
 	TMap<FGuid, UMaterialInstanceConstant*> ProcessedRenderMaterials;
 	TMap<FGuid, UAGX_TrackProperties*> ProcessedTrackProperties;
 
-	// The key is the Guid of the corresponding AGX Dynamics RenderData.
+	// The key is the GUID of the Shape Component that the Static Mesh Component is rendering the
+	// render data for.
 	TMap<FGuid, UStaticMeshComponent*> ProcessedRenderStaticMeshComponents;
 
 	// The key is the Guid of the corresponding AGX Dynamics Trimesh.

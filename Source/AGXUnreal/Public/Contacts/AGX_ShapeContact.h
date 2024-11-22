@@ -6,7 +6,7 @@
 #include "Contacts/AGX_ContactPoint.h"
 #include "Contacts/ShapeContactBarrier.h"
 #include "RigidBodyBarrier.h"
-#include "Shapes/EmptyShapeBarrier.h"
+#include "Shapes/ShapeBarrier.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -44,8 +44,8 @@ struct AGXUNREAL_API FAGX_ShapeContact
 	FRigidBodyBarrier GetBody1() const;
 	FRigidBodyBarrier GetBody2() const;
 
-	FEmptyShapeBarrier GetShape1() const;
-	FEmptyShapeBarrier GetShape2() const;
+	FShapeBarrier GetShape1() const;
+	FShapeBarrier GetShape2() const;
 
 	bool Contains(const FRigidBodyBarrier& Body) const;
 	bool Contains(const FShapeBarrier& Shape) const;
@@ -145,7 +145,7 @@ class AGXUNREAL_API UAGX_ShapeContact_FL : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(
 		BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact",
-		Meta = (DisplayName = "Contains"))
+		Meta = (DisplayName = "Index Of"))
 	static int32 IndexOfRigidBody(
 		UPARAM(Ref) FAGX_ShapeContact& ShapeContact, UAGX_RigidBodyComponent* RigidBody,
 		bool& bSuccess);
@@ -155,7 +155,7 @@ class AGXUNREAL_API UAGX_ShapeContact_FL : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(
 		BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact",
-		Meta = (DisplayName = "Contains"))
+		Meta = (DisplayName = "Index Of"))
 	static int32 IndexOfShape(
 		UPARAM(Ref) FAGX_ShapeContact& ShapeContact, UAGX_ShapeComponent* Shape, bool& bSuccess);
 	/**

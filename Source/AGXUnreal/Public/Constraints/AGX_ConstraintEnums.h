@@ -41,7 +41,7 @@ enum EAGX_FrameDefiningSource
 };
 
 /**
- * Constraint type independent index of Degree of Freedom(DOF).Does never change
+ * Constraint type independent index of Degree of Freedom(DOF). Does never change
  * index order layout, even in derived constraints, contrary to the AGX's native
  * constraint-specific DOF indexes.
  */
