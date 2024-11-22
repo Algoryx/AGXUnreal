@@ -325,9 +325,10 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 	}
 }
 
-void UAGX_MovableTerrainComponent::PostEditChangeProperty(FPropertyChangedEvent& event)
+#if WITH_EDITOR
+void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
-	Super::PostEditChangeProperty(event);
+	Super::PostEditChangeChainProperty(Event);
 
 	// TODO: Only UpdateMesh on certain Property changes
 	UpdateMeshOnPropertyChanged();
@@ -340,6 +341,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	// TODO: Only UpdateMesh on certain Property changes
 	UpdateMeshOnPropertyChanged();
 }
+#endif
 
 void UAGX_MovableTerrainComponent::TickComponent(
 	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

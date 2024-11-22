@@ -49,6 +49,13 @@ public:
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+#if WITH_EDITOR
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Editor")
@@ -78,12 +85,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableInitialNoise"))
 	FAGX_BrownianNoiseParams InitialNoiseParams;
-
-	virtual void PostInitProperties() override;
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& event) override;
-
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void UpdateMeshOnPropertyChanged();
 
