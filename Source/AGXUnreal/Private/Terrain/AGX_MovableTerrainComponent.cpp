@@ -10,7 +10,7 @@
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
-#include "Engine/TimerHandle.h"
+#include "TimerManager.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "NiagaraComponent.h"
