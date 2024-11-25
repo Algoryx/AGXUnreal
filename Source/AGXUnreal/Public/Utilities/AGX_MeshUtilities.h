@@ -9,6 +9,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Engine/HitResult.h"
 #include "Misc/EngineVersionComparison.h"
 #if !UE_VERSION_OLDER_THAN(5, 2, 0)
 // Possible include loop in Unreal Engine.
