@@ -1,6 +1,6 @@
 
 #include "Terrain/AGX_TerrainMeshUtilities.h"
-#include "AGX_SimpleMeshComponent.h"
+#include "Shapes/AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
