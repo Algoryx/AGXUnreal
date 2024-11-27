@@ -8,6 +8,9 @@
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Materials/MaterialLibraryBarrier.h"
+#include "Sensors/AGX_LidarAmbientMaterial.h"
+#include "Sensors/RtAmbientMaterialBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -83,7 +86,7 @@ namespace AGX_MaterialLibrary_helpers
 		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
 		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
 
-		// Create the asset itself, reading data from the AGX Dynamics terrain material library.
+		// Create the asset itself, reading data from the AGX Dynamics material library.
 		auto OptionalBarrier = LoadFunc(Name);
 		if (!OptionalBarrier.IsSet())
 		{
@@ -123,6 +126,48 @@ namespace AGX_MaterialLibrary_helpers
 		// unnecessary ones once we know which can safely be removed.
 		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
 		return Asset;
+	}
+
+	template <typename BarrierFunc>
+	bool UpdateLidarAmbientMaterialAssetLibrary(
+		const FString& Name, BarrierFunc Func, bool ForceOverwrite)
+	{
+		const FString AssetDir(TEXT("/AGXUnreal/Sensor/Lidar/AmbientMaterialLibrary"));
+
+		// Create a package for our asset.
+		const FString AssetName = UPackageTools::SanitizePackageName(Name);
+		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
+		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
+
+		UAGX_LidarAmbientMaterial* Asset = nullptr;
+		if (OldAssetExists)
+		{
+			Asset = LoadObject<UAGX_LidarAmbientMaterial>(nullptr, *AssetPath);
+			if (!ForceOverwrite)
+				return Asset != nullptr;
+		}
+		else
+		{
+			Asset = FAGX_ImportUtilities::CreateAsset<UAGX_LidarAmbientMaterial>(
+				AssetDir, AssetName, "");
+		}
+
+		if (Asset == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Error, TEXT("Unable to initialize Lidar Ambient Material Asset '%s'"),
+				*AssetPath);
+			return false;
+		}
+
+		FRtAmbientMaterialBarrier Barrier;
+		Barrier.AllocateNative();
+		Func(Barrier);
+		Asset->CopyFrom(Barrier);
+		Barrier.ReleaseNative();
+
+		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
+		return true;
 	}
 
 	bool AssignLibraryShapeMaterialsToContactMaterial(
@@ -235,4 +280,94 @@ bool AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(bool ForceOverwr
 	}
 
 	return !IssuesEncountered;
+}
+
+bool AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary(bool ForceOverwrite)
+{
+	using namespace AGX_MaterialLibrary_helpers;
+
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Lidar raytracing (RTX) not supported on this computer, unable to initialize Lidar "
+				"Ambient Material Library. To enable Lidar raytracing (RTX) support, use an RTX "
+				"Graphical Processing Unit (GPU)."));
+		return false;
+	}
+	else
+	{
+		UE_LOG(LogAGX, Log, TEXT("Lidar raytracing (RTX) is supported by the hardware."));
+	}
+
+	bool Result = true;
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Air_1000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(1.0f); }, ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Air_2500m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(2.5f); }, ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Air_5000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(5.0f); }, ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Air_50000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(50.0f); }, ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Fog_3000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(3.0f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Fog_2000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(2.0f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Fog_1000m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(1.0f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Fog_200m_Visibility",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(0.2f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Rainfall_1mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(1.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Rainfall_4mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(4.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Rainfall_8mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(8.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Snowfall_1mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(1.f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Snowfall_4mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(4.f, 900.f); },
+		ForceOverwrite);
+
+	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+		"AGX_LAM_Snowfall_8mm_Per_Hour",
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(8.f, 900.f); },
+		ForceOverwrite);
+
+	return Result;
 }

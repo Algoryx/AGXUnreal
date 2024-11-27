@@ -114,7 +114,7 @@ bool FCheckImportedRealIntervals::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FRealIntervalBackwardsCompatibilityTest, "AGXUnreal.Editor.BackwardsCompatibility.RealInterval",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FRealIntervalBackwardsCompatibilityTest::RunTest(const FString& Parameters)
 {

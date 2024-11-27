@@ -93,7 +93,7 @@ public:
 	 * criticalCompaction )
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Compaction")
-	FAGX_Real DilatancyAngleScalingFactor {20.0 * PI / 180};
+	FAGX_Real DilatancyAngleScalingFactor {20.0 * PI / 180.0};
 
 	void Serialize(FArchive& Archive);
 

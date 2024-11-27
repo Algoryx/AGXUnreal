@@ -25,7 +25,7 @@ public class AGXUnrealEditor : ModuleRules
 		/// \todo Copied from the prototype plugin. Not sure if all of these are
 		///       required.
 		PublicDependencyModuleNames.AddRange(new string[]{
-			"AGXUnrealBarrier", "AGXUnreal", "ComponentVisualizers", "Core", "CoreUObject", "Engine",
+			"AGXCommon", "AGXUnrealBarrier", "AGXUnreal", "ComponentVisualizers", "Core", "CoreUObject", "Engine",
 			"InputCore", "RawMesh", "RHI", "RenderCore"
 		});
 
@@ -34,7 +34,7 @@ public class AGXUnrealEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"AGXDynamicsLibrary", "AssetTools", "CoreUObject", "DesktopPlatform", "EditorStyle", "Engine", "InputCore",
 			"Json", "LevelEditor", "PlacementMode", "Projects", "PropertyEditor", "PropertyPath", "RenderCore", "RHI",
-			"SceneOutliner", "Slate", "SlateCore", "SubobjectEditor", "UnrealEd"
+			"SceneOutliner", "Slate", "SlateCore", "SubobjectEditor", "UnrealEd", "MeshDescription"
 		});
 
 #if UE_5_0_OR_LATER

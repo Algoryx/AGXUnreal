@@ -5,21 +5,10 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
-/** Specifies if the Lidar laser sampling is done on CPU or other types. */
-UENUM()
-enum class EAGX_LidarSamplingType
-{
-	/**
-	 * The Lidar laser rays are handled on the CPU.
-	 * Important: Terrain particles and deformations will not be
-	 * detected when using this mode.
-	 */
-	CPU
-};
 
 /** Specifies if the Lidar is run continuously or waits for a scan command. */
 UENUM()
-enum class EAGX_LidarExecutonMode
+enum class EAGX_LidarLineTraceExecutonMode
 {
 	/** The Lidar runs continously acoording to the specified frequency. */
 	Auto,
@@ -30,7 +19,7 @@ enum class EAGX_LidarExecutonMode
 
 /** Specifies if the Lidar scan pattern used. */
 UENUM()
-enum class EAGX_LidarScanPattern
+enum class EAGX_LidarLineTraceScanPattern
 {
 	/** Scans one vertical line, then goes to the next. */
 	HorizontalSweep,

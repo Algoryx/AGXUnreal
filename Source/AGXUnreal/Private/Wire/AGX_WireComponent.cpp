@@ -2158,6 +2158,7 @@ void UAGX_WireComponent::CreateVisuals()
 {
 	VisualCylinders =
 		NewObject<UInstancedStaticMeshComponent>(this, FName(TEXT("VisualCylinders")));
+	VisualCylinders->SetCanEverAffectNavigation(false);
 	VisualCylinders->RegisterComponent();
 	VisualCylinders->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -2168,6 +2169,7 @@ void UAGX_WireComponent::CreateVisuals()
 	VisualCylinders->SetMaterial(0, RenderMaterial);
 
 	VisualSpheres = NewObject<UInstancedStaticMeshComponent>(this, FName(TEXT("VisualSpheres")));
+	VisualSpheres->SetCanEverAffectNavigation(false);
 	VisualSpheres->RegisterComponent();
 	VisualSpheres->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);

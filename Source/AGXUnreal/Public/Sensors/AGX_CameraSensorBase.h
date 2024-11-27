@@ -16,7 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewImageROS2, const FAGX_SensorMs
 /**
  * Camera Sensor Component, allowing to extract camera pixel information in runtime.
  */
-UCLASS(ClassGroup = "AGX", Category = "AGX", Abstract, NotPlaceable)
+UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Abstract, NotPlaceable)
 class AGXUNREAL_API UAGX_CameraSensorBase : public USceneComponent
 {
 	GENERATED_BODY()

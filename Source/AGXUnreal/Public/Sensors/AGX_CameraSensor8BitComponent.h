@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewImagePixels8Bit, const TArray<
  * Camera Sensor Component, allowing to extract camera pixel information in runtime.
  * The captured image is encoded in 8-bit RGB wih linear color space.
  */
-UCLASS(ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_CameraSensor8BitComponent : public UAGX_CameraSensorBase
 {
 	GENERATED_BODY()

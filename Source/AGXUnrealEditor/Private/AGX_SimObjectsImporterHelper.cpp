@@ -2173,6 +2173,12 @@ void FAGX_SimObjectsImporterHelper::FinalizeImport()
 	// Build mesh assets.
 	TArray<UStaticMesh*> StaticMeshes;
 	ProcessedMeshes.GenerateValueArray(StaticMeshes);
+
+	// Add a Unreal Simple Collision box to each Mesh. Needed to support Component Overlap Events.
+	for (UStaticMesh* Mesh : StaticMeshes)
+		if (Mesh != nullptr)
+			FAGX_EditorUtilities::AddSimpleCollisionBox(*Mesh);
+
 	FAGX_EditorUtilities::SaveStaticMeshAssetsInBulk(StaticMeshes);
 }
 

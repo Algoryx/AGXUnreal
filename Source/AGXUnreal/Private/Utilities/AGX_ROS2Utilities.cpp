@@ -5,6 +5,8 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "ROS2/AGX_ROS2Messages.h"
+#include "Sensors/AGX_LidarOutputPosition.h"
+#include "Sensors/AGX_LidarOutputPositionIntensity.h"
 #include "Sensors/AGX_LidarScanPoint.h"
 
 // Standard library includes.
@@ -247,7 +249,7 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertXYZ(
 		if (ROSCoordinates)
 		{
 			Pos = CtM * Pos;
-			Pos.Y = -Pos.Y;// Flip Y due to left vs righ handed coordinates.
+			Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
 		}
 
 		AppendToInt8Array(Pos.X);
@@ -256,7 +258,7 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertXYZ(
 		AppendToInt8Array(static_cast<double>(Points[i].Intensity));
 	}
 
-	// If the points are unordered, height is 1 and width is the length of the point cloud.
+	// Since the points are unordered, height is 1 and width is the length of the point cloud.
 	Msg.Height = 1;
 	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
@@ -331,7 +333,86 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertAnglesTOF(
 		AppendDoubleToUint8Array(Points[i].Intensity, Msg.Data);
 	}
 
-	// If the points are unordered, height is 1 and width is the length of the point cloud.
+	// Since the points are unordered, height is 1 and width is the length of the point cloud.
+	Msg.Height = 1;
+	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
+	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
+
+	return Msg;
+}
+
+FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionData(
+	const TArray<FAGX_LidarOutputPositionData>& Data, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsPointCloud2 Msg;
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+	Msg.Fields.Add(MakePointField("x", 0, EAGX_PointFieldType::Float32, 1));
+	Msg.Fields.Add(MakePointField("y", 4, EAGX_PointFieldType::Float32, 1));
+	Msg.Fields.Add(MakePointField("z", 8, EAGX_PointFieldType::Float32, 1));
+
+	Msg.IsBigendian = false;
+	Msg.PointStep = 12; // Bytes per point.
+	Msg.IsDense = true;
+
+	// Centimeter to meter.
+	static constexpr float CtM = 0.01f;
+
+	Msg.Data.Reserve(Data.Num() * Msg.PointStep);
+	for (const auto& D : Data)
+	{
+		FVector3f Pos = D.Position;
+		Pos = CtM * Pos;
+		Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
+		AppendFloatToUint8Array(D.Position.X, Msg.Data);
+		AppendFloatToUint8Array(D.Position.Y, Msg.Data);
+		AppendFloatToUint8Array(D.Position.Z, Msg.Data);
+	}
+
+	// Since the points are unordered, height is 1 and width is the length of the point cloud.
+	Msg.Height = 1;
+	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
+	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
+
+	return Msg;
+}
+
+FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
+	const TArray<FAGX_LidarOutputPositionIntensityData>& Data, double TimeStamp,
+	const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsPointCloud2 Msg;
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+	Msg.Fields.Add(MakePointField("x", 0, EAGX_PointFieldType::Float32, 1));
+	Msg.Fields.Add(MakePointField("y", 4, EAGX_PointFieldType::Float32, 1));
+	Msg.Fields.Add(MakePointField("z", 8, EAGX_PointFieldType::Float32, 1));
+	Msg.Fields.Add(MakePointField("intensity", 12, EAGX_PointFieldType::Float32, 1));
+
+	Msg.IsBigendian = false;
+	Msg.PointStep = 16; // Bytes per point.
+	Msg.IsDense = true;
+
+	// Centimeter to meter.
+	static constexpr float CtM = 0.01f;
+
+	Msg.Data.Reserve(Data.Num() * Msg.PointStep);
+	for (const auto& D : Data)
+	{
+		FVector3f Pos = D.Position;
+		Pos = CtM * Pos;
+		Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
+		AppendFloatToUint8Array(D.Position.X, Msg.Data);
+		AppendFloatToUint8Array(D.Position.Y, Msg.Data);
+		AppendFloatToUint8Array(D.Position.Z, Msg.Data);
+		AppendFloatToUint8Array(D.Intensity, Msg.Data);
+	}
+
+	// Since the points are unordered, height is 1 and width is the length of the point cloud.
 	Msg.Height = 1;
 	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.

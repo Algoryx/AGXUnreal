@@ -20,6 +20,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Materials/TerrainMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/RtAmbientMaterialBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -70,6 +71,11 @@ namespace agxTerrain
 	class Shovel;
 	class Terrain;
 	class TerrainMaterial;
+}
+
+namespace agxSensor
+{
+	class RtAmbientMaterial;
 }
 
 namespace agxWire
@@ -128,6 +134,9 @@ namespace AGXBarrierFactories
 	FShapeMaterialBarrier CreateShapeMaterialBarrier(agx::Material* Material);
 
 	FContactMaterialBarrier CreateContactMaterialBarrier(agx::ContactMaterial* ContactMaterial);
+
+	FRtAmbientMaterialBarrier CreateLidarAmbientMaterialBarrier(
+		agxSensor::RtAmbientMaterial Material);
 
 	FShapeContactBarrier CreateShapeContactBarrier(agxCollide::GeometryContact GeometryContact);
 

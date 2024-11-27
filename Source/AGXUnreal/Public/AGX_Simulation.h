@@ -197,7 +197,15 @@ public: // Properties.
 
 	/** Set to true to enable statistics gathering in AGX Dynamics. */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Statistics")
-	bool bEnableStatistics = false;
+	bool bEnableStatistics {true};
+
+	/**
+	 * Set to true to enable the contact event listener that triggers the On Impact and On Contact
+	 * events in AGX Simulation. Enabling this is not necessary if you only use Contact Event
+	 * Listener Components.
+	 */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Simulation")
+	bool bEnableGlobalContactEventListener {true};
 
 	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.
@@ -233,6 +241,13 @@ public: // Properties.
 		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX AMOR",
 		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_WireMergeSplitThresholds"))
 	FSoftObjectPath GlobalWireMergeSplitThresholds;
+
+	/**
+	 * Currently active GPU device index used for Lidar Raytracing (RTX).
+	 */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
+	int32 RaytraceDeviceIndex {0};
+
 
 #if WITH_EDITORONLY_DATA
 	/**
@@ -419,14 +434,6 @@ public: // Member functions.
 	FOnPostStepForward PostStepForward;
 
 	/**
-	 * Set to true to enable the contact event listener that triggers the On Impact and On Contact
-	 * events in AGX Simulation. Enabling this is not necessary if you only use Contact Event
-	 * Listener Components.
-	 */
-	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Simulation")
-	bool bEnableGlobalContactEventListener {true};
-
-	/**
 	 * Event that is triggered by AGX Dynamics during Step Forward after collision detection but
 	 * before solve. An impact is any overlap that is new this time step, i.e. the two Shapes were
 	 * not overlapping in the previous time step.
@@ -501,7 +508,7 @@ public: // Member functions.
 	 *
 	 * @param DeltaTime The Unreal Engine time that has passed since the last frame.
 	 */
-	void Step(float DeltaTime);
+	void Step(double DeltaTime);
 
 	/**
 	 * Step the AGX Dynamics simulation once. Typically used with the 'None' Step Mode to have full
@@ -510,6 +517,20 @@ public: // Member functions.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	void StepOnce();
+
+	/**
+	 * Set true to integrate positions at the start of the timestep rather than at the end.
+	 * Set false to integrate positions at the end of the timestep.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	bool SetPreIntegratePositions(bool Enable);
+
+	/**
+	 * Returns true if set to integrate positions at the start of the timestep.
+	 * Returns false otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	bool GetPreIntegratePositions() const;
 
 	static UAGX_Simulation* GetFrom(const UActorComponent* Component);
 
@@ -532,6 +553,13 @@ public: // Member functions.
 #endif
 
 	void CreateNative();
+
+	/**
+	 * This is called automatically once an object is added to this Simulation. For scenarios where
+	 * no objects with an AGX Dynamics representation exists in the Level, but a stepping Simulation
+	 * object is still required, this function can be called manually, for example in Begin Play.
+	 */
+	void EnsureStepperCreated();
 
 	friend class AAGX_Stepper;
 
@@ -597,7 +625,6 @@ private:
 	void SeparationCallback(
 		double TimeStamp, FAnyShapeBarrier& FirstShape, FAnyShapeBarrier& SecondShape);
 
-	void EnsureStepperCreated();
 	void EnsureValidLicense();
 
 	void SetGravity();

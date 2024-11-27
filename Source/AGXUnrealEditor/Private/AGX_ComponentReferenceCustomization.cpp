@@ -15,6 +15,7 @@
 #include "IDetailChildrenBuilder.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 
 #define LOCTEXT_NAMESPACE "AGX_ComponentReferenceCustomization"

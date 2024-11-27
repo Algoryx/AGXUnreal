@@ -8,6 +8,8 @@
 
 #include "AGX_ROS2Utilities.generated.h"
 
+struct FAGX_LidarOutputPositionData;
+struct FAGX_LidarOutputPositionIntensityData;
 struct FAGX_LidarScanPoint;
 struct FAGX_SensorMsgsImage;
 struct FAGX_SensorMsgsPointCloud2;
@@ -85,4 +87,46 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
 	static FAGX_SensorMsgsPointCloud2 ConvertAnglesTOF(
 		const TArray<FAGX_LidarScanPoint>& Points, const FString& FrameId = "");
+
+	/**
+	 * Takes an array of Lidar Output Position Data and converts it into a ROS2
+	 * sensor_msgs::PointCloud2 message. The Data member of the ROS2 message consists of position x,
+	 * y, z [m] for each point written as float's (32 bit) in little endian layout,
+	 * i.e. 12 bytes per point.
+	 *
+	 * It is assumed that the given Output Data is dense, i.e. that no point misses are included.
+	 * 
+	 * The points written will be in ROS2 coordinates, i.e. right-handed and z up.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::PointCloud2 message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static FAGX_SensorMsgsPointCloud2 ConvertPositionData(
+		const TArray<FAGX_LidarOutputPositionData>& Data, double TimeStamp,
+		const FString& FrameId = "");
+
+	/**
+	 * Takes an array of Lidar Output Position Intensity Data and converts it into a ROS2
+	 * sensor_msgs::PointCloud2 message. The Data member of the ROS2 message consists of position x,
+	 * y, z [m] and Intensity for each point written as float's (32 bit) in little endian layout,
+	 * i.e. 16 bytes per point.
+	 *
+	 * It is assumed that the given Output Data is dense, i.e. that no point misses are included.
+	 *
+	 * The points written will be in ROS2 coordinates, i.e. right-handed and z up.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::PointCloud2 message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static FAGX_SensorMsgsPointCloud2 ConvertPositionIntensityData(
+		const TArray<FAGX_LidarOutputPositionIntensityData>& Data, double TimeStamp,
+		const FString& FrameId = "");
 };

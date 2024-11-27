@@ -17,7 +17,6 @@
 #include "DetailWidgetRow.h"
 #include "Engine/SCS_Node.h"
 #include "ScopedTransaction.h"
-#include "Widgets/Input/SComboBox.h"
 
 #define LOCTEXT_NAMESPACE "FAGX_ShapeComponentCustomization"
 

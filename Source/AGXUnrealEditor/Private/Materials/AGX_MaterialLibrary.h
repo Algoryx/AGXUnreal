@@ -14,4 +14,6 @@ namespace AGX_MaterialLibrary
 	bool InitializeContactMaterialAssetLibrary(bool ForceOverwrite = false);
 
 	bool InitializeTerrainMaterialAssetLibrary(bool ForceOverwrite = false);
+
+	bool InitializeLidarAmbientMaterialAssetLibrary(bool ForceOverwrite = false);
 }

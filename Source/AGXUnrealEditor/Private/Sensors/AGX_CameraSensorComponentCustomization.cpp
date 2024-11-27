@@ -19,6 +19,7 @@
 #include "Input/Reply.h"
 #include "Misc/Paths.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
 
 #define LOCTEXT_NAMESPACE "FAGX_CameraSensorComponentCustomization"
 

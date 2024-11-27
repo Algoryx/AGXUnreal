@@ -596,7 +596,11 @@ AgxAutomationCommon::FCheckWorldsTest::FCheckWorldsTest()
 {
 }
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 uint32 AgxAutomationCommon::FCheckWorldsTest::GetTestFlags() const
+#else
+EAutomationTestFlags AgxAutomationCommon::FCheckWorldsTest::GetTestFlags() const
+#endif
 {
 	return DefaultTestFlags;
 }
@@ -641,7 +645,11 @@ AgxAutomationCommon::FAgxAutomationTest::FAgxAutomationTest(
 {
 }
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 uint32 AgxAutomationCommon::FAgxAutomationTest::GetTestFlags() const
+#else
+EAutomationTestFlags AgxAutomationCommon::FAgxAutomationTest::GetTestFlags() const
+#endif
 {
 	return DefaultTestFlags;
 }

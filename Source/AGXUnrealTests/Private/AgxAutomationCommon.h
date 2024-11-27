@@ -40,10 +40,22 @@ namespace AgxAutomationCommon
 	 */
 	UWorld* GetTestWorld();
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	constexpr EAutomationTestFlags::Type DefaultTestFlags =
 		static_cast<const EAutomationTestFlags::Type>(
 			EAutomationTestFlags::ProductFilter | EAutomationTestFlags::EditorContext |
 			EAutomationTestFlags::ClientContext);
+
+	constexpr EAutomationTestFlags::Type ETF_ApplicationContextMask =
+		static_cast<const EAutomationTestFlags::Type>(EAutomationTestFlags::ApplicationContextMask);
+#else
+	constexpr EAutomationTestFlags DefaultTestFlags = EAutomationTestFlags::ProductFilter |
+													  EAutomationTestFlags::EditorContext |
+													  EAutomationTestFlags::ClientContext;
+
+	constexpr EAutomationTestFlags ETF_ApplicationContextMask =
+		EAutomationTestFlags_ApplicationContextMask;
+#endif
 
 	/// @todo Remove this TestEqual implementation for double once Unreal Engine's get support
 	/// for infinity.
@@ -342,7 +354,11 @@ namespace AgxAutomationCommon
 	{
 	public:
 		FAgxAutomationTest(const FString& InName, const FString& InBeautifiedTestName);
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		uint32 GetTestFlags() const override;
+#else
+		EAutomationTestFlags GetTestFlags() const override;
+#endif
 		uint32 GetRequiredDeviceNum() const override;
 
 	protected:
@@ -363,7 +379,11 @@ namespace AgxAutomationCommon
 	public:
 		FCheckWorldsTest();
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		uint32 GetTestFlags() const override;
+#else
+		EAutomationTestFlags GetTestFlags() const override;
+#endif
 
 		uint32 GetRequiredDeviceNum() const override;
 

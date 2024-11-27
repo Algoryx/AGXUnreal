@@ -214,6 +214,17 @@ void FAGX_Environment::LoadDynamicLibraries()
 void FAGX_Environment::SetupAGXDynamicsEnvironment()
 {
 	const FString AgxResourcesPath = GetAGXDynamicsResourcesPath();
+#if defined(_WIN64)
+	const FString DependecyDir =
+		FPaths::Combine(AgxResourcesPath, FString("bin"), FString("Win64"));
+#elif defined(__linux__)
+	const FString DependecyDir =
+		FPaths::Combine(AgxResourcesPath, FString("lib"), FString("Linux"));
+#else
+	// Unsupported platform.
+	static_assert(false);
+#endif
+
 	const FString AgxBinPath = FPaths::Combine(AgxResourcesPath, FString("bin"));
 	const FString AgxDataPath = FPaths::Combine(AgxResourcesPath, FString("data"));
 	const FString AgxCfgPath = FPaths::Combine(AgxDataPath, FString("cfg"));
@@ -227,7 +238,7 @@ void FAGX_Environment::SetupAGXDynamicsEnvironment()
 	// Ensure that the necessary AGX Dynamics resources are packed with the plugin.
 	if (!FPaths::DirectoryExists(AgxResourcesPath) || !FPaths::DirectoryExists(AgxBinPath) ||
 		!FPaths::DirectoryExists(AgxDataPath) || !FPaths::DirectoryExists(AgxCfgPath) ||
-		!FPaths::DirectoryExists(AgxPluginsPath))
+		!FPaths::DirectoryExists(AgxPluginsPath) || !FPaths::DirectoryExists(DependecyDir))
 	{
 		UE_LOG(
 			LogAGX, Error,
@@ -254,6 +265,10 @@ void FAGX_Environment::SetupAGXDynamicsEnvironment()
 	AGX_ENVIRONMENT()
 		.getFilePath(agxIO::Environment::RUNTIME_PATH)
 		.pushbackPath(Convert(AgxPluginsPath));
+
+	AGX_ENVIRONMENT()
+		.getFilePath(agxIO::Environment::RUNTIME_PATH)
+		.pushbackPath(Convert(DependecyDir)); // Used by AGPU to find AlgoryxGPUSensorsImpl lib.
 
 	AGX_ENVIRONMENT()
 		.getFilePath(agxIO::Environment::RESOURCE_PATH)

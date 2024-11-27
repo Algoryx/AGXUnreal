@@ -20,7 +20,7 @@
  * types.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_ROS2", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UAGX_ROS2SubscriberComponent : public USceneComponent
 {

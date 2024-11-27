@@ -817,7 +817,8 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 	{
 		FShapeGuidsCollection Infos;
 
-		auto AddGuid = [&Infos](const FShapeBarrier& ShapeBarrier, TMap<FGuid, bool>& TypedShapeGuids)
+		auto AddGuid =
+			[&Infos](const FShapeBarrier& ShapeBarrier, TMap<FGuid, bool>& TypedShapeGuids)
 		{
 			const FGuid ShapeGuid = ShapeBarrier.GetShapeGuid();
 			TypedShapeGuids.Add(ShapeGuid, ShapeBarrier.GetEnableCollisions());
@@ -1149,28 +1150,44 @@ namespace AGX_ImporterToBlueprint_SynchronizeModel_helpers
 			return true;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		ShapeBarrierGuids.SetNum(0, false);
+#else
+		ShapeBarrierGuids.SetNum(0, EAllowShrinking::No);
+#endif
 		NewShapeGuids.BoxShapeGuids.GenerateKeyArray(ShapeBarrierGuids);
 		if (Contains(SCSNodes.BoxShapes, ShapeBarrierGuids))
 		{
 			return true;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		ShapeBarrierGuids.SetNum(0, false);
+#else
+		ShapeBarrierGuids.SetNum(0, EAllowShrinking::No);
+#endif
 		NewShapeGuids.CylinderShapeGuids.GenerateKeyArray(ShapeBarrierGuids);
 		if (Contains(SCSNodes.CylinderShapes, ShapeBarrierGuids))
 		{
 			return true;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		ShapeBarrierGuids.SetNum(0, false);
+#else
+		ShapeBarrierGuids.SetNum(0, EAllowShrinking::No);
+#endif
 		NewShapeGuids.CapsuleShapeGuids.GenerateKeyArray(ShapeBarrierGuids);
 		if (Contains(SCSNodes.CapsuleShapes, ShapeBarrierGuids))
 		{
 			return true;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		ShapeBarrierGuids.SetNum(0, false);
+#else
+		ShapeBarrierGuids.SetNum(0, EAllowShrinking::No);
+#endif
 		NewShapeGuids.TrimeshShapeGuids.GenerateKeyArray(ShapeBarrierGuids);
 		if (Contains(SCSNodes.TrimeshShapes, ShapeBarrierGuids))
 		{

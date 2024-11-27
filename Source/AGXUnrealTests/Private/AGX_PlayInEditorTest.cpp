@@ -23,6 +23,7 @@
  */
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "AGX_PlayInEditorUtils.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
@@ -30,6 +31,7 @@
 #include "Constraints/AGX_BallConstraintComponent.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ContactMaterial.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_SphereShapeComponent.h"
 #include "Terrain/AGX_Terrain.h"
@@ -143,7 +145,7 @@ bool FCheckFallinBoxMovedCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FFallingBoxTest, "AGXUnreal.Game.AGX_PlayInEditorTest.FallingBox",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FFallingBoxTest::RunTest(const FString& Parameters)
 {
@@ -359,7 +361,7 @@ bool FCheckTerrainPagingStateCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTerrainPagingTest, "AGXUnreal.Game.AGX_PlayInEditorTest.TerrainPaging",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FTerrainPagingTest::RunTest(const FString& Parameters)
 {
@@ -466,7 +468,7 @@ bool FCheckPlaygroundStateCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FPlaygroundTest, "AGXUnreal.Game.AGX_PlayInEditorTest.Playground",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FPlaygroundTest::RunTest(const FString& Parameters)
 {
@@ -505,7 +507,15 @@ void FStepExampleLevelsTest::GetTests(
 {
 	// ComponentGallery ignored because it produces several errors on Play: for example Constraints
 	// without a Body.
-	const TArray<FString> IgnoreLevels {"ComponentGallery"};
+	TArray<FString> IgnoreLevels {"ComponentGallery"};
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Skipping StepExampleLevels.Lidar test because Raytracing is not supported on "
+				 "this computer."));
+		IgnoreLevels.Add("Lidar");
+	}
 
 	const FString LevelsDir = FPaths::Combine(FPaths::ProjectContentDir(), TEXT("Levels"));
 	TArray<FString> FoundAssetes;
@@ -593,7 +603,7 @@ bool FCheckMaterialLibraryStateCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FMaterialLibraryTest, "AGXUnreal.Game.AGX_PlayInEditorTest.MaterialLibrary",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FMaterialLibraryTest::RunTest(const FString& Parameters)
 {
@@ -692,7 +702,7 @@ bool FCheckROS2MovedCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FROS2Test, "AGXUnreal.Game.AGX_PlayInEditorTest.ROS2",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FROS2Test::RunTest(const FString& Parameters)
 {
@@ -705,6 +715,76 @@ bool FROS2Test::RunTest(const FString& Parameters)
 	ComponentMap ComponentsOfInterest;
 	double SimTimeMax = 5.0;
 	ADD_LATENT_AUTOMATION_COMMAND(FCheckROS2MovedCommand(SimTimeMax, ComponentsOfInterest, *this));
+
+	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
+	return true;
+}
+
+//
+// Lidar test starts here.
+//
+
+DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
+	FCheckLidarSteppedCommand, double, SimTimeMax, FAutomationTestBase&, Test);
+
+bool FCheckLidarSteppedCommand::Update()
+{
+	if (!GEditor->IsPlayingSessionInEditor())
+	{
+		return false;
+	}
+
+	static int32 NumTicks = 0;
+	UWorld* TestWorld = GEditor->GetPIEWorldContext()->World();
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(TestWorld);
+	Test.TestNotNull("Simulation", Sim);
+	if (Sim == nullptr)
+		return true;
+
+	const auto SimTime = Sim->GetTimeStamp();
+	{
+		// Sanity check to avoid hanging forever if the Simulation is not ticking.
+		NumTicks++;
+		if (NumTicks > 1000 && FMath::IsNearlyZero(SimTime))
+		{
+			Test.AddError(FString::Printf(
+				TEXT("SimTime too small: %f. The Simulation has not stepped as expected."),
+				SimTime));
+			return true;
+		}
+	}
+
+	if (SimTime < SimTimeMax)
+	{
+		return false; // Continue ticking..
+	}
+
+	// At this point we have ticked to TickMax.
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FLidarTest, "AGXUnreal.Game.AGX_PlayInEditorTest.Lidar",
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+
+bool FLidarTest::RunTest(const FString& Parameters)
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Skipping AGX_PlayInEditorTest.Lidar test because Raytracing is not supported on "
+				 "this computer."));
+		return true;
+	}
+	using namespace AGX_PlayInEditorTest_helpers;
+	FString MapPath = FString("/Game/Tests/Test_Lidar");
+
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapPath))
+	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(true));
+
+	double SimTimeMax = 5.0;
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckLidarSteppedCommand(SimTimeMax, *this));
 
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand);
 	return true;

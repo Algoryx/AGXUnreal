@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
-#include "Sensors/AGX_LidarEnums.h"
+#include "Sensors/AGX_LidarLineTraceEnums.h"
 #include "Sensors/AGX_LidarScanPoint.h"
 
 // Unreal Engine includes.
@@ -26,7 +26,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
  * Lidar Sensor Line Trace Component, allowing to create point cluds at runtime.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", Experimental, Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_Sensor", Category = "AGX", Experimental, Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UAGX_LidarSensorLineTraceComponent : public USceneComponent
 {
@@ -48,7 +48,7 @@ public:
 	 * when explicitly asked to, e.g. using the PerformScan function.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar", Meta = (ExposeOnSpawn))
-	EAGX_LidarExecutonMode ExecutionMode {EAGX_LidarExecutonMode::Auto};
+	EAGX_LidarLineTraceExecutonMode ExecutionMode {EAGX_LidarLineTraceExecutonMode::Auto};
 
 	/**
 	 * Determines how often the total scan cycle is run, i.e. how often the total scan pattern of
@@ -60,7 +60,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
 		Meta =
-			(EditCondition = "ExecutionMode == EAGX_LidarExecutonMode::Auto", ClampMin = "0.0",
+			(EditCondition = "ExecutionMode == EAGX_LidarLineTraceExecutonMode::Auto", ClampMin = "0.0",
 			 ExposeOnSpawn))
 	double ScanFrequency {10};
 
@@ -73,7 +73,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
 		Meta =
-			(EditCondition = "ExecutionMode == EAGX_LidarExecutonMode::Auto", ClampMin = "0.0",
+			(EditCondition = "ExecutionMode == EAGX_LidarLineTraceExecutonMode::Auto", ClampMin = "0.0",
 			 ExposeOnSpawn))
 	double OutputFrequency {20};
 
@@ -95,17 +95,10 @@ public:
 	FOnPointCloudDataOutput PointCloudDataOutput;
 
 	/**
-	 * Sampling type, i.e. how the laser rays are generated.
-	 * Currently, only CPU rays are supported.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar", Meta = (ExposeOnSpawn))
-	EAGX_LidarSamplingType SamplingType {EAGX_LidarSamplingType::CPU};
-
-	/**
 	 * Determines in what order points are scanned during a scan cycle.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar", Meta = (ExposeOnSpawn))
-	EAGX_LidarScanPattern ScanPattern {EAGX_LidarScanPattern::HorizontalSweep};
+	EAGX_LidarLineTraceScanPattern ScanPattern {EAGX_LidarLineTraceScanPattern::HorizontalSweep};
 
 	/**
 	 * Field of View (FOV) of the Lidar Sensor [deg].

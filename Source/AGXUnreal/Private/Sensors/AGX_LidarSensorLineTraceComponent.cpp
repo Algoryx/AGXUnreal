@@ -110,7 +110,8 @@ namespace AGX_LidarSensorLineTraceComponent_helpers
 		double Range {0.0};
 		double BeamExitRadius {0.0};
 		double BeamDivergenceRad {0.0}; // In radians.
-		EAGX_LidarScanPattern ScanPattern {EAGX_LidarScanPattern::HorizontalSweep};
+		EAGX_LidarLineTraceScanPattern ScanPattern {
+			EAGX_LidarLineTraceScanPattern::HorizontalSweep};
 		bool bCalculateIntensity {true};
 	};
 
@@ -141,7 +142,11 @@ namespace AGX_LidarSensorLineTraceComponent_helpers
 			return {};
 
 		// Make room for the new points.
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		OutData.SetNumUninitialized(NumPointsPreAppend + NumRays, false);
+#else
+		OutData.SetNumUninitialized(NumPointsPreAppend + NumRays, EAllowShrinking::No);
+#endif
 
 		// This number is somewhat arbitrary, but a good starting point.
 		// The cost of starting several threads will at some point make single threaded execution
@@ -159,7 +164,7 @@ namespace AGX_LidarSensorLineTraceComponent_helpers
 		{
 			switch (Params.ScanPattern)
 			{
-				case EAGX_LidarScanPattern::HorizontalSweep:
+				case EAGX_LidarLineTraceScanPattern::HorizontalSweep:
 				{
 					const int32 IndexX = Ray / NumRaysCycleY;
 					const int32 IndexY = Ray % NumRaysCycleY;
@@ -167,7 +172,7 @@ namespace AGX_LidarSensorLineTraceComponent_helpers
 						-Params.FOV.X / 2.0 + Params.Resolution.X * static_cast<double>(IndexX),
 						-Params.FOV.Y / 2.0 + Params.Resolution.Y * static_cast<double>(IndexY)};
 				}
-				case EAGX_LidarScanPattern::VerticalSweep:
+				case EAGX_LidarLineTraceScanPattern::VerticalSweep:
 				{
 					const int32 IndexX = Ray % NumRaysCycleX;
 					const int32 IndexY = Ray / NumRaysCycleX;
@@ -253,7 +258,7 @@ void UAGX_LidarSensorLineTraceComponent::RequestManualScan(
 	if (!bIsValid || !bEnabled)
 		return;
 
-	if (ExecutionMode != EAGX_LidarExecutonMode::Manual)
+	if (ExecutionMode != EAGX_LidarLineTraceExecutonMode::Manual)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -299,7 +304,12 @@ void UAGX_LidarSensorLineTraceComponent::RequestManualScan(
 	}
 
 	PointCloudDataOutput.Broadcast(Buffer);
+
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	Buffer.SetNum(0, false);
+#else
+	Buffer.SetNum(0, EAllowShrinking::No);
+#endif
 }
 
 void UAGX_LidarSensorLineTraceComponent::BeginPlay()
@@ -357,7 +367,6 @@ bool UAGX_LidarSensorLineTraceComponent::CanEditChange(const FProperty* InProper
 			GET_MEMBER_NAME_CHECKED(ThisClass, ExecutionMode),
 			GET_MEMBER_NAME_CHECKED(ThisClass, ScanFrequency),
 			GET_MEMBER_NAME_CHECKED(ThisClass, OutputFrequency),
-			GET_MEMBER_NAME_CHECKED(ThisClass, SamplingType),
 			GET_MEMBER_NAME_CHECKED(ThisClass, FOV /*clang-format padding*/),
 			GET_MEMBER_NAME_CHECKED(ThisClass, ScanPattern),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Resolution)};
@@ -419,11 +428,10 @@ void UAGX_LidarSensorLineTraceComponent::OnStepForward(double TimeStamp)
 
 	UpdateElapsedTime(TimeStamp);
 
-	if (ExecutionMode != EAGX_LidarExecutonMode::Auto)
+	if (ExecutionMode != EAGX_LidarLineTraceExecutonMode::Auto)
 		return;
 
-	if (SamplingType == EAGX_LidarSamplingType::CPU)
-		ScanAutoCPU();
+	ScanAutoCPU();
 
 	OutputPointCloudDataIfReady();
 }
@@ -496,7 +504,11 @@ void UAGX_LidarSensorLineTraceComponent::OutputPointCloudDataIfReady()
 	if (OutputCycleTimeElapsed >= LidarState.OutputCycleDuration)
 	{
 		PointCloudDataOutput.Broadcast(Buffer);
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		Buffer.SetNum(0, false);
+#else
+		Buffer.SetNum(0, EAllowShrinking::No);
+#endif
 		LidarState.CurrentOutputCycleStartTime = LidarState.ElapsedTime;
 	}
 }

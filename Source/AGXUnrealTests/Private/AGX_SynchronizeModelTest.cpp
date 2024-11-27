@@ -624,7 +624,7 @@ bool FSynchronizeSameCommand::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSynchronizeSameTest, "AGXUnreal.Editor.AGX_SynchronizeModelTest.SyncronizeSame",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FSynchronizeSameTest::RunTest(const FString& Parameters)
 {
@@ -1084,7 +1084,7 @@ bool FSynchronizeLargeModelCommand::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FSynchronizeLargeModelTest, "AGXUnreal.Editor.AGX_SynchronizeModelTest.SynchronizeLargeModel",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FSynchronizeLargeModelTest::RunTest(const FString& Parameters)
 {
@@ -1197,7 +1197,7 @@ bool FIgnoreDisabledTrimeshFTCommand::Update()
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FIgnoreDisabledTrimeshFTTest,
 	"AGXUnreal.Editor.AGX_SynchronizeModelTest.IgnoreDisabledTrimeshFT",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FIgnoreDisabledTrimeshFTTest::RunTest(const FString& Parameters)
 {
@@ -1308,7 +1308,7 @@ bool FIgnoreDisabledTrimeshTFCommand::Update()
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FIgnoreDisabledTrimeshTFTest,
 	"AGXUnreal.Editor.AGX_SynchronizeModelTest.IgnoreDisabledTrimeshTF",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FIgnoreDisabledTrimeshTFTest::RunTest(const FString& Parameters)
 {

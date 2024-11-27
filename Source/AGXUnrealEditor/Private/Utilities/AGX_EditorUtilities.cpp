@@ -40,10 +40,12 @@
 #include "GameFramework/PlayerController.h"
 #include "IContentBrowserSingleton.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "MeshDescription.h"
 #include "Misc/Char.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/MessageDialog.h"
 #include "PackageTools.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "RawMesh.h"
 #include "SSubobjectEditor.h"
 #include "UObject/SavePackage.h"
@@ -387,6 +389,36 @@ namespace
 
 		return Asset;
 	}
+
+	// Based on Engine code: GenerateBoxAsSimpleCollision in GeomFitUtils.h.
+	void AddBoxSimpleCollision(UStaticMesh* StaticMesh)
+	{
+		if (StaticMesh == nullptr)
+			return;
+
+		UBodySetup* bs = StaticMesh->GetBodySetup();
+		if (bs == nullptr)
+			return;
+
+		// Calculate bounding Box.
+		FVector Center, Extents;
+		StaticMesh->GetMeshDescription(0)->ComputeBoundingBox().GetCenterAndExtents(
+			Center, Extents);
+		Extents *= (FVector) bs->BuildScale3D;
+
+		// Create new GUID.
+		bs->InvalidatePhysicsData();
+
+		FKBoxElem BoxElem;
+		BoxElem.Center = Center;
+		BoxElem.X = Extents.X * 2.0f;
+		BoxElem.Y = Extents.Y * 2.0f;
+		BoxElem.Z = Extents.Z * 2.0f;
+		bs->AggGeom.BoxElems.Add(BoxElem);
+
+		// Mark the static mesh for collision customization
+		StaticMesh->bCustomizedCollision = true;
+	}
 }
 
 UAGX_RigidBodyComponent* FAGX_EditorUtilities::CreateRigidBody(AActor* Owner)
@@ -504,6 +536,11 @@ void FAGX_EditorUtilities::MakePackageAndAssetNameUnique(FString& PackageName, F
 	IAssetTools& AssetTools =
 		FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	AssetTools.CreateUniqueAssetName(PackageName, AssetName, PackageName, AssetName);
+}
+
+void FAGX_EditorUtilities::AddSimpleCollisionBox(UStaticMesh& StaticMesh)
+{
+	AddBoxSimpleCollision(&StaticMesh);
 }
 
 bool FAGX_EditorUtilities::SaveStaticMeshAssetsInBulk(const TArray<UStaticMesh*>& Meshes)
@@ -848,7 +885,7 @@ void FAGX_EditorUtilities::AddRawMeshToStaticMesh(FRawMesh& RawMesh, UStaticMesh
 	StaticMesh->GetSourceModels().Emplace();
 	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModels().Last();
 #else
-		FStaticMeshSourceModel& SourceModel = StaticMesh->AddSourceModel();
+	FStaticMeshSourceModel& SourceModel = StaticMesh->AddSourceModel();
 #endif
 
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
@@ -973,7 +1010,8 @@ bool FAGX_EditorUtilities::IsSelected(const UActorComponent& Component)
 {
 	// No idea why, but IsSelected seems to always be true when in the Blueprint Editor, regardless
 	// of if the Component actually is selected in the Components panel or not.
-	if (!FActorEditorUtils::IsAPreviewOrInactiveActor(Component.GetOwner()) && Component.IsSelected())
+	if (!FActorEditorUtils::IsAPreviewOrInactiveActor(Component.GetOwner()) &&
+		Component.IsSelected())
 	{
 		// The shovel is directly selected in the level editor.
 		return true;
@@ -1018,7 +1056,6 @@ bool FAGX_EditorUtilities::IsSelected(const UActorComponent& Component)
 	// Did not find anything that has selected the Component. Did we check everything? Who knows.
 	return false;
 }
-
 
 UWorld* FAGX_EditorUtilities::GetEditorWorld()
 {

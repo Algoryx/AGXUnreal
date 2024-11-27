@@ -991,6 +991,8 @@ private:
 	void RenderSelf(const TArray<FVector>& Points);
 	void SetVisualsInstanceCount(int32 Num);
 
+	friend class UAGX_LidarSurfaceMaterialComponent;
+
 private:
 	FWireBarrier NativeBarrier;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;

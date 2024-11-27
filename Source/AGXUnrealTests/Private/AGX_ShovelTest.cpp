@@ -54,7 +54,7 @@ bool FCheckShovelDiggingCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FShovelDiggingTest, "AGXUnreal.Game.AGX_Shovel.Digging",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FShovelDiggingTest::RunTest(const FString& Parameters)
 {

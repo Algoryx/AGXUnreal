@@ -292,26 +292,8 @@ void FTrimeshShapeBarrier::AllocateNativeShape()
 	check(Params != nullptr);
 
 	// Transfer to native buffers.
-
-	agx::Vec3Vector NativeVertices;
-	NativeVertices.reserve(Params->Vertices->Num());
-	for (const FVector& Vertex : *Params->Vertices)
-	{
-		NativeVertices.push_back(ConvertDisplacement(Vertex));
-	}
-
-	agx::UInt32Vector NativeIndices;
-	NativeIndices.reserve(Params->TriIndices->Num() * 3);
-	for (const FTriIndices& Index : *Params->TriIndices)
-	{
-		check(Index.v0 >= 0);
-		check(Index.v1 >= 0);
-		check(Index.v2 >= 0);
-
-		NativeIndices.push_back(static_cast<uint32>(Index.v0));
-		NativeIndices.push_back(static_cast<uint32>(Index.v1));
-		NativeIndices.push_back(static_cast<uint32>(Index.v2));
-	}
+	const agx::Vec3Vector NativeVertices = ConvertVertices(*Params->Vertices);
+	const agx::UInt32Vector NativeIndices = ConvertIndices(*Params->TriIndices);
 
 	agxCollide::Trimesh::TrimeshOptionsFlags OptionsMask =
 		Params->bClockwise ? agxCollide::Trimesh::TrimeshOptionsFlags::CLOCKWISE_ORIENTATION

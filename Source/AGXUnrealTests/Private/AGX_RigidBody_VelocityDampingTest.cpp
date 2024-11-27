@@ -115,7 +115,7 @@ bool FCheckAngularVelocityCommand::Update()
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAngularVelocityTest, "AGXUnreal.Game.AGX_RigidBody.VelocityDamping",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter)
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter)
 
 bool FAngularVelocityTest::RunTest(const FString& Parameters)
 {

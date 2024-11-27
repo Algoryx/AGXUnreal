@@ -14,6 +14,8 @@
 #include "Contacts/AGX_ContactEnums.h"
 #include "Materials/AGX_ContactMaterialEnums.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_CustomPatternInterval.h"
+#include "Sensors/AGX_LidarEnums.h"
 #include "Terrain/AGX_ShovelEnums.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/DoubleInterval.h"
@@ -22,6 +24,7 @@
 
 // Unreal Engine includes.
 #include "Containers/UnrealString.h"
+#include "Interface_CollisionDataProviderCore.h"
 #include "Logging/LogVerbosity.h"
 #include "Math/Interval.h"
 #include "Math/Matrix.h"
@@ -43,7 +46,11 @@
 #include <agx/Vec3.h>
 #include <agxCollide/Contacts.h>
 #include <agxModel/TwoBodyTire.h>
+#include <agxSensor/LidarModelOusterOS.h>
+#include <agxSensor/LidarRayAngleGaussianNoise.h>
+#include <agxSensor/LidarRayPatternGenerator.h>
 #include <agxSDK/ContactEventListener.h>
+#include <agxTerrain/Shovel.h>
 #include <agxUtil/agxUtil.h>
 #include <agxVehicle/TrackInternalMergeProperties.h>
 #include <agxVehicle/TrackWheel.h>
@@ -370,6 +377,22 @@ inline FVector ConvertDisplacement(const agx::Vec3f& V)
 		ConvertDistanceToUnreal<decltype(FVector::X)>(V.z()));
 }
 
+inline FVector ConvertDisplacement(agx::Real X, agx::Real Y, agx::Real Z)
+{
+	// Negate Y because Unreal is left handed and AGX Dynamics is right handed.
+	return FVector(
+		ConvertDistanceToUnreal<decltype(X)>(X), -ConvertDistanceToUnreal<decltype(X)>(Y),
+		ConvertDistanceToUnreal<decltype(X)>(Z));
+}
+
+inline FVector3f ConvertDisplacement(agx::Real32 X, agx::Real32 Y, agx::Real32 Z)
+{
+	// Negate Y because Unreal is left handed and AGX Dynamics is right handed.
+	return FVector3f(
+		ConvertDistanceToUnreal<decltype(X)>(X), -ConvertDistanceToUnreal<decltype(X)>(Y),
+		ConvertDistanceToUnreal<decltype(X)>(Z));
+}
+
 inline FVector ConvertFloatVector(const agx::Vec3f& V)
 {
 	// Negate Y because Unreal is left-handed and AGX Dynamics is right-handed.
@@ -582,6 +605,28 @@ inline FAGX_RealInterval ConvertAngle(const agx::RangeReal& R)
 		ConvertAngleToUnreal<double>(R.lower()), ConvertAngleToUnreal<double>(R.upper())};
 }
 
+inline FAGX_RealInterval Convert(const agx::RangeReal32& R)
+{
+	return FAGX_RealInterval {R.lower(), R.upper()};
+}
+
+inline FAGX_RealInterval ConvertDistance(const agx::RangeReal32& R)
+{
+	return FAGX_RealInterval {
+		ConvertDistanceToUnreal<double>(R.lower()), ConvertDistanceToUnreal<double>(R.upper())};
+}
+
+inline FAGX_RealInterval ConvertAngle(const agx::RangeReal32& R)
+{
+	return FAGX_RealInterval {
+		ConvertAngleToUnreal<double>(R.lower()), ConvertAngleToUnreal<double>(R.upper())};
+}
+
+inline FAGX_CustomPatternInterval Convert(const agxSensor::LidarRayPatternInterval& I)
+{
+	return FAGX_CustomPatternInterval(I.first, I.numRays);
+}
+
 //
 // Interval/Range. Unreal Engine to AGX Dynamics.
 //
@@ -599,6 +644,11 @@ inline agx::RangeReal ConvertDistance(const FAGX_RealInterval& I)
 inline agx::RangeReal ConvertAngle(const FAGX_RealInterval& I)
 {
 	return agx::RangeReal(ConvertAngleToAGX(I.Min), ConvertAngleToAGX(I.Max));
+}
+
+inline agxSensor::LidarRayPatternInterval Convert(const FAGX_CustomPatternInterval& I)
+{
+	return agxSensor::LidarRayPatternInterval(I.First, I.NumRays);
 }
 
 //
@@ -685,6 +735,21 @@ inline FTransform ConvertLocalFrame(const agx::Frame* Frame)
 inline agx::AffineMatrix4x4 ConvertMatrix(const FVector& FramePosition, const FQuat& FrameRotation)
 {
 	return agx::AffineMatrix4x4(Convert(FrameRotation), ConvertDisplacement(FramePosition));
+}
+
+inline agx::AffineMatrix4x4 Convert(const FTransform& Transform)
+{
+	return ConvertMatrix(Transform.GetLocation(), Transform.GetRotation());
+}
+
+inline agx::AffineMatrix4x4Vector Convert(const TArray<FTransform>& Transforms)
+{
+	agx::AffineMatrix4x4Vector V;
+	V.reserve(Transforms.Num());
+	for (const auto& Transform : Transforms)
+		V.push_back(Convert(Transform));
+
+	return V;
 }
 
 //
@@ -774,6 +839,40 @@ inline agx::Uuid Convert(const FGuid& Guid)
 #endif
 
 	return agx::Uuid(GuidStrAGX);
+}
+
+//
+// Triangle data.
+//
+
+inline agx::UInt32Vector ConvertIndices(const TArray<FTriIndices>& Indices)
+{
+	agx::UInt32Vector IndicesAGX;
+	IndicesAGX.reserve(Indices.Num() * 3);
+	for (const FTriIndices& Index : Indices)
+	{
+		AGX_CHECK(Index.v0 >= 0);
+		AGX_CHECK(Index.v1 >= 0);
+		AGX_CHECK(Index.v2 >= 0);
+
+		IndicesAGX.push_back(static_cast<uint32>(Index.v0));
+		IndicesAGX.push_back(static_cast<uint32>(Index.v1));
+		IndicesAGX.push_back(static_cast<uint32>(Index.v2));
+	}
+
+	return IndicesAGX;
+}
+
+inline agx::Vec3Vector ConvertVertices(const TArray<FVector>& Vertices)
+{
+	agx::Vec3Vector VerticesAGX;
+	VerticesAGX.reserve(Vertices.Num());
+	for (const FVector& Vertex : Vertices)
+	{
+		VerticesAGX.push_back(ConvertDisplacement(Vertex));
+	}
+
+	return VerticesAGX;
 }
 
 //
@@ -888,6 +987,179 @@ inline agx::Constraint2DOF::DOF Convert(EAGX_Constraint2DOFFreeDOF Dof)
 
 	return Dof == EAGX_Constraint2DOFFreeDOF::FIRST ? agx::Constraint2DOF::FIRST
 													: agx::Constraint2DOF::SECOND;
+}
+
+//
+// Enumerations, Lidar.
+//
+
+inline agxSensor::LidarRayAngleGaussianNoise::Axis Convert(EAGX_LidarRayAngleDistortionAxis Axis)
+{
+	switch (Axis)
+	{
+		case EAGX_LidarRayAngleDistortionAxis::AxisX:
+			return agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_X;
+		case EAGX_LidarRayAngleDistortionAxis::AxisY:
+			return agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_Y;
+		case EAGX_LidarRayAngleDistortionAxis::AxisZ:
+			return agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_Z;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "EAGX_LidarRayAngleDistortionAxis literal with unknown value to "
+			 "an agxSensor::LidarRayAngleGaussianNoise::Axis literal."));
+	return agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_X;
+}
+
+inline EAGX_LidarRayAngleDistortionAxis Convert(agxSensor::LidarRayAngleGaussianNoise::Axis Axis)
+{
+	switch (Axis)
+	{
+		case agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_X:
+			return EAGX_LidarRayAngleDistortionAxis::AxisX;
+		case agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_Y:
+			return EAGX_LidarRayAngleDistortionAxis::AxisY;
+		case agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_Z:
+			return EAGX_LidarRayAngleDistortionAxis::AxisZ;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "agxSensor::LidarRayAngleGaussianNoise::Axis literal with unknown value to "
+			 "an EAGX_LidarRayAngleDistortionAxis literal."));
+	return EAGX_LidarRayAngleDistortionAxis::AxisX;
+}
+
+inline agxSensor::LidarModelOusterOS::ChannelCount Convert(EAGX_OusterOSChannelCount Count)
+{
+	switch (Count)
+	{
+		case EAGX_OusterOSChannelCount::CH_32:
+			return agxSensor::LidarModelOusterOS::ch_32;
+		case EAGX_OusterOSChannelCount::CH_64:
+			return agxSensor::LidarModelOusterOS::ch_64;
+		case EAGX_OusterOSChannelCount::CH_128:
+			return agxSensor::LidarModelOusterOS::ch_128;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "EAGX_OusterOSChannelCount literal with unknown value to "
+			 "an agxSensor::LidarModelOusterOS::ChannelCount literal."));
+	return agxSensor::LidarModelOusterOS::ch_32;
+}
+
+inline EAGX_OusterOSChannelCount Convert(agxSensor::LidarModelOusterOS::ChannelCount Count)
+{
+	switch (Count)
+	{
+		case agxSensor::LidarModelOusterOS::ch_32:
+			return EAGX_OusterOSChannelCount::CH_32;
+		case agxSensor::LidarModelOusterOS::ch_64:
+			return EAGX_OusterOSChannelCount::CH_64;
+		case agxSensor::LidarModelOusterOS::ch_128:
+			return EAGX_OusterOSChannelCount::CH_128;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "agxSensor::LidarModelOusterOS::ChannelCount literal with unknown value to "
+			 "an EAGX_OusterOSChannelCount literal."));
+	return EAGX_OusterOSChannelCount::CH_32;
+}
+
+inline agxSensor::LidarModelOusterOS::BeamSpacing Convert(EAGX_OusterOSBeamSpacing BeamSpacing)
+{
+	switch (BeamSpacing)
+	{
+		case EAGX_OusterOSBeamSpacing::Uniform:
+			return agxSensor::LidarModelOusterOS::Uniform;
+		case EAGX_OusterOSBeamSpacing::AboveHorizon:
+			return agxSensor::LidarModelOusterOS::AboveHorizon;
+		case EAGX_OusterOSBeamSpacing::BelowHorizon:
+			return agxSensor::LidarModelOusterOS::BelowHorizon;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "EAGX_OusterOSBeamSpacing literal with unknown value to "
+			 "an agxSensor::LidarModelOusterOS::BeamSpacing literal."));
+	return agxSensor::LidarModelOusterOS::Uniform;
+}
+
+inline EAGX_OusterOSBeamSpacing Convert(agxSensor::LidarModelOusterOS::BeamSpacing Spacing)
+{
+	switch (Spacing)
+	{
+		case agxSensor::LidarModelOusterOS::Uniform:
+			return EAGX_OusterOSBeamSpacing::Uniform;
+		case agxSensor::LidarModelOusterOS::AboveHorizon:
+			return EAGX_OusterOSBeamSpacing::AboveHorizon;
+		case agxSensor::LidarModelOusterOS::BelowHorizon:
+			return EAGX_OusterOSBeamSpacing::BelowHorizon;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "agxSensor::LidarModelOusterOS::BeamSpacing literal with unknown value to "
+			 "an EAGX_OusterOSBeamSpacing literal."));
+	return EAGX_OusterOSBeamSpacing::Uniform;
+}
+
+inline agxSensor::LidarModelOusterOS::LidarMode Convert(EAGX_OusterOSMode Mode)
+{
+	switch (Mode)
+	{
+		case EAGX_OusterOSMode::Mode_512x10:
+			return agxSensor::LidarModelOusterOS::Mode_512x10;
+		case EAGX_OusterOSMode::Mode_512x20:
+			return agxSensor::LidarModelOusterOS::Mode_512x20;
+		case EAGX_OusterOSMode::Mode_1024x10:
+			return agxSensor::LidarModelOusterOS::Mode_1024x10;
+		case EAGX_OusterOSMode::Mode_1024x20:
+			return agxSensor::LidarModelOusterOS::Mode_1024x20;
+		case EAGX_OusterOSMode::Mode_2048x10:
+			return agxSensor::LidarModelOusterOS::Mode_2048x10;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "EAGX_OusterOSMode literal with unknown value to "
+			 "an agxSensor::LidarModelOusterOS::LidarMode literal."));
+	return agxSensor::LidarModelOusterOS::Mode_512x10;
+}
+
+
+inline EAGX_OusterOSMode Convert(agxSensor::LidarModelOusterOS::LidarMode Mode)
+{
+	switch (Mode)
+	{
+		case agxSensor::LidarModelOusterOS::Mode_512x10:
+			return EAGX_OusterOSMode::Mode_512x10;
+		case agxSensor::LidarModelOusterOS::Mode_512x20:
+			return EAGX_OusterOSMode::Mode_512x20;
+		case agxSensor::LidarModelOusterOS::Mode_1024x10:
+			return EAGX_OusterOSMode::Mode_1024x10;
+		case agxSensor::LidarModelOusterOS::Mode_1024x20:
+			return EAGX_OusterOSMode::Mode_1024x20;
+		case agxSensor::LidarModelOusterOS::Mode_2048x10:
+			return EAGX_OusterOSMode::Mode_2048x10;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT("Conversion failed: Tried to convert an "
+			 "agxSensor::LidarModelOusterOS::LidarMode literal with unknown value to "
+			 "an EAGX_OusterOSMode literal."));
+	return EAGX_OusterOSMode::Mode_512x10;
 }
 
 //

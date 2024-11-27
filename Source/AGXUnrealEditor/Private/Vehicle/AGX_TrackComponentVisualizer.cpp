@@ -274,11 +274,19 @@ namespace
 
 		if (WheelTransforms != nullptr)
 		{
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 			WheelTransforms->SetNum(TrackComponent->Wheels.Num(), /*bAllowShrinking*/ false);
+#else
+			WheelTransforms->SetNum(TrackComponent->Wheels.Num(), EAllowShrinking::No);
+#endif
 		}
 		if (WheelColors != nullptr)
 		{
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 			WheelColors->SetNum(TrackComponent->Wheels.Num(), false);
+#else
+			WheelColors->SetNum(TrackComponent->Wheels.Num(), EAllowShrinking::No);
+#endif
 		}
 
 		for (int I = 0; I != TrackComponent->Wheels.Num(); ++I)

@@ -461,6 +461,18 @@ void FSimulationBarrier::SetTimeStamp(double TimeStamp)
 	NativeRef->Native->setTimeStamp(ConvertToAGX(TimeStamp));
 }
 
+void FSimulationBarrier::SetPreIntegratePositions(bool Enable)
+{
+	check(HasNative());
+	NativeRef->Native->setPreIntegratePositions(Enable);
+}
+
+bool FSimulationBarrier::GetPreIntegratePositions() const
+{
+	check(HasNative());
+	return NativeRef->Native->getPreIntegratePositions();
+}
+
 void FSimulationBarrier::SetNumThreads(uint32 NumThreads)
 {
 	agx::setNumThreads(static_cast<size_t>(NumThreads));

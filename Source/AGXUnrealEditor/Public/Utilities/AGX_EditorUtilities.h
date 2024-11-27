@@ -210,6 +210,11 @@ public:
 	static void MakePackageAndAssetNameUnique(FString& PackageName, FString& AssetName);
 
 	/**
+	 * Adds an Unreal Simple Collision Box to the given Static Mesh Asset.
+	 */
+	static void AddSimpleCollisionBox(UStaticMesh& StaticMesh);
+
+	/**
 	 * Write the given static mesh assets to disk in bulk, which utilizes multi-threaded mesh build.
 	 * Returns true if all of the Writes was successful, false otherwise.
 	 */

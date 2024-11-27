@@ -439,6 +439,14 @@ bool AAGX_Terrain::HasNativeTerrainPager() const
 	return NativeTerrainPagerBarrier.HasNative();
 }
 
+FTerrainBarrier* AAGX_Terrain::GetOrCreateNative()
+{
+	if (!HasNative())
+		InitializeNative();
+
+	return GetNative();
+}
+
 FTerrainBarrier* AAGX_Terrain::GetNative()
 {
 	if (!NativeBarrier.HasNative())
@@ -457,6 +465,14 @@ const FTerrainBarrier* AAGX_Terrain::GetNative() const
 	}
 
 	return &NativeBarrier;
+}
+
+FTerrainPagerBarrier* AAGX_Terrain::GetOrCreateNativeTerrainPager()
+{
+	if (!HasNative())
+		InitializeNative();
+
+	return GetNativeTerrainPager();
 }
 
 FTerrainPagerBarrier* AAGX_Terrain::GetNativeTerrainPager()
@@ -943,8 +959,20 @@ namespace AGX_Terrain_helpers
 		{
 			if (!Proxy->GetIsSpatiallyLoaded())
 				continue;
+
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 			if (bBounded && !Proxy->GetStreamingBounds().Intersect(TerrainBounds))
 				continue;
+#else
+			if (bBounded)
+			{
+				FBox EditorBound;
+				FBox RuntimeBound;
+				Proxy->GetStreamingBounds(RuntimeBound, EditorBound);
+				if (EditorBound.Intersect(TerrainBounds))
+					continue;
+			}
+#endif
 
 			bFoundIntersectingStreamingProxy = true;
 			UE_LOG(

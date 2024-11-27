@@ -186,6 +186,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_CameraSensor16BitComponent",
 		new IMAGE_BRUSH("Icons/camera_sensor_32x32", IconSize16));
 	Style->Set(
+		"ClassIcon.AGX_LidarSensorComponent", new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	// Tire.
@@ -246,6 +248,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_CylindricalConstraintActor",
 		new IMAGE_BRUSH("Icons/constraint_cylindrical_32x32", IconSize16));
 
+	Style->Set("ClassIcon.AGX_SensorEnvironment", new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	Style->Set("ClassIcon.AGX_Terrain", new IMAGE_BRUSH("Icons/terrain_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_CollisionGroupDisablerActor",
@@ -261,11 +264,32 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 
 	// Thumbnails (assets etc).
 	Style->Set(
+		"ClassThumbnail.AGX_ConstraintMergeSplitThresholds",
+		new IMAGE_BRUSH("Thumbnails/constraint_mergesplit_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_ContactMaterial",
 		new IMAGE_BRUSH("Thumbnails/contact_material_128x128", IconSize128));
 	Style->Set(
+		"ClassThumbnail.AGX_LidarAmbientMaterial",
+		new IMAGE_BRUSH("Thumbnails/lidar_material_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_LidarModelParameters",
+		new IMAGE_BRUSH("Thumbnails/lidar_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_LidarSurfaceMaterial",
+		new IMAGE_BRUSH("Thumbnails/lidar_material_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_PlayRecord",
+		new IMAGE_BRUSH("Thumbnails/play_record_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_ShapeContactMergeSplitThresholds",
+		new IMAGE_BRUSH("Thumbnails/shape_contact_mergesplit_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_ShapeMaterial",
 		new IMAGE_BRUSH("Thumbnails/shape_material_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_ShovelProperties",
+		new IMAGE_BRUSH("Thumbnails/shovel_properties_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));
@@ -275,18 +299,6 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassThumbnail.AGX_TrackProperties",
 		new IMAGE_BRUSH("Thumbnails/track_properties_128x128", IconSize128));
-	Style->Set(
-		"ClassThumbnail.AGX_ShovelProperties",
-		new IMAGE_BRUSH("Thumbnails/shovel_properties_128x128", IconSize128));
-	Style->Set(
-		"ClassThumbnail.AGX_PlayRecord",
-		new IMAGE_BRUSH("Thumbnails/play_record_128x128", IconSize128));
-	Style->Set(
-		"ClassThumbnail.AGX_ConstraintMergeSplitThresholds",
-		new IMAGE_BRUSH("Thumbnails/constraint_mergesplit_128x128", IconSize128));
-	Style->Set(
-		"ClassThumbnail.AGX_ShapeContactMergeSplitThresholds",
-		new IMAGE_BRUSH("Thumbnails/shape_contact_mergesplit_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_WireMergeSplitThresholds",
 		new IMAGE_BRUSH("Thumbnails/wire_mergesplit_128x128", IconSize128));

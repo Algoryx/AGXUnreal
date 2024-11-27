@@ -225,7 +225,11 @@ void UAGX_TrackComponent::GetNodeTransforms(
 		const int32 NumNodes = TrackPreview->NodeTransforms.Num();
 		// Retain the container buffer so that the same transform cache can be reused for multiple
 		// tracks without reallocation every time.
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		OutTransforms.SetNum(NumNodes, /*bAllowShrinking*/ false);
+#else
+		OutTransforms.SetNum(NumNodes, EAllowShrinking::No);
+#endif
 		for (int32 I = 0; I < NumNodes; ++I)
 		{
 			const FTransform& Source = TrackPreview->NodeTransforms[I];
@@ -240,7 +244,11 @@ void UAGX_TrackComponent::GetNodeTransforms(
 	{
 		// Retain the container buffer so that the same transform cache can be reused for multiple
 		// tracks without reallocation every time.
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		OutTransforms.SetNum(0, /*bAllowShrinking*/ false);
+#else
+		OutTransforms.SetNum(0, EAllowShrinking::No);
+#endif
 	}
 }
 
@@ -956,6 +964,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 void UAGX_TrackComponent::CreateVisuals()
 {
 	VisualMeshes = NewObject<UInstancedStaticMeshComponent>(this, FName(TEXT("VisualMeshes")));
+	VisualMeshes->SetCanEverAffectNavigation(false);
 	VisualMeshes->RegisterComponent();
 	VisualMeshes->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
@@ -1083,7 +1092,12 @@ bool UAGX_TrackComponent::ComputeNodeTransforms(TArray<FTransform>& OutTransform
 			VisualOffset = Offset;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		OutTransforms.SetNum(Preview->NodeTransforms.Num(), /*bAllowShrinking*/ true);
+#else
+		OutTransforms.SetNum(Preview->NodeTransforms.Num(), EAllowShrinking::Yes);
+#endif
+		
 		for (int i = 0; i < Preview->NodeTransforms.Num(); ++i)
 		{
 			const FVector WorldOffset = Preview->NodeTransforms[i].GetRotation().RotateVector(

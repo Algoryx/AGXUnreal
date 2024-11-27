@@ -23,6 +23,7 @@
 #include <agxCollide/Box.h>
 #include <agxCollide/Trimesh.h>
 #include <agxModel/TwoBodyTire.h>
+#include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/TerrainMaterial.h>
 #include <agxWire/Wire.h>
@@ -120,6 +121,14 @@ FContactMaterialBarrier AGXBarrierFactories::CreateContactMaterialBarrier(
 	agx::ContactMaterial* ContactMaterial)
 {
 	return {std::make_unique<FContactMaterialRef>(ContactMaterial)};
+}
+
+FRtAmbientMaterialBarrier AGXBarrierFactories::CreateLidarAmbientMaterialBarrier(
+	agxSensor::RtAmbientMaterial Material)
+{
+	FRtAmbientMaterialBarrier Barrier;
+	Barrier.AllocateNative();
+	return Barrier;
 }
 
 FShapeContactBarrier AGXBarrierFactories::CreateShapeContactBarrier(

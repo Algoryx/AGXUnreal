@@ -123,6 +123,9 @@ public:
 	 */
 	void SetTimeStamp(double TimeStamp);
 
+	void SetPreIntegratePositions(bool Enable);
+	bool GetPreIntegratePositions() const;
+
 	/// \todo Statistics isn't a per-simulation thing in AGX Dynamics, so having statistics
 	/// management here is a bit misleading.
 	void SetStatisticsEnabled(bool bEnable);

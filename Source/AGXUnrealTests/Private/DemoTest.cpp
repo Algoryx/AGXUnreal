@@ -40,7 +40,7 @@
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FDemoSimpleTest, "AGXUnreal.Demo.SimpleTest",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 /*
  * The Simple Automation Test provides the RunTest function which is where we implement the test
@@ -75,7 +75,7 @@ bool FDemoSimpleTest::RunTest(const FString&)
  */
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(
 	FDemoComplexTest, "AGXUnreal.Demo.ComplexTest",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 void FDemoComplexTest::GetTests(
 	TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
@@ -144,7 +144,7 @@ bool FWaitTenTicksCommand::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FWaitTenTicksTest, "AGXUnreal.Demo.WaitTenTicks",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FWaitTenTicksTest::RunTest(const FString&)
 {
@@ -180,7 +180,7 @@ bool FWaitTicksCommand::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FWaitTwentyTicksTest, "AGXUnreal.Demo.WaitTwentyTicks",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FWaitTwentyTicksTest::RunTest(const FString&)
 {
@@ -221,7 +221,7 @@ bool FTestingLatentCommand::Update()
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTestInLatentCommandTest, "AGXUnreal.Demo.TestInLatentCommand",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FTestInLatentCommandTest::RunTest(const FString&)
 {
@@ -241,7 +241,7 @@ bool FTestInLatentCommandTest::RunTest(const FString&)
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTestAbort, "AGXUnreal.Demo.ExpectErrorLog",
-	EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::ProductFilter);
+	AgxAutomationCommon::ETF_ApplicationContextMask | EAutomationTestFlags::ProductFilter);
 
 bool FTestAbort::RunTest(const FString& Parameters)
 {

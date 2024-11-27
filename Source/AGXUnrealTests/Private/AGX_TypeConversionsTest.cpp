@@ -1,6 +1,7 @@
 // Copyright 2024, Algoryx Simulation AB.
 
 // AGX Dynamics for Unreal includes.
+#include "AgxAutomationCommon.h"
 #include "Utilities/TestUtilities.h"
 
 // Unreal Engine includes.
@@ -11,7 +12,7 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FTypeConversionGuidTest, "AGXUnreal.Editor.AGX_TypeConversionsTest.TypeConversionGuid",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FTypeConversionGuidTest::RunTest(const FString& Parameters)
 {

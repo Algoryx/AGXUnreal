@@ -1,7 +1,7 @@
 // Copyright 2024, Algoryx Simulation AB.
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_SimpleMeshComponent.h"
+#include "Shapes/AGX_SimpleMeshComponent.h"
 #include "AGX_UE4Compatibility.h"
 #include "Utilities/AGX_MeshUtilities.h"
 
@@ -393,6 +393,11 @@ bool UAGX_SimpleMeshComponent::SetMeshData(const TSharedPtr<FAGX_SimpleMeshData>
 	UpdateBounds();
 
 	return true;
+}
+
+const FAGX_SimpleMeshData* UAGX_SimpleMeshComponent::GetMeshData() const
+{
+	return MeshData.Get();
 }
 
 void UAGX_SimpleMeshComponent::ClearMeshData()

@@ -287,7 +287,12 @@ namespace
 		const FString SuffixToStrip(TEXT("Component"));
 		if (ComponentName.EndsWith(SuffixToStrip))
 		{
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 			ComponentName.LeftInline(ComponentName.Len() - SuffixToStrip.Len(), false);
+#else
+			ComponentName.LeftInline(
+				ComponentName.Len() - SuffixToStrip.Len(), EAllowShrinking::No);
+#endif
 		}
 
 		UBlueprint* Blueprint = FAGX_BlueprintUtilities::GetBlueprintFrom(Component);

@@ -11,7 +11,8 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FAGX_MeshUtilitiesTest, "AGXUnreal.Editor.AGX_MeshUtilities",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+	EAutomationTestFlags::ProductFilter |
+		AgxAutomationCommon::ETF_ApplicationContextMask)
 
 namespace MeshGenerationTest_Helper
 {

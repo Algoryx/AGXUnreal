@@ -59,7 +59,7 @@ bool FAGX_RenderUtilities::UpdateRenderTextureRegions(
 	auto WriteTexture = [Resource, NumRegions, Regions, SourcePitch, SourceBitsPerPixel, SourceData,
 						 bFreeData](FRHICommandListImmediate& RHICmdList)
 	{
-		FRHITexture2D* Texture = Resource->GetTextureRHI();
+		FRHITexture* Texture = Resource->GetTextureRHI();
 		for (uint32 RegionIndex = 0; RegionIndex < NumRegions; ++RegionIndex)
 		{
 			FUpdateTextureRegion2D& Region = Regions[RegionIndex];

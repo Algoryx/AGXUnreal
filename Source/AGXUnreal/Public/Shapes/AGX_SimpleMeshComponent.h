@@ -38,6 +38,8 @@ class AGXUNREAL_API UAGX_SimpleMeshComponent : public UMeshComponent
 	 */
 	bool SetMeshData(const TSharedPtr<FAGX_SimpleMeshData>& Data);
 
+	const FAGX_SimpleMeshData* GetMeshData() const;
+
 	/** Removes all geometry from this triangle mesh. */
 	void ClearMeshData();
 

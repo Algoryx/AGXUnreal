@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Simulation.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 
@@ -15,8 +16,15 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Input/SComboBox.h"
 
 #define LOCTEXT_NAMESPACE "FAGX_SimulationCustomization"
+
+FAGX_SimulationCustomization::FAGX_SimulationCustomization()
+{
+	for (const auto& DeviceName : FSensorEnvironmentBarrier::GetRaytraceDevices())
+		RaytraceDevices.Add(MakeShared<FString>(DeviceName));
+}
 
 TSharedRef<IDetailCustomization> FAGX_SimulationCustomization::MakeInstance()
 {
@@ -37,15 +45,15 @@ void FAGX_SimulationCustomization::CustomizeDetails(IDetailLayoutBuilder& InDeta
 	InDetailBuilder.HideProperty(
 		InDetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAGX_Simulation, ExportPath)));
 
-	IDetailCategoryBuilder& CategoryBuilder = InDetailBuilder.EditCategory("Startup");
+	IDetailCategoryBuilder& CategoryBuilderStartup = InDetailBuilder.EditCategory("Startup");
 
-	CategoryBuilder.AddProperty(
+	CategoryBuilderStartup.AddProperty(
 		InDetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAGX_Simulation, bExportInitialState)));
 
 	// clang-format off
 
 	// Create the widgets for browsing to an output file.
-	CategoryBuilder.AddCustomRow(FText::GetEmpty())
+	CategoryBuilderStartup.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -74,6 +82,47 @@ void FAGX_SimulationCustomization::CustomizeDetails(IDetailLayoutBuilder& InDeta
 			.OnClicked(this, &FAGX_SimulationCustomization::OnBrowseFileButtonClicked)
 		]
 	];
+	// clang-format on
+
+	// Fix category ordering.
+	InDetailBuilder.EditCategory("Solver");
+	InDetailBuilder.EditCategory("Gravity");
+	InDetailBuilder.EditCategory("Simulation Stepping Mode");
+	InDetailBuilder.EditCategory("Statistics");
+	InDetailBuilder.EditCategory("Simulation");
+	InDetailBuilder.EditCategory("AGX AMOR");
+
+	// Hide the default RaytraceDeviceIndex widget, we will create a custom one for it.
+	InDetailBuilder.HideProperty(
+		InDetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAGX_Simulation, RaytraceDeviceIndex)));
+
+	IDetailCategoryBuilder& CategoryBuilderRaytrace = InDetailBuilder.EditCategory("AGX Lidar");
+
+	// clang-format off
+
+	// Create the widgets for selecting Raytrace Device.
+	CategoryBuilderRaytrace.AddCustomRow(FText::GetEmpty())
+		.NameContent()[SNew(STextBlock)
+			.Text(LOCTEXT("RaytraceDevice", "Raytrace Device"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())]
+		.ValueContent()
+		[
+			SNew(SComboBox<TSharedPtr<FString>>)
+			.OptionsSource(&RaytraceDevices)
+			.OnGenerateWidget_Lambda([=](TSharedPtr<FString> Item)
+			{
+				return SNew(STextBlock)
+				.Text(FText::FromString(*Item));
+			})
+			.OnSelectionChanged(
+				this, &FAGX_SimulationCustomization::OnRaytraceDeviceComboBoxChanged)
+			.Content()
+			[
+				SNew(STextBlock)
+				.Text_Lambda([this]()
+					{ return GetSelectedRaytraceDeviceString(); })
+			]
+		];
 	// clang-format on
 }
 
@@ -124,6 +173,91 @@ FReply FAGX_SimulationCustomization::OnBrowseFileButtonClicked()
 
 	Simulation->ExportPath = OutputFilePath;
 	return FReply::Handled();
+}
+
+void FAGX_SimulationCustomization::OnRaytraceDeviceComboBoxChanged(
+	TSharedPtr<FString> SelectedDevice, ESelectInfo::Type InSeletionInfo)
+{
+	int32 Index {-1};
+	RaytraceDevices.Find(SelectedDevice, Index);
+
+	if (Index == INDEX_NONE)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			"Unable to map the selected Raytrace Device to a device index. Selection failed.",
+			SNotificationItem::CS_Fail);
+		return;
+	}
+
+	const bool Result = FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(Index);
+	if (!Result)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			"Unable to set Raytrace Device. The Console Log may contain more information.",
+			SNotificationItem::CS_Fail);
+		return;
+	}
+
+	UAGX_Simulation* Simulation =
+		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UAGX_Simulation>(*DetailBuilder);
+	if (Simulation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Unable to get Simulation object in "
+				 "FAGX_SimulationCustomization::OnRaytraceDeviceComboBoxChanged."));
+		return;
+	}
+
+	for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances<UAGX_Simulation>(*Simulation))
+	{
+		if (Instance->RaytraceDeviceIndex == Simulation->RaytraceDeviceIndex)
+			Instance->RaytraceDeviceIndex = Index;
+	}
+
+	Simulation->RaytraceDeviceIndex = Index;
+
+	// Save to config file.
+	const FProperty* Property = UAGX_Simulation::StaticClass()->FindPropertyByName(
+		GET_MEMBER_NAME_CHECKED(UAGX_Simulation, RaytraceDeviceIndex));
+	Simulation->UpdateSinglePropertyInConfigFile(
+		Property, UAGX_Simulation::StaticClass()->GetDefaultConfigFilename());
+}
+
+FText FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString()
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+		return FText::FromString("Raytrace (RTX) not supported");
+
+	UAGX_Simulation* Simulation =
+		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UAGX_Simulation>(*DetailBuilder);
+	if (Simulation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Unable to get Simulation object in "
+				 "FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString."));
+		FText::FromString("Unknown");
+	}
+
+	const int32 CurrentDeviceIndex = Simulation->RaytraceDeviceIndex;
+	if (CurrentDeviceIndex < 0)
+		return FText::FromString("No Raytrace (RTX) device found");
+
+	if (CurrentDeviceIndex >= RaytraceDevices.Num())
+	{
+		if (!bHasShownUnableToGetDeviceNameNotification)
+		{
+			FAGX_NotificationUtilities::ShowNotification(
+				"Unable to get name of current Lidar Raytrace (RTX) device",
+				SNotificationItem::CS_Fail);
+			bHasShownUnableToGetDeviceNameNotification = true;
+		}
+
+		return FText::FromString("Unknown");
+	}
+
+	return FText::FromString(*RaytraceDevices[CurrentDeviceIndex]);
 }
 
 #undef LOCTEXT_NAMESPACE

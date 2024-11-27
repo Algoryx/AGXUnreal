@@ -368,7 +368,11 @@ void FTrackBarrier::GetNodeTransforms(
 	{
 		// Retain the container buffer so that the same transform cache can be reused for multiple
 		// tracks without reallocation every time.
-		OutTransforms.SetNum(NumNodes, /*bAllowShrinking*/ false);
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+		OutTransforms.SetNum(NumNodes, false);
+#else
+		OutTransforms.SetNum(NumNodes, EAllowShrinking::No);
+#endif
 	}
 
 	agxVehicle::TrackNodeRange Nodes = NativeRef->Native->nodes();
@@ -400,7 +404,11 @@ void FTrackBarrier::GetDebugData(
 
 	// Resize output arrays if necessary. Disallow shrinking so that the same
 	// cache can be used both for large and small Tracks without reallocation.
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	constexpr bool bAllowShrinking = false;
+#else
+	constexpr EAllowShrinking bAllowShrinking = EAllowShrinking::No;
+#endif
 	if (BodyTransforms != nullptr)
 	{
 		BodyTransforms->SetNum(NumNodes, bAllowShrinking);
@@ -553,8 +561,8 @@ void FTrackBarrier::GetPreviewData(
 	TrackNodeDescVector NodesVector = agxVehicle::findTrackNodeConfiguration(Desc, WheelsVector);
 
 	// Convert and write to the output Unreal data structure.
-	OutNodeTransforms.SetNum(NodesVector.size(), /*bAllowShrinking*/ true);
-	OutNodeHalfExtents.SetNum(NodesVector.size(), /*bAllowShrinking*/ true);
+	OutNodeTransforms.SetNum(NodesVector.size());
+	OutNodeHalfExtents.SetNum(NodesVector.size());
 	int i = 0;
 	for (auto It = NodesVector.begin(); It != NodesVector.end(); ++It, ++i)
 	{

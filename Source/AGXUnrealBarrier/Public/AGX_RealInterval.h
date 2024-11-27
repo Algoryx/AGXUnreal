@@ -24,10 +24,10 @@ struct AGXUNREALBARRIER_API FAGX_RealInterval
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "AGX Dynamics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Dynamics")
 	FAGX_Real Min {0.0};
 
-	UPROPERTY(EditAnywhere, Category = "AGX Dynamics")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Dynamics")
 	FAGX_Real Max {0.0};
 
 	FAGX_RealInterval() = default;
@@ -131,7 +131,7 @@ struct AGXUNREALBARRIER_API FAGX_RealInterval
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("(Min=%g Max=%g"), Min, Max);
+		return FString::Printf(TEXT("(Min=%g Max=%g"), Min.GetValue(), Max.GetValue());
 	}
 
 	bool Equals(const FAGX_RealInterval& Other, double Tolerance = UE_KINDA_SMALL_NUMBER) const

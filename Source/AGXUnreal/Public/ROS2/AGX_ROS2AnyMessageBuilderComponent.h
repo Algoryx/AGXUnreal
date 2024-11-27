@@ -19,7 +19,7 @@ struct FAGX_AgxMsgsAny;
  * AnyMessageParser.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_ROS2", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UAGX_ROS2AnyMessageBuilderComponent : public USceneComponent
 {

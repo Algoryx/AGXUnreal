@@ -464,7 +464,12 @@ bool UAGX_TrackRenderer::ComputeNodeTransforms(
 			VisualOffset = Offset;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 		OutTransforms.SetNum(Preview->NodeTransforms.Num(), /*bAllowShrinking*/ true);
+#else
+		OutTransforms.SetNum(Preview->NodeTransforms.Num(), EAllowShrinking::Yes);
+#endif
+
 		for (int i = 0; i < Preview->NodeTransforms.Num(); ++i)
 		{
 			const FVector WorldOffset = Preview->NodeTransforms[i].GetRotation().RotateVector(
