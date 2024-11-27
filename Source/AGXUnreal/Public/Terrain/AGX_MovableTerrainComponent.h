@@ -84,7 +84,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	bool bInitialNoise = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bEnableInitialNoise"))
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bInitialNoise"))
 	FAGX_BrownianNoiseParams InitialNoiseParams;
 
 	void UpdateMeshOnPropertyChanged();
