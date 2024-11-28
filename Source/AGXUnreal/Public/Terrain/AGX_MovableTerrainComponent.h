@@ -108,7 +108,10 @@ private:
 	FTerrainBarrier NativeBarrier;
 	FDelegateHandle PostStepForwardHandle;
 
+	UPROPERTY()
 	TArray<float> CurrentHeights;
+
+	UPROPERTY()
 	TArray<float> BedHeights;
 
 	TMap<int, MeshTile> MeshTiles;
