@@ -22,6 +22,7 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	: UProceduralMeshComponent(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	SetCanEverAffectNavigation(false);
 }
 
 void UAGX_MovableTerrainComponent::BeginPlay()
