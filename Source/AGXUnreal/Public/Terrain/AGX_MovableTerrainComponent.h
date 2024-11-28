@@ -104,24 +104,6 @@ protected:
 		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
 	};
 
-private:
-	FTerrainBarrier NativeBarrier;
-	FDelegateHandle PostStepForwardHandle;
-
-	UPROPERTY()
-	TArray<float> CurrentHeights;
-
-	UPROPERTY()
-	TArray<float> BedHeights;
-
-	TMap<int, MeshTile> MeshTiles;
-
-	void InitializeHeights();
-	float SampleHeights(FVector LocalPos) const;
-
-	void InitializeMesh();
-	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
-
 /*
 --- AGX_Terrain Implementation
 ------------------------------
@@ -288,4 +270,23 @@ protected:
 	
 	bool InitializeParticles();
 	void UpdateParticles();
+
+	
+private:
+	FTerrainBarrier NativeBarrier;
+	FDelegateHandle PostStepForwardHandle;
+
+	UPROPERTY()
+	TArray<float> CurrentHeights;
+
+	UPROPERTY()
+	TArray<float> BedHeights;
+
+	TMap<int, MeshTile> MeshTiles;
+
+	void InitializeHeights();
+	float SampleHeights(FVector LocalPos) const;
+
+	void InitializeMesh();
+	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
 };
