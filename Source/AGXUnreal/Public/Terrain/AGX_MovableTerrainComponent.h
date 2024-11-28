@@ -62,30 +62,40 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Editor")
 	bool bRebuildMesh = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", 
+		BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(
-		EditAnywhere, Meta = (ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"),
-		Category = "AGX Terrain Shape")
+		EditAnywhere, Category = "AGX Terrain Shape",
+		BlueprintReadWrite, 
+		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
-		Meta = (GetOptions = "GetBedShapesOptions"))
-	TArray<FName> BedShapes;
-	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedShapesOptions() const;
-	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
-	
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	float InitialHeight = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	bool bInitialNoise = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bInitialNoise"))
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bInitialNoise"))
 	FAGX_BrownianNoiseParams InitialNoiseParams;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, 
+		Category = "AGX Terrain Shape", 
+		Meta = (GetOptions = "GetBedShapesOptions"))
+	TArray<FName> BedShapes;
+
+	UFUNCTION(CallInEditor)
+	TArray<FString> GetBedShapesOptions() const;
+
+	UPROPERTY(BlueprintReadWrite, Category = "AGX Terrain Shape", Meta = (ExposeOnSpawn))
+	TArray<UAGX_ShapeComponent*> BedShapeComponents;
+
+	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
 
 	void UpdateMeshOnPropertyChanged();
 
@@ -159,6 +169,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
 	void CreateNativeShovels();
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void AddShovel(UAGX_ShovelComponent* ShovelComponent);
+
+	bool AddNativeShovel(UAGX_ShovelComponent* ShovelComponent);
 
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")

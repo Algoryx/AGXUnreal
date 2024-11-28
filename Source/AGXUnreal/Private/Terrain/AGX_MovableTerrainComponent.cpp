@@ -133,6 +133,8 @@ void UAGX_MovableTerrainComponent::CreateNative()
 void UAGX_MovableTerrainComponent::InitializeHeights()
 {
 	FIntVector2 Res = GetTerrainResolution();
+	if (Res.X * Res.Y <= 0)
+		return;
 
 	// BedHeights
 	BedHeights.Reset();
@@ -181,50 +183,56 @@ float UAGX_MovableTerrainComponent::SampleHeights(FVector LocalPos) const
 
 void UAGX_MovableTerrainComponent::InitializeMesh()
 {
+	if (CurrentHeights.Num() == 0 || GetTerrainResolution().X * GetTerrainResolution().Y !=
+		CurrentHeights.Num())
+		return;
+
+	//Clear MeshSections and Meshtiles
+	ClearAllMeshSections();
+	MeshTiles.Reset();
+
 	// Height Function
 	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeights(LocalPos); };
 
 	// Create MeshTiles
-	MeshTiles.Reset();
+	FIntVector2 NrOfTiles;
+	FIntVector2 TileRes;
+	FVector2D TileSize;
+
+	if (!bEnableTiles)
 	{
-		FIntVector2 NrOfTiles;
-		FIntVector2 TileRes;
-		if (!bEnableTiles)
-		{
-			// Single tile
-			NrOfTiles = FIntVector2(1, 1);
-			TileRes = FIntVector2(
-				FMath::RoundToInt((GetTerrainResolution().X - 1) * ResolutionScaling),
-				FMath::RoundToInt((GetTerrainResolution().Y - 1) * ResolutionScaling));
-		}
-		else
-		{
-			// Multiple tiles
-			NrOfTiles = FIntVector2(
-				FMath::Max(1, FMath::RoundToInt(
-						   (GetTerrainResolution().X - 1) * ResolutionScaling / TileResolution)),
-				FMath::Max(1, FMath::RoundToInt(
-						   (GetTerrainResolution().Y - 1) * ResolutionScaling / TileResolution)));
+		// Single tile
+		NrOfTiles = FIntVector2(1, 1);
+		TileRes = FIntVector2(
+			FMath::RoundToInt((GetTerrainResolution().X - 1) * ResolutionScaling),
+			FMath::RoundToInt((GetTerrainResolution().Y - 1) * ResolutionScaling));
+		TileSize = Size;
+	}
+	else
+	{
+		// Multiple tiles
+		NrOfTiles = FIntVector2(
+			FMath::Max(1, FMath::RoundToInt(
+						(GetTerrainResolution().X - 1) * ResolutionScaling / TileResolution)),
+			FMath::Max(1, FMath::RoundToInt(
+						(GetTerrainResolution().Y - 1) * ResolutionScaling / TileResolution)));
 
-			TileRes = FIntVector2(TileResolution, TileResolution);
-		}
+		TileRes = FIntVector2(TileResolution, TileResolution);
+		TileSize = FVector2D(Size.X / NrOfTiles.X, Size.Y / NrOfTiles.Y);
+	}
 
-		FVector2D TileSize = FVector2D(Size.X / NrOfTiles.X, Size.Y / NrOfTiles.Y);
-
-		for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
+	for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
+	{
+		for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
 		{
-			for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
-			{
-				int TileIndex = Tx * NrOfTiles.Y + Ty;
-				FVector2D TileCenter =
-					TileSize / 2 - Size / 2 + FVector2D(Tx * TileSize.X, Ty * TileSize.Y);
-				MeshTiles.Add(TileIndex, MeshTile(TileCenter, TileSize, TileRes));
-			}
+			int TileIndex = Tx * NrOfTiles.Y + Ty;
+			FVector2D TileCenter =
+				TileSize / 2 - Size / 2 + FVector2D(Tx * TileSize.X, Ty * TileSize.Y);
+			MeshTiles.Add(TileIndex, MeshTile(TileCenter, TileSize, TileRes));
 		}
 	}
 
 	// Create MeshSections
-	ClearAllMeshSections();
 	for (auto& kvp : MeshTiles)
 	{
 		int TileIndex = kvp.Key;
@@ -301,13 +309,14 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 	if (!World->IsGameWorld() && !IsTemplate())
 	{
 		// In-Editor
+		
 
 		// Postpone the initialization until the next tick
 		// because all properties are not copied yet
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
-				if (!IsValid(World))
+				if (!IsValid(World) || !IsValid(this))
 					return;
 
 				// Recreate Heights
@@ -315,6 +324,7 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 
 				// Recreate Mesh
 				InitializeMesh();
+
 			});
 	}
 	else if (World->IsGameWorld())
@@ -383,6 +393,8 @@ TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 				Shapes.Add(ShapeComponent);
 		}
 	}
+
+	Shapes.Append(BedShapeComponents);
 
 	return Shapes;
 }
@@ -693,42 +705,62 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 			continue;
 		}
 
-		FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
-		if (ShovelBarrier == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("Shovel '%s' in AGX MovableTerrain '%s' could not create AGX Dynamics "
-					 "representation. Ignoring this shovel. It will not be able to deform the "
-					 "Terrain."),
-				*ShovelComponent->GetName(), *GetName());
-			continue;
-		}
-		check(ShovelBarrier->HasNative());
+		AddNativeShovel(ShovelComponent);
+	}
+}
 
-		bool Added = NativeBarrier.AddShovel(*ShovelBarrier);
+void UAGX_MovableTerrainComponent::AddShovel(UAGX_ShovelComponent* ShovelComponent)
+{
+	FAGX_ShovelReference ShovelRef;
+	ShovelRef.SetComponent(ShovelComponent);
+	ShovelComponents.Add(ShovelRef);
+
+	if (HasNative())
+	{
+		AddNativeShovel(ShovelComponent);
+	}
+}
+
+
+bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelComponent)
+{
+	FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
+	if (ShovelBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Shovel '%s' in AGX MovableTerrain '%s' could not create AGX Dynamics "
+				 "representation. Ignoring this shovel. It will not be able to deform the "
+				 "Terrain."),
+			*ShovelComponent->GetName(), *GetName());
+		return false;
+	}
+	check(ShovelBarrier->HasNative());
+
+	bool Added = NativeBarrier.AddShovel(*ShovelBarrier);
+	if (!Added)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions "
+				 "and "
+				 "trying again."),
+			*GetName(), *ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
+		ShovelComponent->SwapEdgeDirections();
+		Added = NativeBarrier.AddShovel(*ShovelBarrier);
 		if (!Added)
 		{
 			UE_LOG(
-				LogAGX, Warning,
-				TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions and "
-					 "trying again."),
-				*GetName(), *ShovelComponent->GetName(),
+				LogAGX, Error,
+				TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s' after edge directions "
+					 "flip. "
+					 "Abandoning shovel."),
+				*GetName(), *GetNameSafe(ShovelComponent),
 				*GetLabelSafe(ShovelComponent->GetOwner()));
-			ShovelComponent->SwapEdgeDirections();
-			Added = NativeBarrier.AddShovel(*ShovelBarrier);
-			if (!Added)
-			{
-				UE_LOG(
-					LogAGX, Error,
-					TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s' after edge directions flip. "
-						 "Abandoning shovel."),
-					*GetName(), *GetNameSafe(ShovelComponent),
-					*GetLabelSafe(ShovelComponent->GetOwner()));
-			}
 		}
-
 	}
+
+	return Added;
 }
 
 void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape)
