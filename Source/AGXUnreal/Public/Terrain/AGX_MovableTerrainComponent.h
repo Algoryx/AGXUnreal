@@ -221,7 +221,12 @@ protected:
 	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	float UvScaling = 1.0f / 100.0f;
+	FVector2D UvOffset = FVector2D(0.0, 0.0);
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	FVector2D UvScaling = FVector2D(1.0, 1.0);
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bWorldUv = true;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
@@ -285,7 +290,9 @@ private:
 	TMap<int, MeshTile> MeshTiles;
 
 	void InitializeHeights();
-	float SampleHeights(FVector LocalPos) const;
+
+	float GetHeight(FVector LocalPos) const;
+	FVector2D GetUV0(FVector LocalPos) const;
 
 	void InitializeMesh();
 	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);

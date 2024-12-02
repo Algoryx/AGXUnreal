@@ -64,8 +64,10 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 	static TSharedPtr<HfMeshDescription> CreateMeshDescription(
-		const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
-		std::function<float(const FVector&)> HeightFunction, bool UseSkirt = false);
+		FVector Center, FVector2D Size, FIntVector2 Resolution, 
+		std::function<float (const FVector&)> HeightFunction,
+		std::function<FVector2D(const FVector&)> UvFunction, 
+		bool UseSkirt = false);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);

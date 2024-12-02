@@ -4,8 +4,10 @@
 #include <KismetProceduralMeshLibrary.h>
 
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	const FVector& Center, const FVector2D& Size, const FIntVector2& Resolution, double UvScale,
-	std::function<float(const FVector&)> HeightFunction, bool UseSkirt)
+	FVector Center, FVector2D Size, FIntVector2 Resolution, 
+	std::function<float (const FVector&)> HeightFunction,
+	std::function<FVector2D (const FVector&)> UvFunction,
+	bool UseSkirt)
 {
 	// Number of vertices (number of faces + 1)
 	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
@@ -19,27 +21,28 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	// Size of individual triangle
 	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
-	int StartIndex = 0;
-	if (UseSkirt) // With skirt, begin one row/column outside plane
-		StartIndex = -1;
-
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
 	for (int32 y = 0; y < NrOfVerts.Y; ++y)
 	{
 		for (int32 x = 0; x < NrOfVerts.X; ++x)
-		{
+		{ 
+			// Hacky: With skirt, begin one row/column outside plane
+			int StartIndex = UseSkirt ? -1 : 0;
+
 			FVector PlanePosition = FVector(
 				(x + StartIndex) * TriangleSize.X - Size.X / 2, (y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0f);
 			FVector LocalPosition = PlanePosition + Center;
+			FVector2D UvCord =
+				FVector2D(LocalPosition.X / Size.X + 0.5, LocalPosition.Y / Size.Y + 0.5);
 
-			// Call height function
-			float Height = HeightFunction(LocalPosition);
+			// Call HeightFunction callback
+			MeshDesc.Vertices[VertexIndex] =
+				LocalPosition + FVector::UpVector * HeightFunction(LocalPosition);
 
-			MeshDesc.Vertices[VertexIndex] = LocalPosition + FVector::UpVector * Height;
-			MeshDesc.UV0[VertexIndex] =
-				FVector2D(UvScale * LocalPosition.X, UvScale * LocalPosition.Y);
+			// Call UvFunction callback
+			MeshDesc.UV0[VertexIndex] = UvFunction(LocalPosition);
 
 			// Skip last row and column for triangles
 			if (x < NrOfVerts.X - 1 && y < NrOfVerts.Y - 1)

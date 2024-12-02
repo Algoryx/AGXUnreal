@@ -166,7 +166,7 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
 }
 
-float UAGX_MovableTerrainComponent::SampleHeights(FVector LocalPos) const
+float UAGX_MovableTerrainComponent::GetHeight(FVector LocalPos) const
 {
 	//Normalized/UVCoord,somewhere between: [0.0, 0.0] - [1.0, 1.0]
 	FVector2D UvCord = FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
@@ -181,6 +181,16 @@ float UAGX_MovableTerrainComponent::SampleHeights(FVector LocalPos) const
 		UvCord, SampleArray, GetTerrainResolution().X, GetTerrainResolution().Y);
 }
 
+FVector2D UAGX_MovableTerrainComponent::GetUV0(FVector LocalPos) const
+{
+	FVector2D Uvs = FVector2D(UvScaling.X * LocalPos.X, UvScaling.Y * LocalPos.Y);
+	if (bWorldUv)
+		return FVector2D(Uvs.X * 0.01, Uvs.Y * 0.01) + UvOffset;
+	else
+		return FVector2D(Uvs.X / Size.X, Uvs.Y / Size.Y) + UvOffset;
+}
+
+
 void UAGX_MovableTerrainComponent::InitializeMesh()
 {
 	if (CurrentHeights.Num() == 0 || GetTerrainResolution().X * GetTerrainResolution().Y !=
@@ -190,9 +200,6 @@ void UAGX_MovableTerrainComponent::InitializeMesh()
 	//Clear MeshSections and Meshtiles
 	ClearAllMeshSections();
 	MeshTiles.Reset();
-
-	// Height Function
-	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeights(LocalPos); };
 
 	// Create MeshTiles
 	FIntVector2 NrOfTiles;
@@ -232,6 +239,11 @@ void UAGX_MovableTerrainComponent::InitializeMesh()
 		}
 	}
 
+	
+	// HeightFieldMesh callbacks
+	auto HeightFunction = [&](const FVector& LocalPos) -> float { return GetHeight(LocalPos); };
+	auto UvFunction = [&](const FVector& LocalPos) -> FVector2D { return GetUV0(LocalPos); };
+
 	// Create MeshSections
 	for (auto& kvp : MeshTiles)
 	{
@@ -241,7 +253,7 @@ void UAGX_MovableTerrainComponent::InitializeMesh()
 
 		// Create mesh description
 		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-			TileCenter, Tile.Size, Tile.Resolution, UvScaling, HeightFunction, bTileSkirts && bEnableTiles);
+			TileCenter, Tile.Size, Tile.Resolution, HeightFunction, UvFunction, bTileSkirts && bEnableTiles);
 
 		bool IsCreateUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 
@@ -257,8 +269,9 @@ void UAGX_MovableTerrainComponent::InitializeMesh()
 void UAGX_MovableTerrainComponent::UpdateMesh(
 	const TArray<std::tuple<int32, int32>>& DirtyHeights)
 {
-	// Height Function
-	auto HeightFunction = [&](const FVector& LocalPos) -> float { return SampleHeights(LocalPos); };
+	// HeightFieldMesh callbacks
+	auto HeightFunction = [&](const FVector& LocalPos) -> float { return GetHeight(LocalPos); };
+	auto UvFunction = [&](const FVector& LocalPos) -> FVector2D { return GetUV0(LocalPos); };
 
 	// Update meshes
 	for (auto& kvp : MeshTiles)
@@ -286,7 +299,8 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 		// Create mesh description
 		FVector TileCenter = FVector(Tile.Center.X, Tile.Center.Y, ZOffset);
 		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-			TileCenter, Tile.Size, Tile.Resolution, UvScaling, HeightFunction,
+			TileCenter, Tile.Size, Tile.Resolution, HeightFunction,
+			UvFunction,
 			bTileSkirts && bEnableTiles);
 
 		// Update mesh section
