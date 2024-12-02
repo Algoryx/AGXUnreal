@@ -221,12 +221,10 @@ protected:
 	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	FVector2D UvOffset = FVector2D(0.0, 0.0);
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	FVector2D UvScaling = FVector2D(1.0, 1.0);
+	FVector2D UvScale = FVector2D(1.0, 1.0);
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bWorldUv = true;
+	bool bWorldSpaceUvs = true;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",

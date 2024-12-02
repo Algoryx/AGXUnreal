@@ -183,11 +183,10 @@ float UAGX_MovableTerrainComponent::GetHeight(FVector LocalPos) const
 
 FVector2D UAGX_MovableTerrainComponent::GetUV0(FVector LocalPos) const
 {
-	FVector2D Uvs = FVector2D(UvScaling.X * LocalPos.X, UvScaling.Y * LocalPos.Y);
-	if (bWorldUv)
-		return FVector2D(Uvs.X * 0.01, Uvs.Y * 0.01) + UvOffset;
+	if (bWorldSpaceUvs)
+		return FVector2D(UvScale.X * LocalPos.X / 100.0, UvScale.Y * LocalPos.Y / 100.0);
 	else
-		return FVector2D(Uvs.X / Size.X, Uvs.Y / Size.Y) + UvOffset;
+		return FVector2D(UvScale.X * (LocalPos.X / Size.X + 0.5), UvScale.Y * (LocalPos.Y / Size.Y + 0.5));
 }
 
 
