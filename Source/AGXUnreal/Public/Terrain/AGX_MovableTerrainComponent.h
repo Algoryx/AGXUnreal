@@ -279,7 +279,7 @@ private:
 	//UPROPERTY()
 	TArray<float> CurrentHeights;
 
-	//UPROPERTY()
+	UPROPERTY()
 	TArray<float> BedHeights;
 
 	TMap<int, MeshTile> MeshTiles;

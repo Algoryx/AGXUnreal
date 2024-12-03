@@ -354,14 +354,10 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 	else if (World->IsGameWorld())
 	{
 		// In-Game
-		
-		// Recreate Heights
-		InitializeHeights();
 
 		// Copy all CurrentHeights
 		if (HasNative())
 			NativeBarrier.GetHeights(CurrentHeights, false);
-		
 		
 		// Recreate Mesh
 		InitializeMesh();
