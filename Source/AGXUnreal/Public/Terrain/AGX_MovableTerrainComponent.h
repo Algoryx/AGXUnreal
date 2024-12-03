@@ -74,6 +74,19 @@ protected:
 	double ElementSize = 10;
 
 	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		Meta = (GetOptions = "GetBedShapesOptions"))
+	TArray<FName> BedShapes;
+	
+	UFUNCTION(CallInEditor)
+	TArray<FString> GetBedShapesOptions() const;
+
+	UPROPERTY(BlueprintReadWrite, Category = "AGX Terrain Shape", Meta = (ExposeOnSpawn))
+	TArray<UAGX_ShapeComponent*> BedShapeComponents;
+
+	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
+
+	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	float InitialHeight = 0.0f;
 
@@ -83,19 +96,6 @@ protected:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bInitialNoise"))
 	FAGX_BrownianNoiseParams InitialNoiseParams;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, 
-		Category = "AGX Terrain Shape", 
-		Meta = (GetOptions = "GetBedShapesOptions"))
-	TArray<FName> BedShapes;
-
-	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedShapesOptions() const;
-
-	UPROPERTY(BlueprintReadWrite, Category = "AGX Terrain Shape", Meta = (ExposeOnSpawn))
-	TArray<UAGX_ShapeComponent*> BedShapeComponents;
-
-	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
 
 	void UpdateMeshOnPropertyChanged();
 
@@ -221,32 +221,27 @@ protected:
 	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	FVector2D UvScale = FVector2D(1.0, 1.0);
+	bool bWorldSpaceUvs = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bWorldSpaceUvs = true;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering")
+	FVector2D UvScale = FVector2D(1.0, 1.0);
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "1.5", UIMax = "1.5"))
-	float ResolutionScaling = 0.5f;
+	float MeshQuality = 1.0f;
 
+	UPROPERTY()
+	bool bMeshTiles = true;
+	UPROPERTY()
+	int MeshTileResolution = 10;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableTiles = true;
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (ClampMin = "2", UIMin = "2", ClampMax = "32", UIMax = "32",
-			EditCondition = "bEnableTiles"))
-	int TileResolution = 10;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableTiles"))
-	bool bTileSkirts = true;
+	UPROPERTY()
+	bool bMeshTileSkirts = true;
 	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool ClampToBorders = true;
+	bool ClampEdges = true;
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	double ZOffset = -0.5;
 	/** Whether soil particles should be rendered or not. */
@@ -290,7 +285,8 @@ private:
 	void InitializeHeights();
 
 	float GetHeight(FVector LocalPos) const;
-	FVector2D GetUV0(FVector LocalPos) const;
+	FVector2D GetUV(FVector LocalPos) const;
+	FVector2D GetRepeatingUV(FVector LocalPos) const;
 
 	void InitializeMesh();
 	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
