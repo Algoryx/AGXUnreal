@@ -75,7 +75,7 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	// Move skirt vertices downwards
 	if (UseSkirt)
 	{
-		float SkirtOffset = Size.Length() * 0.025f;
+		float SkirtOffset = 1.0f;
 		VertexIndex = 0;
 		for (int32 y = 0; y < NrOfVerts.Y; ++y)
 		{
