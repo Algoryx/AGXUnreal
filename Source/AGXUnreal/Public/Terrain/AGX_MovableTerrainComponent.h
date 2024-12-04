@@ -75,7 +75,10 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	float InitialHeight = 0.0f;
+	float BaseHeight = 0.0f;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
+	float PaddedHeight = 0.0f;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	bool bUseInitialNoise = false;
@@ -95,9 +98,9 @@ protected:
 	TArray<FString> GetBedShapesOptions() const;
 
 	UPROPERTY(BlueprintReadWrite, Category = "AGX Terrain Shape", Meta = (ExposeOnSpawn))
-	TArray<UAGX_ShapeComponent*> BedShapeComponents;
+	TArray<UMeshComponent*> BedShapeComponents;
 
-	TArray<UAGX_ShapeComponent*> GetBedShapes() const;
+	TArray<UMeshComponent*> GetBedShapes() const;
 
 	void UpdateMeshOnPropertyChanged();
 

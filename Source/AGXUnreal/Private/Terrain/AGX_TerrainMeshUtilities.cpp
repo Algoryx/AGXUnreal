@@ -149,26 +149,6 @@ float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	return FMath::Pow(Total, Exp);
 }
 
-float UAGX_TerrainMeshUtilities::GetLineTracedHeight(
-	const FVector& Pos, const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents, const FVector& Up,
-	const float MaxHeight)
-{
-	float BedHeight = 0.0f;
-	FVector Start = Pos + Up * MaxHeight;
-	FVector Stop = Pos;
-
-	FHitResult OutHit;
-
-	if (UAGX_SimpleMeshComponent::LineTraceMeshes(OutHit, Start, Stop, SimpleMeshComponents) &&
-		MaxHeight - OutHit.Distance > 0)
-	{
-		BedHeight = MaxHeight - OutHit.Distance;
-	}
-
-
-	return BedHeight;
-}
-
 void UAGX_TerrainMeshUtilities::AddNoiseHeights(
 	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
 	const FAGX_BrownianNoiseParams& NoiseParams)
@@ -196,24 +176,54 @@ void UAGX_TerrainMeshUtilities::AddNoiseHeights(
 	}
 }
 
-void UAGX_TerrainMeshUtilities::AddBedHeights(
+void UAGX_TerrainMeshUtilities::SetBedHeights(
 	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
-	const TArray<UAGX_SimpleMeshComponent*>& BedMeshes, const float MaxHeight)
+	const TArray<UMeshComponent*>& BedMeshes, const float MaxHeight)
 {
 	FVector Up = Transform.GetRotation().GetUpVector();
 	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
 
-	for (int y = 0; y < Res.Y; y++)
+	for (auto& MeshComponent : BedMeshes)
 	{
-		for (int x = 0; x < Res.X; x++)
+		if (UAGX_SimpleMeshComponent* ShapeComponent =
+				Cast<UAGX_SimpleMeshComponent>(MeshComponent))
 		{
-			FVector Pos =
-				Transform.TransformPosition(
-				Center + FVector(x * ElementSize, y * ElementSize, 0));
-			float BedHeight = GetLineTracedHeight(Pos, BedMeshes, Up, MaxHeight);
-
-			Heights[y * Res.X + x] += BedHeight;
+			FHitResult OutHit;
+			for (int y = 0; y < Res.Y; y++)
+			{
+				for (int x = 0; x < Res.X; x++)
+				{
+					FVector Stop = Transform.TransformPosition(
+						Center + FVector(x * ElementSize, y * ElementSize, 0));
+					FVector Start = Stop + Up * MaxHeight;
+					if (ShapeComponent->LineTraceMesh(OutHit, Start, Stop))
+					{
+						Heights[y * Res.X + x] =
+							FMath::Max(MaxHeight - OutHit.Distance, Heights[y * Res.X + x]);
+					}
+				}
+			}
+		}
+		else
+		{
+			FHitResult OutHit;
+			FCollisionQueryParams Params;
+			for (int y = 0; y < Res.Y; y++)
+			{
+				for (int x = 0; x < Res.X; x++)
+				{
+					FVector Stop = Transform.TransformPosition(
+						Center + FVector(x * ElementSize, y * ElementSize, 0));
+					FVector Start = Stop + Up * MaxHeight;
+					if (MeshComponent->LineTraceComponent(OutHit, Start, Stop, Params))
+					{
+						Heights[y * Res.X + x] =
+							FMath::Max(MaxHeight - OutHit.Distance, Heights[y * Res.X + x]);
+					}
+				}
+			}
 		}
 	}
 }
+
 

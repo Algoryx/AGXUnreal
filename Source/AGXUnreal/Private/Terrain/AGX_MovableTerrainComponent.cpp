@@ -136,34 +136,46 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 	if (Res.X * Res.Y <= 0)
 		return;
 
-	// BedHeights
+	// Reset 
 	BedHeights.Reset();
 	BedHeights.SetNumZeroed(Res.X * Res.Y);
-	if (bUseBedShapes && GetBedShapes().Num() > 0)
-	{
-		TArray<UAGX_SimpleMeshComponent*> BedMeshes =
-			FAGX_ObjectUtilities::Filter<UAGX_SimpleMeshComponent>(GetBedShapes());
-		UAGX_TerrainMeshUtilities::AddBedHeights(
-			BedHeights, Res, ElementSize, GetComponentTransform(), BedMeshes);
-	}
-
-	// CurrentHeights
 	CurrentHeights.Reset();
 	CurrentHeights.SetNumZeroed(Res.X * Res.Y);
+
+	// Set CurrentHeights to BaseHeight
+	if (BaseHeight > 0)
+	{
+		for (float& h : CurrentHeights)
+			h = BaseHeight;
+	}
+
+	// Set BedHeights
+	auto BedMeshComponents = GetBedShapes();
+	if (bUseBedShapes && BedMeshComponents.Num() > 0)
+	{
+		UAGX_TerrainMeshUtilities::SetBedHeights(
+			BedHeights, Res, ElementSize, GetComponentTransform(), BedMeshComponents);
+	}
+
+	// Clamp CurrentHeights to BedHeights
+	for (int i = 0; i < CurrentHeights.Num(); i++)
+		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
+
+	if (PaddedHeight > 0)
+	{
+		for (float& h : CurrentHeights)
+			h += PaddedHeight;
+	}
+
+	//Add Noise to CurrentHeights
 	if (bUseInitialNoise)
 	{
 		UAGX_TerrainMeshUtilities::AddNoiseHeights(
 			CurrentHeights, Res, ElementSize, GetComponentTransform(), InitialNoise);
+		// Clamp CurrentHeights to BedHeights
+		for (int i = 0; i < CurrentHeights.Num(); i++)
+			CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
 	}
-	if (InitialHeight > 0)
-	{
-		for (float& h : CurrentHeights)
-			h += InitialHeight;
-	}
-
-	// Put BedHeights in CurrentHeights
-	for (int i = 0; i < CurrentHeights.Num(); i++)
-		CurrentHeights[i] = FMath::Max(CurrentHeights[i], BedHeights[i]);
 }
 
 float UAGX_MovableTerrainComponent::GetHeight(FVector LocalPos) const
@@ -322,25 +334,19 @@ void UAGX_MovableTerrainComponent::UpdateMesh(
 
 void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 {
-	//Hacky: This bool is used to force an update of the mesh in-editor
+	// Hacky: This bool is used to force an update of the mesh in-editor
 	bRebuildMesh = false;
 
 	UWorld* World = GetWorld();
-
-	if (World == nullptr || !IsValid(World))
-		return;
-
-	if (!World->IsGameWorld() && !IsTemplate())
+	// In-Editor
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
-		// In-Editor
-		
-
-		// Postpone the initialization until the next tick
-		// because all properties are not copied yet
+		// In-Editor: Postpone the initialization for the next tick because all properties are not
+		// copied yet
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
-				if (!IsValid(World) || !IsValid(this))
+				if (!IsValid(World))
 					return;
 
 				// Recreate Heights
@@ -348,17 +354,15 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 
 				// Recreate Mesh
 				InitializeMesh();
-
 			});
 	}
-	else if (World->IsGameWorld())
+	// In-Game
+	else if (IsValid(World) && World->IsGameWorld() && !IsTemplate())
 	{
-		// In-Game
-
-		// Copy all CurrentHeights
+		// Copy CurrentHeights from Native
 		if (HasNative())
 			NativeBarrier.GetHeights(CurrentHeights, false);
-		
+
 		// Recreate Mesh
 		InitializeMesh();
 	}
@@ -368,6 +372,7 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
 	Super::PostEditChangeChainProperty(Event);
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
 
 	// TODO: Only UpdateMesh on certain Property changes
 	UpdateMeshOnPropertyChanged();
@@ -376,7 +381,7 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
-
+	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
 	// TODO: Only UpdateMesh on certain Property changes
 	UpdateMeshOnPropertyChanged();
 }
@@ -409,13 +414,13 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 	}
 }
 
-TArray<UAGX_ShapeComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
+TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 {
-	TArray<UAGX_ShapeComponent*> Shapes;
+	TArray<UMeshComponent*> Shapes;
 	if (GetOwner() != nullptr)
 	{
-		for (UAGX_ShapeComponent* ShapeComponent :
-			 FAGX_ObjectUtilities::Filter<UAGX_ShapeComponent>(GetOwner()->GetComponents()))
+		for (UMeshComponent* ShapeComponent :
+			 FAGX_ObjectUtilities::Filter<UMeshComponent>(GetOwner()->GetComponents()))
 		{
 			if (BedShapes.Contains(ShapeComponent->GetFName()))
 				Shapes.Add(ShapeComponent);
@@ -431,7 +436,7 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
 	TArray<FString> Options;
 	for (FName Name :
-		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UAGX_ShapeComponent>(GetOuter()))
+		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
 		if (!BedShapes.Contains(Name) && this->GetName() != Name.ToString())
 			Options.Add(Name.ToString());

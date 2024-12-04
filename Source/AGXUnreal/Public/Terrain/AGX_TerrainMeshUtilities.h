@@ -76,17 +76,14 @@ public:
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
 		float Exp);
 
-	static float GetLineTracedHeight(
-		const FVector& Pos, const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents,
-		const FVector& Up = FVector::UpVector, const float MaxHeight = 1000.0f);
-
 	static void AddNoiseHeights(
 		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
 		const FTransform Transform, const FAGX_BrownianNoiseParams& NoiseParams);
 
-	static void AddBedHeights(
+
+	static void SetBedHeights(
 		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
-		const FTransform Transform, const TArray<UAGX_SimpleMeshComponent*>& BedMeshes,
+		const FTransform Transform, const TArray<UMeshComponent*>& BedMeshes,
 		const float MaxHeight = 1000.0f);
 
 

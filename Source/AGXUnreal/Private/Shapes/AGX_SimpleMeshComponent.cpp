@@ -448,15 +448,8 @@ FBoxSphereBounds UAGX_SimpleMeshComponent::CalcBounds(const FTransform& LocalToW
 
 bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop)
 {
-	if (GetWorld() && GetWorld()->IsGameWorld())
+	if (MeshData.Get())
 	{
-		// In-Game, use UMeshComponent's built-in LineTrace
-		FCollisionQueryParams Params;
-		return LineTraceComponent(OutHit, Start, Stop, Params);
-	}
-	else if (MeshData.Get())
-	{
-		// In-Editor
 		auto& Data = *MeshData.Get();
 		return AGX_MeshUtilities::LineTraceMesh<FVector3f, uint32>(
 			OutHit, Start, Stop, GetComponentTransform(), Data.Vertices, Data.Indices);
@@ -465,26 +458,4 @@ bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, 
 	{
 		return false;
 	}
-}
-
-bool UAGX_SimpleMeshComponent::LineTraceMeshes(
-	FHitResult& OutHit, FVector Start, FVector Stop,
-	const TArray<UAGX_SimpleMeshComponent*>& SimpleMeshComponents)
-{
-	FHitResult TempOutHit;
-	float ClosestDistance = std::numeric_limits<float>::max();
-	bool IsHit = false;
-
-	for (auto SimpleMesh : SimpleMeshComponents)
-	{
-		if (SimpleMesh->LineTraceMesh(TempOutHit, Start, Stop) &&
-			TempOutHit.Distance < ClosestDistance)
-		{
-			OutHit = TempOutHit;
-			ClosestDistance = TempOutHit.Distance;
-			IsHit = true;
-		}
-	}
-
-	return IsHit;
 }
