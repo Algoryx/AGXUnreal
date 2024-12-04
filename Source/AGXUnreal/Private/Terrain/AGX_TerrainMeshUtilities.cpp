@@ -188,6 +188,7 @@ void UAGX_TerrainMeshUtilities::SetBedHeights(
 		if (UAGX_SimpleMeshComponent* ShapeComponent =
 				Cast<UAGX_SimpleMeshComponent>(MeshComponent))
 		{
+			// UAGX_SimpleMeshComponent:
 			FHitResult OutHit;
 			for (int y = 0; y < Res.Y; y++)
 			{
@@ -206,6 +207,7 @@ void UAGX_TerrainMeshUtilities::SetBedHeights(
 		}
 		else
 		{
+			// UMeshComponents:
 			FHitResult OutHit;
 			FCollisionQueryParams Params;
 			for (int y = 0; y < Res.Y; y++)

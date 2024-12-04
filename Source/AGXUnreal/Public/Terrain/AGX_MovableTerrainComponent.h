@@ -80,11 +80,13 @@ protected:
 		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	float PaddedHeight = 0.0f;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	bool bUseInitialNoise = false;
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", meta = (EditCondition = "bUseInitialNoise"))
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
+		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
 	FAGX_BrownianNoiseParams InitialNoise;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
@@ -222,7 +224,7 @@ protected:
 
 protected:
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Rendering")
 	UMaterialInterface* Material;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")

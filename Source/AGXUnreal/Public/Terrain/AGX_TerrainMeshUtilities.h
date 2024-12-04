@@ -15,17 +15,17 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Height = 50.0f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Scale = 100;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	int Octaves = 3;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Persistance = 0.5f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Lacunarity = 2.0f;
-	UPROPERTY(EditAnywhere, Category = "AGX Procedural")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Exp = 2.0f;
 };
 
