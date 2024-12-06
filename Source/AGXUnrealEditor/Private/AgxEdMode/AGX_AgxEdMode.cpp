@@ -7,7 +7,9 @@
 #include "AgxEdMode/AGX_AgxEdModeFile.h"
 #include "AgxEdMode/AGX_AgxEdModeTerrain.h"
 #include "AgxEdMode/AGX_AgxEdModeToolkit.h"
+#include "AgxEdMode/AGX_GrabMode.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
 #include "EditorModeManager.h"
@@ -32,6 +34,10 @@ FAGX_AgxEdMode::~FAGX_AgxEdMode()
 void FAGX_AgxEdMode::Enter()
 {
 	FEdMode::Enter();
+
+	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
+	if (World != nullptr && World->IsGameWorld())
+		FAGX_GrabMode::Activate();
 
 	if (!Toolkit.IsValid() && UsesToolkits())
 	{
