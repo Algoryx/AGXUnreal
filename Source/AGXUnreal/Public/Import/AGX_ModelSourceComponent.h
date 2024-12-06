@@ -5,6 +5,7 @@
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
+#include "Import/AGX_ImportEnums.h"
 
 #include "AGX_ModelSourceComponent.generated.h"
 

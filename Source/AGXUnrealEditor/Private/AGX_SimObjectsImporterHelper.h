@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
+#include "Import/AGX_ImportEnums.h"
 #include "Utilities/AGX_ImportUtilities.h"
 
 // Unreal Engine includes.
@@ -57,6 +57,7 @@ class UAGX_TrackProperties;
 class UAGX_TrimeshShapeComponent;
 class UAGX_TwoBodyTireComponent;
 class UAGX_WireComponent;
+class UPLX_SignalHandlerComponent;
 
 // Unreal Engine classes.
 class AActor;
@@ -226,6 +227,10 @@ public:
 	void UpdateObserverFrameComponent(
 		const FString& Name, const FGuid& ObserverGuid, const FTransform& Transform,
 		UAGX_ObserverFrameComponent& Component, bool ForceOverwriteInstances);
+
+	UPLX_SignalHandlerComponent* InstantiateSignalHandlerComponent(AActor& Owner);
+
+	void UpdateSignalHandlerComponent(UPLX_SignalHandlerComponent& Component);
 
 	UAGX_RigidBodyComponent* GetBody(
 		const FRigidBodyBarrier& Barrier, bool LogErrorIfNotFound = true);

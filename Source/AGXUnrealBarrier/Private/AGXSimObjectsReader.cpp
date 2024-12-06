@@ -13,6 +13,10 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationObjectCollection.h"
 #include "TypeConversions.h"
+#include "Utilities/PLXUtilities.h"
+
+// OpenPLX includes.
+#include "OpenPLX/agx-openplx/OpenPlxToAgxMapper.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -28,6 +32,8 @@
 #include <agx/Prismatic.h>
 #include <agx/RigidBody.h>
 #include <agx/version.h>
+
+
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
 // conflicts with a macro with the same name in Unreal. Undeffing the Unreal one.
@@ -46,6 +52,9 @@
 #include <agxWire/Wire.h>
 #include <agxVehicle/Track.h>
 #include "EndAGXIncludes.h"
+
+// Unreal Engine inludes.
+#include "Misc/Paths.h"
 
 namespace
 {
@@ -591,9 +600,9 @@ bool FAGXSimObjectsReader::ReadAGXArchive(
 	return true;
 }
 
-AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
-	const FString& UrdfFilePath, const FString& UrdfPackagePath,
-	const TArray<double>& InInitJoints,	FSimulationObjectCollection& OutSimObjects)
+bool FAGXSimObjectsReader::ReadUrdf(
+	const FString& UrdfFilePath, const FString& UrdfPackagePath, const TArray<double>& InInitJoints,
+	FSimulationObjectCollection& OutSimObjects)
 {
 	agx::RealVector* InitJointsPtr = nullptr;
 	agx::RealVector InitJoints;
@@ -622,6 +631,36 @@ AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 	Simulation->add(Model);
 	::ReadAll(*Simulation, UrdfFilePath, OutSimObjects);
+
+	return true;
+}
+
+bool FAGXSimObjectsReader::ReadOpenPLXFile(
+	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
+{
+	std::shared_ptr<agxopenplx::AgxCache> AGXCache;
+	openplx::Core::ObjectPtr PLXModel = FPLXUtilities::LoadModel(Filename, AGXCache);
+	if (PLXModel == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Could not read OpenPLX file '%s'. The Log category LogAGXDynamics may include more "
+				 "details."),
+			*Filename);
+		return false;
+	}
+
+	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
+	agxopenplx::OpenPlxToAgxMapper Mapper(Simulation, Convert(Filename), AGXCache);
+	agxSDK::AssemblyRef AssemblyAGX = Mapper.mapObject(PLXModel);
+
+	Simulation->add(AssemblyAGX);
+	::ReadAll(*Simulation, Filename, OutSimObjects);
+
+	// Read PLX inputs.
+	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(PLXModel);
+	OutSimObjects.GetPLXInputs() = FPLXUtilities::GetInputs(System.get());
+	OutSimObjects.GetPLXOutputs() = FPLXUtilities::GetOutputs(System.get());
 
 	return true;
 }

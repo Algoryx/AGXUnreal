@@ -56,6 +56,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// libraries.
 		AGX,
 
+		/// OpenPLX libraries location.
+		OpenPLX,
+
 		/// The configuration part of AGX Dynamics. Contains generated header
 		/// files for things such as version and CMake settings. Does not
 		/// contain any libraries or runtime files.
@@ -82,7 +85,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		/// Points to AGX Dynamics external resources.
 		External
-  };
+	};
 
 	/// A carrier for the paths associated with a LibSource.
 	///
@@ -242,11 +245,48 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxROS2", LibSource.AGX);
 		LinkLibFiles.Add("agx-nt-ros2", LibSource.AGX);
 
+		// OpenPLX
+		LinkLibFiles.Add("fmt", LibSource.OpenPLX);
+		LinkLibFiles.Add("libsodium", LibSource.OpenPLX);
+		LinkLibFiles.Add("spdlog", LibSource.OpenPLX);
+		LinkLibFiles.Add("agx-openplx.api", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.analysis", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.bundle", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.core.api", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.error", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.eval", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.generate", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.internal", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.nodes", LibSource.OpenPLX);
+		LinkLibFiles.Add("agx-openplx.osg", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.parser", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplx.runtime", LibSource.OpenPLX);
+		LinkLibFiles.Add("DriveTrain", LibSource.OpenPLX);
+		LinkLibFiles.Add("Math", LibSource.OpenPLX);
+		LinkLibFiles.Add("Physics", LibSource.OpenPLX);
+		LinkLibFiles.Add("Physics1D", LibSource.OpenPLX);
+		LinkLibFiles.Add("Physics3D", LibSource.OpenPLX);
+		LinkLibFiles.Add("Robotics", LibSource.OpenPLX);
+		LinkLibFiles.Add("Simulation", LibSource.OpenPLX);
+		LinkLibFiles.Add("Terrain", LibSource.OpenPLX);
+		LinkLibFiles.Add("Urdf", LibSource.OpenPLX);
+		LinkLibFiles.Add("Vehicles", LibSource.OpenPLX);
+		LinkLibFiles.Add("Visuals", LibSource.OpenPLX);
+		LinkLibFiles.Add("openplxurdfplugin", LibSource.OpenPLX);
+		LinkLibFiles.Add("urdfdom_model", LibSource.OpenPLX);
+		LinkLibFiles.Add("urdfdom_model_state", LibSource.OpenPLX);
+		LinkLibFiles.Add("urdfdom_world", LibSource.OpenPLX);
+		LinkLibFiles.Add("urdfdom_sensor", LibSource.OpenPLX);
+		LinkLibFiles.Add("console_bridge", LibSource.OpenPLX);
+		LinkLibFiles.Add("tinyxml", LibSource.OpenPLX);
+		LinkLibFiles.Add("hash-library", LibSource.OpenPLX);
+
 		// List of the include directories from aGX Dynamics and its
 		// dependenciesthat we need. These will be added to the Unreal Engine
 		// PublicIncludePaths.
 		List<LibSource> IncludePaths = new List<LibSource>();
 		IncludePaths.Add(LibSource.AGX);
+		IncludePaths.Add(LibSource.OpenPLX);
 
 		// OS specific dependencies.
 		if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -332,6 +372,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "plugins", "*"));
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "include", "*"));
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "lib", "*"));
+		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "openplx", "*"));
 		SetLicenseForCopySafe(Target);
 
 		// This is a work-around for Linux which ensures that the .so files are
@@ -385,6 +426,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		foreach (string FilePath in FilesToAdd)
 		{
+			Console.WriteLine(FilePath);
 			PublicAdditionalLibraries.Add(FilePath);
 		}
 	}
@@ -504,7 +546,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		return Directory.Exists(GetBundledAGXResourcesPath());
 	}
 
-
 	private void BundleAGXResources(ReadOnlyTargetRules Target, Dictionary<string, LibSource> RuntimeLibFiles,
 		Dictionary<string, LibSource> LinkLibFiles, List<LibSource> IncludePaths)
 	{
@@ -577,70 +618,15 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 		}
 
-		// Copy AGX Dynamics header files.
+		// Copy header files.
 		foreach (var IncludePath in IncludePaths)
 		{
 			string Source = InstalledAGXResources.IncludePath(IncludePath);
 			string Dest = BundledAGXResources.IncludePath(IncludePath);
-
-			// Directories to include containing header files.
-			List<string> HeaderFileDirs = new List<string>
+			if (!CopyDirectoryRecursively(Source, Dest))
 			{
-				"agx",
-				"agxCable",
-				"agxCollide",
-				"agxControl",
-				"agxData",
-				"agxDriveTrain",
-				"agxHydraulics",
-				"agxIO",
-				"agxModel",
-				"agxNet",
-				"agxPlot",
-				"agxPowerLine",
-				"agxRender",
-				"agxSabre",
-				"agxSensor",
-				"agxSDK",
-				"agxStream",
-				"agxTerrain",
-				"agxUtil",
-				"agxVehicle",
-				"agxWire",
-				"agxROS2",
-				"agx-nt-ros2",
-				Path.Combine("external", "hedley"),
-				Path.Combine("external", "json"),
-				Path.Combine("external", "pystring")
-			};
-
-			if (InstalledAGXResources.GetAGXVersion().IsNewerOrEqualTo(2, 32, 0, 0))
-			{
-				HeaderFileDirs.Add(Path.Combine("external", "GIMPACT"));
-			}
-
-			// Single header files to include.
-			List<string> HeaderFiles = new List<string>
-			{
-				"HashImplementationSwitcher.h"
-			};
-
-			foreach (var Dir in HeaderFileDirs)
-			{
-				if (!CopyDirectoryRecursively(Path.Combine(Source, Dir), Path.Combine(Dest, Dir)))
-				{
-					CleanBundledAGXDynamicsResources();
-					return;
-				}
-			}
-
-			foreach (var File in HeaderFiles)
-			{
-				if (!CopyFile(Path.Combine(Source, File), Path.Combine(Dest, File)))
-				{
-					CleanBundledAGXDynamicsResources();
-					return;
-				}
+				CleanBundledAGXDynamicsResources();
+				return;
 			}
 		}
 
@@ -744,6 +730,20 @@ public class AGXDynamicsLibrary : ModuleRules
 				return;
 			}
 			if (!WebCopyer.CopyFile(Path.Combine("lib", "external", "jQuery", "jquery-ui-1.8.18.custom.min.js")))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy OpenPLX resources
+		{
+			string OpenPLXDirSource = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.OpenPLX, true);
+			string OpenPLXDirDest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.OpenPLX, true);
+			string BundlesDirSource = Path.Combine(OpenPLXDirSource, "openplxbundles");
+			string BundlesDirDest = Path.Combine(OpenPLXDirDest, "openplxbundles");
+
+			if (!CopyDirectoryRecursively(BundlesDirSource, BundlesDirDest))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -1435,6 +1435,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		private void InitializeWindowsInstalledAGX()
 		{
 			string BaseDir = Environment.GetEnvironmentVariable("AGX_DIR");
+			string OpenPLXDir = Path.GetFullPath(Path.Combine(BaseDir, "..", "openplx"));
 			string PluginDir = Environment.GetEnvironmentVariable("AGX_PLUGIN_PATH");
 			string DataDir = Environment.GetEnvironmentVariable("AGX_DATA_DIR");
 
@@ -1444,6 +1445,11 @@ public class AGXDynamicsLibrary : ModuleRules
 				Path.Combine(BaseDir, "include"),
 				Path.Combine(BaseDir, "lib", "x64"),
 				Path.Combine(BaseDir, "bin", "x64")
+			));
+			LibSources.Add(LibSource.OpenPLX, new LibSourceInfo(
+				Path.Combine(OpenPLXDir, "include"),
+				Path.Combine(OpenPLXDir, "lib"),
+				OpenPLXDir
 			));
 			LibSources.Add(LibSource.Config, new LibSourceInfo(
 				null, null, null
@@ -1486,6 +1492,11 @@ public class AGXDynamicsLibrary : ModuleRules
 				Path.Combine(BaseDir, "include"),
 				Path.Combine(BaseDir, "lib", "Win64"),
 				Path.Combine(BaseDir, "bin", "Win64")
+			));
+			LibSources.Add(LibSource.OpenPLX, new LibSourceInfo(
+				Path.Combine(BaseDir, "include", "OpenPLX"),
+				Path.Combine(BaseDir, "lib", "Win64"),
+				BaseDir
 			));
 			LibSources.Add(LibSource.Config, new LibSourceInfo(
 				null, null, null

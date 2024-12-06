@@ -27,7 +27,7 @@
 #include "AGX_RigidBodyReference.h"
 #include "AGX_Real.h"
 #include "AGX_RealDetails.h"
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "AGX_ModelSourceComponentCustomization.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"

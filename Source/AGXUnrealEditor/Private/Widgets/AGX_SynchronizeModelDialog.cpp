@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
@@ -16,7 +17,7 @@
 
 void SAGX_SynchronizeModelDialog::Construct(const FArguments& InArgs)
 {
-	FileTypes = ".agx";
+	FileTypes = ".agx;*.openplx";
 	ImportType = EAGX_ImportType::Agx;
 
 	// clang-format off
@@ -84,6 +85,7 @@ TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchron
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
 	Settings.bForceOverwriteProperties = bForceOverwriteProperties;
 	Settings.bForceReassignRenderMaterials = bForceReassignRenderMaterials;
+	Settings.ImportType = FAGX_ImportUtilities::GetFrom(FilePath);
 	return Settings;
 }
 
