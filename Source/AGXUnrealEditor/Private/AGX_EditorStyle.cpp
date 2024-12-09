@@ -96,8 +96,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(JointIconSmall, new IMAGE_BRUSH("Icons/constraint_32x32", IconSize32));
 	Style->Set(FileIcon, new IMAGE_BRUSH("Icons/file_64x64", IconSize64));
 	Style->Set(FileIconSmall, new IMAGE_BRUSH("Icons/file_32x32", IconSize32));
-	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/Terrain_64x64", IconSize64));
-	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/Terrain_32x32", IconSize32));
+	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/terrain_64x64", IconSize64));
+	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/terrain_32x32", IconSize32));
 	Style->Set(LicenseKeyIcon, new IMAGE_BRUSH("Icons/license_key_16x16", IconSize16));
 
 	// Component icons, visible in the Components list/hierarchy of an Actor and in the Add
@@ -206,6 +206,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/terrain_32x32", IconSize16));
 	// Track.
 	Style->Set("ClassIcon.AGX_TrackComponent", new IMAGE_BRUSH("Icons/track_32x32", IconSize16));
 	Style->Set(
