@@ -377,7 +377,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	RayAngleNoiseSettings = Source.RayAngleNoiseSettings;
 }
 
-#if WITH_EDITOR
 void UAGX_LidarSensorComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -407,6 +406,19 @@ void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)
 	Super::DestroyComponent(bPromoteChildren);
 }
 
+TStructOnScope<FActorComponentInstanceData> UAGX_LidarSensorComponent::GetComponentInstanceData()
+	const
+{
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+		this, this,
+		[](UActorComponent* Component)
+		{
+			ThisClass* AsThisClass = Cast<ThisClass>(Component);
+			return static_cast<IAGX_NativeOwner*>(AsThisClass);
+		});
+}
+
+#if WITH_EDITOR
 bool UAGX_LidarSensorComponent::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
@@ -435,18 +447,6 @@ bool UAGX_LidarSensorComponent::CanEditChange(const FProperty* InProperty) const
 	}
 
 	return SuperCanEditChange;
-}
-
-TStructOnScope<FActorComponentInstanceData> UAGX_LidarSensorComponent::GetComponentInstanceData()
-	const
-{
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
-		this, this,
-		[](UActorComponent* Component)
-		{
-			ThisClass* AsThisClass = Cast<ThisClass>(Component);
-			return static_cast<IAGX_NativeOwner*>(AsThisClass);
-		});
 }
 
 void UAGX_LidarSensorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)

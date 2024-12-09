@@ -3,6 +3,7 @@
 #include "Sensors/RtLambertianOpaqueMaterialBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "Sensors/SensorRef.h"
 
 FRtLambertianOpaqueMaterialBarrier::FRtLambertianOpaqueMaterialBarrier()
@@ -35,7 +36,8 @@ void FRtLambertianOpaqueMaterialBarrier::AllocateNative()
 
 bool FRtLambertianOpaqueMaterialBarrier::HasNative() const
 {
-	return Native->Native != nullptr && Native->Native->isValid();
+	AGX_CHECK(Native != nullptr);
+	return Native != nullptr && Native->Native != nullptr && Native->Native->isValid();
 }
 
 FRtLambertianOpaqueMaterial* FRtLambertianOpaqueMaterialBarrier::GetNative()
@@ -52,5 +54,5 @@ const FRtLambertianOpaqueMaterial* FRtLambertianOpaqueMaterialBarrier::GetNative
 
 void FRtLambertianOpaqueMaterialBarrier::ReleaseNative()
 {
-	Native = nullptr;
+	Native->Native = nullptr;
 }

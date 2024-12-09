@@ -56,6 +56,20 @@ const FRtLambertianOpaqueMaterialBarrier* UAGX_LidarLambertianOpaqueMaterial::Ge
 	return HasNative() ? &NativeBarrier : nullptr;
 }
 
+void UAGX_LidarLambertianOpaqueMaterial::ReleaseNative()
+{
+	if (Instance != nullptr)
+	{
+		Instance->ReleaseNative();
+		return;
+	}
+
+	if (HasNative())
+	{
+		GetNative()->ReleaseNative();
+	}
+}
+
 void UAGX_LidarLambertianOpaqueMaterial::CommitToAsset()
 {
 	if (IsInstance())

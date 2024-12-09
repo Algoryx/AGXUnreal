@@ -121,6 +121,15 @@ void UAGX_LidarSurfaceMaterialComponent::BeginPlay()
 	AssignMaterial();
 }
 
+void UAGX_LidarSurfaceMaterialComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	if (LidarSurfaceMaterial != nullptr && LidarSurfaceMaterial->HasNative())
+	{
+		LidarSurfaceMaterial->ReleaseNative();
+	}
+}
+
 void UAGX_LidarSurfaceMaterialComponent::UpdateMaterial()
 {
 	if (LidarSurfaceMaterial == nullptr)

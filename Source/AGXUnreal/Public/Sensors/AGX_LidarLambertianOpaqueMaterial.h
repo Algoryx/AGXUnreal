@@ -34,9 +34,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	float GetReflectivity() const;
 
-	bool HasNative() const;
+	virtual bool HasNative() const override;
 	FRtLambertianOpaqueMaterialBarrier* GetNative();
 	const FRtLambertianOpaqueMaterialBarrier* GetNative() const;
+	virtual void ReleaseNative() override;
 
 	void CommitToAsset();
 

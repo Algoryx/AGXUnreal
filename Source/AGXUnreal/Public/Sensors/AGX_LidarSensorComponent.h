@@ -285,20 +285,22 @@ public:
 
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
 
-#if WITH_EDITOR
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
-	virtual bool CanEditChange(const FProperty* InProperty) const override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
 	//~ End UActorComponent Interface
 
 	//~ Begin UObject interface.
+#if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	virtual void PostInitProperties() override;
-	//~ End UObject interface.
 #endif
+	//~ End UObject interface.
 
 	friend class FAGX_CustomPatternFetcher;
 

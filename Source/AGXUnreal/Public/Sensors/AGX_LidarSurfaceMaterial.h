@@ -19,4 +19,7 @@ class AGXUNREAL_API UAGX_LidarSurfaceMaterial : public UObject
 public:
 	virtual UAGX_LidarSurfaceMaterial* GetOrCreateInstance(UWorld* PlayingWorld)
 		PURE_VIRTUAL(UAGX_LidarSurfaceMaterial::GetOrCreateInstance, return nullptr;);
+
+	virtual bool HasNative() const PURE_VIRTUAL(UAGX_LidarSurfaceMaterial::HasNative, return false;);
+	virtual void ReleaseNative() PURE_VIRTUAL(UAGX_LidarSurfaceMaterial::ReleaseNative,);
 };

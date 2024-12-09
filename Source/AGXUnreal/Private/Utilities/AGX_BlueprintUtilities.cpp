@@ -135,6 +135,10 @@ FTransform FAGX_BlueprintUtilities::GetTemplateComponentWorldTransform(
 	{
 		return FTransform::Identity;
 	}
+	else if (ComponentNode->IsRootNode())
+	{
+		return FTransform::Identity;
+	}
 
 	// Build a chain of USCS_Nodes starting from root and going down to the Component's
 	// USCS_Node.
@@ -417,11 +421,11 @@ USCS_Node* FAGX_BlueprintUtilities::GetParentSCSNode(USCS_Node* Node, bool bSear
 	if (!bSearchParentBlueprints)
 		return nullptr;
 
-	const FString ParentName = Node->ParentComponentOrVariableName.ToString();
-	if (ParentName.IsEmpty())
+	const FName ParentName = Node->ParentComponentOrVariableName;
+	if (ParentName.IsNone())
 		return nullptr;
 
-	return GetSCSNodeFromName(*Blueprint, ParentName, true).FoundNode;
+	return GetSCSNodeFromName(*Blueprint, ParentName.ToString(), true).FoundNode;
 }
 
 UActorComponent* FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(

@@ -303,7 +303,8 @@ void UAGX_ConstraintComponent::SetComplianceFloat(EGenericDofIndex Index, float 
 void UAGX_ConstraintComponent::SetCompliance(EGenericDofIndex Index, double InCompliance)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetCompliance"), [this, InCompliance](int32 NativeDof)
+		*this, Index, TEXT("SetCompliance"),
+		[this, InCompliance](int32 NativeDof)
 		{ NativeBarrier->SetCompliance(InCompliance, NativeDof); });
 	Compliance.Set(Index, InCompliance);
 }
@@ -348,7 +349,8 @@ void UAGX_ConstraintComponent::SetSpookDampingFloat(EGenericDofIndex Index, floa
 void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, double InSpookDamping)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetSpookDamping"), [this, InSpookDamping](int32 NativeDof)
+		*this, Index, TEXT("SetSpookDamping"),
+		[this, InSpookDamping](int32 NativeDof)
 		{ NativeBarrier->SetSpookDamping(InSpookDamping, NativeDof); });
 	SpookDamping.Set(Index, InSpookDamping);
 }
@@ -381,7 +383,8 @@ void UAGX_ConstraintComponent::SetForceRange(
 	EGenericDofIndex Index, const FAGX_RealInterval& InForceRange)
 {
 	SetOnBarrier(
-		*this, Index, TEXT("SetForceRange"), [this, InForceRange](int32 NativeDof)
+		*this, Index, TEXT("SetForceRange"),
+		[this, InForceRange](int32 NativeDof)
 		{ NativeBarrier->SetForceRange(InForceRange.Min, InForceRange.Max, NativeDof); });
 	ForceRange.Set(Index, InForceRange);
 }
@@ -412,7 +415,6 @@ void UAGX_ConstraintComponent::GetForceRange(EGenericDofIndex Index, double& Min
 	Min = Range.Min;
 	Max = Range.Max;
 }
-
 
 FAGX_RealInterval UAGX_ConstraintComponent::GetForceRange(EGenericDofIndex Index) const
 {
@@ -1060,14 +1062,16 @@ namespace
 void UAGX_ConstraintComponent::UpdateNativeCompliance()
 {
 	UpdateNativePerDof(
-		HasNative(), NativeDofIndexMap, [this](EGenericDofIndex GenericDof, int32 NativeDof)
+		HasNative(), NativeDofIndexMap,
+		[this](EGenericDofIndex GenericDof, int32 NativeDof)
 		{ NativeBarrier->SetCompliance(Compliance[GenericDof], NativeDof); });
 }
 
 void UAGX_ConstraintComponent::UpdateNativeSpookDamping()
 {
 	UpdateNativePerDof(
-		HasNative(), NativeDofIndexMap, [this](EGenericDofIndex GenericDof, int32 NativeDof)
+		HasNative(), NativeDofIndexMap,
+		[this](EGenericDofIndex GenericDof, int32 NativeDof)
 		{ NativeBarrier->SetSpookDamping(SpookDamping[GenericDof], NativeDof); });
 }
 
@@ -1198,11 +1202,11 @@ void UAGX_ConstraintComponent::CreateNative()
 	if (!GetValid())
 	{
 		UE_LOG(
-			LogAGX, Error,
-			TEXT("Constraint '%s' in '%s': Created invalid constraint. See the LogAGXDynamics "
-				 "categoty in the Output Log."),
+			LogAGX, Warning,
+			TEXT("Constraint '%s' in '%s': GetValid returned false after creating Native AGX "
+				 "Dynamics Constraint. The LogAGXDynamics category in the Output Log may contain "
+				 "more information."),
 			*GetName(), *GetLabelSafe(GetOwner()));
-		return;
 	}
 
 	UpdateNativeProperties();

@@ -68,6 +68,7 @@ public:
 	bool HasNative() const;
 	FRtAmbientMaterialBarrier* GetNative();
 	const FRtAmbientMaterialBarrier* GetNative() const;
+	void ReleaseNative();
 
 	void CommitToAsset();
 

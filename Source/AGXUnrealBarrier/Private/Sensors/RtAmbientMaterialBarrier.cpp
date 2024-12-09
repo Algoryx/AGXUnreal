@@ -3,6 +3,7 @@
 #include "Sensors/RtAmbientMaterialBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "Sensors/SensorRef.h"
 
 FRtAmbientMaterialBarrier::FRtAmbientMaterialBarrier()
@@ -23,6 +24,7 @@ void FRtAmbientMaterialBarrier::AllocateNative()
 
 bool FRtAmbientMaterialBarrier::HasNative() const
 {
+	AGX_CHECK(Native != nullptr);
 	return Native->Native != nullptr && Native->Native->isValid();
 }
 
@@ -40,7 +42,7 @@ const FRtAmbientMaterial* FRtAmbientMaterialBarrier::GetNative() const
 
 void FRtAmbientMaterialBarrier::ReleaseNative()
 {
-	Native = nullptr;
+	Native->Native = nullptr;
 }
 
 void FRtAmbientMaterialBarrier::SetRefractiveIndex(float InRefractiveIndex)

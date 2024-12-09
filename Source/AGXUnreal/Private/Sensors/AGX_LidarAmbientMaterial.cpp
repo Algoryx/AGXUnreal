@@ -106,6 +106,20 @@ const FRtAmbientMaterialBarrier* UAGX_LidarAmbientMaterial::GetNative() const
 	return HasNative() ? &NativeBarrier : nullptr;
 }
 
+void UAGX_LidarAmbientMaterial::ReleaseNative()
+{
+	if (Instance != nullptr)
+	{
+		Instance->ReleaseNative();
+		return;
+	}
+
+	if (HasNative())
+	{
+		NativeBarrier.ReleaseNative();
+	}
+}
+
 void UAGX_LidarAmbientMaterial::CommitToAsset()
 {
 	if (IsInstance())
