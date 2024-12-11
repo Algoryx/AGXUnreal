@@ -23,5 +23,15 @@ public:
 private:
 	FReply OnSynchronizeModelButtonClicked();
 
+	// Members related to render Material replacement.
+	void CustomizeMaterialReplacer();
+	FString GetCurrentMaterialPath() const;
+	FString GetNewMaterialPath() const;
+	void OnCurrentMaterialSelected(const FAssetData& AssetData);
+	void OnNewMaterialSelected(const FAssetData& AssetData);
+	FReply OnReplaceMaterialsButtonClicked();
+
 	IDetailLayoutBuilder* DetailBuilder;
+
+	friend struct FAGX_ModelSourceComponentCustomization_helper;
 };
