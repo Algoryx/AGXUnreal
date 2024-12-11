@@ -31,8 +31,18 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 
 struct HfMeshDescription
 {
-	HfMeshDescription(FIntVector2 VertexRes)
+	HfMeshDescription(FIntVector2 FaceRes, bool UseSkirt)
 	{
+		Resolution = FaceRes;
+		IsSkirt = UseSkirt;
+
+
+		// Number of vertices (number of faces + 1)
+		VertexRes = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+		// If with skirt, add two extra rows/columns
+		if (IsSkirt)
+			VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
+;
 		int NrOfVerts = VertexRes.X * VertexRes.Y;
 		Vertices.SetNum(NrOfVerts);
 		Triangles.SetNum((VertexRes.X - 1) * (VertexRes.Y - 1) * 6);
@@ -42,6 +52,10 @@ struct HfMeshDescription
 		Normals.SetNum(NrOfVerts);
 		Colors.SetNum(NrOfVerts);
 	}
+
+	FIntVector2 Resolution;
+	FIntVector2 VertexRes;
+	bool IsSkirt;
 
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
@@ -65,9 +79,14 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 public:
 	static TSharedPtr<HfMeshDescription> CreateMeshDescription(
 		FVector Center, FVector2D Size, FIntVector2 Resolution, 
-		std::function<float (const FVector&)> HeightFunction,
-		std::function<FVector2D(const FVector&)> UvFunction, 
-		bool UseSkirt = false);
+		std::function<float(const FVector&)> HeightFunction,
+		std::function<FVector2D(const FVector&)> Uv0Function,
+		float SkirtLength = 0.0f);
+
+	static void UpdateMeshDescription(
+		HfMeshDescription& MeshDesc, FVector Center, FVector2D Size,
+		std::function<float(const FVector&)> HeightFunction,
+		std::function<FVector2D(const FVector&)> Uv0Function, float SkirtLength);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
@@ -76,13 +95,18 @@ public:
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
 		float Exp);
 
-	static void AddNoiseHeights(
-		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
+	static float GetBedHeight(const FVector& LocalPos, const FTransform Transform, 
+		const TArray<UMeshComponent*>& BedMeshes, const float MaxHeight = 1000.0f);
+	
+	static float GetNoiseHeight(const FVector& LocalPos, const FTransform Transform,
+		const FAGX_BrownianNoiseParams& NoiseParams);
+
+	static void GetNoiseHeights(
+		TArray<float>& InOutHeights, const FIntVector2 Res, double ElementSize,
 		const FTransform Transform, const FAGX_BrownianNoiseParams& NoiseParams);
 
-
-	static void SetBedHeights(
-		TArray<float>& Heights, const FIntVector2 Res, double ElementSize,
+	static void GetBedHeights(
+		TArray<float>& InOutHeights, const FIntVector2 Res, double ElementSize,
 		const FTransform Transform, const TArray<UMeshComponent*>& BedMeshes,
 		const float MaxHeight = 1000.0f);
 

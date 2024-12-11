@@ -19,14 +19,20 @@ class UNiagaraComponent;
 
 struct MeshTile
 {
+	int MeshIndex;
+	FIntVector2 Resolution;
 	FVector2D Center;
 	FVector2D Size;
-	FIntVector2 Resolution;
-	MeshTile(FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
+	FBox2D Box;
+
+	MeshTile(int SubMeshIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
 	{
+		MeshIndex = SubMeshIndex;
 		Center = TileCenter;
 		Size = TileSize;
 		Resolution = TileRes;
+		Box = FBox2D(Center - Size / 2, Center + Size / 2);
+		
 	}
 };
 
@@ -73,22 +79,6 @@ protected:
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	float BaseHeight = 0.0f;
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	float PaddedHeight = 0.0f;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	bool bUseInitialNoise = false;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
-		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
-	FAGX_BrownianNoiseParams InitialNoise;
-
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
 	bool bUseBedShapes = true;
 	UPROPERTY(
@@ -103,6 +93,24 @@ protected:
 	TArray<UMeshComponent*> BedShapeComponents;
 
 	TArray<UMeshComponent*> GetBedShapes() const;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bUseBedShapes"))
+	double BedZOffset = 0.5;
+
+	
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
+	float BaseHeight = 0.0f;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
+	float PaddedHeight = 0.0f;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
+	bool bUseInitialNoise = false;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
+		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
+	FAGX_BrownianNoiseParams InitialNoise;
 
 	void UpdateMeshOnPropertyChanged();
 
@@ -230,9 +238,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bWorldSpaceUVs = false;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bWorldSpaceUvs"))
-	FVector2D UvSize = FVector2D(100.0, 100.0);
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
@@ -246,11 +251,8 @@ protected:
 
 	UPROPERTY()
 	bool bMeshTileSkirts = true;
-	
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bClampMeshEdges = true;
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	double MeshZOffset = -0.5;
 	/** Whether soil particles should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bEnableParticleRendering = false;
@@ -287,14 +289,42 @@ private:
 	UPROPERTY()
 	TArray<float> BedHeights;
 
-	TMap<int, MeshTile> MeshTiles;
 
 	void InitializeHeights();
+	//UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "BedHeight")
+	float CalcInitialHeight(FVector LocalPos, float BedHeight) const;
+	float CalcInitialBedHeight(FVector LocalPos) const;
+	float CalcInitialNoise(FVector LocalPos) const;
+	
+	float GetCurrentHeight(FVector LocalPos) const;
+	float GetBedHeight(FVector LocalPos) const;
 
-	float GetHeight(FVector LocalPos) const;
-	FVector2D GetUV(FVector LocalPos) const;
-	FVector2D GetWorldSpaceUV(FVector LocalPos) const;
+	
+	FVector2D ToUvCord(FVector LocalPos) const
+	{
+		return FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
+	};
 
-	void InitializeMesh();
-	void UpdateMesh(const TArray<std::tuple<int32, int32>>& DirtyHeights);
+	FVector2D ToUvCentimeters(FVector LocalPos) const
+	{
+		return FVector2D((LocalPos.X + Size.X / 2) / 100.0, (LocalPos.Y + Size.Y / 2) / 100.0);
+	};
+	float DistFromEdge(FVector LocalPos) const
+	{
+		float DistX = Size.X / 2 - FMath::Abs(LocalPos.X);
+		float DistY = Size.Y / 2 - FMath::Abs(LocalPos.Y);
+
+		return FMath::Min(DistX, DistY);
+	}
+
+	float GetMeshHeight(FVector LocalPos) const;
+
+	TArray<MeshTile> MeshTiles;
+	TArray<MeshTile> GenerateMeshTiles();
+	void RecreateMesh();
+
+	//Ugh..
+	TMap<int, TSharedPtr<HfMeshDescription>> MeshSectionDescriptions;
+	void CreateMeshTileSection(const MeshTile& Tile);
+	void UpdateMeshTileSection(const MeshTile& Tile);
 };

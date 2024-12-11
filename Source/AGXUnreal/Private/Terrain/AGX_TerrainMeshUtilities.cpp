@@ -6,33 +6,41 @@
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	FVector Center, FVector2D Size, FIntVector2 Resolution, 
 	std::function<float (const FVector&)> HeightFunction,
-	std::function<FVector2D (const FVector&)> UvFunction,
-	bool UseSkirt)
+	std::function<FVector2D (const FVector&)> UvFunction, float SkirtLength)
 {
-	// Number of vertices (number of faces + 1)
-	FIntVector2 NrOfVerts = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
-	if (UseSkirt) // With skirt, add two extra rows/columns
-		NrOfVerts = FIntVector2(NrOfVerts.X + 2, NrOfVerts.Y + 2);
+	bool IsSkirt = SkirtLength > SMALL_NUMBER;
 
 	// Allocate memory
-	auto MeshDescPtr = MakeShared<HfMeshDescription>(NrOfVerts);
-	auto& MeshDesc = *MeshDescPtr;
+	auto MeshDescPtr = MakeShared<HfMeshDescription>(Resolution, IsSkirt);
+	UpdateMeshDescription(*MeshDescPtr, Center, Size, HeightFunction, UvFunction, SkirtLength);
+	return MeshDescPtr;
+}
 
+void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
+	HfMeshDescription& MeshDesc, FVector Center, FVector2D Size,
+	std::function<float(const FVector&)> HeightFunction,
+	std::function<FVector2D(const FVector&)> Uv0Function, float SkirtLength)
+{
+	FIntVector2 Resolution = MeshDesc.Resolution;
+	FIntVector2 VertexRes = MeshDesc.VertexRes;
+	bool IsSkirt = MeshDesc.IsSkirt;
+	
 	// Size of individual triangle
-	FVector2D TriangleSize = FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
+	FVector2D TriangleSize = FVector2D(Size.X / MeshDesc.Resolution.X, Size.Y / MeshDesc.Resolution.Y);
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
-	for (int32 y = 0; y < NrOfVerts.Y; ++y)
+	// Hacky: With skirt, begin one row/column outside plane
+	const int StartIndex = MeshDesc.IsSkirt ? -1 : 0;
+	for (int32 y = 0; y < VertexRes.Y; ++y)
 	{
-		for (int32 x = 0; x < NrOfVerts.X; ++x)
-		{ 
-			// Hacky: With skirt, begin one row/column outside plane
-			int StartIndex = UseSkirt ? -1 : 0;
+		for (int32 x = 0; x < VertexRes.X; ++x)
+		{
 
 			FVector PlanePosition = FVector(
-				(x + StartIndex) * TriangleSize.X - Size.X / 2, (y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0f);
+				(x + StartIndex) * TriangleSize.X - Size.X / 2,
+				(y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0f);
 			FVector LocalPosition = PlanePosition + Center;
 			FVector2D UvCord =
 				FVector2D(LocalPosition.X / Size.X + 0.5, LocalPosition.Y / Size.Y + 0.5);
@@ -42,14 +50,14 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 				LocalPosition + FVector::UpVector * HeightFunction(LocalPosition);
 
 			// Call UvFunction callback
-			MeshDesc.UV0[VertexIndex] = UvFunction(LocalPosition);
+			MeshDesc.UV0[VertexIndex] = Uv0Function(LocalPosition);
 
 			// Skip last row and column for triangles
-			if (x < NrOfVerts.X - 1 && y < NrOfVerts.Y - 1)
+			if (x < VertexRes.X - 1 && y < VertexRes.Y - 1)
 			{
 				int32 BottomLeft = VertexIndex;
 				int32 BottomRight = BottomLeft + 1;
-				int32 TopLeft = BottomLeft + NrOfVerts.X;
+				int32 TopLeft = BottomLeft + VertexRes.X;
 				int32 TopRight = TopLeft + 1;
 
 				// First triangle
@@ -71,17 +79,15 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 
-	
 	// Move skirt vertices downwards
-	if (UseSkirt)
+	if (IsSkirt)
 	{
-		float SkirtOffset = 1.0f;
 		VertexIndex = 0;
-		for (int32 y = 0; y < NrOfVerts.Y; ++y)
+		for (int32 y = 0; y < VertexRes.Y; ++y)
 		{
-			for (int32 x = 0; x < NrOfVerts.X; ++x)
+			for (int32 x = 0; x < VertexRes.X; ++x)
 			{
-				if (x == 0 || x == NrOfVerts.X - 1 || y == 0 || y == NrOfVerts.Y - 1)
+				if (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1)
 				{
 					FVector V = MeshDesc.Vertices[VertexIndex] - Center;
 					FVector PlanePosition = FVector(
@@ -90,14 +96,13 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 					FVector LocalPosition = PlanePosition + Center;
 
 					float Height = HeightFunction(LocalPosition);
-					MeshDesc.Vertices[VertexIndex] = LocalPosition + FVector::UpVector * (Height - SkirtOffset);
+					MeshDesc.Vertices[VertexIndex] =
+						LocalPosition + FVector::UpVector * (Height - SkirtLength);
 				}
 				VertexIndex++;
 			}
 		}
 	}
-	
-	return MeshDescPtr;
 }
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(
@@ -149,39 +154,33 @@ float UAGX_TerrainMeshUtilities::GetBrownianNoise(
 	return FMath::Pow(Total, Exp);
 }
 
-void UAGX_TerrainMeshUtilities::AddNoiseHeights(
-	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
+float UAGX_TerrainMeshUtilities::GetNoiseHeight(
+	const FVector& LocalPos, const FTransform Transform,
 	const FAGX_BrownianNoiseParams& NoiseParams)
 {
+
+	// To make it easier to align blocks of noise together
+	// we project the sampleposition to a plane
 	FVector Up = Transform.GetRotation().GetUpVector();
-	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+	FVector Pos = Transform.TransformPosition(LocalPos);
+	Pos = Pos - Up * FVector::DotProduct(Pos, Up);
 
-	for (int y = 0; y < Res.Y; y++)
-	{
-		for (int x = 0; x < Res.X; x++)
-		{
-			FVector Pos =
-				Transform.TransformPosition(Center + FVector(x * ElementSize, y * ElementSize, 0));
+	float Noise = GetBrownianNoise(
+		FVector(LocalPos.X, LocalPos.Y, 0.0f), NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
+		NoiseParams.Lacunarity, NoiseParams.Exp);
 
-			// To make it easier to align blocks of noise together
-			// we project the sampleposition to a plane
-			Pos = Pos - Up * FVector::DotProduct(Pos, Up);
-
-			float Noise = GetBrownianNoise(
-				Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
-				NoiseParams.Lacunarity, NoiseParams.Exp);
-
-			Heights[y * Res.X + x] += Noise * NoiseParams.Height;
-		}
-	}
+	return Noise*NoiseParams.Height;
 }
 
-void UAGX_TerrainMeshUtilities::SetBedHeights(
-	TArray<float>& Heights, const FIntVector2 Res, double ElementSize, const FTransform Transform,
-	const TArray<UMeshComponent*>& BedMeshes, const float MaxHeight)
+float UAGX_TerrainMeshUtilities::GetBedHeight(
+	const FVector& LocalPos, const FTransform Transform, const TArray<UMeshComponent*>& BedMeshes,
+	const float MaxHeight)
 {
+	float h = 0.0f;
 	FVector Up = Transform.GetRotation().GetUpVector();
-	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+	FVector Stop = Transform.TransformPosition(FVector(LocalPos.X, LocalPos.Y, 0.0));
+	FVector Start = Stop + Up * MaxHeight;
+	FHitResult OutHit;
 
 	for (auto& MeshComponent : BedMeshes)
 	{
@@ -189,43 +188,17 @@ void UAGX_TerrainMeshUtilities::SetBedHeights(
 				Cast<UAGX_SimpleMeshComponent>(MeshComponent))
 		{
 			// UAGX_SimpleMeshComponent:
-			FHitResult OutHit;
-			for (int y = 0; y < Res.Y; y++)
-			{
-				for (int x = 0; x < Res.X; x++)
-				{
-					FVector Stop = Transform.TransformPosition(
-						Center + FVector(x * ElementSize, y * ElementSize, 0));
-					FVector Start = Stop + Up * MaxHeight;
-					if (ShapeComponent->LineTraceMesh(OutHit, Start, Stop))
-					{
-						Heights[y * Res.X + x] =
-							FMath::Max(MaxHeight - OutHit.Distance, Heights[y * Res.X + x]);
-					}
-				}
-			}
+			if (ShapeComponent->LineTraceMesh(OutHit, Start, Stop))
+				h = FMath::Max(MaxHeight - OutHit.Distance, h);
 		}
 		else
 		{
 			// UMeshComponents:
-			FHitResult OutHit;
 			FCollisionQueryParams Params;
-			for (int y = 0; y < Res.Y; y++)
-			{
-				for (int x = 0; x < Res.X; x++)
-				{
-					FVector Stop = Transform.TransformPosition(
-						Center + FVector(x * ElementSize, y * ElementSize, 0));
-					FVector Start = Stop + Up * MaxHeight;
-					if (MeshComponent->LineTraceComponent(OutHit, Start, Stop, Params))
-					{
-						Heights[y * Res.X + x] =
-							FMath::Max(MaxHeight - OutHit.Distance, Heights[y * Res.X + x]);
-					}
-				}
-			}
+			if (MeshComponent->LineTraceComponent(OutHit, Start, Stop, Params))
+				h = FMath::Max(MaxHeight - OutHit.Distance, h);
 		}
 	}
+
+	return h;
 }
-
-
