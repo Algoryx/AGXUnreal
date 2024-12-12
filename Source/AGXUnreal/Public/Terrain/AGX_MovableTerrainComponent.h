@@ -17,22 +17,27 @@ class UAGX_ShovelComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
+UENUM(BlueprintType, Category = "AGX Terrain Rendering")
+enum class EAGX_MeshTilingPattern : uint8
+{
+	SingleTile UMETA(DisplayName = "SingleTile"),
+	StretchedTiles UMETA(DisplayName = "Stretched Tiles")
+};
+
 struct MeshTile
 {
 	int MeshIndex;
 	FIntVector2 Resolution;
 	FVector2D Center;
 	FVector2D Size;
-	FBox2D Box;
+	FBox2D BoundingBox;
 
-	MeshTile(int SubMeshIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
+	MeshTile(int MeshSectionIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
 	{
-		MeshIndex = SubMeshIndex;
+		MeshIndex = MeshSectionIndex;
 		Center = TileCenter;
 		Size = TileSize;
 		Resolution = TileRes;
-		Box = FBox2D(Center - Size / 2, Center + Size / 2);
-		
 	}
 };
 
@@ -79,13 +84,23 @@ protected:
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Shape")
-	bool bUseBedShapes = true;
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape", Meta = (ExposeOnSpawn))
+	float BaseHeight = 0.0f;
+
+	//Bed Shapes
+	//______________________
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
+		Meta = (ExposeOnSpawn))
+	bool bUseBedShapes = false;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape",
+		BlueprintReadWrite, 
 		Meta = (GetOptions = "GetBedShapesOptions", EditCondition = "bUseBedShapes"))
 	TArray<FName> BedShapes;
-	
+
 	UFUNCTION(CallInEditor)
 	TArray<FString> GetBedShapesOptions() const;
 
@@ -93,24 +108,28 @@ protected:
 	TArray<UMeshComponent*> BedShapeComponents;
 
 	TArray<UMeshComponent*> GetBedShapes() const;
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bUseBedShapes"))
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
+		Meta = (ExposeOnSpawn, EditCondition = "bUseBedShapes"))
 	double BedZOffset = 0.5;
 
-	
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	float BaseHeight = 0.0f;
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	float PaddedHeight = 0.0f;
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite, Meta = (ExposeOnSpawn))
-	bool bUseInitialNoise = false;
 
+	// Initial Noise Height
+	//______________________
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		Meta = (ExposeOnSpawn))
+	bool bUseInitialNoise = false;
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Shape", BlueprintReadWrite,
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
 	FAGX_BrownianNoiseParams InitialNoise;
+
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain Shape",
+		Meta = (ExposeOnSpawn, EditCondition = "bUseInitialNoise"))
+	float AddedHeight = 0.0f;
 
 	void UpdateMeshOnPropertyChanged();
 
@@ -243,13 +262,17 @@ protected:
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "2", UIMax = "2"))
 	int MeshLevelOfDetail = 1;
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Shape",
+		Meta = (ClampMin = "-2.5", UIMin = "-2.5", ClampMax = "2.5", UIMax = "2.5"))
+	double MeshZOffset = -1.0;
 
-	UPROPERTY()
-	bool bMeshTiles = true;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	EAGX_MeshTilingPattern MeshTilingPattern = EAGX_MeshTilingPattern::StretchedTiles;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	int MeshTileResolution = 10;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bMeshTileSkirts = true;
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bClampMeshEdges = true;
@@ -289,27 +312,25 @@ private:
 	UPROPERTY()
 	TArray<float> BedHeights;
 
-
+	
 	void InitializeHeights();
-	//UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "BedHeight")
-	float CalcInitialHeight(FVector LocalPos, float BedHeight) const;
-	float CalcInitialBedHeight(FVector LocalPos) const;
-	float CalcInitialNoise(FVector LocalPos) const;
-	
-	float GetCurrentHeight(FVector LocalPos) const;
-	float GetBedHeight(FVector LocalPos) const;
 
-	
-	FVector2D ToUvCord(FVector LocalPos) const
+	float GetCurrentHeight(const FVector& LocalPos) const;
+	float GetBedHeight(const FVector& LocalPos) const;
+
+	float CalcInitialHeight(const FVector& LocalPos, float BedHeight) const;
+	float CalcInitialBedHeight(const FVector& LocalPos) const;
+
+	FVector2D ToUvCord(const FVector& LocalPos) const
 	{
 		return FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
 	};
 
-	FVector2D ToUvCentimeters(FVector LocalPos) const
+	FVector2D ToUvCentimeters(const FVector& LocalPos) const
 	{
 		return FVector2D((LocalPos.X + Size.X / 2) / 100.0, (LocalPos.Y + Size.Y / 2) / 100.0);
 	};
-	float DistFromEdge(FVector LocalPos) const
+	float DistFromEdge(const FVector& LocalPos) const
 	{
 		float DistX = Size.X / 2 - FMath::Abs(LocalPos.X);
 		float DistY = Size.Y / 2 - FMath::Abs(LocalPos.Y);
@@ -317,14 +338,23 @@ private:
 		return FMath::Min(DistX, DistY);
 	}
 
-	float GetMeshHeight(FVector LocalPos) const;
+	float GetMeshHeight(const FVector& LocalPos) const;
 
 	TArray<MeshTile> MeshTiles;
-	TArray<MeshTile> GenerateMeshTiles();
+	TArray<MeshTile> GenerateMeshTiles(
+		const FIntVector2& MeshResolution, 
+		const EAGX_MeshTilingPattern& MeshTilingPattern,
+		int MeshLod = 0) const;
 	void RecreateMesh();
 
 	//Ugh..
 	TMap<int, TSharedPtr<HfMeshDescription>> MeshSectionDescriptions;
-	void CreateMeshTileSection(const MeshTile& Tile);
-	void UpdateMeshTileSection(const MeshTile& Tile);
+	void UpdateTileMeshDescription(const MeshTile& Tile);
+
+	void CreateTileMeshSection(
+	const MeshTile& Tile, 
+		UMaterialInterface * MeshSectionMaterial, bool bMeshSectionSkirt = false, bool bMeshSectionVisible = true,
+		bool bMeshSectionUnrealCollision = false);
+	void UpdateTileMeshSection(const MeshTile& Tile);
+
 };

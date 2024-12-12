@@ -2,31 +2,32 @@
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
-
 TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	FVector Center, FVector2D Size, FIntVector2 Resolution, 
-	std::function<float (const FVector&)> HeightFunction,
-	std::function<FVector2D (const FVector&)> UvFunction, float SkirtLength)
+	FIntVector2 Resolution, bool IsSkirt)
 {
-	bool IsSkirt = SkirtLength > SMALL_NUMBER;
+	// Number of vertices (number of faces + 1)
+	FIntVector2 VertexRes = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+
+	if (IsSkirt) // With skirt, add two extra rows/columns
+		VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
 
 	// Allocate memory
-	auto MeshDescPtr = MakeShared<HfMeshDescription>(Resolution, IsSkirt);
-	UpdateMeshDescription(*MeshDescPtr, Center, Size, HeightFunction, UvFunction, SkirtLength);
-	return MeshDescPtr;
+	return MakeShared<HfMeshDescription>(VertexRes, IsSkirt);
 }
 
 void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
-	HfMeshDescription& MeshDesc, FVector Center, FVector2D Size,
-	std::function<float(const FVector&)> HeightFunction,
-	std::function<FVector2D(const FVector&)> Uv0Function, float SkirtLength)
+	HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
+	std::function<void(FVector&, FVector2D&, FVector2D&, FColor&)> VertexFunction)
 {
-	FIntVector2 Resolution = MeshDesc.Resolution;
-	FIntVector2 VertexRes = MeshDesc.VertexRes;
+	FIntVector2 VertexRes = MeshDesc.VertexResolution;
 	bool IsSkirt = MeshDesc.IsSkirt;
+
+	FIntVector2 Resolution = FIntVector2(VertexRes.X - (IsSkirt? 3 : 1), VertexRes.Y - (IsSkirt? 3 : 1));
+
 	
 	// Size of individual triangle
-	FVector2D TriangleSize = FVector2D(Size.X / MeshDesc.Resolution.X, Size.Y / MeshDesc.Resolution.Y);
+	FVector2D TriangleSize =
+		FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
@@ -37,20 +38,22 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 	{
 		for (int32 x = 0; x < VertexRes.X; ++x)
 		{
-
 			FVector PlanePosition = FVector(
 				(x + StartIndex) * TriangleSize.X - Size.X / 2,
-				(y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0f);
+				(y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0);
 			FVector LocalPosition = PlanePosition + Center;
-			FVector2D UvCord =
+
+			// Default Vertex Position
+			MeshDesc.Vertices[VertexIndex] = LocalPosition;
+			MeshDesc.UV0[VertexIndex] =
 				FVector2D(LocalPosition.X / Size.X + 0.5, LocalPosition.Y / Size.Y + 0.5);
 
-			// Call HeightFunction callback
-			MeshDesc.Vertices[VertexIndex] =
-				LocalPosition + FVector::UpVector * HeightFunction(LocalPosition);
 
-			// Call UvFunction callback
-			MeshDesc.UV0[VertexIndex] = Uv0Function(LocalPosition);
+			// Modify Vertex with VertexFunction callback
+			VertexFunction(
+				MeshDesc.Vertices[VertexIndex], MeshDesc.UV0[VertexIndex],
+				MeshDesc.UV1[VertexIndex], MeshDesc.Colors[VertexIndex]);
+
 
 			// Skip last row and column for triangles
 			if (x < VertexRes.X - 1 && y < VertexRes.Y - 1)
@@ -82,6 +85,10 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 	// Move skirt vertices downwards
 	if (IsSkirt)
 	{
+
+
+		// This should give us 1 centimeter skirt per meter mesh
+		float SkirtLength = FMath::Min(Size.X, Size.Y) * 0.01f;
 		VertexIndex = 0;
 		for (int32 y = 0; y < VertexRes.Y; ++y)
 		{
@@ -95,15 +102,20 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 						FMath::Clamp(V.Y, -Size.Y / 2, Size.Y / 2), 0.0);
 					FVector LocalPosition = PlanePosition + Center;
 
-					float Height = HeightFunction(LocalPosition);
-					MeshDesc.Vertices[VertexIndex] =
-						LocalPosition + FVector::UpVector * (Height - SkirtLength);
+					FVector SkirtPosition = LocalPosition;
+					FVector2D DummyUV0, DummyUV1;
+					FColor DummyColor;
+					VertexFunction(SkirtPosition, DummyUV0, DummyUV1, DummyColor);
+					SkirtPosition -= FVector::UpVector * SkirtLength;
+
+					MeshDesc.Vertices[VertexIndex] = SkirtPosition;
 				}
 				VertexIndex++;
 			}
 		}
 	}
 }
+	
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
