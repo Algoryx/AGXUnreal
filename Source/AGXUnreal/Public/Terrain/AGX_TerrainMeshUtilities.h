@@ -14,9 +14,11 @@ USTRUCT(BlueprintType, Category = "AGX Procedural")
 struct AGXUNREAL_API FAGX_BrownianNoiseParams
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Height = 50.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
+	float BaseHeight = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Scale = 100;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
@@ -29,9 +31,9 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 	float Exp = 2.0f;
 };
 
-struct HfMeshDescription
+struct FAGX_TileMeshDescription
 {
-	HfMeshDescription(FIntVector2 VertexRes, bool UseSkirt)
+	FAGX_TileMeshDescription(FIntVector2 VertexRes, bool UseSkirt)
 	{
 		VertexResolution = VertexRes;
 		IsSkirt = UseSkirt;
@@ -57,6 +59,9 @@ struct HfMeshDescription
 	TArray<FColor> Colors;
 };
 
+using FAGX_TileMeshVertexFunction = std::function<void(FVector&, FVector2D&, FVector2D&, FColor)>;
+
+
 
 class UAGX_SimpleMeshComponent;
 
@@ -68,11 +73,12 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-	static TSharedPtr<HfMeshDescription> CreateMeshDescription(FIntVector2 Resolution, bool IsSkirt);
+	static TSharedPtr<FAGX_TileMeshDescription> CreateMeshDescription(
+		FIntVector2 Resolution, bool IsSkirt);
 
 	static void UpdateMeshDescription(
-		HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
-		std::function<void(FVector&, FVector2D&, FVector2D&, FColor&)> VertexFunction);
+		FAGX_TileMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
+		FAGX_TileMeshVertexFunction VertexFunction);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);

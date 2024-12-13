@@ -69,7 +69,6 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 
 								return false;
 							};
-							UE_LOG(LogAGX, Warning, TEXT("ModifiedHeights %d"), ModifiedHeights.Num());
 							NativeBarrier.GetHeights(CurrentHeights, true);
 
 							
@@ -80,9 +79,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 							{
 								if (IsTileDirty(Tile))
 								{
-									UE_LOG(
-										LogAGX, Warning, TEXT("IsTileDirty %d"), Tile.MeshIndex);
-									UpdateTileMeshSection(Tile);
+									UpdateTileMeshSection(Tile, EAGX_VertexFunctionType::DefaultTerrain);
 								}
 			
 							}
@@ -169,30 +166,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	Simulation->Add(*this);
 }
 
-float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos, float BedHeight) const
-{
-	float NoiseHeight = bUseInitialNoise ? UAGX_TerrainMeshUtilities::GetNoiseHeight(
-												LocalPos, GetComponentTransform(), InitialNoise) +
-											   AddedHeight
-										  : 0.0f;
-
-	float InitialHeight = FMath::Max(BaseHeight, BedHeight) + NoiseHeight;
-	
-
-	//InitialHeight =
-	//	FMath::Lerp(BedHeight, InitialHeight, FMath::Clamp(FMath::Pow(DistFromEdge(LocalPos) / 50.0, 0.5f), 0.0f, 1.0f));
-
-	return FMath::Max(InitialHeight, BedHeight);
-}
-
-float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos) const
-{
-	return !bUseBedShapes || GetBedShapes().Num() == 0
-			   ? 0.0f
-			   : UAGX_TerrainMeshUtilities::GetBedHeight(
-					 LocalPos, GetComponentTransform(), GetBedShapes()) +
-					 BedZOffset;
-}
 
 float UAGX_MovableTerrainComponent::GetCurrentHeight(const FVector& LocalPos) const
 {
@@ -224,10 +197,34 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 			float BedHeight = CalcInitialBedHeight(LocalPos);
 			BedHeights[y * Res.X + x] = BedHeight; 
 
-			float InitialHeight = CalcInitialHeight(LocalPos, BedHeight);
+			float InitialHeight = CalcInitialHeight(LocalPos);
 			CurrentHeights[y * Res.X + x] = InitialHeight;
 		}
 	}
+}
+
+float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) const
+{
+	float NoiseHeight = bUseInitialNoise ? UAGX_TerrainMeshUtilities::GetNoiseHeight(
+											   LocalPos, GetComponentTransform(), InitialNoise)
+										 : 0.0f;
+	float BedHeight = bUseBedShapes ? CalcInitialBedHeight(LocalPos) : 0.0f;
+	float InitialHeight = FMath::Max(BaseHeight, BedHeight) + NoiseHeight;
+
+	InitialHeight = FMath::Lerp(
+		BedHeight, InitialHeight,
+		FMath::Clamp(FMath::Pow(DistFromEdge(LocalPos) / 50.0, 0.5f), 0.0f, 1.0f));
+
+	return FMath::Max(InitialHeight, BedHeight);
+}
+
+float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos) const
+{
+	return !bUseBedShapes || GetBedShapes().Num() == 0
+			   ? 0.0f
+			   : UAGX_TerrainMeshUtilities::GetBedHeight(
+					 LocalPos, GetComponentTransform(), GetBedShapes()) +
+					 BedZOffset;
 }
 
 float UAGX_MovableTerrainComponent::GetMeshHeight(const FVector& LocalPos) const
@@ -244,7 +241,7 @@ float UAGX_MovableTerrainComponent::GetMeshHeight(const FVector& LocalPos) const
 	{
 		//In-Editor: Generate InitializeHeights
 		BedHeight = CalcInitialBedHeight(LocalPos);
-		CurrentHeight = CalcInitialHeight(LocalPos, BedHeight);
+		CurrentHeight = CalcInitialHeight(LocalPos);
 	}
 
 	FVector2D Uv = ToUvCord(LocalPos);
@@ -254,21 +251,47 @@ float UAGX_MovableTerrainComponent::GetMeshHeight(const FVector& LocalPos) const
 
 }
 
+
+void UAGX_MovableTerrainComponent::RecreateMesh()
+{
+	MeshTiles.Reset();
+	MeshSectionDescriptions.Reset();
+	ClearAllMeshSections();
+
+	FIntVector2 NativeResolution =
+		FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
+
+	FIntVector2 TargetResolution = bAutoMeshResolution ? NativeResolution : MeshResolution;
+	int TargetLod = bAutoMeshResolution ? MeshLevelOfDetail : 0;
+
+	// Create MeshTiles
+	MeshTiles = GenerateMeshTiles(TargetResolution, MeshTilingPattern, TargetLod);
+
+	// Create MeshSections
+	for (auto& Tile : MeshTiles)
+	{
+		CreateTileMeshSection(
+			Tile, EAGX_VertexFunctionType::DefaultTerrain, Material, bMeshTileSkirts, true,
+			AdditionalUnrealCollision != ECollisionEnabled::NoCollision);
+	}
+}
+
+
 TArray<MeshTile> UAGX_MovableTerrainComponent::GenerateMeshTiles(
-	const FIntVector2& MeshResolution, const EAGX_MeshTilingPattern& Pattern,
+	const FIntVector2& TargetResolution, const EAGX_MeshTilingPattern& Pattern,
 	int MeshLod) const
 {
 	float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
 
 	FVector2D LodResolution =
-		FVector2D(MeshResolution.X * LodScaling, MeshResolution.Y * LodScaling);
+		FVector2D(TargetResolution.X * LodScaling, TargetResolution.Y * LodScaling);
 
 
 	TArray<MeshTile> Tiles;
 
 	int MeshIndex = 0;
 	// Create MeshTiles
-	if (Pattern == EAGX_MeshTilingPattern::SingleTile)
+	if (Pattern == EAGX_MeshTilingPattern::None)
 	{
 		// One single tile
 		FIntVector2 TileRes = FIntVector2(
@@ -304,24 +327,25 @@ TArray<MeshTile> UAGX_MovableTerrainComponent::GenerateMeshTiles(
 
 
 void UAGX_MovableTerrainComponent::CreateTileMeshSection(
-	const MeshTile& Tile, UMaterialInterface* MeshSectionMaterial, bool bMeshSectionSkirt,
+	const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFunc,
+	UMaterialInterface* MeshSectionMaterial, bool bMeshSectionSkirt,
 	bool bMeshSectionVisible, bool bMeshSectionUnrealCollision)
 {
 	int MeshIndex = Tile.MeshIndex;
 
 	
-	// Create mesh description (Allocate memory!)
+	// Create MeshDescription (Allocate memory!)
 	MeshSectionDescriptions.Add(
 		MeshIndex,
 		UAGX_TerrainMeshUtilities::CreateMeshDescription(Tile.Resolution, bMeshSectionSkirt));
 
-	//Update vertices
-	UpdateTileMeshDescription(Tile);
+	// Update MeshDescription (Vertex positions, uvs)
+	UpdateTileMeshDescription(Tile, VertexFunc);
 
-
+	
 	if (auto* MeshDesc = MeshSectionDescriptions[Tile.MeshIndex].Get())
 	{
-		// Create mesh section
+		// Create MeshSection (Upload to GPU)
 		CreateMeshSection(
 			MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals, MeshDesc->UV0,
 			MeshDesc->Colors, MeshDesc->Tangents, bMeshSectionUnrealCollision);
@@ -330,67 +354,86 @@ void UAGX_MovableTerrainComponent::CreateTileMeshSection(
 	}
 }
 
-void UAGX_MovableTerrainComponent::UpdateTileMeshDescription(const MeshTile& Tile)
+void UAGX_MovableTerrainComponent::UpdateTileMeshSection(
+	const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFunc)
 {
-	if (auto* MeshDesc = MeshSectionDescriptions[Tile.MeshIndex].Get())
-	{
-		// Callbacks to modify vertex positions, uvs...
-		auto VertexFunction = [&](FVector& VertexPos, FVector2D& Uv0, FVector2D& Uv1,
-								  FColor Color) -> void
-		{
-			FVector LocalPos = VertexPos;
-			VertexPos = LocalPos + FVector::UpVector * (GetMeshHeight(LocalPos) + MeshZOffset);
-			Uv0 = ToUvCord(VertexPos);
-		};
-
-		UAGX_TerrainMeshUtilities::UpdateMeshDescription(
-			*MeshDesc, FVector(Tile.Center.X, Tile.Center.Y, 0), Tile.Size, VertexFunction);
-	}
-}
-
-void UAGX_MovableTerrainComponent::UpdateTileMeshSection(const MeshTile& Tile)
-{
-	// Update vertices
-	UpdateTileMeshDescription(Tile);
+	// Update MeshDescription (Vertex positions, uvs)
+	UpdateTileMeshDescription(Tile, VertexFunc);
 
 	if (auto* MeshDesc = MeshSectionDescriptions[Tile.MeshIndex].Get())
 	{
-		// Update mesh section
+		
+		// Update MeshSection (Re-Upload to GPU)
 		UpdateMeshSection(
 			Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Normals, MeshDesc->UV0, MeshDesc->Colors,
-			MeshDesc->Tangents);;
+			MeshDesc->Tangents);
 	}
 
 }
-void UAGX_MovableTerrainComponent::RecreateMesh()
+
+
+void UAGX_MovableTerrainComponent::UpdateTileMeshDescription(
+	const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFuncType)
 {
-	MeshTiles.Reset();
-	MeshSectionDescriptions.Reset();
-	ClearAllMeshSections();
-
-	FIntVector2 NativeResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1); 
-
-	// Create MeshTiles
-	MeshTiles = GenerateMeshTiles(NativeResolution, MeshTilingPattern, MeshLevelOfDetail);
-
-	// Create MeshSections
-	for (auto& Tile : MeshTiles)
+	FAGX_TileMeshVertexFunction VertexFunction;
+	switch (VertexFuncType)
 	{
-		CreateTileMeshSection(
-			Tile, Material, bMeshTileSkirts, true,
-			AdditionalUnrealCollision != ECollisionEnabled::NoCollision);
-		UpdateTileMeshSection(Tile);
+		case EAGX_VertexFunctionType::DefaultTerrain:
+			VertexFunction = 
+				[&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color) -> void
+				{ 
+					Pos += FVector::UpVector * (GetMeshHeight(Pos) + MeshZOffset);
+					Uv0 = ToUvCord(Pos);
+				};
+			break;
+		case EAGX_VertexFunctionType::None:
+		default:
+			VertexFunction = [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1,
+								 FColor Color) -> void {};
+			break;
+	}
+
+
+	if (auto* MeshDesc = MeshSectionDescriptions[Tile.MeshIndex].Get())
+	{
+		// Update Mesh Description (Vertex Positions)
+		UAGX_TerrainMeshUtilities::UpdateMeshDescription(
+			*MeshDesc, FVector(Tile.Center.X, Tile.Center.Y, 0), Tile.Size, VertexFunction);
+
 	}
 }
 
-void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
+
+#if WITH_EDITOR
+void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	Super::PostEditChangeChainProperty(Event);
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
+
+	// TODO: Only UpdateMesh on certain Property changes
+	ForceRebuildMesh();
+}
+
+void UAGX_MovableTerrainComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
+	// TODO: Only UpdateMesh on certain Property changes
+	ForceRebuildMesh();
+}
+
+void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 {
 	// Hacky: This bool is used to force an update of the mesh in-editor
 	bRebuildMesh = false;
 
 	UWorld* World = GetWorld();
+
+	if (!IsValid(World) || IsTemplate())
+		return;
+
 	// In-Editor
-	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+	if (!World->IsGameWorld())
 	{
 		// Postpone to next tick because all properties are not copied
 		World->GetTimerManager().SetTimerForNextTick(
@@ -404,36 +447,19 @@ void UAGX_MovableTerrainComponent::UpdateMeshOnPropertyChanged()
 			});
 	}
 	// In-Game
-	else if (IsValid(World) && World->IsGameWorld() && !IsTemplate())
+	else if (World->IsGameWorld())
 	{
-		if (!HasNative())
-			return;
+		if (HasNative())
+		{
+			// Copy CurrentHeights from Native
+			NativeBarrier.GetHeights(CurrentHeights, false);
 
-		// Copy CurrentHeights from Native
-		NativeBarrier.GetHeights(CurrentHeights, false);
-
-		// Recreate Mesh
-		RecreateMesh();
+			// Recreate Mesh
+			RecreateMesh();
+		}
 	}
 }
 
-#if WITH_EDITOR
-void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
-{
-	Super::PostEditChangeChainProperty(Event);
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
-
-	// TODO: Only UpdateMesh on certain Property changes
-	UpdateMeshOnPropertyChanged();
-}
-
-void UAGX_MovableTerrainComponent::PostInitProperties()
-{
-	Super::PostInitProperties();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
-	// TODO: Only UpdateMesh on certain Property changes
-	UpdateMeshOnPropertyChanged();
-}
 #endif
 
 void UAGX_MovableTerrainComponent::TickComponent(

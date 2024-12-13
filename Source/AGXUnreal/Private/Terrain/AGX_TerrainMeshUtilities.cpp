@@ -2,7 +2,7 @@
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
-TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
+TSharedPtr<FAGX_TileMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 	FIntVector2 Resolution, bool IsSkirt)
 {
 	// Number of vertices (number of faces + 1)
@@ -12,12 +12,12 @@ TSharedPtr<HfMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
 		VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
 
 	// Allocate memory
-	return MakeShared<HfMeshDescription>(VertexRes, IsSkirt);
+	return MakeShared<FAGX_TileMeshDescription>(VertexRes, IsSkirt);
 }
 
 void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
-	HfMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
-	std::function<void(FVector&, FVector2D&, FVector2D&, FColor&)> VertexFunction)
+	FAGX_TileMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
+	FAGX_TileMeshVertexFunction VertexFunction)
 {
 	FIntVector2 VertexRes = MeshDesc.VertexResolution;
 	bool IsSkirt = MeshDesc.IsSkirt;
@@ -178,10 +178,10 @@ float UAGX_TerrainMeshUtilities::GetNoiseHeight(
 	Pos = Pos - Up * FVector::DotProduct(Pos, Up);
 
 	float Noise = GetBrownianNoise(
-		FVector(LocalPos.X, LocalPos.Y, 0.0f), NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
+		Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
 		NoiseParams.Lacunarity, NoiseParams.Exp);
 
-	return Noise*NoiseParams.Height;
+	return Noise * NoiseParams.Height + NoiseParams.BaseHeight;
 }
 
 float UAGX_TerrainMeshUtilities::GetBedHeight(
