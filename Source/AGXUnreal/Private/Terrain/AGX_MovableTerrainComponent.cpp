@@ -257,10 +257,10 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 
 	// Bottom Mesh
 	BottomMesh.Reset();
-	if (bDebugView)
+	if (bDebugPlane)
 	{
 		BottomMesh = CreateTiledMesh(
-			MeshIndex, NativeSize, FIntVector2(1, 1), EAGX_MeshType::BottomPlane, nullptr, 0,
+			MeshIndex, Size, FIntVector2(1, 1), EAGX_MeshType::BottomPlane, nullptr, 0,
 			EAGX_MeshTilingPattern::None, true, false, false);
 		MeshIndex += BottomMesh.Num();
 	}
@@ -370,10 +370,6 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
-	FIntVector2 NativeResolution =
-		FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
-	FVector2D NativeSize =
-		FVector2D(NativeResolution.X * ElementSize, NativeResolution.Y * ElementSize);
 
 	switch (MeshType)
 	{
@@ -393,7 +389,9 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 		case EAGX_MeshType::BottomPlane:
 			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color) -> void
 			{
-				Uv0 = FVector2D((Pos.X + NativeSize.X/2) / ElementSize, (Pos.Y + NativeSize.X/2) / ElementSize);
+				Uv0 = FVector2D(
+					(Pos.X + Size.X / 2) / ElementSize,
+					(Pos.Y + Size.Y / 2) / ElementSize);
 			};
 		case EAGX_MeshType::None:
 		default:

@@ -89,7 +89,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
-	bool bDebugView = false;
+	bool bDebugPlane = false;
 	void ForceRebuildMesh();
 
 
