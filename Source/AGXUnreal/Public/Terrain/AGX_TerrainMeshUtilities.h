@@ -18,8 +18,6 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Height = 50.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
-	float BaseHeight = 0.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Scale = 100;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	int Octaves = 3;
@@ -30,13 +28,11 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Exp = 2.0f;
 };
-
-struct FAGX_TileMeshDescription
+struct FAGX_MeshDescription
 {
-	FAGX_TileMeshDescription(FIntVector2 VertexRes, bool UseSkirt)
+	FAGX_MeshDescription(FIntVector2 VertexRes)
 	{
 		VertexResolution = VertexRes;
-		IsSkirt = UseSkirt;
 
 		int NrOfVerts = VertexRes.X * VertexRes.Y;
 		Vertices.SetNum(NrOfVerts);
@@ -48,7 +44,6 @@ struct FAGX_TileMeshDescription
 		Colors.SetNum(NrOfVerts);
 	}
 	FIntVector2 VertexResolution;
-	bool IsSkirt;
 
 	TArray<FVector> Vertices;
 	TArray<int> Triangles;
@@ -58,8 +53,8 @@ struct FAGX_TileMeshDescription
 	TArray<struct FProcMeshTangent> Tangents;
 	TArray<FColor> Colors;
 };
+using FAGX_MeshVertexFunction = std::function<void(FVector&, FVector2D&, FVector2D&, FColor)>;
 
-using FAGX_TileMeshVertexFunction = std::function<void(FVector&, FVector2D&, FVector2D&, FColor)>;
 
 
 
@@ -73,12 +68,10 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-	static TSharedPtr<FAGX_TileMeshDescription> CreateMeshDescription(
-		FIntVector2 Resolution, bool IsSkirt);
 
-	static void UpdateMeshDescription(
-		FAGX_TileMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
-		FAGX_TileMeshVertexFunction VertexFunction);
+	static TSharedPtr<FAGX_MeshDescription> CreateMeshDescription(
+		const FVector& Center, const FVector2D& Size, FIntVector2 Resolution,
+		const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool IsSkirt);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);

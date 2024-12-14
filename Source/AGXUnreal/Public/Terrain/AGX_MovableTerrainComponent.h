@@ -26,31 +26,40 @@ enum class EAGX_MeshTilingPattern : uint8
 	None UMETA(DisplayName = "None"),
 	StretchedTiles UMETA(DisplayName = "Stretched Tiles")
 };
+
 struct MeshTile
 {
 	int MeshIndex;
 	FIntVector2 Resolution;
 	FVector2D Center;
 	FVector2D Size;
+	FVector2D UvScale;
 	FBox2D BoundingBox;
+	bool IsSkirt;
 
-	MeshTile(int MeshSectionIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes)
+	MeshTile(
+		int MeshSectionIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes,
+		FVector2D TileUvScale, bool IsTileSkirt)
 	{
 		MeshIndex = MeshSectionIndex;
 		Center = TileCenter;
 		Size = TileSize;
 		Resolution = TileRes;
+		UvScale = TileUvScale;
+		IsSkirt = IsTileSkirt;
 	}
 };
 
+using TiledMesh = TArray<MeshTile>;
 
 UENUM(BlueprintType, Category = "AGX Terrain Mesh")
-enum class EAGX_VertexFunctionType : uint8
+enum class EAGX_MeshType : uint8
 {
 	None UMETA(DisplayName = "None"),
-	DefaultTerrain UMETA(DisplayName = "DefaultTerrain"),
+	Terrain UMETA(DisplayName = "Terrain"),
+	BottomPlane UMETA(DisplayName = "BottomPlane"),
+	Collision UMETA(DisplayName = "Collision")
 };
-
 /**
  *
  */
@@ -79,6 +88,8 @@ public:
 #endif
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Editor")
+	bool bDebugView = false;
 	void ForceRebuildMesh();
 
 
@@ -143,7 +154,6 @@ protected:
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
 	FAGX_BrownianNoiseParams InitialNoise;
-
 	
 	// AGX_Terrain
 	// _________________
@@ -255,7 +265,7 @@ protected:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta =
-			(ClampMin = "0", UIMin = "0", ClampMax = "8", UIMax = "8",
+			(ClampMin = "0", UIMin = "0", ClampMax = "2", UIMax = "2",
 			 EditCondition = "bAutoMeshResolution"))
 	int MeshLevelOfDetail = 1;
 
@@ -273,7 +283,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bMeshTileSkirts = true;
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
-	bool bClampMeshEdges = false;
+	bool bClampMeshEdges = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
 	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
@@ -331,42 +341,40 @@ private:
 	float CalcInitialHeight(const FVector& LocalPos) const;
 	float CalcInitialBedHeight(const FVector& LocalPos) const;
 
-	FVector2D ToUvCord(const FVector& LocalPos) const
+	FVector2D ToUv(const FVector& LocalPos, const FVector2D& PlaneSize) const
 	{
-		return FVector2D(LocalPos.X / Size.X + 0.5, LocalPos.Y / Size.Y + 0.5);
+		return FVector2D(LocalPos.X / PlaneSize.X + 0.5, LocalPos.Y / PlaneSize.Y + 0.5);
 	};
 
-	FVector2D ToUvCentimeters(const FVector& LocalPos) const
-	{
-		return FVector2D((LocalPos.X + Size.X / 2) / 100.0, (LocalPos.Y + Size.Y / 2) / 100.0);
-	};
 	float DistFromEdge(const FVector& LocalPos) const
 	{
 		float DistX = Size.X / 2 - FMath::Abs(LocalPos.X);
 		float DistY = Size.Y / 2 - FMath::Abs(LocalPos.Y);
 
 		return FMath::Min(DistX, DistY);
-	}
+	};
 
-	float GetMeshHeight(const FVector& LocalPos) const;
+	float GetMeshHeight(const FVector& LocalPos, bool bClampEdgeToBed) const;
 
-	TArray<MeshTile> MeshTiles;
+
+	TiledMesh TerrainMesh;
+	TiledMesh BottomMesh;
+	TiledMesh CollisionMesh;
+
+	void RecreateMeshes();
+
 	TArray<MeshTile> GenerateMeshTiles(
-		const FIntVector2& MeshResolution, 
-		const EAGX_MeshTilingPattern& MeshTilingPattern,
-		int MeshLod = 0) const;
-	void RecreateMesh();
+		const int StartMeshIndex, const FVector2D& FullSize, const FIntVector2& TargetResolution,
+		const EAGX_MeshTilingPattern& TilingPattern, int MeshLod = 0, bool bMeshSkirt = true) const;
 
+	TiledMesh CreateTiledMesh(
+		int StartMeshIndex, FVector2D MeshSize, FIntVector2 MeshRes, 
+		const EAGX_MeshType& MeshType = EAGX_MeshType::None,
+		UMaterialInterface* MeshMaterial = nullptr, int MeshLod = 0,
+		const EAGX_MeshTilingPattern& TilingPattern = EAGX_MeshTilingPattern::StretchedTiles,
+		bool bMeshVisible = true, bool bMeshCollision = false, bool bMeshSkirt = true);
 
-	// Mesh Section (using UProceduralMeshComponent's GPU interface)
-	void CreateTileMeshSection(
-		const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFunc,
-		UMaterialInterface * MeshSectionMaterial, bool bMeshSectionSkirt = false, bool bMeshSectionVisible = true,
-		bool bMeshSectionUnrealCollision = false);
-	void UpdateTileMeshSection(const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFunc);
+	void UpdateTileMeshSection(MeshTile& Tile, const EAGX_MeshType& MeshType);
 
-
-	// Mesh Description (Vertex Position, Color, etc)
-	TMap<int, TSharedPtr<FAGX_TileMeshDescription>> MeshSectionDescriptions;
-	void UpdateTileMeshDescription(const MeshTile& Tile, const EAGX_VertexFunctionType& VertexFunc);
+	FAGX_MeshVertexFunction GetMeshVertexFunction(const EAGX_MeshType& MeshType);
 };

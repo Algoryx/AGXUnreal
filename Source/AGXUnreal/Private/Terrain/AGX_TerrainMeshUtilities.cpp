@@ -2,28 +2,16 @@
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
-TSharedPtr<FAGX_TileMeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	FIntVector2 Resolution, bool IsSkirt)
+
+TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
+	const FVector& Center, const FVector2D& Size,  FIntVector2 Resolution,
+	const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool IsSkirt)
 {
-	// Number of vertices (number of faces + 1)
-	FIntVector2 VertexRes = FIntVector2(Resolution.X + 1, Resolution.Y + 1);
+	FIntVector2 VertexRes =
+		FIntVector2(Resolution.X + (IsSkirt ? 3 : 1), Resolution.Y + (IsSkirt ? 3 : 1));
 
-	if (IsSkirt) // With skirt, add two extra rows/columns
-		VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
-
-	// Allocate memory
-	return MakeShared<FAGX_TileMeshDescription>(VertexRes, IsSkirt);
-}
-
-void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
-	FAGX_TileMeshDescription& MeshDesc, const FVector& Center, const FVector2D& Size,
-	FAGX_TileMeshVertexFunction VertexFunction)
-{
-	FIntVector2 VertexRes = MeshDesc.VertexResolution;
-	bool IsSkirt = MeshDesc.IsSkirt;
-
-	FIntVector2 Resolution = FIntVector2(VertexRes.X - (IsSkirt? 3 : 1), VertexRes.Y - (IsSkirt? 3 : 1));
-
+	auto MeshDescPtr = MakeShared<FAGX_MeshDescription>(VertexRes);
+	auto& MeshDesc = MeshDescPtr.Get();
 	
 	// Size of individual triangle
 	FVector2D TriangleSize =
@@ -33,20 +21,19 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
 	// Hacky: With skirt, begin one row/column outside plane
-	const int StartIndex = MeshDesc.IsSkirt ? -1 : 0;
+	const int StartIndex = IsSkirt ? -1 : 0;
 	for (int32 y = 0; y < VertexRes.Y; ++y)
 	{
 		for (int32 x = 0; x < VertexRes.X; ++x)
 		{
-			FVector PlanePosition = FVector(
+			FVector PlanePosition = Center + FVector(
 				(x + StartIndex) * TriangleSize.X - Size.X / 2,
 				(y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0);
-			FVector LocalPosition = PlanePosition + Center;
 
 			// Default Vertex Position
-			MeshDesc.Vertices[VertexIndex] = LocalPosition;
+			MeshDesc.Vertices[VertexIndex] = PlanePosition;
 			MeshDesc.UV0[VertexIndex] =
-				FVector2D(LocalPosition.X / Size.X + 0.5, LocalPosition.Y / Size.Y + 0.5);
+				FVector2D(PlanePosition.X * UvScale.X + 0.5, PlanePosition.Y * UvScale.Y + 0.5);
 
 
 			// Modify Vertex with VertexFunction callback
@@ -85,8 +72,6 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 	// Move skirt vertices downwards
 	if (IsSkirt)
 	{
-
-
 		// This should give us 1 centimeter skirt per meter mesh
 		float SkirtLength = FMath::Min(Size.X, Size.Y) * 0.01f;
 		VertexIndex = 0;
@@ -114,6 +99,8 @@ void UAGX_TerrainMeshUtilities::UpdateMeshDescription(
 			}
 		}
 	}
+
+	return MeshDescPtr;
 }
 	
 
@@ -181,7 +168,7 @@ float UAGX_TerrainMeshUtilities::GetNoiseHeight(
 		Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
 		NoiseParams.Lacunarity, NoiseParams.Exp);
 
-	return Noise * NoiseParams.Height + NoiseParams.BaseHeight;
+	return Noise * NoiseParams.Height;
 }
 
 float UAGX_TerrainMeshUtilities::GetBedHeight(
