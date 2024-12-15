@@ -87,21 +87,21 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 					FVector V = MeshDesc.Vertices[VertexIndex];
 
 					//Clamp/move the vertex back to Size
-					MeshDesc.Vertices[VertexIndex] = FVector(
+					FVector P = FVector(
 						FMath::Clamp(V.X, Center.X - Size.X / 2, Center.X + Size.X / 2),
-						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), V.Z);
+						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), 0.0);
 
 					//Fetch the height at the moved-back-position
-		/*			FVector2D DummyUV0, DummyUV1;
+					FVector2D DummyUV0, DummyUV1;
 					FColor DummyColor;
-					VertexFunction(MeshDesc.Vertices[VertexIndex], DummyUV0, DummyUV1, DummyColor, true);*/
+					VertexFunction(P, DummyUV0, DummyUV1, DummyColor, false);
 
 					//Move the vertex slightly downwards
-					MeshDesc.Vertices[VertexIndex] -= FVector::UpVector * SkirtLength;
+					P -= FVector::UpVector * SkirtLength;
 
 					// Use original height if it was further down
-				/*	MeshDesc.Vertices[VertexIndex].Z =
-						FMath::Min(V.Z, MeshDesc.Vertices[VertexIndex].Z);*/
+					V -= FVector::UpVector * SkirtLength;
+					MeshDesc.Vertices[VertexIndex] = FVector(P.X, P.Y, FMath::Min(P.Z, V.Z));
 
 				}
 				VertexIndex++;
