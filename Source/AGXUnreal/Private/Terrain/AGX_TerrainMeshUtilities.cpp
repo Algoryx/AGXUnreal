@@ -35,11 +35,13 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 			MeshDesc.UV0[VertexIndex] =
 				FVector2D(PlanePosition.X * UvScale.X + 0.5, PlanePosition.Y * UvScale.Y + 0.5);
 
+			bool IsSkirtVertex =
+				IsSkirt && (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1);
 
 			// Modify Vertex with VertexFunction callback
 			VertexFunction(
 				MeshDesc.Vertices[VertexIndex], MeshDesc.UV0[VertexIndex],
-				MeshDesc.UV1[VertexIndex], MeshDesc.Colors[VertexIndex]);
+				MeshDesc.UV1[VertexIndex], MeshDesc.Colors[VertexIndex], IsSkirtVertex);
 
 
 			// Skip last row and column for triangles
@@ -65,11 +67,12 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 		}
 	}
 
-	// Compute tangents and normals (before moving skirt)
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 
-	// Move skirt vertices downwards
+	// Move skirt vertices downwards, 
+	// after lightning calculation
+	// to hide seams between tiles
 	if (IsSkirt)
 	{
 		// This should give us 1 centimeter skirt per meter mesh
@@ -81,19 +84,25 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 			{
 				if (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1)
 				{
-					FVector V = MeshDesc.Vertices[VertexIndex] - Center;
-					FVector PlanePosition = FVector(
-						FMath::Clamp(V.X, -Size.X / 2, Size.X / 2),
-						FMath::Clamp(V.Y, -Size.Y / 2, Size.Y / 2), 0.0);
-					FVector LocalPosition = PlanePosition + Center;
+					FVector V = MeshDesc.Vertices[VertexIndex];
 
-					FVector SkirtPosition = LocalPosition;
-					FVector2D DummyUV0, DummyUV1;
+					//Clamp/move the vertex back to Size
+					MeshDesc.Vertices[VertexIndex] = FVector(
+						FMath::Clamp(V.X, Center.X - Size.X / 2, Center.X + Size.X / 2),
+						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), V.Z);
+
+					//Fetch the height at the moved-back-position
+		/*			FVector2D DummyUV0, DummyUV1;
 					FColor DummyColor;
-					VertexFunction(SkirtPosition, DummyUV0, DummyUV1, DummyColor);
-					SkirtPosition -= FVector::UpVector * SkirtLength;
+					VertexFunction(MeshDesc.Vertices[VertexIndex], DummyUV0, DummyUV1, DummyColor, true);*/
 
-					MeshDesc.Vertices[VertexIndex] = SkirtPosition;
+					//Move the vertex slightly downwards
+					MeshDesc.Vertices[VertexIndex] -= FVector::UpVector * SkirtLength;
+
+					// Use original height if it was further down
+				/*	MeshDesc.Vertices[VertexIndex].Z =
+						FMath::Min(V.Z, MeshDesc.Vertices[VertexIndex].Z);*/
+
 				}
 				VertexIndex++;
 			}
@@ -168,7 +177,7 @@ float UAGX_TerrainMeshUtilities::GetNoiseHeight(
 		Pos, NoiseParams.Octaves, NoiseParams.Scale, NoiseParams.Persistance,
 		NoiseParams.Lacunarity, NoiseParams.Exp);
 
-	return Noise * NoiseParams.Height;
+	return Noise * NoiseParams.NoiseHeight + NoiseParams.BaseHeight;
 }
 
 float UAGX_TerrainMeshUtilities::GetBedHeight(

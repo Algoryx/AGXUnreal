@@ -14,9 +14,10 @@ USTRUCT(BlueprintType, Category = "AGX Procedural")
 struct AGXUNREAL_API FAGX_BrownianNoiseParams
 {
 	GENERATED_BODY()
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
-	float Height = 50.0f;
+	float NoiseHeight = 10.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
+	float BaseHeight = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Scale = 100;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
@@ -53,7 +54,7 @@ struct FAGX_MeshDescription
 	TArray<struct FProcMeshTangent> Tangents;
 	TArray<FColor> Colors;
 };
-using FAGX_MeshVertexFunction = std::function<void(FVector&, FVector2D&, FVector2D&, FColor)>;
+using FAGX_MeshVertexFunction = std::function<void(FVector& VertexPos, FVector2D& Uv0, FVector2D& Uv1, FColor OutColor, bool IsSkirtVertex)>;
 
 
 

@@ -256,23 +256,21 @@ protected:
 	
 	// --- Heightfield Mesh
 	// --------------------
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "!bAutoMeshResolution"))
-	FIntVector2 MeshResolution = FIntVector2(20, 20);
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bAutoMeshResolution = true;
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
+		Meta = (EditCondition = "!bAutoMeshResolution"))
+	FIntVector2 MeshResolution = FIntVector2(20, 20);
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta =
-			(ClampMin = "0", UIMin = "0", ClampMax = "2", UIMax = "2",
-			 EditCondition = "bAutoMeshResolution"))
+			(ClampMin = "0", UIMin = "0", ClampMax = "2", UIMax = "2"))
 	int MeshLevelOfDetail = 1;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (ClampMin = "-2.5", UIMin = "-2.5", ClampMax = "2.5", UIMax = "2.5"),
-		AdvancedDisplay)
+		Meta = (ClampMin = "-2.5", UIMin = "-2.5", ClampMax = "2.5", UIMax = "2.5"))
 	double MeshZOffset = -1.0;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
@@ -282,7 +280,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bMeshTileSkirts = true;
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
+	UPROPERTY( EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bMeshTileSkirts"))
 	bool bClampMeshEdges = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
@@ -353,9 +351,6 @@ private:
 
 		return FMath::Min(DistX, DistY);
 	};
-
-	float GetMeshHeight(const FVector& LocalPos, bool bClampEdgeToBed) const;
-
 
 	TiledMesh TerrainMesh;
 	TiledMesh BottomMesh;
