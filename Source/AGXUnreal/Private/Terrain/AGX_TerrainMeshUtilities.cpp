@@ -75,8 +75,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 	// to hide seams between tiles
 	if (IsSkirt)
 	{
-		// This should give us 1 centimeter skirt per meter mesh
-		float SkirtLength = FMath::Min(Size.X, Size.Y) * 0.01f;
+		
+		float SkirtLength = 1.0f;// FMath::Min(Size.X, Size.Y) * 0.01f;
 		VertexIndex = 0;
 		for (int32 y = 0; y < VertexRes.Y; ++y)
 		{
@@ -100,7 +100,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 					P -= FVector::UpVector * SkirtLength;
 
 					// Use original height if it was further down
-					V -= FVector::UpVector * SkirtLength;
+					//V -= FVector::UpVector * SkirtLength;
 					MeshDesc.Vertices[VertexIndex] = FVector(P.X, P.Y, FMath::Min(P.Z, V.Z));
 
 				}

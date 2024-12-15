@@ -112,6 +112,11 @@ protected:
 	{
 		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
 	};
+	FVector2D GetTerrainSize() const
+	{
+		return FVector2D(
+			GetTerrainResolution().X * ElementSize, GetTerrainResolution().Y * ElementSize);
+	};
 
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))

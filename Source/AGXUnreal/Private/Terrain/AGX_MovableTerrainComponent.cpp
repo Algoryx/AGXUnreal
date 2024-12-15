@@ -58,7 +58,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 							{
 								double x = std::get<0>(HeightVertexTuple);
 								double y = std::get<1>(HeightVertexTuple);
-								FVector2D ModifiedPos = FVector2D(x, y) * ElementSize - Size / 2;
+								FVector2D ModifiedPos = FVector2D(x, y) * ElementSize - Size / 2; //GetTerrainSize()??
 								if (TileBox.IsInside(ModifiedPos))
 								{
 									return true;
@@ -247,8 +247,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	if (bDebugPlane)
 	{
 		BottomMesh = CreateTiledMesh(
-			MeshIndex, Size, FIntVector2(1, 1), EAGX_MeshType::BottomPlane, nullptr, 0,
-			EAGX_MeshTilingPattern::None, true, false, false);
+			MeshIndex, GetTerrainSize(), FIntVector2(1, 1), EAGX_MeshType::BottomPlane, nullptr, 0,
+			EAGX_MeshTilingPattern::None, true, false, true);
 		MeshIndex += BottomMesh.Num();
 	}
 
@@ -366,7 +366,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 			{
 				double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
-				// Clamp skirt vertices on the border
+				// Clamp skirt vertices to the border
 				if (bClampMeshEdges && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER)
 				{
 					Pos = FVector(
@@ -377,10 +377,6 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 
 				// Height Function
 				Pos += FVector::UpVector * (Height + MeshZOffset);
-
-				// UV1 Tiled to ElementSize
-				Uv1 = FVector2D(
-					(Pos.X + Size.X / 2) / ElementSize, (Pos.Y + Size.Y / 2) / ElementSize);
 			};
 		// Collision
 		case EAGX_MeshType::Collision:
@@ -395,10 +391,6 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 
 				// Height Function
 				Pos += FVector::UpVector * (Height + MeshZOffset);
-
-				// UV1 Tiled to ElementSize
-				Uv1 = FVector2D(
-					(Pos.X + Size.X / 2) / ElementSize, (Pos.Y + Size.Y / 2) / ElementSize);
 			};
 		// Plane
 		case EAGX_MeshType::BottomPlane:
@@ -407,7 +399,8 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 			{
 				// UV0 Tiled to ElementSize
 				Uv0 = FVector2D(
-					(Pos.X + Size.X / 2) / ElementSize, (Pos.Y + Size.Y / 2) / ElementSize);
+					(Pos.X + GetTerrainSize().X / 2) / ElementSize,
+					(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
 			};
 		case EAGX_MeshType::None:
 		default:
