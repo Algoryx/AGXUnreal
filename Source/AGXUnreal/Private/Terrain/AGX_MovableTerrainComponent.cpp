@@ -191,11 +191,9 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 		for (int x = 0; x < Res.X; x++)
 		{
 			FVector LocalPos = Center + FVector(x * ElementSize, y * ElementSize, 0);
-			float BedHeight = CalcInitialBedHeight(LocalPos);
-			BedHeights[y * Res.X + x] = BedHeight; 
+			BedHeights[y * Res.X + x] = CalcInitialBedHeight(LocalPos);
 
-			float InitialHeight = CalcInitialHeight(LocalPos);
-			CurrentHeights[y * Res.X + x] = InitialHeight;
+			CurrentHeights[y * Res.X + x] = CalcInitialHeight(LocalPos);
 		}
 	}
 }
@@ -206,13 +204,9 @@ float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) c
 											   LocalPos, GetComponentTransform(), InitialNoise)
 										 : 0.0f;
 	float BedHeight = bUseBedShapes ? CalcInitialBedHeight(LocalPos) : 0.0f;
-	float InitialHeight = FMath::Max(BaseHeight, BedHeight) + NoiseHeight;
 
-	//InitialHeight = FMath::Lerp(
-	//	BedHeight, InitialHeight,
-	//	FMath::Clamp(FMath::Pow(NormDistFromEdge(LocalPos), 0.5), 0.0f, 1.0f));
 
-	return FMath::Max(InitialHeight, BedHeight);
+	return FMath::Max(InitialHeight, BedHeight) + NoiseHeight;
 }
 
 float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos) const
@@ -426,6 +420,8 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	ForceRebuildMesh();
 }
 
+#endif
+
 void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 {
 	// Hacky: This bool is used to force an update of the mesh in-editor
@@ -464,7 +460,6 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 	}
 }
 
-#endif
 
 void UAGX_MovableTerrainComponent::TickComponent(
 	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -798,9 +793,9 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("CreateNativeShovels called on AGX MovableTerrain '%s' which doesn't have a native "
+			TEXT("CreateNativeShovels called on AGX MovableTerrain '%s' in '%s' which doesn't have a native "
 				 "representation."),
-			*GetName());
+			*GetName(), *GetLabelSafe(GetOwner()));
 	}
 
 	for (FAGX_ShovelReference& ShovelRef : ShovelComponents)
@@ -809,10 +804,10 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 		if (ShovelComponent == nullptr)
 		{
 			const FString Message = FString::Printf(
-				TEXT("AGX MovableTerrain '%s' have a Shovel reference to '%s' in '%s' that does not "
+				TEXT("AGX MovableTerrain '%s' in '%s' have a Shovel reference to '%s' in '%s' that does not "
 					 "reference a valid Shovel."),
-				*GetName(), *ShovelRef.Name.ToString(),
-				*GetLabelSafe(ShovelRef.OwningActor));
+				*GetName(), *GetLabelSafe(GetOwner()),
+				*ShovelRef.Name.ToString(),*GetLabelSafe(ShovelRef.OwningActor));
 			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 			continue;
 		}

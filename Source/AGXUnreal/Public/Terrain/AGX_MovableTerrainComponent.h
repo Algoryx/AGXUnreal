@@ -120,7 +120,7 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
-	float BaseHeight = 0.0f;
+	float InitialHeight = 0.0f;
 
 	// Bed Shapes
 	// ______________________
