@@ -311,7 +311,8 @@ TiledMesh UAGX_MovableTerrainComponent::CreateTiledMesh(
 		// Create MeshSection (Upload to GPU)
 		CreateMeshSection(
 			Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
-			MeshDesc->UV0, MeshDesc->Colors, MeshDesc->Tangents, bMeshCollision);
+			MeshDesc->UV0, MeshDesc->UV1, TArray<FVector2D>(), TArray<FVector2D>(),
+			MeshDesc->Colors, MeshDesc->Tangents, bMeshCollision);
 		SetMaterial(Tile.MeshIndex, MeshMaterial);
 		SetMeshSectionVisible(Tile.MeshIndex, bMeshVisible);
 	}
@@ -327,7 +328,9 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 		GetMeshVertexFunction(MeshType), Tile.IsSkirt);
 
 	// Update MeshSection (Re-Upload to GPU)
-	UpdateMeshSection(Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Normals, MeshDesc->UV0, MeshDesc->Colors,
+	UpdateMeshSection(
+		Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Normals, MeshDesc->UV0, MeshDesc->UV1,
+		TArray<FVector2D>(), TArray<FVector2D>(), MeshDesc->Colors,
 		MeshDesc->Tangents);
 
 }
@@ -335,27 +338,66 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
-
 	switch (MeshType)
 	{
+
 		// Terrain Mesh
 		case EAGX_MeshType::Terrain:
+			// Pos and UV0 are set as they enter the function
 			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
 					   bool IsSkirt) -> void
 			{
+				// Get CurrentHeight
 				double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
-				// Clamp skirt vertices to the border
-				if (bClampMeshEdges && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER)
+				
+				bool IsSkirtEdgeClamp =
+					bClampMeshEdges && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER;
+
+				if (!IsSkirtEdgeClamp)
 				{
+					// Height Function
+					Pos += FVector::UpVector * (Height + MeshZOffset);
+
+					// Set UV1 Tiled to ElementSize
+					Uv1 = FVector2D(
+						(Pos.X + GetTerrainSize().X / 2) / ElementSize,
+						(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
+				}
+				else
+				{
+					// Clamp XY position to edge
 					Pos = FVector(
 						FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
 						FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-					Height = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+
+					// Clamp height to BedHeight
+					float BedHeight = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+					Pos += FVector::UpVector * (BedHeight + MeshZOffset);
+
+					FVector2D OldUv = Uv0;
+
+					// Set Uv0, Uv1 with clamped position
+					Uv0 = ToUv(Pos, Size);
+					Uv1 = FVector2D(
+						(Pos.X + GetTerrainSize().X / 2) / ElementSize,
+						(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
+
+					FVector2D UvDir = Uv0 - OldUv;
+
+					bool IsOnXEdge = FMath::Abs(UvDir.Y) < FMath::Abs(UvDir.X);
+
+					float SkirtLength = 1.0f;
+					float HeightDist = FMath::Abs(Height - BedHeight) + SkirtLength;
+
+					// Wrap Uv0 and Uv1 using HeightDist
+					Uv0 = IsOnXEdge ? FVector2D(Uv0.X + HeightDist / Size.X, Uv0.Y)
+												: FVector2D(Uv0.X, Uv0.Y + HeightDist / Size.Y);
+					Uv1 = IsOnXEdge
+							  ? FVector2D(Uv1.X + HeightDist / ElementSize, Uv1.Y)
+							  : FVector2D(Uv1.X, Uv1.Y + HeightDist / ElementSize);
 				}
 
-				// Height Function
-				Pos += FVector::UpVector * (Height + MeshZOffset);
 			};
 		// Collision
 		case EAGX_MeshType::Collision:

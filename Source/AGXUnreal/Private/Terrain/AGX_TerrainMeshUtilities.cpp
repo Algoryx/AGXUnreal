@@ -17,11 +17,12 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 	FVector2D TriangleSize =
 		FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
+	// Hacky: With skirt, begin one row/column outside plane
+	const int StartIndex = IsSkirt ? -1 : 0;
+
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
 	int32 TriangleIndex = 0;
-	// Hacky: With skirt, begin one row/column outside plane
-	const int StartIndex = IsSkirt ? -1 : 0;
 	for (int32 y = 0; y < VertexRes.Y; ++y)
 	{
 		for (int32 x = 0; x < VertexRes.X; ++x)
