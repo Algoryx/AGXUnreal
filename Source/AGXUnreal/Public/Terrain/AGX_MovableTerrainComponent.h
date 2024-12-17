@@ -94,7 +94,8 @@ public:
 
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain")
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material;
 
 	UPROPERTY(
