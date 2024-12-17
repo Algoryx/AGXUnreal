@@ -86,17 +86,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	}
 
 	// Init particles
-	if (bEnableParticleRendering)
-	{
-		if (!InitializeParticles())
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("InitializeParticles returned false in AGX_MovableTerrainComponent '%s'. "
-					 "Ensure the selected Niagara System is valid."),
-				*GetName());
-		}
-	}
+	InitializeParticles();
 
 	// Unreal Collision
 	this->SetCollisionEnabled(AdditionalUnrealCollision);
@@ -120,6 +110,17 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.AllocateNative(
 		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
 
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
+			*GetName(), *GetLabelSafe(GetOwner()));
+
+		return;
+	}
+
+
 	// Attach to RigidBody
 	if (OwningRigidBody)
 		OwningRigidBody->GetNative()->AddTerrain(&NativeBarrier);
@@ -136,26 +137,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
 
-	// Create/Add Shovels
 	CreateNativeShovels();
-
-	if (!UpdateNativeTerrainMaterial())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("UpdateNativeTerrainMaterial returned false in AGX_MovableTerrainComponent '%s'. "
-				 "Ensure the selected Terrain Material is valid."),
-			*GetName());
-	}
-
-	if (!UpdateNativeShapeMaterial())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("UpdateNativeShapeMaterial returned false in AGX_MovableTerrainComponent '%s'. "
-				 "Ensure the selected Shape Material is valid."),
-			*GetName());
-	}
+	UpdateNativeTerrainMaterial();
+	UpdateNativeShapeMaterial();
+	
 
 	// Add Native
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
@@ -689,6 +674,12 @@ bool UAGX_MovableTerrainComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeM
 	// asset/instance swap.
 	if (!UpdateNativeShapeMaterial())
 	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to UpdateNativeShapeMaterial. "
+				 "Restore original ShapeMaterial. "),
+			*GetName(), *GetLabelSafe(GetOwner()));
+
 		// Something went wrong, restore original ShapeMaterial.
 		ShapeMaterial = ShapeMaterialOrig;
 		return false;
@@ -700,7 +691,10 @@ bool UAGX_MovableTerrainComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeM
 bool UAGX_MovableTerrainComponent::UpdateNativeTerrainMaterial()
 {
 	if (!HasNative())
+	{
+		// Not in play, we are done.
 		return false;
+	}
 
 	if (TerrainMaterial == nullptr)
 	{
@@ -713,8 +707,9 @@ bool UAGX_MovableTerrainComponent::UpdateNativeTerrainMaterial()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Cannot update native Terrain material because don't have a world to create "
-				 "the material instance in."));
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to UpdateNativeTerrainMaterial. "
+					"There is no valid World. "), 
+			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
 
@@ -789,14 +784,6 @@ void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
 
 void UAGX_MovableTerrainComponent::CreateNativeShovels()
 {
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("CreateNativeShovels called on AGX MovableTerrain '%s' in '%s' which doesn't have a native "
-				 "representation."),
-			*GetName(), *GetLabelSafe(GetOwner()));
-	}
 
 	for (FAGX_ShovelReference& ShovelRef : ShovelComponents)
 	{
@@ -804,8 +791,9 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 		if (ShovelComponent == nullptr)
 		{
 			const FString Message = FString::Printf(
-				TEXT("AGX MovableTerrain '%s' in '%s' have a Shovel reference to '%s' in '%s' that does not "
-					 "reference a valid Shovel."),
+				TEXT("AGX MovableTerrain '%s' in '%s' have a Shovel reference to '%s' in '%s' "
+					 "that does not reference a valid Shovel. "
+					 "Abandoning shovel. "),
 				*GetName(), *GetLabelSafe(GetOwner()),
 				*ShovelRef.Name.ToString(),*GetLabelSafe(ShovelRef.OwningActor));
 			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
@@ -836,10 +824,10 @@ bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelC
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Shovel '%s' in AGX MovableTerrain '%s' could not create AGX Dynamics "
-				 "representation. Ignoring this shovel. It will not be able to deform the "
-				 "Terrain."),
-			*ShovelComponent->GetName(), *GetName());
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s'. "
+				 "Shovel does not reference a valid Native. "),
+			*GetName(), *GetLabelSafe(GetOwner()), 
+			*ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
 		return false;
 	}
 	check(ShovelBarrier->HasNative());
@@ -849,21 +837,22 @@ bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelC
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions "
-				 "and "
-				 "trying again."),
-			*GetName(), *ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
+			TEXT("AGX MovableTerrain '%s' in '%s' rejected AddNativeShovel '%s' in '%s'.  "
+				 "Reversing edge directions and trying again."),
+			*GetName(), *GetLabelSafe(GetOwner()), 
+			*ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
+
 		ShovelComponent->SwapEdgeDirections();
 		Added = NativeBarrier.AddShovel(*ShovelBarrier);
 		if (!Added)
 		{
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("AGX MovableTerrain '%s' rejected shovel '%s' in '%s' after edge directions "
-					 "flip. "
-					 "Abandoning shovel."),
-				*GetName(), *GetNameSafe(ShovelComponent),
-				*GetLabelSafe(ShovelComponent->GetOwner()));
+				TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s' "
+					 "after edge directions flip. "
+					 "Abandoning shovel. "),
+				*GetName(), *GetLabelSafe(GetOwner()), 
+				*GetNameSafe(ShovelComponent), *GetLabelSafe(ShovelComponent->GetOwner()));
 		}
 	}
 
@@ -905,12 +894,8 @@ int32 UAGX_MovableTerrainComponent::GetNumParticles() const
 
 bool UAGX_MovableTerrainComponent::InitializeParticles()
 {
-	if (!ParticleSystemAsset)
+	if (!bEnableParticleRendering || !ParticleSystemAsset)
 	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("MovableTerrainComponent '%s' does not have a particle system, cannot render particles"),
-			*GetName());
 		return false;
 	}
 
@@ -935,6 +920,15 @@ bool UAGX_MovableTerrainComponent::InitializeParticles()
 		ParticleSystemComponent->bVisualizeComponent = true;
 	}
 #endif
+	
+	if (ParticleSystemComponent == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to create ParticleSystemComponent. "
+				 "Ensure the selected Niagara System is valid."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+	}
 
 	return ParticleSystemComponent != nullptr;
 }

@@ -122,7 +122,7 @@ protected:
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	float InitialHeight = 0.0f;
 
-	// Bed Shapes
+	// BedShapes
 	// ______________________
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
@@ -149,7 +149,7 @@ protected:
 	double BedZOffset = 0.5;
 
 
-	// Initial Noise Height
+	// InitialNoise Height
 	//______________________
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain",
@@ -183,14 +183,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void RemoveCollisionGroupIfExists(FName GroupName);
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FAGX_ShovelReference> ShovelComponents;
-	void CreateNativeShovels();
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void AddShovel(UAGX_ShovelComponent* ShovelComponent);
-
-	bool AddNativeShovel(UAGX_ShovelComponent* ShovelComponent);
-
 	/** Defines physical properties of the surface of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
 	UAGX_ShapeMaterial* ShapeMaterial;
@@ -198,6 +190,16 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
+
+	
+	/** Shovels that can cut into the Terrain. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	TArray<FAGX_ShovelReference> ShovelComponents;
+	void CreateNativeShovels();
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void AddShovel(UAGX_ShovelComponent* ShovelComponent);
+
+	bool AddNativeShovel(UAGX_ShovelComponent* ShovelComponent);
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -257,6 +259,41 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetIsNoMerge() const;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
+	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
+		ECollisionEnabled::NoCollision};
+
+	//--- AGX_Terrain Rendering
+	//--------------------------
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
+	UNiagaraComponent* GetSpawnedParticleSystemComponent();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
+	int32 GetNumParticles() const;
+
+	/** Whether soil particles should be rendered or not. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
+	bool bEnableParticleRendering = false;
+
+	/**
+	 * Rough estimation of number of particles that will exist at once. Should not be too low,
+	 * or some particles might not be rendered.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
+		Meta =
+			(EditCondition = "bEnableParticleRendering", ClampMin = "1", UIMin = "1",
+			 UIMax = "4096"))
+	int32 MaxNumRenderParticles = 2048;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
+		Meta = (EditCondition = "bEnableParticleRendering"))
+	UNiagaraSystem* ParticleSystemAsset;
+	UNiagaraComponent* ParticleSystemComponent = nullptr;
+
+	bool InitializeParticles();
+	void UpdateParticles();
 
 	
 	// --- Heightfield Mesh
@@ -287,44 +324,6 @@ protected:
 	bool bMeshTileSkirts = true;
 	UPROPERTY( EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bMeshTileSkirts"))
 	bool bClampMeshEdges = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
-	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
-		ECollisionEnabled::NoCollision};
-
-	//--- AGX_Terrain Rendering
-	//--------------------------
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
-	UNiagaraComponent* GetSpawnedParticleSystemComponent();
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
-	int32 GetNumParticles() const;
-
-
-	/** Whether soil particles should be rendered or not. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableParticleRendering = false;
-
-	/**
-	 * Rough estimation of number of particles that will exist at once. Should not be too low,
-	 * or some particles might not be rendered.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta =
-			(EditCondition = "bEnableParticleRendering", ClampMin = "1", UIMin = "1",
-			 UIMax = "4096"))
-	int32 MaxNumRenderParticles = 2048;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableParticleRendering"))
-	UNiagaraSystem* ParticleSystemAsset;
-	UNiagaraComponent* ParticleSystemComponent = nullptr;
-
-	bool InitializeParticles();
-	void UpdateParticles();
-
 	
 private:
 	FTerrainBarrier NativeBarrier;
