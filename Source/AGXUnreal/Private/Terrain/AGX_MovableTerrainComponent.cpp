@@ -46,7 +46,7 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 					{
 						// Get ModifiedHeights
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
-
+						FVector2D NativeTerrainSize = GetTerrainSize();
 						// Callback to check if a Tile contain any ModifiedHeights
 						auto IsTileDirty = [&](const MeshTile& Tile) -> bool
 						{
@@ -58,7 +58,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 							{
 								double x = std::get<0>(HeightVertexTuple);
 								double y = std::get<1>(HeightVertexTuple);
-								FVector2D ModifiedPos = FVector2D(x, y) * ElementSize - Size / 2; //GetTerrainSize()??
+								FVector2D ModifiedPos = FVector2D(x, y) * ElementSize -
+														NativeTerrainSize / 2; // GetTerrainSize()??
 								if (TileBox.IsInside(ModifiedPos))
 								{
 									return true;
