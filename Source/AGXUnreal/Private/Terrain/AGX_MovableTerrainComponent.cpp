@@ -230,14 +230,16 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	int CollisionLOD = 4;
 	
 	// Backbed (BedHeights)
+	bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
 	BackBedMesh.Reset();
 	BackBedMesh = CreateTiledMesh(
 		MeshIndex, FVector::Zero(), Size,
-		(bUseBedShapes && GetBedShapes().Num() > 0)
-			? (bAutoMeshResolution ? AutoMeshResolution : MeshResolution)
-			: FIntVector2(1, 1),
+		HasShapes? AutoMeshResolution
+		: FIntVector2(1, 1),
 		GetMeshVertexFunction(EAGX_MeshType::BackBed), nullptr, CollisionLOD,
-		MeshTilingPattern, true, true, bIsUnrealCollision, !bHideTerrain && bShowMeshBottom || bShowUnrealCollision);
+		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None,
+		HasShapes, true, bIsUnrealCollision,
+		!bHideTerrain && bShowMeshBottom || bShowUnrealCollision);
 	MeshIndex += BackBedMesh.Num();
 
 	// Collision Mesh (CurrentHeights)
@@ -246,7 +248,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		MeshIndex, FVector::Zero(), Size, AutoMeshResolution,
 		GetMeshVertexFunction(
 			EAGX_MeshType::Collision), // GetMeshVertexFunction(EAGX_MeshType::Terrain),
-		nullptr, CollisionLOD, EAGX_MeshTilingPattern::StretchedTiles, false, false,
+		nullptr, CollisionLOD, EAGX_MeshTilingPattern::StretchedTiles, true, false,
 		bIsUnrealCollision, bShowUnrealCollision);
 	MeshIndex += CollisionMesh.Num();
 
@@ -438,10 +440,13 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
 					   bool IsSkirt) -> void
 			{
+				Pos = FVector(
+					FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
+					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 				double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
 				// Clamp vertices on the border for smoother (Unreal) collision
-				if (DistFromEdge(Pos) < SMALL_NUMBER)
+				if (DistFromEdge(Pos) < SMALL_NUMBER && IsSkirt)
 					Height = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 				//UV0 Tiled to Meters
 				Uv0 = FVector2D(
@@ -469,7 +474,8 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 
 				// Height Function
-				float BedHeight = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+				double BedHeight = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+
 				Pos += FVector::UpVector * (BedHeight + MeshZOffset);
 
 				// UV0 Tiled to Meters
