@@ -31,15 +31,16 @@ struct MeshTile
 {
 	int MeshIndex;
 	FIntVector2 Resolution;
-	FVector2D Center;
+	FVector Center;
 	FVector2D Size;
 	FVector2D UvScale;
 	FBox2D BoundingBox;
 	bool IsSkirt;
+	bool IsReverseWinding;
 
 	MeshTile(
-		int MeshSectionIndex, FVector2D TileCenter, FVector2D TileSize, FIntVector2 TileRes,
-		FVector2D TileUvScale, bool IsTileSkirt)
+		int MeshSectionIndex, FVector TileCenter, FVector2D TileSize, FIntVector2 TileRes,
+		FVector2D TileUvScale, bool IsTileSkirt, bool IsTileReverseWinding)
 	{
 		MeshIndex = MeshSectionIndex;
 		Center = TileCenter;
@@ -47,6 +48,7 @@ struct MeshTile
 		Resolution = TileRes;
 		UvScale = TileUvScale;
 		IsSkirt = IsTileSkirt;
+		IsReverseWinding = IsTileReverseWinding;
 	}
 };
 
@@ -58,7 +60,8 @@ enum class EAGX_MeshType : uint8
 	None UMETA(DisplayName = "None"),
 	Terrain UMETA(DisplayName = "Terrain"),
 	BottomPlane UMETA(DisplayName = "BottomPlane"),
-	Collision UMETA(DisplayName = "Collision")
+	Collision UMETA(DisplayName = "Collision"),
+	BackBed UMETA(DisplayName = "BackBed"),
 };
 /**
  *
@@ -89,7 +92,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
-	bool bDebugPlane = false;
+	bool bShowDebugPlane = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Editor")
+	bool bShowUnrealCollision = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Editor")
+	bool bHideTerrain = false;
 	void ForceRebuildMesh();
 
 
@@ -321,10 +328,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	int MeshTileResolution = 10;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
-	bool bMeshTileSkirts = true;
+
 	UPROPERTY( EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bMeshTileSkirts"))
-	bool bClampMeshEdges = true;
+	bool bShowMeshSides = true;
+
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bShowMeshBottom = true;
 	
 private:
 	FTerrainBarrier NativeBarrier;
@@ -358,21 +368,30 @@ private:
 	};
 
 	TiledMesh TerrainMesh;
-	TiledMesh BottomMesh;
+	TiledMesh BackBedMesh;
+	TiledMesh BottomPlaneMesh;
 	TiledMesh CollisionMesh;
 
 	void RecreateMeshes();
 
 	TArray<MeshTile> GenerateMeshTiles(
-		const int StartMeshIndex, const FVector2D& FullSize, const FIntVector2& TargetResolution,
-		const EAGX_MeshTilingPattern& TilingPattern, int MeshLod = 0, bool bMeshSkirt = true) const;
+		const int StartMeshIndex, 
+		const FVector& MeshCenter, const FVector2D& MeshSize, const FIntVector2& MeshRes,
+		const int MeshLod,
+		const EAGX_MeshTilingPattern& TilingPattern, 
+		bool bWithSkirts,
+		bool bReverseWinding) const;
 
 	TiledMesh CreateTiledMesh(
-		int StartMeshIndex, FVector2D MeshSize, FIntVector2 MeshRes, 
-		const EAGX_MeshType& MeshType = EAGX_MeshType::None,
+		int StartMeshIndex, 
+		const FVector& MeshCenter, const FVector2D& MeshSize, const FIntVector2& MeshRes,
+		const FAGX_MeshVertexFunction MeshVertexFunc,
 		UMaterialInterface* MeshMaterial = nullptr, int MeshLod = 0,
-		const EAGX_MeshTilingPattern& TilingPattern = EAGX_MeshTilingPattern::StretchedTiles,
-		bool bMeshVisible = true, bool bMeshCollision = false, bool bMeshSkirt = true);
+		const EAGX_MeshTilingPattern& TilingPattern = EAGX_MeshTilingPattern::None,
+		bool bAddMeshSkirts = false,
+		bool bMeshReverseWinding = false,
+		bool bMeshCollision = false,
+		bool bMeshVisible = true);
 
 	void UpdateTileMeshSection(MeshTile& Tile, const EAGX_MeshType& MeshType);
 

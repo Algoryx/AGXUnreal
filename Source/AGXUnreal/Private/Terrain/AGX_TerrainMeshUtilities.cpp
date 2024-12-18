@@ -4,11 +4,13 @@
 #include <KismetProceduralMeshLibrary.h>
 
 TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	const FVector& Center, const FVector2D& Size,  FIntVector2 Resolution,
-	const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool IsSkirt)
+	const FVector& Center, const FVector2D& Size,  FIntVector2 Resolution, const FVector2D& UvScale,
+	const FAGX_MeshVertexFunction VertexFunction, bool bAddSeamSkirts, bool bReverseWinding)
 {
-	FIntVector2 VertexRes =
-		FIntVector2(Resolution.X + (IsSkirt ? 3 : 1), Resolution.Y + (IsSkirt ? 3 : 1));
+	//VertexRes = (Face)Resolution + 1
+	//With skirts +2 extra per row/column
+	FIntVector2 VertexRes = FIntVector2(
+		Resolution.X + (bAddSeamSkirts ? 3 : 1), Resolution.Y + (bAddSeamSkirts ? 3 : 1));
 
 	auto MeshDescPtr = MakeShared<FAGX_MeshDescription>(VertexRes);
 	auto& MeshDesc = MeshDescPtr.Get();
@@ -18,7 +20,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 		FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
 
 	// Hacky: With skirt, begin one row/column outside plane
-	const int StartIndex = IsSkirt ? -1 : 0;
+	const int StartIndex = bAddSeamSkirts ? -1 : 0;
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
@@ -36,8 +38,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 			MeshDesc.UV0[VertexIndex] =
 				FVector2D(PlanePosition.X * UvScale.X + 0.5, PlanePosition.Y * UvScale.Y + 0.5);
 
-			bool IsSkirtVertex =
-				IsSkirt && (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1);
+			bool IsSkirtVertex = bAddSeamSkirts &&
+								 (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1);
 
 			// Modify Vertex with VertexFunction callback
 			VertexFunction(
@@ -53,15 +55,30 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 				int32 TopLeft = BottomLeft + VertexRes.X;
 				int32 TopRight = TopLeft + 1;
 
-				// First triangle
-				MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-				MeshDesc.Triangles[TriangleIndex++] = TopLeft;
-				MeshDesc.Triangles[TriangleIndex++] = TopRight;
+                if (bReverseWinding)
+                {
+                    // First triangle with flipped winding order
+                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
+                    MeshDesc.Triangles[TriangleIndex++] = TopLeft;
 
-				// Second triangle
-				MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-				MeshDesc.Triangles[TriangleIndex++] = TopRight;
-				MeshDesc.Triangles[TriangleIndex++] = BottomRight;
+                    // Second triangle with flipped winding order
+                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+                    MeshDesc.Triangles[TriangleIndex++] = BottomRight;
+                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
+                }
+                else
+                {
+                    // First triangle
+                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+                    MeshDesc.Triangles[TriangleIndex++] = TopLeft;
+                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
+
+                    // Second triangle
+                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
+                    MeshDesc.Triangles[TriangleIndex++] = BottomRight;
+                }
 			}
 
 			++VertexIndex;
@@ -74,7 +91,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 	// Move skirt vertices downwards, 
 	// after lightning calculation
 	// to hide seams between tiles
-	if (IsSkirt)
+	if (bAddSeamSkirts)
 	{
 		
 		float SkirtLength = 1.0f;// FMath::Min(Size.X, Size.Y) * 0.01f;
@@ -90,7 +107,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 					//Clamp/move the vertex back to Size
 					FVector P = FVector(
 						FMath::Clamp(V.X, Center.X - Size.X / 2, Center.X + Size.X / 2),
-						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), 0.0);
+						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), Center.Z);
 
 					//Fetch the height at the moved-back-position
 					FVector2D DummyUV0, DummyUV1;

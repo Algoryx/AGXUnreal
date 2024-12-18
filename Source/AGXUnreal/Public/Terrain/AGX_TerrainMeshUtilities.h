@@ -72,7 +72,8 @@ public:
 
 	static TSharedPtr<FAGX_MeshDescription> CreateMeshDescription(
 		const FVector& Center, const FVector2D& Size, FIntVector2 Resolution,
-		const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool IsSkirt);
+		const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool bAddSeamSkirts = false,
+		bool bReverseWinding = false);
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
