@@ -8,6 +8,7 @@
 #include "AgxEdMode/AGX_AgxEdModeTerrain.h"
 #include "AgxEdMode/AGX_AgxEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"
+#include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
 #include "EditorModeManager.h"

@@ -6,10 +6,12 @@
 #include "AssetToolsModule.h"
 #include "AssetTypeCategories.h"
 #include "Editor/UnrealEdEngine.h"
+#include "Framework/Commands/Commands.h"
 #include "IAssetTools.h"
 #include "IAssetTypeActions.h"
 #include "IPlacementModeModule.h"
 #include "ISettingsModule.h"
+#include "LevelEditor.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
 #include "UnrealEdGlobals.h"
@@ -27,6 +29,7 @@
 #include "AGX_RigidBodyReference.h"
 #include "AGX_Real.h"
 #include "AGX_RealDetails.h"
+#include "AGX_RuntimeStyle.h"
 #include "AGX_ModelSourceComponent.h"
 #include "AGX_ModelSourceComponentCustomization.h"
 #include "AGX_Simulation.h"
@@ -41,6 +44,7 @@
 #include "AgxEdMode/AGX_AgxEdModeFileCustomization.h"
 #include "AgxEdMode/AGX_AgxEdModeTerrain.h"
 #include "AgxEdMode/AGX_AgxEdModeTerrainCustomization.h"
+#include "AgxEdMode/AGX_GrabMode.h"
 #include "AMOR/AGX_ConstraintMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_WireMergeSplitThresholdsTypeActions.h"
@@ -110,6 +114,7 @@
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Tires/AGX_TwoBodyTireActor.h"
 #include "Tires/AGX_TwoBodyTireComponentCustomization.h"
+#include "Utilities/AGX_EditorUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -127,6 +132,37 @@
 #include "Wire/AGX_WireWinchVisualizer.h"
 
 #define LOCTEXT_NAMESPACE "FAGXUnrealEditorModule"
+
+class FAGX_GlobalKeyboardCommands : public TCommands<FAGX_GlobalKeyboardCommands>
+{
+public:
+	FAGX_GlobalKeyboardCommands()
+		: TCommands<FAGX_GlobalKeyboardCommands>(
+			  TEXT("FAGXUnrealEditorModule"), LOCTEXT("FAGXUnrealEditorModule", "AGX UE Editor"),
+			  NAME_None, FAGX_RuntimeStyle::GetStyleSetName())
+	{
+	}
+
+	virtual void RegisterCommands() override
+	{
+		auto Sim = Cast<UAGX_Simulation>(UAGX_Simulation::StaticClass()->GetDefaultObject());
+		if (Sim == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("RegisterCommands failed in AGXUnrealEditor, could not get the AGX Simulation "
+					 "CDO. Keyboard commands may not work as expected."));
+			return;
+		}
+
+		UI_COMMAND(
+			ActivateGrabCommand, "Activate AGX Grab", "Activate AGX Grab",
+			EUserInterfaceActionType::Button, Sim->GrabModeKeyboardShortcut);
+	}
+
+public:
+	TSharedPtr<FUICommandInfo> ActivateGrabCommand;
+};
 
 void FAGXUnrealEditorModule::StartupModule()
 {
@@ -189,12 +225,26 @@ void FAGXUnrealEditorModule::UnregisterProjectSettings()
 
 void FAGXUnrealEditorModule::RegisterCommands()
 {
-	// Nothing here yet.
+	FAGX_GlobalKeyboardCommands::Register();
+
+	FLevelEditorModule& LevelEditorModule =
+		FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+
+	const auto GrabModeCommands = FAGX_GlobalKeyboardCommands::Get();
+	if (!LevelEditorModule.GetGlobalLevelEditorActions()->IsActionMapped(
+			GrabModeCommands.ActivateGrabCommand))
+	{
+		LevelEditorModule.GetGlobalLevelEditorActions()->MapAction(
+			GrabModeCommands.ActivateGrabCommand,
+			FExecuteAction::CreateRaw(this, &FAGXUnrealEditorModule::OnGrabModeCommand),
+			FCanExecuteAction::CreateRaw(
+				this, &FAGXUnrealEditorModule::OnCanExecuteGrabModeCommand));
+	}
 }
 
 void FAGXUnrealEditorModule::UnregisterCommands()
 {
-	// Nothing here yet.
+	FAGX_GlobalKeyboardCommands::Unregister();
 }
 
 void FAGXUnrealEditorModule::RegisterAssetTypeActions()
@@ -632,11 +682,16 @@ void FAGXUnrealEditorModule::RegisterModes()
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::AgxIcon,
 			FAGX_EditorStyle::AgxIconSmall),
 		/*bVisisble*/ true);
+
+	FEditorModeRegistry::Get().RegisterMode<FAGX_GrabMode>(
+		FAGX_GrabMode::EM_AGX_GrabModeId, LOCTEXT("AGXGrabMode", "Grab Mode"), FSlateIcon(),
+		/*bVisisble*/ false);
 }
 
 void FAGXUnrealEditorModule::UnregisterModes()
 {
 	FEditorModeRegistry::Get().UnregisterMode(FAGX_AgxEdMode::EM_AGX_AgxEdModeId);
+	FEditorModeRegistry::Get().UnregisterMode(FAGX_GrabMode::EM_AGX_GrabModeId);
 }
 
 void FAGXUnrealEditorModule::RegisterPlacementCategory()
@@ -691,6 +746,17 @@ void FAGXUnrealEditorModule::InitializeAssets()
 	AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary();
 	AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary();
 	AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary();
+}
+
+void FAGXUnrealEditorModule::OnGrabModeCommand() const
+{
+	FAGX_GrabMode::Activate();
+}
+
+bool FAGXUnrealEditorModule::OnCanExecuteGrabModeCommand() const
+{
+	const UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
+	return World != nullptr && World->IsGameWorld();
 }
 
 #undef LOCTEXT_NAMESPACE

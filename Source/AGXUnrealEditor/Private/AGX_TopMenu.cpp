@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AgxEdMode/AGX_AgxEdModeFile.h"
+#include "AgxEdMode/AGX_GrabMode.h"
 #include "AGXUnrealEditor.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Constraints/AGX_BallConstraintActor.h"
@@ -197,6 +198,21 @@ FAGX_TopMenu::~FAGX_TopMenu()
 	Builder.AddMenuSeparator();
 
 	{
+		const FSlateIcon GrabIcon(
+			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::GrabIcon,
+			FAGX_EditorStyle::GrabIcon);
+		Builder.AddSubMenu(
+			LOCTEXT("GrabModeMenuLabel", "Grab Mode"),
+			LOCTEXT(
+				"GrabModeMenuTooltip",
+				"Activate/Deactivate the Grab mode, making it possible to grab a "
+				"Rigid Body in the Level by clicking and dragging the mouse in the viewport."),
+			FNewMenuDelegate::CreateRaw(this, &FAGX_TopMenu::FillGrabModeMenu), false, GrabIcon);
+	}
+
+	Builder.AddMenuSeparator();
+
+	{
 		const FSlateIcon AgxIcon(
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::AgxIconSmall,
 			FAGX_EditorStyle::AgxIconSmall);
@@ -330,6 +346,22 @@ void FAGX_TopMenu::FillLicenseMenu(FMenuBuilder& Builder)
 			"RuntimeActivationMenuLabelToolTip",
 			"Generate an AGX Dynamics for Unreal runtime activation file bound to an application."),
 		[&]() { FAGX_TopMenu::OnOpenGenerateRuntimeActivationDialogClicked(); });
+}
+
+void FAGX_TopMenu::FillGrabModeMenu(FMenuBuilder& Builder)
+{
+	AddFileMenuEntry(
+		Builder, LOCTEXT("StartGrabModeMenuLabel", "Start"),
+		LOCTEXT(
+			"StartGrabModeMenuLabelToolTip",
+			"Activate the Grab mode, making it possible to grab a "
+			"Rigid Body in the Level by clicking and dragging the mouse in the viewport."),
+		[&]() { FAGX_TopMenu::OnStartGrabModeDialogClicked(); });
+
+	AddFileMenuEntry(
+		Builder, LOCTEXT("StopGrabModeMenuLabel", "Stop"),
+		LOCTEXT("StopGrabModeMenuLabelToolTip", "Deactivate the Grab mode."),
+		[&]() { FAGX_TopMenu::OnStopGrabModeDialogClicked(); });
 }
 
 void FAGX_TopMenu::OnCreateConstraintClicked(UClass* ConstraintClass)
@@ -488,6 +520,27 @@ void FAGX_TopMenu::OnOpenGenerateRuntimeActivationDialogClicked()
 		SNew(SAGX_GenerateRuntimeActivationDialog);
 	Window->SetContent(Dialog);
 	FSlateApplication::Get().AddModalWindow(Window, nullptr);
+}
+
+void FAGX_TopMenu::OnStartGrabModeDialogClicked()
+{
+	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
+	if (World == nullptr)
+		return;
+
+	if (!World->IsGameWorld())
+	{
+		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+			"Grab mode if only supported during play.");
+		return;
+	}
+
+	FAGX_GrabMode::Activate();
+}
+
+void FAGX_TopMenu::OnStopGrabModeDialogClicked()
+{
+	FAGX_GrabMode::Deactivate();
 }
 
 #undef LOCTEXT_NAMESPACE

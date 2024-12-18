@@ -13,6 +13,7 @@
 #include "Containers/Map.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
+#include "Framework/Commands/InputChord.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
@@ -247,7 +248,6 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
 	int32 RaytraceDeviceIndex {0};
 
-
 #if WITH_EDITORONLY_DATA
 	/**
 	 * Set to true to write an AGX Dynamics for Unreal archive of the initial state.
@@ -343,8 +343,16 @@ public: // Member functions.
 	 * Whether or not to override each AGX Shape with the selected AdditionalUnrealCollision
 	 * setting. If this is set to false, the setting on each AGX Shape is used instead.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Other")
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Other")
 	bool bOverrideAdditionalUnrealCollision {false};
+
+	/**
+	 * Keyboard shortcut to enable Grab Mode, making it possible to grab a Rigid Body in the
+	 * viewport with the mouse.
+	 * Note: if changed, the Unreal Editor must be restarted for the change to take effect.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Other")
+	FInputChord GrabModeKeyboardShortcut {EKeys::Insert};
 
 	/**
 	 * Additional Unreal Collision Geometry to use for all AGX Shapes.
@@ -355,7 +363,7 @@ public: // Member functions.
 	 * true, otherwise the AdditionalUnrealCollision setting belonging to each AGX Shape is used.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "Other",
+		Config, EditAnywhere, BlueprintReadOnly, Category = "Other",
 		Meta = (EditCondition = "bOverrideAdditionalUnrealCollision"))
 	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
 		ECollisionEnabled::QueryOnly};
