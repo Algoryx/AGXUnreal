@@ -6,6 +6,7 @@
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
@@ -82,8 +83,10 @@ void UAGX_ShapeComponent::UpdateNativeProperties()
 	if (!HasNative())
 		return;
 
-	GetNative()->SetName(GetName());
-	GetNative()->SetIsSensor(bIsSensor, SensorType == EAGX_ShapeSensorType::ContactsSensor);
+	FShapeBarrier* Barrier = GetNative();
+	Barrier->SetName(GetName());
+	Barrier->SetIsSensor(bIsSensor, SensorType == EAGX_ShapeSensorType::ContactsSensor);
+	Barrier->SetSurfaceVelocity(SurfaceVelocity);
 
 	if (!UpdateNativeMaterial())
 	{
@@ -199,14 +202,9 @@ void UAGX_ShapeComponent::PostInitProperties()
 		return;
 	}
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
-		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bIsSensor),
-		[](ThisClass* This) { This->SetIsSensor(This->bIsSensor); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(IsSensor);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SurfaceVelocity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShapeMaterial);
 
 	PropertyDispatcher.Add(
@@ -233,7 +231,9 @@ void UAGX_ShapeComponent::BeginPlay()
 
 	GetOrCreateNative();
 	if (HasNative())
+	{
 		MergeSplitProperties.OnBeginPlay(*this);
+	}
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)
@@ -290,11 +290,13 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, bool ForceOverw
 	AGX_COPY_PROPERTY_FROM(
 		bCanCollide, Barrier.GetEnableCollisions(), *this, ForceOverwriteInstances)
 	AGX_COPY_PROPERTY_FROM(bIsSensor, Barrier.GetIsSensor(), *this, ForceOverwriteInstances)
+	AGX_COPY_PROPERTY_FROM(
+		SurfaceVelocity, Barrier.GetSurfaceVelocity(), *this, ForceOverwriteInstances);
 	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetShapeGuid(), *this, ForceOverwriteInstances)
 
-	const TEnumAsByte<enum EAGX_ShapeSensorType> BarrierSensorType =
-		Barrier.GetIsSensorGeneratingContactData() ? EAGX_ShapeSensorType::ContactsSensor
-												   : EAGX_ShapeSensorType::BooleanSensor;
+	const EAGX_ShapeSensorType BarrierSensorType = Barrier.GetIsSensorGeneratingContactData()
+													   ? EAGX_ShapeSensorType::ContactsSensor
+													   : EAGX_ShapeSensorType::BooleanSensor;
 	AGX_COPY_PROPERTY_FROM(SensorType, BarrierSensorType, *this, ForceOverwriteInstances)
 
 	FVector BarrierPosition;
@@ -494,6 +496,24 @@ bool UAGX_ShapeComponent::GetIsSensor() const
 	return bIsSensor;
 }
 
+void UAGX_ShapeComponent::SetSurfaceVelocity(FVector InSurfaceVelocity)
+{
+	if (HasNative())
+	{
+		GetNative()->SetSurfaceVelocity(InSurfaceVelocity);
+	}
+	SurfaceVelocity = InSurfaceVelocity;
+}
+
+FVector UAGX_ShapeComponent::GetSurfaceVelocity() const
+{
+	if (HasNative())
+	{
+		return GetNative()->GetSurfaceVelocity();
+	}
+	return SurfaceVelocity;
+}
+
 TArray<FAGX_ShapeContact> UAGX_ShapeComponent::GetShapeContacts() const
 {
 	if (!HasNative())
@@ -589,16 +609,17 @@ void UAGX_ShapeComponent::OnUpdateTransform(
 		return;
 	}
 
-	// This Shape's transform was updated and it was not because of a parent moving. This should be
-	// propagated to the native to keep the AGX Dynamics state in line with the Unreal state.
-	// This can for example be due to the user manually changing the transform of the Shape during
-	// play by dragging it around in the world, or setting new values via the Details Panel or
-	// Blueprint functions. This also covers cases where the Shape is detached from a parent
-	// Component and its transform is changed. One exception to this is when the detachment is done
-	// from a Blueprint using the DetachFromComponent function with Keep World settings. In that
-	// case his function is not triggered with EUpdateTransformFlags != PropagateFromParent until
-	// this Shape Component is selected (highlighted) in the Details Panel. Unclear why. This
-	// corner-case is instead directly handled in UAGX_ShapeComponent::OnAttachmentChanged.
+	// This Shape's transform was updated and it was not because of a parent moving. This should
+	// be propagated to the native to keep the AGX Dynamics state in line with the Unreal state.
+	// This can for example be due to the user manually changing the transform of the Shape
+	// during play by dragging it around in the world, or setting new values via the Details
+	// Panel or Blueprint functions. This also covers cases where the Shape is detached from a
+	// parent Component and its transform is changed. One exception to this is when the
+	// detachment is done from a Blueprint using the DetachFromComponent function with Keep
+	// World settings. In that case his function is not triggered with EUpdateTransformFlags !=
+	// PropagateFromParent until this Shape Component is selected (highlighted) in the Details
+	// Panel. Unclear why. This corner-case is instead directly handled in
+	// UAGX_ShapeComponent::OnAttachmentChanged.
 	GetNative()->SetWorldPosition(GetComponentLocation());
 	GetNative()->SetWorldRotation(GetComponentQuat());
 }
@@ -611,12 +632,13 @@ void UAGX_ShapeComponent::OnAttachmentChanged()
 	}
 	// This is somewhat of a hack, but it works. This Shape's parent has changed, so this
 	// Unreal object might get a new world transform depending on how it was detached.  Ideally,
-	// this would be fully handled by UAGX_ShapeComponent::OnUpdateTransform, but that function is
-	// not triggered if the detachment was made using the Blueprint function DetachFromComponent
-	// with Keep World settings. Therefore we handle that here. Note that this will mean writing to
-	// the native twice when detaching in other ways (both this function and OnUpdateTransform is
-	// triggered). However, setting the world transform of this Component to the natives world
-	// transform is generally considered safe since they should always be in sync.
+	// this would be fully handled by UAGX_ShapeComponent::OnUpdateTransform, but that function
+	// is not triggered if the detachment was made using the Blueprint function
+	// DetachFromComponent with Keep World settings. Therefore we handle that here. Note that
+	// this will mean writing to the native twice when detaching in other ways (both this
+	// function and OnUpdateTransform is triggered). However, setting the world transform of
+	// this Component to the natives world transform is generally considered safe since they
+	// should always be in sync.
 	GetNative()->SetWorldPosition(GetComponentLocation());
 	GetNative()->SetWorldRotation(GetComponentQuat());
 }

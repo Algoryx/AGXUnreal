@@ -252,6 +252,15 @@ bool CheckNodeNameAndParent(
 // Functions operating on template components.
 //
 
+void PrintComponentNames(TArray<UActorComponent*> Components, const TCHAR* Title)
+{
+	UE_LOG(LogAGX, Warning, TEXT("%s"), Title);
+	for (UActorComponent* Component : Components)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("  %s"), *GetNameSafe(Component));
+	}
+}
+
 template <typename UObject>
 UObject* GetTemplateComponentByName(TArray<UActorComponent*>& Components, const TCHAR* Name)
 {
@@ -411,6 +420,7 @@ public:
 		// Initial setup complete, call the first test callback.
 		if (!PostImport())
 		{
+			Cleanup();
 			return;
 		}
 
@@ -469,10 +479,16 @@ public:
 	}
 
 	// Model-specific work should be done by implementing these pure-virtual member functions in a
-	// derived class.
+	// derived class. Calls to the Test-functions should be placed in PostImport and
+	// PostSynchronize. Return true if all tests pass, and false otherwise. Cleanup is used to
+	// destroy anything that the test creates in addition to what this base class creates, if
+	// anything is created.
 	virtual bool PostImport() = 0;
 	virtual bool PostSynchronize() = 0;
-	virtual bool Cleanup() = 0;
+	virtual void Cleanup()
+	{
+		//  By default there is nothing to clean up since mandatory cleanup is done by RunTest.
+	}
 
 	AActor* GetActorInstanceFromWorld()
 	{
@@ -1353,6 +1369,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				InitialTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
 			return false;
 		}
 
@@ -1454,12 +1471,6 @@ public:
 
 		return true;
 	}
-
-	virtual bool Cleanup() override
-	{
-		// Nothing to do.
-		return true;
-	}
 };
 
 namespace
@@ -1495,6 +1506,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				InitialTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
 			return false;
 		}
 
@@ -1625,12 +1637,6 @@ public:
 		return true;
 	}
 
-	virtual bool Cleanup() override
-	{
-		// Nothing to do.
-		return true;
-	}
-
 	bool CheckThresholds(const UAGX_ConstraintMergeSplitThresholds* Thresholds, double Factor)
 	{
 		bool Success = true;
@@ -1746,6 +1752,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				InitialTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
 			return false;
 		}
 
@@ -1789,6 +1796,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				UpdatedTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
 			return false;
 		}
 
@@ -1821,12 +1829,6 @@ public:
 			return false;
 		}
 
-		return true;
-	}
-
-	virtual bool Cleanup() override
-	{
-		// Nothing to do.
 		return true;
 	}
 };
@@ -1905,6 +1907,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				InitialTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
 			return false;
 		}
 
@@ -1945,6 +1948,7 @@ public:
 				TEXT("Number of imported components after synchronize"),
 				UpdatedTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
 			return false;
 		}
 
@@ -1974,12 +1978,6 @@ public:
 			return false;
 		}
 
-		return true;
-	}
-
-	virtual bool Cleanup() override
-	{
-		// Nothing to do.
 		return true;
 	}
 };
@@ -2012,6 +2010,7 @@ public:
 				TEXT("Number of imported components before synchronize"),
 				InitialTemplateComponents.Num(), 4))
 		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
 			return false;
 		}
 
@@ -2044,6 +2043,7 @@ public:
 				TEXT("Number of imported components after synchronize"),
 				UpdatedTemplateComponents.Num(), 3))
 		{
+			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
 			return false;
 		}
 
@@ -2065,12 +2065,6 @@ public:
 			return false;
 		}
 
-		return true;
-	}
-
-	virtual bool Cleanup() override
-	{
-		// Nothing to do.
 		return true;
 	}
 };
@@ -2172,14 +2166,123 @@ public:
 	{
 		return DoChecks(TEXT("PostSynchronize"), UpdatedTemplateComponents);
 	}
+};
 
-	virtual bool Cleanup() override
+namespace
+{
+	FBallConstraintNoTwistRangeTest BallConstraintNoTwistRangeTest;
+}
+
+//
+// Surface velocity test starts here.
+//
+
+class FSurfaceVelocityTest final : public FSynchronizeModelTest
+{
+public:
+	FVector InitialSurfaceVelocity {AgxAutomationCommon::AgxToUnrealDisplacement(1.0, 2.0, 3.0)};
+	FVector UpdatedSurfaceVelocity {AgxAutomationCommon::AgxToUnrealDisplacement(10.0, 20.0, 30.0)};
+
+	FSurfaceVelocityTest()
+		: FSynchronizeModelTest(
+			  TEXT("SurfaceVelocityTest"),
+			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.SurfaceVelocity"),
+			  TEXT("surface_velocity__initial.agx"), TEXT("surface_velocity__updated.agx"))
 	{
+	}
+
+	virtual bool PostImport() override
+	{
+		// Make sure we got the template Components we expect.
+		// 1 Default Scene Root, 1 Model Source, 1 Shape.
+		if (!TestEqual(
+				TEXT("Number of imported components before synchronize"),
+				InitialTemplateComponents.Num(), 3))
+		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
+			return false;
+		}
+
+		// Check the Blueprint.
+		UAGX_ShapeComponent* ShapeTemplate = GetTemplateComponentByName<UAGX_ShapeComponent>(
+			InitialTemplateComponents, TEXT("SurfaceVelocity"));
+		if (!TestNotNull(
+				TEXT("Surface velocity geometry template before synchronize"), ShapeTemplate))
+		{
+			return false;
+		}
+		if (!TestEqual(
+				TEXT("Surface Velocity"), ShapeTemplate->SurfaceVelocity, InitialSurfaceVelocity))
+		{
+			return false;
+		}
+
+		// Check the Blueprint instance.
+		UAGX_ShapeComponent* ShapeInstance =
+			AgxAutomationCommon::GetComponentByName<UAGX_ShapeComponent>(
+				*InitialBlueprintInstance, TEXT("SurfaceVelocity"));
+		if (!TestNotNull(
+				TEXT("Surface velocity geometry instance before synchronize"), ShapeInstance))
+		{
+			return false;
+		}
+		if (!TestEqual(
+				TEXT("Surface velocity on instance before synchronize"),
+				ShapeInstance->SurfaceVelocity, InitialSurfaceVelocity))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	virtual bool PostSynchronize() override
+	{
+		// Make sure we got the template Components we expect.
+		// 1 Default Scene Root, 1 Model Source, 1 Shape.
+		if (!TestEqual(
+				TEXT("Number of imported components after synchronize"),
+				UpdatedTemplateComponents.Num(), 3))
+		{
+			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
+			return false;
+		}
+
+		// Check the Blueprint.
+		UAGX_ShapeComponent* ShapeTemplate = GetTemplateComponentByName<UAGX_ShapeComponent>(
+			UpdatedTemplateComponents, TEXT("SurfaceVelocity"));
+		if (!TestNotNull(
+				TEXT("Surface velocity geometry template after synchronize"), ShapeTemplate))
+		{
+			return false;
+		}
+		if (!TestEqual(
+				TEXT("Surface Velocity"), ShapeTemplate->SurfaceVelocity, UpdatedSurfaceVelocity))
+		{
+			return false;
+		}
+
+		// Check the Blueprint instance.
+		UAGX_ShapeComponent* ShapeInstance =
+			AgxAutomationCommon::GetComponentByName<UAGX_ShapeComponent>(
+				*UpdatedBlueprintInstance, TEXT("SurfaceVelocity"));
+		if (!TestNotNull(
+				TEXT("Surface velocity geometry instance after synchronize"), ShapeInstance))
+		{
+			return false;
+		}
+		if (!TestEqual(
+				TEXT("Surface velocity on instance after synchronize"),
+				ShapeInstance->SurfaceVelocity, UpdatedSurfaceVelocity))
+		{
+			return false;
+		}
+
 		return true;
 	}
 };
 
 namespace
 {
-	FBallConstraintNoTwistRangeTest BallConstraintNoTwistRangeTest;
+	FSurfaceVelocityTest SurfaceVelocityTest;
 }

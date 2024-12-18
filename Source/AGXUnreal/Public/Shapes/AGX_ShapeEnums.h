@@ -11,7 +11,7 @@
  * marked as a sensor.
  */
 UENUM(BlueprintType)
-enum EAGX_ShapeSensorType
+enum class EAGX_ShapeSensorType : uint8
 {
 	/**
 	 * This shape will generate contact point information. Note that this is alternative is more

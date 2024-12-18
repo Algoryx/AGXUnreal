@@ -64,6 +64,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Shape")
 	TArray<FName> CollisionGroups;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void AddCollisionGroup(FName GroupName);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void RemoveCollisionGroupIfExists(FName GroupName);
+
 	/**
 	 * Determines whether this shape should act as a sensor.
 	 *
@@ -73,18 +79,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Contacts")
 	bool bIsSensor;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX AMOR")
-	FAGX_ShapeContactMergeSplitProperties MergeSplitProperties;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX AMOR")
-	void CreateMergeSplitProperties();
-
-	/**
-	 * Determines the sensor type. Only relevant if the Is Sensor property is checked.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Shape Contacts", Meta = (EditCondition = "bIsSensor"))
-	TEnumAsByte<enum EAGX_ShapeSensorType> SensorType = EAGX_ShapeSensorType::ContactsSensor;
 
 	/**
 	 * Enable or disable this shape as a sensor.
@@ -99,6 +93,66 @@ public:
 	bool GetIsSensor() const;
 
 	/**
+	 * Determines the sensor type. Only relevant if the Is Sensor property is checked.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Shape Contacts", Meta = (EditCondition = "bIsSensor"))
+	EAGX_ShapeSensorType SensorType {EAGX_ShapeSensorType::ContactsSensor};
+
+	/**
+	 * Set the velocity of this Shape's surface in the Shape's local coordinate frame [cm/s].
+	 *
+	 * If this velocity is non-zero the constraints will try to achieve the relative velocity
+	 * between the objects in the friction plane to be the wanted surface velocity.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shape")
+	FVector SurfaceVelocity {FVector::ZeroVector};
+
+	/**
+	 * Set the velocity of this Shape's surface in the Shape's local coordinate frame [cm/s].
+	 *
+	 * If this velocity is non-zero the constraints will try to achieve the relative velocity
+	 * between the objects in the friction plane to be the wanted surface velocity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	void SetSurfaceVelocity(FVector InSurfaceVelocity);
+
+	/**
+	 * Get the velocity of this Shape's surface in the Shape's local coordinate frame [cm/s].
+	 *
+	 * If this velocity is non-zero the constraints will try to achieve the relative velocity
+	 * between the objects in the friction plane to be the wanted surface velocity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	FVector GetSurfaceVelocity() const;
+
+	/**
+	 * Defines the AMOR (merge split) properties for this Shape. For this to take effect, AMOR has
+	 * to be enabled globally in the AGX Dynamics for Unreal project settings.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX AMOR")
+	FAGX_ShapeContactMergeSplitProperties MergeSplitProperties;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX AMOR")
+	void CreateMergeSplitProperties();
+
+	/**
+	 * Additional Unreal Collision Geometry to use for this Shape.
+	 * Does not affect AGX Dynamics, but can be used to get support for e.g. LineTrace (Query) or
+	 * use as a blocking volume against Chaos physics objects (Physics). Supported for all AGX
+	 * primitive Shapes. Not supported for Trimesh Shapes.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Shape", AdvancedDisplay)
+	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
+		ECollisionEnabled::QueryOnly};
+
+	/**
+	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	FGuid ImportGuid;
+
+	/**
 	 * Get all shape contacts for this shape.
 	 *
 	 * Important: The data returned is only valid during a single simulation step. This function
@@ -106,6 +160,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Shape Contacts")
 	TArray<FAGX_ShapeContact> GetShapeContacts() const;
+
+	/**
+	 * Recompute the local transform that the native AGX Dynamics object should have given the
+	 * current Scene Component attachment hierarchy. This is done automatically on Begin Play but
+	 * may be required again if the attachment hierarchy is changed, for example when a Shape
+	 * Component becomes attached to a Rigid Body.
+	 *
+	 * @see UAGX_RigidBodyComponent::SynchronizeShapes
+	 */
+	void UpdateNativeLocalTransform();
 
 	/**
 	 * Re-creates (or destroys) the triangle mesh data for the visual representation of the shape to
@@ -144,28 +208,25 @@ public:
 	virtual FShapeBarrier* GetOrCreateNative()
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetOrCreateNative, return nullptr;);
 
-	// ~Begin IAGX_NativeObject interface.
+	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
 	virtual void SetNativeAddress(uint64 NativeAddress) override;
-	// ~End IAGX_NativeObject interface.
+	//~ End IAGX_NativeObject interface.
 
-	//~ Begin UActorComponent Interface
-	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+	//~ Begin UActorComponent interface
+	virtual void OnComponentCreated() override;
 	virtual void OnRegister() override;
-	//~ End UActorComponent Interface
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+	//~ End UActorComponent interface
 
-	//~ Begin USceneComponent Interface
+	//~ Begin USceneComponent interface
 	virtual void OnUpdateTransform(
 		EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 	virtual void OnAttachmentChanged() override;
-	//~ End USceneComponent Interface
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
-	void AddCollisionGroup(FName GroupName);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
-	void RemoveCollisionGroupIfExists(FName GroupName);
+	//~ End USceneComponent interface
 
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
@@ -175,39 +236,6 @@ public:
 	void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.
-
-	// ~Begin UActorComponent interface.
-	virtual void OnComponentCreated() override;
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
-	// ~End UActorComponent interface.
-
-	/**
-	 * Additional Unreal Collision Geometry to use for this Shape.
-	 * Does not affect AGX Dynamics, but can be used to get support for e.g. LineTrace (Query) or
-	 * use as a blocking volume against Chaos physics objects (Physics). Supported for all AGX
-	 * primitive Shapes. Not supported for Trimesh Shapes.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Shape", AdvancedDisplay)
-	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
-		ECollisionEnabled::QueryOnly};
-
-	/*
-	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
-	 * Should never be assigned manually.
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
-	FGuid ImportGuid;
-
-	/**
-	 * Recompute the local transform that the native AGX Dynamics object should have given the
-	 * current Scene Component attachment hierarchy. This is done automatically on Begin Play but
-	 * may be required again if the attachment hierarchy is changed, for example when a Shape
-	 * Component becomes attached to a Rigid Body.
-	 *
-	 * @see UAGX_RigidBodyComponent::SynchronizeShapes
-	 */
-	void UpdateNativeLocalTransform();
 
 protected:
 	/**
