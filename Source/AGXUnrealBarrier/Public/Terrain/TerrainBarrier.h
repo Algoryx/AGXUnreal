@@ -123,6 +123,7 @@ public:
 	 * optimization.
 	 */
 	void GetHeights(TArray<float>& OutHeights, bool bChangesOnly) const;
+	void GetMinimumHeights(TArray<float>& OutHeights) const;
 
 	/**
 	 * Get an array with the positions of the currently existing particles.

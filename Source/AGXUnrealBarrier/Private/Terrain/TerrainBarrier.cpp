@@ -451,7 +451,46 @@ void FTerrainBarrier::GetHeights(TArray<float>& Heights, bool bChangesOnly) cons
 		}
 	}
 }
+void FTerrainBarrier::GetMinimumHeights(TArray<float>& MinimumHeights) const
+{
+	check(HasNative());
+	const agxCollide::HeightField* HeightField = NativeRef->Native->getHeightField();
+	const size_t SizeXAGX = HeightField->getResolutionX();
+	const size_t SizeYAGX = HeightField->getResolutionY();
 
+
+	if (SizeXAGX == 0 || SizeYAGX == 0)
+	{
+		/// \todo Unclear if this really should be a warning or not. When would
+		/// zero-sized terrains be used?
+		UE_LOG(LogAGX, Warning, TEXT("Cannot get minimum heights from terrain with zero size."));
+		return;
+	}
+	if (SizeXAGX * SizeYAGX > static_cast<size_t>(std::numeric_limits<int32>::max()))
+	{
+		UE_LOG(LogAGX, Error, TEXT("Cannot get minimum heights, terrain has too many vertices."));
+		return;
+	}
+
+	const int32 SizeX = static_cast<int32>(SizeXAGX);
+	const int32 SizeY = static_cast<int32>(SizeYAGX);
+
+	auto NativeMinumumHeights = NativeRef->Native->getMinimumHeights();
+	MinimumHeights.Reset(SizeX * SizeY);
+	MinimumHeights.SetNumZeroed(SizeX * SizeY);
+	for (size_t y = 0; y < SizeY; ++y)
+	{
+		for (size_t x = 0; x < SizeX; ++x)
+		{
+			size_t SourceIndex = y * SizeX + x; // Regular row-major order for source
+			size_t NativeIndex = x * SizeY + (SizeY - 1 - y); // Transpose with correct axis flip
+			MinimumHeights[SourceIndex] =
+				ConvertDistanceToUnreal<float>(NativeMinumumHeights[NativeIndex]);
+		}
+	}
+
+
+}
 TArray<FVector> FTerrainBarrier::GetParticlePositions() const
 {
 	check(HasNative());
