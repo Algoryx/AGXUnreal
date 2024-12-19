@@ -56,6 +56,36 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 	NativeRef->Native = agxTerrain::Terrain::createFromHeightField(HeightFieldAGX, MaxDepthAGX);
 }
 
+void FTerrainBarrier::AllocateNative(
+	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights, const TArray<float>& MinimumHeights)
+{
+	check(!HasNative());
+
+	size_t ResX = static_cast<size_t>(ResolutionX);
+	size_t ResY = static_cast<size_t>(ResolutionY);
+	check(ResX < static_cast<size_t>(std::numeric_limits<int>::max()));
+	check(ResY < static_cast<size_t>(std::numeric_limits<int>::max()));
+
+	agx::VectorPOD<agx::Real> InitialHeightsAGX, MinimumHeightsAGX;
+	InitialHeightsAGX.reserve(static_cast<size_t>(InitialHeights.Num()));
+	MinimumHeightsAGX.reserve(static_cast<size_t>(MinimumHeights.Num()));
+
+	// Flip along Y-axis
+	for (size_t y = 0; y < ResY; ++y)
+	{
+		for (size_t x = 0; x < ResX; ++x)
+		{
+			size_t sourceIndex = x + (ResY - 1 - y) * ResX;
+			InitialHeightsAGX.push_back(ConvertDistanceToAGX(InitialHeights[sourceIndex]));
+			MinimumHeightsAGX.push_back(ConvertDistanceToAGX(MinimumHeights[sourceIndex]));
+		}
+	}
+
+	NativeRef->Native = new agxTerrain::Terrain(
+		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
+		MinimumHeightsAGX);
+}
+
 FTerrainRef* FTerrainBarrier::GetNative()
 {
 	check(HasNative());
@@ -72,6 +102,32 @@ void FTerrainBarrier::ReleaseNative()
 {
 	check(HasNative());
 	NativeRef->Native = nullptr;
+}
+
+uintptr_t FTerrainBarrier::GetNativeAddress() const
+{
+	if (!HasNative())
+	{
+		return 0;
+	}
+
+	return reinterpret_cast<uintptr_t>(NativeRef->Native.get());
+}
+
+void FTerrainBarrier::SetNativeAddress(uintptr_t NativeAddress)
+{
+	if (NativeAddress == GetNativeAddress())
+	{
+		return;
+	}
+
+	if (HasNative())
+	{
+		this->ReleaseNative();
+	}
+
+
+	NativeRef->Native = reinterpret_cast<agxTerrain::Terrain*>(NativeAddress);
 }
 
 void FTerrainBarrier::SetCanCollide(bool bCanCollide)
@@ -179,6 +235,26 @@ bool FTerrainBarrier::AddShovel(FShovelBarrier& Shovel)
 	return NativeRef->Native->add(Shovel.GetNative()->Native);
 }
 
+void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier * Shape)
+{
+	check(HasNative());
+	check(Shape->HasNative());
+	auto shapeNative = Shape->GetNative();
+	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
+}
+
+void FTerrainBarrier::SetNoMerge(bool IsNoMerge)
+{
+	check(HasNative());
+	NativeRef->Native->setNoMerge(IsNoMerge);
+}
+
+bool FTerrainBarrier::GetNoMerge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getNoMerge();
+}
+
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());
@@ -265,6 +341,18 @@ int32 FTerrainBarrier::GetGridSizeY() const
 	size_t GridSize = NativeRef->Native->getResolutionY();
 	check(GridSize < static_cast<size_t>(std::numeric_limits<int32>::max()));
 	return static_cast<int32>(GridSize);
+}
+
+FVector2D FTerrainBarrier::GetSize() const
+{
+	check(HasNative());
+	return ConvertDistance(NativeRef->Native->getSize());
+}
+
+double FTerrainBarrier::GetElementSize() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getElementSize());
 }
 
 TArray<std::tuple<int32, int32>> FTerrainBarrier::GetModifiedVertices() const
