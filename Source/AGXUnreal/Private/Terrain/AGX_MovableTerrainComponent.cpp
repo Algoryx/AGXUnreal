@@ -131,6 +131,13 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	}
 
 
+	// TODO: Add some assert here
+	NativeBarrier.GetHeights(CurrentHeights, false);
+	NativeBarrier.GetMinimumHeights(BedHeights);
+
+	if (BedHeights.Num() != CurrentHeights.Num())
+		return;
+
 	// Attach to RigidBody
 	if (OwningRigidBody)
 		OwningRigidBody->GetNative()->AddTerrain(&NativeBarrier);
@@ -492,6 +499,12 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	}
 }
 
+void UAGX_MovableTerrainComponent::OnRegister()
+{
+	Super::OnRegister();
+	// ForceRebuildMesh();
+}
+
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -504,8 +517,7 @@ void UAGX_MovableTerrainComponent::PostLoad()
 {
 	Super::PostLoad();
 	UE_LOG(LogAGX, Warning, TEXT("PostLoad"));
-	// TODO: Only UpdateMesh on certain Property changes
-	ForceRebuildMesh();
+	//ForceRebuildMesh();
 }
 
 #if WITH_EDITOR
@@ -530,8 +542,8 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 
 	if (!IsValid(World) || IsTemplate())
 		return;
-	if (GIsReconstructingBlueprintInstances)
-		return;
+	//if (GIsReconstructingBlueprintInstances)
+	//	return;
 
 	// In-Editor
 	if (!World->IsGameWorld())
@@ -543,16 +555,16 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 				if (!IsValid(World))
 					return;
 
-				if (!IsValid(this))
-					return;
-				if (GetBedShapes().Num() > 0 && bUseBedShapes)
-				{
-					for (auto b : GetBedShapes())
-					{
-						if (!IsValid(b))
-							return;
-					}
-				}
+				//if (!IsValid(this))
+				//	return;
+				//if (GetBedShapes().Num() > 0 && bUseBedShapes)
+				//{
+				//	for (auto b : GetBedShapes())
+				//	{
+				//		if (!IsValid(b))
+				//			return;
+				//	}
+				//}
 
 				// Recreate Mesh
 				RecreateMeshes();
@@ -565,8 +577,8 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 		{
 			// Copy CurrentHeights from Native
 			NativeBarrier.GetHeights(CurrentHeights, false);
+			NativeBarrier.GetMinimumHeights(BedHeights);
 
-			//TODO: Copy MinimalHeights from Native
 			if (BedHeights.Num() != CurrentHeights.Num())
 				return;
 
@@ -752,12 +764,6 @@ TStructOnScope<FActorComponentInstanceData> UAGX_MovableTerrainComponent::GetCom
 			ThisClass* AsThisClass = Cast<ThisClass>(Component);
 			return static_cast<IAGX_NativeOwner*>(AsThisClass);
 		});
-}
-
-void UAGX_MovableTerrainComponent::OnRegister()
-{
-	Super::OnRegister();
-	//ForceRebuildMesh();
 }
 
 /*
