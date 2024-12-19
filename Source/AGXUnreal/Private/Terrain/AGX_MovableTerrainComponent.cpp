@@ -239,7 +239,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		GetMeshVertexFunction(EAGX_MeshType::BackBed), nullptr, CollisionLOD,
 		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None,
 		HasShapes, true, bIsUnrealCollision,
-		!bHideTerrain && bShowMeshBottom || bShowUnrealCollision);
+		(!bHideTerrain && bShowMeshBottom) || bShowUnrealCollision);
 	MeshIndex += BackBedMesh.Num();
 
 	// Collision Mesh (CurrentHeights)
