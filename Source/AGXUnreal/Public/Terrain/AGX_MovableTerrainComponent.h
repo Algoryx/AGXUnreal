@@ -68,16 +68,12 @@ enum class EAGX_MeshType : uint8
  */
 UCLASS(ClassGroup = "AGX_Terrain", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, Input, LOD, Physics, Replication, Materials, ProceduralMesh))
-class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshComponent
+class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshComponent,
+												   public IAGX_NativeOwner
 {
 	GENERATED_BODY()
 public:
 	UAGX_MovableTerrainComponent(const FObjectInitializer& ObjectInitializer);
-
-	bool HasNative() const;
-	void CreateNative();
-	FTerrainBarrier* GetNative();
-	const FTerrainBarrier* GetNative() const;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -85,8 +81,10 @@ public:
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
-#if WITH_EDITOR
+
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override; // When loaded in Editor or Game
+#if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
@@ -99,8 +97,35 @@ public:
 	bool bHideTerrain = false;
 	void ForceRebuildMesh();
 
+	// IAGX_NativeOwner:
+	//----------------
+	void CreateNative();
+	virtual FTerrainBarrier* GetNative();
+	virtual const FTerrainBarrier* GetNative() const;
+	virtual void UpdateNativeProperties();
+	virtual FTerrainBarrier* GetOrCreateNative();
+
+	// ~Begin IAGX_NativeObject interface.
+	virtual bool HasNative() const override;
+	virtual uint64 GetNativeAddress() const override;
+	virtual void SetNativeAddress(uint64 NativeAddress) override;
+	// ~End IAGX_NativeObject interface.
+
+	//~ Begin UActorComponent Interface
+	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+	virtual void OnRegister() override;
+	//~ End UActorComponent Interface
+
+	//~ Begin USceneComponent Interface
+	virtual void OnUpdateTransform(
+		EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
+	virtual void OnAttachmentChanged() override;
+	//~ End USceneComponent Interface
 
 protected:
+
+//Movable Terrain:
+//----------------
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material;
@@ -304,7 +329,7 @@ protected:
 	void UpdateParticles();
 
 	
-	// --- Heightfield Mesh
+	// --- Terrain Mesh
 	// --------------------
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bAutoMeshResolution = true;
@@ -319,6 +344,13 @@ protected:
 	int MeshLevelOfDetail = 1;
 
 	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bShowMeshSides = true;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bShowMeshBottom = true;
+
+	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "-2.5", UIMin = "-2.5", ClampMax = "2.5", UIMax = "2.5"))
 	double MeshZOffset = -1.0;
@@ -329,13 +361,6 @@ protected:
 	int MeshTileResolution = 10;
 
 
-	UPROPERTY( EditAnywhere, Category = "AGX Terrain Rendering", Meta = (EditCondition = "bMeshTileSkirts"))
-	bool bShowMeshSides = true;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bShowMeshBottom = true;
-	
 private:
 	FTerrainBarrier NativeBarrier;
 	FDelegateHandle PostStepForwardHandle;

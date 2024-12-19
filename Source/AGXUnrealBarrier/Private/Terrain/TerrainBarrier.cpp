@@ -104,6 +104,32 @@ void FTerrainBarrier::ReleaseNative()
 	NativeRef->Native = nullptr;
 }
 
+uintptr_t FTerrainBarrier::GetNativeAddress() const
+{
+	if (!HasNative())
+	{
+		return 0;
+	}
+
+	return reinterpret_cast<uintptr_t>(NativeRef->Native.get());
+}
+
+void FTerrainBarrier::SetNativeAddress(uintptr_t NativeAddress)
+{
+	if (NativeAddress == GetNativeAddress())
+	{
+		return;
+	}
+
+	if (HasNative())
+	{
+		this->ReleaseNative();
+	}
+
+
+	NativeRef->Native = reinterpret_cast<agxTerrain::Terrain*>(NativeAddress);
+}
+
 void FTerrainBarrier::SetCanCollide(bool bCanCollide)
 {
 	check(HasNative());

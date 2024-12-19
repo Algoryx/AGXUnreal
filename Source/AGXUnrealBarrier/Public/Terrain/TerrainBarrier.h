@@ -43,6 +43,9 @@ public:
 	const FTerrainRef* GetNative() const;
 	void ReleaseNative();
 
+	uintptr_t GetNativeAddress() const;
+	void SetNativeAddress(uintptr_t NativeAddress);
+
 	void SetCanCollide(bool bCanCollide);
 	bool GetCanCollide() const;
 

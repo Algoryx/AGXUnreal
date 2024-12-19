@@ -16,6 +16,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
+#include <AGX_NativeOwnerInstanceData.h>
 
 UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	const FObjectInitializer& ObjectInitializer)
@@ -29,16 +30,31 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GIsReconstructingBlueprintInstances)
+	{
+		// This Component will soon be given a Native Geometry and Shape from a
+		// FAGX_NativeOwnerInstanceData, so don't create a new one here.
+		return;
+	}
+
 	// Create Native
-	CreateNative();
-	
+	GetOrCreateNative();
+
+	if (!HasNative())
+		return;
+
+	// Init particles
+	InitializeParticles();
+
 	// Create Mesh
 	RecreateMeshes();
 
+	// Unreal Collision
+	this->SetCollisionEnabled(AdditionalUnrealCollision);
+		
 	// Update Mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
-
 		PostStepForwardHandle =
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.AddLambda(
@@ -59,8 +75,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 							{
 								double x = std::get<0>(HeightVertexTuple);
 								double y = std::get<1>(HeightVertexTuple);
-								FVector2D ModifiedPos = FVector2D(x, y) * ElementSize -
-														NativeTerrainSize / 2;
+								FVector2D ModifiedPos =
+									FVector2D(x, y) * ElementSize - NativeTerrainSize / 2;
 								if (TileBox.IsInside(ModifiedPos))
 								{
 									return true;
@@ -82,16 +98,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 									UpdateTileMeshSection(Tile, EAGX_MeshType::Terrain);
 							}
 						}
-
-		
 					});
 	}
-
-	// Init particles
-	InitializeParticles();
-
-	// Unreal Collision
-	this->SetCollisionEnabled(AdditionalUnrealCollision);
 }
 
 void UAGX_MovableTerrainComponent::CreateNative()
@@ -132,16 +140,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	NativeBarrier.SetPosition(this->GetComponentLocation());
 
 	// Set Native Properties
-	NativeBarrier.SetCanCollide(bCanCollide);
-	NativeBarrier.AddCollisionGroups(CollisionGroups);
-	NativeBarrier.SetCreateParticles(bCreateParticles);
-	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
-	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
-	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
-
-	CreateNativeShovels();
-	UpdateNativeTerrainMaterial();
-	UpdateNativeShapeMaterial();
+	UpdateNativeProperties();
 	
 
 	// Add Native
@@ -173,6 +172,8 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 	BedHeights.SetNumZeroed(Res.X * Res.Y);
 
 	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+
+	//This can be run faster
 	for (int y = 0; y < Res.Y; y++)
 	{
 		for (int x = 0; x < Res.X; x++)
@@ -235,7 +236,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		MeshIndex, FVector::Zero(), Size, AutoMeshResolution,
 		GetMeshVertexFunction(
 			EAGX_MeshType::Collision), // GetMeshVertexFunction(EAGX_MeshType::Terrain),
-		nullptr, CollisionLOD, EAGX_MeshTilingPattern::StretchedTiles, true, false,
+		nullptr, CollisionLOD, EAGX_MeshTilingPattern::StretchedTiles, false, false,
 		bIsUnrealCollision, bShowUnrealCollision);
 	MeshIndex += CollisionMesh.Num();
 
@@ -444,14 +445,14 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
 				// Clamp vertices on the border for smoother (Unreal) collision
-				if (DistFromEdge(Pos) < SMALL_NUMBER && IsSkirt)
+				if (DistFromEdge(Pos) < SMALL_NUMBER)// && IsSkirt)
 					Height = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 				//UV0 Tiled to Meters
 				Uv0 = FVector2D(
 					(Pos.X + Size.X / 2) / 100.0,
 					(Pos.Y + Size.Y / 2) / 100.0);
 				// Height Function
-				Pos += FVector::UpVector * (Height + MeshZOffset);
+				Pos += FVector::UpVector * Height;
 			};
 		//BackBed
 		case EAGX_MeshType::BackBed:
@@ -491,6 +492,22 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	}
 }
 
+void UAGX_MovableTerrainComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
+	// TODO: Only UpdateMesh on certain Property changes
+	ForceRebuildMesh();
+}
+
+void UAGX_MovableTerrainComponent::PostLoad()
+{
+	Super::PostLoad();
+	UE_LOG(LogAGX, Warning, TEXT("PostLoad"));
+	// TODO: Only UpdateMesh on certain Property changes
+	ForceRebuildMesh();
+}
+
 #if WITH_EDITOR
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
@@ -501,13 +518,6 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 	ForceRebuildMesh();
 }
 
-void UAGX_MovableTerrainComponent::PostInitProperties()
-{
-	Super::PostInitProperties();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
-	// TODO: Only UpdateMesh on certain Property changes
-	ForceRebuildMesh();
-}
 
 #endif
 
@@ -520,6 +530,8 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 
 	if (!IsValid(World) || IsTemplate())
 		return;
+	if (GIsReconstructingBlueprintInstances)
+		return;
 
 	// In-Editor
 	if (!World->IsGameWorld())
@@ -530,6 +542,17 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 			{
 				if (!IsValid(World))
 					return;
+
+				if (!IsValid(this))
+					return;
+				if (GetBedShapes().Num() > 0 && bUseBedShapes)
+				{
+					for (auto b : GetBedShapes())
+					{
+						if (!IsValid(b))
+							return;
+					}
+				}
 
 				// Recreate Mesh
 				RecreateMeshes();
@@ -542,6 +565,10 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 		{
 			// Copy CurrentHeights from Native
 			NativeBarrier.GetHeights(CurrentHeights, false);
+
+			//TODO: Copy MinimalHeights from Native
+			if (BedHeights.Num() != CurrentHeights.Num())
+				return;
 
 			// Recreate Mesh
 			RecreateMeshes();
@@ -608,14 +635,9 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 }
 
 /*
-	--- AGX_Terrain Implementation
+	--- AGX Native Implementation
 	------------------------------
 */
-
-bool UAGX_MovableTerrainComponent::HasNative() const
-{
-	return NativeBarrier.HasNative();
-}
 
 FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative()
 {
@@ -637,6 +659,111 @@ const FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative() const
 	return &NativeBarrier;
 }
 
+void UAGX_MovableTerrainComponent::UpdateNativeProperties()
+{
+	NativeBarrier.SetCanCollide(bCanCollide);
+	NativeBarrier.AddCollisionGroups(CollisionGroups);
+	NativeBarrier.SetCreateParticles(bCreateParticles);
+	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
+	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
+	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+	CreateNativeShovels();
+	UpdateNativeTerrainMaterial();
+	UpdateNativeShapeMaterial();
+}
+
+FTerrainBarrier* UAGX_MovableTerrainComponent::GetOrCreateNative()
+{
+	if (!HasNative())
+		CreateNative();
+
+	return &NativeBarrier;
+}
+
+bool UAGX_MovableTerrainComponent::HasNative() const
+{
+	return NativeBarrier.HasNative();
+}
+
+uint64 UAGX_MovableTerrainComponent::GetNativeAddress() const
+{
+	if (!HasNative())
+	{
+		return 0;
+	}
+	return static_cast<uint64>(GetNative()->GetNativeAddress());
+}
+
+void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
+{
+	if (NativeAddress == GetNativeAddress())
+	{
+		return;
+	}
+
+	if (HasNative())
+	{
+		NativeBarrier.ReleaseNative();
+	}
+
+	if (NativeAddress == 0)
+	{
+		return;
+	}
+
+	NativeBarrier.SetNativeAddress(NativeAddress);
+}
+
+void UAGX_MovableTerrainComponent::OnUpdateTransform(
+	EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
+	if (UpdateTransformFlags == EUpdateTransformFlags::PropagateFromParent)
+	{
+		return;
+	}
+
+	if (!HasNative())
+	{
+		return;
+	}
+
+	GetNative()->SetPosition(GetComponentLocation());
+	GetNative()->SetRotation(GetComponentQuat());
+}
+
+void UAGX_MovableTerrainComponent::OnAttachmentChanged()
+{
+	if (!HasNative())
+	{
+		return;
+	}
+	GetNative()->SetPosition(GetComponentLocation());
+	GetNative()->SetRotation(GetComponentQuat());
+}
+
+TStructOnScope<FActorComponentInstanceData> UAGX_MovableTerrainComponent::GetComponentInstanceData()
+	const
+{
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+		this, this,
+		[](UActorComponent* Component)
+		{
+			ThisClass* AsThisClass = Cast<ThisClass>(Component);
+			return static_cast<IAGX_NativeOwner*>(AsThisClass);
+		});
+}
+
+void UAGX_MovableTerrainComponent::OnRegister()
+{
+	Super::OnRegister();
+	//ForceRebuildMesh();
+}
+
+/*
+	--- AGX_Terrain Implementation
+	------------------------------
+*/
 void UAGX_MovableTerrainComponent::SetCanCollide(bool bInCanCollide)
 {
 	if (HasNative())
