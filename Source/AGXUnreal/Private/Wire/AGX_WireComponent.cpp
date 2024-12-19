@@ -1272,7 +1272,7 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier)
 		FMergeSplitPropertiesBarrier::CreateFrom(*const_cast<FWireBarrier*>(&Barrier));
 	if (Msp.HasNative())
 	{
-		MergeSplitProperties.CopyFrom(Msp);
+		MergeSplitProperties.CopyFrom(Msp, nullptr /*Todo*/);
 	}
 
 	ImportGuid = Barrier.GetGuid();

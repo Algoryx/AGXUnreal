@@ -3,6 +3,7 @@
 #include "AMOR/AGX_ShapeContactMergeSplitProperties.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AGXToUeContext.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
@@ -94,6 +95,35 @@ void FAGX_ShapeContactMergeSplitProperties::CreateNative(UAGX_ShapeComponent& Ow
 	CreateNativeInternal(Owner);
 }
 
+void FAGX_ShapeContactMergeSplitProperties::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_AGXToUeContext* Context)
+{
+	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || Context->MSThresholds == nullptr)
+		return;
+
+	// Get or create Merge Split Threashold from Context.
+	FShapeContactMergeSplitThresholdsBarrier ThresholdsBarrier =
+		Barrier.GetShapeContactMergeSplitThresholds();
+	if (!ThresholdsBarrier.HasNative())
+		return;
+
+	const auto MSTGuid = ThresholdsBarrier.GetGuid();
+	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	{
+		Thresholds = Cast<UAGX_ShapeContactMergeSplitThresholds>(MST);
+		return;
+	}
+
+	Thresholds = NewObject<UAGX_ShapeContactMergeSplitThresholds>();
+	const FString& THName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_SMST_%s"), *MSTGuid.ToString()));
+	Thresholds->Rename(*THName);
+	Thresholds->CopyFrom(ThresholdsBarrier);
+	Context->MSThresholds->Add(MSTGuid, Thresholds);
+}
+
 void FAGX_ShapeContactMergeSplitProperties::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
@@ -107,6 +137,13 @@ void FAGX_ShapeContactMergeSplitProperties::CreateNativeThresholds(UWorld* Playi
 {
 	if (Thresholds == nullptr)
 	{
+		return;
+	}
+
+	if (Thresholds->IsInstance())
+	{
+		// This will be true if we are runtime imported and instantiated.
+		Thresholds->CreateNative();
 		return;
 	}
 

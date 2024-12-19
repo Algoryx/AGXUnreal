@@ -566,7 +566,7 @@ void UAGX_ConstraintComponent::CopyFrom(
 				if (ForceOverwriteInstances ||
 					Instance->MergeSplitProperties == MergeSplitProperties)
 				{
-					Instance->MergeSplitProperties.CopyFrom(Msp);
+					Instance->MergeSplitProperties.CopyFrom(Msp, nullptr /*todo*/);
 				}
 			}
 		}
@@ -587,7 +587,7 @@ void UAGX_ConstraintComponent::CopyFrom(
 
 	if (Msp.HasNative())
 	{
-		MergeSplitProperties.CopyFrom(Msp);
+		MergeSplitProperties.CopyFrom(Msp, nullptr /*todo*/);
 	}
 }
 

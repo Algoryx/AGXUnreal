@@ -6,7 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_ImporterToBlueprint.h"
 #include "AGX_ImportSettings.h"
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
@@ -117,7 +117,7 @@ FReply FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked()
 		return FReply::Handled();
 	}
 
-	FAGX_EditorUtilities::SynchronizeModel(*Blueprint);
+	FAGX_EditorUtilities::SynchronizeModel(*Blueprint, true);
 
 	// Any logging is done in SynchronizeModel.
 	return FReply::Handled();

@@ -58,6 +58,28 @@ public:
 	static bool IsTemplateComponent(const UActorComponent& Component);
 
 	/**
+	 * Copy all properties from an UObject to another. The objects must be of same type.
+	 */
+	static bool CopyProperties(
+		const UObject& Source, UObject& OutDestination, bool UpdateArchetypeInstances = true);
+
+	/**
+	 * Returns a sanitized version of the given name that uses only valid characters.
+	 */
+	static FString SanitizeObjectName(const FString& Name);
+
+	/**
+	 * Makes an Object Name that is unique in the given context (outer).
+	 */
+	static FString MakeObjectNameUnique(UObject* Outer, FString Name);
+
+	/**
+	 * Combines SanitizeObjectName and MakeObjectNameUnique to make a valid, final name that can be
+	 * used for Components, Assets and Actors.
+	 */
+	static FString SanitizeAndMakeNameUnique(UObject* Outer, const FString& Name);
+
+	/**
 	 * Give a list of pointer-to-base, return a new list with the elements that
 	 * are of a particular derived type.
 	 */

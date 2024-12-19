@@ -3,7 +3,10 @@
 #include "Utilities/AGX_Utilities.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_Importer.h"
+#include "Import/AGX_ImporterSettings.h"
 #include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
@@ -49,4 +52,36 @@ FVector UAGX_AGXUtilities::CalculateCenterOfMass(const TArray<UAGX_RigidBodyComp
 		Com /= TotalMass;
 
 	return Com;
+}
+
+AActor* UAGX_AGXUtilities::ImportAGXArchive(const FString& FilePath, bool IgnoreDisabledTrimeshes)
+{
+	FAGX_AGXImporterSettings Settings;
+	Settings.FilePath = FilePath;
+	Settings.bIgnoreDisabledTrimeshes = IgnoreDisabledTrimeshes;
+	Settings.bOpenBlueprintEditorAfterImport = false; // Todo: remove this member.
+	FAGX_Importer Importer;
+	FAGX_ImportResult Result = Importer.Import(Settings);
+	return Result.Actor;
+}
+
+AActor* UAGX_AGXUtilities::InstantiateActor(
+	UObject* WorldContextObject, AActor* TemplateActor, FTransform Transform)
+{
+	if (WorldContextObject == nullptr || WorldContextObject->GetWorld() == nullptr)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("Could not get World object from call to InstantiateActor."));
+		return nullptr;
+	}
+
+	if (!IsValid(TemplateActor))
+	{
+		UE_LOG(LogAGX, Warning, TEXT("InstantiateActor got invalid TemplateActor."));
+		return nullptr;
+	}
+
+	UWorld* World = WorldContextObject->GetWorld();
+	FActorSpawnParameters Params;
+	Params.Template = TemplateActor;
+	return World->SpawnActor<AActor>(AActor::StaticClass(), Transform, Params);
 }

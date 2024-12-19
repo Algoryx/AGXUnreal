@@ -3,6 +3,7 @@
 #include "AMOR/AGX_MergeSplitPropertiesBase.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AGXToUeContext.h"
 #include "AGX_LogCategory.h"
 
 // Unreal Engine includes.
@@ -75,7 +76,8 @@ FMergeSplitPropertiesBarrier* FAGX_MergeSplitPropertiesBase::GetNative()
 	return HasNative() ? &NativeBarrier : nullptr;
 }
 
-void FAGX_MergeSplitPropertiesBase::CopyFrom(const FMergeSplitPropertiesBarrier& Barrier)
+void FAGX_MergeSplitPropertiesBase::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_AGXToUeContext* /*Context*/)
 {
 	bEnableMerge = Barrier.GetEnableMerge();
 	bEnableSplit = Barrier.GetEnableSplit();

@@ -18,6 +18,8 @@
 
 class UAGX_ShapeComponent;
 
+struct FAGX_AGXToUeContext;
+
 UCLASS(
 	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
@@ -479,7 +481,7 @@ public:
 #endif
 	// ~End UObject interface.
 
-	void CopyFrom(const FRigidBodyBarrier& Barrier, bool ForceOverwriteInstances);
+	void CopyFrom(const FRigidBodyBarrier& Barrier, FAGX_AGXToUeContext* Context);
 
 	static TArray<UAGX_RigidBodyComponent*> GetFromActor(const AActor* Actor);
 	static UAGX_RigidBodyComponent* GetFirstFromActor(const AActor* Actor);

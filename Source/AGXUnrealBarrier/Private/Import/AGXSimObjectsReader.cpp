@@ -1,17 +1,17 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "AGXSimObjectsReader.h"
+#include "Import/AGXSimObjectsReader.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "Import/SimulationObjectCollection.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
-#include "SimulationObjectCollection.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.

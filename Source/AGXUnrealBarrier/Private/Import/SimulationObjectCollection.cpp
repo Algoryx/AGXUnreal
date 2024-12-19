@@ -1,6 +1,6 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "SimulationObjectCollection.h"
+#include "Import/SimulationObjectCollection.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AgxDynamicsObjectsAccess.h"

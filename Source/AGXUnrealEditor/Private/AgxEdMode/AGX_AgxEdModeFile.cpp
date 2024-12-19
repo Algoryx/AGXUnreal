@@ -6,9 +6,10 @@
 #include "AGX_ArchiveExporter.h"
 #include "AGX_EditorStyle.h"
 #include "AGX_ImportSettings.h"
-#include "AGX_ImporterToBlueprint.h"
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImporterSettings.h"
+#include "Import/AGX_ImporterToEditor.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Widgets/AGX_ImportDialog.h"
@@ -50,7 +51,13 @@ void UAGX_AgxEdModeFile::ImportToBlueprint()
 
 	if (auto ImportSettings = ImportDialog->ToImportSettings())
 	{
-		AGX_ImporterToBlueprint::Import(*ImportSettings);
+		FAGX_ImporterSettings Settings; // Todo, remove old ImportSettings completely.
+		Settings.FilePath = ImportSettings->FilePath;
+		Settings.bIgnoreDisabledTrimeshes = ImportSettings->bIgnoreDisabledTrimeshes;
+		Settings.bOpenBlueprintEditorAfterImport = ImportSettings->bOpenBlueprintEditorAfterImport;
+
+		FAGX_ImporterToEditor Importer;
+		Importer.Import(Settings);
 	}
 }
 

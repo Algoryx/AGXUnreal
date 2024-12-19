@@ -5,8 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_ImporterToBlueprint.h"
 #include "AGX_LogCategory.h"
-#include "AGX_ModelSourceComponent.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_ImporterSettings.h"
+#include "Import/AGX_ImporterToEditor.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_SphereShapeComponent.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
@@ -17,6 +18,7 @@
 #include "Constraints/AGX_ConstraintActor.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Constraints/AGX_ConstraintFrameActor.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
@@ -54,7 +56,7 @@
 
 #define LOCTEXT_NAMESPACE "FAGX_EditorUtilities"
 
-void FAGX_EditorUtilities::SynchronizeModel(UBlueprint& Blueprint)
+void FAGX_EditorUtilities::SynchronizeModel(UBlueprint& Blueprint, bool bOpenBlueprintEditorAfter)
 {
 	// The reason we use FTSTicker here is to ensure that this function returns before we do the
 	// actual Model Synchronization. This is important because we close all asset editors before
@@ -66,7 +68,7 @@ void FAGX_EditorUtilities::SynchronizeModel(UBlueprint& Blueprint)
 #else
 	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
 #endif
-		[&Blueprint](float)
+		[&Blueprint, bOpenBlueprintEditorAfter](float)
 		{
 			UBlueprint* OuterMostParent = FAGX_BlueprintUtilities::GetOutermostParent(&Blueprint);
 
@@ -113,7 +115,7 @@ void FAGX_EditorUtilities::SynchronizeModel(UBlueprint& Blueprint)
 			Window->SetContent(SynchronizeDialog);
 			FSlateApplication::Get().AddModalWindow(Window, nullptr);
 
-			if (auto Settings = SynchronizeDialog->ToSynchronizeModelSettings())
+			if (auto OldSettings = SynchronizeDialog->ToSynchronizeModelSettings())
 			{
 				const static FString Info =
 					"Model synchronization may permanently remove or overwrite existing "
@@ -125,8 +127,12 @@ void FAGX_EditorUtilities::SynchronizeModel(UBlueprint& Blueprint)
 					return false;
 				}
 
-				// Logging done in AGX_ImporterToBlueprint::SynchronizeModel.
-				AGX_ImporterToBlueprint::SynchronizeModel(*OuterMostParent, *Settings, &Blueprint);
+				FAGX_ImporterSettings Settings; // Todo, remove old SyncImportSettings completely.
+				Settings.FilePath = OldSettings->FilePath;
+				Settings.bIgnoreDisabledTrimeshes = OldSettings->bIgnoreDisabledTrimeshes;
+				Settings.bOpenBlueprintEditorAfterImport = bOpenBlueprintEditorAfter;
+				FAGX_ImporterToEditor Importer;
+				Importer.Reimport(*OuterMostParent, Settings, &Blueprint);
 			}
 
 			return false; // This tells the FTSTicker to not call this lambda again.

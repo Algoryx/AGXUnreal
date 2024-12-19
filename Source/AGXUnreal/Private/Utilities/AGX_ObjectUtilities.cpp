@@ -64,10 +64,80 @@ AActor* FAGX_ObjectUtilities::GetRootParentActor(UActorComponent& Component)
 	return GetRootParentActor(Component.GetTypedOuter<AActor>());
 }
 
-
 bool FAGX_ObjectUtilities::IsTemplateComponent(const UActorComponent& Component)
 {
 	return Component.HasAnyFlags(RF_ArchetypeObject);
+}
+
+bool FAGX_ObjectUtilities::CopyProperties(
+	const UObject& Source, UObject& OutDestination, bool UpdateArchetypeInstances)
+{
+	UClass* Class = Source.GetClass();
+	if (OutDestination.GetClass() != Class)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to copy properties from object '%s' of type '%s' to object '%s' of "
+				 "type '%s'. Types must match."),
+			*Source.GetName(), *Source.GetClass()->GetName(), *OutDestination.GetName(),
+			*OutDestination.GetClass()->GetName());
+		return false;
+	}
+
+	TArray<UObject*> ArchetypeInstances;
+	if (UpdateArchetypeInstances)
+		OutDestination.GetArchetypeInstances(ArchetypeInstances);
+
+	for (TFieldIterator<FProperty> PropIt(Class); PropIt; ++PropIt)
+	{
+		FProperty* Property = *PropIt;
+
+		// To speed up execution, can we add custom property flags for AGXUnreal properties?
+		if (Property && Property->HasAnyPropertyFlags(CPF_Edit))
+		{
+			const void* SourceValue = Property->ContainerPtrToValuePtr<void>(&Source);
+			void* DestValue = Property->ContainerPtrToValuePtr<void>(&OutDestination);
+			if (Property->Identical(SourceValue, DestValue))
+				continue; // Nothing to do, already equal.
+
+			if (UpdateArchetypeInstances)
+			{
+				for (UObject* Instance : ArchetypeInstances)
+				{
+					if (Instance == nullptr)
+						continue;
+
+					void* ArchetypeInstanceValue = Property->ContainerPtrToValuePtr<void>(Instance);
+					if (Property->Identical(ArchetypeInstanceValue, DestValue)) // In sync; copy!
+						Property->CopyCompleteValue(ArchetypeInstanceValue, SourceValue);
+				}
+			}
+
+			Property->CopyCompleteValue(DestValue, SourceValue);
+		}
+	}
+
+	return true;
+}
+
+FString FAGX_ObjectUtilities::SanitizeObjectName(const FString& Name)
+{
+	return MakeObjectNameFromDisplayLabel(Name, FName(*Name)).ToString();
+}
+
+FString FAGX_ObjectUtilities::MakeObjectNameUnique(UObject* Outer, FString Name)
+{
+	if (StaticFindObjectFast(UObject::StaticClass(), Outer, FName(*Name)) != nullptr)
+	{
+		Name = MakeUniqueObjectName(Outer, UObject::StaticClass(), FName(*Name)).ToString();
+	}
+
+	return Name;
+}
+
+FString FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(UObject* Outer, const FString& Name)
+{
+	return MakeObjectNameUnique(Outer, SanitizeObjectName(Name));
 }
 
 void FAGX_ObjectUtilities::GetActorsTree(

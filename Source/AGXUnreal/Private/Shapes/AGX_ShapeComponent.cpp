@@ -345,7 +345,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, bool ForceOverw
 				if (ForceOverwriteInstances ||
 					Instance->MergeSplitProperties == MergeSplitProperties)
 				{
-					Instance->MergeSplitProperties.CopyFrom(Msp);
+					Instance->MergeSplitProperties.CopyFrom(Msp, nullptr /*todo*/);
 				}
 			}
 		}
@@ -365,7 +365,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, bool ForceOverw
 
 	if (Msp.HasNative())
 	{
-		MergeSplitProperties.CopyFrom(Msp);
+		MergeSplitProperties.CopyFrom(Msp, nullptr /*todo*/);
 	}
 }
 
