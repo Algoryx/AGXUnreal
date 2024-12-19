@@ -59,7 +59,7 @@ enum class EAGX_MeshType : uint8
 {
 	None UMETA(DisplayName = "None"),
 	Terrain UMETA(DisplayName = "Terrain"),
-	BottomPlane UMETA(DisplayName = "BottomPlane"),
+	DebugPlane UMETA(DisplayName = "DebugPlane"),
 	Collision UMETA(DisplayName = "Collision"),
 	BackBed UMETA(DisplayName = "BackBed"),
 };
@@ -369,8 +369,8 @@ private:
 
 	TiledMesh TerrainMesh;
 	TiledMesh BackBedMesh;
-	TiledMesh BottomPlaneMesh;
 	TiledMesh CollisionMesh;
+	TiledMesh DebugPlaneMesh;
 
 	void RecreateMeshes();
 
