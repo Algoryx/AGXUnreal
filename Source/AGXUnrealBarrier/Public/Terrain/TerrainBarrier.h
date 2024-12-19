@@ -20,6 +20,7 @@ class FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
+class FShapeBarrier;
 
 /**
  *
@@ -34,6 +35,10 @@ public:
 
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
+	void AllocateNative(
+		int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+		const TArray<float>& MinimumHeights);
+
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;
 	void ReleaseNative();
@@ -60,6 +65,10 @@ public:
 	double GetMaximumParticleActivationVolume() const;
 
 	bool AddShovel(FShovelBarrier& Shovel);
+	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
+	void SetNoMerge(bool IsNoMerge);
+	bool GetNoMerge() const;
+
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 
@@ -80,6 +89,9 @@ public:
 
 	int32 GetGridSizeX() const;
 	int32 GetGridSizeY() const;
+
+	FVector2D GetSize() const;
+	double GetElementSize() const;
 
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.
