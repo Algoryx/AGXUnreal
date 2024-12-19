@@ -128,6 +128,8 @@ public:
 	 */
 	static USCS_Node* GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints = true);
 
+	template <typename ParentComponentT>
+	static USCS_Node* GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints = true);
 	/**
 	 * Finds the first parent Component that resided in the same Blueprint as the given
 	 * ComponentTemplate. This function may search in parent Blueprints for SCS Nodes, but will walk
@@ -152,6 +154,22 @@ public:
 	template <typename T>
 	static T* GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot = false);
 };
+
+template <typename ParentComponentT>
+USCS_Node* FAGX_BlueprintUtilities::GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints)
+{
+	USCS_Node* It = Node;
+	while (It != nullptr)
+	{
+		USCS_Node* ParentNode = GetParentSCSNode(It, bSearchParentBlueprints);
+		if (ParentNode != nullptr && Cast<ParentComponentT>(ParentNode->ComponentTemplate) != nullptr)
+		{
+			return ParentNode;
+		}
+		It = ParentNode;
+	}
+	return nullptr;
+}
 
 template <typename T>
 T* FAGX_BlueprintUtilities::GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot)

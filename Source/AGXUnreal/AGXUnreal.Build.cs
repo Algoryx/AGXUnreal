@@ -119,7 +119,7 @@ public class AGXUnreal : ModuleRules
 	/// Return the path to the AGXUnreal subdirectory in the Plugins directory.
 	private string GetPluginRootPath()
 	{
-		// ModuelDirectory is the full path to Plugins/AGXUnreal/Source/AGXUnreal.
+		// ModuleDirectory is the full path to Plugins/AGXUnreal/Source/AGXUnreal.
 		return Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
 	}
 
@@ -244,7 +244,7 @@ public class AGXUnreal : ModuleRules
 		{
 			return;
 		}
-		if (!GetRemoteResult.Output.Contains("algoryx/unreal/agxunreal.git"))
+		if (!GetRemoteResult.Output.Contains("github.com/Algoryx/AGXUnreal.git"))
 		{
 			// Not in an AGX Dynamics for Unreal working copy.
 			return;

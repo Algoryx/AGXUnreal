@@ -84,7 +84,7 @@ FAGX_BlueprintUtilities::FAGX_BlueprintNodeSearchResult FAGX_BlueprintUtilities:
 	if (!SearchParentBlueprints)
 	{
 		// Nothing found, we are done.
-		return FAGX_BlueprintUtilities::FAGX_BlueprintNodeSearchResult(Blueprint, nullptr);
+		return FAGX_BlueprintNodeSearchResult(Blueprint, nullptr);
 	}
 
 	// Try with the next parent Blueprint.
