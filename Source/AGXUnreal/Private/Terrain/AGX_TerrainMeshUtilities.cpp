@@ -111,7 +111,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 
 					//Fetch the height at the moved-back-position
 					FVector2D DummyUV0, DummyUV1;
-					FColor DummyColor;
+					FColor DummyColor(0,0,0,0);
 					VertexFunction(P, DummyUV0, DummyUV1, DummyColor, false);
 
 					//Move the vertex slightly downwards
