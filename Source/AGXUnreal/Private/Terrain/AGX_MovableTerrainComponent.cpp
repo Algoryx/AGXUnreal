@@ -30,10 +30,20 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+
+
 	if (GIsReconstructingBlueprintInstances)
 	{
 		// This Component will soon be given a Native Geometry and Shape from a
 		// FAGX_NativeOwnerInstanceData, so don't create a new one here.
+
+		if (HasNative())
+		{
+			NativeBarrier.GetHeights(CurrentHeights, false);
+			NativeBarrier.GetMinimumHeights(BedHeights);
+			RecreateMeshes();
+		}
+
 		return;
 	}
 
@@ -140,7 +150,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 	// Attach to RigidBody
 	if (OwningRigidBody)
-		OwningRigidBody->GetNative()->AddTerrain(&NativeBarrier);
+	{
+		FHeightFieldShapeBarrier Temp = NativeBarrier.GetHeightField();
+		OwningRigidBody->GetNative()->AddShape(&Temp);
+	}
 
 	// Set transform
 	NativeBarrier.SetRotation(this->GetComponentQuat());
@@ -390,7 +403,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					   bool IsSkirt) -> void
 			{
 
-				//Hacky: Clamp skirt vertices on the edge of "Size" to BedHeight
+				//Hacky: Clamp seam-fixing-skirt vertices that are at the boundary of "Size" to MinimalHeight
 				bool IsSkirtEdgeClamp =
 					bShowMeshSides && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER;
 

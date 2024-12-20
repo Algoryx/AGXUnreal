@@ -3,6 +3,7 @@
 #include "Terrain/TerrainBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
@@ -488,9 +489,15 @@ void FTerrainBarrier::GetMinimumHeights(TArray<float>& MinimumHeights) const
 				ConvertDistanceToUnreal<float>(NativeMinumumHeights[NativeIndex]);
 		}
 	}
-
-
 }
+
+FHeightFieldShapeBarrier FTerrainBarrier::GetHeightField() const
+{
+	// Terrain should expose a non-const getter.
+	return AGXBarrierFactories::CreateHeightFieldShapeBarrier(
+		const_cast<agxCollide::HeightField*>(NativeRef->Native->getHeightField()));
+}
+
 TArray<FVector> FTerrainBarrier::GetParticlePositions() const
 {
 	check(HasNative());
