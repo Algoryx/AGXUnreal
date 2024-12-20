@@ -82,11 +82,25 @@ public:
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 
-	virtual void PostInitProperties() override;
 	virtual void PostLoad() override; // When loaded in Editor or Game
 #if WITH_EDITOR
+	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	void InitPropertyDispatcher();
 #endif
+	//UPROPERTY(EditAnywhere, Category = "AGX Dynamics")
+	//bool bEnabled = true;
+
+	//UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	//void SetEnabled(bool InEnabled);
+
+	//UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	//bool IsEnabled() const;
+
+	//UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	//bool GetEnabled() const;
+
+
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
@@ -97,9 +111,15 @@ public:
 	bool bHideTerrain = false;
 	void ForceRebuildMesh();
 
+	void CreateNative();
+	void ConnectTerrainMeshToNative();
+	bool FetchNativeHeights();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool WriteTransformToNative();
+
 	// IAGX_NativeOwner:
 	//----------------
-	void CreateNative();
 	virtual FTerrainBarrier* GetNative();
 	virtual const FTerrainBarrier* GetNative() const;
 	virtual void UpdateNativeProperties();
@@ -365,7 +385,7 @@ private:
 	FTerrainBarrier NativeBarrier;
 	FDelegateHandle PostStepForwardHandle;
 
-	//UPROPERTY()
+	UPROPERTY()
 	TArray<float> CurrentHeights;
 
 	UPROPERTY()

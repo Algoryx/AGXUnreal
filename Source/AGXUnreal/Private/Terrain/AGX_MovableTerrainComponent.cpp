@@ -17,6 +17,7 @@
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
 #include <AGX_NativeOwnerInstanceData.h>
+#include <AGX_PropertyChangedDispatcher.h>
 
 UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	const FObjectInitializer& ObjectInitializer)
@@ -29,39 +30,88 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-
-
+	if (HasNative())
+	{
+		UE_LOG(LogAGX, Warning, TEXT("BeginPlay - HasNative"));
+		return;
+	}
 	if (GIsReconstructingBlueprintInstances)
 	{
-		// This Component will soon be given a Native Geometry and Shape from a
-		// FAGX_NativeOwnerInstanceData, so don't create a new one here.
-
-		if (HasNative())
-		{
-			NativeBarrier.GetHeights(CurrentHeights, false);
-			NativeBarrier.GetMinimumHeights(BedHeights);
-			RecreateMeshes();
-		}
-
+		UE_LOG(LogAGX, Warning, TEXT("BeginPlay - GIsReconstructingBlueprintInstances"));
 		return;
 	}
 
-	// Create Native
 	GetOrCreateNative();
 
-	if (!HasNative())
-		return;
+	UE_LOG(LogAGX, Warning, TEXT("BeginPlay - RecreateMeshes"));
+	RecreateMeshes();
 
 	// Init particles
 	InitializeParticles();
 
+	// Unreal Collision
+	this->SetCollisionEnabled(AdditionalUnrealCollision);
+}
+
+void UAGX_MovableTerrainComponent::CreateNative()
+{
+	// Make sure OwningRigidBody is created, if there is one
+	UAGX_RigidBodyComponent* OwningRigidBody =
+		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+	if (OwningRigidBody)
+		OwningRigidBody->GetOrCreateNative();
+
+	// Resolution
+	FIntVector2 TerrainResolution = GetTerrainResolution();
+
+	// Create Heights
+	InitializeHeights();
+
+	// Allocate Native
+	NativeBarrier.AllocateNative(
+		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
+
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
+			*GetName(), *GetLabelSafe(GetOwner()));
+
+		return;
+	}
+
+	// Attach to RigidBody
+	if (OwningRigidBody)
+	{
+		FHeightFieldShapeBarrier Temp = NativeBarrier.GetHeightField();
+		OwningRigidBody->GetNative()->AddShape(&Temp);
+	}
+
+	// Set transform
+	WriteTransformToNative();
+
+	// Set Native Properties
+	UpdateNativeProperties();
+	
+	
+	UE_LOG(LogAGX, Warning, TEXT("CreateNative - RecreateMeshes"));
 	// Create Mesh
 	RecreateMeshes();
 
-	// Unreal Collision
-	this->SetCollisionEnabled(AdditionalUnrealCollision);
-		
+	// Create PostHandle callback to update mesh
+	ConnectTerrainMeshToNative();
+
+
+	// Add Native
+	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	Simulation->Add(*this);
+
+}
+
+void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
+{
+
 	// Update Mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
@@ -112,60 +162,66 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	}
 }
 
-void UAGX_MovableTerrainComponent::CreateNative()
+bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 {
-	// Make sure OwningRigidBody is created, if there is one
-	UAGX_RigidBodyComponent* OwningRigidBody =
-		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
-	if (OwningRigidBody)
-		OwningRigidBody->GetOrCreateNative();
-
-	// Resolution
-	FIntVector2 TerrainResolution = GetTerrainResolution();
-
-	// Create Heights
-	InitializeHeights();
-
-	// Allocate Native
-	NativeBarrier.AllocateNative(
-		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
-
 	if (!HasNative())
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to ConnectTerrainMeshToNative. "
+				 "Reason: !HasNative()"),
 			*GetName(), *GetLabelSafe(GetOwner()));
-
-		return;
+		return false;
 	}
-
-
-	// TODO: Add some assert here
-	NativeBarrier.GetHeights(CurrentHeights, false);
-	NativeBarrier.GetMinimumHeights(BedHeights);
-
-	if (BedHeights.Num() != CurrentHeights.Num())
-		return;
-
-	// Attach to RigidBody
-	if (OwningRigidBody)
+	TArray<float> FetchedHeights;
+	NativeBarrier.GetHeights(FetchedHeights, false);
+	if (FetchedHeights.Num() != GetTerrainResolution().X * GetTerrainResolution().Y)
 	{
-		FHeightFieldShapeBarrier Temp = NativeBarrier.GetHeightField();
-		OwningRigidBody->GetNative()->AddShape(&Temp);
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetHeights from Native. "
+				 "Expected: %d, Got: %d"),
+			*GetName(), *GetLabelSafe(GetOwner()),
+			GetTerrainResolution().X * GetTerrainResolution().Y, FetchedHeights.Num());
+		return false;
 	}
 
-	// Set transform
-	NativeBarrier.SetRotation(this->GetComponentQuat());
-	NativeBarrier.SetPosition(this->GetComponentLocation());
+	TArray<float> FetchedMinHeights;
+	NativeBarrier.GetMinimumHeights(FetchedMinHeights);
+	if (FetchedMinHeights.Num() != GetTerrainResolution().X * GetTerrainResolution().Y)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetMinimumHeights from Native. "
+				 "Expected: %d, Got: %d"),
+			*GetName(), *GetLabelSafe(GetOwner()),
+			GetTerrainResolution().X * GetTerrainResolution().Y, FetchedMinHeights.Num());
+		return false;
+	}
 
-	// Set Native Properties
-	UpdateNativeProperties();
-	
 
-	// Add Native
-	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
-	Simulation->Add(*this);
+	CurrentHeights = FetchedHeights;
+	BedHeights = FetchedMinHeights;
+
+	return true;
+}
+
+bool UAGX_MovableTerrainComponent::WriteTransformToNative()
+{
+	AGX_CHECK(HasNative());
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to WriteTransformToNative. "
+				 "Reason: !HasNative()"),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	NativeBarrier.SetPosition(GetComponentLocation());
+	NativeBarrier.SetRotation(GetComponentQuat());
+	return true;
 }
 
 
@@ -230,6 +286,7 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
+	UE_LOG(LogAGX, Warning, TEXT("     RecreateMeshes"));
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
 	// Reset MeshSections
 	ClearAllMeshSections();
@@ -393,6 +450,9 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
+	const bool IsInGame = IsValid(GetWorld()) && GetWorld()->IsGameWorld();
+
+
 	switch (MeshType)
 	{
 
@@ -410,7 +470,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				if (!IsSkirtEdgeClamp)
 				{
 					// Height Function
-					double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+					double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 					Pos += FVector::UpVector * (Height + MeshZOffset);
 
 					// Set UV1 Tiled to ElementSize
@@ -426,7 +486,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 						FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 
 					// Clamp Z position to BedHeight
-					double BedHeight = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+					double BedHeight = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 
 					// Height Function
 					Pos += FVector::UpVector * (BedHeight + MeshZOffset);
@@ -442,7 +502,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					FVector2D UvDir = Uv0 - OldUv;
 
 					bool IsOnXEdge = FMath::Abs(UvDir.Y) < FMath::Abs(UvDir.X);
-					double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+					double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 					double HeightDist = FMath::Abs(Height - BedHeight);
 
 					// Wrap Uv0 and Uv1 using HeightDist
@@ -462,11 +522,11 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				Pos = FVector(
 					FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
 					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-				double Height = HasNative() ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+				double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
 				// Clamp vertices on the border for smoother (Unreal) collision
 				if (DistFromEdge(Pos) < SMALL_NUMBER)// && IsSkirt)
-					Height = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+					Height = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 				//UV0 Tiled to Meters
 				Uv0 = FVector2D(
 					(Pos.X + Size.X / 2) / 100.0,
@@ -484,7 +544,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 
 				// Height Function
-				double BedHeight = HasNative() ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+				double BedHeight = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 
 				Pos += FVector::UpVector * (BedHeight + MeshZOffset);
 
@@ -514,35 +574,103 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 
 void UAGX_MovableTerrainComponent::OnRegister()
 {
+	//UE_LOG(LogAGX, Warning, TEXT("OnRegister"));
 	Super::OnRegister();
-	// ForceRebuildMesh();
-}
-
-void UAGX_MovableTerrainComponent::PostInitProperties()
-{
-	Super::PostInitProperties();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
-	// TODO: Only UpdateMesh on certain Property changes
-	ForceRebuildMesh();
 }
 
 void UAGX_MovableTerrainComponent::PostLoad()
 {
+	// UE_LOG(LogAGX, Warning, TEXT("PostLoad"));
 	Super::PostLoad();
-	UE_LOG(LogAGX, Warning, TEXT("PostLoad"));
-	//ForceRebuildMesh();
 }
 
 #if WITH_EDITOR
-void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+void UAGX_MovableTerrainComponent::PostInitProperties()
 {
-	Super::PostEditChangeChainProperty(Event);
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
+	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties"));
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
 
-	// TODO: Only UpdateMesh on certain Property changes
-	ForceRebuildMesh();
+	// In Editor
+	UWorld* World = GetWorld();
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+	{
+		UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - EditorRebuildMesh"));
+		ForceRebuildMesh();
+	}
+	
+	// In-Game
+	if (IsValid(World) && World->IsGameWorld() && GIsReconstructingBlueprintInstances)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - RecreateMeshes (GIsReconstruct)"));
+		//if (FetchNativeHeights())
+		RecreateMeshes();
+	}
+
+	// if (!IsValid(World) || IsTemplate())
+	//	UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - Bad World"));
+	// if (GIsReconstructingBlueprintInstances)
+	//	UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - GIsReconstructingBlueprintInstances"));
 }
 
+void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
+	Super::PostEditChangeChainProperty(Event);
+
+	// In Editor
+	UWorld* World = GetWorld();
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+	{
+		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - EditorRebuildMesh"));
+		ForceRebuildMesh();
+	}
+
+	// In-Game
+	//if (IsValid(World) && World->IsGameWorld() && HasNative())
+	//{
+	//	UE_LOG(LogAGX, Warning, TEXT("  PostEditChangeChainProperty - RecreateMeshes"));
+	//	RecreateMeshes();
+	//	//if (FetchNativeHeights())
+	//}
+}
+
+
+void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+	{
+		return;
+	}
+	UE_LOG(LogAGX, Warning, TEXT("  InitPropertyDispatcher"));
+
+	// Location and Rotation are not Properties, so they won't trigger PostEditChangeProperty. e.g.,
+	// when moving the Component using the Widget in the Level Viewport. They are instead handled in
+	// PostEditComponentMove. The local transformations, however, the ones at the top of the Details
+	// Panel, are properties and do end up here.
+	PropertyDispatcher.Add(
+		this->GetRelativeLocationPropertyName(),
+		[](ThisClass* This) { This->WriteTransformToNative(); });
+
+	PropertyDispatcher.Add(
+		this->GetRelativeRotationPropertyName(),
+		[](ThisClass* This) { This->WriteTransformToNative(); });
+
+	PropertyDispatcher.Add(
+		this->GetAbsoluteLocationPropertyName(),
+		[](ThisClass* This) { This->WriteTransformToNative(); });
+
+	PropertyDispatcher.Add(
+		this->GetAbsoluteRotationPropertyName(),
+		[](ThisClass* This) { This->WriteTransformToNative(); });
+
+	//PropertyDispatcher.Add(
+	//	GET_MEMBER_NAME_CHECKED(UAGX_RigidBodyComponent, bEnabled),
+	//	[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
+
+}
 
 #endif
 
@@ -554,50 +682,30 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 	UWorld* World = GetWorld();
 
 	if (!IsValid(World) || IsTemplate())
+	{
 		return;
-	//if (GIsReconstructingBlueprintInstances)
-	//	return;
+	}
+	
 
-	// In-Editor
+	//In-Editor
 	if (!World->IsGameWorld())
 	{
-		// Postpone to next tick because all properties are not copied
+		// Postpone mesh creation for next tick, because bedshape geometries needs
+		// to be properly created for BedHeights raycast
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
-				if (!IsValid(World))
-					return;
-
-				//if (!IsValid(this))
-				//	return;
-				//if (GetBedShapes().Num() > 0 && bUseBedShapes)
-				//{
-				//	for (auto b : GetBedShapes())
-				//	{
-				//		if (!IsValid(b))
-				//			return;
-				//	}
-				//}
-
-				// Recreate Mesh
-				RecreateMeshes();
+				UE_LOG(LogAGX, Warning, TEXT("  RecreateMeshes - Editor"));
+				if (IsValid(World))
+				{
+					RecreateMeshes();
+				}
+				else
+				{
+					UE_LOG(LogAGX, Warning, TEXT("   BAD WORLD"));
+				}
 			});
-	}
-	// In-Game
-	else if (World->IsGameWorld())
-	{
-		if (HasNative())
-		{
-			// Copy CurrentHeights from Native
-			NativeBarrier.GetHeights(CurrentHeights, false);
-			NativeBarrier.GetMinimumHeights(BedHeights);
 
-			if (BedHeights.Num() != CurrentHeights.Num())
-				return;
-
-			// Recreate Mesh
-			RecreateMeshes();
-		}
 	}
 }
 
@@ -615,17 +723,35 @@ void UAGX_MovableTerrainComponent::TickComponent(
 
 void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
+	UE_LOG(LogAGX, Warning, TEXT("EndPlay"));
 	Super::EndPlay(Reason);
+	
+	//Remove callback
+	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+	{
+		FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+			.Remove(PostStepForwardHandle);
+	}
+
+	if (GIsReconstructingBlueprintInstances)
+	{
+		// Another UAGX_MovableTerrainComponent will inherit this one's Native
+		return;
+	}
+	
+	
 	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		{
 			Simulation->Remove(*this);
-
-			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
-				.Remove(PostStepForwardHandle);
 		}
+		NativeBarrier.ReleaseNative();
+	}
+	else if (HasNative())
+	{
+		NativeBarrier.ReleaseNative();
 	}
 }
 
@@ -700,7 +826,21 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 FTerrainBarrier* UAGX_MovableTerrainComponent::GetOrCreateNative()
 {
 	if (!HasNative())
+	{
+		if (GIsReconstructingBlueprintInstances)
+		{
+			checkNoEntry();
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("A request for the AGX Dynamics instance for Movable Terrain '%s' in '%s' was made "
+					 "but we are in the middle of a Blueprint Reconstruction and the requested "
+					 "instance has not yet been restored. The instance cannot be returned, which "
+					 "may lead to incorrect scene configuration."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+			return nullptr;
+		}
 		CreateNative();
+	}
 
 	return &NativeBarrier;
 }
