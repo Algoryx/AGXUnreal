@@ -565,9 +565,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogAGX, Warning, TEXT("BeginPlay - Begin"));
+	UE_LOG(LogAGX, Warning, TEXT("BeginPlay %d"), GIsReconstructingBlueprintInstances);
 	UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - HasNative: %d"), GetNativeAddress());
-	UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
 
 	if (GIsReconstructingBlueprintInstances || HasNative())
 	{
@@ -594,9 +593,8 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
-	UE_LOG(LogAGX, Warning, TEXT("EndPlay"));
+	UE_LOG(LogAGX, Warning, TEXT("EndPlay %d"), GIsReconstructingBlueprintInstances);
 	UE_LOG(LogAGX, Warning, TEXT(" EndPlay - HasNative: %d"), GetNativeAddress());
-	UE_LOG(LogAGX, Warning, TEXT(" EndPlay - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
 	
 	if (HasNative())
 	{
@@ -630,22 +628,9 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 	InitPropertyDispatcher();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
-	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - HasNative: %d"), GetNativeAddress());
-	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
+	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties %d"), GIsReconstructingBlueprintInstances);
 
 	UWorld* World = GetWorld();
-
-	// In-Game
-	if (IsValid(World) && World->IsGameWorld() && GIsReconstructingBlueprintInstances)
-	{
-		//RecreateMeshes();
-		if (HasNative() && FetchNativeHeights())
-		{
-			UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - RecreateMeshes (GIsReconstruct)"));
-			RecreateMeshes();
-		}
-	}
 
 	// In Editor
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
@@ -658,39 +643,29 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
-	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
-	UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"), GetNativeAddress());
+	//UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
+	//UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"), GetNativeAddress());
 
 	Super::PostEditChangeChainProperty(Event);
 
-	
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+
 	UWorld* World = GetWorld();
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty*"));
-	UE_LOG(
-		LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative*: %d"), GetNativeAddress());
 	if (!IsValid(this))
 	{
-		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - Component Destroyed"));
+		UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty - Component Destroyed"));
+		//UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"),
+		//	GetNativeAddress());
 		return;
 	}
-
-	//// In-Game
-	//if (IsValid(World) && World->IsGameWorld() && IsValid(this))
-	//{
-	//	if (HasNative() && FetchNativeHeights())
-	//		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - FetchNativeHeights"))
-
-	//	UE_LOG(LogAGX, Warning, TEXT("  PostEditChangeChainProperty - RecreateMeshes"));
-	//	RecreateMeshes();
-	//}
-
-
-	
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
 
 	// In-Game
-	if (IsValid(World) && World->IsGameWorld() && IsValid(this))
+	if (IsValid(World) && World->IsGameWorld())
 	{
+		UE_LOG(
+			LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"),
+			GetNativeAddress());
 		if (HasNative() && FetchNativeHeights())
 			UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - FetchNativeHeights"))
 
@@ -699,7 +674,7 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 	}
 
 	// In Editor
-	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() && IsValid(this))
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
 		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - EditorRebuildMesh (Delayed)"));
 		ForceRebuildMesh();
@@ -737,10 +712,35 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		this->GetAbsoluteRotationPropertyName(),
 		[](ThisClass* This) { This->WriteTransformToNative(); });
 
-	//PropertyDispatcher.Add(
-	//	GET_MEMBER_NAME_CHECKED(UAGX_RigidBodyComponent, bEnabled),
-	//	[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
+		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, bCreateParticles),
+		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, bDeleteParticlesOutsideBounds), [](ThisClass* This)
+		{ This->SetDeleteParticlesOutsideBounds(This->bDeleteParticlesOutsideBounds); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, PenetrationForceVelocityScaling), [](ThisClass* This)
+		{ This->SetPenetrationForceVelocityScaling(This->PenetrationForceVelocityScaling); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, MaximumParticleActivationVolume), [](ThisClass* This)
+		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
+
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(ParticleSystemAsset),
+		[](ThisClass* This)
+		{
+			if (This->ParticleSystemAsset != nullptr)
+			{
+				This->ParticleSystemAsset->RequestCompile(true);
+			}
+		});
 }
 
 #endif
