@@ -27,31 +27,6 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	SetCanEverAffectNavigation(false);
 }
 
-void UAGX_MovableTerrainComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	if (HasNative())
-	{
-		UE_LOG(LogAGX, Warning, TEXT("BeginPlay - HasNative"));
-		return;
-	}
-	if (GIsReconstructingBlueprintInstances)
-	{
-		UE_LOG(LogAGX, Warning, TEXT("BeginPlay - GIsReconstructingBlueprintInstances"));
-		return;
-	}
-
-	GetOrCreateNative();
-
-	UE_LOG(LogAGX, Warning, TEXT("BeginPlay - RecreateMeshes"));
-	RecreateMeshes();
-
-	// Init particles
-	InitializeParticles();
-
-	// Unreal Collision
-	this->SetCollisionEnabled(AdditionalUnrealCollision);
-}
 
 void UAGX_MovableTerrainComponent::CreateNative()
 {
@@ -99,6 +74,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Create Mesh
 	RecreateMeshes();
 
+	UE_LOG(LogAGX, Warning, TEXT("CreateNative - ConnectTerrainMeshToNative"));
 	// Create PostHandle callback to update mesh
 	ConnectTerrainMeshToNative();
 
@@ -168,7 +144,7 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed to ConnectTerrainMeshToNative. "
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to FetchNativeHeights. "
 				 "Reason: !HasNative()"),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
@@ -450,7 +426,8 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
-	const bool IsInGame = IsValid(GetWorld()) && GetWorld()->IsGameWorld();
+	const bool IsInEditor = IsValid(GetWorld()) && !GetWorld()->IsGameWorld() && !IsTemplate();
+	const bool IsInGame = !IsInEditor;
 
 
 	switch (MeshType)
@@ -525,7 +502,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
 				// Clamp vertices on the border for smoother (Unreal) collision
-				if (DistFromEdge(Pos) < SMALL_NUMBER)// && IsSkirt)
+				if (DistFromEdge(Pos) < SMALL_NUMBER)
 					Height = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 				//UV0 Tiled to Meters
 				Uv0 = FVector2D(
@@ -584,55 +561,149 @@ void UAGX_MovableTerrainComponent::PostLoad()
 	Super::PostLoad();
 }
 
+void UAGX_MovableTerrainComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	UE_LOG(LogAGX, Warning, TEXT("BeginPlay - Begin"));
+	UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - HasNative: %d"), GetNativeAddress());
+	UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
+
+	if (GIsReconstructingBlueprintInstances || HasNative())
+	{
+		// A reconstructed component with inherited properties, (See: EndPlay())
+		return;
+	}
+
+	// Create Native
+	GetOrCreateNative();
+
+	// This just as a failsafe:
+	if (FetchNativeHeights())
+	{
+		UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - RecreateMeshes"));
+		RecreateMeshes();
+	}
+	// Init particles
+	InitializeParticles();
+
+	// Unreal Collision
+	this->SetCollisionEnabled(AdditionalUnrealCollision);
+}
+
+void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	UE_LOG(LogAGX, Warning, TEXT("EndPlay"));
+	UE_LOG(LogAGX, Warning, TEXT(" EndPlay - HasNative: %d"), GetNativeAddress());
+	UE_LOG(LogAGX, Warning, TEXT(" EndPlay - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
+	
+	if (HasNative())
+	{
+		// Remove callback
+		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+		{
+			UE_LOG(LogAGX, Warning, TEXT(" RemoveCallback"));
+			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+				.Remove(PostStepForwardHandle);
+		}
+
+		if (!GIsReconstructingBlueprintInstances && Reason != EEndPlayReason::EndPlayInEditor &&
+			Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+		{
+			// Remove from simulation
+			if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+			{
+				UE_LOG(LogAGX, Warning, TEXT(" RemoveNative"));
+				Simulation->Remove(*this);
+			}
+		}
+		
+		// Release Native
+		NativeBarrier.ReleaseNative();
+	}
+
+}
+
 #if WITH_EDITOR
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
-	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties"));
 	Super::PostInitProperties();
 	InitPropertyDispatcher();
+	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties"));
+	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - HasNative: %d"), GetNativeAddress());
+	UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - GIsRecons: %d"), GIsReconstructingBlueprintInstances);
 
-	// In Editor
 	UWorld* World = GetWorld();
-	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
-	{
-		UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - EditorRebuildMesh"));
-		ForceRebuildMesh();
-	}
-	
+
 	// In-Game
 	if (IsValid(World) && World->IsGameWorld() && GIsReconstructingBlueprintInstances)
 	{
-		UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - RecreateMeshes (GIsReconstruct)"));
-		//if (FetchNativeHeights())
-		RecreateMeshes();
+		//RecreateMeshes();
+		if (HasNative() && FetchNativeHeights())
+		{
+			UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - RecreateMeshes (GIsReconstruct)"));
+			RecreateMeshes();
+		}
 	}
 
-	// if (!IsValid(World) || IsTemplate())
-	//	UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - Bad World"));
-	// if (GIsReconstructingBlueprintInstances)
-	//	UE_LOG(LogAGX, Warning, TEXT("  PostInitProperties - GIsReconstructingBlueprintInstances"));
+	// In Editor
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
+		GIsReconstructingBlueprintInstances)
+	{
+		UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - EditorRebuildMesh (Delayed)"));
+		ForceRebuildMesh();
+	}
 }
 
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
 	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
+	UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"), GetNativeAddress());
+
 	Super::PostEditChangeChainProperty(Event);
 
-	// In Editor
+	
 	UWorld* World = GetWorld();
-	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty*"));
+	UE_LOG(
+		LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative*: %d"), GetNativeAddress());
+	if (!IsValid(this))
 	{
-		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - EditorRebuildMesh"));
-		ForceRebuildMesh();
+		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - Component Destroyed"));
+		return;
 	}
 
-	// In-Game
-	//if (IsValid(World) && World->IsGameWorld() && HasNative())
+	//// In-Game
+	//if (IsValid(World) && World->IsGameWorld() && IsValid(this))
 	//{
+	//	if (HasNative() && FetchNativeHeights())
+	//		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - FetchNativeHeights"))
+
 	//	UE_LOG(LogAGX, Warning, TEXT("  PostEditChangeChainProperty - RecreateMeshes"));
 	//	RecreateMeshes();
-	//	//if (FetchNativeHeights())
 	//}
+
+
+	
+
+	// In-Game
+	if (IsValid(World) && World->IsGameWorld() && IsValid(this))
+	{
+		if (HasNative() && FetchNativeHeights())
+			UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - FetchNativeHeights"))
+
+		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - RecreateMeshes"));
+		RecreateMeshes();
+	}
+
+	// In Editor
+	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() && IsValid(this))
+	{
+		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - EditorRebuildMesh (Delayed)"));
+		ForceRebuildMesh();
+	}
 }
 
 
@@ -695,7 +766,7 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
-				UE_LOG(LogAGX, Warning, TEXT("  RecreateMeshes - Editor"));
+				UE_LOG(LogAGX, Warning, TEXT("EditorRebuildMesh(Delayed) - RecreateMeshes"));
 				if (IsValid(World))
 				{
 					RecreateMeshes();
@@ -718,40 +789,6 @@ void UAGX_MovableTerrainComponent::TickComponent(
 	if (bEnableParticleRendering)
 	{
 		UpdateParticles();
-	}
-}
-
-void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
-{
-	UE_LOG(LogAGX, Warning, TEXT("EndPlay"));
-	Super::EndPlay(Reason);
-	
-	//Remove callback
-	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
-	{
-		FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
-			.Remove(PostStepForwardHandle);
-	}
-
-	if (GIsReconstructingBlueprintInstances)
-	{
-		// Another UAGX_MovableTerrainComponent will inherit this one's Native
-		return;
-	}
-	
-	
-	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
-		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
-	{
-		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
-		{
-			Simulation->Remove(*this);
-		}
-		NativeBarrier.ReleaseNative();
-	}
-	else if (HasNative())
-	{
-		NativeBarrier.ReleaseNative();
 	}
 }
 
@@ -852,31 +889,28 @@ bool UAGX_MovableTerrainComponent::HasNative() const
 
 uint64 UAGX_MovableTerrainComponent::GetNativeAddress() const
 {
-	if (!HasNative())
-	{
-		return 0;
-	}
-	return static_cast<uint64>(GetNative()->GetNativeAddress());
+	return static_cast<uint64>(NativeBarrier.GetNativeAddress());
 }
+
 
 void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
 {
-	if (NativeAddress == GetNativeAddress())
-	{
-		return;
-	}
+	UE_LOG(LogAGX, Warning, TEXT("SetNativeAddress"));
+	UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - OldNative: %d"), GetNativeAddress());
+	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
+	UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - NewNative*: %d"), GetNativeAddress());
 
 	if (HasNative())
 	{
-		NativeBarrier.ReleaseNative();
-	}
+		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - FetchNativeHeights"));
+		FetchNativeHeights();
+		
+		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - ConnectTerrainMeshToNative"));
+		ConnectTerrainMeshToNative();
 
-	if (NativeAddress == 0)
-	{
-		return;
+		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - RecreateMeshes"));
+		RecreateMeshes();
 	}
-
-	NativeBarrier.SetNativeAddress(NativeAddress);
 }
 
 void UAGX_MovableTerrainComponent::OnUpdateTransform(
