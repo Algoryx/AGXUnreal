@@ -101,7 +101,6 @@ public:
 	//bool GetEnabled() const;
 
 	bool bHeightsInitialized = false;
-	bool bMeshInitialized = false;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;

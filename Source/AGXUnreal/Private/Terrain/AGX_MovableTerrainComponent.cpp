@@ -98,7 +98,7 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 						if (!HasNative())
 							return;
 
-						if (!bMeshInitialized)
+						if (!bHeightsInitialized)
 						{
 							UE_LOG(LogAGX, Warning, TEXT("ConnectTerrainMeshToNative - FetchNativeHeights"));
 							FetchNativeHeights();
@@ -333,8 +333,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		GetMeshVertexFunction(EAGX_MeshType::DebugPlane), nullptr, 0, EAGX_MeshTilingPattern::None,
 		false, true, false, bShowDebugPlane));
 	MeshIndex += DebugPlaneMesh.Num() / 2;
-
-	bMeshInitialized = true;
 }
 
 
