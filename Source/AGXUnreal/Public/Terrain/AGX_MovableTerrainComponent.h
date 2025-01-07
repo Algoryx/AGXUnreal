@@ -100,6 +100,8 @@ public:
 	//UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
 	//bool GetEnabled() const;
 
+	bool bHeightsInitialized = false;
+	bool bMeshInitialized = false;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
@@ -109,6 +111,11 @@ public:
 	bool bShowUnrealCollision = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bHideTerrain = false;
+	void SetSize(FVector2D Size);
+	void SetShowDebugPlane(bool bShow);
+	void SetShowUnrealCollision(bool bShow);
+	void SetHideTerrain(bool bHide);
+
 	void ForceRebuildMesh();
 
 	void CreateNative();

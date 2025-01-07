@@ -87,7 +87,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 {
-
 	// Update Mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
@@ -96,6 +95,18 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 				.AddLambda(
 					[this](double)
 					{
+						if (!HasNative())
+							return;
+
+						if (!bMeshInitialized)
+						{
+							UE_LOG(LogAGX, Warning, TEXT("ConnectTerrainMeshToNative - FetchNativeHeights"));
+							FetchNativeHeights();
+
+							UE_LOG(LogAGX, Warning, TEXT("ConnectTerrainMeshToNative - RecreateMeshes"));
+							RecreateMeshes();
+						}
+
 						// Get ModifiedHeights
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
 						FVector2D NativeTerrainSize = GetTerrainSize();
@@ -179,6 +190,8 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 	CurrentHeights = FetchedHeights;
 	BedHeights = FetchedMinHeights;
 
+	bHeightsInitialized = true;
+
 	return true;
 }
 
@@ -236,6 +249,8 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 			CurrentHeights[y * Res.X + x] = CalcInitialHeight(LocalPos);
 		}
 	}
+
+	bHeightsInitialized = true;
 }
 
 float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) const
@@ -319,7 +334,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		false, true, false, bShowDebugPlane));
 	MeshIndex += DebugPlaneMesh.Num() / 2;
 
-
+	bMeshInitialized = true;
 }
 
 
@@ -426,8 +441,8 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
-	const bool IsInEditor = IsValid(GetWorld()) && !GetWorld()->IsGameWorld() && !IsTemplate();
-	const bool IsInGame = !IsInEditor;
+	//const bool IsInEditor = IsValid(GetWorld()) && !GetWorld()->IsGameWorld() && !IsTemplate();
+	//const bool IsInGame = IsValid(GetWorld()) && GetWorld()->IsGameWorld();
 
 
 	switch (MeshType)
@@ -447,7 +462,7 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				if (!IsSkirtEdgeClamp)
 				{
 					// Height Function
-					double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+					double Height = bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 					Pos += FVector::UpVector * (Height + MeshZOffset);
 
 					// Set UV1 Tiled to ElementSize
@@ -463,7 +478,8 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 						FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 
 					// Clamp Z position to BedHeight
-					double BedHeight = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+					double BedHeight =
+						bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 
 					// Height Function
 					Pos += FVector::UpVector * (BedHeight + MeshZOffset);
@@ -479,7 +495,8 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					FVector2D UvDir = Uv0 - OldUv;
 
 					bool IsOnXEdge = FMath::Abs(UvDir.Y) < FMath::Abs(UvDir.X);
-					double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+					double Height =
+						bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 					double HeightDist = FMath::Abs(Height - BedHeight);
 
 					// Wrap Uv0 and Uv1 using HeightDist
@@ -499,11 +516,13 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				Pos = FVector(
 					FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
 					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-				double Height = IsInGame ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
+				double Height =
+					bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
 
 				// Clamp vertices on the border for smoother (Unreal) collision
 				if (DistFromEdge(Pos) < SMALL_NUMBER)
-					Height = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+					Height = bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+
 				//UV0 Tiled to Meters
 				Uv0 = FVector2D(
 					(Pos.X + Size.X / 2) / 100.0,
@@ -521,7 +540,8 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
 
 				// Height Function
-				double BedHeight = IsInGame ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
+				double BedHeight =
+					bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
 
 				Pos += FVector::UpVector * (BedHeight + MeshZOffset);
 
@@ -643,22 +663,20 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
-	//UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
-	//UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"), GetNativeAddress());
-
-	Super::PostEditChangeChainProperty(Event);
+	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
 
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+	Super::PostEditChangeChainProperty(Event);
+
 
 	UWorld* World = GetWorld();
 	if (!IsValid(this))
 	{
-		UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty - Component Destroyed"));
+		//UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty - Component Destroyed"));
 		//UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"),
 		//	GetNativeAddress());
 		return;
 	}
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
 
 	// In-Game
 	if (IsValid(World) && World->IsGameWorld())
@@ -741,9 +759,45 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 				This->ParticleSystemAsset->RequestCompile(true);
 			}
 		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
+		[](ThisClass* This) { This->SetSize(This->Size); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
+		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
+		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bHideTerrain),
+		[](ThisClass* This) { This->SetHideTerrain(This->bHideTerrain); });
 }
 
 #endif
+
+void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
+{
+	Size = NewSize;
+}
+
+void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
+{
+	bShowDebugPlane = bShow;
+}
+
+void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
+{
+	bShowUnrealCollision = bShow;
+}
+
+void UAGX_MovableTerrainComponent::SetHideTerrain(bool bHide)
+{
+	bHideTerrain = bHide;
+}
 
 void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 {
@@ -902,14 +956,9 @@ void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
 
 	if (HasNative())
 	{
-		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - FetchNativeHeights"));
-		FetchNativeHeights();
 		
 		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - ConnectTerrainMeshToNative"));
 		ConnectTerrainMeshToNative();
-
-		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - RecreateMeshes"));
-		RecreateMeshes();
 	}
 }
 
