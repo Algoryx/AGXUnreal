@@ -69,20 +69,15 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Set Native Properties
 	UpdateNativeProperties();
 	
-	
-	UE_LOG(LogAGX, Warning, TEXT("CreateNative - RecreateMeshes"));
 	// Create Mesh
 	RecreateMeshes();
 
-	UE_LOG(LogAGX, Warning, TEXT("CreateNative - ConnectTerrainMeshToNative"));
 	// Create PostHandle callback to update mesh
 	ConnectTerrainMeshToNative();
-
 
 	// Add Native
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	Simulation->Add(*this);
-
 }
 
 void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
@@ -98,14 +93,8 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 						if (!HasNative())
 							return;
 
-						if (!bHeightsInitialized)
-						{
-							UE_LOG(LogAGX, Warning, TEXT("ConnectTerrainMeshToNative - FetchNativeHeights"));
-							FetchNativeHeights();
-
-							UE_LOG(LogAGX, Warning, TEXT("ConnectTerrainMeshToNative - RecreateMeshes"));
+						if (!bHeightsInitialized && FetchNativeHeights())
 							RecreateMeshes();
-						}
 
 						// Get ModifiedHeights
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
@@ -273,11 +262,8 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 					 BedZOffset;
 }
 
-
-
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
-	UE_LOG(LogAGX, Warning, TEXT("     RecreateMeshes"));
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
 	// Reset MeshSections
 	ClearAllMeshSections();
@@ -346,7 +332,6 @@ TArray<MeshTile> UAGX_MovableTerrainComponent::GenerateMeshTiles(
 	float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
 
 	FVector2D ScaledResolution = FVector2D(MeshRes.X * LodScaling, MeshRes.Y * LodScaling);
-
 
 	TArray<MeshTile> Tiles;
 
@@ -439,10 +424,6 @@ void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const E
 FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 	const EAGX_MeshType& MeshType)
 {
-	//const bool IsInEditor = IsValid(GetWorld()) && !GetWorld()->IsGameWorld() && !IsTemplate();
-	//const bool IsInGame = IsValid(GetWorld()) && GetWorld()->IsGameWorld();
-
-
 	switch (MeshType)
 	{
 
@@ -452,8 +433,6 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
 					   bool IsSkirt) -> void
 			{
-
-				//Hacky: Clamp seam-fixing-skirt vertices that are at the boundary of "Size" to MinimalHeight
 				bool IsSkirtEdgeClamp =
 					bShowMeshSides && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER;
 
@@ -470,7 +449,9 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 				}
 				else
 				{
-					// Clamp XY position to edge
+					// Hacky: Clamp seam-fixing-skirt vertices to edge
+					
+					// Clamp XY position to edge of "Size"
 					Pos = FVector(
 						FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
 						FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
@@ -569,22 +550,17 @@ FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
 
 void UAGX_MovableTerrainComponent::OnRegister()
 {
-	//UE_LOG(LogAGX, Warning, TEXT("OnRegister"));
 	Super::OnRegister();
 }
 
 void UAGX_MovableTerrainComponent::PostLoad()
 {
-	// UE_LOG(LogAGX, Warning, TEXT("PostLoad"));
 	Super::PostLoad();
 }
 
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	UE_LOG(LogAGX, Warning, TEXT("BeginPlay %d"), GIsReconstructingBlueprintInstances);
-	UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - HasNative: %d"), GetNativeAddress());
 
 	if (GIsReconstructingBlueprintInstances || HasNative())
 	{
@@ -595,12 +571,10 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	// Create Native
 	GetOrCreateNative();
 
-	// This just as a failsafe:
+	// Fetch native heights (as a fail safe)
 	if (FetchNativeHeights())
-	{
-		UE_LOG(LogAGX, Warning, TEXT(" BeginPlay - RecreateMeshes"));
 		RecreateMeshes();
-	}
+
 	// Init particles
 	InitializeParticles();
 
@@ -611,15 +585,12 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
-	UE_LOG(LogAGX, Warning, TEXT("EndPlay %d"), GIsReconstructingBlueprintInstances);
-	UE_LOG(LogAGX, Warning, TEXT(" EndPlay - HasNative: %d"), GetNativeAddress());
-	
+
 	if (HasNative())
 	{
 		// Remove callback
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		{
-			UE_LOG(LogAGX, Warning, TEXT(" RemoveCallback"));
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
 				.Remove(PostStepForwardHandle);
 		}
@@ -630,7 +601,6 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 			// Remove from simulation
 			if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 			{
-				UE_LOG(LogAGX, Warning, TEXT(" RemoveNative"));
 				Simulation->Remove(*this);
 			}
 		}
@@ -646,7 +616,6 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 	InitPropertyDispatcher();
-	UE_LOG(LogAGX, Warning, TEXT("PostInitProperties %d"), GIsReconstructingBlueprintInstances);
 
 	UWorld* World = GetWorld();
 
@@ -654,45 +623,31 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
 		GIsReconstructingBlueprintInstances)
 	{
-		UE_LOG(LogAGX, Warning, TEXT(" PostInitProperties - EditorRebuildMesh (Delayed)"));
 		ForceRebuildMesh();
 	}
 }
 
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
-	UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty"));
-
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
 	Super::PostEditChangeChainProperty(Event);
-
 
 	UWorld* World = GetWorld();
 	if (!IsValid(this))
 	{
-		//UE_LOG(LogAGX, Warning, TEXT("PostEditChangeChainProperty - Component Destroyed"));
-		//UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"),
-		//	GetNativeAddress());
 		return;
 	}
 
 	// In-Game
 	if (IsValid(World) && World->IsGameWorld())
 	{
-		UE_LOG(
-			LogAGX, Warning, TEXT(" PostEditChangeChainProperty - HasNative: %d"),
-			GetNativeAddress());
 		if (HasNative() && FetchNativeHeights())
-			UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - FetchNativeHeights"))
-
-		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - RecreateMeshes"));
-		RecreateMeshes();
+			RecreateMeshes();
 	}
 
 	// In Editor
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
-		UE_LOG(LogAGX, Warning, TEXT(" PostEditChangeChainProperty - EditorRebuildMesh (Delayed)"));
 		ForceRebuildMesh();
 	}
 }
@@ -706,7 +661,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 	{
 		return;
 	}
-	UE_LOG(LogAGX, Warning, TEXT("  InitPropertyDispatcher"));
 
 	// Location and Rotation are not Properties, so they won't trigger PostEditChangeProperty. e.g.,
 	// when moving the Component using the Widget in the Level Viewport. They are instead handled in
@@ -818,14 +772,9 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World]
 			{
-				UE_LOG(LogAGX, Warning, TEXT("EditorRebuildMesh(Delayed) - RecreateMeshes"));
 				if (IsValid(World))
 				{
 					RecreateMeshes();
-				}
-				else
-				{
-					UE_LOG(LogAGX, Warning, TEXT("   BAD WORLD"));
 				}
 			});
 
@@ -944,20 +893,14 @@ uint64 UAGX_MovableTerrainComponent::GetNativeAddress() const
 	return static_cast<uint64>(NativeBarrier.GetNativeAddress());
 }
 
-
 void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
 {
-	UE_LOG(LogAGX, Warning, TEXT("SetNativeAddress"));
-	UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - OldNative: %d"), GetNativeAddress());
+	//UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - OldNative: %d"), GetNativeAddress());
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
-	UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - NewNative*: %d"), GetNativeAddress());
+	//UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - NewNative*: %d"), GetNativeAddress());
 
 	if (HasNative())
-	{
-		
-		UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - ConnectTerrainMeshToNative"));
 		ConnectTerrainMeshToNative();
-	}
 }
 
 void UAGX_MovableTerrainComponent::OnUpdateTransform(
