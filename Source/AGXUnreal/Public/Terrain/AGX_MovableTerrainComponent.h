@@ -20,39 +20,6 @@ class UNiagaraComponent;
 
 
 
-UENUM(BlueprintType, Category = "AGX Terrain Mesh")
-enum class EAGX_MeshTilingPattern : uint8
-{
-	None UMETA(DisplayName = "None"),
-	StretchedTiles UMETA(DisplayName = "Stretched Tiles")
-};
-
-struct MeshTile
-{
-	int MeshIndex;
-	FIntVector2 Resolution;
-	FVector Center;
-	FVector2D Size;
-	FVector2D UvScale;
-	FBox2D BoundingBox;
-	bool IsSkirt;
-	bool IsReverseWinding;
-
-	MeshTile(
-		int MeshSectionIndex, FVector TileCenter, FVector2D TileSize, FIntVector2 TileRes,
-		FVector2D TileUvScale, bool IsTileSkirt, bool IsTileReverseWinding)
-	{
-		MeshIndex = MeshSectionIndex;
-		Center = TileCenter;
-		Size = TileSize;
-		Resolution = TileRes;
-		UvScale = TileUvScale;
-		IsSkirt = IsTileSkirt;
-		IsReverseWinding = IsTileReverseWinding;
-	}
-};
-
-using TiledMesh = TArray<MeshTile>;
 
 UENUM(BlueprintType, Category = "AGX Terrain Mesh")
 enum class EAGX_MeshType : uint8
@@ -386,6 +353,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	int MeshTileResolution = 10;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
+	bool bFixMeshSeams = true;
 
 private:
 	FTerrainBarrier NativeBarrier;
@@ -418,33 +387,26 @@ private:
 		return FMath::Min(DistX, DistY);
 	};
 
-	TiledMesh TerrainMesh;
-	TiledMesh BackBedMesh;
-	TiledMesh CollisionMesh;
-	TiledMesh DebugPlaneMesh;
+	HeightMesh TerrainMesh;
+	HeightMesh BedMesh;
+	HeightMesh CollisionMesh;
+	HeightMesh DebugMesh;
 
 	void RecreateMeshes();
 
-	TArray<MeshTile> GenerateMeshTiles(
-		const int StartMeshIndex, 
-		const FVector& MeshCenter, const FVector2D& MeshSize, const FIntVector2& MeshRes,
-		const int MeshLod,
-		const EAGX_MeshTilingPattern& TilingPattern, 
-		bool bWithSkirts,
-		bool bReverseWinding) const;
-
-	TiledMesh CreateTiledMesh(
+	HeightMesh CreateHeightMesh(
 		int StartMeshIndex, 
-		const FVector& MeshCenter, const FVector2D& MeshSize, const FIntVector2& MeshRes,
-		const FAGX_MeshVertexFunction MeshVertexFunc,
-		UMaterialInterface* MeshMaterial = nullptr, int MeshLod = 0,
-		const EAGX_MeshTilingPattern& TilingPattern = EAGX_MeshTilingPattern::None,
-		bool bAddMeshSkirts = false,
+		const FVector& MeshCenter, const FVector2D& MeshSize,
+		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params, 
+		const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
+		UMaterialInterface* MeshMaterial = nullptr,
+		int MeshLod = 0,
+		EAGX_MeshTilingPattern TilingPattern = EAGX_MeshTilingPattern::None,
+		int TileResolution = 10,
+		bool bCreateEdges = false,
+		bool bFixSeams = false,
 		bool bMeshReverseWinding = false,
 		bool bMeshCollision = false,
 		bool bMeshVisible = true);
 
-	void UpdateTileMeshSection(MeshTile& Tile, const EAGX_MeshType& MeshType);
-
-	FAGX_MeshVertexFunction GetMeshVertexFunction(const EAGX_MeshType& MeshType);
 };

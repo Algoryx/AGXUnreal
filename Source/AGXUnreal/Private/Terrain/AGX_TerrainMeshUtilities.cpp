@@ -3,24 +3,66 @@
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include <KismetProceduralMeshLibrary.h>
 
-TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescription(
-	const FVector& Center, const FVector2D& Size,  FIntVector2 Resolution, const FVector2D& UvScale,
-	const FAGX_MeshVertexFunction VertexFunction, bool bAddSeamSkirts, bool bReverseWinding)
+TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
+	const FVector& TileCenter, const FVector2D& TileSize, FIntVector2 TileResolution,
+	const FVector& MeshCenter, const FVector2D& MeshSize, 
+	const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1, 
+	const FAGX_MeshVertexFunction MeshHeightFunc,
+	const FAGX_MeshVertexFunction EdgeHeightFunc, 
+	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
 {
-	//VertexRes = (Face)Resolution + 1
-	//With skirts +2 extra per row/column
-	FIntVector2 VertexRes = FIntVector2(
-		Resolution.X + (bAddSeamSkirts ? 3 : 1), Resolution.Y + (bAddSeamSkirts ? 3 : 1));
+
+	//Tile corners
+	FVector2D T1(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2);
+	FVector2D T2(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2);
+
+	//Mesh corners
+	FVector2D M1(MeshCenter.X - MeshSize.X / 2, MeshCenter.Y - MeshSize.Y / 2);
+	FVector2D M2(MeshCenter.X + MeshSize.X / 2, MeshCenter.Y + MeshSize.Y / 2);
+
+
+	// Vertex resolution: Number of faces + 1
+	FIntVector2 VertexRes = FIntVector2(TileResolution.X + 1, TileResolution.Y + 1);
+	// With skirts add +2 extra vertices per row/column
+	if (bFixSeams)
+		VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
+	else if (bCreateEdges)
+	{
+		// Add extra vertices if the Tile (corners T1, T2) is on the edge of the full Mesh (M1, M2)
+		VertexRes.X += (FMath::Abs(T1.X - M1.X) < SMALL_NUMBER) ? 1 : 0;
+		VertexRes.X += (FMath::Abs(T2.X - M2.X) < SMALL_NUMBER) ? 1 : 0;
+		VertexRes.Y += (FMath::Abs(T1.Y - M1.Y) < SMALL_NUMBER) ? 1 : 0;
+		VertexRes.Y += (FMath::Abs(T2.Y - M2.Y) < SMALL_NUMBER) ? 1 : 0;
+	}
+
+	// Edge Row/Column index
+	int EdgeL = -1;
+	int EdgeR = -1;
+	int EdgeT = -1;
+	int EdgeB = -1;
+	if (bCreateEdges)
+	{
+		if (FMath::Abs(T1.X - M1.X) < SMALL_NUMBER)
+			EdgeL = 0;
+		if (FMath::Abs(T2.X - M2.X) < SMALL_NUMBER)
+			EdgeR = VertexRes.X - 1;
+		if (FMath::Abs(T1.Y - M1.Y) < SMALL_NUMBER)
+			EdgeT = 0;
+		if (FMath::Abs(T2.Y - M2.Y) < SMALL_NUMBER)
+			EdgeB = VertexRes.Y - 1;
+	}
+
 
 	auto MeshDescPtr = MakeShared<FAGX_MeshDescription>(VertexRes);
 	auto& MeshDesc = MeshDescPtr.Get();
 	
 	// Size of individual triangle
 	FVector2D TriangleSize =
-		FVector2D(Size.X / Resolution.X, Size.Y / Resolution.Y);
+		FVector2D(TileSize.X / TileResolution.X, TileSize.Y / TileResolution.Y);
 
-	// Hacky: With skirt, begin one row/column outside plane
-	const int StartIndex = bAddSeamSkirts ? -1 : 0;
+
+	FIntVector2 StartIndex = FIntVector2(((EdgeL != -1 || bFixSeams) ? 1 : 0),
+										((EdgeT != -1 || bFixSeams) ? 1 : 0));
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
@@ -29,26 +71,57 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 	{
 		for (int32 x = 0; x < VertexRes.X; ++x)
 		{
-			FVector PlanePosition = Center + FVector(
-				(x + StartIndex) * TriangleSize.X - Size.X / 2,
-				(y + StartIndex) * TriangleSize.Y - Size.Y / 2, 0.0);
-
-			// Default Vertex Position
-			MeshDesc.Vertices[VertexIndex] = PlanePosition;
-			MeshDesc.UV0[VertexIndex] =
-				FVector2D(PlanePosition.X * UvScale.X + 0.5, PlanePosition.Y * UvScale.Y + 0.5);
-
-			bool IsSkirtVertex = bAddSeamSkirts &&
-								 (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1);
-
-			// Modify Vertex with VertexFunction callback
-			VertexFunction(
-				MeshDesc.Vertices[VertexIndex], MeshDesc.UV0[VertexIndex],
-				MeshDesc.UV1[VertexIndex], MeshDesc.Colors[VertexIndex], IsSkirtVertex);
+			//Local Plane Position
+			FVector P = TileCenter + FVector(
+				(x - StartIndex.X) * TriangleSize.X - TileSize.X / 2,
+				(y - StartIndex.Y) * TriangleSize.Y - TileSize.Y / 2, 0.0);
 
 
-			// Skip last row and column for triangles
-			if (x < VertexRes.X - 1 && y < VertexRes.Y - 1)
+			bool IsEdgeVertex =
+				bCreateEdges && (x == EdgeL || x == EdgeR || y == EdgeT || y == EdgeB);
+			if (!IsEdgeVertex)
+			{
+				double Height = MeshHeightFunc(P);
+				// Vertex Position
+				MeshDesc.Vertices[VertexIndex] = P + FVector::UpVector * Height;
+
+				// Vertex UV
+				MeshDesc.UV0[VertexIndex] = FVector2D(
+					(P.X + Uv0.Offset.X) * Uv0.Scale.X, (P.Y + Uv0.Offset.Y) * Uv0.Scale.Y);
+				MeshDesc.UV1[VertexIndex] = FVector2D(
+					(P.X + Uv1.Offset.X) * Uv1.Scale.X, (P.Y + Uv1.Offset.Y) * Uv1.Scale.Y);
+			}
+			else if (IsEdgeVertex)
+			{
+				/*bool IsOnEdge = (P.X - M1.X) < SMALL_NUMBER || (M2.X - P.X) < SMALL_NUMBER ||
+								(P.Y - M1.Y) < SMALL_NUMBER || (M2.Y - P.Y) < SMALL_NUMBER;*/
+
+				FVector V = FVector(FMath::Clamp(P.X, M1.X, M2.X), FMath::Clamp(P.Y, M1.Y, M2.Y), P.Z);
+
+				// Clamped position inside MeshSize
+				//P = FVector(FMath::Clamp(P.X, M1.X, M2.X), FMath::Clamp(P.Y, M1.Y, M2.Y), P.Z);
+				bool IsXAxis = FMath::Abs(P.Y - V.Y) < FMath::Abs(P.X - V.X);
+
+				double Height = MeshHeightFunc(P);
+				double EdgeHeight = EdgeHeightFunc(P);
+				double HeightDist = FMath::Abs(Height - EdgeHeight);
+
+				// Move VertexPosition down to EdgeHeight
+				MeshDesc.Vertices[VertexIndex] = P + EdgeHeight * FVector::UpVector;
+
+				// Fix UVs
+				MeshDesc.UV0[VertexIndex] = FVector2D(
+					(P.X + Uv0.Offset.X + (IsXAxis ? HeightDist : 0)) * Uv0.Scale.X,
+					(P.Y + Uv0.Offset.Y + (IsXAxis ? 0 : HeightDist)) * Uv0.Scale.Y);
+				MeshDesc.UV1[VertexIndex] = FVector2D(
+					(P.X + Uv1.Offset.X + (IsXAxis ? HeightDist : 0)) * Uv1.Scale.X,
+					(P.Y + Uv1.Offset.Y + (IsXAxis ? 0 : HeightDist)) * Uv1.Scale.Y);
+			}
+
+			bool IsEdgeCorner = false;
+			//(x == EdgeL || x == EdgeR) && (y == EdgeT || y == EdgeB);
+			// Triangle winding: Skip last row and column-
+			if ((x < VertexRes.X - 1 && y < VertexRes.Y - 1) && !IsEdgeCorner)
 			{
 				int32 BottomLeft = VertexIndex;
 				int32 BottomRight = BottomLeft + 1;
@@ -84,17 +157,15 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 			++VertexIndex;
 		}
 	}
+	MeshDesc.Triangles.SetNum(TriangleIndex, true);
 
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
 
-	// Move skirt vertices downwards, 
-	// after lightning calculation
-	// to hide seams between tiles
-	if (bAddSeamSkirts)
+	// Move skirt vertices after lightning calculation
+	if (bFixSeams)
 	{
-		
-		float SkirtLength = 1.0f;// FMath::Min(Size.X, Size.Y) * 0.01f;
+		float SkirtLength = 1.0f;
 		VertexIndex = 0;
 		for (int32 y = 0; y < VertexRes.Y; ++y)
 		{
@@ -102,25 +173,18 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 			{
 				if (x == 0 || x == VertexRes.X - 1 || y == 0 || y == VertexRes.Y - 1)
 				{
-					FVector V = MeshDesc.Vertices[VertexIndex];
+					FVector P = MeshDesc.Vertices[VertexIndex];
 
-					//Clamp/move the vertex back to Size
-					FVector P = FVector(
-						FMath::Clamp(V.X, Center.X - Size.X / 2, Center.X + Size.X / 2),
-						FMath::Clamp(V.Y, Center.Y - Size.Y / 2, Center.Y + Size.Y / 2), Center.Z);
+					// Clamp to Tile
+					//P = FVector(FMath::Clamp(P.X, T1.X, T2.X), FMath::Clamp(P.Y, T1.Y, T2.Y), MeshCenter.Z);
 
-					//Fetch the height at the moved-back-position
-					FVector2D DummyUV0, DummyUV1;
-					FColor DummyColor(0,0,0,0);
-					VertexFunction(P, DummyUV0, DummyUV1, DummyColor, false);
+					// Is on edge of Mesh
+					bool IsOnEdge = (P.X - M1.X) < SMALL_NUMBER || (M2.X - P.X) < SMALL_NUMBER ||
+									(P.Y - M1.Y) < SMALL_NUMBER || (M2.Y - P.Y) < SMALL_NUMBER;
 
-					//Move the vertex slightly downwards
-					P -= FVector::UpVector * SkirtLength;
+					double Height = bCreateEdges && IsOnEdge ? EdgeHeightFunc(P) : MeshHeightFunc(P);
 
-					// Use original height if it was further down
-					//V -= FVector::UpVector * SkirtLength;
-					MeshDesc.Vertices[VertexIndex] = FVector(P.X, P.Y, FMath::Min(P.Z, V.Z));
-
+					MeshDesc.Vertices[VertexIndex] = P + FVector::UpVector * (Height - SkirtLength);
 				}
 				VertexIndex++;
 			}
@@ -129,7 +193,59 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateMeshDescriptio
 
 	return MeshDescPtr;
 }
+
+HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
+	const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
+	const FIntVector2& MeshRes, const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
+	const int MeshLod, 
+	const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
+	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
+	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
+{
+	int MeshIndex = StartMeshIndex;
+	float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
+	FVector2D ScaledResolution = FVector2D(MeshRes.X * LodScaling, MeshRes.Y * LodScaling);
+
+	TArray<MeshTile> Tiles;
+
+	// Generate Tiles
+	if (TilingPattern == EAGX_MeshTilingPattern::None)
+	{
+		// One single tile
+		FVector TileCenter = MeshCenter;
+		FVector2D TileSize = MeshSize;
+		FIntVector2 TileRes = FIntVector2(
+			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X)),
+			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y)));
+
+		Tiles.Add(MeshTile(MeshIndex++, TileCenter, TileSize, TileRes));
+	}
+	else if (TilingPattern == EAGX_MeshTilingPattern::StretchedTiles)
+	{
+		// Multiple tiles in a grid
+		FIntVector2 NrOfTiles = FIntVector2(
+			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X / TileResolution)),
+			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y / TileResolution)));
+		FIntVector2 TileRes = FIntVector2(TileResolution, TileResolution);
+		FVector2D TileSize = FVector2D(MeshSize.X / NrOfTiles.X, MeshSize.Y / NrOfTiles.Y);
+
+		for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
+		{
+			for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
+			{
+				FVector2D PlanePos =
+					TileSize / 2 - MeshSize / 2 + FVector2D(Tx * TileSize.X, Ty * TileSize.Y);
+				FVector TileCenter = MeshCenter + FVector(PlanePos.X, PlanePos.Y, 0.0);
+				Tiles.Add(MeshTile(MeshIndex++, TileCenter, TileSize, TileRes));
+			}
+		}
+	}
 	
+	return HeightMesh(
+		MeshCenter, MeshSize, Uv0, Uv1, MeshHeightFunc,
+		EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding, Tiles);
+}
+
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)

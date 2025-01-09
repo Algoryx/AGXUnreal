@@ -54,10 +54,92 @@ struct FAGX_MeshDescription
 	TArray<struct FProcMeshTangent> Tangents;
 	TArray<FColor> Colors;
 };
-using FAGX_MeshVertexFunction = std::function<void(FVector& VertexPos, FVector2D& Uv0, FVector2D& Uv1, FColor OutColor, bool IsSkirtVertex)>;
+
+struct FAGX_UvParams
+{
+	FVector2D Offset;
+	FVector2D Scale;
+	FAGX_UvParams()
+	{
+		Offset = FVector2D(0, 0);
+		Scale = FVector2D(1, 1);
+	}
+
+	FAGX_UvParams(FVector2D UvOffset, FVector2D UvScale)
+	{
+		Offset = UvOffset;
+		Scale = UvScale;
+	}
+};
+
+using FAGX_MeshVertexFunction = std::function<double(const FVector& LocalPos)>;
+
+UENUM(BlueprintType, Category = "AGX Terrain Mesh")
+enum class EAGX_MeshTilingPattern : uint8
+{
+	None UMETA(DisplayName = "None"),
+	StretchedTiles UMETA(DisplayName = "Stretched Tiles")
+};
+
+struct MeshTile
+{
+	int MeshIndex;
+	FIntVector2 Resolution;
+	FVector Center;
+	FVector2D Size;
+
+	MeshTile(int MeshSectionIndex, FVector TileCenter, FVector2D TileSize, FIntVector2 TileRes)
+	{
+		MeshIndex = MeshSectionIndex;
+		Center = TileCenter;
+		Size = TileSize;
+		Resolution = TileRes;
+	}
+};
+
+struct HeightMesh
+{
+	FVector Center;
+	FVector2D Size;
+
+	FAGX_UvParams Uv0;
+	FAGX_UvParams Uv1;
+
+	bool bCreateEdges;
+	bool bFixSeams;
+	bool bReverseWinding;
+
+	FAGX_MeshVertexFunction HeightFunc;
+	FAGX_MeshVertexFunction EdgeHeightFunc;
 
 
+	TArray<MeshTile> Tiles;
+	HeightMesh()
+	{
 
+	}
+
+	HeightMesh(const FVector& MeshCenter, const FVector2D& MeshSize, 
+		const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params,
+		FAGX_MeshVertexFunction MeshHeightFunction, FAGX_MeshVertexFunction EdgeHeightFunction, bool CreateEdges, bool FixSeams,
+		bool ReverseWinding, TArray<MeshTile> MeshTiles)
+	{
+		Center = MeshCenter;
+		Size = MeshSize;
+
+		Uv0 = Uv0Params;
+		Uv1 = Uv1Params;
+		
+		HeightFunc = MeshHeightFunction;
+		EdgeHeightFunc = EdgeHeightFunction;
+
+		bCreateEdges = CreateEdges;
+		bFixSeams = FixSeams;
+		bReverseWinding = ReverseWinding;
+		
+		Tiles = MeshTiles;
+	}
+};
 
 class UAGX_SimpleMeshComponent;
 
@@ -70,10 +152,22 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 public:
 
-	static TSharedPtr<FAGX_MeshDescription> CreateMeshDescription(
-		const FVector& Center, const FVector2D& Size, FIntVector2 Resolution,
-		const FVector2D& UvScale, const FAGX_MeshVertexFunction VertexFunction, bool bAddSeamSkirts = false,
-		bool bReverseWinding = false);
+	static TSharedPtr<FAGX_MeshDescription> CreateHeightMeshTileDescription(
+		const FVector& TileCenter, const FVector2D& TileSize, FIntVector2 TileResolution,
+		const FVector& MeshCenter, const FVector2D& MeshSize, 
+		const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
+		const FAGX_MeshVertexFunction MeshHeightFunc, 
+		const FAGX_MeshVertexFunction EdgeHeightFunc, 
+		bool bCreateEdges = false, bool bFixSeams = false, bool bReverseWinding = false);
+
+	
+	static HeightMesh CreateHeightMesh(
+		const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
+		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
+		const int MeshLod, const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
+		const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
+		bool bCreateEdges, bool bFixSeams, bool bReverseWinding);
+
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);

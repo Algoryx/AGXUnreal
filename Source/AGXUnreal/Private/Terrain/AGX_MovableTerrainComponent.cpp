@@ -128,10 +128,24 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 							NativeBarrier.GetHeights(CurrentHeights, true);
 
 							// Update Dirty TerrainMesh Tiles
-							for (auto& Tile : TerrainMesh)
+							auto& Mesh = TerrainMesh;
+							for (auto& Tile : Mesh.Tiles)
 							{
 								if (IsTileDirty(Tile))
-									UpdateTileMeshSection(Tile, EAGX_MeshType::Terrain);
+								{
+									// Create Mesh Description (Vertex Positions)
+									auto MeshDesc = UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
+											Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center,
+											Mesh.Size, Mesh.Uv0, Mesh.Uv1, Mesh.HeightFunc,
+											Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
+											Mesh.bReverseWinding);
+
+									// Update MeshSection (Re-Upload to GPU)
+									UpdateMeshSection(
+										Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Normals,
+										MeshDesc->UV0, MeshDesc->UV1, TArray<FVector2D>(),
+										TArray<FVector2D>(), MeshDesc->Colors, MeshDesc->Tangents);
+								}
 							}
 						}
 					});
@@ -264,135 +278,96 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
+	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
+	int CollisionLOD = 4;
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
+	FAGX_UvParams MeshUv = FAGX_UvParams(Size / 2, FVector2D(1.0 / Size.X, 1.0 / Size.Y));
+	FAGX_UvParams TerrainUv = FAGX_UvParams(GetTerrainSize() / 2, FVector2D(1.0 / ElementSize, 1.0 / ElementSize));
+
+	FAGX_MeshVertexFunction TerrainHeightFunc = [&](const FVector& LocalPos) -> double
+		{ return bHeightsInitialized ? GetCurrentHeight(LocalPos) : CalcInitialHeight(LocalPos); };
+	FAGX_MeshVertexFunction BedHeightFunc = [&](const FVector& LocalPos) -> double
+		{ return bHeightsInitialized ? GetBedHeight(LocalPos) : CalcInitialBedHeight(LocalPos); };
+	FAGX_MeshVertexFunction FlatHeightFunc = [&](const FVector& LocalPos) -> double 
+		{ return 0.0f;};
+
+
 	// Reset MeshSections
 	ClearAllMeshSections();
 
 	int MeshIndex = 0;
 
-	// Terrain Mesh 
-	TerrainMesh.Reset();
-	TerrainMesh = CreateTiledMesh(
+	// Terrain Mesh (Rendered Mesh)
+	TerrainMesh = CreateHeightMesh(
 		MeshIndex, 
-		FVector::Zero(), Size, bAutoMeshResolution ? AutoMeshResolution : MeshResolution,
-		GetMeshVertexFunction(EAGX_MeshType::Terrain), 
+		FVector(0, 0, MeshZOffset), Size, bAutoMeshResolution ? AutoMeshResolution : MeshResolution,
+		MeshUv, TerrainUv,  
+		TerrainHeightFunc, BedHeightFunc, 
 		Material, MeshLevelOfDetail,
-		MeshTilingPattern, true, false, 
+		MeshTilingPattern, MeshTileResolution, 
+		bShowMeshSides, bFixMeshSeams, false, 
 		false, !bHideTerrain);
-	MeshIndex += TerrainMesh.Num();
-
-	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
-	int CollisionLOD = 4;
+	MeshIndex += TerrainMesh.Tiles.Num();
+	
+	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
+	bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
+	BedMesh = CreateHeightMesh(
+		MeshIndex, FVector::Zero(), Size, HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
+		MeshUv, TerrainUv, 
+		BedHeightFunc, BedHeightFunc, 
+		nullptr, CollisionLOD,
+		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
+		false, false, true, 
+		bIsUnrealCollision, (!bHideTerrain && bShowMeshBottom) || bShowUnrealCollision);
+	MeshIndex += BedMesh.Tiles.Num();
 
 	// Collision Mesh (Low resolution Terrain)
-	CollisionMesh.Reset();
-	CollisionMesh = CreateTiledMesh(
-		MeshIndex, FVector::Zero(), Size, AutoMeshResolution,
-		GetMeshVertexFunction(
-			EAGX_MeshType::Collision), // GetMeshVertexFunction(EAGX_MeshType::Terrain),
-		nullptr, CollisionLOD, EAGX_MeshTilingPattern::StretchedTiles, false, false,
+	CollisionMesh = CreateHeightMesh(
+		MeshIndex, 
+		FVector::Zero(), Size, AutoMeshResolution, 
+		MeshUv, TerrainUv,  
+		TerrainHeightFunc, BedHeightFunc,
+		nullptr, CollisionLOD, 
+		EAGX_MeshTilingPattern::StretchedTiles, 10, 
+		true, false, false,
 		bIsUnrealCollision, bShowUnrealCollision);
-	MeshIndex += CollisionMesh.Num();
+	MeshIndex += CollisionMesh.Tiles.Num();
 
-	// BackBed (Just a plane at the bottom if there is no BedShapes)
-	bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
-	BackBedMesh.Reset();
-	BackBedMesh = CreateTiledMesh(
-		MeshIndex, FVector::Zero(), Size, HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
-		GetMeshVertexFunction(EAGX_MeshType::BackBed), nullptr, CollisionLOD,
-		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None,
-		HasShapes, true, bIsUnrealCollision,
-		(!bHideTerrain && bShowMeshBottom) || bShowUnrealCollision);
-	MeshIndex += BackBedMesh.Num();
-
-	// DebugPlane 
-	DebugPlaneMesh.Reset();
-	//Front
-	DebugPlaneMesh = CreateTiledMesh(
-		MeshIndex, FVector::Zero(), GetTerrainSize(), FIntVector2(1, 1),
-		GetMeshVertexFunction(EAGX_MeshType::DebugPlane), nullptr, 0, EAGX_MeshTilingPattern::None,
-		true, false, false, bShowDebugPlane);
-	MeshIndex += DebugPlaneMesh.Num();
-	//Back
-	DebugPlaneMesh.Append(CreateTiledMesh(
-		MeshIndex, FVector(0, 0, -1.0), GetTerrainSize(), FIntVector2(1, 1),
-		GetMeshVertexFunction(EAGX_MeshType::DebugPlane), nullptr, 0, EAGX_MeshTilingPattern::None,
-		false, true, false, bShowDebugPlane));
-	MeshIndex += DebugPlaneMesh.Num() / 2;
+	// DebugPlane (Flat plane)
+	DebugMesh = CreateHeightMesh(
+		MeshIndex, 
+		FVector::Zero(), GetTerrainSize(), FIntVector2(1, 1), 
+		TerrainUv, MeshUv,
+		FlatHeightFunc, FlatHeightFunc, 
+		nullptr, 0, 
+		EAGX_MeshTilingPattern::None, 10,
+		false, false, false, 
+		false, bShowDebugPlane);
+	MeshIndex += DebugMesh.Tiles.Num();
 }
 
-
-TArray<MeshTile> UAGX_MovableTerrainComponent::GenerateMeshTiles(
-	const int StartMeshIndex, const FVector& MeshCenter, 
-	const FVector2D& MeshSize, const FIntVector2& MeshRes, 
-	const int MeshLod, const EAGX_MeshTilingPattern& TilingPattern, bool bWithSkirts,
-	bool bReverseWinding) const
-{
-	int MeshIndex = StartMeshIndex;
-	float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
-
-	FVector2D ScaledResolution = FVector2D(MeshRes.X * LodScaling, MeshRes.Y * LodScaling);
-
-	TArray<MeshTile> Tiles;
-
-	// Create MeshTiles
-	if (TilingPattern == EAGX_MeshTilingPattern::None)
-	{
-		// One single tile
-		FVector TileCenter = MeshCenter;
-		FVector2D TileSize = MeshSize;
-		FIntVector2 TileRes = FIntVector2(
-			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X)),
-			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y)));
-		FVector2D TileUvScale = FVector2D(1.0 / MeshSize.X, 1.0 / MeshSize.Y);
-
-		Tiles.Add(MeshTile(
-			MeshIndex++, TileCenter, TileSize, TileRes, TileUvScale, bWithSkirts, bReverseWinding));
-	}
-	else if (TilingPattern == EAGX_MeshTilingPattern::StretchedTiles)
-	{
-		// Multiple tiles in a grid
-		FIntVector2 NrOfTiles = FIntVector2(
-			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X / MeshTileResolution)),
-			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y / MeshTileResolution)));
-		FIntVector2 TileRes = FIntVector2(MeshTileResolution, MeshTileResolution);
-		FVector2D TileSize = FVector2D(MeshSize.X / NrOfTiles.X, MeshSize.Y / NrOfTiles.Y);
-		FVector2D TileUvScale = FVector2D(1.0 / MeshSize.X, 1.0 / MeshSize.Y);
-
-		for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
-		{
-			for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
-			{
-				FVector2D PlanePos = TileSize / 2 - MeshSize / 2 + FVector2D(Tx * TileSize.X, Ty * TileSize.Y);
-				FVector TileCenter = MeshCenter + FVector(PlanePos.X, PlanePos.Y, 0.0);
-				Tiles.Add(MeshTile(
-					MeshIndex++, TileCenter, TileSize, TileRes, TileUvScale, bWithSkirts,
-					bReverseWinding));
-			}
-		}
-	}
-
-	return Tiles;
-}
-
-TiledMesh UAGX_MovableTerrainComponent::CreateTiledMesh(
+HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
-	const FIntVector2& MeshRes, const FAGX_MeshVertexFunction MeshVertexFunc,
-	UMaterialInterface* MeshMaterial, int MeshLod,
-	const EAGX_MeshTilingPattern& TilingPattern,
-	bool bAddMeshSkirts, bool bMeshReverseWinding, bool bMeshCollision,
-	bool bMeshVisible)
+	const FIntVector2& MeshRes,
+	const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params, 
+	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc, 
+	UMaterialInterface* MeshMaterial, int MeshLod, 
+	EAGX_MeshTilingPattern TilingPattern, int TileResolution,
+	bool bCreateEdges, bool bFixSeams, bool bReverseWinding, 
+	bool bMeshCollision, bool bMeshVisible)
 {
-	TiledMesh Tiles = GenerateMeshTiles(
-		StartMeshIndex, MeshCenter, MeshSize, MeshRes, MeshLod, TilingPattern,
-		bAddMeshSkirts,
-		bMeshReverseWinding);
-	for (auto& Tile : Tiles)
+
+	HeightMesh Mesh = UAGX_TerrainMeshUtilities::CreateHeightMesh(
+		StartMeshIndex, MeshCenter, MeshSize, MeshRes, Uv0Params, Uv1Params, MeshLod, TilingPattern,
+		TileResolution, MeshHeightFunc, EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding);
+
+	for (auto& Tile : Mesh.Tiles)
 	{
 		// Create Mesh Description (Vertex Positions)
-		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-			Tile.Center, Tile.Size, Tile.Resolution, Tile.UvScale,
-			MeshVertexFunc, Tile.IsSkirt, Tile.IsReverseWinding);
+		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
+			Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center, Mesh.Size, Mesh.Uv0, Mesh.Uv1,
+			Mesh.HeightFunc, Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
+			Mesh.bReverseWinding);
 
 		// Create MeshSection (Upload to GPU)
 		CreateMeshSection(
@@ -403,149 +378,7 @@ TiledMesh UAGX_MovableTerrainComponent::CreateTiledMesh(
 		SetMeshSectionVisible(Tile.MeshIndex, bMeshVisible);
 	}
 
-	return Tiles;
-}
-
-void UAGX_MovableTerrainComponent::UpdateTileMeshSection(MeshTile& Tile, const EAGX_MeshType& MeshType)
-{
-	// Create Mesh Description (Vertex Positions)
-	auto MeshDesc = UAGX_TerrainMeshUtilities::CreateMeshDescription(
-		Tile.Center, Tile.Size, Tile.Resolution, Tile.UvScale,
-		GetMeshVertexFunction(MeshType), Tile.IsSkirt, Tile.IsReverseWinding);
-
-	// Update MeshSection (Re-Upload to GPU)
-	UpdateMeshSection(
-		Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Normals, MeshDesc->UV0, MeshDesc->UV1,
-		TArray<FVector2D>(), TArray<FVector2D>(), MeshDesc->Colors,
-		MeshDesc->Tangents);
-
-}
-
-FAGX_MeshVertexFunction UAGX_MovableTerrainComponent::GetMeshVertexFunction(
-	const EAGX_MeshType& MeshType)
-{
-	switch (MeshType)
-	{
-
-		// Terrain Mesh
-		case EAGX_MeshType::Terrain:
-			// Pos and UV0 are set as they enter the function
-			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
-					   bool IsSkirt) -> void
-			{
-				bool IsSkirtEdgeClamp =
-					bShowMeshSides && IsSkirt && DistFromEdge(Pos) < SMALL_NUMBER;
-
-				if (!IsSkirtEdgeClamp)
-				{
-					// Height Function
-					double Height = bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
-					Pos += FVector::UpVector * (Height + MeshZOffset);
-
-					// Set UV1 Tiled to ElementSize
-					Uv1 = FVector2D(
-						(Pos.X + GetTerrainSize().X / 2) / ElementSize,
-						(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
-				}
-				else
-				{
-					// Hacky: Clamp seam-fixing-skirt vertices to edge
-					
-					// Clamp XY position to edge of "Size"
-					Pos = FVector(
-						FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
-						FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-
-					// Clamp Z position to BedHeight
-					double BedHeight =
-						bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
-
-					// Height Function
-					Pos += FVector::UpVector * (BedHeight + MeshZOffset);
-
-					FVector2D OldUv = Uv0;
-
-					// Set Uv0, Uv1 with clamped position
-					Uv0 = ToUv(Pos, Size);
-					Uv1 = FVector2D(
-						(Pos.X + GetTerrainSize().X / 2) / ElementSize,
-						(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
-
-					FVector2D UvDir = Uv0 - OldUv;
-
-					bool IsOnXEdge = FMath::Abs(UvDir.Y) < FMath::Abs(UvDir.X);
-					double Height =
-						bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
-					double HeightDist = FMath::Abs(Height - BedHeight);
-
-					// Wrap Uv0 and Uv1 using HeightDist
-					Uv0 = IsOnXEdge ? FVector2D(Uv0.X + HeightDist / Size.X, Uv0.Y)
-												: FVector2D(Uv0.X, Uv0.Y + HeightDist / Size.Y);
-					Uv1 = IsOnXEdge
-							  ? FVector2D(Uv1.X + HeightDist / ElementSize, Uv1.Y)
-							  : FVector2D(Uv1.X, Uv1.Y + HeightDist / ElementSize);
-				}
-
-			};
-		//Terrain Collision
-		case EAGX_MeshType::Collision:
-			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
-					   bool IsSkirt) -> void
-			{
-				Pos = FVector(
-					FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
-					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-				double Height =
-					bHeightsInitialized ? GetCurrentHeight(Pos) : CalcInitialHeight(Pos);
-
-				// Clamp vertices on the border for smoother (Unreal) collision
-				if (DistFromEdge(Pos) < SMALL_NUMBER)
-					Height = bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
-
-				//UV0 Tiled to Meters
-				Uv0 = FVector2D(
-					(Pos.X + Size.X / 2) / 100.0,
-					(Pos.Y + Size.Y / 2) / 100.0);
-				// Height Function
-				Pos += FVector::UpVector * Height;
-			};
-		//BackBed
-		case EAGX_MeshType::BackBed:
-			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
-					   bool IsSkirt) -> void
-			{
-				Pos = FVector(
-					FMath::Clamp(Pos.X, -Size.X / 2, Size.X / 2),
-					FMath::Clamp(Pos.Y, -Size.Y / 2, Size.Y / 2), Pos.Z);
-
-				// Height Function
-				double BedHeight =
-					bHeightsInitialized ? GetBedHeight(Pos) : CalcInitialBedHeight(Pos);
-
-				Pos += FVector::UpVector * (BedHeight + MeshZOffset);
-
-				// UV0 Tiled to Meters
-				Uv0 = FVector2D((Pos.X + Size.X / 2) / 100.0, (Pos.Y + Size.Y / 2) / 100.0);
-
-				// UV1 Tiled to ElementSize
-				Uv1 = FVector2D(
-					(Pos.X + GetTerrainSize().X / 2) / ElementSize,
-					(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
-			};
-		// DebugPlane
-		case EAGX_MeshType::DebugPlane:
-			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color,
-					   bool IsSkirt) -> void
-			{
-				// UV0 Tiled to ElementSize
-				Uv0 = FVector2D(
-					(Pos.X + GetTerrainSize().X / 2) / ElementSize,
-					(Pos.Y + GetTerrainSize().Y / 2) / ElementSize);
-			};
-		case EAGX_MeshType::None:
-		default:
-			return [&](FVector& Pos, FVector2D& Uv0, FVector2D& Uv1, FColor Color, bool IsSkirt) -> void{ };
-	}
+	return Mesh;
 }
 
 void UAGX_MovableTerrainComponent::OnRegister()
