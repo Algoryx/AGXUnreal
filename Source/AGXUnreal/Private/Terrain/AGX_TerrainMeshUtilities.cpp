@@ -93,13 +93,10 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 			}
 			else if (IsEdgeVertex)
 			{
-				/*bool IsOnEdge = (P.X - M1.X) < SMALL_NUMBER || (M2.X - P.X) < SMALL_NUMBER ||
-								(P.Y - M1.Y) < SMALL_NUMBER || (M2.Y - P.Y) < SMALL_NUMBER;*/
-
-				FVector V = FVector(FMath::Clamp(P.X, M1.X, M2.X), FMath::Clamp(P.Y, M1.Y, M2.Y), P.Z);
+				FVector V = P;
 
 				// Clamped position inside MeshSize
-				//P = FVector(FMath::Clamp(P.X, M1.X, M2.X), FMath::Clamp(P.Y, M1.Y, M2.Y), P.Z);
+				P = FVector(FMath::Clamp(P.X, M1.X, M2.X), FMath::Clamp(P.Y, M1.Y, M2.Y), P.Z);
 				bool IsXAxis = FMath::Abs(P.Y - V.Y) < FMath::Abs(P.X - V.X);
 
 				double Height = MeshHeightFunc(P);
@@ -118,9 +115,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 					(P.Y + Uv1.Offset.Y + (IsXAxis ? 0 : HeightDist)) * Uv1.Scale.Y);
 			}
 
-			bool IsEdgeCorner = false;
-			//(x == EdgeL || x == EdgeR) && (y == EdgeT || y == EdgeB);
-			// Triangle winding: Skip last row and column-
+			bool IsEdgeCorner = (x == EdgeL || x == EdgeR - 1) && (y == EdgeT || y == EdgeB - 1);
+			// Triangle winding: Skip last row/column, aswell as edge corners
 			if ((x < VertexRes.X - 1 && y < VertexRes.Y - 1) && !IsEdgeCorner)
 			{
 				int32 BottomLeft = VertexIndex;
@@ -176,7 +172,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 					FVector P = MeshDesc.Vertices[VertexIndex];
 
 					// Clamp to Tile
-					//P = FVector(FMath::Clamp(P.X, T1.X, T2.X), FMath::Clamp(P.Y, T1.Y, T2.Y), MeshCenter.Z);
+					P = FVector(FMath::Clamp(P.X, T1.X, T2.X), FMath::Clamp(P.Y, T1.Y, T2.Y), MeshCenter.Z);
 
 					// Is on edge of Mesh
 					bool IsOnEdge = (P.X - M1.X) < SMALL_NUMBER || (M2.X - P.X) < SMALL_NUMBER ||
