@@ -1,12 +1,15 @@
 #pragma once
 
+// Unreal Engine includes.
 #include "CoreMinimal.h"
-#include <functional>
 #include "ProceduralMeshComponent.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
 #include "Engine/EngineTypes.h"
-#include "AGX_TerrainMeshUtilities.generated.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
+// Standard Library includes.
+#include <functional>
+
+#include "AGX_TerrainMeshUtilities.generated.h"
 /*
  *
  */

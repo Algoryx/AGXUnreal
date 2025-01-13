@@ -296,7 +296,6 @@ float UAGX_TerrainMeshUtilities::GetNoiseHeight(
 	const FVector& LocalPos, const FTransform Transform,
 	const FAGX_BrownianNoiseParams& NoiseParams)
 {
-
 	// To make it easier to align blocks of noise together
 	// we project the sampleposition to a plane
 	FVector Up = Transform.GetRotation().GetUpVector();

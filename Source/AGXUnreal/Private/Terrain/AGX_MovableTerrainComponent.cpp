@@ -1,23 +1,27 @@
 #include "Terrain/AGX_MovableTerrainComponent.h"
-#include "Terrain/AGX_ShovelComponent.h"
-#include "Shapes/HeightFieldShapeBarrier.h"
-#include "Shapes/AGX_ShapeComponent.h"
+
+// AGX Dynamics for Unreal includes.
+#include "AGX_InternalDelegateAccessor.h"
+#include "AGX_LogCategory.h"
+#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_RigidBodyComponent.h"
+#include "AGX_Simulation.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
-#include "Utilities/AGX_StringUtilities.h"
+#include "Shapes/AGX_ShapeComponent.h"
+#include "Shapes/HeightFieldShapeBarrier.h"
+#include "Terrain/AGX_ShovelComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
-#include "AGX_InternalDelegateAccessor.h"
-#include "AGX_RigidBodyComponent.h"
-#include "AGX_LogCategory.h"
-#include "AGX_Simulation.h"
-#include "TimerManager.h"
-#include "Engine/SimpleConstructionScript.h"
+#include "Utilities/AGX_StringUtilities.h"
+
+// Unreal Engine includes.
 #include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
-#include <AGX_NativeOwnerInstanceData.h>
-#include <AGX_PropertyChangedDispatcher.h>
+#include "TimerManager.h"
 
 UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	const FObjectInitializer& ObjectInitializer)
@@ -241,14 +245,13 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 
 	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
 
-	//This can be run faster
 	for (int y = 0; y < Res.Y; y++)
 	{
 		for (int x = 0; x < Res.X; x++)
 		{
 			FVector LocalPos = Center + FVector(x * ElementSize, y * ElementSize, 0);
-			BedHeights[y * Res.X + x] = CalcInitialBedHeight(LocalPos);
 
+			BedHeights[y * Res.X + x] = CalcInitialBedHeight(LocalPos);
 			CurrentHeights[y * Res.X + x] = CalcInitialHeight(LocalPos);
 		}
 	}
@@ -356,7 +359,6 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	bool bCreateEdges, bool bFixSeams, bool bReverseWinding, 
 	bool bMeshCollision, bool bMeshVisible)
 {
-
 	HeightMesh Mesh = UAGX_TerrainMeshUtilities::CreateHeightMesh(
 		StartMeshIndex, MeshCenter, MeshSize, MeshRes, Uv0Params, Uv1Params, MeshLod, TilingPattern,
 		TileResolution, MeshHeightFunc, EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding);

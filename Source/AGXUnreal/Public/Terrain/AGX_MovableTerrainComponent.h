@@ -1,15 +1,16 @@
 #pragma once
 
-// AGX Dynamics for Unreal include.s
+// AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
-#include "Terrain/TerrainBarrier.h"
-#include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "AGX_ShovelReference.h"
+#include "Terrain/AGX_TerrainMeshUtilities.h"
+#include "Terrain/TerrainBarrier.h"
 
+// Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "ProceduralMeshComponent.h"
-#include "AGX_MovableTerrainComponent.generated.h"
 
+#include "AGX_MovableTerrainComponent.generated.h"
 
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
@@ -17,19 +18,6 @@ class UAGX_ShovelComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
-
-
-
-
-UENUM(BlueprintType, Category = "AGX Terrain Mesh")
-enum class EAGX_MeshType : uint8
-{
-	None UMETA(DisplayName = "None"),
-	Terrain UMETA(DisplayName = "Terrain"),
-	DebugPlane UMETA(DisplayName = "DebugPlane"),
-	Collision UMETA(DisplayName = "Collision"),
-	BackBed UMETA(DisplayName = "BackBed"),
-};
 /**
  *
  */
