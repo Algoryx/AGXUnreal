@@ -10,6 +10,8 @@
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -67,6 +69,8 @@ public:
 	template <typename T>
 	static T* FindFirstAncestorOfType(const USceneComponent& Start);
 
+	template <typename T>
+	static TArray<FName> GetChildComponentNamesOfType(UObject* Outer);
 	/**
 	 * Returns the number children of type T of the actor.
 	 */
@@ -321,6 +325,58 @@ T* FAGX_ObjectUtilities::FindFirstAncestorOfType(const USceneComponent& Start)
 		Parent = Parent->GetAttachParent();
 	}
 	return nullptr;
+}
+
+template <typename T>
+inline TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
+{
+	TArray<FName> Names;
+
+	//If Outer is an Actor, we are in the World Editor
+	AActor* Actor = Cast<AActor>(Outer);
+	if (Actor)
+	{
+		// Loop through all actor components
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
+		{
+			// Try casting each component to the type T
+			T* CastComponent = Cast<T>(Component);
+			if (CastComponent != nullptr)
+			{
+				// Get the component's variable name and add it to the list
+				Names.Add(Component->GetFName());
+			}
+		}
+
+	}
+
+	// If Outer is a UBlueprintGeneratedClass, we are in the Blueprint Editor
+	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
+	if (OwningGenClass != nullptr)
+	{
+		// Get the construction script associated with the BlueprintGeneratedClass
+		const TObjectPtr<USimpleConstructionScript> ConstructionScript =
+			OwningGenClass->SimpleConstructionScript;
+		if (ConstructionScript == nullptr)
+			return Names;
+
+		// Iterate over all nodes in the construction script
+		for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+		{
+			// Try casting each component to the type T
+			T* CastComponent = Cast<T>(Component->ComponentTemplate);
+			if (CastComponent != nullptr)
+			{
+				// Get the component's variable name and add it to the list
+				Names.Add(Component->GetVariableName());
+			}
+		}
+	}
+
+	return Names;
 }
 
 template <typename UDerived, typename UBaseContainer>

@@ -12,6 +12,7 @@
 #include "Shapes/ShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
+#include "Terrain/TerrainBarrier.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.

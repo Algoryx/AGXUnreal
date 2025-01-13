@@ -23,6 +23,7 @@ class FCapsuleShapeBarrier;
 class FCylinderShapeBarrier;
 class FMassPropertiesBarrier;
 class FShapeBarrier;
+class FTerrainBarrier;
 class FSphereShapeBarrier;
 class FTrimeshShapeBarrier;
 
@@ -88,6 +89,7 @@ public:
 
 	void AddShape(FShapeBarrier* Shape);
 	void RemoveShape(FShapeBarrier* Shape);
+
 
 	void AddForceAtCenterOfMass(const FVector& Force);
 	void AddForceAtLocalLocation(const FVector& Force, const FVector& Location);
