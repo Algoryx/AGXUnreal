@@ -37,11 +37,11 @@ public:
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 
-	virtual void PostLoad() override; // When loaded in Editor or Game
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	void InitPropertyDispatcher();
+	void RebuildEditorMesh();
 #endif
 
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
@@ -56,8 +56,6 @@ public:
 	void SetShowDebugPlane(bool bShow);
 	void SetShowUnrealCollision(bool bShow);
 	void SetHideTerrain(bool bHide);
-
-	void ForceRebuildMesh();
 
 	void CreateNative();
 	void ConnectTerrainMeshToNative();
@@ -81,7 +79,6 @@ public:
 
 	//~ Begin UActorComponent Interface
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
-	virtual void OnRegister() override;
 	//~ End UActorComponent Interface
 
 	//~ Begin USceneComponent Interface

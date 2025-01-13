@@ -202,25 +202,6 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 	return true;
 }
 
-bool UAGX_MovableTerrainComponent::WriteTransformToNative()
-{
-	AGX_CHECK(HasNative());
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed to WriteTransformToNative. "
-				 "Reason: !HasNative()"),
-			*GetName(), *GetLabelSafe(GetOwner()));
-		return false;
-	}
-
-	NativeBarrier.SetPosition(GetComponentLocation());
-	NativeBarrier.SetRotation(GetComponentQuat());
-	return true;
-}
-
-
 float UAGX_MovableTerrainComponent::GetCurrentHeight(const FVector& LocalPos) const
 {
 	return UAGX_TerrainMeshUtilities::SampleHeightArray(
@@ -293,7 +274,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		{ return bHeightsInitialized ? GetBedHeight(LocalPos) : CalcInitialBedHeight(LocalPos); };
 	FAGX_MeshVertexFunction FlatHeightFunc = [&](const FVector& LocalPos) -> double 
 		{ return 0.0f;};
-
 
 	// Reset MeshSections
 	ClearAllMeshSections();
@@ -383,16 +363,6 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	return Mesh;
 }
 
-void UAGX_MovableTerrainComponent::OnRegister()
-{
-	Super::OnRegister();
-}
-
-void UAGX_MovableTerrainComponent::PostLoad()
-{
-	Super::PostLoad();
-}
-
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -443,7 +413,6 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 		// Release Native
 		NativeBarrier.ReleaseNative();
 	}
-
 }
 
 #if WITH_EDITOR
@@ -458,7 +427,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
 		GIsReconstructingBlueprintInstances)
 	{
-		ForceRebuildMesh();
+		RebuildEditorMesh();
 	}
 }
 
@@ -483,10 +452,9 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 	// In Editor
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
-		ForceRebuildMesh();
+		RebuildEditorMesh();
 	}
 }
-
 
 void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 {
@@ -564,29 +532,40 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetHideTerrain(This->bHideTerrain); });
 }
 
-#endif
-
-void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
+bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
 {
-	Size = NewSize;
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
+	{
+		// List of names of properties that does not support editing after initialization.
+		static const TArray<FName> PropertiesNotEditableDuringPlay = {
+			GET_MEMBER_NAME_CHECKED(ThisClass, Size),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ElementSize),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bUseBedShapes),
+			GET_MEMBER_NAME_CHECKED(ThisClass, BedShapes),
+			GET_MEMBER_NAME_CHECKED(ThisClass, BedZOffset),
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialHeight),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bUseInitialNoise),
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ShovelComponents),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ParticleSystemAsset)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+		{
+			return false;
+		}
+	}
+	return SuperCanEditChange;
 }
 
-void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
-{
-	bShowDebugPlane = bShow;
-}
-
-void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
-{
-	bShowUnrealCollision = bShow;
-}
-
-void UAGX_MovableTerrainComponent::SetHideTerrain(bool bHide)
-{
-	bHideTerrain = bHide;
-}
-
-void UAGX_MovableTerrainComponent::ForceRebuildMesh()
+void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 {
 	// Hacky: This bool is used to force an update of the mesh in-editor
 	bRebuildMesh = false;
@@ -597,9 +576,8 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 	{
 		return;
 	}
-	
 
-	//In-Editor
+	// In-Editor
 	if (!World->IsGameWorld())
 	{
 		// Postpone mesh creation for next tick, because bedshape geometries needs
@@ -612,10 +590,10 @@ void UAGX_MovableTerrainComponent::ForceRebuildMesh()
 					RecreateMeshes();
 				}
 			});
-
 	}
 }
 
+#endif
 
 void UAGX_MovableTerrainComponent::TickComponent(
 	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -656,6 +634,26 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 			Options.Add(Name.ToString());
 	}
 	return Options;
+}
+
+void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
+{
+	Size = NewSize;
+}
+
+void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
+{
+	bShowDebugPlane = bShow;
+}
+
+void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
+{
+	bShowUnrealCollision = bShow;
+}
+
+void UAGX_MovableTerrainComponent::SetHideTerrain(bool bHide)
+{
+	bHideTerrain = bHide;
 }
 
 /*
@@ -730,12 +728,28 @@ uint64 UAGX_MovableTerrainComponent::GetNativeAddress() const
 
 void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
 {
-	//UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - OldNative: %d"), GetNativeAddress());
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
-	//UE_LOG(LogAGX, Warning, TEXT(" SetNativeAddress - NewNative*: %d"), GetNativeAddress());
 
 	if (HasNative())
 		ConnectTerrainMeshToNative();
+}
+
+bool UAGX_MovableTerrainComponent::WriteTransformToNative()
+{
+	AGX_CHECK(HasNative());
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX MovableTerrain '%s' in '%s' failed to WriteTransformToNative. "
+				 "Reason: !HasNative()"),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	NativeBarrier.SetPosition(GetComponentLocation());
+	NativeBarrier.SetRotation(GetComponentQuat());
+	return true;
 }
 
 void UAGX_MovableTerrainComponent::OnUpdateTransform(
@@ -765,41 +779,6 @@ void UAGX_MovableTerrainComponent::OnAttachmentChanged()
 	GetNative()->SetPosition(GetComponentLocation());
 	GetNative()->SetRotation(GetComponentQuat());
 }
-
-#if WITH_EDITOR
-bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
-{
-	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
-	if (!SuperCanEditChange)
-		return false;
-
-	if (InProperty == nullptr)
-		return SuperCanEditChange;
-
-	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
-	if (bIsPlaying)
-	{
-		// List of names of properties that does not support editing after initialization.
-		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, Size),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ElementSize),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseBedShapes),
-			GET_MEMBER_NAME_CHECKED(ThisClass, BedShapes),
-			GET_MEMBER_NAME_CHECKED(ThisClass, BedZOffset),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialHeight),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseInitialNoise),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ShovelComponents),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ParticleSystemAsset)};
-
-		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
-		{
-			return false;
-		}
-	}
-	return SuperCanEditChange;
-}
-#endif
 
 TStructOnScope<FActorComponentInstanceData> UAGX_MovableTerrainComponent::GetComponentInstanceData()
 	const
@@ -1099,7 +1078,6 @@ void UAGX_MovableTerrainComponent::AddShovel(UAGX_ShovelComponent* ShovelCompone
 		AddNativeShovel(ShovelComponent);
 	}
 }
-
 
 bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelComponent)
 {
