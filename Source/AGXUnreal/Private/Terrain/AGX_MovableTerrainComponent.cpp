@@ -766,6 +766,41 @@ void UAGX_MovableTerrainComponent::OnAttachmentChanged()
 	GetNative()->SetRotation(GetComponentQuat());
 }
 
+#if WITH_EDITOR
+bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
+	{
+		// List of names of properties that does not support editing after initialization.
+		static const TArray<FName> PropertiesNotEditableDuringPlay = {
+			GET_MEMBER_NAME_CHECKED(ThisClass, Size),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ElementSize),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bUseBedShapes),
+			GET_MEMBER_NAME_CHECKED(ThisClass, BedShapes),
+			GET_MEMBER_NAME_CHECKED(ThisClass, BedZOffset),
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialHeight),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bUseInitialNoise),
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ShovelComponents),
+			GET_MEMBER_NAME_CHECKED(ThisClass, ParticleSystemAsset)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+		{
+			return false;
+		}
+	}
+	return SuperCanEditChange;
+}
+#endif
+
 TStructOnScope<FActorComponentInstanceData> UAGX_MovableTerrainComponent::GetComponentInstanceData()
 	const
 {

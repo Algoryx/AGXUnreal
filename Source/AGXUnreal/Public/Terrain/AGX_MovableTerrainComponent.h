@@ -43,19 +43,6 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	void InitPropertyDispatcher();
 #endif
-	//UPROPERTY(EditAnywhere, Category = "AGX Dynamics")
-	//bool bEnabled = true;
-
-	//UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
-	//void SetEnabled(bool InEnabled);
-
-	//UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	//bool IsEnabled() const;
-
-	//UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	//bool GetEnabled() const;
-
-	bool bHeightsInitialized = false;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bRebuildMesh = false;
@@ -102,7 +89,12 @@ public:
 		EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 	virtual void OnAttachmentChanged() override;
 	//~ End USceneComponent Interface
-
+ 
+	// ~Begin UObject interface.
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
+	// ~End UObject interface.
 protected:
 
 //Movable Terrain:
@@ -308,7 +300,6 @@ protected:
 
 	bool InitializeParticles();
 	void UpdateParticles();
-
 	
 	// --- Terrain Mesh
 	// --------------------
@@ -353,6 +344,13 @@ private:
 
 	UPROPERTY()
 	TArray<float> BedHeights;
+
+	bool bHeightsInitialized = false;
+
+	HeightMesh TerrainMesh;
+	HeightMesh BedMesh;
+	HeightMesh CollisionMesh;
+	HeightMesh DebugMesh;
 	
 	void InitializeHeights();
 
@@ -361,24 +359,6 @@ private:
 
 	float CalcInitialHeight(const FVector& LocalPos) const;
 	float CalcInitialBedHeight(const FVector& LocalPos) const;
-
-	FVector2D ToUv(const FVector& LocalPos, const FVector2D& PlaneSize) const
-	{
-		return FVector2D(LocalPos.X / PlaneSize.X + 0.5, LocalPos.Y / PlaneSize.Y + 0.5);
-	};
-
-	float DistFromEdge(const FVector& LocalPos) const
-	{
-		float DistX = Size.X / 2 - FMath::Abs(LocalPos.X);
-		float DistY = Size.Y / 2 - FMath::Abs(LocalPos.Y);
-
-		return FMath::Min(DistX, DistY);
-	};
-
-	HeightMesh TerrainMesh;
-	HeightMesh BedMesh;
-	HeightMesh CollisionMesh;
-	HeightMesh DebugMesh;
 
 	void RecreateMeshes();
 
@@ -397,4 +377,16 @@ private:
 		bool bMeshCollision = false,
 		bool bMeshVisible = true);
 
+	FVector2D ToUv(const FVector& LocalPos, const FVector2D& PlaneSize) const
+	{
+		return FVector2D(LocalPos.X / PlaneSize.X + 0.5, LocalPos.Y / PlaneSize.Y + 0.5);
+	};
+
+	float DistFromEdge(const FVector& LocalPos) const
+	{
+		float DistX = Size.X / 2 - FMath::Abs(LocalPos.X);
+		float DistY = Size.Y / 2 - FMath::Abs(LocalPos.Y);
+
+		return FMath::Min(DistX, DistY);
+	};
 };
