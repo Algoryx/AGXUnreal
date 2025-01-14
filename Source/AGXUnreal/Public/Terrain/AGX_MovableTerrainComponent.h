@@ -50,12 +50,10 @@ public:
 	bool bShowDebugPlane = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowUnrealCollision = false;
-	UPROPERTY(EditAnywhere, Category = "AGX Editor")
-	bool bHideTerrain = false;
+
 	void SetSize(FVector2D Size);
 	void SetShowDebugPlane(bool bShow);
 	void SetShowUnrealCollision(bool bShow);
-	void SetHideTerrain(bool bHide);
 
 	void CreateNative();
 	void ConnectTerrainMeshToNative();

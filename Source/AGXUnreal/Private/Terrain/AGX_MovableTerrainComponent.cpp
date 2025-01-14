@@ -290,7 +290,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		Material, MeshLevelOfDetail,
 		MeshTilingPattern, MeshTileResolution, 
 		bShowMeshSides, bFixMeshSeams, false, 
-		false, !bHideTerrain);
+		false, !bShowUnrealCollision);
 	MeshIndex += TerrainMesh.Tiles.Num();
 	
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
@@ -303,7 +303,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		nullptr, CollisionLOD,
 		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
 		false, false, true, 
-		bIsUnrealCollision, (!bHideTerrain && bShowMeshBottom) || bShowUnrealCollision);
+		bIsUnrealCollision, bShowMeshBottom || bShowUnrealCollision);
 	MeshIndex += BedMesh.Tiles.Num();
 
 	// Collision Mesh (Low resolution Terrain)
@@ -530,10 +530,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
 		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bHideTerrain),
-		[](ThisClass* This) { This->SetHideTerrain(This->bHideTerrain); });
 }
 
 bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
@@ -653,11 +649,6 @@ void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
 void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
 {
 	bShowUnrealCollision = bShow;
-}
-
-void UAGX_MovableTerrainComponent::SetHideTerrain(bool bHide)
-{
-	bHideTerrain = bHide;
 }
 
 /*
