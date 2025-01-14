@@ -27,6 +27,7 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	const FObjectInitializer& ObjectInitializer)
 	: UProceduralMeshComponent(ObjectInitializer)
 {
+	bAllowConcurrentTick = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	SetCanEverAffectNavigation(false);
 }
@@ -262,6 +263,7 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
+
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 	int CollisionLOD = 4;
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
@@ -571,8 +573,10 @@ void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 	bRebuildMesh = false;
 
 	UWorld* World = GetWorld();
+	AActor* Owner = GetOwner();
 
-	if (!IsValid(World) || IsTemplate())
+	if (!IsValid(World) || IsTemplate() || !IsValid(this) || !IsValid(Owner) ||
+		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed) || !Owner->HasActorRegisteredAllComponents())
 	{
 		return;
 	}
@@ -583,12 +587,15 @@ void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 		// Postpone mesh creation for next tick, because bedshape geometries needs
 		// to be properly created for BedHeights raycast
 		World->GetTimerManager().SetTimerForNextTick(
-			[this, World]
+			[this, World, Owner]
 			{
-				if (IsValid(World))
-				{
-					RecreateMeshes();
-				}
+				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || 
+					!IsValid(Owner) || Owner->HasAnyFlags(RF_BeginDestroyed) ||
+					!Owner->HasActorRegisteredAllComponents())
+					return;
+
+
+				RecreateMeshes();
 			});
 	}
 }
@@ -626,11 +633,18 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 
 TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
+	FString MyName = this->GetName();
+	if (HasAnyFlags(RF_ArchetypeObject) && MyName.EndsWith("_GEN_VARIABLE"))
+	{
+		MyName.RemoveFromEnd("_GEN_VARIABLE");
+	}
+
 	TArray<FString> Options;
 	for (FName Name :
 		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
-		if (!BedShapes.Contains(Name) && this->GetName() != Name.ToString())
+		
+		if (!BedShapes.Contains(Name) && MyName != Name.ToString())
 			Options.Add(Name.ToString());
 	}
 	return Options;

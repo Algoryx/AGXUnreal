@@ -96,7 +96,7 @@ protected:
 //----------------
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
-	UMaterialInterface* Material;
+	UMaterialInterface* Material = nullptr;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", 
@@ -186,7 +186,7 @@ protected:
 
 	/** Defines physical properties of the surface of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
-	UAGX_ShapeMaterial* ShapeMaterial;
+	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
@@ -204,7 +204,7 @@ protected:
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
-	UAGX_TerrainMaterial* TerrainMaterial;
+	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
@@ -290,7 +290,7 @@ protected:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
 		Meta = (EditCondition = "bEnableParticleRendering"))
-	UNiagaraSystem* ParticleSystemAsset;
+	UNiagaraSystem* ParticleSystemAsset = nullptr;
 	UNiagaraComponent* ParticleSystemComponent = nullptr;
 
 	bool InitializeParticles();
