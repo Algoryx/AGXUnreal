@@ -283,7 +283,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	// Terrain Mesh (Rendered Mesh)
 	TerrainMesh = CreateHeightMesh(
 		MeshIndex, 
-		FVector(0, 0, MeshZOffset), Size, bAutoMeshResolution ? AutoMeshResolution : MeshResolution,
+		FVector(0, 0, MeshZOffset), Size, 
+		bAutoMeshResolution ? AutoMeshResolution : MeshResolution,
 		MeshUv, TerrainUv,  
 		TerrainHeightFunc, BedHeightFunc, 
 		Material, MeshLevelOfDetail,
@@ -295,7 +296,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
 	bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
 	BedMesh = CreateHeightMesh(
-		MeshIndex, FVector::Zero(), Size, HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
+		MeshIndex, FVector::Zero(), Size, 
+		HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
 		MeshUv, TerrainUv, 
 		BedHeightFunc, BedHeightFunc, 
 		nullptr, CollisionLOD,
@@ -307,7 +309,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	// Collision Mesh (Low resolution Terrain)
 	CollisionMesh = CreateHeightMesh(
 		MeshIndex, 
-		FVector::Zero(), Size, AutoMeshResolution, 
+		FVector::Zero(), Size, 
+		AutoMeshResolution, 
 		MeshUv, TerrainUv,  
 		TerrainHeightFunc, BedHeightFunc,
 		nullptr, CollisionLOD, 
@@ -319,7 +322,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	// DebugPlane (Flat plane)
 	DebugMesh = CreateHeightMesh(
 		MeshIndex, 
-		FVector::Zero(), GetTerrainSize(), FIntVector2(1, 1), 
+		FVector::Zero(), GetTerrainSize(), 
+		FIntVector2(1, 1), 
 		TerrainUv, MeshUv,
 		FlatHeightFunc, FlatHeightFunc, 
 		nullptr, 0, 

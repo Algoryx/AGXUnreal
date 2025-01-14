@@ -21,6 +21,8 @@ const FName FAGX_EditorStyle::FileIcon("FileIcon");
 const FName FAGX_EditorStyle::FileIconSmall("FileIcon.Small");
 const FName FAGX_EditorStyle::TerrainIcon("TerrainIcon");
 const FName FAGX_EditorStyle::TerrainIconSmall("TerrainIcon.Small");
+const FName FAGX_EditorStyle::MovableTerrainIcon("MovableTerrainIcon");
+const FName FAGX_EditorStyle::MovableTerrainIconSmall("MovableTerrainIcon.Small");
 const FName FAGX_EditorStyle::LicenseKeyIcon("LicenseKey");
 
 void FAGX_EditorStyle::Initialize()
@@ -98,6 +100,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(FileIconSmall, new IMAGE_BRUSH("Icons/file_32x32", IconSize32));
 	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/terrain_64x64", IconSize64));
 	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/terrain_32x32", IconSize32));
+	Style->Set(MovableTerrainIcon, new IMAGE_BRUSH("Icons/movable_terrain_64x64", IconSize64));
+	Style->Set(MovableTerrainIconSmall, new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize32));
 	Style->Set(LicenseKeyIcon, new IMAGE_BRUSH("Icons/license_key_16x16", IconSize16));
 
 	// Component icons, visible in the Components list/hierarchy of an Actor and in the Add
@@ -207,7 +211,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
-		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/terrain_32x32", IconSize16));
+		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize16));
 	// Track.
 	Style->Set("ClassIcon.AGX_TrackComponent", new IMAGE_BRUSH("Icons/track_32x32", IconSize16));
 	Style->Set(
