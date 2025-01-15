@@ -265,7 +265,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
 
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
-	int CollisionLOD = 4;
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
 	FAGX_UvParams MeshUv = FAGX_UvParams(Size / 2, FVector2D(1.0 / Size.X, 1.0 / Size.Y));
 	FAGX_UvParams TerrainUv = FAGX_UvParams(GetTerrainSize() / 2, FVector2D(1.0 / ElementSize, 1.0 / ElementSize));
@@ -291,8 +290,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		TerrainHeightFunc, BedHeightFunc, 
 		Material, MeshLevelOfDetail,
 		MeshTilingPattern, MeshTileResolution, 
-		bShowMeshSides, bFixMeshSeams, false, 
-		false, !bShowUnrealCollision);
+		bCloseMesh, bFixMeshSeams, false, 
+		false, true);
 	MeshIndex += TerrainMesh.Tiles.Num();
 	
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
@@ -302,10 +301,10 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
 		MeshUv, TerrainUv, 
 		BedHeightFunc, BedHeightFunc, 
-		nullptr, CollisionLOD,
+		nullptr, UnrealCollisionLOD,
 		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
 		false, false, true, 
-		bIsUnrealCollision, bShowMeshBottom || bShowUnrealCollision);
+		bIsUnrealCollision, bCloseMesh || bShowUnrealCollision);
 	MeshIndex += BedMesh.Tiles.Num();
 
 	// Collision Mesh (Low resolution Terrain)
@@ -314,8 +313,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		FVector::Zero(), Size, 
 		AutoMeshResolution, 
 		MeshUv, TerrainUv,  
-		TerrainHeightFunc, BedHeightFunc,
-		nullptr, CollisionLOD, 
+		TerrainHeightFunc, BedHeightFunc, 
+		nullptr, UnrealCollisionLOD, 
 		EAGX_MeshTilingPattern::StretchedTiles, 10, 
 		true, false, false,
 		bIsUnrealCollision, bShowUnrealCollision);
@@ -522,16 +521,57 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		});
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
-		[](ThisClass* This) { This->SetSize(This->Size); });
-
-	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
 		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
 
+	//Size
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
+		[](ThisClass* This) { This->SetSize(This->Size); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, ElementSize),
+		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
+
+	//Unreal collision
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
 		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, UnrealCollisionLOD),
+		[](ThisClass* This) { This->SetUnrealCollisionLOD(This->UnrealCollisionLOD); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, AdditionalUnrealCollision),
+		[](ThisClass* This) { This->SetUnrealCollisionType(This->AdditionalUnrealCollision); });
+
+	//Mesh
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Material),
+		[](ThisClass* This) { This->SetMeshMaterial(This->Material); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bAutoMeshResolution),
+		[](ThisClass* This) { This->SetAutoMeshResolution(This->bAutoMeshResolution); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshLevelOfDetail),
+		[](ThisClass* This) { This->SetMeshLOD(This->MeshLevelOfDetail); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshResolution),
+		[](ThisClass* This) { This->SetMeshResolution(This->MeshResolution); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshZOffset),
+		[](ThisClass* This) { This->SetMeshZOffset(This->MeshZOffset); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bCloseMesh),
+		[](ThisClass* This) { This->SetCloseMesh(This->bCloseMesh); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTileResolution),
+		[](ThisClass* This) { This->SetMeshTileResolution(This->MeshTileResolution); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTilingPattern),
+		[](ThisClass* This) { This->SetMeshTilingPattern(This->MeshTilingPattern); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bFixMeshSeams),
+		[](ThisClass* This) { This->SetFixMeshSeams(This->bFixMeshSeams); });
+
 }
 
 bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
@@ -655,6 +695,11 @@ void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
 	Size = NewSize;
 }
 
+void UAGX_MovableTerrainComponent::SetElementSize(double NewSize)
+{
+	ElementSize = NewSize;
+}
+
 void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
 {
 	bShowDebugPlane = bShow;
@@ -663,6 +708,17 @@ void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
 void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
 {
 	bShowUnrealCollision = bShow;
+}
+
+void UAGX_MovableTerrainComponent::SetUnrealCollisionLOD(int Lod)
+{
+	UnrealCollisionLOD = Lod;
+}
+
+void UAGX_MovableTerrainComponent::SetUnrealCollisionType(
+	TEnumAsByte<enum ECollisionEnabled::Type> CollisionType)
+{
+	AdditionalUnrealCollision = CollisionType;
 }
 
 /*
@@ -1259,4 +1315,49 @@ void UAGX_MovableTerrainComponent::UpdateParticles()
 		ParticleSystemComponent, "Exists", Exists);
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(
 		ParticleSystemComponent, TEXT("Velocities"), Velocities);
+}
+
+void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMaterial)
+{
+	Material = NewMaterial;
+}
+
+void UAGX_MovableTerrainComponent::SetMeshLOD(int Lod)
+{
+	MeshLevelOfDetail = Lod;
+}
+
+void UAGX_MovableTerrainComponent::SetAutoMeshResolution(bool bAuto)
+{
+	bAutoMeshResolution = bAuto;
+}
+
+void UAGX_MovableTerrainComponent::SetMeshResolution(FIntVector2 NewResolution)
+{
+	MeshResolution = NewResolution;
+}
+
+void UAGX_MovableTerrainComponent::SetCloseMesh(bool bClose)
+{
+	bCloseMesh = bClose;
+}
+
+void UAGX_MovableTerrainComponent::SetMeshTileResolution(int TileRes)
+{
+	MeshTileResolution = TileRes;
+}
+
+void UAGX_MovableTerrainComponent::SetMeshTilingPattern(EAGX_MeshTilingPattern Pattern)
+{
+	MeshTilingPattern = Pattern;
+}
+
+void UAGX_MovableTerrainComponent::SetFixMeshSeams(bool bFix)
+{
+	bFixMeshSeams = bFix;
+}
+
+void UAGX_MovableTerrainComponent::SetMeshZOffset(double zOffset)
+{
+	MeshZOffset = zOffset;
 }

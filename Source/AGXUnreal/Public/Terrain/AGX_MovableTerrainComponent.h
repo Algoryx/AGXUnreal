@@ -48,12 +48,8 @@ public:
 	bool bRebuildMesh = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowDebugPlane = false;
-	UPROPERTY(EditAnywhere, Category = "AGX Editor")
-	bool bShowUnrealCollision = false;
 
-	void SetSize(FVector2D Size);
 	void SetShowDebugPlane(bool bShow);
-	void SetShowUnrealCollision(bool bShow);
 
 	void CreateNative();
 	void ConnectTerrainMeshToNative();
@@ -109,6 +105,10 @@ protected:
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
+	float InitialHeight = 0.0f;
+
 	FIntVector2 GetTerrainResolution() const
 	{
 		return FIntVector2(Size.X / ElementSize + 1, Size.Y / ElementSize + 1);
@@ -119,10 +119,8 @@ protected:
 			GetTerrainResolution().X * ElementSize, GetTerrainResolution().Y * ElementSize);
 	};
 
-	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
-	float InitialHeight = 0.0f;
-
+	void SetSize(FVector2D Size);
+	void SetElementSize(double ElementSize);
 	// BedShapes
 	// ______________________
 	UPROPERTY(
@@ -260,9 +258,18 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetIsNoMerge() const;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
+	bool bShowUnrealCollision = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
+	int UnrealCollisionLOD = 4;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
 	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
 		ECollisionEnabled::NoCollision};
+
+	void SetShowUnrealCollision(bool bShow);
+	void SetUnrealCollisionLOD(int Lod);
+	void SetUnrealCollisionType(TEnumAsByte<enum ECollisionEnabled::Type> CollisionType);
+
 
 	//--- AGX_Terrain Rendering
 	//--------------------------
@@ -312,10 +319,7 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bShowMeshSides = true;
-
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bShowMeshBottom = true;
+	bool bCloseMesh = true;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
@@ -329,6 +333,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bFixMeshSeams = true;
+
+	void SetMeshMaterial(UMaterialInterface* Material);
+	void SetAutoMeshResolution(bool bAuto);
+	void SetMeshResolution(FIntVector2 Resolution);
+	void SetMeshLOD(int Lod);
+	void SetMeshZOffset(double zOffset);
+	void SetCloseMesh(bool bClose);
+	void SetMeshTileResolution(int TileRes);
+	void SetMeshTilingPattern(EAGX_MeshTilingPattern Pattern);
+	void SetFixMeshSeams(bool bFix);
 
 private:
 	FTerrainBarrier NativeBarrier;

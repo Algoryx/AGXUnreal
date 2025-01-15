@@ -153,7 +153,9 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 			++VertexIndex;
 		}
 	}
-	MeshDesc.Triangles.SetNum(TriangleIndex, true);
+
+	//Before 5.5: MeshDesc.Triangles.SetNum(TriangleIndex, true);
+	MeshDesc.Triangles.SetNum(TriangleIndex);
 
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
