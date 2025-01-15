@@ -262,7 +262,9 @@ protected:
 	bool bShowUnrealCollision = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
 	int UnrealCollisionLOD = 4;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay)
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay,
+		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5", UIMax = "5"))
 	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
 		ECollisionEnabled::NoCollision};
 
@@ -314,7 +316,7 @@ protected:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta =
-			(ClampMin = "0", UIMin = "0", ClampMax = "2", UIMax = "2"))
+			(ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
 	int MeshLevelOfDetail = 1;
 
 	UPROPERTY(
