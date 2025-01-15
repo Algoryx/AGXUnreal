@@ -154,8 +154,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 		}
 	}
 
-	//Before 5.5: MeshDesc.Triangles.SetNum(TriangleIndex, true);
-	MeshDesc.Triangles.SetNum(TriangleIndex);
+	// Triangles shrinks if we are on a corner with edges 
+	MeshDesc.Triangles.SetNum(TriangleIndex);	// Before 5.5: bAllowShrink == true
 
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
