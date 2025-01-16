@@ -434,7 +434,6 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 	}
 }
 
-#if WITH_EDITOR
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -450,6 +449,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	}
 }
 
+#if WITH_EDITOR
 void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
@@ -621,6 +621,19 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 	return SuperCanEditChange;
 }
 
+#endif
+
+void UAGX_MovableTerrainComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (bEnableParticleRendering)
+	{
+		UpdateParticles();
+	}
+}
+
 void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 {
 	UWorld* World = GetWorld();
@@ -653,19 +666,6 @@ void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 	else if (World->IsGameWorld())
 	{
 		RecreateMeshes();
-	}
-}
-
-#endif
-
-void UAGX_MovableTerrainComponent::TickComponent(
-	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (bEnableParticleRendering)
-	{
-		UpdateParticles();
 	}
 }
 
