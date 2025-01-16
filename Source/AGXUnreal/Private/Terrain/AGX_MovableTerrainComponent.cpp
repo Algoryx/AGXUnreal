@@ -34,7 +34,6 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	SetCanEverAffectNavigation(false);
 }
 
-
 void UAGX_MovableTerrainComponent::CreateNative()
 {
 	// Make sure OwningRigidBody is created, if there is one
@@ -131,6 +130,7 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 
 								return false;
 							};
+
 							for (auto& Tile : Mesh.Tiles)
 							{
 								if (IsTileDirty(Tile))
@@ -276,7 +276,6 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
-
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
 	FAGX_UvParams MeshUv = FAGX_UvParams(Size / 2, FVector2D(1.0 / Size.X, 1.0 / Size.Y));
@@ -317,7 +316,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			bShowUnrealCollision);
 		MeshIndex += CollisionMesh.Tiles.Num();
 	}
-
+	
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
 	if (bIsUnrealCollision || bCloseMesh || bShowUnrealCollision)
 	{
@@ -347,8 +346,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			false, true, false, true);
 		MeshIndex += DebugPlaneBack.Tiles.Num();
 	}
-
-	// Not storing references to BedMesh and DebugPlane, since they wont be modified.
 }
 
 HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
@@ -752,7 +749,6 @@ void UAGX_MovableTerrainComponent::SetUnrealCollisionType(
 	--- AGX Native Implementation
 	------------------------------
 */
-
 FTerrainBarrier* UAGX_MovableTerrainComponent::GetNative()
 {
 	if (!NativeBarrier.HasNative())
