@@ -37,7 +37,7 @@ public:
 	void SetShowDebugPlane(bool bShow);
 
 	void CreateNative();
-	void ConnectTerrainMeshToNative();
+	void ConnectMeshToNative();
 	bool FetchNativeHeights();
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
@@ -352,6 +352,7 @@ private:
 	bool bHeightsInitialized = false;
 
 	HeightMesh TerrainMesh;
+	HeightMesh CollisionMesh;
 	
 	void InitializeHeights();
 

@@ -80,14 +80,14 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	RecreateMeshes();
 
 	// Create PostHandle callback to update mesh
-	ConnectTerrainMeshToNative();
+	ConnectMeshToNative();
 
 	// Add Native
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	Simulation->Add(*this);
 }
 
-void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
+void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 {
 	// Update Mesh each tick
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -106,42 +106,38 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 						// Get ModifiedHeights
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
 						FVector2D NativeTerrainSize = GetTerrainSize();
+
 						// Callback to check if a Tile contain any ModifiedHeights
-						auto IsTileDirty = [&](const MeshTile& Tile) -> bool
+						auto UpdateHeightMesh = [&](const HeightMesh& Mesh) -> void
 						{
-							FVector2D Epsilon = FVector2D(ElementSize, ElementSize);
-							FVector2D TilePlaneCenter = FVector2D(Tile.Center.X, Tile.Center.Y);
-							FBox2D TileBox = FBox2D(
-								TilePlaneCenter - Tile.Size / 2 - Epsilon,
-								TilePlaneCenter + Tile.Size / 2 + Epsilon);
-							for (auto& HeightVertexTuple : ModifiedHeights)
+							auto IsTileDirty = [&](const MeshTile& Tile) -> bool
 							{
-								double x = std::get<0>(HeightVertexTuple);
-								double y = std::get<1>(HeightVertexTuple);
-								FVector2D ModifiedPos =
-									FVector2D(x, y) * ElementSize - NativeTerrainSize / 2;
-								if (TileBox.IsInside(ModifiedPos))
+								FVector2D Epsilon = FVector2D(ElementSize, ElementSize);
+								FVector2D TilePlaneCenter = FVector2D(Tile.Center.X, Tile.Center.Y);
+								FBox2D TileBox = FBox2D(
+									TilePlaneCenter - Tile.Size / 2 - Epsilon,
+									TilePlaneCenter + Tile.Size / 2 + Epsilon);
+								for (auto& HeightVertexTuple : ModifiedHeights)
 								{
-									return true;
+									double x = std::get<0>(HeightVertexTuple);
+									double y = std::get<1>(HeightVertexTuple);
+									FVector2D ModifiedPos =
+										FVector2D(x, y) * ElementSize - NativeTerrainSize / 2;
+									if (TileBox.IsInside(ModifiedPos))
+									{
+										return true;
+									}
 								}
-							}
 
-							return false;
-						};
-
-						if (ModifiedHeights.Num() > 0)
-						{
-							// Update CurrentHeights
-							NativeBarrier.GetHeights(CurrentHeights, true);
-
-							// Update Dirty TerrainMesh Tiles
-							auto& Mesh = TerrainMesh;
+								return false;
+							};
 							for (auto& Tile : Mesh.Tiles)
 							{
 								if (IsTileDirty(Tile))
 								{
 									// Create Mesh Description (Vertex Positions)
-									auto MeshDesc = UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
+									auto MeshDesc =
+										UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
 											Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center,
 											Mesh.Size, Mesh.Uv0, Mesh.Uv1, Mesh.HeightFunc,
 											Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
@@ -154,6 +150,20 @@ void UAGX_MovableTerrainComponent::ConnectTerrainMeshToNative()
 										TArray<FVector2D>(), MeshDesc->Colors, MeshDesc->Tangents);
 								}
 							}
+						};
+
+						if (ModifiedHeights.Num() > 0)
+						{
+							// Update CurrentHeights
+							NativeBarrier.GetHeights(CurrentHeights, true);
+							// Update TerrainMesh
+							UpdateHeightMesh(TerrainMesh);
+
+							// Update CollisionMesh
+							if (bShowUnrealCollision ||
+								AdditionalUnrealCollision != ECollisionEnabled::NoCollision)
+								UpdateHeightMesh(CollisionMesh);
+							
 						}
 					});
 	}
@@ -296,6 +306,17 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		false, true);
 	MeshIndex += TerrainMesh.Tiles.Num();
 
+	// Collision Mesh (Low resolution Terrain)
+	if (bIsUnrealCollision || bShowUnrealCollision)
+	{
+		CollisionMesh = CreateHeightMesh(
+			MeshIndex, FVector::Zero(), Size, AutoMeshResolution, MeshUv, TerrainUv,
+			TerrainHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
+			EAGX_MeshTilingPattern::StretchedTiles, 10, true, false, false, bIsUnrealCollision,
+			bShowUnrealCollision);
+		MeshIndex += CollisionMesh.Tiles.Num();
+	}
+
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
 	if (bIsUnrealCollision || bCloseMesh || bShowUnrealCollision)
 	{
@@ -306,17 +327,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
 			false, false, true, bIsUnrealCollision, bCloseMesh || bShowUnrealCollision);
 		MeshIndex += BedMesh.Tiles.Num();
-	}
-
-	// Collision Mesh (Low resolution Terrain)
-	if (bIsUnrealCollision || bShowUnrealCollision)
-	{
-		HeightMesh CollisionMesh = CreateHeightMesh(
-			MeshIndex, FVector::Zero(), Size, AutoMeshResolution, MeshUv, TerrainUv,
-			TerrainHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
-			EAGX_MeshTilingPattern::StretchedTiles, 10, true, false, false, bIsUnrealCollision,
-			bShowUnrealCollision);
-		MeshIndex += CollisionMesh.Tiles.Num();
 	}
 
 	// DebugPlane
@@ -336,8 +346,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			false, true, false, true);
 		MeshIndex += DebugPlaneBack.Tiles.Num();
 	}
-	
-	// TODO: Store Reference to the other meshes so they can be modified 
+
+	// Not storing references to BedMesh and DebugPlane, since they wont be modified.
 }
 
 HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
@@ -812,7 +822,7 @@ void UAGX_MovableTerrainComponent::SetNativeAddress(uint64 NativeAddress)
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 
 	if (HasNative())
-		ConnectTerrainMeshToNative();
+		ConnectMeshToNative();
 }
 
 bool UAGX_MovableTerrainComponent::WriteTransformToNative()
