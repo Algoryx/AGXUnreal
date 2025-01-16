@@ -374,6 +374,14 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	return Mesh;
 }
 
+void UAGX_MovableTerrainComponent::OnComponentCreated()
+{
+	Super::OnComponentCreated();
+
+	if (IsValid(GetWorld()) && !GetWorld()->IsGameWorld())
+		RebuildEditorMesh();
+}
+
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();

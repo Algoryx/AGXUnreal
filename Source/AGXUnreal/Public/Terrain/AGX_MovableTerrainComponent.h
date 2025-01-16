@@ -32,23 +32,8 @@ class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshCompone
 public:
 	UAGX_MovableTerrainComponent(const FObjectInitializer& ObjectInitializer);
 
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	virtual void TickComponent(
-		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
-
-
-#if WITH_EDITOR
-	virtual void PostInitProperties() override;
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
-	void InitPropertyDispatcher();
-	void RebuildEditorMesh();
-#endif
-
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowDebugPlane = false;
-
 	void SetShowDebugPlane(bool bShow);
 
 	void CreateNative();
@@ -58,8 +43,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool WriteTransformToNative();
 
-	// IAGX_NativeOwner:
-	//----------------
 	virtual FTerrainBarrier* GetNative();
 	virtual const FTerrainBarrier* GetNative() const;
 	virtual void UpdateNativeProperties();
@@ -72,6 +55,9 @@ public:
 	// ~End IAGX_NativeObject interface.
 
 	//~ Begin UActorComponent Interface
+	virtual void OnComponentCreated() override;
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	//~ End UActorComponent Interface
 
@@ -82,14 +68,20 @@ public:
 	//~ End USceneComponent Interface
  
 	// ~Begin UObject interface.
-#if WITH_EDITOR
-	virtual bool CanEditChange(const FProperty* InProperty) const override;
-#endif
+	virtual void PostInitProperties() override;
+	#if WITH_EDITOR
+		virtual bool CanEditChange(const FProperty* InProperty) const override;
+		virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+		void InitPropertyDispatcher();
+	#endif
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 	// ~End UObject interface.
-protected:
 
-//Movable Terrain:
-//----------------
+	void RebuildEditorMesh();
+
+protected:
+	//AGX Movable Terrain
+	//----------------
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material = nullptr;
@@ -121,6 +113,7 @@ protected:
 
 	void SetSize(FVector2D Size);
 	void SetElementSize(double ElementSize);
+
 	// BedShapes
 	// ______________________
 	UPROPERTY(
@@ -148,7 +141,7 @@ protected:
 	double BedZOffset = 0.5;
 
 
-	// InitialNoise Height
+	// InitialNoise
 	//______________________
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain",
@@ -159,7 +152,7 @@ protected:
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
 	FAGX_BrownianNoiseParams InitialNoise;
 	
-	// AGX_Terrain
+	// AGX Terrain
 	// _________________
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCanCollide {true};
@@ -273,7 +266,7 @@ protected:
 	void SetUnrealCollisionType(TEnumAsByte<enum ECollisionEnabled::Type> CollisionType);
 
 
-	//--- AGX_Terrain Rendering
+	//AGX Terrain Rendering
 	//--------------------------
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
 	UNiagaraComponent* GetSpawnedParticleSystemComponent();
@@ -305,7 +298,7 @@ protected:
 	bool InitializeParticles();
 	void UpdateParticles();
 	
-	// --- Terrain Mesh
+	// Terrain Mesh
 	// --------------------
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bAutoMeshResolution = true;
