@@ -107,9 +107,9 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
 						FVector2D NativeTerrainSize = GetTerrainSize();
 
-						// Callback to check if a Tile contain any ModifiedHeights
 						auto UpdateHeightMesh = [&](const HeightMesh& Mesh) -> void
 						{
+							// Callback to check if a Tile contain any ModifiedHeights
 							auto IsTileDirty = [&](const MeshTile& Tile) -> bool
 							{
 								FVector2D Epsilon = FVector2D(ElementSize, ElementSize);
@@ -156,12 +156,13 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 						{
 							// Update CurrentHeights
 							NativeBarrier.GetHeights(CurrentHeights, true);
-							// Update TerrainMesh
+
+							// Update Terrain
 							UpdateHeightMesh(TerrainMesh);
 
-							// Update CollisionMesh
-							if (bShowUnrealCollision ||
-								AdditionalUnrealCollision != ECollisionEnabled::NoCollision)
+							// Update Collision
+							bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
+							if (bShowUnrealCollision || bIsUnrealCollision)
 								UpdateHeightMesh(CollisionMesh);
 							
 						}
@@ -312,7 +313,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		CollisionMesh = CreateHeightMesh(
 			MeshIndex, FVector::Zero(), Size, AutoMeshResolution, MeshUv, TerrainUv,
 			TerrainHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
-			EAGX_MeshTilingPattern::StretchedTiles, 10, true, false, false, bIsUnrealCollision,
+			EAGX_MeshTilingPattern::StretchedTiles, 6, true, false, false, bIsUnrealCollision,
 			bShowUnrealCollision);
 		MeshIndex += CollisionMesh.Tiles.Num();
 	}
