@@ -1,3 +1,5 @@
+// Copyright 2024, Algoryx Simulation AB.
+
 #pragma once
 
 // AGX Dynamics for Unreal includes.
@@ -44,8 +46,6 @@ public:
 	void RebuildEditorMesh();
 #endif
 
-	UPROPERTY(EditAnywhere, Category = "AGX Editor")
-	bool bRebuildMesh = false;
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowDebugPlane = false;
 
@@ -359,9 +359,6 @@ private:
 	bool bHeightsInitialized = false;
 
 	HeightMesh TerrainMesh;
-	HeightMesh BedMesh;
-	HeightMesh CollisionMesh;
-	HeightMesh DebugMesh;
 	
 	void InitializeHeights();
 

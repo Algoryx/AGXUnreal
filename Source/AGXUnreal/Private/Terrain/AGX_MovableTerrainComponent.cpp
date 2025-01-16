@@ -1,3 +1,5 @@
+// Copyright 2024, Algoryx Simulation AB.
+
 #include "Terrain/AGX_MovableTerrainComponent.h"
 
 // AGX Dynamics for Unreal includes.
@@ -293,45 +295,49 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		bCloseMesh, bFixMeshSeams, false, 
 		false, true);
 	MeshIndex += TerrainMesh.Tiles.Num();
-	
+
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
-	bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
-	BedMesh = CreateHeightMesh(
-		MeshIndex, FVector::Zero(), Size, 
-		HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
-		MeshUv, TerrainUv, 
-		BedHeightFunc, BedHeightFunc, 
-		nullptr, UnrealCollisionLOD,
-		HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
-		false, false, true, 
-		bIsUnrealCollision, bCloseMesh || bShowUnrealCollision);
-	MeshIndex += BedMesh.Tiles.Num();
+	if (bIsUnrealCollision || bCloseMesh || bShowUnrealCollision)
+	{
+		bool HasShapes = (bUseBedShapes && GetBedShapes().Num() > 0);
+		HeightMesh BedMesh = CreateHeightMesh(
+			MeshIndex, FVector::Zero(), Size, HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
+			MeshUv, TerrainUv, BedHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
+			HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
+			false, false, true, bIsUnrealCollision, bCloseMesh || bShowUnrealCollision);
+		MeshIndex += BedMesh.Tiles.Num();
+	}
 
 	// Collision Mesh (Low resolution Terrain)
-	CollisionMesh = CreateHeightMesh(
-		MeshIndex, 
-		FVector::Zero(), Size, 
-		AutoMeshResolution, 
-		MeshUv, TerrainUv,  
-		TerrainHeightFunc, BedHeightFunc, 
-		nullptr, UnrealCollisionLOD, 
-		EAGX_MeshTilingPattern::StretchedTiles, 10, 
-		true, false, false,
-		bIsUnrealCollision, bShowUnrealCollision);
-	MeshIndex += CollisionMesh.Tiles.Num();
+	if (bIsUnrealCollision || bShowUnrealCollision)
+	{
+		HeightMesh CollisionMesh = CreateHeightMesh(
+			MeshIndex, FVector::Zero(), Size, AutoMeshResolution, MeshUv, TerrainUv,
+			TerrainHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
+			EAGX_MeshTilingPattern::StretchedTiles, 10, true, false, false, bIsUnrealCollision,
+			bShowUnrealCollision);
+		MeshIndex += CollisionMesh.Tiles.Num();
+	}
 
-	// DebugPlane (Flat plane)
-	DebugMesh = CreateHeightMesh(
-		MeshIndex, 
-		FVector::Zero(), GetTerrainSize(), 
-		FIntVector2(1, 1), 
-		TerrainUv, MeshUv,
-		FlatHeightFunc, FlatHeightFunc, 
-		nullptr, 0, 
-		EAGX_MeshTilingPattern::None, 10,
-		false, false, false, 
-		false, bShowDebugPlane);
-	MeshIndex += DebugMesh.Tiles.Num();
+	// DebugPlane
+	if (bShowDebugPlane)
+	{
+		HeightMesh DebugPlaneFront = CreateHeightMesh(
+			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1), TerrainUv,
+			MeshUv,
+			FlatHeightFunc, FlatHeightFunc, nullptr, 0, EAGX_MeshTilingPattern::None, 10, false,
+			false, false, false, true);
+		MeshIndex += DebugPlaneFront.Tiles.Num();
+		HeightMesh DebugPlaneBack = CreateHeightMesh(
+			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1),
+			TerrainUv,
+			MeshUv,
+			FlatHeightFunc, FlatHeightFunc, nullptr, 0, EAGX_MeshTilingPattern::None, 10, false,
+			false, true, false, true);
+		MeshIndex += DebugPlaneBack.Tiles.Num();
+	}
+	
+	// TODO: Store Reference to the other meshes so they can be modified 
 }
 
 HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
@@ -609,9 +615,6 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 
 void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 {
-	// Hacky: This bool is used to force an update of the mesh in-editor
-	bRebuildMesh = false;
-
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();
 
@@ -637,6 +640,11 @@ void UAGX_MovableTerrainComponent::RebuildEditorMesh()
 
 				RecreateMeshes();
 			});
+	}
+	//In-Game
+	else if (World->IsGameWorld())
+	{
+		RecreateMeshes();
 	}
 }
 
