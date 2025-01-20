@@ -445,11 +445,13 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 void UAGX_MovableTerrainComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
+
+#if WITH_EDITOR
 	InitPropertyDispatcher();
+#endif
 
 	UWorld* World = GetWorld();
 
-	// In Editor
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
 		GIsReconstructingBlueprintInstances)
 	{

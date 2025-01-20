@@ -9,6 +9,8 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
 
 TSharedRef<IDetailCustomization> FAGX_MovableTerrainCustomization::MakeInstance()
 {
