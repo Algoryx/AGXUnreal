@@ -365,7 +365,7 @@ inline bool AGX_MeshUtilities::LineTraceMesh(
 	LocalDirection.Normalize();
 
 	// Iterate through each triangle in the mesh
-	for (int i = 0; i < Indices.Num(); i += 3)
+	for (int32 i = 0; i < Indices.Num(); i += 3)
 	{
 		// Get the vertices of the current triangle
 		VectorType V0 = Vertices[Indices[i + 0]];
@@ -402,15 +402,15 @@ inline bool AGX_MeshUtilities::LineTraceMesh(
 		}
 
 		// Calculate the distance along the ray to the intersection point
-		float T = VectorType::DotProduct(Edge2, Qvec) * InvDet;
-		if (T > 0.0f && T <= LineLength)
+		float Distance = VectorType::DotProduct(Edge2, Qvec) * InvDet;
+		if (Distance > 0.0f && Distance <= LineLength)
 		{
-			float Distance = T * LineLength;
 			if (Distance < ClosestDistance)
 			{
 				ClosestDistance = Distance;
 
-				FVector Location = Transform.TransformPosition(FVector(LocalStart + LocalDirection * T));
+				FVector Location =
+					Transform.TransformPosition(FVector(LocalStart + LocalDirection * Distance));
 				OutHit.Distance = (Start - Location).Length();
 				OutHit.Location = Location;
 				HitFound = true;
