@@ -387,7 +387,7 @@ void UAGX_MovableTerrainComponent::OnComponentCreated()
 	Super::OnComponentCreated();
 
 	if (IsValid(GetWorld()) && !GetWorld()->IsGameWorld())
-		RebuildEditorMesh();
+		RecreateMeshesEditor();
 }
 
 void UAGX_MovableTerrainComponent::BeginPlay()
@@ -455,7 +455,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
 		GIsReconstructingBlueprintInstances)
 	{
-		RebuildEditorMesh();
+		RecreateMeshesEditor();
 	}
 }
 
@@ -481,7 +481,7 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 	// In Editor
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
 	{
-		RebuildEditorMesh();
+		RecreateMeshesEditor();
 	}
 }
 
@@ -644,7 +644,7 @@ void UAGX_MovableTerrainComponent::TickComponent(
 	}
 }
 
-void UAGX_MovableTerrainComponent::RebuildEditorMesh()
+void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 {
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();

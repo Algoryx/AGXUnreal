@@ -77,7 +77,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 	// ~End UObject interface.
 
-	void RebuildEditorMesh();
+	void RecreateMeshesEditor();
 
 protected:
 	//AGX Movable Terrain

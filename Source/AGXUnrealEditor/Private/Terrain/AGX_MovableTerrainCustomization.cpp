@@ -41,8 +41,8 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 									.OnClicked_Lambda(
 										[Component]() -> FReply
 										{
-											// Call the ForceRebuildMesh function on the component
-											Component->RebuildEditorMesh();
+											// Call RecreateMeshesEditor
+											Component->RecreateMeshesEditor();
 											return FReply::Handled();
 										})];
 		}
