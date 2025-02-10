@@ -12,6 +12,8 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
 
+#define LOCTEXT_NAMESPACE "FAGX_MovableTerrainCustomization"
+
 TSharedRef<IDetailCustomization> FAGX_MovableTerrainCustomization::MakeInstance()
 {
 	return MakeShareable(new FAGX_MovableTerrainCustomization);
@@ -32,17 +34,19 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 		if (UAGX_MovableTerrainComponent* Component =
 				Cast<UAGX_MovableTerrainComponent>(ObjectsBeingCustomized[0]))
 		{
-			EditorCategory.AddCustomRow(FText::FromString("RebuildMesh"))
+			FText RebuildMeshesText = LOCTEXT("RebuildMesh", "Rebuild Mesh");
+
+			EditorCategory.AddCustomRow(RebuildMeshesText)
 				.NameContent()[SNew(STextBlock)
-								   .Text(FText::FromString("Rebuild Mesh"))
+								   .Text(RebuildMeshesText)
 								   .Font(IDetailLayoutBuilder::GetDetailFont())]
 				.ValueContent()[SNew(SButton)
-									.Text(FText::FromString("RebuildMesh"))
+									.Text(RebuildMeshesText)
 									.OnClicked_Lambda(
 										[Component]() -> FReply
 										{
-											// Call the ForceRebuildMesh function on the component
-											Component->RebuildEditorMesh();
+											// Call RecreateMeshesEditor
+											Component->RecreateMeshesEditor();
 											return FReply::Handled();
 										})];
 		}

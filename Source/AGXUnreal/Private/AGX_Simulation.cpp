@@ -484,10 +484,7 @@ void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
 		return;
 	}
 
-	const bool Result = [this, &MovableTerrain]()
-	{ 
-		return GetNative()->Remove(*MovableTerrain.GetNative());
-	}();
+	const bool Result = GetNative()->Remove(*MovableTerrain.GetNative());
 
 	if (!Result)
 	{
