@@ -93,3 +93,5 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 		}
 	});
 }
+
+#undef LOCTEXT_NAMESPACE
