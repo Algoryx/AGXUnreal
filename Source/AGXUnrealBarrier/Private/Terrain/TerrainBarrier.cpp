@@ -58,7 +58,8 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 }
 
 void FTerrainBarrier::AllocateNative(
-	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights, const TArray<float>& MinimumHeights)
+	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+	const TArray<float>& MinimumHeights)
 {
 	check(!HasNative());
 
@@ -83,8 +84,7 @@ void FTerrainBarrier::AllocateNative(
 	}
 
 	NativeRef->Native = new agxTerrain::Terrain(
-		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX,
-		MinimumHeightsAGX);
+		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX, MinimumHeightsAGX);
 }
 
 FTerrainRef* FTerrainBarrier::GetNative()
@@ -126,7 +126,6 @@ void FTerrainBarrier::SetNativeAddress(uintptr_t NativeAddress)
 	{
 		this->ReleaseNative();
 	}
-
 
 	NativeRef->Native = reinterpret_cast<agxTerrain::Terrain*>(NativeAddress);
 }
@@ -236,7 +235,7 @@ bool FTerrainBarrier::AddShovel(FShovelBarrier& Shovel)
 	return NativeRef->Native->add(Shovel.GetNative()->Native);
 }
 
-void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier * Shape)
+void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier* Shape)
 {
 	check(HasNative());
 	check(Shape->HasNative());
@@ -458,7 +457,6 @@ void FTerrainBarrier::GetMinimumHeights(TArray<float>& MinimumHeights) const
 	const agxCollide::HeightField* HeightField = NativeRef->Native->getHeightField();
 	const size_t SizeXAGX = HeightField->getResolutionX();
 	const size_t SizeYAGX = HeightField->getResolutionY();
-
 
 	if (SizeXAGX == 0 || SizeYAGX == 0)
 	{
