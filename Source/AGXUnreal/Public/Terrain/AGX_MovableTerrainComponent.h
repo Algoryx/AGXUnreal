@@ -278,17 +278,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bEnableParticleRendering = false;
 
-	/**
-	 * Rough estimation of number of particles that will exist at once. Should not be too low,
-	 * or some particles might not be rendered.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
-		Meta =
-			(EditCondition = "bEnableParticleRendering", ClampMin = "1", UIMin = "1",
-			 UIMax = "4096"))
-	int32 MaxNumRenderParticles = 2048;
-
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
 		Meta = (EditCondition = "bEnableParticleRendering"))

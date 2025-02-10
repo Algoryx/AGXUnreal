@@ -25,7 +25,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	FIntVector2 VertexRes = FIntVector2(TileResolution.X + 1, TileResolution.Y + 1);
 	// With skirts add +2 extra vertices per row/column
 	if (bFixSeams)
-		VertexRes = FIntVector2(VertexRes.X + 2, VertexRes.Y + 2);
+		VertexRes += {2, 2};
 	else if (bCreateEdges)
 	{
 		// Add extra vertices if the Tile (corners T1, T2) is on the edge of the full Mesh (M1, M2)
