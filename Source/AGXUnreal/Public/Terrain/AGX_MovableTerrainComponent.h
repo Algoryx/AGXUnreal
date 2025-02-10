@@ -66,7 +66,7 @@ public:
 		EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
 	virtual void OnAttachmentChanged() override;
 	//~ End USceneComponent Interface
- 
+
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
 	#if WITH_EDITOR
@@ -87,13 +87,13 @@ protected:
 	UMaterialInterface* Material = nullptr;
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Movable Terrain", 
+		EditAnywhere, Category = "AGX Movable Terrain",
 		BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain",
-		BlueprintReadWrite, 
+		BlueprintReadWrite,
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
@@ -123,7 +123,7 @@ protected:
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain",
-		BlueprintReadWrite, 
+		BlueprintReadWrite,
 		Meta = (GetOptions = "GetBedShapesOptions", EditCondition = "bUseBedShapes"))
 	TArray<FName> BedShapes;
 
@@ -151,7 +151,7 @@ protected:
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
 	FAGX_BrownianNoiseParams InitialNoise;
-	
+
 	// AGX Terrain
 	// _________________
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
@@ -162,7 +162,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetCanCollide() const;
-	
+
 	/**
 	 * List of collision groups that this Terrain is part of.
 	 */
@@ -183,7 +183,7 @@ protected:
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
-	
+
 	/** Shovels that can cut into the Terrain. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
@@ -297,7 +297,7 @@ protected:
 
 	bool InitializeParticles();
 	void UpdateParticles();
-	
+
 	// Terrain Mesh
 	// --------------------
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
@@ -353,7 +353,7 @@ private:
 
 	HeightMesh TerrainMesh;
 	HeightMesh CollisionMesh;
-	
+
 	void InitializeHeights();
 
 	float GetCurrentHeight(const FVector& LocalPos) const;
@@ -365,9 +365,9 @@ private:
 	void RecreateMeshes();
 
 	HeightMesh CreateHeightMesh(
-		int StartMeshIndex, 
+		int StartMeshIndex,
 		const FVector& MeshCenter, const FVector2D& MeshSize,
-		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params, 
+		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params,
 		const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
 		UMaterialInterface* MeshMaterial = nullptr,
 		int MeshLod = 0,

@@ -5,10 +5,10 @@
 
 TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
 	const FVector& TileCenter, const FVector2D& TileSize, FIntVector2 TileResolution,
-	const FVector& MeshCenter, const FVector2D& MeshSize, 
-	const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1, 
+	const FVector& MeshCenter, const FVector2D& MeshSize,
+	const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
 	const FAGX_MeshVertexFunction MeshHeightFunc,
-	const FAGX_MeshVertexFunction EdgeHeightFunc, 
+	const FAGX_MeshVertexFunction EdgeHeightFunc,
 	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
 {
 
@@ -55,7 +55,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 
 	auto MeshDescPtr = MakeShared<FAGX_MeshDescription>(VertexRes);
 	auto& MeshDesc = MeshDescPtr.Get();
-	
+
 	// Size of individual triangle
 	FVector2D TriangleSize =
 		FVector2D(TileSize.X / TileResolution.X, TileSize.Y / TileResolution.Y);
@@ -154,7 +154,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 		}
 	}
 
-	// Triangles shrinks if we are on a corner with edges 
+	// Triangles shrinks if we are on a corner with edges
 	MeshDesc.Triangles.SetNum(TriangleIndex);	// Before 5.5: bAllowShrink == true
 
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
@@ -195,7 +195,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 	const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
 	const FIntVector2& MeshRes, const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
-	const int MeshLod, 
+	const int MeshLod,
 	const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
 	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
 	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
@@ -238,7 +238,7 @@ HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 			}
 		}
 	}
-	
+
 	return HeightMesh(
 		MeshCenter, MeshSize, Uv0, Uv1, MeshHeightFunc,
 		EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding, Tiles);
