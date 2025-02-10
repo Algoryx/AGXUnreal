@@ -55,8 +55,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
+			LogAGX, Error, TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
 			*GetName(), *GetLabelSafe(GetOwner()));
 
 		return;
@@ -74,7 +73,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 	// Set Native Properties
 	UpdateNativeProperties();
-	
+
 	// Create Mesh
 	RecreateMeshes();
 
@@ -161,10 +160,10 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 							UpdateHeightMesh(TerrainMesh);
 
 							// Update Collision
-							bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
+							bool bIsUnrealCollision =
+								AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 							if (bShowUnrealCollision || bIsUnrealCollision)
 								UpdateHeightMesh(CollisionMesh);
-							
 						}
 					});
 	}
@@ -207,7 +206,6 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 		return false;
 	}
 
-
 	CurrentHeights = FetchedHeights;
 	BedHeights = FetchedMinHeights;
 
@@ -225,8 +223,7 @@ float UAGX_MovableTerrainComponent::GetCurrentHeight(const FVector& LocalPos) co
 float UAGX_MovableTerrainComponent::GetBedHeight(const FVector& LocalPos) const
 {
 	return UAGX_TerrainMeshUtilities::SampleHeightArray(
-		ToUv(LocalPos, Size), BedHeights, GetTerrainResolution().X,
-		GetTerrainResolution().Y);
+		ToUv(LocalPos, Size), BedHeights, GetTerrainResolution().X, GetTerrainResolution().Y);
 }
 
 void UAGX_MovableTerrainComponent::InitializeHeights()
@@ -261,7 +258,6 @@ float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) c
 										 : 0.0f;
 	float BedHeight = bUseBedShapes ? CalcInitialBedHeight(LocalPos) : 0.0f;
 
-
 	return FMath::Max(InitialHeight, BedHeight) + NoiseHeight;
 }
 
@@ -277,16 +273,18 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
-	FIntVector2 AutoMeshResolution = FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
+	FIntVector2 AutoMeshResolution =
+		FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
 	FAGX_UvParams MeshUv = FAGX_UvParams(Size / 2, FVector2D(1.0 / Size.X, 1.0 / Size.Y));
-	FAGX_UvParams TerrainUv = FAGX_UvParams(GetTerrainSize() / 2, FVector2D(1.0 / ElementSize, 1.0 / ElementSize));
+	FAGX_UvParams TerrainUv =
+		FAGX_UvParams(GetTerrainSize() / 2, FVector2D(1.0 / ElementSize, 1.0 / ElementSize));
 
 	FAGX_MeshVertexFunction TerrainHeightFunc = [&](const FVector& LocalPos) -> double
-		{ return bHeightsInitialized ? GetCurrentHeight(LocalPos) : CalcInitialHeight(LocalPos); };
+	{ return bHeightsInitialized ? GetCurrentHeight(LocalPos) : CalcInitialHeight(LocalPos); };
 	FAGX_MeshVertexFunction BedHeightFunc = [&](const FVector& LocalPos) -> double
-		{ return bHeightsInitialized ? GetBedHeight(LocalPos) : CalcInitialBedHeight(LocalPos); };
-	FAGX_MeshVertexFunction FlatHeightFunc = [&](const FVector& LocalPos) -> double 
-		{ return 0.0f;};
+	{ return bHeightsInitialized ? GetBedHeight(LocalPos) : CalcInitialBedHeight(LocalPos); };
+	FAGX_MeshVertexFunction FlatHeightFunc = [&](const FVector& LocalPos) -> double
+	{ return 0.0f; };
 
 	// Reset MeshSections
 	ClearAllMeshSections();
@@ -295,15 +293,10 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 
 	// Terrain Mesh (Rendered Mesh)
 	TerrainMesh = CreateHeightMesh(
-		MeshIndex, 
-		FVector(0, 0, MeshZOffset), Size, 
-		bAutoMeshResolution ? AutoMeshResolution : MeshResolution,
-		MeshUv, TerrainUv,  
-		TerrainHeightFunc, BedHeightFunc, 
-		Material, MeshLevelOfDetail,
-		MeshTilingPattern, MeshTileResolution, 
-		bCloseMesh, bFixMeshSeams, false, 
-		false, true);
+		MeshIndex, FVector(0, 0, MeshZOffset), Size,
+		bAutoMeshResolution ? AutoMeshResolution : MeshResolution, MeshUv, TerrainUv,
+		TerrainHeightFunc, BedHeightFunc, Material, MeshLevelOfDetail, MeshTilingPattern,
+		MeshTileResolution, bCloseMesh, bFixMeshSeams, false, false, true);
 	MeshIndex += TerrainMesh.Tiles.Num();
 
 	// Collision Mesh (Low resolution Terrain)
@@ -316,7 +309,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			bShowUnrealCollision);
 		MeshIndex += CollisionMesh.Tiles.Num();
 	}
-	
+
 	// BedMesh (Backside. Just a plane at the bottom if there is no BedShapes)
 	if (bIsUnrealCollision || bCloseMesh || bShowUnrealCollision)
 	{
@@ -333,29 +326,24 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	if (bShowDebugPlane)
 	{
 		HeightMesh DebugPlaneFront = CreateHeightMesh(
-			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1), TerrainUv,
-			MeshUv,
-			FlatHeightFunc, FlatHeightFunc, nullptr, 0, EAGX_MeshTilingPattern::None, 10, false,
-			false, false, false, true);
+			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1),
+			TerrainUv, MeshUv, FlatHeightFunc, FlatHeightFunc, nullptr, 0,
+			EAGX_MeshTilingPattern::None, 10, false, false, false, false, true);
 		MeshIndex += DebugPlaneFront.Tiles.Num();
 		HeightMesh DebugPlaneBack = CreateHeightMesh(
 			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1),
-			TerrainUv,
-			MeshUv,
-			FlatHeightFunc, FlatHeightFunc, nullptr, 0, EAGX_MeshTilingPattern::None, 10, false,
-			false, true, false, true);
+			TerrainUv, MeshUv, FlatHeightFunc, FlatHeightFunc, nullptr, 0,
+			EAGX_MeshTilingPattern::None, 10, false, false, true, false, true);
 		MeshIndex += DebugPlaneBack.Tiles.Num();
 	}
 }
 
 HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
-	const FIntVector2& MeshRes,
-	const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params, 
-	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc, 
-	UMaterialInterface* MeshMaterial, int MeshLod, 
-	EAGX_MeshTilingPattern TilingPattern, int TileResolution,
-	bool bCreateEdges, bool bFixSeams, bool bReverseWinding, 
+	const FIntVector2& MeshRes, const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params,
+	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
+	UMaterialInterface* MeshMaterial, int MeshLod, EAGX_MeshTilingPattern TilingPattern,
+	int TileResolution, bool bCreateEdges, bool bFixSeams, bool bReverseWinding,
 	bool bMeshCollision, bool bMeshVisible)
 {
 	HeightMesh Mesh = UAGX_TerrainMeshUtilities::CreateHeightMesh(
@@ -436,7 +424,7 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 				Simulation->Remove(*this);
 			}
 		}
-		
+
 		// Release Native
 		NativeBarrier.ReleaseNative();
 	}
@@ -548,7 +536,7 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
 		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
 
-	//Size
+	// Size
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
 		[](ThisClass* This) { This->SetSize(This->Size); });
@@ -556,7 +544,7 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, ElementSize),
 		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
 
-	//Unreal collision
+	// Unreal collision
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
 		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
@@ -567,7 +555,7 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, AdditionalUnrealCollision),
 		[](ThisClass* This) { This->SetUnrealCollisionType(This->AdditionalUnrealCollision); });
 
-	//Mesh
+	// Mesh
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Material),
 		[](ThisClass* This) { This->SetMeshMaterial(This->Material); });
@@ -595,7 +583,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bFixMeshSeams),
 		[](ThisClass* This) { This->SetFixMeshSeams(This->bFixMeshSeams); });
-
 }
 
 bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
@@ -650,7 +637,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	AActor* Owner = GetOwner();
 
 	if (!IsValid(World) || IsTemplate() || !IsValid(this) || !IsValid(Owner) ||
-		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed) || !Owner->HasActorRegisteredAllComponents())
+		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed) ||
+		!Owner->HasActorRegisteredAllComponents())
 	{
 		return;
 	}
@@ -663,16 +651,15 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 		World->GetTimerManager().SetTimerForNextTick(
 			[this, World, Owner]
 			{
-				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || 
-					!IsValid(Owner) || Owner->HasAnyFlags(RF_BeginDestroyed) ||
+				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
+					Owner->HasAnyFlags(RF_BeginDestroyed) ||
 					!Owner->HasActorRegisteredAllComponents())
 					return;
-
 
 				RecreateMeshes();
 			});
 	}
-	//In-Game
+	// In-Game
 	else if (World->IsGameWorld())
 	{
 		RecreateMeshes();
@@ -709,7 +696,6 @@ TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 	for (FName Name :
 		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
-		
 		if (!BedShapes.Contains(Name) && MyName != Name.ToString())
 			Options.Add(Name.ToString());
 	}
@@ -793,7 +779,8 @@ FTerrainBarrier* UAGX_MovableTerrainComponent::GetOrCreateNative()
 			checkNoEntry();
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("A request for the AGX Dynamics instance for Movable Terrain '%s' in '%s' was made "
+				TEXT("A request for the AGX Dynamics instance for Movable Terrain '%s' in '%s' was "
+					 "made "
 					 "but we are in the middle of a Blueprint Reconstruction and the requested "
 					 "instance has not yet been restored. The instance cannot be returned, which "
 					 "may lead to incorrect scene configuration."),
@@ -1061,7 +1048,7 @@ bool UAGX_MovableTerrainComponent::UpdateNativeTerrainMaterial()
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to UpdateNativeTerrainMaterial. "
-					"There is no valid World. "), 
+				 "There is no valid World. "),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
@@ -1137,7 +1124,6 @@ void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
 
 void UAGX_MovableTerrainComponent::CreateNativeShovels()
 {
-
 	for (FAGX_ShovelReference& ShovelRef : ShovelComponents)
 	{
 		UAGX_ShovelComponent* ShovelComponent = ShovelRef.GetShovelComponent();
@@ -1147,8 +1133,8 @@ void UAGX_MovableTerrainComponent::CreateNativeShovels()
 				TEXT("AGX MovableTerrain '%s' in '%s' have a Shovel reference to '%s' in '%s' "
 					 "that does not reference a valid Shovel. "
 					 "Abandoning shovel. "),
-				*GetName(), *GetLabelSafe(GetOwner()),
-				*ShovelRef.Name.ToString(),*GetLabelSafe(ShovelRef.OwningActor));
+				*GetName(), *GetLabelSafe(GetOwner()), *ShovelRef.Name.ToString(),
+				*GetLabelSafe(ShovelRef.OwningActor));
 			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 			continue;
 		}
@@ -1178,8 +1164,8 @@ bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelC
 			LogAGX, Error,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s'. "
 				 "Shovel does not reference a valid Native. "),
-			*GetName(), *GetLabelSafe(GetOwner()), 
-			*ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
+			*GetName(), *GetLabelSafe(GetOwner()), *ShovelComponent->GetName(),
+			*GetLabelSafe(ShovelComponent->GetOwner()));
 		return false;
 	}
 	check(ShovelBarrier->HasNative());
@@ -1191,8 +1177,8 @@ bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelC
 			LogAGX, Warning,
 			TEXT("AGX MovableTerrain '%s' in '%s' rejected AddNativeShovel '%s' in '%s'.  "
 				 "Reversing edge directions and trying again."),
-			*GetName(), *GetLabelSafe(GetOwner()), 
-			*ShovelComponent->GetName(), *GetLabelSafe(ShovelComponent->GetOwner()));
+			*GetName(), *GetLabelSafe(GetOwner()), *ShovelComponent->GetName(),
+			*GetLabelSafe(ShovelComponent->GetOwner()));
 
 		ShovelComponent->SwapEdgeDirections();
 		Added = NativeBarrier.AddShovel(*ShovelBarrier);
@@ -1203,8 +1189,8 @@ bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelC
 				TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s' "
 					 "after edge directions flip. "
 					 "Abandoning shovel. "),
-				*GetName(), *GetLabelSafe(GetOwner()), 
-				*GetNameSafe(ShovelComponent), *GetLabelSafe(ShovelComponent->GetOwner()));
+				*GetName(), *GetLabelSafe(GetOwner()), *GetNameSafe(ShovelComponent),
+				*GetLabelSafe(ShovelComponent->GetOwner()));
 		}
 	}
 
@@ -1272,7 +1258,7 @@ bool UAGX_MovableTerrainComponent::InitializeParticles()
 		ParticleSystemComponent->bVisualizeComponent = true;
 	}
 #endif
-	
+
 	if (ParticleSystemComponent == nullptr)
 	{
 		UE_LOG(

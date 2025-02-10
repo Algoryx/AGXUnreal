@@ -23,8 +23,10 @@ class UNiagaraComponent;
 /**
  *
  */
-UCLASS(ClassGroup = "AGX_Terrain", Category = "AGX", Meta = (BlueprintSpawnableComponent),
-	Hidecategories = (Cooking, Collision, Input, LOD, Physics, Replication, Materials, ProceduralMesh))
+UCLASS(
+	ClassGroup = "AGX_Terrain", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	Hidecategories =
+		(Cooking, Collision, Input, LOD, Physics, Replication, Materials, ProceduralMesh))
 class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshComponent,
 												   public IAGX_NativeOwner
 {
@@ -69,31 +71,30 @@ public:
 
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
-	#if WITH_EDITOR
-		virtual bool CanEditChange(const FProperty* InProperty) const override;
-		virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
-		void InitPropertyDispatcher();
-	#endif
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	void InitPropertyDispatcher();
+#endif
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 	// ~End UObject interface.
 
 	void RecreateMeshesEditor();
 
 protected:
-	//AGX Movable Terrain
+	// AGX Movable Terrain
 	//----------------
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material = nullptr;
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Movable Terrain",
-		BlueprintReadWrite, Meta = (ExposeOnSpawn))
+		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Movable Terrain",
-		BlueprintReadWrite,
+		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
@@ -117,13 +118,11 @@ protected:
 	// BedShapes
 	// ______________________
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
-		Meta = (ExposeOnSpawn))
+		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	bool bUseBedShapes = false;
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Movable Terrain",
-		BlueprintReadWrite,
+		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		Meta = (GetOptions = "GetBedShapesOptions", EditCondition = "bUseBedShapes"))
 	TArray<FName> BedShapes;
 
@@ -140,12 +139,10 @@ protected:
 		Meta = (ExposeOnSpawn, EditCondition = "bUseBedShapes"))
 	double BedZOffset = 0.5;
 
-
 	// InitialNoise
 	//______________________
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain",
-		Meta = (ExposeOnSpawn))
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	bool bUseInitialNoise = false;
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
@@ -183,7 +180,6 @@ protected:
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
-
 	/** Shovels that can cut into the Terrain. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	TArray<FAGX_ShovelReference> ShovelComponents;
@@ -201,7 +197,6 @@ protected:
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
 	bool UpdateNativeTerrainMaterial();
 
-
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCreateParticles = true;
@@ -212,8 +207,7 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool GetCreateParticles() const;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bDeleteParticlesOutsideBounds = false;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
@@ -265,8 +259,7 @@ protected:
 	void SetUnrealCollisionLOD(int Lod);
 	void SetUnrealCollisionType(TEnumAsByte<enum ECollisionEnabled::Type> CollisionType);
 
-
-	//AGX Terrain Rendering
+	// AGX Terrain Rendering
 	//--------------------------
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
 	UNiagaraComponent* GetSpawnedParticleSystemComponent();
@@ -297,12 +290,10 @@ protected:
 	FIntVector2 MeshResolution = FIntVector2(20, 20);
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta =
-			(ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
+		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
 	int MeshLevelOfDetail = 1;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bCloseMesh = true;
 
 	UPROPERTY(
@@ -354,19 +345,13 @@ private:
 	void RecreateMeshes();
 
 	HeightMesh CreateHeightMesh(
-		int StartMeshIndex,
-		const FVector& MeshCenter, const FVector2D& MeshSize,
+		int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
 		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params,
 		const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
-		UMaterialInterface* MeshMaterial = nullptr,
-		int MeshLod = 0,
+		UMaterialInterface* MeshMaterial = nullptr, int MeshLod = 0,
 		EAGX_MeshTilingPattern TilingPattern = EAGX_MeshTilingPattern::None,
-		int TileResolution = 10,
-		bool bCreateEdges = false,
-		bool bFixSeams = false,
-		bool bMeshReverseWinding = false,
-		bool bMeshCollision = false,
-		bool bMeshVisible = true);
+		int TileResolution = 10, bool bCreateEdges = false, bool bFixSeams = false,
+		bool bMeshReverseWinding = false, bool bMeshCollision = false, bool bMeshVisible = true);
 
 	FVector2D ToUv(const FVector& LocalPos, const FVector2D& PlaneSize) const
 	{
