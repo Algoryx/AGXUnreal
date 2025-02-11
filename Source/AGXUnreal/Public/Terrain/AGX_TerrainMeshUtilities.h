@@ -115,16 +115,15 @@ struct HeightMesh
 	FAGX_MeshVertexFunction HeightFunc;
 	FAGX_MeshVertexFunction EdgeHeightFunc;
 
-
 	TArray<MeshTile> Tiles;
 	HeightMesh()
 	{
-
 	}
 
-	HeightMesh(const FVector& MeshCenter, const FVector2D& MeshSize, 
-		const FAGX_UvParams& Uv0Params, const FAGX_UvParams& Uv1Params,
-		FAGX_MeshVertexFunction MeshHeightFunction, FAGX_MeshVertexFunction EdgeHeightFunction, bool CreateEdges, bool FixSeams,
+	HeightMesh(
+		const FVector& MeshCenter, const FVector2D& MeshSize, const FAGX_UvParams& Uv0Params,
+		const FAGX_UvParams& Uv1Params, FAGX_MeshVertexFunction MeshHeightFunction,
+		FAGX_MeshVertexFunction EdgeHeightFunction, bool CreateEdges, bool FixSeams,
 		bool ReverseWinding, TArray<MeshTile> MeshTiles)
 	{
 		Center = MeshCenter;
@@ -132,14 +131,14 @@ struct HeightMesh
 
 		Uv0 = Uv0Params;
 		Uv1 = Uv1Params;
-		
+
 		HeightFunc = MeshHeightFunction;
 		EdgeHeightFunc = EdgeHeightFunction;
 
 		bCreateEdges = CreateEdges;
 		bFixSeams = FixSeams;
 		bReverseWinding = ReverseWinding;
-		
+
 		Tiles = MeshTiles;
 	}
 };
@@ -154,23 +153,19 @@ class AGXUNREAL_API UAGX_TerrainMeshUtilities : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-
 	static TSharedPtr<FAGX_MeshDescription> CreateHeightMeshTileDescription(
 		const FVector& TileCenter, const FVector2D& TileSize, FIntVector2 TileResolution,
-		const FVector& MeshCenter, const FVector2D& MeshSize, 
-		const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
-		const FAGX_MeshVertexFunction MeshHeightFunc, 
-		const FAGX_MeshVertexFunction EdgeHeightFunc, 
-		bool bCreateEdges = false, bool bFixSeams = false, bool bReverseWinding = false);
+		const FVector& MeshCenter, const FVector2D& MeshSize, const FAGX_UvParams& Uv0,
+		const FAGX_UvParams& Uv1, const FAGX_MeshVertexFunction MeshHeightFunc,
+		const FAGX_MeshVertexFunction EdgeHeightFunc, bool bCreateEdges = false,
+		bool bFixSeams = false, bool bReverseWinding = false);
 
-	
 	static HeightMesh CreateHeightMesh(
 		const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
 		const FIntVector2& MeshRes, const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
 		const int MeshLod, const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
 		const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
 		bool bCreateEdges, bool bFixSeams, bool bReverseWinding);
-
 
 	static float SampleHeightArray(
 		FVector2D UV, const TArray<float>& HeightArray, int Width, int Height);
@@ -179,13 +174,13 @@ public:
 		const FVector& Pos, int Octaves, float Scale, float Persistance, float Lacunarity,
 		float Exp);
 
-	static float GetBedHeight(const FVector& LocalPos, const FTransform Transform, 
+	static float GetBedHeight(
+		const FVector& LocalPos, const FTransform Transform,
 		const TArray<UMeshComponent*>& BedMeshes, const float MaxHeight = 1000.0f);
-	
-	static float GetNoiseHeight(const FVector& LocalPos, const FTransform Transform,
+
+	static float GetNoiseHeight(
+		const FVector& LocalPos, const FTransform Transform,
 		const FAGX_BrownianNoiseParams& NoiseParams);
-
-
 
 private:
 };
