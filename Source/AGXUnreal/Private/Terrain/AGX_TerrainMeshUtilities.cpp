@@ -1,6 +1,10 @@
+// Copyright 2024, Algoryx Simulation AB.
 
+// AGX Dynamics for Unreal includes.
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
+
+// Unreal Engine includes.
 #include <KismetProceduralMeshLibrary.h>
 
 TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(

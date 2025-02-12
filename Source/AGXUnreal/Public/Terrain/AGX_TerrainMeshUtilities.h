@@ -1,3 +1,5 @@
+// Copyright 2024, Algoryx Simulation AB.
+
 #pragma once
 
 // Unreal Engine includes.
@@ -10,8 +12,9 @@
 #include <functional>
 
 #include "AGX_TerrainMeshUtilities.generated.h"
-/*
- *
+
+/**
+ * A collection of parameters for Bownian noise generation.
  */
 USTRUCT(BlueprintType, Category = "AGX Procedural")
 struct AGXUNREAL_API FAGX_BrownianNoiseParams
@@ -32,6 +35,10 @@ struct AGXUNREAL_API FAGX_BrownianNoiseParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Procedural")
 	float Exp = 2.0f;
 };
+
+/**
+ * Data used to create a Procedural Mesh section.
+ */
 struct FAGX_MeshDescription
 {
 	FAGX_MeshDescription(FIntVector2 VertexRes)
