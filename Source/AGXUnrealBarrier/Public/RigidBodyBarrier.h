@@ -23,7 +23,6 @@ class FCapsuleShapeBarrier;
 class FCylinderShapeBarrier;
 class FMassPropertiesBarrier;
 class FShapeBarrier;
-class FTerrainBarrier;
 class FSphereShapeBarrier;
 class FTrimeshShapeBarrier;
 
