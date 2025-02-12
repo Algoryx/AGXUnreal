@@ -273,9 +273,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 	FIntVector2 AutoMeshResolution =
 		FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
-	FAGX_UvParams MeshUv = FAGX_UvParams(Size / 2, FVector2D(1.0 / Size.X, 1.0 / Size.Y));
-	FAGX_UvParams TerrainUv =
-		FAGX_UvParams(GetTerrainSize() / 2, FVector2D(1.0 / ElementSize, 1.0 / ElementSize));
+	FAGX_UvParams MeshUv {Size / 2.0, {1.0 / Size.X, 1.0 / Size.Y}};
+	FAGX_UvParams TerrainUv {GetTerrainSize() / 2.0, {1.0 / ElementSize, 1.0 / ElementSize}};
 
 	FAGX_MeshVertexFunction TerrainHeightFunc = [&](const FVector& LocalPos) -> double
 	{ return bHeightsInitialized ? GetCurrentHeight(LocalPos) : CalcInitialHeight(LocalPos); };

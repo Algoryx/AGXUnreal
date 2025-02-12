@@ -67,19 +67,8 @@ struct FAGX_MeshDescription
 
 struct FAGX_UvParams
 {
-	FVector2D Offset;
-	FVector2D Scale;
-	FAGX_UvParams()
-	{
-		Offset = FVector2D(0, 0);
-		Scale = FVector2D(1, 1);
-	}
-
-	FAGX_UvParams(FVector2D UvOffset, FVector2D UvScale)
-	{
-		Offset = UvOffset;
-		Scale = UvScale;
-	}
+	FVector2D Offset {0.0, 0.0};
+	FVector2D Scale {1.0, 1.0};
 };
 
 using FAGX_MeshVertexFunction = std::function<double(const FVector& LocalPos)>;
