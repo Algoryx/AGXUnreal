@@ -45,4 +45,32 @@ public:
 	// Render Material.
 	UPROPERTY(EditAnywhere, Category = "AGX Synchronize Model Info")
 	TMap<FString, FGuid> UnrealMaterialToImportGuid;
+
+	virtual void Serialize(FArchive& Archive) override;
+
+	const TMap<FString, FGuid>& GetDeprecatedRenderDataTable() const;
+
+private:
+#if WITH_EDITOR
+	/**
+	 * Upgrade entries in the deprecated Render Data table and insert the result into the Shape
+	 * UUID based Render Data Table. This is required after loading a Blueprint saved prior to the
+	 * introduction of support for Render Data being shared by many Shape Components, which was
+	 * added in AGX Dynamics for Unreal 1.14.0.
+	 *
+	 * This is done automatically by the Serialize member function, but on some Unreal Engine
+	 * versions, at least 5.4 and 5.5, this doesn't work because of limitations of Unreal Engine's
+	 * Blueprint loading implementation.
+	 */
+	void UpgradeRenderDataTableFromRenderDataUuidToShapeUuid();
+
+	void OnBlueprintLoaded(UObject* LoadedObject);
+#endif
+
+
+private:
+	// Key is the name of the imported Static Mesh Component's SCS Node and the value is the guid
+	// of the owning RenderData.
+	UPROPERTY()
+	TMap<FString, FGuid> StaticMeshComponentToOwningRenderData_DEPRECATED;
 };

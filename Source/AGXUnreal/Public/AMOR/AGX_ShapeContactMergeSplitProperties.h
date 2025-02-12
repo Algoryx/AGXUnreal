@@ -19,7 +19,7 @@ class UAGX_RigidBodyComponent;
 class UAGX_ShapeComponent;
 
 /*
- * Defines the AMOR (merge split) properties for Rigid Bodies and Shapes. For this to take affect,
+ * Defines the AMOR (merge split) properties for Rigid Bodies and Shapes. For this to take effect,
  * AMOR has to be enabled globally in the AGX Dynamics for Unreal project settings.
  */
 USTRUCT(BlueprintType)

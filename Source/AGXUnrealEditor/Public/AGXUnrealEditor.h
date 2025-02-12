@@ -70,6 +70,9 @@ private:
 
 	void InitializeAssets();
 
+	void OnGrabModeCommand() const;
+	bool OnCanExecuteGrabModeCommand() const;
+
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
 	TSharedPtr<class FAGX_TopMenu> AgxTopMenu;

@@ -211,4 +211,16 @@ namespace AGX_WithEditorWrappers
 			This->Set ## PropertyName(This->PropertyName); \
 		})
 
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
+ * asset, for a bool property. Call the corresponding Set member function, passing in that very same
+ * property member variable. Is aware that bool properties has a 'b' appended to the property name
+ * but not the setter function name.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(PropertyName) \
+	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, b ## PropertyName), \
+	[](ThisClass* This) { \
+		This->Set ## PropertyName(This->b ## PropertyName); \
+	})
+
 // clang-format on

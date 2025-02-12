@@ -13,15 +13,16 @@ public: // Names of common resources
 	static const FName AgxIcon;
 	static const FName AgxIconSmall;
 	static const FName AgxIconTiny;
-	static const FName JointIcon;
-	static const FName JointIconSmall;
 	static const FName FileIcon;
 	static const FName FileIconSmall;
-	static const FName TerrainIcon;
-	static const FName TerrainIconSmall;
+	static const FName GrabIcon;
+	static const FName JointIcon;
+	static const FName JointIconSmall;
+	static const FName LicenseKeyIcon;
 	static const FName MovableTerrainIcon;
 	static const FName MovableTerrainIconSmall;
-	static const FName LicenseKeyIcon;
+	static const FName TerrainIcon;
+	static const FName TerrainIconSmall;
 
 public:
 	static void Initialize();

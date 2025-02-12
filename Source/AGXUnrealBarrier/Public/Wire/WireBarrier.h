@@ -12,6 +12,7 @@ class FShapeMaterialBarrier;
 struct FWireRef;
 class FWireNodeBarrier;
 class FWireWinchBarrier;
+class FWireParameterControllerBarrier;
 
 class AGXUNREALBARRIER_API FWireBarrier
 {
@@ -40,9 +41,6 @@ public:
 	void AddCollisionGroups(const TArray<FName>& GroupNames);
 	TArray<FName> GetCollisionGroups() const;
 	void RemoveCollisionGroup(const FName& GroupName);
-
-	void SetScaleConstant(double ScaleConstant);
-	double GetScaleConstant() const;
 
 	void SetLinearVelocityDamping(double Damping);
 	double GetLinearVelocityDamping() const;
@@ -85,6 +83,8 @@ public:
 
 	/** Get the tension at the begin side of the wire [N] */
 	double GetTension() const;
+
+	FWireParameterControllerBarrier GetParameterController() const;
 
 	/**
 	 * Attach a winch to a free end of this wire.

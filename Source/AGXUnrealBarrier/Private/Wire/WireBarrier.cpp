@@ -5,13 +5,15 @@
 // AGX Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Wire/WireNodeRef.h"
+#include "BarrierOnly/Wire/WireParameterControllerPtr.h"
+#include "BarrierOnly/Wire/WireRef.h"
+#include "BarrierOnly/Wire/WireWinchRef.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "TypeConversions.h"
 #include "Wire/WireNodeBarrier.h"
-#include "BarrierOnly/Wire/WireNodeRef.h"
-#include "BarrierOnly/Wire/WireRef.h"
 #include "Wire/WireWinchBarrier.h"
-#include "BarrierOnly/Wire/WireWinchRef.h"
+#include "Wire/WireParameterControllerBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -129,18 +131,6 @@ TArray<FName> FWireBarrier::GetCollisionGroups() const
 	}
 
 	return Result;
-}
-
-void FWireBarrier::SetScaleConstant(double ScaleConstant)
-{
-	check(HasNative());
-	NativeRef->Native->getParameterController()->setScaleConstant(ScaleConstant);
-}
-
-double FWireBarrier::GetScaleConstant() const
-{
-	check(HasNative());
-	return NativeRef->Native->getParameterController()->getScaleConstant();
 }
 
 void FWireBarrier::SetLinearVelocityDamping(double Damping)
@@ -263,6 +253,13 @@ double FWireBarrier::GetTension() const
 
 	/// \todo Do tension need conversion to Unreal units?
 	return Data.raw;
+}
+
+FWireParameterControllerBarrier FWireBarrier::GetParameterController() const
+{
+	check(HasNative());
+	return FWireParameterControllerBarrier(
+		std::make_unique<FWireParameterControllerPtr>(NativeRef->Native));
 }
 
 bool FWireBarrier::Attach(FWireWinchBarrier& Winch, bool bBegin)

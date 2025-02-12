@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Utilities/AGX_ObjectUtilities.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "Engine/Blueprint.h"
@@ -89,10 +92,21 @@ public:
 	static FRotator GetTemplateComponentWorldRotation(USceneComponent* Component);
 
 	/**
-	 * Returns a list of all template components in a blueprint.
+	 * Returns a list of all template Components in a Blueprint. Does not include template
+	 * Components in inherited Blueprints.
 	 */
 	static TArray<UActorComponent*> GetTemplateComponents(UBlueprint* Bp);
 	static TArray<UActorComponent*> GetTemplateComponents(UBlueprintGeneratedClass* Bp);
+
+	/**
+	 * Get a list of all template Components, including from parent Blueprints, of the given type.
+	 *
+	 * @tparam ComponentT The type of Component to get templates for.
+	 * @param Blueprint The Blueprint to get templates from.
+	 * @return A list of template Components of the given type.
+	 */
+	template <typename ComponentT>
+	static TArray<ComponentT*> GetAllTemplateComponents(UBlueprint& Blueprint);
 
 	/**
 	 * Returns the default template component name given a regular name.
@@ -128,6 +142,8 @@ public:
 	 */
 	static USCS_Node* GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints = true);
 
+	template <typename ParentComponentT>
+	static USCS_Node* GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints = true);
 	/**
 	 * Finds the first parent Component that resided in the same Blueprint as the given
 	 * ComponentTemplate. This function may search in parent Blueprints for SCS Nodes, but will walk
@@ -152,6 +168,56 @@ public:
 	template <typename T>
 	static T* GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot = false);
 };
+
+template <typename ComponentT>
+TArray<ComponentT*> FAGX_BlueprintUtilities::GetAllTemplateComponents(UBlueprint& Blueprint)
+{
+	TArray<ComponentT*> Templates;
+
+	// Iterate over the inheritance chain, starting at the given Blueprint.
+	for (UBlueprint* Parent = &Blueprint; Parent != nullptr; Parent = GetParent(*Parent))
+	{
+		// Iterate over all SCS nodes in the Blueprint.
+		for (auto Node : Parent->SimpleConstructionScript->GetAllNodes())
+		{
+			if (Node == nullptr)
+				continue;
+
+			// Only interested in Components or a particular type.
+			ComponentT* Component = Cast<ComponentT>(Node->ComponentTemplate);
+			if (Component == nullptr)
+				continue;
+
+			// We want the template owned by the given Blueprint, not the one owned by a parent
+			// Blueprint.
+			Component =
+				FAGX_ObjectUtilities::GetMatchedInstance(Component, Blueprint.GeneratedClass);
+			if (Component == nullptr)
+				continue;
+
+			Templates.Add(Component);
+		}
+	}
+
+	return Templates;
+}
+
+template <typename ParentComponentT>
+USCS_Node* FAGX_BlueprintUtilities::GetParentSCSNode(USCS_Node* Node, bool bSearchParentBlueprints)
+{
+	USCS_Node* It = Node;
+	while (It != nullptr)
+	{
+		USCS_Node* ParentNode = GetParentSCSNode(It, bSearchParentBlueprints);
+		if (ParentNode != nullptr &&
+			Cast<ParentComponentT>(ParentNode->ComponentTemplate) != nullptr)
+		{
+			return ParentNode;
+		}
+		It = ParentNode;
+	}
+	return nullptr;
+}
 
 template <typename T>
 T* FAGX_BlueprintUtilities::GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot)

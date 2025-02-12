@@ -311,9 +311,14 @@ void UAGX_RigidBodyComponent::TickComponent(
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (MotionControl != MC_STATIC)
 	{
+		// ReadTransformFromNative may trigger user callbacks, e.g. On Begin Overlap, which may
+		// remove this Rigid Body from the simulation.
 		ReadTransformFromNative();
-		Velocity = NativeBarrier.GetVelocity();
-		AngularVelocity = NativeBarrier.GetAngularVelocity();
+		if (HasNative())
+		{
+			Velocity = NativeBarrier.GetVelocity();
+			AngularVelocity = NativeBarrier.GetAngularVelocity();
+		}
 	}
 }
 
@@ -589,8 +594,13 @@ bool UAGX_RigidBodyComponent::ReadTransformFromNative()
 	{
 		const FVector OldLocation = GetComponentLocation();
 		const FVector LocationDelta = NewLocation - OldLocation;
+		// MoveComponent may trigger user callbacks, e.g. On Begin Overlap, which may remove this
+		// Rigid Body from the simulation.
 		MoveComponent(LocationDelta, NewRotation, false);
-		ComponentVelocity = NativeBarrier.GetVelocity();
+		if (HasNative())
+		{
+			ComponentVelocity = NativeBarrier.GetVelocity();
+		}
 		return true;
 	};
 
@@ -613,8 +623,13 @@ bool UAGX_RigidBodyComponent::ReadTransformFromNative()
 		FTransform::Multiply(&NewTransform, &AncestorRelativeToBody, &TargetBodyLocation);
 		NewTransform.SetScale3D(Ancestor.GetComponentScale());
 
+		// SetWorldTransform may trigger user callbacks, e.g. On Begin Overlap, which may remove
+		// this Rigid Body from the simulation.
 		Ancestor.SetWorldTransform(NewTransform);
-		Ancestor.ComponentVelocity = NativeBarrier.GetVelocity();
+		if (HasNative())
+		{
+			Ancestor.ComponentVelocity = NativeBarrier.GetVelocity();
+		}
 	};
 
 	auto TryTransformAncestor =

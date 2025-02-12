@@ -55,6 +55,10 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// be placed relative to a Rigid Body instead of the Wire.
 		WireRouteNodeFrame,
 
+		// In Model Source Component, associate render data Static Mesh Components with a Shape
+		// instead of a Render Data since the same Render Data can be used by many Shapes.
+		RenderDataPerShape,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

@@ -7,6 +7,7 @@
 #include "AMOR/AGX_WireMergeSplitProperties.h"
 #include "Wire/AGX_WireEnums.h"
 #include "Wire/AGX_WireRoutingNode.h"
+#include "Wire/AGX_WireParameterController.h"
 #include "Wire/AGX_WireWinch.h"
 #include "Wire/WireBarrier.h"
 
@@ -80,15 +81,19 @@ public:
 		Meta = (ClampMin = "0", UIMin = "0"))
 	float LinearVelocityDamping = 0.0f;
 
-	// Not sure what this is, or if we should expose it.
-	///**
-	// * Value that indicates how likely it is that mass nodes appears along the wire. Higher value
-	// * means more likely.
-	// */
-	// UPROPERTY(
-	//	EditAnywhere, BlueprintReadWrite, Category = "AGX Wire",
-	//	Meta = (ClampMin = "0", UIMin = "0"))
-	// float ScaleConstant = 0.35f;
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, BlueprintSetter = SetWireParameterController,
+		Category = "AGX Wire")
+	FAGX_WireParameterController WireParameterController;
+
+	/**
+	 * Copy all properties from the given Parameter Controller into this Wire's Parameter Controller.
+	 *
+	 * The underlying native Parameter Controller object is not replaced, only modified. It is not
+	 * possible to use this functions to make multiple Wires share the same Parameter Controller.
+	 */
+	UFUNCTION(BlueprintSetter)
+	void SetWireParameterController(const FAGX_WireParameterController& InWireParameterController);
 
 	/**
 	 * Defines physical properties of the wire.
@@ -828,14 +833,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	double GetRestLength() const;
 
-
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	double GetMass() const;
 
-
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	double GetTension() const;
-
 
 	/// @return True if this wire has at least one renderable simulation node.
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
@@ -946,7 +948,6 @@ public:
 	//~ End Scene Component interface.
 
 private: // Deprecated functions.
-
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Wire",
 		Meta =
@@ -964,7 +965,6 @@ private: // Deprecated functions.
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetTension instead of GetTension_BP"))
 	float GetTension_BP() const;
 
-
 protected:
 	// ~Begin UActorComponent interface.
 	virtual void OnRegister() override;
@@ -972,7 +972,6 @@ protected:
 	// ~End UActorComponent interface.
 
 private:
-
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif

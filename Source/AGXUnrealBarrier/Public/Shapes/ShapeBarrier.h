@@ -55,6 +55,9 @@ public:
 	bool GetIsSensor() const;
 	bool GetIsSensorGeneratingContactData() const;
 
+	void SetSurfaceVelocity(const FVector& SurfaceVelocity);
+	FVector GetSurfaceVelocity() const;
+
 	template <typename T>
 	T* GetNativeShape();
 

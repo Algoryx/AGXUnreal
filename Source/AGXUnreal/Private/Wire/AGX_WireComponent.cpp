@@ -3,20 +3,21 @@
 #include "Wire/AGX_WireComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXUnrealBarrier.h"
 #include "AGX_LogCategory.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
-#include "AGX_PropertyChangedDispatcher.h"
-#include "AGXUnrealBarrier.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Utilities/AGX_NotificationUtilities.h"
-#include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 #include "Wire/AGX_WireInstanceData.h"
 #include "Wire/AGX_WireNode.h"
 #include "Wire/AGX_WireUtilities.h"
 #include "Wire/AGX_WireWinchComponent.h"
 #include "Wire/WireNodeBarrier.h"
+#include "Wire/WireParameterControllerBarrier.h"
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
@@ -1258,10 +1259,12 @@ void UAGX_WireComponent::MarkVisualsDirty()
 
 void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier)
 {
+	check(Barrier.HasNative());
 	Radius = Barrier.GetRadius();
 	MinSegmentLength = 1.0f / Barrier.GetResolutionPerUnitLength();
 	LinearVelocityDamping = static_cast<float>(Barrier.GetLinearVelocityDamping());
 	bCanCollide = Barrier.GetEnableCollisions();
+	WireParameterController.CopyFrom(Barrier.GetParameterController());
 
 	for (const FName& Group : Barrier.GetCollisionGroups())
 	{
@@ -1295,10 +1298,14 @@ void UAGX_WireComponent::SetNativeAddress(uint64 NativeAddress)
 {
 	check(!HasNative());
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
-
 	if (HasNative())
 	{
 		MergeSplitProperties.BindBarrierToOwner(*GetNative());
+		WireParameterController.SetBarrier(NativeBarrier.GetParameterController());
+	}
+	else
+	{
+		WireParameterController.ClearBarrier();
 	}
 }
 
@@ -1442,7 +1449,32 @@ void UAGX_WireComponent::InitPropertyDispatcher()
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, bCanCollide),
-		[](ThisClass* Wire) { Wire->SetCanCollide(Wire->bCanCollide); });
+		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
+
+// Helper macro for registering Property Dispatches callbacks when modifying members of the
+// Wire Parameter Controller struct.
+#define ADD_PARAMETER_CONTROLLER_DISPACTCHER(PropertyName)                    \
+	Dispatcher.Add(                                                           \
+		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, WireParameterController), \
+		GET_MEMBER_NAME_CHECKED(FAGX_WireParameterController, PropertyName),  \
+		[](ThisClass* This)                                                   \
+		{                                                                     \
+			if (This->HasNative())                                            \
+			{                                                                 \
+				This->WireParameterController.Set##PropertyName(              \
+					This->WireParameterController.PropertyName);              \
+			}                                                                 \
+		})
+
+	// Dispatchers for Properties owned by Wire Parameter Controller.
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(MaximumContactMovementOneTimestep);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(MinimumDistanceBetweenNodes);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(RadiusMultiplier);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(ScaleConstant);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(SplitTensionMultiplier);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(StopNodeLumpMinDistanceFraction);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(StopNodeReferenceDistance);
+	ADD_PARAMETER_CONTROLLER_DISPACTCHER(WireContactDynamicsSolverDampingScale);
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, RenderMaterial),
@@ -1549,13 +1581,14 @@ void UAGX_WireComponent::PreEditChange(FEditPropertyChain& PropertyAboutToChange
 {
 	UObject::PreEditChange(PropertyAboutToChange);
 
-	// Here I would like to detect if the change is about to give a routing node a new parent and if
-	// so unsubscribe from the Transform Updated event on the old parent, but I don't know how to
-	// find the index in the Route Nodes list of the routing node that is about to be given a new
-	// parent. In the PostEditChangeChainProperty callback we get a FPropertyChangedChainEvent
-	// instead of a FEditPropertyChain and the event knows the array index because it has been
-	// created from an FPropertyHandle, which has access to FPropertyNode, instead of from an
-	// FProperty. The FProperty doesn't seem to know the array index.
+	// Here I would like to detect if the change is about to give a routing node a new parent
+	// and if so unsubscribe from the Transform Updated event on the old parent, but I don't
+	// know how to find the index in the Route Nodes list of the routing node that is about to
+	// be given a new parent. In the PostEditChangeChainProperty callback we get a
+	// FPropertyChangedChainEvent instead of a FEditPropertyChain and the event knows the array
+	// index because it has been created from an FPropertyHandle, which has access to
+	// FPropertyNode, instead of from an FProperty. The FProperty doesn't seem to know the array
+	// index.
 }
 
 void UAGX_WireComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
@@ -1576,17 +1609,18 @@ void UAGX_WireComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent&
 			// We have no way of knowing what the old parent was, or if the changed node was the
 			// last to have it has its parent, so the best we can do is to synchronize all node
 			// parents. We used to have an attempt at a more incremental approach here but that
-			// didn't work out because of this. To find the old implementation search the Git patch
-			// history for
+			// didn't work out because of this. To find the old implementation search the Git
+			// patch history for
 			//
-			//    Did a node get a new parent, meaning we must set up a new parent-moved callback?
+			//    Did a node get a new parent, meaning we must set up a new parent-moved
+			//    callback?
 			SynchronizeParentMovedCallbacks();
 		}
 	}
 
-	// If we are part of a Blueprint then this will trigger a RerunConstructionScript on the owning
-	// Actor. That means that this object will be removed from the Actor and destroyed. We want to
-	// apply all our changes before that so that they are carried over to the copy.
+	// If we are part of a Blueprint then this will trigger a RerunConstructionScript on the
+	// owning Actor. That means that this object will be removed from the Actor and destroyed.
+	// We want to apply all our changes before that so that they are carried over to the copy.
 	Super::PostEditChangeChainProperty(Event);
 }
 #endif
@@ -1596,9 +1630,9 @@ void UAGX_WireComponent::BeginPlay()
 	Super::BeginPlay();
 	if (!HasNative() && !GIsReconstructingBlueprintInstances)
 	{
-		// Do not create a native AGX Dynamics object if GIsReconstructingBlueprintInstances is set.
-		// That means that we're being created as part of a Blueprint Reconstruction and we will
-		// soon be assigned the native that the reconstructed Wire Component had, if any.
+		// Do not create a native AGX Dynamics object if GIsReconstructingBlueprintInstances is
+		// set. That means that we're being created as part of a Blueprint Reconstruction and we
+		// will soon be assigned the native that the reconstructed Wire Component had, if any.
 		CreateNative();
 		check(HasNative()); /// @todo Consider better error handling than check.
 
@@ -1659,6 +1693,7 @@ void UAGX_WireComponent::EndPlay(const EEndPlayReason::Type Reason)
 	if (HasNative())
 	{
 		NativeBarrier.ReleaseNative();
+		WireParameterController.ClearBarrier();
 	}
 }
 
@@ -1674,9 +1709,9 @@ void UAGX_WireComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	// During level load any Blueprint Instances will be created by running the Construction Script.
-	// Any routing nodes created by that script will not be seen by Post Init Properties and Post
-	// Load, so their Local Scope must be set here.
+	// During level load any Blueprint Instances will be created by running the Construction
+	// Script. Any routing nodes created by that script will not be seen by Post Init Properties
+	// and Post Load, so their Local Scope must be set here.
 	AGX_WireComponent_helpers::SetLocalScope(*this);
 
 #if WITH_EDITORONLY_DATA
@@ -1760,12 +1795,12 @@ namespace AGX_WireComponent_helpers
 		const FTransform& SourceTransform, const FTransform& TargetTransform,
 		const FVector& LocalLocation)
 	{
-		// A.GetRelativeTransform(B) produces a transformation that goes from B to A. That is, it
-		// tells us where A is in relation to B. Transforming the zero vector with that transform
-		// will produce the vector pointing from B to A. Transforming any other vector will produce
-		// the vector pointing from B to the tip of the first vector when placed with its base at A.
-		// In our case we want the vector pointing from TargetTransform so that should be our B,
-		// i.e. the parameter.
+		// A.GetRelativeTransform(B) produces a transformation that goes from B to A. That is,
+		// it tells us where A is in relation to B. Transforming the zero vector with that
+		// transform will produce the vector pointing from B to A. Transforming any other vector
+		// will produce the vector pointing from B to the tip of the first vector when placed
+		// with its base at A. In our case we want the vector pointing from TargetTransform so
+		// that should be our B, i.e. the parameter.
 		FTransform SourceToTarget = SourceTransform.GetRelativeTransform(TargetTransform);
 		return SourceToTarget.TransformPosition(LocalLocation);
 	}
@@ -1920,6 +1955,22 @@ namespace AGX_WireComponent_helpers
 	}
 }
 
+void UAGX_WireComponent::SetWireParameterController(
+	const FAGX_WireParameterController& InWireParameterController)
+{
+	WireParameterController = InWireParameterController;
+	// Make sure the Wire Parameter Controller is bound to this wire.
+	if (HasNative())
+	{
+		WireParameterController.SetBarrier(NativeBarrier.GetParameterController());
+		WireParameterController.WritePropertiesToNative();
+	}
+	else
+	{
+		WireParameterController.ClearBarrier();
+	}
+}
+
 bool UAGX_WireComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
 {
 	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
@@ -2013,6 +2064,7 @@ void UAGX_WireComponent::CreateNative()
 	const float ResolutionPerUnitLength = 1.0f / MinSegmentLength;
 	NativeBarrier.AllocateNative(Radius, ResolutionPerUnitLength);
 	check(HasNative()); /// @todo Consider better error handling than 'check'.
+	WireParameterController.SetBarrier(NativeBarrier.GetParameterController());
 
 	if (!UpdateNativeMaterial())
 	{
@@ -2025,9 +2077,7 @@ void UAGX_WireComponent::CreateNative()
 	NativeBarrier.SetLinearVelocityDamping(LinearVelocityDamping);
 	NativeBarrier.SetEnableCollisions(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
-
-	/// @todo Not sure if we should expose Scale Constant or not.
-	// NativeBarrier.SetScaleConstant(ScaleConstant);
+	WireParameterController.WritePropertiesToNative();
 
 	const FTransform LocalToWorld = GetComponentTransform();
 
@@ -2068,7 +2118,8 @@ void UAGX_WireComponent::CreateNative()
 				if (Body == nullptr)
 				{
 					ErrorMessages.Add(FString::Printf(
-						TEXT("Wire node at index %d has invalid body. Creating Free Node instead "
+						TEXT("Wire node at index %d has invalid body. Creating Free Node "
+							 "instead "
 							 "of Eye Node."),
 						I));
 					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
@@ -2086,7 +2137,8 @@ void UAGX_WireComponent::CreateNative()
 				if (Body == nullptr)
 				{
 					ErrorMessages.Add(FString::Printf(
-						TEXT("Wire node at index %d has invalid body. Creating Free Node instead "
+						TEXT("Wire node at index %d has invalid body. Creating Free Node "
+							 "instead "
 							 "for Body Fixed Node."),
 						I));
 					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
@@ -2099,9 +2151,9 @@ void UAGX_WireComponent::CreateNative()
 			case EWireNodeType::Other:
 				UE_LOG(
 					LogAGX, Warning,
-					TEXT(
-						"Found unexpected node type in Wire '%s', part of actor '%s', at index %d. "
-						"Node ignored."),
+					TEXT("Found unexpected node type in Wire '%s', part of actor '%s', at "
+						 "index %d. "
+						 "Node ignored."),
 					*GetName(), *GetLabelSafe(GetOwner()), I);
 				break;
 		}
@@ -2358,9 +2410,9 @@ void UAGX_WireComponent::SynchronizeParentMovedCallbacks()
 	// remove an entry from the Delegate Handles list when the parent no longer exists.
 	//
 	// This implementation takes a nuke-all rebuild-all approach. We used to have an incremental
-	// implementation that was a bit more complicated. If this synchronization becomes a performance
-	// problem then the old incremental implementation can be found by searching the Git patch
-	// history for the string
+	// implementation that was a bit more complicated. If this synchronization becomes a
+	// performance problem then the old incremental implementation can be found by searching the
+	// Git patch history for the string
 	//
 	//   Find parents that aren't a parent to any routing node anymore, and parents that has
 	//
