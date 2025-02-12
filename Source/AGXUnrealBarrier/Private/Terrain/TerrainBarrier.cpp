@@ -243,10 +243,10 @@ void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier* Shape)
 	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
 }
 
-void FTerrainBarrier::SetNoMerge(bool IsNoMerge)
+void FTerrainBarrier::SetNoMerge(bool bNoMerge)
 {
 	check(HasNative());
-	NativeRef->Native->setNoMerge(IsNoMerge);
+	NativeRef->Native->setNoMerge(bNoMerge);
 }
 
 bool FTerrainBarrier::GetNoMerge() const

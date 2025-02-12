@@ -23,7 +23,7 @@ class FShapeMaterialBarrier;
 class FShapeBarrier;
 
 /**
- *
+ * AGX Dynamics access barrier for Terrain.
  */
 class AGXUNREALBARRIER_API FTerrainBarrier
 {
@@ -69,7 +69,7 @@ public:
 
 	bool AddShovel(FShovelBarrier& Shovel);
 	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
-	void SetNoMerge(bool IsNoMerge);
+	void SetNoMerge(bool bNoMerge);
 	bool GetNoMerge() const;
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
