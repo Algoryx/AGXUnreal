@@ -21,10 +21,10 @@ const FName FAGX_EditorStyle::FileIconSmall("FileIcon.Small");
 const FName FAGX_EditorStyle::JointIcon("JointIcon");
 const FName FAGX_EditorStyle::JointIconSmall("JointIcon.Small");
 const FName FAGX_EditorStyle::LicenseKeyIcon("LicenseKey");
-const FName FAGX_EditorStyle::TerrainIcon("TerrainIcon");
-const FName FAGX_EditorStyle::TerrainIconSmall("TerrainIcon.Small");
 const FName FAGX_EditorStyle::MovableTerrainIcon("MovableTerrainIcon");
 const FName FAGX_EditorStyle::MovableTerrainIconSmall("MovableTerrainIcon.Small");
+const FName FAGX_EditorStyle::TerrainIcon("TerrainIcon");
+const FName FAGX_EditorStyle::TerrainIconSmall("TerrainIcon.Small");
 
 
 
