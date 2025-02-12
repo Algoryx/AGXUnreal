@@ -66,7 +66,7 @@ namespace AGX_SynchronizeModelTest_helpers
 		UBlueprint& BaseBp, UBlueprint& ChildBlueprint)
 	{
 		TArray<UActorComponent*> BaseComponents =
-			FAGX_BlueprintUtilities::GetTemplateComponents(&BaseBp);
+			FAGX_BlueprintUtilities::GetTemplateComponents(&BaseBp, EAGX_Inherited::Include);
 
 		TArray<UActorComponent*> ChildComponents;
 		ChildComponents.Reserve(BaseComponents.Num());
@@ -397,7 +397,7 @@ public:
 			return;
 		}
 
-		InitialTemplateComponents = FAGX_BlueprintUtilities::GetTemplateComponents(ParentBlueprint);
+		InitialTemplateComponents = FAGX_BlueprintUtilities::GetTemplateComponents(*ParentBlueprint, EAGX_Inherited::Include);
 
 		// Spawn an instance of the imported Blueprint in the level.
 		FActorSpawnParameters SpawnParameters;
@@ -436,7 +436,7 @@ public:
 			return;
 		}
 
-		UpdatedTemplateComponents = FAGX_BlueprintUtilities::GetTemplateComponents(ParentBlueprint);
+		UpdatedTemplateComponents = FAGX_BlueprintUtilities::GetTemplateComponents(*ParentBlueprint, EAGX_Inherited::Include);
 
 		UpdatedBlueprintInstance = GetActorInstanceFromWorld();
 		if (!TestNotNull(TEXT("Blueprint instance after synchronize"), UpdatedBlueprintInstance))
@@ -695,7 +695,7 @@ bool FSynchronizeLargeModelCommand::Update()
 	// Testing for some reason (see comment above that function). So we will have to look at the
 	// base blueprint only.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(BlueprintBase);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*BlueprintBase, EAGX_Inherited::Include);
 
 	Test.TestTrue("Synchronized Components found.", Components.Num() > 0);
 

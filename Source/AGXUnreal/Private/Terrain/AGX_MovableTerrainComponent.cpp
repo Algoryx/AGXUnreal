@@ -18,8 +18,6 @@
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
-#include "Engine/SCS_Node.h"
-#include "Engine/SimpleConstructionScript.h"
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
@@ -684,20 +682,27 @@ TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
 	return Shapes;
 }
 
-TArray<FString> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
+TArray<FName> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 {
-	FString MyName = this->GetName();
-	if (HasAnyFlags(RF_ArchetypeObject) && MyName.EndsWith("_GEN_VARIABLE"))
+	const FName MyName = [this]()
 	{
-		MyName.RemoveFromEnd("_GEN_VARIABLE");
-	}
+		FName Name = GetFName();
+		if (HasAnyFlags(RF_ArchetypeObject))
+		{
+			FString AsString = Name.ToString();
+			AsString.RemoveFromEnd(ComponentTemplateNameSuffix);
+			Name = FName(AsString);
+		}
+		return Name;
+	}();
 
-	TArray<FString> Options;
+	TArray<FName> Options;
 	for (FName Name :
 		 FAGX_ObjectUtilities::GetChildComponentNamesOfType<UMeshComponent>(GetOuter()))
 	{
-		if (!BedShapes.Contains(Name) && MyName != Name.ToString())
-			Options.Add(Name.ToString());
+		if (Name == MyName)
+			continue;
+		Options.AddUnique(Name);
 	}
 	return Options;
 }

@@ -4,14 +4,15 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "Utilities/AGX_BlueprintUtilities.h"
 
 // Unreal Engine includes.
 #include "Containers/Array.h"
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
-#include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -327,54 +328,44 @@ T* FAGX_ObjectUtilities::FindFirstAncestorOfType(const USceneComponent& Start)
 	return nullptr;
 }
 
-template <typename T>
-inline TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
+template <typename ComponentT>
+TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
 {
 	TArray<FName> Names;
 
-	//If Outer is an Actor, we are in the World Editor
+	// If Outer is an Actor, we are in the World Editor.
 	AActor* Actor = Cast<AActor>(Outer);
 	if (Actor)
 	{
-		// Loop through all actor components
+		// Loop through all actor components.
 		TArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (UActorComponent* Component : Components)
 		{
-			// Try casting each component to the type T
-			T* CastComponent = Cast<T>(Component);
+			// Try casting each component to the type ComponentT.
+			ComponentT* CastComponent = Cast<ComponentT>(Component);
 			if (CastComponent != nullptr)
 			{
-				// Get the component's variable name and add it to the list
+				// Get the component's variable name and add it to the list.
 				Names.Add(Component->GetFName());
 			}
 		}
-
 	}
 
-	// If Outer is a UBlueprintGeneratedClass, we are in the Blueprint Editor
+	// If Outer is a Blueprint Generated Class, we are in the Blueprint Editor.
 	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
 	if (OwningGenClass != nullptr)
 	{
-		// Get the construction script associated with the BlueprintGeneratedClass
-		const TObjectPtr<USimpleConstructionScript> ConstructionScript =
-			OwningGenClass->SimpleConstructionScript;
-		if (ConstructionScript == nullptr)
-			return Names;
-
-		// Iterate over all nodes in the construction script
-		for (const USCS_Node* Component : ConstructionScript->GetAllNodes())
+		UBlueprint* Blueprint = OwningGenClass->SimpleConstructionScript->GetBlueprint();
+		for (USCS_Node* Node : FAGX_BlueprintUtilities::GetSCSNodes(
+				 *Blueprint, EAGX_Inherited::Include, ComponentT::StaticClass()))
 		{
-			// Try casting each component to the type T
-			T* CastComponent = Cast<T>(Component->ComponentTemplate);
-			if (CastComponent != nullptr)
-			{
-				// Get the component's variable name and add it to the list
-				Names.Add(Component->GetVariableName());
-			}
+			Names.Add(Node->GetVariableName());
 		}
 	}
+
+	Names.Sort([](const FName& Lhs, const FName& Rhs) { return Lhs.FastLess(Rhs); });
 
 	return Names;
 }

@@ -127,7 +127,7 @@ protected:
 	TArray<FName> BedShapes;
 
 	UFUNCTION(CallInEditor)
-	TArray<FString> GetBedShapesOptions() const;
+	TArray<FName> GetBedShapesOptions() const;
 
 	UPROPERTY(BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	TArray<UMeshComponent*> BedShapeComponents;

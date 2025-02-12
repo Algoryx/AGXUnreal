@@ -149,7 +149,8 @@ bool FCheckEmptySceneImportedCommand::Update()
 	}
 
 	// The Blueprint's only component should be the root component.
-	TArray<UActorComponent*> Components = FAGX_BlueprintUtilities::GetTemplateComponents(Contents);
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 1);
 	USceneComponent* SceneRoot = AgxAutomationCommon::GetByName<USceneComponent>(
 		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("DefaultSceneRoot"));
@@ -368,7 +369,7 @@ bool FCheckSingleSphereImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 3);
 
 	// Get the components we know should be there.
@@ -614,7 +615,7 @@ bool FCheckMotionControlImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 8);
 
 	// Get the components we know should be there.
@@ -780,7 +781,7 @@ bool FCheckSimpleTrimeshImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 5);
 
 	// Get the components we know should be there.
@@ -1006,7 +1007,7 @@ bool FCheckRenderMaterialImportedCommand::Update()
 	// Get all the imported components. The test for the number of components is a safety check.
 	// It should be updated whenever the test scene is changed.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 20);
 
 // Enable this to see the names of the components that was imported. Useful when adding new stuff
@@ -1303,7 +1304,7 @@ bool FCheckRenderDataImportedCommand::Update()
 	}
 
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	// Root(1), Rigid Body(2), Shape(3), Static Mesh(4), ReImport(5).
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 5);
 
@@ -1434,7 +1435,7 @@ bool FCheckCollisionGroupsImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 20);
 
 	auto GetBox = [&Components](
@@ -1676,7 +1677,7 @@ bool FCheckGeometrySensorsImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// Three Rigid Bodies, three Geometries, one Default Scene Root, one ReImport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 8);
@@ -1832,7 +1833,7 @@ bool FCheckWireImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// A Wire (1) three Rigid Bodies (4), three Shapes (7), a Collision Group
 	// Disabler (8), a Default Scene Root (9) and one ModelSourceComponent (10).
@@ -2047,7 +2048,7 @@ bool FCheckConstraintDynamicParametersImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// Two Rigid Bodies, one Hinge constraint, one Default Scene Root and one ModelSourceComponent.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 5);
@@ -2208,7 +2209,7 @@ bool FCheckRigidBodyPropertiesImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// One Rigid Bodies, one Geometry, one Default Scene Root and one ReImport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 4);
@@ -2420,7 +2421,7 @@ bool FCheckSimpleGeometriesImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// 5 Rigid Bodies, 10 Geometries, 2 Static Meshes, one Default Scene Root and one ReImport
 	// Component
@@ -2572,7 +2573,7 @@ bool FCheckContactMaterialsImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// 4 Rigid Bodies, 4 Geometries, 1 Contact Material Registrar, one Default Scene Root and one
 	// ReImport Component.
@@ -2761,7 +2762,7 @@ bool FCheckObserverFramesImportedCommand::Update()
 
 	// Get all the imported Components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// 1 Default Scene Root, 4 groups each containing a Rigid Body, a Shape, a Scene and one
 	// ReImport Component.
@@ -2914,7 +2915,7 @@ bool FCheckURDFLinkWithMeshesImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// One DefaultSceneRoot, one Rigid Body, one Trimesh with a render mesh and a collision mesh,
 	// one Trimesh with only one collision mesh and one ReImport Component.
@@ -2953,7 +2954,7 @@ bool FClearURDFLinkWithMeshesImportedCommand::Update()
 	}
 
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	TArray<FString> Assets = GetReferencedStaticMeshAssets(Components);
 	if (Assets.Num() != 3)
 	{
@@ -3054,7 +3055,7 @@ bool FCheckURDFLinksGeometriesConstraintsImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// 1 DefaultSceneRoot, 4 Rigid Bodies, 4 Shape Components, 2 Constraints and one ReImport
 	// Component.
@@ -3202,7 +3203,7 @@ bool FCheckTrackImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// 24 Hinge Constraints (24), 25 Rigid Bodies (49), 20 Sphere Shapes
 	// (69), 24 Cylinder Shapes (93), 3 Box Shapes (96), a Collision Group Disabler (97), a
@@ -3541,7 +3542,7 @@ bool FCheckAmorImportedCommand::Update()
 	// Get all the imported components. The test for the number of components is a safety check.
 	// It should be updated whenever the test scene is changed.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	// Two Rigid Bodies (2), one Shape (3), two Wires (5), one Constraint (6),
 	// one Collision Group Disabler (7), one Default Scene Root (8), one ModelSourceComponent (9).
 	const int32 ExpectedNumComponents = 9;
@@ -3759,7 +3760,7 @@ bool FCheckShovelImportedCommand::Update()
 
 	// Get all the imported Components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	// One Rigid Body (1), two Shapes (3), one Shovel (4), one Model Source (5), and one default
 	// scene root (6).
 	const int32 ExpectedNumComponents {6};
