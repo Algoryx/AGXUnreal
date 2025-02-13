@@ -245,7 +245,7 @@ HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 
 	return HeightMesh(
 		MeshCenter, MeshSize, Uv0, Uv1, MeshHeightFunc,
-		EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding, Tiles);
+		EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding, MoveTemp(Tiles));
 }
 
 

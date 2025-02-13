@@ -112,6 +112,7 @@ struct HeightMesh
 	FAGX_MeshVertexFunction EdgeHeightFunc;
 
 	TArray<MeshTile> Tiles;
+
 	HeightMesh()
 	{
 	}
@@ -121,21 +122,17 @@ struct HeightMesh
 		const FAGX_UvParams& Uv1Params, FAGX_MeshVertexFunction MeshHeightFunction,
 		FAGX_MeshVertexFunction EdgeHeightFunction, bool CreateEdges, bool FixSeams,
 		bool ReverseWinding, TArray<MeshTile> MeshTiles)
+		: Center(MeshCenter)
+		, Size(MeshSize)
+		, Uv0(Uv0Params)
+		, Uv1(Uv1Params)
+		, bCreateEdges(CreateEdges)
+		, bFixSeams(FixSeams)
+		, bReverseWinding(ReverseWinding)
+		, HeightFunc(MeshHeightFunction)
+		, EdgeHeightFunc(EdgeHeightFunction)
+		, Tiles(MoveTemp(MeshTiles))
 	{
-		Center = MeshCenter;
-		Size = MeshSize;
-
-		Uv0 = Uv0Params;
-		Uv1 = Uv1Params;
-
-		HeightFunc = MeshHeightFunction;
-		EdgeHeightFunc = EdgeHeightFunction;
-
-		bCreateEdges = CreateEdges;
-		bFixSeams = FixSeams;
-		bReverseWinding = ReverseWinding;
-
-		Tiles = MeshTiles;
 	}
 };
 
