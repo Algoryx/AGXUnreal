@@ -76,8 +76,8 @@ using FAGX_MeshVertexFunction = std::function<double(const FVector& LocalPos)>;
 UENUM(BlueprintType, Category = "AGX Terrain Mesh")
 enum class EAGX_MeshTilingPattern : uint8
 {
-	None UMETA(DisplayName = "None"),
-	StretchedTiles UMETA(DisplayName = "Stretched Tiles")
+	None,
+	StretchedTiles
 };
 
 struct MeshTile
