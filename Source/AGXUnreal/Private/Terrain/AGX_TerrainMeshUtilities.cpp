@@ -9,21 +9,18 @@
 
 TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
 	const FVector& TileCenter, const FVector2D& TileSize, FIntVector2 TileResolution,
-	const FVector& MeshCenter, const FVector2D& MeshSize,
-	const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
-	const FAGX_MeshVertexFunction MeshHeightFunc,
-	const FAGX_MeshVertexFunction EdgeHeightFunc,
-	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
+	const FVector& MeshCenter, const FVector2D& MeshSize, const FAGX_UvParams& Uv0,
+	const FAGX_UvParams& Uv1, const FAGX_MeshVertexFunction MeshHeightFunc,
+	const FAGX_MeshVertexFunction EdgeHeightFunc, bool bCreateEdges, bool bFixSeams,
+	bool bReverseWinding)
 {
-
-	//Tile corners
+	// Tile corners
 	FVector2D T1(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2);
 	FVector2D T2(TileCenter.X + TileSize.X / 2, TileCenter.Y + TileSize.Y / 2);
 
-	//Mesh corners
+	// Mesh corners
 	FVector2D M1(MeshCenter.X - MeshSize.X / 2, MeshCenter.Y - MeshSize.Y / 2);
 	FVector2D M2(MeshCenter.X + MeshSize.X / 2, MeshCenter.Y + MeshSize.Y / 2);
-
 
 	// Vertex resolution: Number of faces + 1
 	FIntVector2 VertexRes = FIntVector2(TileResolution.X + 1, TileResolution.Y + 1);
@@ -56,7 +53,6 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 			EdgeB = VertexRes.Y - 1;
 	}
 
-
 	auto MeshDescPtr = MakeShared<FAGX_MeshDescription>(VertexRes);
 	auto& MeshDesc = MeshDescPtr.Get();
 
@@ -64,9 +60,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	FVector2D TriangleSize =
 		FVector2D(TileSize.X / TileResolution.X, TileSize.Y / TileResolution.Y);
 
-
-	FIntVector2 StartIndex = FIntVector2(((EdgeL != -1 || bFixSeams) ? 1 : 0),
-										((EdgeT != -1 || bFixSeams) ? 1 : 0));
+	FIntVector2 StartIndex =
+		FIntVector2(((EdgeL != -1 || bFixSeams) ? 1 : 0), ((EdgeT != -1 || bFixSeams) ? 1 : 0));
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
@@ -75,11 +70,10 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	{
 		for (int32 x = 0; x < VertexRes.X; ++x)
 		{
-			//Local Plane Position
+			// Local Plane Position
 			FVector P = TileCenter + FVector(
-				(x - StartIndex.X) * TriangleSize.X - TileSize.X / 2,
-				(y - StartIndex.Y) * TriangleSize.Y - TileSize.Y / 2, 0.0);
-
+										 (x - StartIndex.X) * TriangleSize.X - TileSize.X / 2,
+										 (y - StartIndex.Y) * TriangleSize.Y - TileSize.Y / 2, 0.0);
 
 			bool IsEdgeVertex =
 				bCreateEdges && (x == EdgeL || x == EdgeR || y == EdgeT || y == EdgeB);
@@ -128,30 +122,30 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 				int32 TopLeft = BottomLeft + VertexRes.X;
 				int32 TopRight = TopLeft + 1;
 
-                if (bReverseWinding)
-                {
-                    // First triangle with flipped winding order
-                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
-                    MeshDesc.Triangles[TriangleIndex++] = TopLeft;
+				if (bReverseWinding)
+				{
+					// First triangle with flipped winding order
+					MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+					MeshDesc.Triangles[TriangleIndex++] = TopRight;
+					MeshDesc.Triangles[TriangleIndex++] = TopLeft;
 
-                    // Second triangle with flipped winding order
-                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-                    MeshDesc.Triangles[TriangleIndex++] = BottomRight;
-                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
-                }
-                else
-                {
-                    // First triangle
-                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-                    MeshDesc.Triangles[TriangleIndex++] = TopLeft;
-                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
+					// Second triangle with flipped winding order
+					MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+					MeshDesc.Triangles[TriangleIndex++] = BottomRight;
+					MeshDesc.Triangles[TriangleIndex++] = TopRight;
+				}
+				else
+				{
+					// First triangle
+					MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+					MeshDesc.Triangles[TriangleIndex++] = TopLeft;
+					MeshDesc.Triangles[TriangleIndex++] = TopRight;
 
-                    // Second triangle
-                    MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
-                    MeshDesc.Triangles[TriangleIndex++] = TopRight;
-                    MeshDesc.Triangles[TriangleIndex++] = BottomRight;
-                }
+					// Second triangle
+					MeshDesc.Triangles[TriangleIndex++] = BottomLeft;
+					MeshDesc.Triangles[TriangleIndex++] = TopRight;
+					MeshDesc.Triangles[TriangleIndex++] = BottomRight;
+				}
 			}
 
 			++VertexIndex;
@@ -159,7 +153,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	}
 
 	// Triangles shrinks if we are on a corner with edges
-	MeshDesc.Triangles.SetNum(TriangleIndex);	// Before 5.5: bAllowShrink == true
+	MeshDesc.Triangles.SetNum(TriangleIndex); // Before 5.5: bAllowShrink == true
 
 	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
@@ -178,13 +172,15 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 					FVector P = MeshDesc.Vertices[VertexIndex];
 
 					// Clamp to Tile
-					P = FVector(FMath::Clamp(P.X, T1.X, T2.X), FMath::Clamp(P.Y, T1.Y, T2.Y), MeshCenter.Z);
+					P = FVector(
+						FMath::Clamp(P.X, T1.X, T2.X), FMath::Clamp(P.Y, T1.Y, T2.Y), MeshCenter.Z);
 
 					// Is on edge of Mesh
 					bool IsOnEdge = (P.X - M1.X) < SMALL_NUMBER || (M2.X - P.X) < SMALL_NUMBER ||
 									(P.Y - M1.Y) < SMALL_NUMBER || (M2.Y - P.Y) < SMALL_NUMBER;
 
-					double Height = bCreateEdges && IsOnEdge ? EdgeHeightFunc(P) : MeshHeightFunc(P);
+					double Height =
+						bCreateEdges && IsOnEdge ? EdgeHeightFunc(P) : MeshHeightFunc(P);
 
 					MeshDesc.Vertices[VertexIndex] = P + FVector::UpVector * (Height - SkirtLength);
 				}
@@ -199,8 +195,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 	const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
 	const FIntVector2& MeshRes, const FAGX_UvParams& Uv0, const FAGX_UvParams& Uv1,
-	const int MeshLod,
-	const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
+	const int MeshLod, const EAGX_MeshTilingPattern& TilingPattern, int TileResolution,
 	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
 	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
 {
@@ -244,10 +239,9 @@ HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 	}
 
 	return HeightMesh(
-		MeshCenter, MeshSize, Uv0, Uv1, MeshHeightFunc,
-		EdgeHeightFunc, bCreateEdges, bFixSeams, bReverseWinding, MoveTemp(Tiles));
+		MeshCenter, MeshSize, Uv0, Uv1, MeshHeightFunc, EdgeHeightFunc, bCreateEdges, bFixSeams,
+		bReverseWinding, MoveTemp(Tiles));
 }
-
 
 float UAGX_TerrainMeshUtilities::SampleHeightArray(
 	FVector2D UV, const TArray<float>& HeightArray, int Width, int Height)
