@@ -229,7 +229,27 @@ bool AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary(bool ForceOverwr
 			continue; // Logging done in EnsureMaterialImported.
 		}
 
-		if (!AssignLibraryShapeMaterialsToContactMaterial(*Cm, NameAGX))
+		bool bNeedSave {false};
+
+		// The AGX Dynamics Material Library imports Contact Materials without a Friction Model.
+		// This causes the value to be set to Not Defined, which in turn causes no AGX Dynamics
+		// Friction Model to be created at Begin Play.
+		if (Cm->FrictionModel == EAGX_FrictionModel::NotDefined)
+		{
+			Cm->FrictionModel = EAGX_FrictionModel::IterativeProjectedConeFriction;
+			bNeedSave = true;
+		}
+		if (Cm->ContactSolver == EAGX_ContactSolver::NotDefined)
+		{
+			Cm->ContactSolver = EAGX_ContactSolver::Split;
+			bNeedSave = true;
+		}
+
+		if (AssignLibraryShapeMaterialsToContactMaterial(*Cm, NameAGX))
+		{
+			bNeedSave = true;
+		}
+		else
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -238,7 +258,11 @@ bool AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary(bool ForceOverwr
 					 "up."),
 				*Cm->GetName());
 			IssuesEncountered = true;
-			continue;
+		}
+
+		if (bNeedSave)
+		{
+			FAGX_ObjectUtilities::SaveAsset(*Cm, true);
 		}
 	}
 

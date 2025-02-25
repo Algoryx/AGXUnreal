@@ -227,6 +227,19 @@ public:
 	bool GetValid() const;
 
 	/**
+	 * Get the current force of the constraint along a particular degree of freedom.
+	 *
+	 * Only degrees of freedoms listed in the return value of GetLockedDofsBitmask may be passed.
+	 *
+	 * Consider using one of the Get Last Force functions instead.
+	 *
+	 * @param Dof Degree of freedom to get current force for.
+	 * @return Constraint force in the given degree of freedom.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetCurrentForce(EGenericDofIndex Dof) const;
+
+	/**
 	 * If Compute Forces is enabled, returns the last force [N] and torque [Nm] applied by this
 	 * constraint on the body at \p BodyIndex. The force is given in world coordinates and is the
 	 * one applied at the anchor position of this constraint.

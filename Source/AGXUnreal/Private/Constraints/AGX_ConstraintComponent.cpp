@@ -473,6 +473,27 @@ bool UAGX_ConstraintComponent::GetValid() const
 	return NativeBarrier->GetValid();
 }
 
+double UAGX_ConstraintComponent::GetCurrentForce(EGenericDofIndex Dof) const
+{
+	if (!HasNative())
+	{
+		return 0.0;
+	}
+
+	int32 DofAGX;
+	if (!ToNativeDof(Dof, DofAGX))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Invalid degree of freedom for constraint type %s passed to %s on "
+				 "'%s' in '%s'."),
+			*GetClass()->GetName(), TEXT("Get Current Force"), *GetName(),
+			*GetLabelSafe(GetOwner()));
+		return 0.0;
+	}
+	return NativeBarrier->GetCurrentForce(DofAGX);
+}
+
 bool UAGX_ConstraintComponent::GetLastForceIndex(
 	int32 BodyIndex, FVector& OutForce, FVector& OutTorque, bool bForceAtCm) const
 {

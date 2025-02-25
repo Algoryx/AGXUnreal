@@ -174,6 +174,13 @@ FAGX_RealInterval FConstraintBarrier::GetForceRange(int32 Dof) const
 	return FAGX_RealInterval(Range.lower(), Range.upper());
 }
 
+double FConstraintBarrier::GetCurrentForce(int32 Dof)
+{
+	check(HasNative());
+	return NativeRef->Native->getCurrentForce(Dof);
+}
+
+
 void FConstraintBarrier::SetEnableComputeForces(bool bEnable)
 {
 	check(HasNative());

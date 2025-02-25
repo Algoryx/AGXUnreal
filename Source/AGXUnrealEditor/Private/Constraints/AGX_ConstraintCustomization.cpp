@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Constraints/AGX_ConstraintComponent.h"
+#include "Constraints/AGX_ConstraintCustomizationRuntime.h"
 #include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
@@ -45,6 +46,11 @@ void FAGX_ConstraintCustomization::CustomizeDetails(IDetailLayoutBuilder& InDeta
 	.Visibility(TAttribute<EVisibility>(
 		this, &FAGX_ConstraintCustomization::VisibleWhenBodySetupError));
 	// clang-format on
+
+	IDetailCategoryBuilder& Runtime =
+		DetailBuilder->EditCategory(TEXT("AGX Runtime"), LOCTEXT("AGXRuntime", "AGX Runtime"));
+	Runtime.AddCustomBuilder(
+		MakeShareable(new FAGX_ConstraintCustomizationRuntime(*DetailBuilder)));
 }
 
 namespace AGX_ConstraintCustomization_helpers
@@ -56,7 +62,8 @@ namespace AGX_ConstraintCustomization_helpers
 		SameBody = 1 << 1
 	};
 
-	EAGX_AttachmentSetupError& operator|=(EAGX_AttachmentSetupError& InOutLhs, EAGX_AttachmentSetupError InRhs)
+	EAGX_AttachmentSetupError& operator|=(
+		EAGX_AttachmentSetupError& InOutLhs, EAGX_AttachmentSetupError InRhs)
 	{
 		int Lhs = (int) InOutLhs;
 		int Rhs = (int) InRhs;
@@ -65,7 +72,8 @@ namespace AGX_ConstraintCustomization_helpers
 		return InOutLhs;
 	}
 
-	EAGX_AttachmentSetupError operator&(EAGX_AttachmentSetupError InLhs, EAGX_AttachmentSetupError InRhs)
+	EAGX_AttachmentSetupError operator&(
+		EAGX_AttachmentSetupError InLhs, EAGX_AttachmentSetupError InRhs)
 	{
 		int Lhs = (int) InLhs;
 		int Rhs = (int) InRhs;

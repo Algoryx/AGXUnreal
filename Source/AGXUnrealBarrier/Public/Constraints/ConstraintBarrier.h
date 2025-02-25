@@ -74,6 +74,8 @@ public:
 	void GetForceRange(double* Min, double* Max, int32 Dof) const;
 	FAGX_RealInterval GetForceRange(int32 Dof) const;
 
+	double GetCurrentForce(int32 Dof);
+
 	void SetEnableComputeForces(bool bEnable);
 	bool GetEnableComputeForces() const;
 

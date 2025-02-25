@@ -3,6 +3,7 @@
 #include "AGX_RigidBodyComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_RigidBodyCustomizationRuntime.h"
 #include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
@@ -31,44 +32,9 @@ void FAGX_RigidBodyComponentCustomization::CustomizeDetails(IDetailLayoutBuilder
 
 	RigidBodyComponent->OnComponentView();
 
-	// clang-format off
-
 	IDetailCategoryBuilder& Runtime =
 		DetailBuilder->EditCategory(TEXT("AGX Runtime"), LOCTEXT("AGXRuntime", "AGX Runtime"));
-
-	FDetailWidgetRow& HasNativeRow = Runtime.AddCustomRow(LOCTEXT("HasNative", "HasNative"));
-	HasNativeRow
-	.NameContent()
-	[
-		SNew(STextBlock)
-		.Text(LOCTEXT("HasNative", "Has Native"))
-	]
-	.ValueContent()
-	[
-		SNew(STextBlock)
-		.Text(this, &FAGX_RigidBodyComponentCustomization::GetHasNativeText)
-	];
-
-	// clang-format on
-}
-
-FText FAGX_RigidBodyComponentCustomization::GetHasNativeText() const
-{
-	if (DetailBuilder == nullptr)
-	{
-		return LOCTEXT("NoDetailBuilder", "No DetailBuilder, cannot get object being customized.");
-	}
-
-	UAGX_RigidBodyComponent* Body =
-		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UAGX_RigidBodyComponent>(
-			*DetailBuilder);
-
-	if (Body == nullptr)
-	{
-		return LOCTEXT("(no body)", "(no body)");
-	}
-
-	return Body->HasNative() ? LOCTEXT("true", "true") : LOCTEXT("false", "false");
+	Runtime.AddCustomBuilder(MakeShareable(new FAGX_RigidBodyCustomizationRuntime(*DetailBuilder)));
 }
 
 #undef LOCTEXT_NAMESPACE
