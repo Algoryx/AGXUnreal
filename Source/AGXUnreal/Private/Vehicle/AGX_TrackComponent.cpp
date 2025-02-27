@@ -3,6 +3,7 @@
 #include "Vehicle/AGX_TrackComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
@@ -48,6 +49,24 @@ UAGX_TrackComponent::UAGX_TrackComponent()
 	if (RenderMaterials.Num() == 0)
 		RenderMaterials.Add(
 			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMatPath));
+}
+
+void UAGX_TrackComponent::SetUseHighSpeedModel(bool bInUseHighSpeedModel)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetUseHighSpeedModel(bUseHighSpeedModel);
+	}
+	bUseHighSpeedModel = bInUseHighSpeedModel;
+}
+
+bool UAGX_TrackComponent::IsUsingHighSpeedModel() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetUseHighSpeedModel();
+	}
+	return bUseHighSpeedModel;
 }
 
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
@@ -589,6 +608,9 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		return;
 	}
 
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(UseHighSpeedModel);
+
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, Wheels),
 		[](ThisClass* Self) { Self->SetComponentReferencesLocalScope(); });
@@ -941,6 +963,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetName(GetName());
+	NativeBarrier.SetUseHighSpeedModel(bUseHighSpeedModel);
 
 	// Set shape material on all native geometries.
 	UpdateNativeMaterial();
@@ -1097,7 +1120,7 @@ bool UAGX_TrackComponent::ComputeNodeTransforms(TArray<FTransform>& OutTransform
 #else
 		OutTransforms.SetNum(Preview->NodeTransforms.Num(), EAllowShrinking::Yes);
 #endif
-		
+
 		for (int i = 0; i < Preview->NodeTransforms.Num(); ++i)
 		{
 			const FVector WorldOffset = Preview->NodeTransforms[i].GetRotation().RotateVector(

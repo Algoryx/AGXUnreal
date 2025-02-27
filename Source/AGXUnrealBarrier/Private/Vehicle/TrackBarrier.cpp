@@ -3,24 +3,25 @@
 #include "Vehicle/TrackBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXBarrierFactories.h"
 #include "AGX_AgxDynamicsObjectsAccess.h"
 #include "AGX_LogCategory.h"
-#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
+#include "BarrierOnly/Vehicle/TrackRef.h"
+#include "BarrierOnly/Vehicle/TrackWheelRef.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
 #include "Vehicle/TrackPropertiesBarrier.h"
-#include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
-#include "BarrierOnly/Vehicle/TrackRef.h"
 #include "Vehicle/TrackWheelBarrier.h"
-#include "BarrierOnly/Vehicle/TrackWheelRef.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agx/Vec3.h>
 #include <agx/Quat.h>
+#include <agx/Vec3.h>
 #include <agxCollide/Box.h>
+#include <agxVehicle/LowDofTrackImplementation.h>
 #include <agxVehicle/Track.h>
 #include <agxVehicle/TrackNodeOnInitializeCallback.h>
 #include "EndAGXIncludes.h"
@@ -151,6 +152,28 @@ FString FTrackBarrier::GetName() const
 {
 	check(HasNative());
 	return Convert(NativeRef->Native->getName());
+}
+
+void FTrackBarrier::SetUseHighSpeedModel(bool bUseHighSpeedModel)
+{
+	// TODO This assumes that High Speed Track is the only Track Implementation.
+	check(HasNative());
+	if (bUseHighSpeedModel)
+	{
+		// TODO Should not pass nullptr, find a way to get the chassis body.
+		NativeRef->Native->setCustomImplementation(new agxVehicle::LowDofTrackImplementation(nullptr));
+	}
+	else
+	{
+		NativeRef->Native->setCustomImplementation(nullptr);
+	}
+}
+
+bool FTrackBarrier::GetUseHighSpeedModel() const
+{
+	// TODO This assumes that High Speed Track is the only Track Implementation.
+	check(HasNative());
+	return NativeRef->Native->hasActiveCustomImplementation();
 }
 
 void FTrackBarrier::ClearMaterial()

@@ -58,6 +58,15 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
 	bool bEnabled = true;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	bool bUseHighSpeedModel = false;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetUseHighSpeedModel(bool bInUseHighSpeedModel);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	bool IsUsingHighSpeedModel() const;
+
 	/**
 	 * Number of nodes in the track.
 	 */
