@@ -5,10 +5,11 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_ArchiveExporter.h"
 #include "AGX_EditorStyle.h"
-#include "AGX_ImportSettings.h"
-#include "AGX_ImporterToBlueprint.h"
+#include "Import/AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Import/AGX_ImporterToEditor.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Widgets/AGX_ImportDialog.h"
@@ -48,9 +49,10 @@ void UAGX_AgxEdModeFile::ImportToBlueprint()
 	Window->SetContent(ImportDialog);
 	FSlateApplication::Get().AddModalWindow(Window, nullptr);
 
-	if (auto ImportSettings = ImportDialog->ToImportSettings())
+	if (auto Settings = ImportDialog->ToImportSettings())
 	{
-		AGX_ImporterToBlueprint::Import(*ImportSettings);
+		FAGX_ImporterToEditor Importer;
+		Importer.Import(*Settings);
 	}
 }
 

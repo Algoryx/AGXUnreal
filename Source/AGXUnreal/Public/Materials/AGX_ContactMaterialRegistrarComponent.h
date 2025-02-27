@@ -9,7 +9,9 @@
 
 #include "AGX_ContactMaterialRegistrarComponent.generated.h"
 
+class FContactMaterialBarrier;
 class UAGX_ContactMaterial;
+struct FAGX_ImportContext;
 
 /**
  * Defines which AGX Contact Materials should be used by the owning level.
@@ -38,6 +40,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material Registrar")
 	const TArray<UAGX_ContactMaterial*>& GetContactMaterials() const;
+
+	void CopyFrom(const TArray<FContactMaterialBarrier>& Barriers, FAGX_ImportContext* Context);
 
 	// ~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;

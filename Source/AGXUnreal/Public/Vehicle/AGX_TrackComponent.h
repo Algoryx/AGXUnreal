@@ -20,6 +20,7 @@ class UAGX_TrackInternalMergeProperties;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMesh;
+struct FAGX_ImportContext;
 
 /**
  * Object holding track node transforms and sizes generated before the actual simulation
@@ -221,13 +222,7 @@ public:
 		return TrackPreviewNeedsUpdateEvent;
 	}
 
-	/*
-	 * Copy configuration from the given Barrier.
-	 * Only the basic properties, such as number of nodes and Width, are copied. More complicated
-	 * properties, such as Material, Wheels etc, must be handled elsewhere. During AGX
-	 * Dynamics archive import those are handled by Sim Objects Importer Helper.
-	 */
-	void CopyFrom(const FTrackBarrier& Barrier);
+	void CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportContext* Context);
 
 	/**
 	 * Get the number of nodes in this track.

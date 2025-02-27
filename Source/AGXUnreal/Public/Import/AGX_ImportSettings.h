@@ -3,7 +3,10 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
+#include "Import/AGX_ImportEnums.h"
+
+// Unreal Engine includes.
+#include "CoreMinimal.h"
 
 struct FAGX_ImportSettings
 {
@@ -20,10 +23,10 @@ struct FAGX_ImportSettings
 	TArray<double> UrdfInitialJoints;
 };
 
-struct FAGX_SynchronizeModelSettings
+
+struct FAGX_ReimportSettings : public FAGX_ImportSettings
 {
-	FString FilePath;
-	bool bIgnoreDisabledTrimeshes = true;
 	bool bForceOverwriteProperties = false;
 	bool bForceReassignRenderMaterials = false;
 };
+

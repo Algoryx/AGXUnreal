@@ -5,14 +5,14 @@
 // AGX Dynamics for Unreal includes.
 #include "Widgets/AGX_ImportDialogBase.h"
 
-struct FAGX_SynchronizeModelSettings;
+struct FAGX_ReimportSettings;
 
 class SAGX_SynchronizeModelDialog : public SAGX_ImportDialogBase
 {
 public:
 	void Construct(const FArguments& InArgs) override;
 
-	TOptional<FAGX_SynchronizeModelSettings> ToSynchronizeModelSettings();
+	TOptional<FAGX_ReimportSettings> ToReimportSettings();
 
 private:
 	TSharedRef<SBorder> CreateSettingsGui();

@@ -13,8 +13,7 @@
  */
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImporterToBlueprint.h"
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
@@ -22,6 +21,7 @@
 #include "Constraints/AGX_CylindricalConstraintComponent.h"
 #include "Constraints/AGX_HingeConstraintComponent.h"
 #include "Constraints/AGX_PrismaticConstraintComponent.h"
+#include "Import/AGX_ImporterToEditor.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
@@ -103,7 +103,8 @@ namespace AGX_SynchronizeModelTest_helpers
 		ImportSettings.FilePath = ArchiveFilePath;
 		ImportSettings.ImportType = EAGX_ImportType::Agx;
 
-		return AGX_ImporterToBlueprint::Import(ImportSettings);
+		FAGX_ImporterToEditor Importer;
+		return Importer.Import(ImportSettings);
 	}
 
 	bool SynchronizeModel(
@@ -117,11 +118,16 @@ namespace AGX_SynchronizeModelTest_helpers
 			return false;
 		}
 
-		FAGX_SynchronizeModelSettings Settigns;
-		Settigns.bIgnoreDisabledTrimeshes = IgnoreDisabledTrimeshes;
-		Settigns.FilePath = ArchiveFilePath;
+		FAGX_ReimportSettings Settings;
+		Settings.bForceOverwriteProperties = false;
+		Settings.bForceReassignRenderMaterials = false;
+		Settings.bIgnoreDisabledTrimeshes = IgnoreDisabledTrimeshes;
+		Settings.FilePath = ArchiveFilePath;
+		Settings.ImportType = EAGX_ImportType::Agx;
+		Settings.bOpenBlueprintEditorAfterImport = false;
+		FAGX_ImporterToEditor Importer;
 
-		return AGX_ImporterToBlueprint::SynchronizeModel(BaseBp, Settigns);
+		return Importer.Reimport(BaseBp, Settings);
 	}
 
 	/**
@@ -1849,7 +1855,7 @@ public:
 		: FSynchronizeModelTest(
 			  TEXT("ModifyBallConstraint"),
 			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.ModifyBallConstraint"),
-			  TEXT("ball_constraint__initial.agx"), TEXT("ball_constraint__updated.agx"))
+			  TEXT("ball_constraint__initial1.agx"), TEXT("ball_constraint__updated.agx"))
 	{
 	}
 
@@ -1998,7 +2004,7 @@ public:
 		: FSynchronizeModelTest(
 			  TEXT("RemoveBallConstraint"),
 			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.RemoveBallConstraint"),
-			  TEXT("ball_constraint__initial.agx"), TEXT("ball_constraint__removed.agx"))
+			  TEXT("ball_constraint__initial2.agx"), TEXT("ball_constraint__removed.agx"))
 	{
 	}
 

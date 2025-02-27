@@ -506,12 +506,12 @@ FString FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName()
 	return FString("MergeSplitThresholds");
 }
 
-FString FAGX_ImportUtilities::GetImportStaticMeshDirectoryName()
+FString FAGX_ImportUtilities::GetImportCollisionStaticMeshDirectoryName()
 {
 	return FString("StaticMesh");
 }
 
-FString FAGX_ImportUtilities::GetImportRenderMeshDirectoryName()
+FString FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName()
 {
 	return FString("RenderMesh");
 }
@@ -519,6 +519,16 @@ FString FAGX_ImportUtilities::GetImportRenderMeshDirectoryName()
 FString FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName()
 {
 	return FString("ShovelProperties");
+}
+
+FString FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName()
+{
+	return FString("TrackProperties");
+}
+
+FString FAGX_ImportUtilities::GetImportTrackMergePropertiesDirectoryName()
+{
+	return FString("TrackInternalMergeProperties");
 }
 
 template <>

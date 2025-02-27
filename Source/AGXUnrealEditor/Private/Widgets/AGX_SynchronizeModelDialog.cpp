@@ -3,7 +3,9 @@
 #include "Widgets/AGX_SynchronizeModelDialog.h"
 
 // AGX Dynamics for Unreal includes.
+#include "Import/AGX_ImportSettings.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
@@ -64,7 +66,7 @@ void SAGX_SynchronizeModelDialog::Construct(const FArguments& InArgs)
 	// clang-format on
 }
 
-TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchronizeModelSettings()
+TOptional<FAGX_ReimportSettings> SAGX_SynchronizeModelDialog::ToReimportSettings()
 {
 	if (!bUserHasPressedImportOrSynchronize)
 	{
@@ -79,7 +81,8 @@ TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchron
 		return {};
 	}
 
-	FAGX_SynchronizeModelSettings Settings;
+	FAGX_ReimportSettings Settings;
+	Settings.ImportType = FAGX_ImportUtilities::GetFrom(FilePath);
 	Settings.FilePath = FilePath;
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
 	Settings.bForceOverwriteProperties = bForceOverwriteProperties;
@@ -180,6 +183,7 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceOverwritePropertiesG
 						"If left unchecked, properties changed by the user in Unreal will be preserved."))
 					.OnCheckStateChanged(this, &SAGX_SynchronizeModelDialog::OnForceOverwritePropertiesClicked)
 					.IsChecked(bForceOverwriteProperties)
+					.IsEnabled(!bForceReassignRenderMaterials) // These are mutually exclusive.
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -208,9 +212,10 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceReassignRenderMateri
 				SNew(SCheckBox)
 					.ToolTipText(LOCTEXT("ForceReassignRenderMaterialsTooltip",
 						"Render Materials that has been assigned by the user in Unreal will be re-assigned unconditionally. "
-						"If left unchecked, render Materials assigned by the user in Unreal will be preserved."))
+						"To force overwrite all properties, use the ForceOverwriteProperties option."))
 					.OnCheckStateChanged(this, &SAGX_SynchronizeModelDialog::OnForceReassignRenderMaterialsClicked)
 					.IsChecked(bForceReassignRenderMaterials)
+					.IsEnabled(!bForceOverwriteProperties) // These are mutually exclusive.
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -240,12 +245,20 @@ FReply SAGX_SynchronizeModelDialog::OnSynchronizeButtonClicked()
 void SAGX_SynchronizeModelDialog::OnForceOverwritePropertiesClicked(ECheckBoxState NewCheckedState)
 {
 	bForceOverwriteProperties = NewCheckedState == ECheckBoxState::Checked;
+	if (bForceOverwriteProperties)
+		bForceReassignRenderMaterials = false; // These are incompatible.
+
+	RefreshGui();
 }
 
 void SAGX_SynchronizeModelDialog::OnForceReassignRenderMaterialsClicked(
 	ECheckBoxState NewCheckedState)
 {
 	bForceReassignRenderMaterials = NewCheckedState == ECheckBoxState::Checked;
+	if (bForceReassignRenderMaterials)
+		bForceOverwriteProperties = false; // These are incompatible.
+
+	RefreshGui();
 }
 
 #undef LOCTEXT_NAMESPACE

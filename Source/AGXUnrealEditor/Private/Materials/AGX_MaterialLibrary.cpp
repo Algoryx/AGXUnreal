@@ -111,7 +111,7 @@ namespace AGX_MaterialLibrary_helpers
 			Asset = FAGX_ImportUtilities::CreateAsset<MaterialType>(AssetDir, AssetName, "");
 		}
 
-		Asset->CopyFrom(Material);
+		Asset->CopyFrom(Material, nullptr);
 
 		// Must fully load the package or else project packaging will fail with:
 		//

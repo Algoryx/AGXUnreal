@@ -3,9 +3,14 @@
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ContactMaterial.h"
+#include "Materials/AGX_ShapeMaterial.h"
+#include "Materials/ContactMaterialBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -91,6 +96,56 @@ const TArray<UAGX_ContactMaterial*>& UAGX_ContactMaterialRegistrarComponent::Get
 	const
 {
 	return ContactMaterials;
+}
+
+namespace AGX_ContactMaterialRegistrarComponent_helpers
+{
+	UAGX_ContactMaterial* GetOrCreateContactMaterial(
+		const FContactMaterialBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		AGX_CHECK(Context.ContactMaterials != nullptr);
+		if (auto Existing = Context.ContactMaterials->FindRef(Barrier.GetGuid()))
+			return Existing;
+
+		auto Cm = NewObject<UAGX_ContactMaterial>(
+			GetTransientPackage(), NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Cm, Context.SessionGuid);
+		Cm->CopyFrom(Barrier, &Context);
+
+		if (Cm->Material1 == nullptr || Cm->Material2 == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("No Materials set for Contact Material '%s' in "
+					 "AGX_ContactMaterialRegistrarComponent_helpers::GetOrCreateContactMaterial. "
+					 "The Contact Material will not be added."), *Cm->GetName());
+			return nullptr;
+		}
+
+		Context.ContactMaterials->Add(Barrier.GetGuid(), Cm);
+		return Cm;
+	}
+}
+
+void UAGX_ContactMaterialRegistrarComponent::CopyFrom(
+	const TArray<FContactMaterialBarrier>& Barriers, FAGX_ImportContext* Context)
+{
+	using namespace AGX_ContactMaterialRegistrarComponent_helpers;
+	if (Context == nullptr || Context->ContactMaterials == nullptr)
+		return;
+
+	for (const auto& Barrier : Barriers)
+	{
+		AGX_CHECK(Barrier.HasNative());
+		if (!Barrier.HasNative())
+			continue;
+
+		if (auto Cm = GetOrCreateContactMaterial(Barrier, *Context))
+			ContactMaterials.Add(Cm);
+	}
+	
+	AGX_CHECK(Context->ContactMaterialRegistrar == nullptr);
+	Context->ContactMaterialRegistrar = this;
 }
 
 void UAGX_ContactMaterialRegistrarComponent::BeginPlay()

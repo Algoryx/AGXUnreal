@@ -59,4 +59,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Utilities")
 	static FVector CalculateCenterOfMass(const TArray<UAGX_RigidBodyComponent*>& Bodies);
+
+	/*Todo: add description*/
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	static AActor* ImportAGXArchive(const FString& FilePath, bool IgnoreDisabledTrimeshes = true);
+
+	/*Todo: add description*/
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Dynamics", meta = (WorldContext = "WorldContextObject"))
+	static AActor* InstantiateActor(
+		UObject* WorldContextObject, AActor* TemplateActor, FTransform Transform);
 };

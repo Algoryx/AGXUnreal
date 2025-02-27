@@ -3,7 +3,7 @@
 #include "Widgets/AGX_ImportDialog.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"

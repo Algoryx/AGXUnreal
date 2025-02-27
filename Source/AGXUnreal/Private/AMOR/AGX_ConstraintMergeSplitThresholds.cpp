@@ -320,8 +320,12 @@ UAGX_ConstraintMergeSplitThresholds* UAGX_ConstraintMergeSplitThresholds::Create
 
 bool UAGX_ConstraintMergeSplitThresholds::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage())
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 
 	// Internal testing the hypothesis that UObject::IsAsset is a valid inverse of this function.

@@ -3,8 +3,8 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
 #include "AGX_LogCategory.h"
+#include "Import/AGX_ImportEnums.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -166,9 +166,11 @@ public:
 	static FString GetImportContactMaterialDirectoryName();
 	static FString GetImportRenderMaterialDirectoryName();
 	static FString GetImportMergeSplitThresholdsDirectoryName();
-	static FString GetImportStaticMeshDirectoryName();
-	static FString GetImportRenderMeshDirectoryName();
+	static FString GetImportCollisionStaticMeshDirectoryName();
+	static FString GetImportRenderStaticMeshDirectoryName();
 	static FString GetImportShovelPropertiesDirectoryName();
+	static FString GetImportTrackPropertiesDirectoryName();
+	static FString GetImportTrackMergePropertiesDirectoryName();
 
 	/**
 	 * Template version of the asset directory name getter.
