@@ -51,11 +51,50 @@ UAGX_TrackComponent::UAGX_TrackComponent()
 			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMatPath));
 }
 
+namespace AGX_TrackComponent_helpers
+{
+	void EnableHighSpeedModel(UAGX_TrackComponent& Track)
+	{
+		FTrackBarrier* TrackBarrier = Track.GetNative();
+		AGX_CHECKF(
+			TrackBarrier != nullptr, TEXT("AGX_TrackComponent_helpers::EnableUseHighSpeedModel "
+										  "calls must be guarded by HasNative."));
+
+		UAGX_RigidBodyComponent* Chassis = Track.ChassisBody.GetRigidBody();
+		if (Chassis == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Could not enable the high-speed mode on track '%s' in '%s' because Chassis "
+					 "Body has not been set."),
+				*Track.GetName(), *GetLabelSafe(Track.GetOwner()));
+			return;
+		}
+		if (!Chassis->HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Could not enable the high-speed model on track '%s' in '%s' because the "
+					 "Chassis Body does not have a Native."),
+				*Track.GetName(), *GetLabelSafe(Track.GetOwner()));
+			return;
+		}
+		TrackBarrier->EnableHighSpeedModel(*Chassis->GetNative());
+	}
+}
+
 void UAGX_TrackComponent::SetUseHighSpeedModel(bool bInUseHighSpeedModel)
 {
 	if (HasNative())
 	{
-		NativeBarrier.SetUseHighSpeedModel(bUseHighSpeedModel);
+		if (bInUseHighSpeedModel)
+		{
+			AGX_TrackComponent_helpers::EnableHighSpeedModel(*this);
+		}
+		else
+		{
+			NativeBarrier.DisableHighSpeedModel();
+		}
 	}
 	bUseHighSpeedModel = bInUseHighSpeedModel;
 }
@@ -64,7 +103,7 @@ bool UAGX_TrackComponent::IsUsingHighSpeedModel() const
 {
 	if (HasNative())
 	{
-		return NativeBarrier.GetUseHighSpeedModel();
+		return NativeBarrier.IsHighSpeedModelEnabled();
 	}
 	return bUseHighSpeedModel;
 }
@@ -608,7 +647,6 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		return;
 	}
 
-
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(UseHighSpeedModel);
 
 	PropertyDispatcher.Add(
@@ -671,6 +709,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 void UAGX_TrackComponent::SetComponentReferencesLocalScope()
 {
 	AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(this);
+	ChassisBody.LocalScope = Owner;
 	for (FAGX_TrackWheel& Wheel : Wheels)
 	{
 		Wheel.RigidBody.LocalScope = Owner;
@@ -711,6 +750,17 @@ void UAGX_TrackComponent::CreateNative()
 		return;
 	}
 
+	// If we are using the high-speed model then the chassis Rigid Body must be created before the
+	// track since it is used by the agxVehicle::LowDofTrackImplementation constructor.
+	if (bUseHighSpeedModel)
+	{
+		UAGX_RigidBodyComponent* Chassis = ChassisBody.GetRigidBody();
+		if (Chassis != nullptr && !Chassis->HasNative())
+		{
+			Chassis->GetOrCreateNative();
+		}
+	}
+
 	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialDistanceTension);
 	if (!HasNative())
 	{
@@ -733,6 +783,7 @@ void UAGX_TrackComponent::CreateNative()
 	}
 
 	SetComponentReferencesLocalScope();
+
 	for (FAGX_TrackWheel& Wheel : Wheels)
 	{
 		// Validate and get the Rigid Body Component.
@@ -963,7 +1014,14 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetName(GetName());
-	NativeBarrier.SetUseHighSpeedModel(bUseHighSpeedModel);
+	if (bUseHighSpeedModel)
+	{
+		AGX_TrackComponent_helpers::EnableHighSpeedModel(*this);
+	}
+	else
+	{
+		NativeBarrier.DisableHighSpeedModel();
+	}
 
 	// Set shape material on all native geometries.
 	UpdateNativeMaterial();

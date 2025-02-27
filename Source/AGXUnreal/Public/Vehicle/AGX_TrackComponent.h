@@ -61,6 +61,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
 	bool bUseHighSpeedModel = false;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	FAGX_RigidBodyReference ChassisBody;
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Track")
 	void SetUseHighSpeedModel(bool bInUseHighSpeedModel);
 

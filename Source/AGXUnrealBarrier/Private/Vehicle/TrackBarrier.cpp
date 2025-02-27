@@ -154,22 +154,23 @@ FString FTrackBarrier::GetName() const
 	return Convert(NativeRef->Native->getName());
 }
 
-void FTrackBarrier::SetUseHighSpeedModel(bool bUseHighSpeedModel)
+void FTrackBarrier::EnableHighSpeedModel(FRigidBodyBarrier& ChassisBody)
 {
 	// TODO This assumes that High Speed Track is the only Track Implementation.
 	check(HasNative());
-	if (bUseHighSpeedModel)
-	{
-		// TODO Should not pass nullptr, find a way to get the chassis body.
-		NativeRef->Native->setCustomImplementation(new agxVehicle::LowDofTrackImplementation(nullptr));
-	}
-	else
-	{
-		NativeRef->Native->setCustomImplementation(nullptr);
-	}
+	check(ChassisBody.HasNative());
+	agx::RigidBody* ChassisBodyAGX = ChassisBody.GetNative()->Native;
+	NativeRef->Native->setCustomImplementation(new agxVehicle::LowDofTrackImplementation(ChassisBodyAGX));
+
 }
 
-bool FTrackBarrier::GetUseHighSpeedModel() const
+void FTrackBarrier::DisableHighSpeedModel()
+{
+	check(HasNative());
+	NativeRef->Native->setCustomImplementation(nullptr);
+}
+
+bool FTrackBarrier::IsHighSpeedModelEnabled() const
 {
 	// TODO This assumes that High Speed Track is the only Track Implementation.
 	check(HasNative());
