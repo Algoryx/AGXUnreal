@@ -61,14 +61,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
 	bool bUseHighSpeedModel = false;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
-	FAGX_RigidBodyReference ChassisBody;
-
 	UFUNCTION(BlueprintCallable, Category = "AGX Track")
 	void SetUseHighSpeedModel(bool bInUseHighSpeedModel);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track")
 	bool IsUsingHighSpeedModel() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetUseActiveCustomImplementation(bool bUseCustom);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	bool GetUseActiveCustomImplementation() const;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	FAGX_RigidBodyReference ChassisBody;
 
 	/**
 	 * Number of nodes in the track.

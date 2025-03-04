@@ -172,7 +172,19 @@ void FTrackBarrier::DisableHighSpeedModel()
 
 bool FTrackBarrier::IsHighSpeedModelEnabled() const
 {
+	check(HasNative());
 	// TODO This assumes that High Speed Track is the only Track Implementation.
+	return NativeRef->Native->hasActiveCustomImplementation();
+}
+
+void FTrackBarrier::SetUseActiveCustomImplementation(bool bUseCustom)
+{
+	check(HasNative());
+	NativeRef->Native->setUseActiveCustomImplementation(bUseCustom);
+}
+
+bool FTrackBarrier::GetUseActiveCustomImplementation() const
+{
 	check(HasNative());
 	return NativeRef->Native->hasActiveCustomImplementation();
 }

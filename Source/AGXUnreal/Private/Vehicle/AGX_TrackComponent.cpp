@@ -108,6 +108,26 @@ bool UAGX_TrackComponent::IsUsingHighSpeedModel() const
 	return bUseHighSpeedModel;
 }
 
+void UAGX_TrackComponent::SetUseActiveCustomImplementation(bool bUseCustom)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetUseActiveCustomImplementation(bUseCustom);
+	}
+}
+
+bool UAGX_TrackComponent::GetUseActiveCustomImplementation() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetUseActiveCustomImplementation();
+	}
+	else
+	{
+		return false;
+	}
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license

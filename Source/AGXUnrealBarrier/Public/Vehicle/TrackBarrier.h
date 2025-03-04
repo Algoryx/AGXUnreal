@@ -64,6 +64,9 @@ public:
 	void DisableHighSpeedModel();
 	bool IsHighSpeedModelEnabled() const;
 
+	void SetUseActiveCustomImplementation(bool bUseCustom);
+	bool GetUseActiveCustomImplementation() const;
+
 	void ClearMaterial();
 	void SetMaterial(const FShapeMaterialBarrier& Material);
 	FShapeMaterialBarrier GetMaterial() const;
