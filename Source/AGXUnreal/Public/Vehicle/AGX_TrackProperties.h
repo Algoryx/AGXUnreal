@@ -186,6 +186,73 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void GetHingeRange(double& Min, double& Max) const;
 
+	/// @todo Should the .*Stiffness values really be all zero?
+	/// AGX Dynamics does
+	///   compliance = 1.0 / stiffness
+	/// which seems bad when stiffness is zero.
+
+	/**
+	 * The longitudinal stiffness [N/m] of the track defines its resistance to stretching or
+	 * compression, default is 1e10. Higher values indicate a more rigid track in the longitudinal
+	 * direction.
+	 *
+	 * A value of zero means that the default stiffness will be used.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Track Stiffness")
+	FAGX_Real LongitudinalStiffness {0.0};
+
+	/**
+	 * The torsional stiffness [N/m^2] of the track, which defines its resistance to rotational
+	 * deformation around the main axis of the track (torsion). Torsional stiffness depends on
+	 * material properties and track design, e.g. via bushings between the links. Stiffness is
+	 * typically G * J where G is shear modulus J is polar second moment of inertia (J). Higher
+	 * values indicate a more torsionally rigid track, reducing unwanted torsional motion.
+	 *
+	 * Torsional stiffness is applied as a rotational compliance = 1 / (stiffness / node length).
+	 *
+	 * A value of zero means that the default stiffness will be used.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Track Stiffness")
+	FAGX_Real TorsionalStiffness {0.0};
+
+	/**
+	 * Sets the shear stiffness [N/m^2] of the track, which defines its resistance to shearing
+	 * deformation. Shear stiffness is influenced by the material’s shear modulus (G) and the
+	 * cross-sectional area (A). Higher values indicate a track that resists lateral displacement
+	 * under shear forces.
+	 *
+	 * Shear stiffness is applied as a rotational compliance = 1 / (stiffness / track thickness).
+	 *
+	 * A value of zero means that the default stiffness will be used.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Track Stiffness")
+	FAGX_Real ShearStiffness {0.0};
+
+	/**
+	 * The bending stiffness [Nm^2] of the track, which defines its resistance to bending
+	 * deformation. In principal Hook's law is used to calculate the bending resistance. If this
+	 * method is called with a non zero stiffness the lock on the hinge between the nodes will be
+	 * enabled.
+	 *
+	 * A value of zero means that the default stiffness will be used.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Track Stiffness")
+	FAGX_Real BendingStiffness {0.0};
+
+	/**
+	 * Sets the bending friction coefficient [unitless], which defines the resistance to bend
+	 * rotations between links in the track, see agx::FrictionController. The friction coefficient
+	 * (\μ) depends on material properties and track design, e.g. via bushings between the links.
+	 * Proper tuning ensures controlled bending resistance and energy dissipation.
+	 *
+	 * OBS! When this parameter is set the stabilizing hinge normal force and hinge friction
+	 * parameter will be disregarded.
+	 *
+	 * A value of zero means that the default stiffness will be used.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Track Stiffness")
+	FAGX_Real BendingFrictionCoefficient {0.0};
+
 	/**
 	 * When the track has been initialized some nodes are in contact with the wheels.
 	 *

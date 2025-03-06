@@ -291,6 +291,75 @@ FAGX_RealInterval FTrackPropertiesBarrier::GetHingeRange() const
 	return GetHingeRangeRange();
 }
 
+/*
+ * Begin Stiffness.
+ */
+
+void FTrackPropertiesBarrier::SetLongitudinalStiffness(double Stiffness)
+{
+	check(HasNative());
+	NativeRef->Native->setLongitudinalStiffness(Stiffness);
+}
+
+void FTrackPropertiesBarrier::SetTorsionalStiffness(double Stiffness)
+{
+	check(HasNative());
+	NativeRef->Native->setTorsionalStiffness(Stiffness);
+}
+
+void FTrackPropertiesBarrier::SetShearStiffness(double Stiffness)
+{
+	check(HasNative());
+	NativeRef->Native->setShearStiffness(Stiffness);
+}
+
+void FTrackPropertiesBarrier::SetBendingStiffness(double Stiffness)
+{
+	check(HasNative());
+	NativeRef->Native->setBendingStiffness(Stiffness);
+}
+
+void FTrackPropertiesBarrier::SetBendingFrictionCoefficient(double Coefficient)
+{
+	check(HasNative());
+	NativeRef->Native->setBendingFrictionCoefficient(Coefficient);
+}
+
+double FTrackPropertiesBarrier::GetLongitudinalStiffness() const
+{
+	check(HasNative());
+	return NativeRef->Native->getLongitudinalStiffness();
+}
+
+double FTrackPropertiesBarrier::GetTorsionalStiffness() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTorsionalStiffness();
+}
+
+double FTrackPropertiesBarrier::GetShearStiffness() const
+{
+	check(HasNative());
+	return NativeRef->Native->getShearStiffness();
+}
+
+double FTrackPropertiesBarrier::GetBendingStiffness() const
+{
+	check(HasNative());
+	return NativeRef->Native->getBendingStiffness();
+}
+
+double FTrackPropertiesBarrier::GetBendingFrictionCoefficient() const
+{
+	check(HasNative());
+	return NativeRef->Native->getBendingFrictionCoefficient();
+}
+
+/*
+ * End Stiffness.
+ */
+
+
 void FTrackPropertiesBarrier::SetOnInitializeMergeNodesToWheelsEnabled(bool bEnable)
 {
 	check(HasNative());

@@ -646,6 +646,8 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 		return;
 	}
 
+	UE_LOG(LogAGX, Warning, TEXT("Initial torsional stiffness: %d"), NativeBarrier.GetTorsionalStiffness());
+
 	// Hinge parameters.
 	NativeBarrier.SetHingeComplianceTranslationalX(HingeComplianceTranslational_X);
 	NativeBarrier.SetHingeComplianceTranslationalY(HingeComplianceTranslational_Y);
@@ -674,6 +676,8 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	// Stabilization parameters.
 	NativeBarrier.SetMinStabilizingHingeNormalForce(MinStabilizingHingeNormalForce);
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
+
+	UE_LOG(LogAGX, Warning, TEXT("Final torsional stiffness: %d"), NativeBarrier.GetTorsionalStiffness());
 }
 
 void UAGX_TrackProperties::PostInitProperties()

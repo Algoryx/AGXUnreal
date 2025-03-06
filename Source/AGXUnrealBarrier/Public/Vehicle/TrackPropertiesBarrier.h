@@ -79,6 +79,20 @@ public:
 	FAGX_RealInterval GetHingeRangeRange() const;
 	FAGX_RealInterval GetHingeRange() const;
 
+	// Stiffness properties
+
+	void SetLongitudinalStiffness(double Stiffness);
+	void SetTorsionalStiffness(double Stiffness);
+	void SetShearStiffness(double Stiffness);
+	void SetBendingStiffness(double Stiffness);
+	void SetBendingFrictionCoefficient(double Coefficient);
+
+	double GetLongitudinalStiffness() const;
+	double GetTorsionalStiffness() const;
+	double GetShearStiffness() const;
+	double GetBendingStiffness() const;
+	double GetBendingFrictionCoefficient() const;
+
 	// Merge/Split properties.
 
 	void SetOnInitializeMergeNodesToWheelsEnabled(bool bEnable);
