@@ -19,6 +19,7 @@
 #include "AGX_ConstraintComponent.generated.h"
 
 struct FAGX_ConstraintController;
+struct FAGX_ImportContext;
 class FConstraintBarrier;
 
 /**
@@ -342,8 +343,7 @@ public:
 		const UAGX_RigidBodyComponent* Body, FVector& OutForce, FVector& OutTorque,
 		bool bForceAtCm = false) const;
 
-	// Does not setup body attachments. This must be done by the caller of this function.
-	void CopyFrom(const FConstraintBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context);
 
 	/**
 	 * Returns true if for any of the locked DOFs both the global attachment frame transforms do no

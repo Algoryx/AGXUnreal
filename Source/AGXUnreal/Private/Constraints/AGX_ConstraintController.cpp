@@ -204,28 +204,8 @@ void FAGX_ConstraintController::UpdateNativeProperties()
 	UpdateNativePropertiesImpl();
 }
 
-void FAGX_ConstraintController::CopyFrom(
-	const FConstraintControllerBarrier& Source, TArray<FAGX_ConstraintController*>& Instances,
-	bool ForceOverwriteInstances)
+void FAGX_ConstraintController::CopyFrom(const FConstraintControllerBarrier& Source)
 {
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->bEnable == bEnable)
-			Instance->bEnable = Source.GetEnable();
-
-		if (ForceOverwriteInstances || Instance->Compliance == Compliance)
-			Instance->Compliance = Source.GetCompliance();
-
-		if (ForceOverwriteInstances || Instance->SpookDamping == SpookDamping)
-			Instance->SpookDamping = Source.GetSpookDamping();
-
-		if (ForceOverwriteInstances || Instance->ForceRange == ForceRange)
-			Instance->ForceRange = Source.GetForceRange();
-	}
-
 	bEnable = Source.GetEnable();
 	Compliance = Source.GetCompliance();
 	SpookDamping = Source.GetSpookDamping();

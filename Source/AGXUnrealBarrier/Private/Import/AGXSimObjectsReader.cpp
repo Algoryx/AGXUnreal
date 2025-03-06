@@ -1,17 +1,17 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "AGXSimObjectsReader.h"
+#include "Import/AGXSimObjectsReader.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "Import/SimulationObjectCollection.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
-#include "SimulationObjectCollection.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
@@ -255,20 +255,29 @@ namespace
 		}
 	}
 
-	// Reads and instantiates all Geometries not owned by a RigidBody.
-	void ReadBodilessGeometries(
+	// Reads all Geometries.
+	void ReadGeometries(
 		agxSDK::Simulation& Simulation, const FString& Filename,
 		FSimulationObjectCollection& OutSimObjects,
 		TSet<const agxCollide::Geometry*>& NonFreeGeometries)
 	{
+		auto SkipGeometry = [&](agxCollide::Geometry* G) -> bool
+		{
+			if (G == nullptr)
+				return true;
+
+			auto Body = G->getRigidBody();
+			if (Body != nullptr && !IsRegularBody(*Body))
+				return true;
+
+			return NonFreeGeometries.Contains(G);
+		};
+
 		const agxCollide::GeometryRefVector& Geometries = Simulation.getGeometries();
 		for (const agxCollide::GeometryRef& Geometry : Geometries)
 		{
-			if (Geometry == nullptr || Geometry->getRigidBody() != nullptr ||
-				NonFreeGeometries.Contains(Geometry))
-			{
+			if (SkipGeometry(Geometry))
 				continue;
-			}
 
 			::ReadShapes(Geometry->getShapes(), OutSimObjects);
 		}
@@ -557,7 +566,7 @@ namespace
 			Simulation, OutSimObjects, NonFreeBodies, NonFreeGeometries, NonFreeConstraints,
 			NonFreeMaterials, NonFreeContactMaterials);
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
-		ReadBodilessGeometries(Simulation, Filename, OutSimObjects, NonFreeGeometries);
+		ReadGeometries(Simulation, Filename, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, Filename, OutSimObjects, NonFreeBodies);
 		ReadTracks(Simulation, Filename, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, Filename, OutSimObjects, NonFreeConstraints);

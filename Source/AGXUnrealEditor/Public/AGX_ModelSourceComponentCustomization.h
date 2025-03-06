@@ -24,7 +24,7 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder) override;
 
 private:
-	FReply OnSynchronizeModelButtonClicked();
+	FReply OnReimportModelButtonClicked();
 
 	// Members related to render Material replacement.
 	void CustomizeMaterialReplacer(UAGX_ModelSourceComponent* ModelSource);

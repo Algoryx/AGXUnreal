@@ -3,14 +3,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImporterToBlueprint.h"
-#include "AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "AgxAutomationCommon.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
+#include "Import/AGX_ImporterToEditor.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
@@ -82,7 +82,8 @@ bool FImportArchiveBlueprintCommand::Update()
 	Settings.ImportType = EAGX_ImportType::Agx;
 	Settings.bOpenBlueprintEditorAfterImport = false;
 
-	UBlueprint* ChildBlueprint = AGX_ImporterToBlueprint::Import(Settings);
+	FAGX_ImporterToEditor Importer;
+	UBlueprint* ChildBlueprint = Importer.Import(Settings);
 	Contents = FAGX_BlueprintUtilities::GetOutermostParent(ChildBlueprint);
 	Test.TestNotNull(TEXT("Contents"), Contents);
 	return true;
@@ -120,7 +121,9 @@ bool FImportURDFBlueprintCommand::Update()
 	Settings.ImportType = EAGX_ImportType::Urdf;
 	Settings.bOpenBlueprintEditorAfterImport = false;
 
-	UBlueprint* ChildBlueprint = AGX_ImporterToBlueprint::Import(Settings);
+	FAGX_ImporterToEditor Importer;
+
+	UBlueprint* ChildBlueprint = Importer.Import(Settings);
 	Contents = FAGX_BlueprintUtilities::GetOutermostParent(ChildBlueprint);
 	Test.TestNotNull(TEXT("Contents"), Contents);
 	return true;
@@ -1051,7 +1054,7 @@ bool FCheckRenderMaterialImportedCommand::Update()
 	UAGX_SphereShapeComponent* SharedSphere1 =
 		GetSphere(*FAGX_BlueprintUtilities::ToTemplateComponentName("SharedGeometry"));
 	UAGX_SphereShapeComponent* SharedSphere2 =
-		GetSphere(*FAGX_BlueprintUtilities::ToTemplateComponentName("SharedGeometry_0"));
+		GetSphere(*FAGX_BlueprintUtilities::ToTemplateComponentName("SharedGeometry_1"));
 	UAGX_SphereShapeComponent* NameConflictSphere1 =
 		GetSphere(*FAGX_BlueprintUtilities::ToTemplateComponentName("MaterialNameConflict"));
 	UAGX_SphereShapeComponent* NameConflictSphere2 =
@@ -1304,7 +1307,7 @@ bool FCheckRenderDataImportedCommand::Update()
 
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
-	// Root(1), Rigid Body(2), Shape(3), Static Mesh(4), ReImport(5).
+	// Root(1), Rigid Body(2), Shape(3), Static Mesh(4), Reimport(5).
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 5);
 
 	// Enable this to see the names of the components that was imported. Useful when adding new
@@ -1318,10 +1321,10 @@ bool FCheckRenderDataImportedCommand::Update()
 #endif
 
 	UAGX_SphereShapeComponent* Sphere = GetByName<UAGX_SphereShapeComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Render Data Geometry"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("RenderDataGeometry"));
 	UStaticMeshComponent* Mesh = GetByName<UStaticMeshComponent>(
 		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(
-						"RenderMesh_944C2AF4E9279E2C61D073B86467F6BA"));
+						"RenderMesh_D44C9070444AF0CAF2336CC3F8526D95"));
 
 	Test.TestNotNull(TEXT("Sphere"), Sphere);
 	Test.TestNotNull(TEXT("Mesh"), Mesh);
@@ -1678,7 +1681,7 @@ bool FCheckGeometrySensorsImportedCommand::Update()
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
-	// Three Rigid Bodies, three Geometries, one Default Scene Root, one ReImport Component.
+	// Three Rigid Bodies, three Geometries, one Default Scene Root, one Reimport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 8);
 
 	UAGX_SphereShapeComponent* BoolSensor = GetByName<UAGX_SphereShapeComponent>(
@@ -1851,17 +1854,17 @@ bool FCheckWireImportedCommand::Update()
 	UAGX_WireComponent* Wire = GetByName<UAGX_WireComponent>(
 		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Wire"));
 	UAGX_RigidBodyComponent* WinchBody = GetByName<UAGX_RigidBodyComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Winch Body"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("WinchBody"));
 	UAGX_CylinderShapeComponent* WinchShape = GetByName<UAGX_CylinderShapeComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Winch Shape"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("WinchShape"));
 	UAGX_RigidBodyComponent* EyeBody = GetByName<UAGX_RigidBodyComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Eye Body"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("EyeBody"));
 	UAGX_SphereShapeComponent* EyeShape = GetByName<UAGX_SphereShapeComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Eye Shape"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("EyeShape"));
 	UAGX_RigidBodyComponent* BeadBody = GetByName<UAGX_RigidBodyComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Bead Body"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("BeadBody"));
 	UAGX_CapsuleShapeComponent* BeadShape = GetByName<UAGX_CapsuleShapeComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Bead Shape"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("BeadShape"));
 
 	Test.TestNotNull(TEXT("Wire"), Wire);
 	Test.TestNotNull(TEXT("Winch Body"), WinchBody);
@@ -1927,7 +1930,7 @@ bool FCheckWireImportedCommand::Update()
 	RangeHasType(22, 23, EWireNodeType::BodyFixed);
 
 	const FString WinchBodyName = Winch.BodyAttachment.Name.ToString();
-	Test.TestEqual(TEXT("Winch Body Name"), WinchBodyName, FString("Winch Body"));
+	Test.TestEqual(TEXT("Winch Body Name"), WinchBodyName, FString("WinchBody"));
 
 	auto RangeHasBody =
 		[this, &Nodes = Wire->RouteNodes](int32 Begin, int32 End, const FString& BodyName)
@@ -1940,9 +1943,9 @@ bool FCheckWireImportedCommand::Update()
 	};
 
 	RangeHasBody(0, 11, "None");
-	RangeHasBody(11, 12, "Eye Body");
+	RangeHasBody(11, 12, "EyeBody");
 	RangeHasBody(12, 22, "None");
-	RangeHasBody(22, 23, "Bead Body");
+	RangeHasBody(22, 23, "BeadBody");
 
 	return true;
 }
@@ -2210,7 +2213,7 @@ bool FCheckRigidBodyPropertiesImportedCommand::Update()
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
-	// One Rigid Bodies, one Geometry, one Default Scene Root and one ReImport Component.
+	// One Rigid Bodies, one Geometry, one Default Scene Root and one Reimport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 4);
 
 	UAGX_RigidBodyComponent* SphereBody = GetByName<UAGX_RigidBodyComponent>(
@@ -2422,7 +2425,7 @@ bool FCheckSimpleGeometriesImportedCommand::Update()
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
-	// 5 Rigid Bodies, 10 Geometries, 2 Static Meshes, one Default Scene Root and one ReImport
+	// 5 Rigid Bodies, 10 Geometries, 2 Static Meshes, one Default Scene Root and one Reimport
 	// Component
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 19);
 
@@ -2575,7 +2578,7 @@ bool FCheckContactMaterialsImportedCommand::Update()
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
 	// 4 Rigid Bodies, 4 Geometries, 1 Contact Material Registrar, one Default Scene Root and one
-	// ReImport Component.
+	// Reimport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 11);
 
 	UAGX_ContactMaterialRegistrarComponent* Registrar =
@@ -2764,7 +2767,7 @@ bool FCheckObserverFramesImportedCommand::Update()
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
 	// 1 Default Scene Root, 4 groups each containing a Rigid Body, a Shape, a Scene and one
-	// ReImport Component.
+	// Reimport Component.
 	Test.TestEqual(TEXT("Number of imported Components"), Components.Num(), 14);
 
 	auto TestGroup =
@@ -2917,7 +2920,7 @@ bool FCheckURDFLinkWithMeshesImportedCommand::Update()
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
 	// One DefaultSceneRoot, one Rigid Body, one Trimesh with a render mesh and a collision mesh,
-	// one Trimesh with only one collision mesh and one ReImport Component.
+	// one Trimesh with only one collision mesh and one Reimport Component.
 	Test.TestEqual("Number of components", Components.Num(), 8);
 
 	UAGX_TrimeshShapeComponent* Urdfmeshvisual = GetByName<UAGX_TrimeshShapeComponent>(
@@ -3056,7 +3059,7 @@ bool FCheckURDFLinksGeometriesConstraintsImportedCommand::Update()
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
 
-	// 1 DefaultSceneRoot, 4 Rigid Bodies, 4 Shape Components, 2 Constraints and one ReImport
+	// 1 DefaultSceneRoot, 4 Rigid Bodies, 4 Shape Components, 2 Constraints and one Reimport
 	// Component.
 	Test.TestEqual("Number of components", Components.Num(), 12);
 
@@ -3206,7 +3209,7 @@ bool FCheckTrackImportedCommand::Update()
 
 	// 24 Hinge Constraints (24), 25 Rigid Bodies (49), 20 Sphere Shapes
 	// (69), 24 Cylinder Shapes (93), 3 Box Shapes (96), a Collision Group Disabler (97), a
-	// Contact Material Registrar (98), a Default Scene Root (99), two Tracks (101) and one ReImport
+	// Contact Material Registrar (98), a Default Scene Root (99), two Tracks (101) and one Reimport
 	// Component(102).
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 102);
 	if (Components.Num() != 102)
@@ -3766,7 +3769,7 @@ bool FCheckShovelImportedCommand::Update()
 	Test.TestEqual(TEXT("Number of imported Components"), Components.Num(), ExpectedNumComponents);
 
 	UAGX_RigidBodyComponent* ShovelBody = GetByName<UAGX_RigidBodyComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Shovel Body"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("ShovelBody"));
 	Test.TestNotNull(TEXT("Shovel Body"), ShovelBody);
 	if (ShovelBody == nullptr)
 		return true;
@@ -3778,7 +3781,7 @@ bool FCheckShovelImportedCommand::Update()
 		TEXT("Shovel Body Position"), ShovelBody->GetRelativeLocation(), FVector(0.0, 0.0, 100.0));
 
 	UAGX_BoxShapeComponent* VerticalBox = GetByName<UAGX_BoxShapeComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Vertical Box"));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("VerticalBox"));
 	Test.TestNotNull(TEXT("Vertical Box"), VerticalBox);
 	if (VerticalBox == nullptr)
 		return true;
@@ -3790,7 +3793,7 @@ bool FCheckShovelImportedCommand::Update()
 		TEXT("Vertical Box Half Extent"), VerticalBox->HalfExtent, FVector(10.0, 100.0, 100.0));
 
 	UAGX_ShovelComponent* Shovel = GetByName<UAGX_ShovelComponent>(
-		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Shovel_Shovel Body")));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Shovel_ShovelBody")));
 	Test.TestNotNull(TEXT("Shovel Component"), Shovel);
 	if (Shovel == nullptr)
 		return true;
@@ -3804,25 +3807,25 @@ bool FCheckShovelImportedCommand::Update()
 		AgxToUnrealDisplacement(0.1, -1.0, 1.0));
 	Test.TestEqual(
 		TEXT("Top Edge Start Parent Name"), Shovel->TopEdge.Start.Parent.Name,
-		FName(TEXT("Shovel Body")));
+		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
 		TEXT("Top Edge End Location"), Shovel->TopEdge.End.LocalLocation,
 		AgxToUnrealDisplacement(0.1, 1.0, 1.0));
 	Test.TestEqual(
 		TEXT("Top Edge End Parent Name"), Shovel->TopEdge.End.Parent.Name,
-		FName(TEXT("Shovel Body")));
+		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
 		TEXT("Cutting Edge Start Location"), Shovel->CuttingEdge.Start.LocalLocation,
 		AgxToUnrealDisplacement(1.0, -1.0, 0.1));
 	Test.TestEqual(
 		TEXT("Cutting Edge Start Parent Name"), Shovel->CuttingEdge.Start.Parent.Name,
-		FName(TEXT("Shovel Body")));
+		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
 		TEXT("Cutting Edge End Location"), Shovel->CuttingEdge.End.LocalLocation,
 		AgxToUnrealDisplacement(1.0, 1.0, 0.1));
 	Test.TestEqual(
 		TEXT("Cutting Edge End Parent Name"), Shovel->CuttingEdge.End.Parent.Name,
-		FName(TEXT("Shovel Body")));
+		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
 		TEXT("Cutting Direction"), Shovel->CuttingDirection.LocalRotation,
 		FRotator(ForceInitToZero));
@@ -3939,7 +3942,7 @@ bool FClearShovelImportedCommand::Update()
 			*BaseBlueprintName,
 		TEXT("Blueprint"),
 		TEXT("ShovelProperties"),
-			TEXT("AGX_SP_ShovelBody.uasset")
+			TEXT("AGX_SP_Shovel_ShovelBody.uasset")
 	};
 	// clang-format on
 

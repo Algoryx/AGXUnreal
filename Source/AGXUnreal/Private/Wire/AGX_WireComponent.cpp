@@ -8,7 +8,9 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -1257,8 +1259,79 @@ void UAGX_WireComponent::MarkVisualsDirty()
 	UpdateVisuals();
 }
 
-void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier)
+namespace AGX_WireComponent_helpers
 {
+	UAGX_ShapeMaterial* GetOrCreateShapeMaterial(
+		const FWireBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FShapeMaterialBarrier SMB = Barrier.GetMaterial();
+		if (!SMB.HasNative())
+			return nullptr;
+
+		return FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(SMB, &Context);
+	}
+
+	bool ConfigureWinch(
+		EWireSide Side, UAGX_WireComponent& Wire, const FWireBarrier& Barrier,
+		FAGX_ImportContext& Context)
+	{
+		FWireWinchBarrier WinchBarrier = Barrier.GetWinch(Side);
+		if (!WinchBarrier.HasNative())
+		{
+			Wire.SetWinchOwnerType(Side, EWireWinchOwnerType::None);
+			return false;
+		}
+
+		FAGX_WireWinch* Winch = Wire.GetOwnedWinch(Side);
+
+		// Get Owned Winch can never return nullptr when a valid Side is passed.
+		Winch->CopyFrom(WinchBarrier);
+		FRigidBodyBarrier WinchBodyBarrier = WinchBarrier.GetRigidBody();
+		UAGX_RigidBodyComponent* WinchBodyComponent =
+			Context.RigidBodies->FindRef(WinchBodyBarrier.GetGuid());
+
+		// Ok for WinchBodyComponent to be nullptr. Means attached to the world.
+		Winch->SetBodyAttachment(WinchBodyComponent);
+		Wire.SetWinchOwnerType(Side, EWireWinchOwnerType::Wire);
+		return true;
+	}
+
+	void TryCreateBodyFixedNode(
+		FWireNodeBarrier NodeBarrier, TArray<FWireRoutingNode>& Route, FAGX_ImportContext& Context)
+	{
+		if (NodeBarrier.GetType() != EWireNodeType::BodyFixed)
+			return;
+
+		FRigidBodyBarrier NodeBodyBarrier = NodeBarrier.GetRigidBody();
+		if (!NodeBodyBarrier.HasNative())
+			return;
+
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(NodeBodyBarrier.GetGuid());
+		if (Body == nullptr)
+			return;
+
+		if (Route.Num() > 0 && Route[0].NodeType == EWireNodeType::Free)
+		{
+			// In an initialized wire there may be a Free node right on top of the Body Fixe node.
+			// The Body Fixed node represents the body itself, while the Free node represents the
+			// part of the wire that approaches the body. While routing we only need the Body Fixed
+			// node, it represents both concepts.
+			Route.Pop();
+		}
+
+		FWireRoutingNode RouteNode;
+		RouteNode.NodeType = EWireNodeType::BodyFixed;
+		RouteNode.Frame.SetParentComponent(Body);
+		RouteNode.Frame.LocalLocation = NodeBarrier.GetTranslate();
+
+		RouteNode.SetBody(Body);
+		Route.Add(RouteNode);
+	}
+}
+
+void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	using namespace AGX_WireComponent_helpers;
 	check(Barrier.HasNative());
 	Radius = Barrier.GetRadius();
 	MinSegmentLength = 1.0f / Barrier.GetResolutionPerUnitLength();
@@ -1267,21 +1340,113 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier)
 	WireParameterController.CopyFrom(Barrier.GetParameterController());
 
 	for (const FName& Group : Barrier.GetCollisionGroups())
-	{
 		AddCollisionGroup(Group);
-	}
 
 	const FMergeSplitPropertiesBarrier Msp =
 		FMergeSplitPropertiesBarrier::CreateFrom(*const_cast<FWireBarrier*>(&Barrier));
 	if (Msp.HasNative())
-	{
-		MergeSplitProperties.CopyFrom(Msp);
-	}
+		MergeSplitProperties.CopyFrom(Msp, Context);
 
 	ImportGuid = Barrier.GetGuid();
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), Barrier.GetName(), UAGX_WireComponent::StaticClass());
+	Rename(*Name);
 
-	// Physical material, winches, and route nodes not set here since this is a pure data copy. For
-	// AGX Dynamics archive import these are set by AGX_ArchiveImporterHelper.
+	auto ParameterControllerBarrier = Barrier.GetParameterController();
+	if (ParameterControllerBarrier.HasNative())
+		WireParameterController.CopyFrom(ParameterControllerBarrier);
+
+	if (Context == nullptr || Context->Wires == nullptr || Context->ShapeMaterials == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Wires->Contains(ImportGuid));
+	Context->Wires->Add(ImportGuid, this);
+
+	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
+
+	const bool bHaveBeginWinch = ConfigureWinch(EWireSide::Begin, *this, Barrier, *Context);
+	const bool bHaveEndWinch = ConfigureWinch(EWireSide::End, *this, Barrier, *Context);
+
+	RouteNodes.Empty();
+	if (!bHaveBeginWinch)
+	{
+		// Configure initial Body Fixe node. Some Body Fixed nodes are owned by the winch on that
+		// side, do not create an explicit Body Fixed node in that case.
+		TryCreateBodyFixedNode(Barrier.GetFirstNode(), RouteNodes, *Context);
+	}
+
+	// Configure "normal" route nodes.
+	for (auto It = Barrier.GetRenderBeginIterator(), End = Barrier.GetRenderEndIterator();
+		 It != End; It.Inc())
+	{
+		const FAGX_WireNode NodeAGX = It.Get();
+		const EWireNodeType NodeType = [&NodeAGX, &Barrier, &It, Context]() -> EWireNodeType
+		{
+			if (Barrier.IsLumpedNode(It))
+			{
+				// Lumped nodes are special somehow, and should be created as free nodes.
+				return EWireNodeType::Free;
+			}
+			switch (NodeAGX.GetType())
+			{
+				case EWireNodeType::Free:
+					// Free nodes can be routed as-is.
+					return EWireNodeType::Free;
+				case EWireNodeType::Eye:
+					// Eye nodes can be routed as-is.
+					return EWireNodeType::Eye;
+				case EWireNodeType::BodyFixed:
+					// A Body Fixed node found by the render iterator is an implicitly created node
+					// and should be routed as a Free node. It should not be attached to any of the
+					// Rigid Bodies in the Component list.
+					return EWireNodeType::Free;
+				case EWireNodeType::Stop:
+					// Stop nodes are used by winches, which we detect with GetWinch instead.
+					return EWireNodeType::Other;
+				default:
+					// Any other node type is routed as a Free node for now. Special handling may
+					// be needed in the future, if routing with additional node types become
+					// supported.
+					return EWireNodeType::Free;
+			}
+		}();
+
+		if (NodeType == EWireNodeType::Other)
+		{
+			// Other nodes are used to signal "skip this node".
+			continue;
+		}
+
+		FWireRoutingNode RouteNode;
+		RouteNode.NodeType = NodeType;
+		if (NodeType == EWireNodeType::Eye)
+		{
+			// Eye nodes are attached to a Rigid Body, so make Local Location relative to that body.
+			FRigidBodyBarrier BodyBarrier = NodeAGX.GetRigidBody();
+			UAGX_RigidBodyComponent* BodyComponent = Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
+			if (BodyComponent != nullptr)
+			{
+				RouteNode.SetBody(BodyComponent);
+				RouteNode.Frame.SetParentComponent(BodyComponent);
+				RouteNode.Frame.LocalLocation = NodeAGX.GetLocalLocation();
+			}
+		}
+		else
+		{
+			// All other node types are placed relative to the Wire Component.
+			RouteNode.Frame.SetParentComponent(nullptr);
+			RouteNode.Frame.LocalLocation = NodeAGX.GetWorldLocation();
+		}
+
+		RouteNodes.Add(RouteNode);
+	}
+
+	if (!bHaveEndWinch)
+	{
+		// Configure ending Body Fixed node. Some Body Fixed nodes are owned by the winch on that
+		// side, do not create an explicit Body Fixed node in that case.
+		TryCreateBodyFixedNode(Barrier.GetLastNode(), RouteNodes, *Context);
+	}
 }
 
 bool UAGX_WireComponent::HasNative() const

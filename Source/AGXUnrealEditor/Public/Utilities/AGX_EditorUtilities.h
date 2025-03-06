@@ -64,9 +64,9 @@ class AGXUNREALEDITOR_API FAGX_EditorUtilities
 {
 public:
 	/**
-	 * Utility function for starting a model synchronization, with GUI Window etc.
+	 * Utility function for starting a model reimport, with GUI Window etc.
 	 */
-	static void SynchronizeModel(UBlueprint& Blueprint);
+	static void ReimportModel(UBlueprint& Blueprint, bool bOpenBlueprintEditorAfter = false);
 
 	/**
 	 * Renames an existing and previously saved asset. WantedName will be sanitized and if there
@@ -371,6 +371,23 @@ public:
 	static TArray<T*> FindAssets(const FString& AssetDirPath);
 
 	/**
+	 * Find (and loads) the first asset of the type specified by ClassName that resides in
+	 * AssetDirPath, with an ImportGuid matching the passed Guid. The type must have a member
+	 * 'ImportGuid' to be found by this function.Does not search recursively, so the AssetDirPath
+	 * must be the directory which the Asset resides in, for example
+	 * "/Game/ImportedAGXModels/MyModel/ShapeMaterial". Any returned asset is guaranteed not to be
+	 * nullptr.
+	 */
+	template <typename T>
+	static T* FindAsset(const FGuid& Guid, const FString& AssetDirPath);
+
+	/**
+	* Find and loads asset by name.
+	*/
+	template <typename T>
+	static T* FindAsset(const FString& Name, const FString& AssetDirPath);
+
+	/**
 	 * Save and Compile the passed Blueprint. This function cannot reside in AGX_BlueprintUtilities
 	 * since its implementation depends on an Editor module function.
 	 */
@@ -479,4 +496,21 @@ TArray<T*> FAGX_EditorUtilities::FindAssets(const FString& AssetDirPath)
 	}
 
 	return Assets;
+}
+
+template <typename T>
+inline T* FAGX_EditorUtilities::FindAsset(const FGuid& Guid, const FString& AssetDirPath)
+{
+	TArray<T*> Assets = FindAssets<T>(AssetDirPath);
+	T** Result = Assets.FindByPredicate([&Guid](T* Asset) { return Asset->ImportGuid == Guid; });
+	return Result != nullptr ? *Result : nullptr;
+}
+
+template <typename T>
+inline T* FAGX_EditorUtilities::FindAsset(const FString& Name, const FString& AssetDirPath)
+{
+	AGX_CHECK(!FName(*Name).IsNone());
+	TArray<T*> Assets = FindAssets<T>(AssetDirPath);
+	T** Result = Assets.FindByPredicate([&Name](T* Asset) { return Asset->GetName().Equals(Name); });
+	return Result != nullptr ? *Result : nullptr;
 }
