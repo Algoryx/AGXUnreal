@@ -58,21 +58,29 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
 	bool bEnabled = true;
 
+	/**
+	 * Low/reduced DOF implementation of a track. All track nodes bodies and hinges DOFs are removed
+	 * and replaced by a set of other bodies and constraints. Instead of the number of DOFs being of
+	 * the order of the number of nodes, it's reduced to the order of the number of wheels. The
+	 * track nodes are animated given the wheel geometries and rotation speeds, so it's possible to
+	 * render the nodes as for an ordinary track.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
-	bool bUseHighSpeedModel = false;
+	bool bEnableHighSpeedModel = false;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track")
-	void SetUseHighSpeedModel(bool bInUseHighSpeedModel);
+	void SetHighSpeedModelEnabled(bool bInUseHighSpeedModel);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track")
-	bool IsUsingHighSpeedModel() const;
+	bool IsHighSpeedModelEnabled() const;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Track")
-	void SetUseActiveCustomImplementation(bool bUseCustom);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Track")
-	bool GetUseActiveCustomImplementation() const;
-
+	/**
+	 * The chassis of the tracked vehicle.
+	 *
+	 * The chassis is used to constrain additional bodies to it for force feedbacks of the reduced
+	 * track, and used as reference for the animation of the nodes. If the wheels are attached in
+	 * world, it's valid that Chassis Body is unset.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track")
 	FAGX_RigidBodyReference ChassisBody;
 

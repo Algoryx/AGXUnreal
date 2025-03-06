@@ -59,18 +59,30 @@ namespace AGX_TrackComponent_helpers
 		AGX_CHECKF(
 			TrackBarrier != nullptr, TEXT("AGX_TrackComponent_helpers::EnableUseHighSpeedModel "
 										  "calls must be guarded by HasNative."));
-
-		UAGX_RigidBodyComponent* Chassis = Track.ChassisBody.GetRigidBody();
-		if (Chassis == nullptr)
+		if (TrackBarrier == nullptr)
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Could not enable the high-speed mode on track '%s' in '%s' because Chassis "
-					 "Body has not been set."),
+				TEXT("Enable High Speed Model called on track '%s' in '%s' that does not have a "
+					 "native."),
 				*Track.GetName(), *GetLabelSafe(Track.GetOwner()));
 			return;
 		}
-		if (!Chassis->HasNative())
+
+		// If we already have a high-speed implementation then we only need to enable it, then we're
+		// done.
+		if (TrackBarrier->HasHighSpeedModel())
+		{
+			TrackBarrier->EnableHighSpeedModel();
+			return;
+		}
+
+		// The Track does not have a high-speed implementation, create one.
+
+		// It is OK to not have a chassis body, but if we do have one then it must have a native
+		// since that is what will be passed to the Track barrier.
+		UAGX_RigidBodyComponent* ChassisComponent = Track.ChassisBody.GetRigidBody();
+		if (ChassisComponent != nullptr && !ChassisComponent->HasNative())
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -79,11 +91,14 @@ namespace AGX_TrackComponent_helpers
 				*Track.GetName(), *GetLabelSafe(Track.GetOwner()));
 			return;
 		}
-		TrackBarrier->EnableHighSpeedModel(*Chassis->GetNative());
+
+		FRigidBodyBarrier* ChassisBarrier =
+			ChassisComponent != nullptr ? ChassisComponent->GetNative() : nullptr;
+		TrackBarrier->CreateHighSpeedModel(ChassisBarrier);
 	}
 }
 
-void UAGX_TrackComponent::SetUseHighSpeedModel(bool bInUseHighSpeedModel)
+void UAGX_TrackComponent::SetHighSpeedModelEnabled(bool bInUseHighSpeedModel)
 {
 	if (HasNative())
 	{
@@ -96,36 +111,16 @@ void UAGX_TrackComponent::SetUseHighSpeedModel(bool bInUseHighSpeedModel)
 			NativeBarrier.DisableHighSpeedModel();
 		}
 	}
-	bUseHighSpeedModel = bInUseHighSpeedModel;
+	bEnableHighSpeedModel = bInUseHighSpeedModel;
 }
 
-bool UAGX_TrackComponent::IsUsingHighSpeedModel() const
+bool UAGX_TrackComponent::IsHighSpeedModelEnabled() const
 {
 	if (HasNative())
 	{
 		return NativeBarrier.IsHighSpeedModelEnabled();
 	}
-	return bUseHighSpeedModel;
-}
-
-void UAGX_TrackComponent::SetUseActiveCustomImplementation(bool bUseCustom)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetUseActiveCustomImplementation(bUseCustom);
-	}
-}
-
-bool UAGX_TrackComponent::GetUseActiveCustomImplementation() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetUseActiveCustomImplementation();
-	}
-	else
-	{
-		return false;
-	}
+	return bEnableHighSpeedModel;
 }
 
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
@@ -667,7 +662,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		return;
 	}
 
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(UseHighSpeedModel);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL_ENABLE(HighSpeedModel);
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, Wheels),
@@ -772,9 +767,10 @@ void UAGX_TrackComponent::CreateNative()
 
 	// If we are using the high-speed model then the chassis Rigid Body must be created before the
 	// track since it is used by the agxVehicle::LowDofTrackImplementation constructor.
-	if (bUseHighSpeedModel)
+	if (bEnableHighSpeedModel)
 	{
 		UAGX_RigidBodyComponent* Chassis = ChassisBody.GetRigidBody();
+		// It is not required to have a chassis, so dont log a warning if it is nullptr.
 		if (Chassis != nullptr && !Chassis->HasNative())
 		{
 			Chassis->GetOrCreateNative();
@@ -787,17 +783,6 @@ void UAGX_TrackComponent::CreateNative()
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("Track Component '%s' in '%s' could not allocate native AGX Dynamics instance."),
-			*GetName(), *GetNameSafe(GetOwner()));
-		return;
-	}
-
-	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
-	if (!IsValid(Sim) || !Sim->HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Track '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
-				 "returned a nullptr or a simulation without a native."),
 			*GetName(), *GetNameSafe(GetOwner()));
 		return;
 	}
@@ -834,6 +819,18 @@ void UAGX_TrackComponent::CreateNative()
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),
 	// because some properties in TrackProperties affects the track initialization algorithm.
 	WriteTrackPropertiesToNative();
+	UpdateNativeProperties();
+
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
+	if (!IsValid(Sim) || !Sim->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Track '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
+				 "returned a nullptr or a simulation without a native."),
+			*GetName(), *GetNameSafe(GetOwner()));
+		return;
+	}
 
 	// \todo Want to use AAGX_Simulation::Add, but there's no overload taking a Track Component
 	//       (or LinkedStructure or Assembly), so we use a work-around in the TrackBarrier.
@@ -846,8 +843,6 @@ void UAGX_TrackComponent::CreateNative()
 				 "The Log category AGXDynamicsLog may contain more information about the failure."),
 			*GetName(), *GetNameSafe(GetOwner()));
 	}
-
-	UpdateNativeProperties();
 }
 
 void UAGX_TrackComponent::UpdateNativeMaterial()
@@ -1034,7 +1029,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetName(GetName());
-	if (bUseHighSpeedModel)
+	if (bEnableHighSpeedModel)
 	{
 		AGX_TrackComponent_helpers::EnableHighSpeedModel(*this);
 	}

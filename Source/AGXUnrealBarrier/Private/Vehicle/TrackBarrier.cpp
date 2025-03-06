@@ -154,20 +154,69 @@ FString FTrackBarrier::GetName() const
 	return Convert(NativeRef->Native->getName());
 }
 
-void FTrackBarrier::EnableHighSpeedModel(FRigidBodyBarrier& ChassisBody)
-{
-	// TODO This assumes that High Speed Track is the only Track Implementation.
-	check(HasNative());
-	check(ChassisBody.HasNative());
-	agx::RigidBody* ChassisBodyAGX = ChassisBody.GetNative()->Native;
-	NativeRef->Native->setCustomImplementation(new agxVehicle::LowDofTrackImplementation(ChassisBodyAGX));
+/*
+ * Begin High Speed Model.
+ */
 
+void FTrackBarrier::CreateHighSpeedModel(FRigidBodyBarrier* ChassisBody)
+{
+	check(HasNative());
+
+	agx::RigidBody* ChassisBodyAGX = [&]() -> agx::RigidBody*
+	{
+		if (ChassisBody == nullptr)
+		{
+			return nullptr;
+		}
+		check(ChassisBody->HasNative());
+		return ChassisBody->GetNative()->Native;
+	}();
+
+	NativeRef->Native->setCustomImplementation(
+		new agxVehicle::LowDofTrackImplementation(ChassisBodyAGX));
+}
+
+bool FTrackBarrier::HasHighSpeedModel()
+{
+	check(HasNative());
+	// TODO This assumes that High Speed Track is the only Track Implementation.
+	return NativeRef->Native->hasCustomImplementation();
+}
+
+bool FTrackBarrier::EnableHighSpeedModel()
+{
+	check(HasNative());
+	if (!HasHighSpeedModel())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("EnableHighSpeedModel called on a Track Barrier for an AGX Dynamics track that "
+				 "does not have a custom track implementation."));
+		return false;
+	}
+	// TODO This assumes that High Speed Track is the only Track Implementation.
+	NativeRef->Native->setUseActiveCustomImplementation(true);
+	return true;
 }
 
 void FTrackBarrier::DisableHighSpeedModel()
 {
 	check(HasNative());
-	NativeRef->Native->setCustomImplementation(nullptr);
+	// TODO This assumes that High Speed Track is the only Track Implementation.
+	NativeRef->Native->setUseActiveCustomImplementation(false);
+}
+
+bool FTrackBarrier::SetHighSpeedModelEnabled(bool bEnable)
+{
+	if (bEnable)
+	{
+		return EnableHighSpeedModel();
+	}
+	else
+	{
+		DisableHighSpeedModel();
+		return true;
+	}
 }
 
 bool FTrackBarrier::IsHighSpeedModelEnabled() const
@@ -177,17 +226,9 @@ bool FTrackBarrier::IsHighSpeedModelEnabled() const
 	return NativeRef->Native->hasActiveCustomImplementation();
 }
 
-void FTrackBarrier::SetUseActiveCustomImplementation(bool bUseCustom)
-{
-	check(HasNative());
-	NativeRef->Native->setUseActiveCustomImplementation(bUseCustom);
-}
-
-bool FTrackBarrier::GetUseActiveCustomImplementation() const
-{
-	check(HasNative());
-	return NativeRef->Native->hasActiveCustomImplementation();
-}
+/*
+ * End High Speed Model.
+ */
 
 void FTrackBarrier::ClearMaterial()
 {

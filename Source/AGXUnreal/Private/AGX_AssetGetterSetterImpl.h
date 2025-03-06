@@ -214,13 +214,28 @@ namespace AGX_WithEditorWrappers
 /**
  * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
  * asset, for a bool property. Call the corresponding Set member function, passing in that very same
- * property member variable. Is aware that bool properties has a 'b' appended to the property name
+ * property member variable. Is aware that bool properties has a 'b' prepended to the property name
  * but not the setter function name.
  */
 #define AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(PropertyName) \
 	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, b ## PropertyName), \
 	[](ThisClass* This) { \
 		This->Set ## PropertyName(This->b ## PropertyName); \
+	})
+
+
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
+ * asset, for a bool property that enables or disables a feature. These have a different naming
+ * convention compared to regular bool properties. Call the corresponding Set X Enabled member
+ * function, passing in the very same property member variable. Is aware that bool properties has
+ * 'b' prepended to the property name but not he setting function name, and where to put the
+ * 'Enable' part of each identifier.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL_ENABLE(PropertyName) \
+	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, b ## Enable ## PropertyName), \
+	[](ThisClass* This) { \
+		This->Set ## PropertyName ## Enabled(This->b ## Enable ## PropertyName); \
 	})
 
 // clang-format on

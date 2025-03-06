@@ -60,12 +60,12 @@ public:
 	void SetName(const FString& Name);
 	FString GetName() const;
 
-	void EnableHighSpeedModel(FRigidBodyBarrier& ChassisBody);
+	void CreateHighSpeedModel(FRigidBodyBarrier* ChassisBody);
+	bool HasHighSpeedModel();
+	bool EnableHighSpeedModel();
 	void DisableHighSpeedModel();
+	bool SetHighSpeedModelEnabled(bool bEnable);
 	bool IsHighSpeedModelEnabled() const;
-
-	void SetUseActiveCustomImplementation(bool bUseCustom);
-	bool GetUseActiveCustomImplementation() const;
 
 	void ClearMaterial();
 	void SetMaterial(const FShapeMaterialBarrier& Material);
