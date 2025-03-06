@@ -3279,6 +3279,24 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual("Hinge Range Enabled", Track->TrackProperties->bEnableHingeRange, false);
 		Test.TestEqual("Hinge Range Min", Track->TrackProperties->HingeRange.Min, -120.0);
 		Test.TestEqual("Hinge Range Max", Track->TrackProperties->HingeRange.Max, 20.0);
+
+		// Stiffness.
+
+// These tests are disabled until the High Speed Tracks branch of AGX Dynamics (feature/hs-tracks)
+// has implemented archive serialization for the new Track Properties parameters.
+#if 0
+		Test.TestEqual(TEXT("LongitudinalStiffness"), Track->TrackProperties->LongitudinalStiffness, 1.0e8);
+		Test.TestEqual(TEXT("TorsionalStiffness"), Track->TrackProperties->TorsionalStiffness, 1.1e8);
+		Test.TestEqual(TEXT("ShearStiffness"), Track->TrackProperties->ShearStiffness, 1.2e8);
+		Test.TestEqual(TEXT("BendingStiffness"), Track->TrackProperties->BendingStiffness, 1.3e8);
+		Test.TestEqual(TEXT("BendingFrictionCoefficient"), Track->TrackProperties->BendingFrictionCoefficient, 0.8);
+#else
+		Test.TestTrue(
+			"Track properties added with the High Speed Track feature currently don't have archive "
+			"serialization support in AGX Dynamics. Remove this and enable the tests above once "
+			"archive serialization support has been implemented.",
+			false);
+#endif
 		Test.TestEqual(
 			"On Initialize Merge Nodes to Wheels Enabled",
 			Track->TrackProperties->bEnableOnInitializeMergeNodesToWheels, false);

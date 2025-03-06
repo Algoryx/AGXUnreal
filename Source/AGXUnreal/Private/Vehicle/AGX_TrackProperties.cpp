@@ -173,7 +173,8 @@ void UAGX_TrackProperties::SetHingeSpookDampingTranslational_BP(
 	// clang-format on
 }
 
-void UAGX_TrackProperties::GetHingeSpookDampingTranslational(double& DampingX, double& DampingY, double& DampingZ) const
+void UAGX_TrackProperties::GetHingeSpookDampingTranslational(
+	double& DampingX, double& DampingY, double& DampingZ) const
 {
 	DampingX = GetHingeSpookDampingTranslationalX();
 	DampingY = GetHingeSpookDampingTranslationalY();
@@ -296,6 +297,60 @@ void UAGX_TrackProperties::GetHingeRange_BP(float& Min, float& Max) const
 	FAGX_RealInterval Range = GetHingeRange();
 	Min = static_cast<float>(Range.Min);
 	Max = static_cast<float>(Range.Max);
+}
+
+//
+// Stiffness.
+//
+
+void UAGX_TrackProperties::SetLongitudinalStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(LongitudinalStiffness, Stiffness, SetLongitudinalStiffness);
+}
+
+double UAGX_TrackProperties::GetLongitudinalStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(LongitudinalStiffness, GetLongitudinalStiffness);
+}
+
+void UAGX_TrackProperties::SetTorsionalStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(TorsionalStiffness, Stiffness, SetTorsionalStiffness);
+}
+
+double UAGX_TrackProperties::GetTorsionalStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(TorsionalStiffness, GetTorsionalStiffness);
+}
+
+void UAGX_TrackProperties::SetShearStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ShearStiffness, Stiffness, SetShearStiffness);
+}
+
+double UAGX_TrackProperties::GetShearStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ShearStiffness, GetShearStiffness);
+}
+
+void UAGX_TrackProperties::SetBendingStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(BendingStiffness, Stiffness, SetBendingStiffness);
+}
+
+double UAGX_TrackProperties::GetBendingStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingStiffness, GetBendingStiffness);
+}
+
+void UAGX_TrackProperties::SetBendingFrictionCoefficient(double Coefficient)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(BendingFrictionCoefficient, Coefficient, SetBendingFrictionCoefficient);
+}
+
+double UAGX_TrackProperties::GetBendingFrictionCoefficient() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingFrictionCoefficient, GetBendingFrictionCoefficient);
 }
 
 //
@@ -449,6 +504,10 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 		return;
 	}
 
+	//
+	// Hinge parameters.
+	//
+
 	HingeComplianceTranslational_X = Source->HingeComplianceTranslational_X;
 	HingeComplianceTranslational_Y = Source->HingeComplianceTranslational_Y;
 	HingeComplianceTranslational_Z = Source->HingeComplianceTranslational_Z;
@@ -465,6 +524,18 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 
 	bEnableHingeRange = Source->bEnableHingeRange;
 	HingeRange = Source->HingeRange;
+
+	// Stiffness parameters.
+	LongitudinalStiffness = Source->LongitudinalStiffness;
+	TorsionalStiffness = Source->TorsionalStiffness;
+	ShearStiffness = Source->ShearStiffness;
+	BendingStiffness = Source->BendingStiffness;
+	BendingFrictionCoefficient = Source->BendingFrictionCoefficient;
+
+	//
+	// Merge parameters.
+	//
+
 	bEnableOnInitializeMergeNodesToWheels = Source->bEnableOnInitializeMergeNodesToWheels;
 	bEnableOnInitializeTransformNodesToWheels = Source->bEnableOnInitializeTransformNodesToWheels;
 	TransformNodesToWheelsOverlap = Source->TransformNodesToWheelsOverlap;
@@ -473,12 +544,16 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 	NodesToWheelsSplitThreshold = Source->NodesToWheelsSplitThreshold;
 	NumNodesIncludedInAverageDirection = Source->NumNodesIncludedInAverageDirection;
 
+	// Stabilization parameters.
 	MinStabilizingHingeNormalForce = Source->MinStabilizingHingeNormalForce;
 	StabilizingHingeFrictionParameter = Source->StabilizingHingeFrictionParameter;
 }
 
 void UAGX_TrackProperties::CopyFrom(const FTrackPropertiesBarrier& Source)
 {
+	//
+	// Hinge parameters.
+	//
 	HingeComplianceTranslational_X = Source.GetHingeCompliance(0);
 	HingeComplianceTranslational_Y = Source.GetHingeCompliance(1);
 	HingeComplianceTranslational_Z = Source.GetHingeCompliance(2);
@@ -495,6 +570,18 @@ void UAGX_TrackProperties::CopyFrom(const FTrackPropertiesBarrier& Source)
 
 	bEnableHingeRange = Source.GetHingeRangeEnabled();
 	HingeRange = Source.GetHingeRangeRange();
+
+	// Stiffness parameters.
+	LongitudinalStiffness = Source.GetLongitudinalStiffness();
+	TorsionalStiffness = Source.GetTorsionalStiffness();
+	ShearStiffness = Source.GetShearStiffness();
+	BendingStiffness = Source.GetBendingStiffness();
+	BendingFrictionCoefficient = Source.GetBendingFrictionCoefficient();
+
+	//
+	// Merge parameters.
+	//
+
 	bEnableOnInitializeMergeNodesToWheels = Source.GetOnInitializeMergeNodesToWheelsEnabled();
 	bEnableOnInitializeTransformNodesToWheels =
 		Source.GetOnInitializeTransformNodesToWheelsEnabled();
@@ -504,6 +591,7 @@ void UAGX_TrackProperties::CopyFrom(const FTrackPropertiesBarrier& Source)
 	NodesToWheelsSplitThreshold = Source.GetNodesToWheelsSplitThreshold();
 	NumNodesIncludedInAverageDirection = Source.GetNumNodesIncludedInAverageDirection();
 
+	// Stabilization parameters.
 	MinStabilizingHingeNormalForce = Source.GetMinStabilizingHingeNormalForce();
 	StabilizingHingeFrictionParameter = Source.GetStabilizingHingeFrictionParameter();
 }
@@ -646,7 +734,9 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 		return;
 	}
 
-	UE_LOG(LogAGX, Warning, TEXT("Initial torsional stiffness: %d"), NativeBarrier.GetTorsionalStiffness());
+	UE_LOG(
+		LogAGX, Warning, TEXT("Initial torsional stiffness: %d"),
+		NativeBarrier.GetTorsionalStiffness());
 
 	// Hinge parameters.
 	NativeBarrier.SetHingeComplianceTranslationalX(HingeComplianceTranslational_X);
@@ -661,6 +751,13 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	NativeBarrier.SetHingeSpookDampingRotationalY(HingeSpookDampingRotational_Y);
 	NativeBarrier.SetHingeRangeEnabled(bEnableHingeRange);
 	NativeBarrier.SetHingeRangeRange(HingeRange);
+
+	// Stiffness parameters.
+	NativeBarrier.SetLongitudinalStiffness(LongitudinalStiffness);
+	NativeBarrier.SetTorsionalStiffness(TorsionalStiffness);
+	NativeBarrier.SetShearStiffness(ShearStiffness);
+	NativeBarrier.SetBendingStiffness(BendingStiffness);
+	NativeBarrier.SetBendingFrictionCoefficient(BendingFrictionCoefficient);
 
 	// On initialize parameters.
 	NativeBarrier.SetOnInitializeMergeNodesToWheelsEnabled(bEnableOnInitializeMergeNodesToWheels);
@@ -677,7 +774,9 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	NativeBarrier.SetMinStabilizingHingeNormalForce(MinStabilizingHingeNormalForce);
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
 
-	UE_LOG(LogAGX, Warning, TEXT("Final torsional stiffness: %d"), NativeBarrier.GetTorsionalStiffness());
+	UE_LOG(
+		LogAGX, Warning, TEXT("Final torsional stiffness: %d"),
+		NativeBarrier.GetTorsionalStiffness());
 }
 
 void UAGX_TrackProperties::PostInitProperties()
@@ -704,6 +803,10 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 	{
 		return;
 	}
+
+	//
+	// Hinge parameters.
+	//
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceTranslational_X),
@@ -779,6 +882,21 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, HingeRange),
 		[](ThisClass* This) { AGX_ASSET_DISPATCHER_LAMBDA_BODY(HingeRange, SetHingeRange) });
+
+	//
+	// Stiffness parameters.
+	//
+	AGX_COMPONENT_DEFAULT_DISPATCHER(LongitudinalStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TorsionalStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingFrictionCoefficient);
+
+
+	//
+	// Merge parameters.
+	//
+
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, bEnableOnInitializeMergeNodesToWheels),
 		[](ThisClass* This)
@@ -820,6 +938,11 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				NumNodesIncludedInAverageDirection, SetNumNodesIncludedInAverageDirection)
 		});
+
+	//
+	// Stabilization parameters.
+	//
+
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, MinStabilizingHingeNormalForce),
 		[](ThisClass* This)
