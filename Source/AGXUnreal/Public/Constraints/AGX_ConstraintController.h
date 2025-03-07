@@ -90,6 +90,9 @@ struct AGXUNREAL_API FAGX_ConstraintController
 
 	double GetForce();
 
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint Controller")
+	FString Name;
+
 	/**
 	 * Handle serialization backwards compatibility. May be overridden by subclasses as long as they
 	 * call Super::Serialize.

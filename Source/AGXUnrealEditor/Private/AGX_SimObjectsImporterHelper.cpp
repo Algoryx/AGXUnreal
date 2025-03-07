@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AMOR/AGX_AmorEnums.h"
@@ -35,6 +35,7 @@
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "OpenPLX/PLX_SignalHandlerComponent.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_CapsuleShapeComponent.h"
@@ -2118,6 +2119,28 @@ void FAGX_SimObjectsImporterHelper::UpdateObserverFrameComponent(
 	}
 
 	Component.ImportGuid = ObserverGuid;
+}
+
+UPLX_SignalHandlerComponent* FAGX_SimObjectsImporterHelper::InstantiateSignalHandlerComponent(
+	AActor& Owner)
+{
+	UPLX_SignalHandlerComponent* Component = NewObject<UPLX_SignalHandlerComponent>(&Owner);
+	if (Component == nullptr)
+		return nullptr;
+
+	UpdateSignalHandlerComponent(*Component);
+	Component->SetFlags(RF_Transactional);
+	Owner.AddInstanceComponent(Component);
+	Component->RegisterComponent();
+	Component->PostEditChange();
+
+	return Component;
+}
+
+void FAGX_SimObjectsImporterHelper::UpdateSignalHandlerComponent(
+	UPLX_SignalHandlerComponent& Component)
+{
+	FAGX_ImportUtilities::Rename(Component, "PLX_SignalHandler");
 }
 
 UAGX_RigidBodyComponent* FAGX_SimObjectsImporterHelper::GetBody(

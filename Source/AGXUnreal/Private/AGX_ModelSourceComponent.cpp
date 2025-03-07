@@ -1,6 +1,6 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_CustomVersion.h"

@@ -39,6 +39,7 @@ FAGX_ConstraintController& FAGX_ConstraintController::operator=(
 	SpookDamping = Other.SpookDamping;
 	ForceRange = Other.ForceRange;
 	bRotational = Other.bRotational;
+	Name = Other.Name;
 	return *this;
 }
 
@@ -201,6 +202,7 @@ void FAGX_ConstraintController::UpdateNativeProperties()
 	NativeBarrier->SetCompliance(Compliance);
 	NativeBarrier->SetSpookDamping(SpookDamping);
 	NativeBarrier->SetForceRange(ForceRange);
+	NativeBarrier->SetName(Name);
 	UpdateNativePropertiesImpl();
 }
 
@@ -224,10 +226,14 @@ void FAGX_ConstraintController::CopyFrom(
 
 		if (ForceOverwriteInstances || Instance->ForceRange == ForceRange)
 			Instance->ForceRange = Source.GetForceRange();
+
+		if (ForceOverwriteInstances || Instance->Name == Name)
+			Instance->Name = Source.GetName();
 	}
 
 	bEnable = Source.GetEnable();
 	Compliance = Source.GetCompliance();
 	SpookDamping = Source.GetSpookDamping();
 	ForceRange = Source.GetForceRange();
+	Name = Source.GetName();
 }

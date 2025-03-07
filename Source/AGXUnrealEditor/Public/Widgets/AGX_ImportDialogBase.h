@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
+#include "Import/AGX_ImportEnums.h"
 #include "AGX_ImportSettings.h"
 
 // Unreal Engine includes.

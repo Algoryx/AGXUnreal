@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
+#include "Import/AGX_ImportEnums.h"
 
 struct FAGX_ImportSettings
 {
@@ -22,6 +22,7 @@ struct FAGX_ImportSettings
 
 struct FAGX_SynchronizeModelSettings
 {
+	EAGX_ImportType ImportType = EAGX_ImportType::Invalid;
 	FString FilePath;
 	bool bIgnoreDisabledTrimeshes = true;
 	bool bForceOverwriteProperties = false;
