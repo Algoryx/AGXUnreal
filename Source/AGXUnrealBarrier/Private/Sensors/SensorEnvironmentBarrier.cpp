@@ -26,6 +26,7 @@
 #include "EndAGXIncludes.h"
 
 // Standard Library includes.
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -185,7 +186,36 @@ void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
 
 bool FSensorEnvironmentBarrier::IsRaytraceSupported()
 {
-	return agxSensor::RtConfig::isRaytraceSupported();
+	static bool bIsRaytraceSupported = true;
+	static std::once_flag InitFlag; // Ensures initialization runs only once.
+
+	std::call_once(
+		InitFlag,
+		[]()
+		{
+			bIsRaytraceSupported = agxSensor::RtConfig::isRaytraceSupported();
+			if (!bIsRaytraceSupported)
+				return;
+
+			// We might get false positives from the isRaytraceSupported check above, try initialize
+			// the library to ensure everything works as expected.
+			FRtAmbientMaterialBarrier Barrier;
+			try
+			{
+				UE_LOG(LogAGX, Log, TEXT("Trying to initialize a Lidar material."));
+				Barrier.AllocateNative();
+				bIsRaytraceSupported = Barrier.HasNative();
+				Barrier.ReleaseNative();
+			}
+			catch (...)
+			{
+				UE_LOG(LogAGX, Log, TEXT("Caught exception after Lidar material initialization."));
+				Barrier.ReleaseNative();
+				bIsRaytraceSupported = false;
+			}
+		});
+
+	return bIsRaytraceSupported;
 }
 
 TArray<FString> FSensorEnvironmentBarrier::GetRaytraceDevices()
