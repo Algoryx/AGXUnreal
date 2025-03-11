@@ -91,3 +91,11 @@ enum class EDofFlag : uint8
 	DofFlagRotational3 = 1 << 5 UMETA(DisplayName = "Rotation3"),
 };
 
+
+UENUM(BlueprintType)
+enum class EAGX_AttachmentProjection : uint8
+{
+	Disabled,
+	SecondToFirst,
+	FirstToSecond,
+};
