@@ -90,3 +90,4 @@ enum class EDofFlag : uint8
 	DofFlagRotational2 = 1 << 4 UMETA(DisplayName = "Rotation2"),
 	DofFlagRotational3 = 1 << 5 UMETA(DisplayName = "Rotation3"),
 };
+
