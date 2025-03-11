@@ -345,7 +345,8 @@ double UAGX_TrackProperties::GetBendingStiffness() const
 
 void UAGX_TrackProperties::SetBendingFrictionCoefficient(double Coefficient)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(BendingFrictionCoefficient, Coefficient, SetBendingFrictionCoefficient);
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		BendingFrictionCoefficient, Coefficient, SetBendingFrictionCoefficient);
 }
 
 double UAGX_TrackProperties::GetBendingFrictionCoefficient() const
@@ -773,10 +774,6 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	// Stabilization parameters.
 	NativeBarrier.SetMinStabilizingHingeNormalForce(MinStabilizingHingeNormalForce);
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
-
-	UE_LOG(
-		LogAGX, Warning, TEXT("Final torsional stiffness: %d"),
-		NativeBarrier.GetTorsionalStiffness());
 }
 
 void UAGX_TrackProperties::PostInitProperties()
@@ -891,7 +888,6 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffness);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffness);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingFrictionCoefficient);
-
 
 	//
 	// Merge parameters.
