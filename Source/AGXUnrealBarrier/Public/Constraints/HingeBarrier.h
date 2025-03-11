@@ -2,7 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Constraints/Constraint1DOFBarrier.h"
+#include "Constraints/AGX_ConstraintEnums.h"
 
 class FRigidBodyBarrier;
 
@@ -13,6 +15,9 @@ public:
 	FHingeBarrier(FHingeBarrier&& Other) = default;
 	FHingeBarrier(std::unique_ptr<FConstraintRef> Native);
 	virtual ~FHingeBarrier();
+
+	void SetAttachmentProjection(EAGX_AttachmentProjection Projection);
+	bool IsAttachmentProjectionEnabled() const;
 
 private:
 	virtual void AllocateNativeImpl(

@@ -27,6 +27,35 @@ FHingeBarrier::~FHingeBarrier()
 {
 }
 
+void FHingeBarrier::SetAttachmentProjection(EAGX_AttachmentProjection Projection)
+{
+	check(HasNative());
+	bool bEnabled, bSecondToFirst;
+	switch (Projection)
+	{
+		case EAGX_AttachmentProjection::Disabled:
+			bEnabled = false;
+			bSecondToFirst = false;
+			break;
+		case EAGX_AttachmentProjection::FirstToSecond:
+			bEnabled = true;
+			bSecondToFirst = false;
+			break;
+		case EAGX_AttachmentProjection::SecondToFirst:
+			bEnabled = true;
+			bSecondToFirst = true;
+	}
+
+	NativeRef->Native->getAttachmentPair()->setEnableAttachmentProjections(
+		bEnabled, bSecondToFirst);
+}
+
+bool FHingeBarrier::IsAttachmentProjectionEnabled() const
+{
+	check(HasNative());
+	return NativeRef->Native->getAttachmentPair()->getEnableAttachmentProjections();
+}
+
 void FHingeBarrier::AllocateNativeImpl(
 	const FRigidBodyBarrier& RigidBody1, const FVector& FramePosition1, const FQuat& FrameRotation1,
 	const FRigidBodyBarrier* RigidBody2, const FVector& FramePosition2, const FQuat& FrameRotation2)

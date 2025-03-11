@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Constraints/AGX_Constraint1DofComponent.h"
+#include "Constraints/AGX_ConstraintEnums.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -28,6 +29,17 @@ public:
 public:
 	UAGX_HingeConstraintComponent();
 	virtual ~UAGX_HingeConstraintComponent() override;
+
+	UPROPERTY(
+		VisibleAnywhere, BlueprintReadWrite, Category = "AGX Hinge",
+		BlueprintSetter = "SetAttachmentProjection")
+	EAGX_AttachmentProjection AttachmentProjection {EAGX_AttachmentProjection::Disabled};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Hinge", BlueprintSetter)
+	void SetAttachmentProjection(EAGX_AttachmentProjection Projection);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Hinge")
+	bool IsAttachmentProjectionEnabled() const;
 
 	FHingeBarrier* GetNativeHinge();
 	const FHingeBarrier* GetNativeHinge() const;

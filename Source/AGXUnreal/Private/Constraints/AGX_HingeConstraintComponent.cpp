@@ -24,6 +24,28 @@ UAGX_HingeConstraintComponent::~UAGX_HingeConstraintComponent()
 {
 }
 
+void UAGX_HingeConstraintComponent::SetAttachmentProjection(EAGX_AttachmentProjection Projection)
+{
+	if (HasNative())
+	{
+		GetNativeHinge()->SetAttachmentProjection(Projection);
+	}
+	AttachmentProjection = Projection;
+}
+
+bool UAGX_HingeConstraintComponent::IsAttachmentProjectionEnabled() const
+{
+	if (HasNative())
+	{
+		return GetNativeHinge()->IsAttachmentProjectionEnabled();
+	}
+	else
+	{
+		return AttachmentProjection != EAGX_AttachmentProjection::Disabled;
+	}
+
+}
+
 FHingeBarrier* UAGX_HingeConstraintComponent::GetNativeHinge()
 {
 	return FAGX_ConstraintUtilities::GetNativeCast(this);
