@@ -195,7 +195,7 @@ bool FTrackBarrier::EnableHighSpeedModel()
 		return false;
 	}
 	// TODO This assumes that High Speed Track is the only Track Implementation.
-	NativeRef->Native->setUseActiveCustomImplementation(true);
+	NativeRef->Native->setCustomImplementationActive(true);
 	return true;
 }
 
@@ -203,7 +203,7 @@ void FTrackBarrier::DisableHighSpeedModel()
 {
 	check(HasNative());
 	// TODO This assumes that High Speed Track is the only Track Implementation.
-	NativeRef->Native->setUseActiveCustomImplementation(false);
+	NativeRef->Native->setCustomImplementationActive(false);
 }
 
 bool FTrackBarrier::SetHighSpeedModelEnabled(bool bEnable)
