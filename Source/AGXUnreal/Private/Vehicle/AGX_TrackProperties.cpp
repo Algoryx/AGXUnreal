@@ -735,10 +735,6 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 		return;
 	}
 
-	UE_LOG(
-		LogAGX, Warning, TEXT("Initial torsional stiffness: %d"),
-		NativeBarrier.GetTorsionalStiffness());
-
 	// Hinge parameters.
 	NativeBarrier.SetHingeComplianceTranslationalX(HingeComplianceTranslational_X);
 	NativeBarrier.SetHingeComplianceTranslationalY(HingeComplianceTranslational_Y);
