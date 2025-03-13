@@ -30,7 +30,9 @@ void UAGX_HingeConstraintComponent::SetAttachmentProjection(EAGX_AttachmentProje
 	{
 		GetNativeHinge()->SetAttachmentProjection(Projection);
 	}
+#if 0
 	AttachmentProjection = Projection;
+#endif
 }
 
 bool UAGX_HingeConstraintComponent::IsAttachmentProjectionEnabled() const
@@ -41,7 +43,11 @@ bool UAGX_HingeConstraintComponent::IsAttachmentProjectionEnabled() const
 	}
 	else
 	{
+#if 0
 		return AttachmentProjection != EAGX_AttachmentProjection::Disabled;
+#else
+		return false;
+#endif
 	}
 
 }

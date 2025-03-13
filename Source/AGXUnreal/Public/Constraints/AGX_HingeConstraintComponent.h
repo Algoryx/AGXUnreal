@@ -30,10 +30,15 @@ public:
 	UAGX_HingeConstraintComponent();
 	virtual ~UAGX_HingeConstraintComponent() override;
 
+/// \note Unclear if Attachment Projection should be user-exposed or not. It is a work-in-progress
+/// feature that should only be used in very specific circumstances. For now we hide the setting
+/// from the Details panel but provide Blueprint callable functions for enabling it.
+#if 0
 	UPROPERTY(
 		VisibleAnywhere, BlueprintReadWrite, Category = "AGX Hinge",
 		BlueprintSetter = "SetAttachmentProjection")
 	EAGX_AttachmentProjection AttachmentProjection {EAGX_AttachmentProjection::Disabled};
+#endif
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Hinge", BlueprintSetter)
 	void SetAttachmentProjection(EAGX_AttachmentProjection Projection);
