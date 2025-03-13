@@ -843,6 +843,15 @@ void UAGX_TrackComponent::CreateNative()
 				 "The Log category AGXDynamicsLog may contain more information about the failure."),
 			*GetName(), *GetNameSafe(GetOwner()));
 	}
+
+	if (bEnableHighSpeedModel)
+	{
+		AGX_TrackComponent_helpers::EnableHighSpeedModel(*this);
+	}
+	else
+	{
+		NativeBarrier.DisableHighSpeedModel();
+	}
 }
 
 void UAGX_TrackComponent::UpdateNativeMaterial()
@@ -1029,6 +1038,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetName(GetName());
+#if 0
 	if (bEnableHighSpeedModel)
 	{
 		AGX_TrackComponent_helpers::EnableHighSpeedModel(*this);
@@ -1037,6 +1047,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	{
 		NativeBarrier.DisableHighSpeedModel();
 	}
+#endif
 
 	// Set shape material on all native geometries.
 	UpdateNativeMaterial();
