@@ -40,7 +40,7 @@ public:
 	EAGX_AttachmentProjection AttachmentProjection {EAGX_AttachmentProjection::Disabled};
 #endif
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Hinge", BlueprintSetter)
+	UFUNCTION(BlueprintCallable, Category = "AGX Hinge") // , BlueprintSetter
 	void SetAttachmentProjection(EAGX_AttachmentProjection Projection);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Hinge")
