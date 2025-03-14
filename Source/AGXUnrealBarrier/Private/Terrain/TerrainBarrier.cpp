@@ -205,6 +205,12 @@ void FTerrainBarrier::ClearShapeMaterial()
 	NativeRef->Native->setMaterial(nullptr);
 }
 
+void FTerrainBarrier::SetCompaction(double Compaction)
+{
+	check(HasNative());
+	NativeRef->Native->setCompaction(0.8);
+}
+
 void FTerrainBarrier::AddCollisionGroup(const FName& GroupName)
 {
 	check(HasNative());

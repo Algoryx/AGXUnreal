@@ -63,6 +63,8 @@ public:
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 
+	void SetCompaction(double Compaction);
+
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);
 	TArray<FName> GetCollisionGroups() const;

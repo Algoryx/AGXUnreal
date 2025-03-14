@@ -1094,6 +1094,7 @@ bool AAGX_Terrain::CreateNative()
 	}();
 
 	NativeBarrier.AllocateNative(HeightField, MaxDepth);
+	NativeBarrier.SetCompaction(0.8);
 
 	if (!NativeBarrier.HasNative())
 	{
