@@ -3,7 +3,11 @@
 #include "Utilities/AGX_Utilities.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_Importer.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
@@ -49,4 +53,65 @@ FVector UAGX_AGXUtilities::CalculateCenterOfMass(const TArray<UAGX_RigidBodyComp
 		Com /= TotalMass;
 
 	return Com;
+}
+
+AActor* UAGX_AGXUtilities::Import(UObject* WorldContextObject, FAGX_ImportSettings Settings)
+{
+	if (WorldContextObject == nullptr || WorldContextObject->GetWorld() == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not get World object from call to UAGX_AGXUtilities::Import."));
+		return nullptr;
+	}
+
+	UWorld* World = WorldContextObject->GetWorld();
+	FAGX_Importer Importer;
+	FAGX_ImportResult Result = Importer.Import(Settings, *World);
+	if (IsUnrecoverableError(Result.Result) || Result.Actor == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Got unrecoverable error from Importer result in UAGX_AGXUtilities::Import. The "
+				 "Output Log may contain more information."));
+		if (Result.Actor != nullptr)
+			Result.Actor->Destroy();
+
+		return nullptr;
+	}
+
+	return Result.Actor;
+}
+
+AActor* UAGX_AGXUtilities::InstantiateActor(
+	UObject* WorldContextObject, AActor* Template, const FTransform& Transform)
+{
+	if (WorldContextObject == nullptr || WorldContextObject->GetWorld() == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not get World object from call to UAGX_AGXUtilities::InstantiateActor."));
+		return nullptr;
+	}
+
+	if (!IsValid(Template))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_AGXUtilities::InstantiateActor got invalid TemplateActor."));
+		return nullptr;
+	}
+
+	UWorld* World = WorldContextObject->GetWorld();
+	FActorSpawnParameters Params;
+	Params.Name =
+		*FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(World, Template->GetName(), nullptr);
+	Params.NameMode = FActorSpawnParameters::ESpawnActorNameMode::Requested;
+	Params.Template = Template;
+	AActor* SpawnedActor = World->SpawnActor<AActor>(AActor::StaticClass(), Transform, Params);
+
+#if WITH_EDITOR
+	SpawnedActor->SetActorLabel(Params.Name.ToString());
+#endif
+	return SpawnedActor;
 }

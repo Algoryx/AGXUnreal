@@ -3,20 +3,21 @@
 #include "Constraints/AGX_ConstraintComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_CustomVersion.h"
 #include "Constraints/AGX_ConstraintConstants.h"
-#include "Utilities/AGX_StringUtilities.h"
-
-/// \todo Determine which of these are really needed.
+#include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
+#include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
-#include "AGX_LogCategory.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/AGX_ConstraintFrameActor.h"
 #include "Constraints/ConstraintBarrier.h"
+#include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
@@ -538,15 +539,53 @@ bool UAGX_ConstraintComponent::GetLastLocalForceBody(
 	return NativeBarrier->GetLastLocalForce(Body->GetNative(), OutForce, OutTorque, bForceAtCm);
 }
 
-void UAGX_ConstraintComponent::CopyFrom(
-	const FConstraintBarrier& Barrier, bool ForceOverwriteInstances)
+namespace AGX_ConstraintComponent_helpers
 {
-	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetGuid(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(bEnable, Barrier.GetEnable(), *this, ForceOverwriteInstances)
+	void SetupBodyAttachments(
+		const FConstraintBarrier& Barrier, UAGX_ConstraintComponent& OutComponent,
+		FAGX_ImportContext& Context)
+	{
+		const auto Body1Barrier = Barrier.GetFirstBody();
+		const auto Body2Barrier = Barrier.GetSecondBody();
+		UAGX_RigidBodyComponent* Body1 = nullptr;
+		UAGX_RigidBodyComponent* Body2 = nullptr;
+
+		if (Body1Barrier.HasNative())
+		{
+			Body1 = Context.RigidBodies->FindRef(Body1Barrier.GetGuid());
+			AGX_CHECK(Body1 != nullptr);
+			OutComponent.BodyAttachment1.RigidBody.Name = *Body1->GetName();
+		}
+
+		if (Body2Barrier.HasNative())
+		{
+			Body2 = Context.RigidBodies->FindRef(Body2Barrier.GetGuid());
+			AGX_CHECK(Body2 != nullptr);
+			OutComponent.BodyAttachment2.RigidBody.Name = *Body2->GetName();
+		}
+
+		const FTransform Transform =
+			FAGX_ConstraintUtilities::SetupConstraintAsFrameDefiningSource(
+				Barrier, OutComponent, Body1, Body2);
+
+		OutComponent.SetWorldTransform(Transform);
+	}
+}
+
+void UAGX_ConstraintComponent::CopyFrom(
+	const FConstraintBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	check(Barrier.HasNative());
+
+	ImportGuid = Barrier.GetGuid();
+	bEnable = Barrier.GetEnable();
 	EAGX_SolveType SolveTypeBarrier = static_cast<EAGX_SolveType>(Barrier.GetSolveType());
-	AGX_COPY_PROPERTY_FROM(SolveType, SolveTypeBarrier, *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		bComputeForces, Barrier.GetEnableComputeForces(), *this, ForceOverwriteInstances);
+	SolveType = SolveTypeBarrier;
+	bComputeForces = Barrier.GetEnableComputeForces();
+
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), Barrier.GetName(), UAGX_ConstraintComponent::StaticClass());
+	Rename(*Name);
 
 	const static TArray<EGenericDofIndex> Dofs {
 		EGenericDofIndex::Translational1, EGenericDofIndex::Translational2,
@@ -557,44 +596,9 @@ void UAGX_ConstraintComponent::CopyFrom(
 	// cannot handle.
 	const FMergeSplitPropertiesBarrier Msp =
 		FMergeSplitPropertiesBarrier::CreateFrom(*const_cast<FConstraintBarrier*>(&Barrier));
-	if (FAGX_ObjectUtilities::IsTemplateComponent(*this))
-	{
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*this))
-		{
-			// Compliance, Damping and Force Range.
-			const bool ComplianceInSync = Instance->Compliance == Compliance;
-			const bool SpookDampingInSync = Instance->SpookDamping == SpookDamping;
-			const bool ForceRangeInSync = Instance->ForceRange == ForceRange;
-			for (const auto& Dof : Dofs)
-			{
-				if (const int32* NativeDofPtr = NativeDofIndexMap.Find(Dof))
-				{
-					const int32 NativeDof = *NativeDofPtr;
-					if (ForceOverwriteInstances || ComplianceInSync)
-						Instance->Compliance[Dof] = Barrier.GetCompliance(NativeDof);
+	if (Msp.HasNative())
+		MergeSplitProperties.CopyFrom(Msp, Context);
 
-					if (ForceOverwriteInstances || SpookDampingInSync)
-						Instance->SpookDamping[Dof] = Barrier.GetSpookDamping(NativeDof);
-
-					if (ForceOverwriteInstances || ForceRangeInSync)
-						Instance->ForceRange[Dof] = Barrier.GetForceRange(NativeDof);
-				}
-			}
-
-			// Merge Split Properties.
-			if (Msp.HasNative())
-			{
-				if (ForceOverwriteInstances ||
-					Instance->MergeSplitProperties == MergeSplitProperties)
-				{
-					Instance->MergeSplitProperties.CopyFrom(Msp);
-				}
-			}
-		}
-	}
-
-	// Finally, update this component for properties that the AGX_COPY_PROPERTY_FROM macro
-	// cannot handle.
 	for (const auto& Dof : Dofs)
 	{
 		if (const int32* NativeDofPtr = NativeDofIndexMap.Find(Dof))
@@ -606,9 +610,11 @@ void UAGX_ConstraintComponent::CopyFrom(
 		}
 	}
 
-	if (Msp.HasNative())
+	if (Context != nullptr && Context->Constraints != nullptr && Context->RigidBodies != nullptr)
 	{
-		MergeSplitProperties.CopyFrom(Msp);
+		AGX_ConstraintComponent_helpers::SetupBodyAttachments(Barrier, *this, *Context);
+		AGX_CHECK(!Context->Constraints->Contains(ImportGuid));
+		Context->Constraints->Add(ImportGuid, this);
 	}
 }
 

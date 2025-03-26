@@ -134,9 +134,7 @@ protected:
 	 * Copy properties from the give AGX Dynamics constraint controller into this AGXUnreal
 	 * constraint controller.
 	 */
-	void CopyFrom(
-		const FConstraintControllerBarrier& Source,
-		TArray<FAGX_ConstraintController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FConstraintControllerBarrier& Source);
 
 	/**
 	 * Handle to the AGX Dynamics instance.
