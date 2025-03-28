@@ -16,6 +16,8 @@
 
 #include "AGX_ShovelComponent.generated.h"
 
+struct FAGX_ImportContext;
+
 class UAGX_ShovelProperties;
 
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
@@ -113,7 +115,7 @@ public:
 	 */
 	FAGX_Frame* GetFrame(EAGX_ShovelFrame Frame);
 
-	void CopyFrom(const FShovelBarrier& Barrier, bool ForceOverwriteInstances = false);
+	void CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context);
 
 	bool SwapEdgeDirections();
 

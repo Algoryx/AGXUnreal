@@ -48,6 +48,8 @@ public: // Function overrides.
 #endif
 	//~ End UObject interface.
 
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
+
 public: // Native management.
 	FBallJointBarrier* GetNativeBallJoint();
 	const FBallJointBarrier* GetNativeBallJoint() const;

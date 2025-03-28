@@ -1,18 +1,24 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "AGXSimObjectsReader.h"
+#include "Import/AGXSimObjectsReader.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "Import/SimulationObjectCollection.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
-#include "SimulationObjectCollection.h"
 #include "TypeConversions.h"
+#include "Utilities/PLXUtilities.h"
+
+// OpenPLX includes.
+#include "BeginAGXIncludes.h"
+#include "agxOpenPLX/AgxOpenPlxApi.h"
+#include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -28,6 +34,7 @@
 #include <agx/Prismatic.h>
 #include <agx/RigidBody.h>
 #include <agx/version.h>
+#include <agxUtil/agxUtil.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
 // conflicts with a macro with the same name in Unreal. Undeffing the Unreal one.
@@ -43,9 +50,13 @@
 #include <agxSDK/Simulation.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/Terrain.h>
+#include <agxTerrain/Utils.h>
 #include <agxWire/Wire.h>
 #include <agxVehicle/Track.h>
 #include "EndAGXIncludes.h"
+
+// Unreal Engine inludes.
+#include "Misc/Paths.h"
 
 namespace
 {
@@ -255,20 +266,29 @@ namespace
 		}
 	}
 
-	// Reads and instantiates all Geometries not owned by a RigidBody.
-	void ReadBodilessGeometries(
+	// Reads all Geometries.
+	void ReadGeometries(
 		agxSDK::Simulation& Simulation, const FString& Filename,
 		FSimulationObjectCollection& OutSimObjects,
 		TSet<const agxCollide::Geometry*>& NonFreeGeometries)
 	{
+		auto SkipGeometry = [&](agxCollide::Geometry* G) -> bool
+		{
+			if (G == nullptr)
+				return true;
+
+			auto Body = G->getRigidBody();
+			if (Body != nullptr && !IsRegularBody(*Body))
+				return true;
+
+			return NonFreeGeometries.Contains(G);
+		};
+
 		const agxCollide::GeometryRefVector& Geometries = Simulation.getGeometries();
 		for (const agxCollide::GeometryRef& Geometry : Geometries)
 		{
-			if (Geometry == nullptr || Geometry->getRigidBody() != nullptr ||
-				NonFreeGeometries.Contains(Geometry))
-			{
+			if (SkipGeometry(Geometry))
 				continue;
-			}
 
 			::ReadShapes(Geometry->getShapes(), OutSimObjects);
 		}
@@ -380,20 +400,11 @@ namespace
 		}
 	}
 
-	void ReadShovels(
-		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
-		TSet<const agx::RigidBody*>& NonFreeBodies,
-		TSet<const agxCollide::Geometry*>& NonFreeGeometries,
-		TSet<const agx::Constraint*>& NonFreeConstraints,
-		TSet<const agx::Material*>& NonFreeMaterials,
+	void ReadTerrainMaterials(
+		agxSDK::Simulation& Simulation, TSet<const agx::Material*>& NonFreeMaterials,
 		TSet<const agx::ContactMaterial*>& NonFreeContactMaterials)
 	{
-		// Shovels are found though Terrains, but a single Shovel may exist in multiple Terrains.
-		// This set tracks unique shovels we find.
-		TSet<agxTerrain::Shovel*> SeenShovels;
-
-		// Loop through the Terrains and extract all Shovels. Also extract any internal Rigid
-		// Bodies, Geometries, and Constraints that should not be turned into Actor Components.
+		// Loop through the Terrains and extract the materials.
 		agxTerrain::TerrainPtrVector Terrains = agxTerrain::Terrain::findAll(&Simulation);
 		for (agxTerrain::Terrain* Terrain : Terrains)
 		{
@@ -407,116 +418,103 @@ namespace
 				Terrain->getContactMaterial(EMaterialType::PARTICLE, EMaterialType::PARTICLE));
 			NonFreeContactMaterials.Add(
 				Terrain->getContactMaterial(EMaterialType::TERRAIN, EMaterialType::AGGREGATE));
-
-			const agx::Vector<agxTerrain::ShovelRef>& Shovels = Terrain->getShovels();
-			for (const agxTerrain::ShovelRef& Shovel : Shovels)
-			{
-				if (Shovel == nullptr)
-					continue;
-
-				SeenShovels.Add(Shovel);
-
-				// Shovels contains a bunch of rigid bodies, geometries, and constraints that are
-				// internal to the shovel, or rather shovel-terrain pairs, that should not be turned
-				// in Actor Components. Add all such objects are fetched and added to the
-				// non-free sets.
-				//
-				// todo This code has been written for AGX Dynamics 2.36.1. There are changes made
-				// in later 2.36 versions and 2.37.
-
-				// Tools is the entry-point to everything Terrain-Shovel related.
-				agxTerrain::TerrainToolCollection* Tools = Terrain->getToolCollection(Shovel);
-				NonFreeGeometries.Add(Tools->getActiveZone()->getGeometry());
-
-				using EExcavationMode = agxTerrain::Shovel::ExcavationMode;
-
-				agxTerrain::ShovelAggregateContactMaterialContainer* MaterialContainer =
-					Tools->getShovelTerrainContactMaterialContainer();
-				NonFreeContactMaterials.Add(
-					MaterialContainer->getContactMaterial(EExcavationMode::PRIMARY));
-				NonFreeContactMaterials.Add(
-					MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_BACK));
-				NonFreeContactMaterials.Add(
-					MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_RIGHT));
-				NonFreeContactMaterials.Add(
-					MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_LEFT));
-
-				// The primary excavator is accessed through the soil particle aggregate.
-				{
-					agxTerrain::SoilParticleAggregate* Aggregate =
-						Tools->getSoilParticleAggregate();
-					NonFreeBodies.Add(Aggregate->getInnerBody());
-					for (const agx::RigidBody* Body : Aggregate->getWedgeBodies(false))
-					{
-						NonFreeBodies.Add(Body);
-					}
-					NonFreeConstraints.Add(Aggregate->getInnerWedgeLockJoint());
-					for (const agx::Constraint* Lock : Aggregate->getWedgeLockJoints(false))
-					{
-						NonFreeConstraints.Add(Lock);
-					}
-
-					NonFreeMaterials.Add(Aggregate->getMaterial());
-				}
-
-				// All other excavators are accessed through their respective deform controllers.
-				agxTerrain::DeformController* DeformController = Tools->getDeformController();
-				for (EExcavationMode ExcavationMode :
-					 {EExcavationMode::DEFORM_BACK, EExcavationMode::DEFORM_LEFT,
-					  EExcavationMode::DEFORM_RIGHT})
-				{
-					const agx::UInt DeformersId = static_cast<agx::UInt>(ExcavationMode) - 1;
-					agxTerrain::DeformerCollection* Deformers =
-						DeformController->getDeformerCollection(DeformersId);
-					agxTerrain::SoilParticleAggregate* Aggregate = Deformers->getAggregate();
-
-					NonFreeBodies.Add(Aggregate->getInnerBody());
-					for (const agx::RigidBody* Body : Aggregate->getWedgeBodies(false))
-					{
-						NonFreeBodies.Add(Body);
-					}
-					NonFreeConstraints.Add(Aggregate->getInnerWedgeLockJoint());
-					for (const agx::Constraint* Lock : Aggregate->getWedgeLockJoints(false))
-					{
-						NonFreeConstraints.Add(Lock);
-					}
-
-					NonFreeMaterials.Add(Aggregate->getMaterial());
-
-					// In addition to the soil particle aggregate objects, a deformer also has an
-					// active zone with a geometry.
-					NonFreeGeometries.Add(Deformers->getActiveZone()->getGeometry());
-
-					NonFreeContactMaterials.Add(
-						DeformController->getAggregateShovelContactMaterial(DeformersId));
-					NonFreeContactMaterials.Add(
-						DeformController->getAggregateTerrainContactMaterial(DeformersId));
-				}
-
-				// Each shovel holds a bunch of internal convex shapes for each Terrain.
-				const agxCollide::GeometryRefVector& InternalGeometries =
-					Tools->getVoxelCollisionGeometries();
-				for (const agxCollide::GeometryRef& InternalGeometry : InternalGeometries)
-				{
-					NonFreeGeometries.Add(InternalGeometry);
-				}
-
-				// Each shovel holds a prismatic for each terrain.
-				NonFreeConstraints.Add(
-					Tools->getPenetrationResistance()->getPenetrationPrismatic());
-
-				agxTerrain::AggregateContactGenerator* ContactGenerator =
-					Tools->getAggregateContactGenerator();
-				NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
-				NonFreeContactMaterials.Add(ContactGenerator->getAggregateTerrainContactMaterial());
-			}
 		}
+	}
 
-		// All shovels found, record them.
-		for (agxTerrain::Shovel* Shovel : SeenShovels)
+	void ReadShovels(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::RigidBody*>& NonFreeBodies,
+		TSet<const agxCollide::Geometry*>& NonFreeGeometries,
+		TSet<const agx::Constraint*>& NonFreeConstraints,
+		TSet<const agx::Material*>& NonFreeMaterials,
+		TSet<const agx::ContactMaterial*>& NonFreeContactMaterials)
+	{
+		agxTerrain::ShovelPtrVector Shovels = agxTerrain::Shovel::findAll(&Simulation);
+		for (agxTerrain::Shovel* Shovel : Shovels)
 		{
-			OutSimObjects.GetShovels().Add(AGXBarrierFactories::CreateShovelBarrier(Shovel));
+			// Shovels contains a bunch of rigid bodies, geometries, and constraints that are
+			// internal to the shovel, or rather shovel-terrain pairs, that should not be turned
+			// in Actor Components. Add all such objects are fetched and added to the
+			// non-free sets.
+			NonFreeGeometries.Add(Shovel->getActiveZone()->getGeometry());
+			using EExcavationMode = agxTerrain::Shovel::ExcavationMode;
+			agxTerrain::ShovelAggregateContactMaterialContainer* MaterialContainer =
+				Shovel->getShovelTerrainContactMaterialContainer();
+			NonFreeContactMaterials.Add(
+				MaterialContainer->getContactMaterial(EExcavationMode::PRIMARY));
+			NonFreeContactMaterials.Add(
+				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_BACK));
+			NonFreeContactMaterials.Add(
+				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_RIGHT));
+			NonFreeContactMaterials.Add(
+				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_LEFT));
+
+			auto ReadAggregate = [&](agxTerrain::SoilParticleAggregate* Aggregate)
+			{
+				NonFreeBodies.Add(Aggregate->getInnerBody());
+				for (const agx::RigidBody* Body : Aggregate->getWedgeBodies(false))
+				{
+					NonFreeBodies.Add(Body);
+				}
+				NonFreeConstraints.Add(Aggregate->getInnerWedgeLockJoint());
+				for (const agx::Constraint* Lock : Aggregate->getWedgeLockJoints(false))
+				{
+					NonFreeConstraints.Add(Lock);
+				}
+
+				NonFreeMaterials.Add(Aggregate->getMaterial());
+			};
+
+			// The primary excavator is accessed through the soil particle aggregate.
+			{
+				agxTerrain::SoilParticleAggregate* Aggregate = Shovel->getSoilParticleAggregate();
+				ReadAggregate(Aggregate);
+			}
+
+			// All other excavators are accessed through their respective deform controllers.
+			agxTerrain::DeformController* DeformController = Shovel->getDeformController();
+			for (EExcavationMode ExcavationMode :
+				 {EExcavationMode::DEFORM_BACK, EExcavationMode::DEFORM_LEFT,
+				  EExcavationMode::DEFORM_RIGHT})
+			{
+				// -1 to skip the primary excavation mode.
+				const agx::UInt DeformersId = static_cast<agx::UInt>(ExcavationMode) - 1;
+				agxTerrain::DeformerCollection* Deformers =
+					DeformController->getDeformerCollection(DeformersId);
+				agxTerrain::SoilParticleAggregate* Aggregate = Deformers->getAggregate();
+
+				ReadAggregate(Aggregate);
+
+				// In addition to the soil particle aggregate objects, a deformer also has an
+				// active zone with a geometry.
+				NonFreeGeometries.Add(Deformers->getActiveZone()->getGeometry());
+
+				NonFreeContactMaterials.Add(
+					DeformController->getAggregateShovelContactMaterial(DeformersId));
+				NonFreeContactMaterials.Add(
+					DeformController->getAggregateTerrainContactMaterial(DeformersId));
+			}
+
+			// Each shovel holds a bunch of internal convex shapes for each Terrain.
+			const agxCollide::GeometryRefVector& InternalGeometries =
+				Shovel->getVoxelCollisionGeometries();
+			for (const agxCollide::GeometryRef& InternalGeometry : InternalGeometries)
+			{
+				NonFreeGeometries.Add(InternalGeometry);
+			}
+
+			// Each shovel holds a prismatic.
+			NonFreeConstraints.Add(Shovel->getPenetrationResistance()->getPenetrationPrismatic());
+
+			agxTerrain::AggregateContactGenerator* ContactGenerator =
+				Shovel->getAggregateContactGenerator();
+			NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
+			NonFreeContactMaterials.Add(ContactGenerator->getAggregateTerrainContactMaterial());
+
+			OutSimObjects.GetShovels().Add(FShovelBarrier(std::make_unique<FShovelRef>(Shovel)));
 		}
+
+		agxTerrain::freeContainerMemory(Shovels);
 	}
 
 	void ReadObserverFrames(
@@ -553,11 +551,12 @@ namespace
 		TSet<const agx::ContactMaterial*> NonFreeContactMaterials;
 
 		ReadTireModels(Simulation, Filename, OutSimObjects, NonFreeConstraints);
+		ReadTerrainMaterials(Simulation, NonFreeMaterials, NonFreeContactMaterials);
 		ReadShovels(
 			Simulation, OutSimObjects, NonFreeBodies, NonFreeGeometries, NonFreeConstraints,
 			NonFreeMaterials, NonFreeContactMaterials);
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
-		ReadBodilessGeometries(Simulation, Filename, OutSimObjects, NonFreeGeometries);
+		ReadGeometries(Simulation, Filename, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, Filename, OutSimObjects, NonFreeBodies);
 		ReadTracks(Simulation, Filename, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, Filename, OutSimObjects, NonFreeConstraints);
@@ -592,8 +591,8 @@ bool FAGXSimObjectsReader::ReadAGXArchive(
 }
 
 AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
-	const FString& UrdfFilePath, const FString& UrdfPackagePath,
-	const TArray<double>& InInitJoints,	FSimulationObjectCollection& OutSimObjects)
+	const FString& UrdfFilePath, const FString& UrdfPackagePath, const TArray<double>& InInitJoints,
+	FSimulationObjectCollection& OutSimObjects)
 {
 	agx::RealVector* InitJointsPtr = nullptr;
 	agx::RealVector InitJoints;
@@ -622,6 +621,48 @@ AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 	Simulation->add(Model);
 	::ReadAll(*Simulation, UrdfFilePath, OutSimObjects);
+
+	return true;
+}
+
+bool FAGXSimObjectsReader::ReadOpenPLXFile(
+	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
+{
+	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
+	const FString PLXBundlesPath = FPaths::Combine(
+		FAGX_Environment::GetPluginSourcePath(), "Thirdparty", "agx", "openplxbundles");
+
+	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
+	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design. We go via
+	// agx::Name here for technical reasons: agxopenplx::OptParams will std::move from the passed in
+	// std::string parameter, so that chunk of memory must be allocated inside AGX and not Unreal,
+	// otherwise we crash when the Params object goes out of scope due to different allocators used
+	// in Unreal vs AGX.
+	agx::Name Uuid("47de4303-16ef-408d-baf5-1c86f0fe4473");
+	agxopenplx::OptParams Params = agxopenplx::OptParams().with_uuidv5(Uuid);
+	agxopenplx::LoadResult Result =
+		agxopenplx::load_from_file(Simulation, Convert(Filename), Convert(PLXBundlesPath), Params);
+
+	if (Result.errors().size() > 0)
+	{
+		for (auto Err : Result.errors())
+		{
+			UE_LOG(
+				LogAGX, Error, TEXT("Got Error Code: %d while reading OpenPLX file."),
+				Err->getErrorCode());
+		}
+
+		return false;
+	}
+
+	agxSDK::AssemblyRef AssemblyAGX = Result.assembly();
+	Simulation->add(AssemblyAGX);
+	::ReadAll(*Simulation, Filename, OutSimObjects);
+
+	// Read PLX inputs.
+	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
+	OutSimObjects.GetPLXInputs() = FPLXUtilities::GetInputs(System.get());
+	OutSimObjects.GetPLXOutputs() = FPLXUtilities::GetOutputs(System.get());
 
 	return true;
 }

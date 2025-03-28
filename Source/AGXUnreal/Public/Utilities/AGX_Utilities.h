@@ -9,6 +9,7 @@
 #include "AGX_Utilities.generated.h"
 
 class UAGX_RigidBodyComponent;
+struct FAGX_ImportSettings;
 
 /**
  * Helper type that calls the given callback when destructed. Useful when cleanup is needed
@@ -45,10 +46,10 @@ public:
 	static void AddParentVelocity(UAGX_RigidBodyComponent* Parent, UAGX_RigidBodyComponent* Body);
 
 	/**
-	* Add the Parent velocity/angular velocity to all Bodies velocities as if rigidly attached.
-	* If the Parent body is among the provided Bodies array, it's velocity will not be updated.
-	* This function is only valid during Play and does nothing if not in Play.
-	*/
+	 * Add the Parent velocity/angular velocity to all Bodies velocities as if rigidly attached.
+	 * If the Parent body is among the provided Bodies array, it's velocity will not be updated.
+	 * This function is only valid during Play and does nothing if not in Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Utilities")
 	static void AddParentVelocityMany(
 		UAGX_RigidBodyComponent* Parent, const TArray<UAGX_RigidBodyComponent*>& Bodies);
@@ -59,4 +60,20 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Utilities")
 	static FVector CalculateCenterOfMass(const TArray<UAGX_RigidBodyComponent*>& Bodies);
+
+	/**
+	 * Import an .agx archive or Urdf file and get a AActor template back.
+	 * This template AActor must be instantiated to be part of the world, see InstantiateActor.
+	 */
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Import", meta = (WorldContext = "WorldContextObject"))
+	static AActor* Import(UObject* WorldContextObject, FAGX_ImportSettings Settings);
+
+	/**
+	 * Instantiate an imported AActor. The AActor transform is set to the given Transform.
+	 */
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Import", meta = (WorldContext = "WorldContextObject"))
+	static AActor* InstantiateActor(
+		UObject* WorldContextObject, AActor* Template, const FTransform& Transform);
 };

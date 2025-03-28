@@ -42,9 +42,7 @@ public:
 	FAGX_ConstraintRangeController(bool bRotational);
 
 	void InitializeBarrier(TUniquePtr<FRangeControllerBarrier> Barrier);
-	void CopyFrom(
-		const FRangeControllerBarrier& Source,
-		TArray<FAGX_ConstraintRangeController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FRangeControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;

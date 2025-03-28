@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -191,4 +192,19 @@ bool UAGX_CollisionGroupDisablerComponent::IsCollisionGroupPairDisabled(
 {
 	int Unused;
 	return IsCollisionGroupPairDisabled(CollisionGroup1, CollisionGroup2, Unused);
+}
+
+void UAGX_CollisionGroupDisablerComponent::CopyFrom(
+	const TArray<std::pair<FString, FString>>& Groups, FAGX_ImportContext* Context)
+{
+	for (const auto& Group : Groups)
+		DisableCollisionGroupPair(*Group.first, *Group.second, true);
+
+	UpdateAvailableCollisionGroupsFromWorld();
+
+	if (Context == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(Context->CollisionGroupDisabler == nullptr);
+	Context->CollisionGroupDisabler = this;
 }
