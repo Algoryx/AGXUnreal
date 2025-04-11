@@ -1,3 +1,5 @@
+// Copyright 2024, Algoryx Simulation AB.
+
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 
 // AGX Dynamics for Unreal includes.
