@@ -111,6 +111,18 @@ double FConstraintControllerBarrier::GetForce() const
 	return NativeRef->Native->getCurrentForce();
 }
 
+void FConstraintControllerBarrier::SetName(const FString& Name)
+{
+	check(HasNative());
+	NativeRef->Native->setName(Convert(Name));
+}
+
+FString FConstraintControllerBarrier::GetName() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getName());
+}
+
 namespace
 {
 	template <typename AGXController>

@@ -51,7 +51,7 @@ AAGX_ConstraintActor* UAGX_AgxEdModeConstraints::CreateConstraint() const
 {
 	if (RigidBody1.GetRigidBody() == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Cannot create constraints. At least the first Rigid Body must be chosen!");
 		return nullptr;
 	}

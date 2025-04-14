@@ -144,7 +144,7 @@ FReply FAGX_SimulationCustomization::OnBrowseFileButtonClicked()
 {
 	if (DetailBuilder == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithWarning(
 			"Unexpected error, unable to get the Detail Builder. Browsing for an output file "
 			"will not be possible.");
 		return FReply::Handled();
@@ -154,7 +154,7 @@ FReply FAGX_SimulationCustomization::OnBrowseFileButtonClicked()
 		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UAGX_Simulation>(*DetailBuilder);
 	if (Simulation == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithWarning(
 			"Unexpected error, unable to get the Simulation object. Browsing for an output file "
 			"will not be possible.");
 		return FReply::Handled();
@@ -194,7 +194,7 @@ void FAGX_SimulationCustomization::OnRaytraceDeviceComboBoxChanged(
 	if (!Result)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
-			"Unable to set Raytrace Device. The Console Log may contain more information.",
+			"Unable to set Raytrace Device. The Output Log may contain more information.",
 			SNotificationItem::CS_Fail);
 		return;
 	}

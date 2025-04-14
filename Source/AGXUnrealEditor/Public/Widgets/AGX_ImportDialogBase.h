@@ -3,8 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportEnums.h"
 
 // Unreal Engine includes.
 #include "Styling/SlateTypes.h"
@@ -27,6 +26,7 @@ public:
 protected:
 	TSharedRef<SWidget> CreateBrowseFileGui();
 	TSharedRef<SBorder> CreateAGXFileGui();
+	TSharedRef<SBorder> CreatePLXFileGui();
 	TSharedRef<SWidget> CreateIgnoreDisabledTrimeshGui();
 
 	FReply OnBrowseFileButtonClicked();
@@ -38,5 +38,5 @@ protected:
 	EAGX_ImportType ImportType = EAGX_ImportType::Invalid;
 	FString FilePath;
 	bool bIgnoreDisabledTrimesh = true;
-	bool bUserHasPressedImportOrSynchronize = false;
+	bool bUserHasPressedImportOrReimport = false;
 };

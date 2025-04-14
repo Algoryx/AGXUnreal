@@ -228,7 +228,7 @@ FReply SAGX_GenerateRuntimeActivationDialog::OnGenerateButtonClicked()
 {
 	if (LicenseId.IsEmpty() || ActivationCode.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License Id or Activation code was empty. Please enter a License Id and Activation "
 			"code.");
 		return FReply::Handled();
@@ -236,7 +236,7 @@ FReply SAGX_GenerateRuntimeActivationDialog::OnGenerateButtonClicked()
 
 	if (ReferenceFilePath.IsEmpty() || LicenseDirPath.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Reference file or License directory was empty. Please select a Reference file and "
 			"License directory.");
 		return FReply::Handled();
@@ -244,7 +244,7 @@ FReply SAGX_GenerateRuntimeActivationDialog::OnGenerateButtonClicked()
 
 	if (!ContainsOnlyIntegers(LicenseId))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License id may only contain integer values.");
 		return FReply::Handled();
 	}
@@ -255,12 +255,12 @@ FReply SAGX_GenerateRuntimeActivationDialog::OnGenerateButtonClicked()
 
 	if (!OutputFile.IsSet())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License activation was unsuccessful. The Output Log may contain more information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		"Runtime activation generation was successful. Resulting encrypted file written to: " +
 		OutputFile.GetValue());
 

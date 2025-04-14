@@ -39,6 +39,9 @@ public:
 
 	double GetForce() const;
 
+	void SetName(const FString& Name);
+	FString GetName() const;
+
 protected:
 	FConstraintControllerBarrier() = default;
 	FConstraintControllerBarrier(std::unique_ptr<FConstraintControllerRef> Native);

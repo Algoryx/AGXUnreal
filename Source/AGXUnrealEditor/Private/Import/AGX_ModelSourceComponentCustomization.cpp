@@ -1,16 +1,17 @@
 // Copyright 2024, Algoryx Simulation AB.
 
-#include "AGX_ModelSourceComponentCustomization.h"
+#include "Import/AGX_ModelSourceComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
-#include "AGX_ImporterToBlueprint.h"
-#include "AGX_ImportSettings.h"
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ImporterToEditor.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_MaterialReplacer.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_SlateUtilities.h"
 #include "Widgets/AGX_ImportDialog.h"
 
 // Unreal Engine includes.
@@ -42,9 +43,27 @@ void FAGX_ModelSourceComponentCustomization::CustomizeDetails(IDetailLayoutBuild
 		return;
 	}
 
-	IDetailCategoryBuilder& CategoryBuilder = InDetailBuilder.EditCategory("AGX Synchronize Model");
+	IDetailCategoryBuilder& CategoryBuilder = InDetailBuilder.EditCategory("AGX Reimport Model");
 
-	// clang-format off
+	if (ModelSourceComponent->FilePath.EndsWith("openplx"))
+	{
+		FString SourceFilePath = FPaths::ConvertRelativePathToFull(ModelSourceComponent->FilePath);
+		SourceFilePath.RemoveFromStart(FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
+
+		// clang-format off
+		CategoryBuilder.AddCustomRow(FText::GetEmpty())
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(FString::Printf(TEXT("Source File: '%s'"), *SourceFilePath)))
+				.Font(FAGX_SlateUtilities::CreateFont(8))
+			]
+		];
+	}
+
 	CategoryBuilder.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
@@ -52,19 +71,19 @@ void FAGX_ModelSourceComponentCustomization::CustomizeDetails(IDetailLayoutBuild
 		.AutoWidth()
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("SynchronizeModelButtonText", "Synchronize Model"))
+			.Text(LOCTEXT("ReimportModelButtonText", "Reimport Model"))
 			.ToolTipText(LOCTEXT(
-				"SynchronizeModelTooltip",
-				"Synchronizes the model against the source file of the original "
+				"ReimportModelTooltip",
+				"Reimports the model against the source file of the original "
 				"import and updates the Components and Assets to match said source file."))
-			.OnClicked(this, &FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked)
+			.OnClicked(this, &FAGX_ModelSourceComponentCustomization::OnReimportModelButtonClicked)
 		]
 	];
 	// clang-format on
 
 	CustomizeMaterialReplacer(ModelSourceComponent);
 
-	InDetailBuilder.HideCategory(FName("AGX Synchronize Model Info"));
+	InDetailBuilder.HideCategory(FName("AGX Reimport Model Info"));
 	InDetailBuilder.HideCategory(FName("Activation"));
 	InDetailBuilder.HideCategory(FName("AssetUserData"));
 	InDetailBuilder.HideCategory(FName("Collision"));
@@ -93,8 +112,8 @@ namespace AGX_ModelSourceComponentCustomization_helpers
 
 		if (!ModelSourceComponent->IsInBlueprint())
 		{
-			FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
-				"Model synchronization is only supported when in a Blueprint.");
+			FAGX_NotificationUtilities::ShowDialogBoxWithError(
+				"Model reimport is only supported when in a Blueprint.");
 			return nullptr;
 		}
 
@@ -106,14 +125,14 @@ namespace AGX_ModelSourceComponentCustomization_helpers
 			}
 		}
 
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Unable to get the Blueprint from the AGX Model Source Component. Model "
-			"synchronization will not be possible.");
+			"reimport will not be possible.");
 		return nullptr;
 	}
 }
 
-FReply FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked()
+FReply FAGX_ModelSourceComponentCustomization::OnReimportModelButtonClicked()
 {
 	AGX_CHECK(DetailBuilder);
 	using namespace AGX_ModelSourceComponentCustomization_helpers;
@@ -124,9 +143,9 @@ FReply FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked()
 		return FReply::Handled();
 	}
 
-	FAGX_EditorUtilities::SynchronizeModel(*Blueprint);
+	FAGX_EditorUtilities::ReimportModel(*Blueprint, true);
 
-	// Any logging is done in SynchronizeModel.
+	// Any logging is done in ReimportModel.
 	return FReply::Handled();
 }
 

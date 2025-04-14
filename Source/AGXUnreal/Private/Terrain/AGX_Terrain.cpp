@@ -1845,7 +1845,7 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 				 "available in the Changelog in the User Manual.\n\nTo disable this warning, "
 				 "simply re-save the Level that contains this Terrain Actor."),
 			*GetName());
-		FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(Msg);
+		FAGX_NotificationUtilities::ShowDialogBoxWithWarning(Msg);
 	}
 #endif // WITH_EDITOR
 }

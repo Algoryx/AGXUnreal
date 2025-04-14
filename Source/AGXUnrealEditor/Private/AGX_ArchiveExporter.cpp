@@ -36,7 +36,7 @@ bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(
-				TEXT("Unable to export .agx to: '%s'. The Console Log may contain more "
+				TEXT("Unable to export .agx to: '%s'. The Output Log may contain more "
 					 "information."),
 				*ArchivePath),
 			SNotificationItem::CS_Fail);

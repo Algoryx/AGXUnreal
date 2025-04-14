@@ -1,20 +1,19 @@
 // Copyright 2024, Algoryx Simulation AB.
 
 /*
- * A collection of tests that test AGX Dynamics archive import and model synchronization.
+ * A collection of tests that test AGX Dynamics archive import and model reimport.
  *
  * There are a number of Python scripts that build a scene, saves it to a .agx file, modifies the
  * scene, and finally saves it to another .agx file. These tests import the first .agx file, checks
- * that the contents is as expected, synchronizes with the second .agx file, and again checks that
+ * that the contents is as expected, reimports with the second .agx file, and again checks that
  * the contents is as expected.
  *
- * A base class, FSynchronizeModelTest, does import and synchronization interspersed with calls
+ * A base class, FReimportModelTest, does import and reimport interspersed with calls
  * to virtual functions implemented by derived classes where the actual testing happens.
  */
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImporterToBlueprint.h"
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
@@ -22,6 +21,7 @@
 #include "Constraints/AGX_CylindricalConstraintComponent.h"
 #include "Constraints/AGX_HingeConstraintComponent.h"
 #include "Constraints/AGX_PrismaticConstraintComponent.h"
+#include "Import/AGX_ImporterToEditor.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
@@ -44,7 +44,7 @@
 #include "Tests/AutomationCommon.h"
 #include "Tests/AutomationEditorCommon.h"
 
-namespace AGX_SynchronizeModelTest_helpers
+namespace AGX_ReimportModelTest_helpers
 {
 	// Child Blueprints, like the one produced after an Import, does not necessarily contain any SCS
 	// Nodes themselves. Instead one have to get the SCS Nodes from the base Blueprint, then get the
@@ -90,7 +90,7 @@ namespace AGX_SynchronizeModelTest_helpers
 	UBlueprint* Import(const FString& ArchiveFileName, bool IgnoreDisabledTrimeshes)
 	{
 		FString ArchiveFilePath = AgxAutomationCommon::GetTestScenePath(
-			FPaths::Combine(FString("SynchronizeModel"), ArchiveFileName));
+			FPaths::Combine(FString("ReimportModel"), ArchiveFileName));
 		if (ArchiveFilePath.IsEmpty())
 		{
 			UE_LOG(LogAGX, Error, TEXT("Did not find an archive named '%s'."), *ArchiveFileName);
@@ -103,25 +103,31 @@ namespace AGX_SynchronizeModelTest_helpers
 		ImportSettings.FilePath = ArchiveFilePath;
 		ImportSettings.ImportType = EAGX_ImportType::Agx;
 
-		return AGX_ImporterToBlueprint::Import(ImportSettings);
+		FAGX_ImporterToEditor Importer;
+		return Importer.Import(ImportSettings);
 	}
 
-	bool SynchronizeModel(
+	bool ReimportModel(
 		UBlueprint& BaseBp, const FString& ArchiveFileName, bool IgnoreDisabledTrimeshes)
 	{
 		FString ArchiveFilePath = AgxAutomationCommon::GetTestScenePath(
-			FPaths::Combine(FString("SynchronizeModel"), ArchiveFileName));
+			FPaths::Combine(FString("ReimportModel"), ArchiveFileName));
 		if (ArchiveFilePath.IsEmpty())
 		{
 			UE_LOG(LogAGX, Error, TEXT("Did not find an archive named '%s'."), *ArchiveFileName);
 			return false;
 		}
 
-		FAGX_SynchronizeModelSettings Settigns;
-		Settigns.bIgnoreDisabledTrimeshes = IgnoreDisabledTrimeshes;
-		Settigns.FilePath = ArchiveFilePath;
+		FAGX_ReimportSettings Settings;
+		Settings.bForceOverwriteProperties = false;
+		Settings.bForceReassignRenderMaterials = false;
+		Settings.bIgnoreDisabledTrimeshes = IgnoreDisabledTrimeshes;
+		Settings.FilePath = ArchiveFilePath;
+		Settings.ImportType = EAGX_ImportType::Agx;
+		Settings.bOpenBlueprintEditorAfterImport = false;
+		FAGX_ImporterToEditor Importer;
 
-		return AGX_ImporterToBlueprint::SynchronizeModel(BaseBp, Settigns);
+		return Importer.Reimport(BaseBp, Settings);
 	}
 
 	/**
@@ -325,25 +331,24 @@ bool FDeleteImportedAssets::Update()
 	return true;
 }
 
-class FSynchronizeModelTest;
+class FReimportModelTest;
 
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
-	FCallSynchronizeModelTest, FSynchronizeModelTest&, Test);
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FCallReimportModelTest, FReimportModelTest&, Test);
 
 /**
- * Base class for tests that load a model and then synchronizes with an updated version of the
+ * Base class for tests that load a model and then reimports with an updated version of the
  * same model. Add model-specific test code by overriding the pure-virtual member functions.
  */
-class FSynchronizeModelTest : public AgxAutomationCommon::FAgxAutomationTest
+class FReimportModelTest : public AgxAutomationCommon::FAgxAutomationTest
 {
 public:
 	/**
 	 * @param InTestName The name of the test, passed to FAutomationTestBase.
 	 * @param InTestPath The hierarchical name of the test, often starting with AGXUnreal.Editor.
 	 * @param InInitialModelFileName The name of the model file to import.
-	 * @param InUpdatedModelFileName Model file to synchronize with.
+	 * @param InUpdatedModelFileName Model file to reimport with.
 	 */
-	FSynchronizeModelTest(
+	FReimportModelTest(
 		const TCHAR* InTestName, const TCHAR* InTestPath, const TCHAR* InInitialModelFileName,
 		const TCHAR* InUpdatedModelFileName)
 		: AgxAutomationCommon::FAgxAutomationTest(InTestName, InTestPath)
@@ -368,31 +373,31 @@ public:
 		}
 
 		// Delete any old assets that may remain from previous test runs.
-		AGX_SynchronizeModelTest_helpers::DeleteImportedAssets(InitialModelName, *this);
+		AGX_ReimportModelTest_helpers::DeleteImportedAssets(InitialModelName, *this);
 
-		ADD_LATENT_AUTOMATION_COMMAND(FCallSynchronizeModelTest(*this));
+		ADD_LATENT_AUTOMATION_COMMAND(FCallReimportModelTest(*this));
 		ADD_LATENT_AUTOMATION_COMMAND(FDeleteImportedAssets(InitialModelName, *this));
 		return true;
 	}
 
 	/**
-	 * Main test flow implemented here. Handles model loading and synchronization, and calls the
+	 * Main test flow implemented here. Handles model loading and reimport, and calls the
 	 * pure-virtual member functions at the appropriate times.
 	 */
 	void RunTest()
 	{
-		using namespace AGX_SynchronizeModelTest_helpers;
+		using namespace AGX_ReimportModelTest_helpers;
 
 		// Import initial state.
 		ChildBlueprint = Import(InitialModelFileName, true);
-		if (!TestNotNull(TEXT("Imported child Blueprint before synchronize"), ChildBlueprint))
+		if (!TestNotNull(TEXT("Imported child Blueprint before reimport"), ChildBlueprint))
 		{
 			return;
 		}
 
 		// The Components live in the parent Blueprint, so get that.
 		ParentBlueprint = FAGX_BlueprintUtilities::GetOutermostParent(ChildBlueprint);
-		if (!TestNotNull(TEXT("Imported parent Blueprint before synchronize"), ParentBlueprint))
+		if (!TestNotNull(TEXT("Imported parent Blueprint before reimport"), ParentBlueprint))
 		{
 			return;
 		}
@@ -404,14 +409,13 @@ public:
 		SpawnParameters.Name = FName(ActorName);
 		InitialBlueprintInstance =
 			World->SpawnActor<AActor>(ChildBlueprint->GeneratedClass, SpawnParameters);
-		if (!TestNotNull(
-				TEXT("Blueprint instance before synchronization"), InitialBlueprintInstance))
+		if (!TestNotNull(TEXT("Blueprint instance before reimport"), InitialBlueprintInstance))
 		{
 			return;
 		}
 		if (!TestEqual(
 				TEXT("Actor found by GetActorByName and Actor created by SpawnActor before "
-					 "synchronize."),
+					 "reimport."),
 				GetActorInstanceFromWorld(), InitialBlueprintInstance))
 		{
 			return;
@@ -424,14 +428,13 @@ public:
 			return;
 		}
 
-		SynchronizeModel(*ParentBlueprint, UpdatedModelFileName, true);
+		ReimportModel(*ParentBlueprint, UpdatedModelFileName, true);
 
-		if (!TestTrue(TEXT("Child Blueprint is valid after synchronize"), IsValid(ChildBlueprint)))
+		if (!TestTrue(TEXT("Child Blueprint is valid after reimport"), IsValid(ChildBlueprint)))
 		{
 			return;
 		}
-		if (!TestTrue(
-				TEXT("Parent Blueprint is valid after synchronize"), IsValid(ParentBlueprint)))
+		if (!TestTrue(TEXT("Parent Blueprint is valid after reimport"), IsValid(ParentBlueprint)))
 		{
 			return;
 		}
@@ -439,14 +442,14 @@ public:
 		UpdatedTemplateComponents = FAGX_BlueprintUtilities::GetTemplateComponents(ParentBlueprint);
 
 		UpdatedBlueprintInstance = GetActorInstanceFromWorld();
-		if (!TestNotNull(TEXT("Blueprint instance after synchronize"), UpdatedBlueprintInstance))
+		if (!TestNotNull(TEXT("Blueprint instance after reimport"), UpdatedBlueprintInstance))
 		{
 			return;
 		}
 
 // This test fails from time to time, mostly on Unreal Engine 5. Not sure why its non-deterministic,
 // or what the guarantees from Unreal Engine really is. It doesn't matter from the test's or the
-// model synchronization's point of view, both will work either way, but it is a sign that there are
+// model reimport's point of view, both will work either way, but it is a sign that there are
 // still things in Unreal engine that we do not understand.
 #if 0
 		if (!TestNotEqual(
@@ -454,12 +457,12 @@ public:
 				UpdatedBlueprintInstance))
 		{
 			// We don't actually assume or depend on the instance being replaced during model
-			// synchronization, but it would be good to know if a future version of Unreal Editor
+			// reimport, but it would be good to know if a future version of Unreal Editor
 			// changes this behavior. It may be a signal that more has changed behind the scenes.
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("Expected the Blueprint instance in the level to be replaced during model "
-					 "synchronization."));
+					 "reimport."));
 			return;
 		}
 #endif
@@ -467,8 +470,8 @@ public:
 		// The initial instance is now gone, use UpdatedBlueprintInstance from now on.
 		InitialBlueprintInstance = nullptr;
 
-		// Model synchronization complete, call the second test callback.
-		PostSynchronize();
+		// Model reimport complete, call the second test callback.
+		PostReimport();
 
 		// All testing complete, call the cleanup callback.
 		Cleanup();
@@ -480,11 +483,11 @@ public:
 
 	// Model-specific work should be done by implementing these pure-virtual member functions in a
 	// derived class. Calls to the Test-functions should be placed in PostImport and
-	// PostSynchronize. Return true if all tests pass, and false otherwise. Cleanup is used to
+	// PostReimport. Return true if all tests pass, and false otherwise. Cleanup is used to
 	// destroy anything that the test creates in addition to what this base class creates, if
 	// anything is created.
 	virtual bool PostImport() = 0;
-	virtual bool PostSynchronize() = 0;
+	virtual bool PostReimport() = 0;
 	virtual void Cleanup()
 	{
 		//  By default there is nothing to clean up since mandatory cleanup is done by RunTest.
@@ -507,33 +510,33 @@ public:
 	UBlueprint* ChildBlueprint = nullptr;
 	UBlueprint* ParentBlueprint = nullptr;
 
-	// Members valid from the initial import to model synchronization.
+	// Members valid from the initial import to model reimport.
 	// While some of the Components may survive template reconstruction, a particular model may
 	// add or delete components freely.
 	AActor* InitialBlueprintInstance = nullptr;
 	TArray<UActorComponent*> InitialTemplateComponents;
 
-	// Members valid after model synchronization.
+	// Members valid after model reimport.
 	AActor* UpdatedBlueprintInstance = nullptr;
 	TArray<UActorComponent*> UpdatedTemplateComponents;
 };
 
-bool FCallSynchronizeModelTest::Update()
+bool FCallReimportModelTest::Update()
 {
 	Test.RunTest();
 	return true;
 }
 
 //
-// Synchronize same twice test starts here.
+// Reimport same twice test starts here.
 //
 
 DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
-	FSynchronizeSameCommand, FString, ArchiveFileName, FAutomationTestBase&, Test);
+	FReimportSameCommand, FString, ArchiveFileName, FAutomationTestBase&, Test);
 
-bool FSynchronizeSameCommand::Update()
+bool FReimportSameCommand::Update()
 {
-	using namespace AGX_SynchronizeModelTest_helpers;
+	using namespace AGX_ReimportModelTest_helpers;
 	using namespace AgxAutomationCommon;
 
 	UBlueprint* Blueprint = Import(ArchiveFileName, false);
@@ -562,7 +565,7 @@ bool FSynchronizeSameCommand::Update()
 	};
 
 	// Ensure a GUID is part of the Node name for the collision Mesh as well as the render Mesh.
-	// This is an important detail for the Model Synchronization pipeline. See comment in free
+	// This is an important detail for the Model Reimport pipeline. See comment in free
 	// function SetUnnamedNameForPossibleCollisions in AGX_ImporterToBlueprint.cpp for more details.
 	USCS_Node* TrimeshGeomToChangeNode = GetNodeChecked(*BlueprintBase, "TrimeshGeomToChange");
 	USCS_Node* TGTCCollisionMeshNode = GetOnlyAttachChildChecked(TrimeshGeomToChangeNode);
@@ -580,9 +583,9 @@ bool FSynchronizeSameCommand::Update()
 	Test.TestTrue(
 		"Render Mesh Guid Naming", NameEndsWithGuid(RenderMeshNamePreSync, "RenderMesh_"));
 
-	if (!SynchronizeModel(*BlueprintBase, ArchiveFileName, false))
+	if (!ReimportModel(*BlueprintBase, ArchiveFileName, false))
 	{
-		Test.AddError("SynchronizeModel returned false.");
+		Test.AddError("ReimportModel returned false.");
 		return true;
 	}
 
@@ -594,7 +597,7 @@ bool FSynchronizeSameCommand::Update()
 	{
 		Test.AddError(
 			"Collision or render mesh Components was removed unexpectedly after model "
-			"synchronization.");
+			"reimport.");
 		return true;
 	}
 
@@ -606,20 +609,19 @@ bool FSynchronizeSameCommand::Update()
 		"Render Mesh name", TGTCRenderMeshNode->GetVariableName().ToString(),
 		RenderMeshNamePreSync);
 
-	// Ensure we have the same number of nodes after the model Synchronization as before.
-	const int NumNodesSynchronizeModel =
-		BlueprintBase->SimpleConstructionScript->GetAllNodes().Num();
-	if (NumNodesSynchronizeModel != NumNodesFirstImport)
+	// Ensure we have the same number of nodes after the model Reimport as before.
+	const int NumNodesReimportModel = BlueprintBase->SimpleConstructionScript->GetAllNodes().Num();
+	if (NumNodesReimportModel != NumNodesFirstImport)
 	{
 		Test.AddError(FString::Printf(
-			TEXT("Number of nodes was %d after import and %d after model synchronization. "
+			TEXT("Number of nodes was %d after import and %d after model reimport. "
 				 "They are expected to be the same."),
-			NumNodesFirstImport, NumNodesSynchronizeModel));
+			NumNodesFirstImport, NumNodesReimportModel));
 		return true;
 	}
 
 	// Ensure no nodes have the name "AGX_Import_Unnamed..." name that is set in the beginning of a
-	// model synchronization. Note that a random GUID is appended after this, so we need to check
+	// model reimport. Note that a random GUID is appended after this, so we need to check
 	// against the first part of the name.
 	const FString UnnamedName = "AGX_Import_Unnamed";
 	const FString UnsetUniqueImportName = FAGX_ImportUtilities::GetUnsetUniqueImportName();
@@ -635,17 +637,17 @@ bool FSynchronizeSameCommand::Update()
 }
 
 /**
- * Import a model and simply synchronize against the same file as the original import. This is
+ * Import a model and simply reimport against the same file as the original import. This is
  * somewhat a sanity-check test.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FSynchronizeSameTest, "AGXUnreal.Editor.AGX_SynchronizeModelTest.SyncronizeSame",
+	FReimportSameTest, "AGXUnreal.Editor.AGX_ReimportModelTest.SyncronizeSame",
 	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
-bool FSynchronizeSameTest::RunTest(const FString& Parameters)
+bool FReimportSameTest::RunTest(const FString& Parameters)
 {
 	const FString ArchiveFileName = "synchronize_same_build.agx";
-	ADD_LATENT_AUTOMATION_COMMAND(FSynchronizeSameCommand(ArchiveFileName, *this));
+	ADD_LATENT_AUTOMATION_COMMAND(FReimportSameCommand(ArchiveFileName, *this));
 	ADD_LATENT_AUTOMATION_COMMAND(
 		FDeleteImportedAssets(FPaths::GetBaseFilename(ArchiveFileName), *this));
 
@@ -653,16 +655,16 @@ bool FSynchronizeSameTest::RunTest(const FString& Parameters)
 }
 
 //
-// Synchronize large model test starts here.
+// Reimport large model test starts here.
 //
 
 DEFINE_LATENT_AUTOMATION_COMMAND_THREE_PARAMETER(
-	FSynchronizeLargeModelCommand, FString, ArchiveFileName, FString, UpdatedArchiveFileName,
+	FReimportLargeModelCommand, FString, ArchiveFileName, FString, UpdatedArchiveFileName,
 	FAutomationTestBase&, Test);
 
-bool FSynchronizeLargeModelCommand::Update()
+bool FReimportLargeModelCommand::Update()
 {
-	using namespace AGX_SynchronizeModelTest_helpers;
+	using namespace AGX_ReimportModelTest_helpers;
 	using namespace AgxAutomationCommon;
 
 	UBlueprint* Blueprint = Import(ArchiveFileName, false);
@@ -680,15 +682,15 @@ bool FSynchronizeLargeModelCommand::Update()
 		return true;
 	}
 
-	if (!SynchronizeModel(*BlueprintBase, UpdatedArchiveFileName, false))
+	if (!ReimportModel(*BlueprintBase, UpdatedArchiveFileName, false))
 	{
-		Test.AddError("SynchronizeModel returned false.");
+		Test.AddError("ReimportModel returned false.");
 		return true;
 	}
 
 	// Remember: Components in Blueprints have no attach parents setup. We need to check the SCS
 	// Node tree for that information. We can do this by using the helper functions in the
-	// AGX_SynchronizeModelTest_helpers namespace.
+	// AGX_ReimportModelTest_helpers namespace.
 
 	// Important: we would like to get the components from the Blueprint child using the
 	// GetComponentsFromChildBlueprint function in this file. Unfortunately that does not work while
@@ -697,7 +699,7 @@ bool FSynchronizeLargeModelCommand::Update()
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(BlueprintBase);
 
-	Test.TestTrue("Synchronized Components found.", Components.Num() > 0);
+	Test.TestTrue("Reimportd Components found.", Components.Num() > 0);
 
 	// BodyToBeRenamed.
 	{
@@ -1095,19 +1097,19 @@ bool FSynchronizeLargeModelCommand::Update()
 }
 
 /**
- * Imports the large_model.agx file and then synchronizes against large_model_updated.agx where many
+ * Imports the large_model.agx file and then reimports against large_model_updated.agx where many
  * things are changed from the original.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FSynchronizeLargeModelTest, "AGXUnreal.Editor.AGX_SynchronizeModelTest.SynchronizeLargeModel",
+	FReimportLargeModelTest, "AGXUnreal.Editor.AGX_ReimportModelTest.ReimportLargeModel",
 	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
-bool FSynchronizeLargeModelTest::RunTest(const FString& Parameters)
+bool FReimportLargeModelTest::RunTest(const FString& Parameters)
 {
 	const FString ArchiveFileName = "large_model_build.agx";
 	const FString UpdatedArchiveFileName = "large_model_updated_build.agx";
 	ADD_LATENT_AUTOMATION_COMMAND(
-		FSynchronizeLargeModelCommand(ArchiveFileName, UpdatedArchiveFileName, *this));
+		FReimportLargeModelCommand(ArchiveFileName, UpdatedArchiveFileName, *this));
 	ADD_LATENT_AUTOMATION_COMMAND(
 		FDeleteImportedAssets(FPaths::GetBaseFilename(ArchiveFileName), *this));
 
@@ -1123,7 +1125,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
 
 bool FIgnoreDisabledTrimeshFTCommand::Update()
 {
-	using namespace AGX_SynchronizeModelTest_helpers;
+	using namespace AGX_ReimportModelTest_helpers;
 	using namespace AgxAutomationCommon;
 
 	// Import with IgnoreDisabledTrimesh set to false.
@@ -1142,7 +1144,7 @@ bool FIgnoreDisabledTrimeshFTCommand::Update()
 		return true;
 	}
 
-	// Pre-synchronize.
+	// Pre-reimport.
 	{
 		if (!CheckNodeNameAndParent(*BlueprintBase, "TrimeshBody", "DefaultSceneRoot", false))
 			return true; // Logging done in CheckNodeNameAndParent.
@@ -1169,14 +1171,14 @@ bool FIgnoreDisabledTrimeshFTCommand::Update()
 		}
 	}
 
-	// Synchronize with the IgnoreDisabledTrimesh setting true.
-	if (!SynchronizeModel(*BlueprintBase, ArchiveFileName, true))
+	// Reimport with the IgnoreDisabledTrimesh setting true.
+	if (!ReimportModel(*BlueprintBase, ArchiveFileName, true))
 	{
-		Test.AddError("SynchronizeModel returned false.");
+		Test.AddError("ReimportModel returned false.");
 		return true;
 	}
 
-	// Post-synchronize. Now the render mesh should be attached immediately under
+	// Post-reimport. Now the render mesh should be attached immediately under
 	// the body.
 	{
 		if (!CheckNodeNameAndParent(*BlueprintBase, "TrimeshBody", "DefaultSceneRoot", false))
@@ -1207,12 +1209,11 @@ bool FIgnoreDisabledTrimeshFTCommand::Update()
 }
 
 /**
- * Import model with a disabled Trimesh first with IgnoreDisabledTrimesh false, then synchronize
+ * Import model with a disabled Trimesh first with IgnoreDisabledTrimesh false, then reimport
  * against the same model but this time with IgnoreDisabledTrimesh true.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FIgnoreDisabledTrimeshFTTest,
-	"AGXUnreal.Editor.AGX_SynchronizeModelTest.IgnoreDisabledTrimeshFT",
+	FIgnoreDisabledTrimeshFTTest, "AGXUnreal.Editor.AGX_ReimportModelTest.IgnoreDisabledTrimeshFT",
 	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FIgnoreDisabledTrimeshFTTest::RunTest(const FString& Parameters)
@@ -1234,7 +1235,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
 
 bool FIgnoreDisabledTrimeshTFCommand::Update()
 {
-	using namespace AGX_SynchronizeModelTest_helpers;
+	using namespace AGX_ReimportModelTest_helpers;
 	using namespace AgxAutomationCommon;
 
 	// Import with IgnoreDisabledTrimesh true.
@@ -1253,7 +1254,7 @@ bool FIgnoreDisabledTrimeshTFCommand::Update()
 		return true;
 	}
 
-	// Pre-synchronize. Now the collision mesh + render mesh should be attached immediately under
+	// Pre-reimport. Now the collision mesh + render mesh should be attached immediately under
 	// the body.
 	{
 		if (!CheckNodeNameAndParent(*BlueprintBase, "TrimeshBody", "DefaultSceneRoot", false))
@@ -1280,14 +1281,14 @@ bool FIgnoreDisabledTrimeshTFCommand::Update()
 		}
 	}
 
-	// Synchronize with the the IgnoreDisabledTrimesh setting false.
-	if (!SynchronizeModel(*BlueprintBase, ArchiveFileName, false))
+	// Reimport with the the IgnoreDisabledTrimesh setting false.
+	if (!ReimportModel(*BlueprintBase, ArchiveFileName, false))
 	{
-		Test.AddError("SynchronizeModel returned false.");
+		Test.AddError("ReimportModel returned false.");
 		return true;
 	}
 
-	// Post-synchronize. The Disabled Trimesh should now exist again.
+	// Post-reimport. The Disabled Trimesh should now exist again.
 	{
 		if (!CheckNodeNameAndParent(*BlueprintBase, "TrimeshBody", "DefaultSceneRoot", false))
 			return true; // Logging done in CheckNodeNameAndParent.
@@ -1318,12 +1319,11 @@ bool FIgnoreDisabledTrimeshTFCommand::Update()
 }
 
 /**
- * Import model with a disabled Trimesh first with IgnoreDisabledTrimesh true, then synchronize
+ * Import model with a disabled Trimesh first with IgnoreDisabledTrimesh true, then reimport
  * against the same model but this time with IgnoreDisabledTrimesh false.
  */
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FIgnoreDisabledTrimeshTFTest,
-	"AGXUnreal.Editor.AGX_SynchronizeModelTest.IgnoreDisabledTrimeshTF",
+	FIgnoreDisabledTrimeshTFTest, "AGXUnreal.Editor.AGX_ReimportModelTest.IgnoreDisabledTrimeshTF",
 	EAutomationTestFlags::ProductFilter | AgxAutomationCommon::ETF_ApplicationContextMask)
 
 bool FIgnoreDisabledTrimeshTFTest::RunTest(const FString& Parameters)
@@ -1337,22 +1337,21 @@ bool FIgnoreDisabledTrimeshTFTest::RunTest(const FString& Parameters)
 }
 
 //
-// Merge Split Thresholds synchronization tests start here.
+// Merge Split Thresholds reimport tests start here.
 //
 
 /**
  * Import model with a Rigid Body, a Hinge, and a Constraint Merge Split Thresholds. Then
- * synchronize with an updated model where the thresholds has been removed from the hinge. The
+ * reimport with an updated model where the thresholds has been removed from the hinge. The
  * Constraint Merge Split Thresholds asset should be deleted and the reference to it cleared.
  */
-class FRemoveConstraintMergeSplitThresholdsTest final : public FSynchronizeModelTest
+class FRemoveConstraintMergeSplitThresholdsTest final : public FReimportModelTest
 {
 public:
 	FRemoveConstraintMergeSplitThresholdsTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("FRemoveConstraintMergeSplitThresholdsTest"),
-			  TEXT(
-				  "AGXUnreal.Editor.AGX_SynchronizeModelTest.RemoveConstraintMergeSplitThresholds"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.RemoveConstraintMergeSplitThresholds"),
 			  TEXT("thresholds_remove__initial.agx"), TEXT("thresholds_remove__updated.agx"))
 	{
 	}
@@ -1361,12 +1360,12 @@ public:
 
 	virtual bool PostImport() override
 	{
-		using namespace AGX_SynchronizeModelTest_helpers;
+		using namespace AGX_ReimportModelTest_helpers;
 
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Hinge.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -1377,13 +1376,13 @@ public:
 		UAGX_HingeConstraintComponent* TemplateHinge =
 			GetTemplateComponentByName<UAGX_HingeConstraintComponent>(
 				InitialTemplateComponents, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Template Hinge before synchronize"), TemplateHinge))
+		if (!TestNotNull(TEXT("Template Hinge before reimport"), TemplateHinge))
 		{
 			return false;
 		}
 		UAGX_ConstraintMergeSplitThresholds* TemplateThresholds =
 			TemplateHinge->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Template Hinge Thresholds before synchronize"), TemplateThresholds))
+		if (!TestNotNull(TEXT("Template Hinge Thresholds before reimport"), TemplateThresholds))
 		{
 			return false;
 		}
@@ -1392,13 +1391,13 @@ public:
 		UAGX_HingeConstraintComponent* HingeInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_HingeConstraintComponent>(
 				*InitialBlueprintInstance, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Hinge instance before synchronize"), HingeInstance))
+		if (!TestNotNull(TEXT("Hinge instance before reimport"), HingeInstance))
 		{
 			return false;
 		}
 		UAGX_ConstraintMergeSplitThresholds* ThresholdsInstance =
 			HingeInstance->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Hinge instance thresholds before synchronize"), ThresholdsInstance))
+		if (!TestNotNull(TEXT("Hinge instance thresholds before reimport"), ThresholdsInstance))
 		{
 			return false;
 		}
@@ -1415,7 +1414,7 @@ public:
 		AssetPath =
 			GetAssetPath<UAGX_ConstraintMergeSplitThresholds>(InitialModelFileName, AssetName);
 		if (!TestTrue(
-				TEXT("Thresholds asset exists before synchronize"), FPaths::FileExists(AssetPath)))
+				TEXT("Thresholds asset exists before reimport"), FPaths::FileExists(AssetPath)))
 		{
 			return false;
 		}
@@ -1423,9 +1422,9 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
-		using namespace AGX_SynchronizeModelTest_helpers;
+		using namespace AGX_ReimportModelTest_helpers;
 
 		// There are three places where the thresholds should have been removed:
 		// - Reference in the Hinge template should have been cleared to nullptr.
@@ -1436,13 +1435,13 @@ public:
 		UAGX_HingeConstraintComponent* TemplateHinge =
 			GetTemplateComponentByName<UAGX_HingeConstraintComponent>(
 				UpdatedTemplateComponents, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Template Hinge after synchronize"), TemplateHinge))
+		if (!TestNotNull(TEXT("Template Hinge after reimport"), TemplateHinge))
 		{
 			return false;
 		}
 		const UAGX_ConstraintMergeSplitThresholds* TemplateThresholds =
 			TemplateHinge->MergeSplitProperties.Thresholds;
-		if (!TestNull(TEXT("Template Hinge Thresholds after synchronize"), TemplateThresholds))
+		if (!TestNull(TEXT("Template Hinge Thresholds after reimport"), TemplateThresholds))
 		{
 			return false;
 		}
@@ -1451,20 +1450,20 @@ public:
 		UAGX_HingeConstraintComponent* HingeInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_HingeConstraintComponent>(
 				*UpdatedBlueprintInstance, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Hinge instance after synchronize"), HingeInstance))
+		if (!TestNotNull(TEXT("Hinge instance after reimport"), HingeInstance))
 		{
 			return false;
 		}
 		const UAGX_ConstraintMergeSplitThresholds* ThresholdsInstance =
 			HingeInstance->MergeSplitProperties.Thresholds;
-		if (!TestNull(TEXT("Hinge instance thresholds after synchronize"), ThresholdsInstance))
+		if (!TestNull(TEXT("Hinge instance thresholds after reimport"), ThresholdsInstance))
 		{
 			return false;
 		}
 
 		// Asset file on drive should have been deleted.
 		if (!TestFalse(
-				TEXT("Thresholds asset removed after synchronize"), FPaths::FileExists(AssetPath)))
+				TEXT("Thresholds asset removed after reimport"), FPaths::FileExists(AssetPath)))
 		{
 			return false;
 		}
@@ -1480,16 +1479,15 @@ namespace
 
 /**
  * Import model with a Rigid Body, a Hinge, and a Constraint Merge Split Thresholds. Then
- * synchronize with an updated model where all values held by the thresholds has been modified.
+ * reimport with an updated model where all values held by the thresholds has been modified.
  */
-class FModifyConstraintMergeSplitThresholdsTest final : public FSynchronizeModelTest
+class FModifyConstraintMergeSplitThresholdsTest final : public FReimportModelTest
 {
 public:
 	FModifyConstraintMergeSplitThresholdsTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("FModifyConstraintMergeSplitThresholdsTest"),
-			  TEXT(
-				  "AGXUnreal.Editor.AGX_SynchronizeModelTest.ModifyConstraintMergeSplitThresholds"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.ModifyConstraintMergeSplitThresholds"),
 			  TEXT("thresholds_modify__initial.agx"), TEXT("thresholds_modify__updated.agx"))
 	{
 	}
@@ -1498,12 +1496,12 @@ public:
 
 	virtual bool PostImport() override
 	{
-		using namespace AGX_SynchronizeModelTest_helpers;
+		using namespace AGX_ReimportModelTest_helpers;
 
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Hinge.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -1514,13 +1512,13 @@ public:
 		UAGX_HingeConstraintComponent* TemplateHinge =
 			GetTemplateComponentByName<UAGX_HingeConstraintComponent>(
 				InitialTemplateComponents, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Template Hinge before synchronize"), TemplateHinge))
+		if (!TestNotNull(TEXT("Template Hinge before reimport"), TemplateHinge))
 		{
 			return false;
 		}
 		UAGX_ConstraintMergeSplitThresholds* TemplateThresholds =
 			TemplateHinge->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Template Hinge Thresholds before synchronize"), TemplateThresholds))
+		if (!TestNotNull(TEXT("Template Hinge Thresholds before reimport"), TemplateThresholds))
 		{
 			return false;
 		}
@@ -1533,13 +1531,13 @@ public:
 		UAGX_HingeConstraintComponent* HingeInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_HingeConstraintComponent>(
 				*InitialBlueprintInstance, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Hinge instance before synchronize"), HingeInstance))
+		if (!TestNotNull(TEXT("Hinge instance before reimport"), HingeInstance))
 		{
 			return false;
 		}
 		UAGX_ConstraintMergeSplitThresholds* ThresholdsInstance =
 			HingeInstance->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Hinge instance thresholds before synchronize"), ThresholdsInstance))
+		if (!TestNotNull(TEXT("Hinge instance thresholds before reimport"), ThresholdsInstance))
 		{
 			return false;
 		}
@@ -1564,7 +1562,7 @@ public:
 
 		UAGX_ConstraintMergeSplitThresholds* Asset =
 			LoadObject<UAGX_ConstraintMergeSplitThresholds>(nullptr, *AssetPath);
-		if (!TestNotNull(TEXT("Thresholds asset before synchronize"), Asset))
+		if (!TestNotNull(TEXT("Thresholds asset before reimport"), Asset))
 		{
 			return false;
 		}
@@ -1575,9 +1573,9 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
-		using namespace AGX_SynchronizeModelTest_helpers;
+		using namespace AGX_ReimportModelTest_helpers;
 
 		// There are three places where the thresholds should have been modified:
 		// - Thresholds in the Hinge template.
@@ -1588,13 +1586,13 @@ public:
 		UAGX_HingeConstraintComponent* TemplateHinge =
 			GetTemplateComponentByName<UAGX_HingeConstraintComponent>(
 				UpdatedTemplateComponents, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Template Hinge after synchronize"), TemplateHinge))
+		if (!TestNotNull(TEXT("Template Hinge after reimport"), TemplateHinge))
 		{
 			return false;
 		}
 		const UAGX_ConstraintMergeSplitThresholds* TemplateThresholds =
 			TemplateHinge->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Template Hinge Thresholds after synchronize"), TemplateThresholds))
+		if (!TestNotNull(TEXT("Template Hinge Thresholds after reimport"), TemplateThresholds))
 		{
 			return false;
 		}
@@ -1607,13 +1605,13 @@ public:
 		UAGX_HingeConstraintComponent* HingeInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_HingeConstraintComponent>(
 				*UpdatedBlueprintInstance, TEXT("Hinge"));
-		if (!TestNotNull(TEXT("Hinge instance after synchronize"), HingeInstance))
+		if (!TestNotNull(TEXT("Hinge instance after reimport"), HingeInstance))
 		{
 			return false;
 		}
 		const UAGX_ConstraintMergeSplitThresholds* ThresholdsInstance =
 			HingeInstance->MergeSplitProperties.Thresholds;
-		if (!TestNotNull(TEXT("Hinge instance thresholds after synchronize"), ThresholdsInstance))
+		if (!TestNotNull(TEXT("Hinge instance thresholds after reimport"), ThresholdsInstance))
 		{
 			return false;
 		}
@@ -1625,7 +1623,7 @@ public:
 		// Check asset on drive.
 		UAGX_ConstraintMergeSplitThresholds* Asset =
 			LoadObject<UAGX_ConstraintMergeSplitThresholds>(nullptr, *AssetPath);
-		if (!TestNotNull(TEXT("Thresholds asset before synchronize"), Asset))
+		if (!TestNotNull(TEXT("Thresholds asset before reimport"), Asset))
 		{
 			return false;
 		}
@@ -1665,13 +1663,13 @@ namespace
 // Cylindrical Constraint test starts here.
 //
 
-class FModifyCylindricalConstraintTest final : public FSynchronizeModelTest
+class FModifyCylindricalConstraintTest final : public FReimportModelTest
 {
 public:
 	FModifyCylindricalConstraintTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("ModifyCylindricalConstraint"),
-			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.ModifyCylindricalConstraint"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.ModifyCylindricalConstraint"),
 			  TEXT("cylindrical_constraint__initial.agx"),
 			  TEXT("cylindrical_constraint__updated.agx"))
 	{
@@ -1749,7 +1747,7 @@ public:
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Cylindrical Constraint.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -1760,7 +1758,7 @@ public:
 		UAGX_CylindricalConstraintComponent* CylindricalTemplate =
 			GetTemplateComponentByName<UAGX_CylindricalConstraintComponent>(
 				InitialTemplateComponents, TEXT("Cylindrical"));
-		if (!TestNotNull(TEXT("Template Cylindrical before synchronize"), CylindricalTemplate))
+		if (!TestNotNull(TEXT("Template Cylindrical before reimport"), CylindricalTemplate))
 		{
 			return false;
 		}
@@ -1775,7 +1773,7 @@ public:
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_CylindricalConstraintComponent>(
 				*InitialBlueprintInstance, TEXT("Cylindrical"));
 		if (!TestNotNull(
-				TEXT("Cylindrical Constraint instance before synchronize"), CylindricalInstance))
+				TEXT("Cylindrical Constraint instance before reimport"), CylindricalInstance))
 		{
 			return false;
 		}
@@ -1788,12 +1786,12 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Cylindrical Constraint.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				UpdatedTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
@@ -1804,7 +1802,7 @@ public:
 		UAGX_CylindricalConstraintComponent* CylindricalTemplate =
 			GetTemplateComponentByName<UAGX_CylindricalConstraintComponent>(
 				UpdatedTemplateComponents, TEXT("Cylindrical"));
-		if (!TestNotNull(TEXT("Template Cylindrical before synchronize"), CylindricalTemplate))
+		if (!TestNotNull(TEXT("Template Cylindrical before reimport"), CylindricalTemplate))
 		{
 			return false;
 		}
@@ -1819,7 +1817,7 @@ public:
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_CylindricalConstraintComponent>(
 				*UpdatedBlueprintInstance, TEXT("Cylindrical"));
 		if (!TestNotNull(
-				TEXT("Cylindrical Constraint instance before synchronize"), CylindricalInstance))
+				TEXT("Cylindrical Constraint instance before reimport"), CylindricalInstance))
 		{
 			return false;
 		}
@@ -1842,14 +1840,14 @@ namespace
 // Ball Constraint modified test starts here.
 //
 
-class FModifyBallConstraintTest final : public FSynchronizeModelTest
+class FModifyBallConstraintTest final : public FReimportModelTest
 {
 public:
 	FModifyBallConstraintTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("ModifyBallConstraint"),
-			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.ModifyBallConstraint"),
-			  TEXT("ball_constraint__initial.agx"), TEXT("ball_constraint__updated.agx"))
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.ModifyBallConstraint"),
+			  TEXT("ball_constraint__initial1.agx"), TEXT("ball_constraint__updated.agx"))
 	{
 	}
 
@@ -1904,7 +1902,7 @@ public:
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Ball Constraint.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -1915,7 +1913,7 @@ public:
 		UAGX_BallConstraintComponent* BallTemplate =
 			GetTemplateComponentByName<UAGX_BallConstraintComponent>(
 				InitialTemplateComponents, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Template Ball before synchronize"), BallTemplate))
+		if (!TestNotNull(TEXT("Template Ball before reimport"), BallTemplate))
 		{
 			return false;
 		}
@@ -1928,7 +1926,7 @@ public:
 		UAGX_BallConstraintComponent* BallInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_BallConstraintComponent>(
 				*InitialBlueprintInstance, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Ball Constraint instance before synchronize"), BallInstance))
+		if (!TestNotNull(TEXT("Ball Constraint instance before reimport"), BallInstance))
 		{
 			return false;
 		}
@@ -1940,12 +1938,12 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Ball Constraint.
 		if (!TestEqual(
-				TEXT("Number of imported components after synchronize"),
+				TEXT("Number of imported components after reimport"),
 				UpdatedTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
@@ -1956,7 +1954,7 @@ public:
 		UAGX_BallConstraintComponent* BallTemplate =
 			GetTemplateComponentByName<UAGX_BallConstraintComponent>(
 				UpdatedTemplateComponents, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Template Ball after synchronize"), BallTemplate))
+		if (!TestNotNull(TEXT("Template Ball after reimport"), BallTemplate))
 		{
 			return false;
 		}
@@ -1969,7 +1967,7 @@ public:
 		UAGX_BallConstraintComponent* BallInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_BallConstraintComponent>(
 				*UpdatedBlueprintInstance, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Ball Constraint instance after synchronize"), BallInstance))
+		if (!TestNotNull(TEXT("Ball Constraint instance after reimport"), BallInstance))
 		{
 			return false;
 		}
@@ -1991,14 +1989,14 @@ namespace
 // Ball Constraint removed test starts here.
 //
 
-class FRemoveBallConstraintTest final : public FSynchronizeModelTest
+class FRemoveBallConstraintTest final : public FReimportModelTest
 {
 public:
 	FRemoveBallConstraintTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("RemoveBallConstraint"),
-			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.RemoveBallConstraint"),
-			  TEXT("ball_constraint__initial.agx"), TEXT("ball_constraint__removed.agx"))
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.RemoveBallConstraint"),
+			  TEXT("ball_constraint__initial2.agx"), TEXT("ball_constraint__removed.agx"))
 	{
 	}
 
@@ -2007,7 +2005,7 @@ public:
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 1 Ball Constraint.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 4))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -2018,7 +2016,7 @@ public:
 		UAGX_BallConstraintComponent* BallTemplate =
 			GetTemplateComponentByName<UAGX_BallConstraintComponent>(
 				InitialTemplateComponents, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Template Ball before synchronize"), BallTemplate))
+		if (!TestNotNull(TEXT("Template Ball before reimport"), BallTemplate))
 		{
 			return false;
 		}
@@ -2027,7 +2025,7 @@ public:
 		UAGX_BallConstraintComponent* BallInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_BallConstraintComponent>(
 				*InitialBlueprintInstance, TEXT("Ball"));
-		if (!TestNotNull(TEXT("Ball Constraint instance before synchronize"), BallInstance))
+		if (!TestNotNull(TEXT("Ball Constraint instance before reimport"), BallInstance))
 		{
 			return false;
 		}
@@ -2035,12 +2033,12 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body.
 		if (!TestEqual(
-				TEXT("Number of imported components after synchronize"),
+				TEXT("Number of imported components after reimport"),
 				UpdatedTemplateComponents.Num(), 3))
 		{
 			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
@@ -2051,7 +2049,7 @@ public:
 		UAGX_BallConstraintComponent* BallTemplate =
 			GetTemplateComponentByName<UAGX_BallConstraintComponent>(
 				UpdatedTemplateComponents, TEXT("Ball"));
-		if (!TestNull(TEXT("Template Ball after synchronize"), BallTemplate))
+		if (!TestNull(TEXT("Template Ball after reimport"), BallTemplate))
 		{
 			return false;
 		}
@@ -2060,7 +2058,7 @@ public:
 		UAGX_BallConstraintComponent* BallInstance =
 			FAGX_ObjectUtilities::GetComponentByName<UAGX_BallConstraintComponent>(
 				*UpdatedBlueprintInstance, TEXT("Ball"));
-		if (!TestNull(TEXT("Ball Constraint instance after synchronize"), BallInstance))
+		if (!TestNull(TEXT("Ball Constraint instance after reimport"), BallInstance))
 		{
 			return false;
 		}
@@ -2079,22 +2077,22 @@ namespace
 //
 // Some AGX Dynamics archives, those created before 2.37, have Ball Constraints without a Twist
 // Range Controller. This means that we will get an empty Barrier object. It is important
-// that we do not try to use such a Barrier during import or model synchronization. Once the Ball
+// that we do not try to use such a Barrier during import or model reimport. Once the Ball
 // Constraint Component has been created there will always be a Twist Range Controller, it is only
 // missing for Barriers wrapping objects in the temporary agxSDK::Simulation that exists during
 // import.
 //
 
-class FBallConstraintNoTwistRangeTest final : public FSynchronizeModelTest
+class FBallConstraintNoTwistRangeTest final : public FReimportModelTest
 {
 public:
 	FBallConstraintNoTwistRangeTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("BallConstraintNoTwistRangeTest"),
-			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.BallConstraintNoTwistRangeTest"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.BallConstraintNoTwistRangeTest"),
 			  // Same file for both since we want to test the no-twist-controller code path for
-			  // both import and synchronize. No need for a second archive since there is nothing
-			  // to change for the synchronization.
+			  // both import and reimport. No need for a second archive since there is nothing
+			  // to change for the reimport.
 			  TEXT("ball_constraint__no_twist_range_agx-2_36_1_5.agx"),
 			  TEXT("ball_constraint__no_twist_range_agx-2_36_1_5.agx"))
 	{
@@ -2155,16 +2153,16 @@ public:
 		//
 		// Would like to do this in the constructor instead, but
 		FString ArchiveFilePath = AgxAutomationCommon::GetTestScenePath(
-			FPaths::Combine(FString("SynchronizeModel"), InitialModelFileName));
+			FPaths::Combine(FString("ReimportModel"), InitialModelFileName));
 		AgxAutomationCommon::CheckFileMD5Checksum(
 			ArchiveFilePath, TEXT("4d72dcda03b7e204da05a9b479208317"), *this);
 
 		return DoChecks(TEXT("PostImport"), InitialTemplateComponents);
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
-		return DoChecks(TEXT("PostSynchronize"), UpdatedTemplateComponents);
+		return DoChecks(TEXT("PostReimport"), UpdatedTemplateComponents);
 	}
 };
 
@@ -2177,16 +2175,16 @@ namespace
 // Surface velocity test starts here.
 //
 
-class FSurfaceVelocityTest final : public FSynchronizeModelTest
+class FSurfaceVelocityTest final : public FReimportModelTest
 {
 public:
 	FVector InitialSurfaceVelocity {AgxAutomationCommon::AgxToUnrealDisplacement(1.0, 2.0, 3.0)};
 	FVector UpdatedSurfaceVelocity {AgxAutomationCommon::AgxToUnrealDisplacement(10.0, 20.0, 30.0)};
 
 	FSurfaceVelocityTest()
-		: FSynchronizeModelTest(
+		: FReimportModelTest(
 			  TEXT("SurfaceVelocityTest"),
-			  TEXT("AGXUnreal.Editor.AGX_SynchronizeModelTest.SurfaceVelocity"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.SurfaceVelocity"),
 			  TEXT("surface_velocity__initial.agx"), TEXT("surface_velocity__updated.agx"))
 	{
 	}
@@ -2196,7 +2194,7 @@ public:
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Shape.
 		if (!TestEqual(
-				TEXT("Number of imported components before synchronize"),
+				TEXT("Number of imported components before reimport"),
 				InitialTemplateComponents.Num(), 3))
 		{
 			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
@@ -2206,8 +2204,7 @@ public:
 		// Check the Blueprint.
 		UAGX_ShapeComponent* ShapeTemplate = GetTemplateComponentByName<UAGX_ShapeComponent>(
 			InitialTemplateComponents, TEXT("SurfaceVelocity"));
-		if (!TestNotNull(
-				TEXT("Surface velocity geometry template before synchronize"), ShapeTemplate))
+		if (!TestNotNull(TEXT("Surface velocity geometry template before reimport"), ShapeTemplate))
 		{
 			return false;
 		}
@@ -2221,13 +2218,12 @@ public:
 		UAGX_ShapeComponent* ShapeInstance =
 			AgxAutomationCommon::GetComponentByName<UAGX_ShapeComponent>(
 				*InitialBlueprintInstance, TEXT("SurfaceVelocity"));
-		if (!TestNotNull(
-				TEXT("Surface velocity geometry instance before synchronize"), ShapeInstance))
+		if (!TestNotNull(TEXT("Surface velocity geometry instance before reimport"), ShapeInstance))
 		{
 			return false;
 		}
 		if (!TestEqual(
-				TEXT("Surface velocity on instance before synchronize"),
+				TEXT("Surface velocity on instance before reimport"),
 				ShapeInstance->SurfaceVelocity, InitialSurfaceVelocity))
 		{
 			return false;
@@ -2236,12 +2232,12 @@ public:
 		return true;
 	}
 
-	virtual bool PostSynchronize() override
+	virtual bool PostReimport() override
 	{
 		// Make sure we got the template Components we expect.
 		// 1 Default Scene Root, 1 Model Source, 1 Shape.
 		if (!TestEqual(
-				TEXT("Number of imported components after synchronize"),
+				TEXT("Number of imported components after reimport"),
 				UpdatedTemplateComponents.Num(), 3))
 		{
 			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
@@ -2251,8 +2247,7 @@ public:
 		// Check the Blueprint.
 		UAGX_ShapeComponent* ShapeTemplate = GetTemplateComponentByName<UAGX_ShapeComponent>(
 			UpdatedTemplateComponents, TEXT("SurfaceVelocity"));
-		if (!TestNotNull(
-				TEXT("Surface velocity geometry template after synchronize"), ShapeTemplate))
+		if (!TestNotNull(TEXT("Surface velocity geometry template after reimport"), ShapeTemplate))
 		{
 			return false;
 		}
@@ -2266,14 +2261,13 @@ public:
 		UAGX_ShapeComponent* ShapeInstance =
 			AgxAutomationCommon::GetComponentByName<UAGX_ShapeComponent>(
 				*UpdatedBlueprintInstance, TEXT("SurfaceVelocity"));
-		if (!TestNotNull(
-				TEXT("Surface velocity geometry instance after synchronize"), ShapeInstance))
+		if (!TestNotNull(TEXT("Surface velocity geometry instance after reimport"), ShapeInstance))
 		{
 			return false;
 		}
 		if (!TestEqual(
-				TEXT("Surface velocity on instance after synchronize"),
-				ShapeInstance->SurfaceVelocity, UpdatedSurfaceVelocity))
+				TEXT("Surface velocity on instance after reimport"), ShapeInstance->SurfaceVelocity,
+				UpdatedSurfaceVelocity))
 		{
 			return false;
 		}
@@ -2285,4 +2279,79 @@ public:
 namespace
 {
 	FSurfaceVelocityTest SurfaceVelocityTest;
+}
+
+//
+// Shared Render Material test starts here.
+// This is mostly a sanity check test.
+// This reimport used to cause a crash in StaticMesh.cpp saying that the member KnownMesh
+// was not the expected one. It is unclear why. A fix for this crash was added in ImporterToEditor,
+// calling PostApplyToComponent on the Meshes. This test is mostly to ensure this fix always works
+// and we don't crash.
+//
+
+class FSharedRenderMaterialTest final : public FReimportModelTest
+{
+public:
+	FSharedRenderMaterialTest()
+		: FReimportModelTest(
+			  TEXT("SharedRenderMaterial"),
+			  TEXT("AGXUnreal.Editor.AGX_ReimportModelTest.SharedRenderMaterial"),
+			  TEXT("shared_render_material_initial.agx"), TEXT("shared_render_material_updated.agx"))
+	{
+	}
+
+	virtual bool PostImport() override
+	{
+		// Make sure we got the template Components we expect.
+		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 2 Shapes.
+		if (!TestEqual(
+				TEXT("Number of imported components before reimport"),
+				InitialTemplateComponents.Num(), 5))
+		{
+			PrintComponentNames(InitialTemplateComponents, TEXT("Initial template components"));
+			return false;
+		}
+
+		return true;
+	}
+
+	virtual bool PostReimport() override
+	{
+		// Make sure we got the template Components we expect.
+		// 1 Default Scene Root, 1 Model Source, 1 Rigid Body, 2 shapes, one render static mesh.
+		if (!TestEqual(
+				TEXT("Number of imported components after reimport"),
+				UpdatedTemplateComponents.Num(), 6))
+		{
+			PrintComponentNames(UpdatedTemplateComponents, TEXT("Updated template components"));
+			return false;
+		}
+
+		UAGX_SphereShapeComponent* Sphere1 = GetTemplateComponentByName<UAGX_SphereShapeComponent>(
+				UpdatedTemplateComponents, TEXT("SphereGeom1"));
+		if (!TestNotNull(TEXT("Template SphereGeom1 after reimport"), Sphere1))
+			return false;
+
+		UAGX_SphereShapeComponent* Sphere2 = GetTemplateComponentByName<UAGX_SphereShapeComponent>(
+			UpdatedTemplateComponents, TEXT("SphereGeom2"));
+		if (!TestNotNull(TEXT("Template SphereGeom2 after reimport"), Sphere2))
+			return false;
+
+		UMaterialInterface* Mat1 = Sphere1->GetMaterial(0);
+		UMaterialInterface* Mat2 = Sphere2->GetMaterial(0);
+
+		if (!TestNotNull(TEXT("Material1 after reimport"), Mat1))
+			return false;
+
+		if (!TestEqual(TEXT("Material1 and Material2 equal"), Mat1, Mat2))
+			return false;
+
+		return true;
+	}
+};
+
+namespace
+{
+	FSharedRenderMaterialTest SharedRenderMaterialTest;
 }

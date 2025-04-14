@@ -271,7 +271,7 @@ FReply FAGX_LidarSensorComponentCustomization::OnCreateModelParametersAssetButto
 
 	Lidar->ModelParameters = ModelParametersAsset;
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		FString::Printf(TEXT("Successfully saved: '%s'"), *ModelParametersAsset->GetName()));
 
 	return FReply::Handled();

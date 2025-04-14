@@ -90,6 +90,9 @@ struct AGXUNREAL_API FAGX_ConstraintController
 
 	double GetForce();
 
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint Controller")
+	FString Name;
+
 	/**
 	 * Handle serialization backwards compatibility. May be overridden by subclasses as long as they
 	 * call Super::Serialize.
@@ -134,9 +137,7 @@ protected:
 	 * Copy properties from the give AGX Dynamics constraint controller into this AGXUnreal
 	 * constraint controller.
 	 */
-	void CopyFrom(
-		const FConstraintControllerBarrier& Source,
-		TArray<FAGX_ConstraintController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FConstraintControllerBarrier& Source);
 
 	/**
 	 * Handle to the AGX Dynamics instance.

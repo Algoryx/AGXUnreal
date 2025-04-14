@@ -16,8 +16,10 @@
 
 #include "AGX_ShovelProperties.generated.h"
 
+class FShovelBarrier;
 class UAGX_ShovelComponent;
 class UWorld;
+struct FAGX_ImportContext;
 
 /**
  * An asset used to hold configuration properties for Shovel Components.
@@ -400,6 +402,8 @@ public:
 	void SetbEnableParticleFreeDeformers(bool InbEnableParticleFreeDeformers);
 	void SetbEnableInnerShapeCreateDynamicMass(bool InbEnableInnerShapeCreateDynamicMass);
 	void SetbEnableParticleForceFeedback(bool InbEnableParticleForceFeedback);
+
+	void CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context);
 
 private:
 #if WITH_EDITOR

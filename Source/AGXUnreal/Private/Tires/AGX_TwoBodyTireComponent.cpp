@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_ImportContext.h"
 #include "Tires/AGX_TwoBodyTireActor.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -46,9 +47,33 @@ FTransform UAGX_TwoBodyTireComponent::GetGlobalTireTransform() const
 	return FTransform(Rot, Pos);
 }
 
-void UAGX_TwoBodyTireComponent::CopyFrom(
-	const FTwoBodyTireBarrier& Barrier, bool ForceOverwriteInstances)
+namespace AGX_TwoBodyTireComponent_helpers
 {
+	bool SetupRigidBodies(
+		const FTwoBodyTireBarrier& Barrier, UAGX_TwoBodyTireComponent& OutTire,
+		FAGX_ImportContext& Context)
+	{
+		const auto TireBarrier = Barrier.GetTireRigidBody();
+		const auto HubBarrier = Barrier.GetHubRigidBody();
+
+		if (!TireBarrier.HasNative() || !HubBarrier.HasNative())
+			return false;
+
+		auto TireBody = Context.RigidBodies->FindRef(TireBarrier.GetGuid());
+		auto HubBody = Context.RigidBodies->FindRef(HubBarrier.GetGuid());
+		if (TireBody == nullptr || HubBody == nullptr)
+			return false;
+
+		OutTire.HubRigidBody.Name = *HubBody->GetName();
+		OutTire.TireRigidBody.Name = *TireBody->GetName();
+		return true;
+	}
+}
+
+void UAGX_TwoBodyTireComponent::CopyFrom(
+	const FTwoBodyTireBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	using namespace AGX_TwoBodyTireComponent_helpers;
 	if (!Barrier.HasNative())
 	{
 		UE_LOG(
@@ -59,45 +84,42 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 		return;
 	}
 
-	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetGuid(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(OuterRadius, Barrier.GetOuterRadius(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(InnerRadius, Barrier.GetInnerRadius(), *this, ForceOverwriteInstances)
+	ImportGuid = Barrier.GetGuid();
+	OuterRadius = Barrier.GetOuterRadius();
+	InnerRadius = Barrier.GetInnerRadius();
 
 	const FTransform LocalTransform = Barrier.GetLocalTransform();
-	AGX_COPY_PROPERTY_FROM(
-		LocalLocation, LocalTransform.GetLocation(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		LocalRotation, FRotator(LocalTransform.GetRotation()), *this, ForceOverwriteInstances)
+	LocalLocation = LocalTransform.GetLocation();
+	LocalRotation = FRotator(LocalTransform.GetRotation());
 
-	AGX_COPY_PROPERTY_FROM(
-		RadialStiffness, Barrier.GetStiffness(FTwoBodyTireBarrier::RADIAL), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		LateralStiffness, Barrier.GetStiffness(FTwoBodyTireBarrier::LATERAL), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		BendingStiffness, Barrier.GetStiffness(FTwoBodyTireBarrier::BENDING), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		TorsionalStiffness, Barrier.GetStiffness(FTwoBodyTireBarrier::TORSIONAL), *this,
-		ForceOverwriteInstances)
+	RadialStiffness = Barrier.GetStiffness(FTwoBodyTireBarrier::RADIAL);
+	LateralStiffness = Barrier.GetStiffness(FTwoBodyTireBarrier::LATERAL);
+	BendingStiffness = Barrier.GetStiffness(FTwoBodyTireBarrier::BENDING);
+	TorsionalStiffness = Barrier.GetStiffness(FTwoBodyTireBarrier::TORSIONAL);
 
-	AGX_COPY_PROPERTY_FROM(
-		RadialDamping, Barrier.GetDamping(FTwoBodyTireBarrier::RADIAL), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		LateralDamping, Barrier.GetDamping(FTwoBodyTireBarrier::LATERAL), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		BendingDamping, Barrier.GetDamping(FTwoBodyTireBarrier::BENDING), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		TorsionalDamping, Barrier.GetDamping(FTwoBodyTireBarrier::TORSIONAL), *this,
-		ForceOverwriteInstances)
+	RadialDamping = Barrier.GetDamping(FTwoBodyTireBarrier::RADIAL);
+	LateralDamping = Barrier.GetDamping(FTwoBodyTireBarrier::LATERAL);
+	BendingDamping = Barrier.GetDamping(FTwoBodyTireBarrier::BENDING);
+	TorsionalDamping = Barrier.GetDamping(FTwoBodyTireBarrier::TORSIONAL);
 
-	AGX_COPY_PROPERTY_FROM(
-		ImplicitFrictionMultiplier, Barrier.GetImplicitFrictionMultiplier(), *this,
-		ForceOverwriteInstances)
+	ImplicitFrictionMultiplier = Barrier.GetImplicitFrictionMultiplier();
+
+	if (Context == nullptr || Context->Tires == nullptr || Context->RigidBodies == nullptr)
+		return; // We are done.
+
+	if (SetupRigidBodies(Barrier, *this, *Context))
+	{
+		AGX_CHECK(!Context->Tires->Contains(ImportGuid));
+		Context->Tires->Add(ImportGuid, this);
+	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to setup Rigid Bodies for Two Body Tire: '%s'. The Tire will not be "
+				 "added."),
+			*GetName());
+	}
 }
 
 bool UAGX_TwoBodyTireComponent::IsDefaultSubObjectOfTwoBodyTireActor() const

@@ -260,7 +260,7 @@ FReply SAGX_OfflineActivationDialog::OnGenerateActivationRequestButtonClicked()
 {
 	if (LicenseId.IsEmpty() || ActivationCode.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License Id or Activation code was empty. Please enter a License Id and Activation "
 			"code.");
 		return FReply::Handled();
@@ -268,7 +268,7 @@ FReply SAGX_OfflineActivationDialog::OnGenerateActivationRequestButtonClicked()
 
 	if (!ContainsOnlyIntegers(LicenseId))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License id may only contain integer values.");
 		return FReply::Handled();
 	}
@@ -278,7 +278,7 @@ FReply SAGX_OfflineActivationDialog::OnGenerateActivationRequestButtonClicked()
 
 	if (Filename.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"No output file was selected, could not generate offline activation request.");
 		return FReply::Handled();
 	}
@@ -288,13 +288,13 @@ FReply SAGX_OfflineActivationDialog::OnGenerateActivationRequestButtonClicked()
 		Id, ActivationCode, Filename);
 	if (!Output)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Could not generate an offline activation request file. "
 			"The Output Log may contain more information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithInfo(
 		"Offline activation request saved to: " + Output.GetValue());
 	return FReply::Handled();
 }
@@ -315,7 +315,7 @@ FReply SAGX_OfflineActivationDialog::OnGenerateLicenseButtonClicked()
 {
 	if (ActivationResponsePath.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Could not activate service license, no activation response file is selected.");
 		return FReply::Handled();
 	}
@@ -324,12 +324,12 @@ FReply SAGX_OfflineActivationDialog::OnGenerateLicenseButtonClicked()
 		FAGX_Environment::GetInstance().ProcessOfflineActivationResponse(ActivationResponsePath);
 	if (!OutputFile)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Activating service license failed. The Output Log may contain more information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		"Activating service license was successful. The service license file is written to: " +
 		OutputFile.GetValue());
 	return FReply::Handled();

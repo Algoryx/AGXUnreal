@@ -13,28 +13,21 @@
 
 namespace
 {
-	void ShowDialogBox(const FString& Text, const FString& InTitle)
+	void ShowDialogBox(const FString& Text, const FString& InTitle, EAppMsgCategory Category)
 	{
 		const FText Title = InTitle.IsEmpty() ? FText::FromString("AGX Dynamics for Unreal")
 											  : FText::FromString(InTitle);
-		FMessageDialog::Open(
-			EAppMsgType::Ok, FText::FromString(Text),
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
-			&Title
-#else
-			Title
-#endif
-		);
+		FMessageDialog::Open(Category, EAppMsgType::Ok, FText::FromString(Text), Title);
 	}
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(const FString& Text, const FString& Title)
+void FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(const FString& Text, const FString& Title)
 {
 	UE_LOG(LogAGX, Log, TEXT("%s"), *Text);
-	ShowDialogBox(Text, Title);
+	ShowDialogBox(Text, Title, EAppMsgCategory::Success);
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithLogLogInEditor(
+void FAGX_NotificationUtilities::ShowDialogBoxWithSuccessInEditor(
 	const FString& Text, UWorld* World, const FString& Title)
 {
 	if (World && World->IsGameWorld())
@@ -44,18 +37,38 @@ void FAGX_NotificationUtilities::ShowDialogBoxWithLogLogInEditor(
 	}
 	else
 	{
-		ShowDialogBoxWithLogLog(Text, Title);
+		ShowDialogBoxWithSuccess(Text, Title);
 	}
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(
+void FAGX_NotificationUtilities::ShowDialogBoxWithInfo(const FString& Text, const FString& Title)
+{
+	UE_LOG(LogAGX, Log, TEXT("%s"), *Text);
+	ShowDialogBox(Text, Title, EAppMsgCategory::Info);
+}
+
+void FAGX_NotificationUtilities::ShowDialogBoxWithInfoInEditor(
+	const FString& Text, UWorld* World, const FString& Title)
+{
+	if (World && World->IsGameWorld())
+	{
+		// Write only to the log during Play.
+		UE_LOG(LogAGX, Log, TEXT("%s"), *Text);
+	}
+	else
+	{
+		ShowDialogBoxWithInfo(Text, Title);
+	}
+}
+
+void FAGX_NotificationUtilities::ShowDialogBoxWithWarning(
 	const FString& Text, const FString& Title)
 {
 	UE_LOG(LogAGX, Warning, TEXT("%s"), *Text);
-	ShowDialogBox(Text, Title);
+	ShowDialogBox(Text, Title, EAppMsgCategory::Warning);
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithWarningLogInEditor(
+void FAGX_NotificationUtilities::ShowDialogBoxWithWarningInEditor(
 	const FString& Text, UWorld* World, const FString& Title)
 {
 	if (World && World->IsGameWorld())
@@ -65,18 +78,18 @@ void FAGX_NotificationUtilities::ShowDialogBoxWithWarningLogInEditor(
 	}
 	else
 	{
-		ShowDialogBoxWithWarningLog(Text, Title);
+		ShowDialogBoxWithWarning(Text, Title);
 	}
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+void FAGX_NotificationUtilities::ShowDialogBoxWithError(
 	const FString& Text, const FString& Title)
 {
 	UE_LOG(LogAGX, Error, TEXT("%s"), *Text);
-	ShowDialogBox(Text, Title);
+	ShowDialogBox(Text, Title, EAppMsgCategory::Error);
 }
 
-void FAGX_NotificationUtilities::ShowDialogBoxWithErrorLogInEditor(
+void FAGX_NotificationUtilities::ShowDialogBoxWithErrorInEditor(
 	const FString& Text, UWorld* World, const FString& Title)
 {
 	if (World && World->IsGameWorld())
@@ -86,7 +99,7 @@ void FAGX_NotificationUtilities::ShowDialogBoxWithErrorLogInEditor(
 	}
 	else
 	{
-		ShowDialogBoxWithErrorLog(Text, Title);
+		ShowDialogBoxWithError(Text, Title);
 	}
 }
 
@@ -129,9 +142,9 @@ void FAGX_NotificationUtilities::ShowNotification(
 	// than 5.1 because it requires stuff from the EditorStyle module in those versions which we
 	// cannot use cooked builds. So for that case we just show a regular message box.
 	if (State == SNotificationItem::ECompletionState::CS_Fail)
-		ShowDialogBoxWithErrorLog(Text);
+		ShowDialogBoxWithError(Text);
 	else
-		ShowDialogBoxWithLogLog(Text);
+		ShowDialogBoxWithInfo(Text);
 
 #else
 	FNotificationInfo Info(FText::FromString(Text));

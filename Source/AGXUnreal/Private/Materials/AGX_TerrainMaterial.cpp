@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/TerrainMaterialBarrier.h"
 
 // Unreal Engine includes.
@@ -516,6 +517,56 @@ void UAGX_TerrainMaterial::Serialize(FArchive& Archive)
 	TerrainCompaction.Serialize(Archive);
 }
 
+void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source, FAGX_ImportContext* Context)
+{
+	TerrainBulk = FAGX_TerrainBulkProperties();
+	TerrainBulk.AdhesionOverlapFactor = Source.GetAdhesionOverlapFactor();
+	TerrainBulk.Cohesion = Source.GetCohesion();
+	TerrainBulk.Density = Source.GetDensity();
+	TerrainBulk.DilatancyAngle = Source.GetDilatancyAngle();
+	TerrainBulk.FrictionAngle = Source.GetFrictionAngle();
+	TerrainBulk.MaxDensity = Source.GetMaxDensity();
+	TerrainBulk.PoissonsRatio = Source.GetPoissonsRatio();
+	TerrainBulk.SwellFactor = Source.GetSwellFactor();
+	TerrainBulk.YoungsModulus = Source.GetYoungsModulus();
+
+	TerrainCompaction = FAGX_TerrainCompactionProperties();
+	TerrainCompaction.AngleOfReposeCompactionRate = Source.GetAngleOfReposeCompactionRate();
+	TerrainCompaction.BankStatePhi0 = Source.GetBankStatePhi();
+	TerrainCompaction.CompactionTimeRelaxationConstant =
+		Source.GetCompactionTimeRelaxationConstant();
+	TerrainCompaction.CompressionIndex = Source.GetCompressionIndex();
+	TerrainCompaction.HardeningConstantKe = Source.GetHardeningConstantKe();
+	TerrainCompaction.HardeningConstantNe = Source.GetHardeningConstantNe();
+	TerrainCompaction.PreconsolidationStress = Source.GetPreconsolidationStress();
+	TerrainCompaction.StressCutOffFraction = Source.GetStressCutOffFraction();
+	TerrainCompaction.DilatancyAngleScalingFactor = Source.GetDilatancyAngleScalingFactor();
+
+	TerrainParticles = FAGX_TerrainParticleProperties();
+	TerrainParticles.AdhesionOverlapFactor = Source.GetParticleAdhesionOverlapFactor();
+	TerrainParticles.ParticleCohesion = Source.GetParticleCohesion();
+	TerrainParticles.ParticleRestitution = Source.GetParticleRestitution();
+	TerrainParticles.ParticleRollingResistance = Source.GetParticleRollingResistance();
+	TerrainParticles.ParticleSurfaceFriction = Source.GetParticleSurfaceFriction();
+	TerrainParticles.ParticleTerrainCohesion = Source.GetParticleTerrainCohesion();
+	TerrainParticles.ParticleTerrainRestitution = Source.GetParticleTerrainRestitution();
+	TerrainParticles.ParticleTerrainRollingResistance =
+		Source.GetParticleTerrainRollingResistance();
+	TerrainParticles.ParticleTerrainSurfaceFriction = Source.GetParticleTerrainSurfaceFriction();
+	TerrainParticles.ParticleTerrainYoungsModulus = Source.GetParticleTerrainYoungsModulus();
+	TerrainParticles.ParticleYoungsModulus = Source.GetParticleYoungsModulus();
+
+	TerrainExcavationContact = FAGX_TerrainExcavationContactProperties();
+	TerrainExcavationContact.AggregateStiffnessMultiplier =
+		Source.GetAggregateStiffnessMultiplier();
+	TerrainExcavationContact.ExcavationStiffnessMultiplier =
+		Source.GetExcavationStiffnessMultiplier();
+	TerrainExcavationContact.DepthDecayFactor = Source.GetDepthDecayFactor();
+	TerrainExcavationContact.DepthIncreaseFactor = Source.GetDepthIncreaseFactor();
+	TerrainExcavationContact.MaximumAggregateNormalForce = Source.GetMaximumAggregateNormalForce();
+	TerrainExcavationContact.MaximumContactDepth = Source.GetMaximumContactDepth();
+}
+
 #if WITH_EDITOR
 void UAGX_TerrainMaterial::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
@@ -903,7 +954,6 @@ UAGX_TerrainMaterial* UAGX_TerrainMaterial::CreateFromAsset(
 	UWorld* PlayingWorld, UAGX_TerrainMaterial* Source)
 {
 	check(Source);
-	check(!Source->IsInstance());
 	check(PlayingWorld);
 	check(PlayingWorld->IsGameWorld());
 
@@ -1064,10 +1114,11 @@ void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 }
 
 bool UAGX_TerrainMaterial::IsInstance() const
-{
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
-	//
+{   
+    // This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
 	// Cannot use a negated return value from IsAsset because sometimes we create runtime instances
 	// that we want to use as-if they are assets without actually creating real on-drive assets,
 	// and difficult to fool the IsAsset function into believing that something is an asset when it

@@ -82,6 +82,41 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreateAGXFileGui()
 	return MakeShared<SBorder>();
 }
 
+TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
+{
+	if (ImportType != EAGX_ImportType::Plx)
+	{
+		return MakeShared<SBorder>();
+	}
+
+	// clang-format off
+	return SNew(SBorder)
+				.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f))
+				.BorderImage(FAGX_EditorUtilities::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(FMargin(5.0f, 15.0f))
+				.Content()
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(FMargin(0.f, 0.f, 33.f, 0.f))
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
+							.Text(LOCTEXT("PLXExperimentalTesxt", "Note: OpenPLX support is currently Experimental, "
+								"meaning the supported features \nare limited and backwards compatibility in "
+								"future releases is not guaranteed."))
+							.Font(FAGX_SlateUtilities::CreateFont(10))
+						]
+					]
+				];
+	// clang-format on
+}
+
 TSharedRef<SWidget> SAGX_ImportDialogBase::CreateIgnoreDisabledTrimeshGui()
 {
 	// clang-format off
@@ -124,7 +159,7 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 
 	if (ImportType == EAGX_ImportType::Invalid && !FilePath.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Unable to detect file type for selected type.");
 		FilePath = "";
 		return FReply::Handled();
