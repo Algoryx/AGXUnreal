@@ -12,12 +12,19 @@
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Contacts/AGX_ShapeContact.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "Shapes/RenderDataBarrier.h"
+#include "Shapes/RenderMaterial.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/Material.h"
 #include "Misc/EngineVersionComparison.h"
 #include "PhysicsEngine/AggregateGeom.h"
@@ -285,89 +292,144 @@ void UAGX_ShapeComponent::UpdateNativeLocalTransform()
 	UpdateNativeLocalTransform(*GetNative());
 }
 
-void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, bool ForceOverwriteInstances)
+namespace AGX_ShapeComponent_helpers
 {
-	AGX_COPY_PROPERTY_FROM(
-		bCanCollide, Barrier.GetEnableCollisions(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(bIsSensor, Barrier.GetIsSensor(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		SurfaceVelocity, Barrier.GetSurfaceVelocity(), *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetShapeGuid(), *this, ForceOverwriteInstances)
+	UMaterialInterface* GetOrCreateRenderMaterial(
+		const FRenderDataBarrier& RenderData, bool IsSensor, FAGX_ImportContext& Context)
+	{
+		if (Context.RenderMaterials == nullptr || !RenderData.HasNative() || !RenderData.HasMaterial())
+			return AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+
+		const FAGX_RenderMaterial MBarrier = RenderData.GetMaterial();
+		if (auto Existing = Context.RenderMaterials->FindRef(MBarrier.Guid))
+			return Existing;
+
+		UMaterial* Base = AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+		auto Result = AGX_MeshUtilities::CreateRenderMaterial(MBarrier, Base, *Context.Outer);
+		AGX_CHECK(Result != nullptr);
+		if (Result == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Result, Context.SessionGuid);
+		Context.RenderMaterials->Add(MBarrier.Guid, Result);
+		return Result;
+	}
+
+	UStaticMesh* GetOrCreateStaticMesh(
+		const FRenderDataBarrier& RenderData, UMaterialInterface* Material,
+		FAGX_ImportContext& Context)
+	{
+		AGX_CHECK(Context.RenderStaticMeshes != nullptr);
+		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
+			return Existing;
+
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(RenderData, *Context.Outer, Material);
+		if (Mesh != nullptr)
+			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
+
+		return Mesh;
+	}
+
+	UStaticMeshComponent* CreateStaticMeshComponent(
+		const FShapeBarrier& Shape, AActor& Owner,
+		UMaterialInterface* Material, FAGX_ImportContext& Context)
+	{
+		AGX_CHECK(AGX_MeshUtilities::HasRenderDataMesh(Shape));
+		const FRenderDataBarrier RenderData = Shape.GetRenderData();
+
+		UStaticMesh* StaticMesh = GetOrCreateStaticMesh(RenderData, Material, Context);
+		AGX_CHECK(StaticMesh != nullptr);
+		if (StaticMesh == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*StaticMesh, Context.SessionGuid);
+
+		// The triangles in the AGX Dynamics render data are relative to the Geometry, but the
+		// Unreal Engine Component we create is placed at the position of the AGX Dynamics
+		// Shape. There is no Component for the Geometry. To get the triangles in the right
+		// place we need to offset the render data Component by the inverse of the
+		// Geometry-to-Shape transformation in the source AGX Dynamics data.
+		const FTransform RelTransform = Shape.GetGeometryToShapeTransform().Inverse();
+
+		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Owner, FString::Printf(TEXT("RenderMesh_%s"), *Shape.GetShapeGuid().ToString()), nullptr);
+		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
+		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
+		Component->SetMaterial(0, Material);
+		Component->SetRelativeTransform(RelTransform);
+		Component->SetStaticMesh(StaticMesh);
+		return Component;
+	}
+}
+
+void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	using namespace AGX_ShapeComponent_helpers;
+
+	bCanCollide = Barrier.GetEnableCollisions();
+	bIsSensor = Barrier.GetIsSensor();
+	ImportGuid = Barrier.GetShapeGuid();
+	SurfaceVelocity = Barrier.GetSurfaceVelocity();
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), Barrier.GetName(), UAGX_ShapeComponent::StaticClass());
+	Rename(*Name);
 
 	const EAGX_ShapeSensorType BarrierSensorType = Barrier.GetIsSensorGeneratingContactData()
 													   ? EAGX_ShapeSensorType::ContactsSensor
 													   : EAGX_ShapeSensorType::BooleanSensor;
-	AGX_COPY_PROPERTY_FROM(SensorType, BarrierSensorType, *this, ForceOverwriteInstances)
+	SensorType = BarrierSensorType;
 
-	FVector BarrierPosition;
-	FQuat BarrierRotation;
-	std::tie(BarrierPosition, BarrierRotation) = Barrier.GetLocalPositionAndRotation();
+	auto [BarrierPosition, BarrierRotation] = Barrier.GetLocalPositionAndRotation();
+	SetRelativeLocationAndRotation(BarrierPosition, BarrierRotation);
 
-	TArray<FName> BarrierCollisionGroups = Barrier.GetCollisionGroups();
-	TArray<FName> CollisionGroupsToRemove;
-	for (const FName& Group : CollisionGroups)
-	{
-		if (!BarrierCollisionGroups.Contains(Group))
-		{
-			// Needed for re-import.
-			CollisionGroupsToRemove.Add(Group);
-		}
-	}
+	for (const FName& Group : Barrier.GetCollisionGroups())
+		AddCollisionGroup(Group);
 
 	const FMergeSplitPropertiesBarrier Msp =
 		FMergeSplitPropertiesBarrier::CreateFrom(*const_cast<FShapeBarrier*>(&Barrier));
-	if (FAGX_ObjectUtilities::IsTemplateComponent(*this))
-	{
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*this))
-		{
-			if (ForceOverwriteInstances || Instance->GetRelativeLocation() == GetRelativeLocation())
-			{
-				Instance->SetRelativeLocation(BarrierPosition);
-			}
-
-			if (ForceOverwriteInstances || Instance->GetRelativeRotation() == GetRelativeRotation())
-			{
-				Instance->SetRelativeRotation(BarrierRotation);
-			}
-
-			for (const FName& GroupToRem : CollisionGroupsToRemove)
-			{
-				Instance->RemoveCollisionGroupIfExists(GroupToRem);
-			}
-
-			for (const FName& Group : BarrierCollisionGroups)
-			{
-				// AddCollisionGroup only adds unique groups.
-				Instance->AddCollisionGroup(Group);
-			}
-
-			// Merge Split Properties.
-			if (Msp.HasNative())
-			{
-				if (ForceOverwriteInstances ||
-					Instance->MergeSplitProperties == MergeSplitProperties)
-				{
-					Instance->MergeSplitProperties.CopyFrom(Msp);
-				}
-			}
-		}
-	}
-
-	SetRelativeLocationAndRotation(BarrierPosition, BarrierRotation);
-
-	for (const FName& GroupToRem : CollisionGroupsToRemove)
-	{
-		RemoveCollisionGroupIfExists(GroupToRem);
-	}
-
-	for (const FName& Group : BarrierCollisionGroups)
-	{
-		AddCollisionGroup(Group);
-	}
-
 	if (Msp.HasNative())
+		MergeSplitProperties.CopyFrom(Msp, Context);
+
+	if (Context == nullptr || Context->Shapes == nullptr || Context->Outer == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Shapes->Contains(ImportGuid));
+	Context->Shapes->Add(ImportGuid, this);
+
+	////// Shape Material ///////
+	const FShapeMaterialBarrier SMB = Barrier.GetMaterial();
+	if (SMB.HasNative())
 	{
-		MergeSplitProperties.CopyFrom(Msp);
+		UAGX_ShapeMaterial* Sm =
+			FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(SMB, Context);
+		ShapeMaterial = Sm;
+	}
+
+	////// Visibility ///////
+	// The reason we let GetEnableCollisions and GetEnable determine whether or not this Shape
+	// should be visible or not has to do with the behavior of agxViewer which we want to mimic. If
+	// a shape in a agxCollide::Geometry which has canCollide == false is written to a AGX archive
+	// and then read by agxViewer, the shape will not be visible (unless it has RenderData).
+	const bool Visible =
+		Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
+	SetVisibility(Visible);
+
+	////// Render Material ///////
+	UMaterialInterface* Material =
+		GetOrCreateRenderMaterial(Barrier.GetRenderData(), Barrier.GetIsSensor(), *Context);
+	SetMaterial(0, Material);
+
+	////// Render Mesh ///////
+	if (Context->RenderStaticMeshes != nullptr && GetOwner() != nullptr &&
+		AGX_MeshUtilities::HasRenderDataMesh(Barrier))
+	{
+		UStaticMeshComponent* Mesh = CreateStaticMeshComponent(Barrier, *GetOwner(), Material, *Context);
+		AGX_CHECK(Mesh != nullptr);
+		if (Mesh != nullptr)
+		{
+			Mesh->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
+			Context->RenderStaticMeshCom->Add(Barrier.GetShapeGuid(), Mesh);
+		}
 	}
 }
 

@@ -9,6 +9,7 @@
 #include "AGX_Simulation.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AMOR/MergeSplitPropertiesBarrier.h"
+#include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -496,64 +497,40 @@ void UAGX_RigidBodyComponent::WritePropertiesToNative()
 }
 
 void UAGX_RigidBodyComponent::CopyFrom(
-	const FRigidBodyBarrier& Barrier, bool ForceOverwriteInstances)
+	const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), Barrier.GetName(), UAGX_RigidBodyComponent::StaticClass());
+	Rename(*Name);
+
 	const FMassPropertiesBarrier& MassProperties = Barrier.GetMassProperties();
+	ImportGuid = Barrier.GetGuid();
+	Mass = MassProperties.GetMass();
+	bAutoGenerateMass = MassProperties.GetAutoGenerateMass();
+	bAutoGenerateCenterOfMassOffset = MassProperties.GetAutoGenerateCenterOfMassOffset();
+	bAutoGeneratePrincipalInertia = MassProperties.GetAutoGeneratePrincipalInertia();
+	CenterOfMassOffset = Barrier.GetCenterOfMassOffset();
+	PrincipalInertia = MassProperties.GetPrincipalInertia();
+	Velocity = Barrier.GetVelocity();
+	AngularVelocity = Barrier.GetAngularVelocity();
+	MotionControl = Barrier.GetMotionControl();
+	bEnabled = Barrier.GetEnabled();
+	LinearVelocityDamping = Barrier.GetLinearVelocityDamping();
+	AngularVelocityDamping = Barrier.GetAngularVelocityDamping();
 
-	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetGuid(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(Mass, MassProperties.GetMass(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		bAutoGenerateMass, MassProperties.GetAutoGenerateMass(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		bAutoGenerateCenterOfMassOffset, MassProperties.GetAutoGenerateCenterOfMassOffset(), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		bAutoGeneratePrincipalInertia, MassProperties.GetAutoGeneratePrincipalInertia(), *this,
-		ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		CenterOfMassOffset, Barrier.GetCenterOfMassOffset(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		PrincipalInertia, MassProperties.GetPrincipalInertia(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(Velocity, Barrier.GetVelocity(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		AngularVelocity, Barrier.GetAngularVelocity(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		MotionControl, Barrier.GetMotionControl(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(bEnabled, Barrier.GetEnabled(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		LinearVelocityDamping, Barrier.GetLinearVelocityDamping(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(
-		AngularVelocityDamping, Barrier.GetAngularVelocityDamping(), *this, ForceOverwriteInstances)
-
-	// Manually update archetype instances for properties that the AGX_COPY_PROPERTY_FROM macro
-	// cannot handle.
 	const FMergeSplitPropertiesBarrier Msp =
 		FMergeSplitPropertiesBarrier::CreateFrom(*const_cast<FRigidBodyBarrier*>(&Barrier));
-	if (FAGX_ObjectUtilities::IsTemplateComponent(*this))
-	{
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*this))
-		{
-			// Merge Split Properties.
-			if (Msp.HasNative())
-			{
-				if (ForceOverwriteInstances ||
-					Instance->MergeSplitProperties == MergeSplitProperties)
-				{
-					Instance->MergeSplitProperties.CopyFrom(Msp);
-				}
-			}
-		}
-	}
 
-	// Finally, update this component for properties that the AGX_COPY_PROPERTY_FROM macro
-	// cannot handle.
 	if (Msp.HasNative())
-	{
-		MergeSplitProperties.CopyFrom(Msp);
-	}
+		MergeSplitProperties.CopyFrom(Msp, Context);
 
-	FAGX_ObjectUtilities::SetAnyComponentWorldTransform(
-		*this, FTransform(Barrier.GetRotation(), Barrier.GetPosition()), ForceOverwriteInstances);
+	SetWorldTransform(FTransform(Barrier.GetRotation(), Barrier.GetPosition()));
+
+	if (Context == nullptr || Context->RigidBodies == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->RigidBodies->Contains(ImportGuid));
+	Context->RigidBodies->Add(ImportGuid, this);
 }
 
 void UAGX_RigidBodyComponent::InitializeMotionControl()

@@ -807,7 +807,7 @@ bool AAGX_Terrain::FetchHeights(
 				else
 				{
 					UE_LOG(
-						LogTemp, Warning,
+						LogAGX, Warning,
 						TEXT("Height read unsuccessful in Terrain. World sample pos: %s"),
 						*SamplePosGlobal.ToString());
 					OutHeights.Add(SourceLandscape->GetActorLocation().Z);

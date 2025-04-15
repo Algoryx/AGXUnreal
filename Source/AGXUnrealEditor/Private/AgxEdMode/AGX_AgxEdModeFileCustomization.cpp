@@ -34,7 +34,7 @@ void FAGX_AgxEdModeFileCustomization::CustomizeFileImporterCategory(
 	// Create import Buttons.
 
 	AddCustomButton(
-		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import model to Blueprint..."),
+		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import Model to Blueprint..."),
 		LOCTEXT("CreateButtonTextImportTt", "Import a model from a file to a Blueprint."),
 		[&]()
 		{

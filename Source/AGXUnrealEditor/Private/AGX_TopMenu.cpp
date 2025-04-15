@@ -307,7 +307,7 @@ void FAGX_TopMenu::FillConstraintMenu(FMenuBuilder& Builder)
 void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 {
 	AddFileMenuEntry(
-		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import model to Blueprint..."),
+		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
 		LOCTEXT(
 			"FileMenuEntryhTooltopImportBluePrint",
 			"Import an AGX Dynamics archive or URDF to a Blueprint."),
