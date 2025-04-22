@@ -296,11 +296,6 @@ FString FAGX_ImportUtilities::GetCollisionGroupDisablerDefaultName()
 	return FString("AGX_CollisionGroupDisabler");
 }
 
-FString FAGX_ImportUtilities::GetUnsetUniqueImportName()
-{
-	return FString("AGX_Import_Unnamed_") + FGuid::NewGuid().ToString();
-}
-
 FString FAGX_ImportUtilities::GetDefaultModelImportDirectory(const FString& ModelName)
 {
 	const FString Name = FAGX_EditorUtilities::SanitizeName(ModelName);

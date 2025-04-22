@@ -7,6 +7,7 @@
 #include "AGX_RigidBodyComponent.h"
 #include "Import/AGX_Importer.h"
 #include "Import/AGX_ImportSettings.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
 #include "Utilities/PLXUtilities.h"
@@ -119,6 +120,58 @@ AActor* UAGX_AGXUtilities::Import(UObject* WorldContextObject, FAGX_ImportSettin
 	}
 
 	return Result.Actor;
+}
+
+bool UAGX_AGXUtilities::Reimport(
+	AActor* Actor, UObject* WorldContextObject, FAGX_ImportSettings Settings)
+{
+	if (Actor == nullptr)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("UAGX_AGXUtilities::Reimport got nullptr Actor."));
+		return false;
+	}
+
+	if (auto Root = Actor->GetRootComponent())
+	{
+		if (Root->IsInBlueprint() || Root->GetArchetype()->IsInBlueprint())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("UAGX_AGXUtilities::Reimport: Actor '%s' is a Blueprint instance. Runtime "
+					 "Reimport is only supported for instances of runtime imported Actors."),
+				*Actor->GetName());
+			return false;
+		}
+	}
+
+	AActor* TemplateActor = Import(WorldContextObject, Settings);
+	auto CleanupAndReturn = [&TemplateActor](bool ReturnVal)
+	{
+		if (TemplateActor != nullptr)
+			TemplateActor->Destroy();
+		return ReturnVal;
+	};
+
+	if (TemplateActor == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Got nullptr Actor error from Importer in UAGX_AGXUtilities::Reimport. The "
+				 "Output Log may contain more information."));
+		return CleanupAndReturn(false);
+	}
+
+	if (!FAGX_ImportRuntimeUtilities::Reimport(*TemplateActor, *Actor))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Failed to reimport Actor '%s' in UAGX_AGXUtilities::Reimport. The Output Log may "
+				 "contain more information."),
+			*Actor->GetName());
+		return CleanupAndReturn(false);
+	}
+
+	return CleanupAndReturn(true);
 }
 
 AActor* UAGX_AGXUtilities::InstantiateActor(

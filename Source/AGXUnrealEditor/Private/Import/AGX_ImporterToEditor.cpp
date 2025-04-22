@@ -583,7 +583,7 @@ namespace AGX_ImporterToEditor_helpers
 			!HasMatchingSessionGuid(*ExistingAsset, Context.SessionGuid))
 		{
 			auto ExistingOuter = ExistingAsset->GetOuter();
-			ExistingAsset->Rename(*FAGX_ImportUtilities::GetUnsetUniqueImportName());
+			ExistingAsset->Rename(*FAGX_ImportRuntimeUtilities::GetUnsetUniqueImportName());
 			auto RedirectorObj =
 				StaticFindObjectFast(UObject::StaticClass(), ExistingOuter, *AssetName);
 			if (RedirectorObj != nullptr)
@@ -834,7 +834,7 @@ namespace AGX_ImporterToEditor_helpers
 		// Resolve name collisions.
 		USCS_Node* NameCollNode = OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 		if (Node != nullptr && NameCollNode != nullptr && NameCollNode != Node)
-			NameCollNode->SetVariableName(*FAGX_ImportUtilities::GetUnsetUniqueImportName());
+			NameCollNode->SetVariableName(*FAGX_ImportRuntimeUtilities::GetUnsetUniqueImportName());
 
 		return Node;
 	}

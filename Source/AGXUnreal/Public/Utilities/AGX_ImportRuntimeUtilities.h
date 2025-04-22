@@ -25,10 +25,25 @@ public:
 
 	static void WriteSessionGuidToAssetType(UObject& Object, const FGuid& SessionGuid);
 
-	static void OnComponentCreated(UActorComponent& OutComponent, AActor& Owner, const FGuid& SessionGuid);
+	static void OnComponentCreated(
+		UActorComponent& OutComponent, AActor& Owner, const FGuid& SessionGuid);
 
 	static void OnAssetTypeCreated(UObject& OutObject, const FGuid& SessionGuid);
 
 	static UAGX_ShapeMaterial* GetOrCreateShapeMaterial(
 		const FShapeMaterialBarrier& Barrier, FAGX_ImportContext* Context);
+
+	/**
+	 * Copies the Components and their properties from the Template Actor to the OutActor.
+	 * Components in the OutActor that is not found in the Template Actor are removed.
+	 * Component lookup is completely based on Components names, so renamed objects may be handled
+	 * as new objects.
+	 *
+	 * 
+	 * It is not recommended to store references to Components in the Actor that is reimported since
+	 * Components may be removed during the Reimport process.
+	 */
+	static bool Reimport(const AActor& Template, AActor& OutActor);
+
+	static FString GetUnsetUniqueImportName();
 };

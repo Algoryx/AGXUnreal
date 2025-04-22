@@ -32,6 +32,7 @@
 #include "AgxAutomationCommon.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -624,7 +625,7 @@ bool FReimportSameCommand::Update()
 	// model reimport. Note that a random GUID is appended after this, so we need to check
 	// against the first part of the name.
 	const FString UnnamedName = "AGX_Import_Unnamed";
-	const FString UnsetUniqueImportName = FAGX_ImportUtilities::GetUnsetUniqueImportName();
+	const FString UnsetUniqueImportName = FAGX_ImportRuntimeUtilities::GetUnsetUniqueImportName();
 	Test.TestTrue(
 		"Unexpected Unset Unique Import Name unexpected",
 		UnsetUniqueImportName.StartsWith(UnnamedName));

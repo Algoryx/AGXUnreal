@@ -17,9 +17,9 @@
 #include "Constraints/AGX_ConstraintActor.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Constraints/AGX_ConstraintFrameActor.h"
-#include "Import/AGX_ImportSettings.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -360,7 +360,7 @@ namespace
 		/// immediately afterwards?
 		UClass* Class = TShapeComponent::StaticClass();
 		TShapeComponent* Shape = NewObject<TShapeComponent>(
-			Owner, FName(FAGX_ImportUtilities::GetUnsetUniqueImportName()));
+			Owner, FName(FAGX_ImportRuntimeUtilities::GetUnsetUniqueImportName()));
 		Owner->AddInstanceComponent(Shape);
 		if (bRegister)
 		{

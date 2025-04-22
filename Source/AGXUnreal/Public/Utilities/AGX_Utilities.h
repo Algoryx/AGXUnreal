@@ -72,6 +72,22 @@ public:
 	static AActor* Import(UObject* WorldContextObject, FAGX_ImportSettings Settings);
 
 	/**
+	 * Reimport an Actor to update it according to a given updated model file.
+	 * Runtime Reimport is only supported for Actors previously imported during runtime.
+	 * For in-editor Reimport, use the Import/Reimport file menu option.
+	 * This function is only valid during Play and does nothing if not in Play.
+	 *
+	 * Component lookup is completely based on Components names, so renamed objects may be handled
+	 * as new objects, and the old Component with the old name may be completely removed.
+	 *
+	 * It is not recommended to store references to Components in the Actor that is reimported since
+	 * Components may be removed during the Reimport process.
+	 */
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Import", meta = (WorldContext = "WorldContextObject"))
+	static bool Reimport(AActor* Actor, UObject* WorldContextObject, FAGX_ImportSettings Settings);
+
+	/**
 	 * Instantiate an imported AActor. The AActor transform is set to the given Transform.
 	 */
 	UFUNCTION(

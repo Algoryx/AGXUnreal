@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "Import/AGX_ImportEnums.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -123,8 +124,6 @@ public:
 	static FString GetContactMaterialRegistrarDefaultName();
 	static FString GetCollisionGroupDisablerDefaultName();
 
-	static FString GetUnsetUniqueImportName();
-
 	/**
 	 * Get the file system path to the default import directory for a model with the given name.
 	 *
@@ -176,7 +175,7 @@ template <typename TComponent>
 TComponent* FAGX_ImportUtilities::CreateComponent(AActor& Owner, USceneComponent& AttachParent)
 {
 	TComponent* Component = NewObject<TComponent>(
-		&Owner, FName(FAGX_ImportUtilities::GetUnsetUniqueImportName()));
+		&Owner, FName(FAGX_ImportRuntimeUtilities::GetUnsetUniqueImportName()));
 
 	Owner.AddInstanceComponent(Component);
 	Component->RegisterComponent();
