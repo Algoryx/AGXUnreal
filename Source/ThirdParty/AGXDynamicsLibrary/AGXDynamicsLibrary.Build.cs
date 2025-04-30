@@ -170,12 +170,21 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		if (!IsAGXResourcesBundled() && !IsAGXSetupEnvCalled())
 		{
-			if (!DownloadAndUnzipAGXBundle("2.39.0.1")) // Update version as needed.
+			Console.WriteLine("AGX Dynamics is not bundled in the plugin and AGX Dynamics setup_env " +
+				"has not been called.");
+
+			string AgxBundleVersion = "2.39.0.1"; // Update version as needed.
+
+			if (!UnzipLocalAGXBundle(AgxBundleVersion))
 			{
-				Console.Error.WriteLine(
-				"\n\nError: No AGX Dynamics bundled with the plugin, no AGX Dynamics environment " +
-				"has been setup and downloading an AGX bundle failed. Unable to continue.\n\n");
-				return;
+				if (!DownloadAndUnzipAGXBundle(AgxBundleVersion))
+				{
+					Console.Error.WriteLine(
+					"\n\nError: No AGX Dynamics bundled with the plugin, no AGX Dynamics environment " +
+					"has been setup, no bundle was found locally and downloading an AGX bundle failed." +
+					" Unable to continue.\n\n");
+					return;
+				}
 			}
 		}
 
@@ -399,6 +408,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 	private bool DownloadAndUnzipAGXBundle(string AgxVersion)
 	{
+		Console.WriteLine("Attempting to download AGX Dynamics bundle.");
 		try
 		{
 			string ThirdPartyDir = Path.Combine(GetPluginSourcePath(), "ThirdParty");
@@ -425,7 +435,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 			else
 			{
-				Console.Error.WriteLine($"Unsupported platform: {Target.Platform}");
+				Console.WriteLine($"Unsupported platform: {Target.Platform}");
 				return false;
 			}
 
@@ -446,6 +456,42 @@ public class AGXDynamicsLibrary : ModuleRules
 		catch (Exception Ex)
 		{
 			Console.Error.WriteLine($"Exception in DownloadAndUnzipAGXBundle: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private bool UnzipLocalAGXBundle(string AgxVersion)
+	{
+		try
+		{
+			Console.WriteLine("Attempting to use local AGX Dynamics bundle.");
+
+			string PluginRoot = GetPluginRootPath();
+			string[] LocalZips = Directory.GetFiles(PluginRoot, $"agxbundle-{AgxVersion}*.zip");
+
+			if (LocalZips.Length == 0)
+			{
+				Console.WriteLine($"No matching AGX bundle ZIP found in plugin root for version {AgxVersion}.");
+				return false;
+			}
+
+			// Take the first match.
+			string ZipPath = LocalZips[0];
+			string DestinationDir = Path.Combine(GetPluginSourcePath(), "ThirdParty");
+
+			Console.WriteLine($"Found local AGX bundle at {ZipPath}. Extracting to {DestinationDir}...");
+
+			if (!UnzipFile(ZipPath, DestinationDir))
+			{
+				Console.WriteLine("Failed to extract local AGX bundle.");
+				return false;
+			}
+
+			return true;
+		}
+		catch (Exception Ex)
+		{
+			Console.WriteLine($"UnzipLocalAGXBundle exception: {Ex.Message}");
 			return false;
 		}
 	}
