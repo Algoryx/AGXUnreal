@@ -82,7 +82,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		/// Points to AGX Dynamics external resources.
 		External
-  };
+	};
 
 	/// A carrier for the paths associated with a LibSource.
 	///
@@ -170,10 +170,13 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		if (!IsAGXResourcesBundled() && !IsAGXSetupEnvCalled())
 		{
-			Console.Error.WriteLine(
-				"\n\nError: No AGX Dynamics bundled with the plugin and no AGX Dynamics environment " +
-				"has been setup. Please ensure that setup_env has been run.\n\n");
-			return;
+			if (!DownloadAndUnzipAGXBundle("2.39.0.1")) // Update version as needed.
+			{
+				Console.Error.WriteLine(
+				"\n\nError: No AGX Dynamics bundled with the plugin, no AGX Dynamics environment " +
+				"has been setup and downloading an AGX bundle failed. Unable to continue.\n\n");
+				return;
+			}
 		}
 
 		string BundledAGXResourcesPath = GetBundledAGXResourcesPath();
@@ -392,6 +395,117 @@ public class AGXDynamicsLibrary : ModuleRules
 	private void AddIncludePath(LibSource Src)
 	{
 		PublicIncludePaths.Add(BundledAGXResources.IncludePath(Src));
+	}
+
+	private bool DownloadAndUnzipAGXBundle(string AgxVersion)
+	{
+		try
+		{
+			string ThirdPartyDir = Path.Combine(GetPluginSourcePath(), "ThirdParty");
+			if (Directory.Exists(Path.Combine(ThirdPartyDir, "agx")))
+			{
+				// Already unpacked
+				return true;
+			}
+
+			string BaseUrl = "https://us.download.algoryx.se/AGXUnreal/agx_bundles";
+			string ZipFileName;
+			string Url;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				ZipFileName = $"agxbundle-{AgxVersion}.zip";
+				Url = $"{BaseUrl}/Windows/{ZipFileName}";
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string UeVersion = $"5.{Target.Version.MinorVersion}";
+				ZipFileName = $"agxbundle-{AgxVersion}-amd64-ubuntu_22.04_unreal-{UeVersion}.zip";
+				Url = $"{BaseUrl}/Linux/UE-{UeVersion}/{ZipFileName}";
+			}
+			else
+			{
+				Console.Error.WriteLine($"Unsupported platform: {Target.Platform}");
+				return false;
+			}
+
+			string TempZipPath = Path.Combine(Path.GetTempPath(), ZipFileName);
+			Console.WriteLine($"Downloading AGX bundle from {Url} to {TempZipPath}...");
+
+			if (!DownloadFile(Url, TempZipPath))
+				return false;
+
+			Console.WriteLine($"Extracting {TempZipPath} to {ThirdPartyDir}...");
+
+			if (!UnzipFile(TempZipPath, ThirdPartyDir))
+				return false;
+
+			File.Delete(TempZipPath);
+			return true;
+		}
+		catch (Exception Ex)
+		{
+			Console.Error.WriteLine($"Exception in DownloadAndUnzipAGXBundle: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private bool DownloadFile(string Url, string DestinationPath)
+	{
+		try
+		{
+			bool Success = false;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				string Args = $"-Command \"Invoke-WebRequest -Uri '{Url}' -OutFile '{DestinationPath}'\"";
+				Success = RunProcess("powershell", Args);
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string Args = $"-L \"{Url}\" -o \"{DestinationPath}\"";
+				Success = RunProcess("curl", Args);
+			}
+
+			if (!Success)
+				Console.Error.WriteLine("Error: Failed to download file.");
+
+			return Success;
+		}
+		catch (Exception Ex)
+		{
+			Console.Error.WriteLine($"DownloadFile exception: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private bool UnzipFile(string ZipPath, string DestinationDir)
+	{
+		try
+		{
+			bool Success = false;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				string Args = $"-Command \"Expand-Archive -Path '{ZipPath}' -DestinationPath '{DestinationDir}' -Force\"";
+				Success = RunProcess("powershell", Args);
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string Args = $"\"{ZipPath}\" -d \"{DestinationDir}\"";
+				Success = RunProcess("unzip", Args);
+			}
+
+			if (!Success)
+				Console.Error.WriteLine("Error: Failed to unzip file.");
+
+			return Success;
+		}
+		catch (Exception Ex)
+		{
+			Console.Error.WriteLine($"UnzipFile exception: {Ex.Message}");
+			return false;
+		}
 	}
 
 	private void CopyLinuxSoFromBundleToPluginBinaries()
@@ -779,11 +893,11 @@ public class AGXDynamicsLibrary : ModuleRules
 							String.Format("{0}", Target.Version.MinorVersion) != UEVersion[1])
 						{
 							Console.WriteLine(
-								"\n\n  WARNING: The AGX Dynamics packages has not been built for this version of Unreal Engine.");
+								"\n\n WARNING: The AGX Dynamics packages has not been built for this version of Unreal Engine.");
 							Console.WriteLine(
-								"  WARNING: AGX Dynamics compile-time Unreal Engine version: {0}", Line);
+								" WARNING: AGX Dynamics compile-time Unreal Engine version: {0}", Line);
 							Console.WriteLine(
-								"  WARNING: Current Unreal Engine version: {0}.{1}", Target.Version.MajorVersion, Target.Version.MinorVersion);
+								" WARNING: Current Unreal Engine version: {0}.{1}", Target.Version.MajorVersion, Target.Version.MinorVersion);
 							Console.WriteLine("\n\n");
 						}
 					}
