@@ -208,6 +208,16 @@ public: // Properties.
 	bool bEnableGlobalContactEventListener {true};
 
 	/**
+	 * If enabled, whenever a Blueprint Asset from an imported OpenPLX file is deleted, the
+	 * corresponding OpenPLX files located in Project/OpenPLXModels used by that Blueprint is
+	 * deleted.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
+		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
+	bool bDeletePLXFileCopyOnBlueprintDeletion {true};
+
+	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.
 	 * Note that each RigidBody / Geometry / Wire / Constraint need to enable merge/split
 	 * individually for AMOR to be used for those.
@@ -249,6 +259,7 @@ public: // Properties.
 	int32 RaytraceDeviceIndex {0};
 
 #if WITH_EDITORONLY_DATA
+
 	/**
 	 * Set to true to write an AGX Dynamics for Unreal archive of the initial state.
 	 * The archive is written to the path set in ExportPath on the first game Tick.

@@ -12,8 +12,7 @@ class FRigidBodyBarrier;
 UAGX_PrismaticConstraintComponent::UAGX_PrismaticConstraintComponent()
 	: UAGX_Constraint1DofComponent(
 		  {EDofFlag::DofFlagRotational1, EDofFlag::DofFlagRotational2, EDofFlag::DofFlagRotational3,
-		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2},
-		  /*bIsSecondaryConstraintRotational*/ false)
+		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2})
 {
 	NativeBarrier.Reset(new FPrismaticBarrier());
 }

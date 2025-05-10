@@ -2,20 +2,6 @@
 
 #include "AGXUnrealEditor.h"
 
-// Unreal Engine includes.
-#include "AssetToolsModule.h"
-#include "AssetTypeCategories.h"
-#include "Editor/UnrealEdEngine.h"
-#include "Framework/Commands/Commands.h"
-#include "IAssetTools.h"
-#include "IAssetTypeActions.h"
-#include "IPlacementModeModule.h"
-#include "ISettingsModule.h"
-#include "LevelEditor.h"
-#include "Modules/ModuleManager.h"
-#include "PropertyEditorModule.h"
-#include "UnrealEdGlobals.h"
-
 // AGX Dynamics for Unreal includes.
 #include "AGX_ComponentReference.h"
 #include "AGX_ComponentReferenceCustomization.h"
@@ -30,8 +16,6 @@
 #include "AGX_Real.h"
 #include "AGX_RealDetails.h"
 #include "AGX_RuntimeStyle.h"
-#include "AGX_ModelSourceComponent.h"
-#include "AGX_ModelSourceComponentCustomization.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
 #include "AGX_StaticMeshComponent.h"
@@ -68,6 +52,8 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Import/AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialCustomization.h"
@@ -79,6 +65,8 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
+#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
@@ -117,6 +105,7 @@
 #include "Tires/AGX_TwoBodyTireActor.h"
 #include "Tires/AGX_TwoBodyTireComponentCustomization.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -132,6 +121,21 @@
 #include "Wire/AGX_WireWinchComponent.h"
 #include "Wire/AGX_WireWinchDetails.h"
 #include "Wire/AGX_WireWinchVisualizer.h"
+
+// Unreal Engine includes.
+#include "AssetToolsModule.h"
+#include "AssetTypeCategories.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/Commands.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "IPlacementModeModule.h"
+#include "ISettingsModule.h"
+#include "LevelEditor.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "UnrealEdGlobals.h"
 
 #define LOCTEXT_NAMESPACE "FAGXUnrealEditorModule"
 
@@ -181,6 +185,12 @@ void FAGXUnrealEditorModule::StartupModule()
 	InitializeAssets();
 
 	AgxTopMenu = MakeShareable(new FAGX_TopMenu());
+
+	// Listen to Asset Removal events.
+	FAssetRegistryModule& AssetRegistryModule =
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().OnAssetRemoved().AddRaw(
+		this, &FAGXUnrealEditorModule::OnAssetRemoved);
 }
 
 void FAGXUnrealEditorModule::ShutdownModule()
@@ -501,6 +511,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		UAGX_WireWinchComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
+	PropertyModule.RegisterCustomClassLayout(
+		UPLX_SignalHandlerComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FPLX_SignalHandlerComponentCustomization::MakeInstance));
+
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -595,6 +610,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UPLX_SignalHandlerComponent::StaticClass()->GetFName());
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -767,6 +785,28 @@ bool FAGXUnrealEditorModule::OnCanExecuteGrabModeCommand() const
 {
 	const UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
 	return World != nullptr && World->IsGameWorld();
+}
+
+void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
+{
+	if (AssetData.GetClass() != UBlueprint::StaticClass())
+		return;
+
+	// Handle deletion of OpenPLX file copies.
+	if (!GetDefault<UAGX_Simulation>()->bDeletePLXFileCopyOnBlueprintDeletion)
+		return;
+
+	static const FString BaseBPPrefix = FAGX_ImportUtilities::GetImportBaseBlueprintNamePrefix();
+	if (!AssetData.AssetName.ToString().StartsWith(BaseBPPrefix))
+		return;
+
+	FString FullObjectPath =
+		FPaths::Combine(AssetData.PackagePath.ToString(), AssetData.AssetName.ToString());
+	auto Blueprint = FAGX_ObjectUtilities::GetAssetFromPath<UBlueprint>(*FullObjectPath);
+	if (Blueprint == nullptr)
+		return;
+
+	FAGX_ImportUtilities::OnImportedBlueprintDeleted(*Blueprint);
 }
 
 #undef LOCTEXT_NAMESPACE

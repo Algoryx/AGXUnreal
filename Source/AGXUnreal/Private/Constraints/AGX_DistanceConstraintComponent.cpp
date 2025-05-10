@@ -13,8 +13,7 @@ UAGX_DistanceConstraintComponent::UAGX_DistanceConstraintComponent()
 	: UAGX_Constraint1DofComponent(
 		  TArray<EDofFlag> {
 			  // All common DOFs are free.
-		  },
-		  /*bIsSecondaryConstraintRotational*/ false)
+		  })
 {
 	// The AGX Dynamics distance constraint need the Lock to be enabled to function.
 	LockController.bEnable = true;

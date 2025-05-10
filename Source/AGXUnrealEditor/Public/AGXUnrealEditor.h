@@ -73,6 +73,8 @@ private:
 	void OnGrabModeCommand() const;
 	bool OnCanExecuteGrabModeCommand() const;
 
+	void OnAssetRemoved(const FAssetData& AssetData);
+
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
 	TSharedPtr<class FAGX_TopMenu> AgxTopMenu;
