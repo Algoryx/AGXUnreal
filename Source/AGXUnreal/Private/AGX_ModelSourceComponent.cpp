@@ -1,6 +1,6 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_CustomVersion.h"
@@ -91,7 +91,7 @@ void UAGX_ModelSourceComponent::UpgradeRenderDataTableFromRenderDataUuidToShapeU
 		// Static Mesh Component SCS Node.
 		//
 		// A workaround is to call this function manually and explicitly at a later time, when the
-		// Blueprint has been fully loaded. For model synchronization this is done by the
+		// Blueprint has been fully loaded. For model reimport this is done by the
 		// SCS Node Collection constructor.
 		USCS_Node* RenderDataMeshNode =
 			FAGX_BlueprintUtilities::GetSCSNodeFromName(*Blueprint, StaticMeshName, true).FoundNode;
@@ -117,7 +117,7 @@ void UAGX_ModelSourceComponent::UpgradeRenderDataTableFromRenderDataUuidToShapeU
 	// it dirty. However, Unreal does not allow marking a package dirty during loading.
 	// So the old table will linger until the Blueprint is changed through some other means.
 	// Worse, the Blueprint is the hidden parent Blueprint that the user should not modify, so
-	// it likely won't be modified until the user does a model synchronization.
+	// it likely won't be modified until the user does a model reimport.
 #if 0
 		Blueprint->MarkPackageDirty();
 #endif

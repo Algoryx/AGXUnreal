@@ -75,6 +75,8 @@ public:
 
 	virtual void UpdateNativeProperties() override;
 
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
+
 	TStaticArray<FAGX_ConstraintController*, 5> GetAllControllers();
 
 	// ~Begin IAGX_NativeOwner interface.

@@ -16,6 +16,7 @@
 
 class UAGX_ContactMaterialRegistrarComponent;
 class UAGX_ShapeMaterial;
+struct FAGX_ImportContext;
 
 /**
  * Defines material properties for contacts between Shapes with specific Shape Materials. This
@@ -462,7 +463,7 @@ public:
 	virtual ~UAGX_ContactMaterial() = default;
 
 	void CopyFrom(const UAGX_ContactMaterial* Source);
-	void CopyFrom(const FContactMaterialBarrier& Source);
+	void CopyFrom(const FContactMaterialBarrier& Source, FAGX_ImportContext* Context);
 
 	/**
 	 * Create the Play instance for the given Source Contact Material, which should be an asset.
@@ -522,7 +523,6 @@ public:
 	// ~End UObject interface.
 
 public: // Deprecated functions.
-
 	// clang-format off
 
 	UFUNCTION(

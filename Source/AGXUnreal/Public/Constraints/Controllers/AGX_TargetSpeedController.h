@@ -51,10 +51,7 @@ public:
 	FAGX_ConstraintTargetSpeedController(bool bRotational);
 
 	void InitializeBarrier(TUniquePtr<FTargetSpeedControllerBarrier> Barrier);
-	void CopyFrom(
-		const FTargetSpeedControllerBarrier& Source,
-		TArray<FAGX_ConstraintTargetSpeedController*>& ArchetypeInstances,
-		bool ForceOverwriteInstances);
+	void CopyFrom(const FTargetSpeedControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;

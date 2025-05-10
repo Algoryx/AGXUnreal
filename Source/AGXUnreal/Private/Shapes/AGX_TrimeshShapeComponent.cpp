@@ -5,11 +5,16 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_MeshWithTransform.h"
+#include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/StaticMesh.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 UAGX_TrimeshShapeComponent::UAGX_TrimeshShapeComponent()
@@ -80,10 +85,149 @@ void UAGX_TrimeshShapeComponent::UpdateNativeProperties()
 	UpdateNativeLocalTransform(NativeBarrier);
 }
 
-void UAGX_TrimeshShapeComponent::CopyFrom(
-	const FTrimeshShapeBarrier& Barrier, bool ForceOverwriteInstances)
+namespace TrimshShapeComponent_helpers
 {
-	Super::CopyFrom(Barrier, ForceOverwriteInstances);
+	UStaticMesh* GetOrCreateStaticMesh(
+		const FTrimeshShapeBarrier& Barrier, UMaterialInterface* Material,
+		FAGX_ImportContext& Context)
+	{
+		AGX_CHECK(Context.CollisionStaticMeshes != nullptr);
+		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
+			return Existing;
+
+		TArray<FVector3f> Vertices;
+		const auto VerticesAGX = Barrier.GetVertexPositions();
+		Vertices.Reserve(VerticesAGX.Num());
+		for (const FVector& Position : VerticesAGX)
+		{
+			Vertices.Add(FVector3f(Position));
+		}
+
+		const TArray<uint32> Indices = Barrier.GetVertexIndices();
+
+		// One for each triangle, so we need to generate 3 unreal normals per agx normal.
+		const auto NormalsAGX = Barrier.GetTriangleNormals();
+		TArray<FVector3f> Normals;
+		Normals.Reserve(NormalsAGX.Num() * 3);
+		for (const FVector& Normal : NormalsAGX)
+		{
+			const auto N = FVector3f(Normal);
+			for (int i = 0; i < 3; i++)
+				Normals.Add(N);
+		}
+
+		const int32 NumVertices = Barrier.GetNumPositions();
+
+		// Trimeshes have no UV information, so we set them to zero.
+		TArray<FVector2D> UVs;
+		UVs.SetNumZeroed(NumVertices);
+
+		// Trimeshes have no tangents information, so we set them to zero.
+		TArray<FVector3f> Tangents;
+		Tangents.SetNumZeroed(Vertices.Num());
+
+		const FString SourceName = Barrier.GetSourceName();
+		const FString WantedName =
+			SourceName.IsEmpty()
+				? FString::Printf(TEXT("SM_CollisionMesh_%s"), *Barrier.GetGuid().ToString())
+				: FString::Printf(TEXT("SM_%s"), *SourceName);
+
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, WantedName, UStaticMesh::StaticClass());
+
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
+			Vertices, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
+
+		if (Mesh != nullptr)
+			Context.CollisionStaticMeshes->Add(Barrier.GetGuid(), Mesh);
+
+		return Mesh;
+	}
+
+	UStaticMeshComponent* CreateStaticMeshComponent(
+		const FTrimeshShapeBarrier& Barrier, AActor& Owner, UMaterialInterface* Material,
+		FAGX_ImportContext& Context)
+	{
+		AGX_CHECK(Material != nullptr);
+
+		UStaticMesh* StaticMesh = GetOrCreateStaticMesh(Barrier, Material, Context);
+		AGX_CHECK(StaticMesh != nullptr);
+		if (StaticMesh == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*StaticMesh, Context.SessionGuid);
+
+		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Owner, FString::Printf(TEXT("CollisionMesh_%s"), *Barrier.GetGuid().ToString()),
+			nullptr);
+		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
+		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
+
+		Component->SetMaterial(0, Material);
+		Component->SetStaticMesh(StaticMesh);
+
+		// The reason we let GetEnableCollisions determine whether or not the Collision Static Mesh
+		// should be visible or not has to do with the behavior of agxViewer which we want to mimic.
+		// If a shape in a agxCollide::Geometry which has canCollide == false is written to a AGX
+		// archive and then read by agxViewer, the shape will not be visible (unless it has
+		// RenderData).
+		const bool Visible =
+			Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
+		Component->SetVisibility(Visible);
+
+		Context.CollisionStaticMeshCom->Add(Barrier.GetShapeGuid(), Component);
+
+		return Component;
+	}
+
+	UStaticMeshComponent* GetRenderDataMesh(const UAGX_TrimeshShapeComponent& Trimesh)
+	{
+		const TArray<UStaticMeshComponent*> Children =
+			FAGX_ObjectUtilities::GetChildrenOfType<UStaticMeshComponent>(Trimesh, true);
+
+		return Children.Num() > 0 ? Children[0] : nullptr;
+	}
+}
+
+void UAGX_TrimeshShapeComponent::CopyFrom(
+	const FShapeBarrier& ShapeBarrier, FAGX_ImportContext* Context)
+{
+	using namespace TrimshShapeComponent_helpers;
+
+	Super::CopyFrom(ShapeBarrier, Context);
+	if (Context == nullptr || Context->CollisionStaticMeshes == nullptr ||
+		Context->Outer == nullptr)
+		return; // We are done.
+
+	if (Context->Settings != nullptr && Context->Settings->bIgnoreDisabledTrimeshes &&
+		!ShapeBarrier.GetEnableCollisions())
+	{
+		return; // We should not create a collision mesh.
+	}
+
+	// At this point, there might exists a StaticMeshComponent as a child to this Trimesh
+	// representing the RenderData (created in Super::CopyFrom). We want to create another
+	// StaticMeshComponent for representing the collision shape and make that parent to the
+	// RenderData StaticMeshComponent. I.e. we want a TrimeshComponent -> StaticMeshComponent
+	// (RenderData) -> StaticMeshComponent (collision) hierarchy.
+	UStaticMeshComponent* RenderMeshCom = GetRenderDataMesh(*this);
+
+	UMaterialInterface* Material = RenderMeshCom != nullptr
+									   ? RenderMeshCom->GetMaterial(0)
+									   : AGX_MeshUtilities::GetDefaultRenderMaterial(false);
+
+	UStaticMeshComponent* MeshCom = CreateStaticMeshComponent(
+		*static_cast<const FTrimeshShapeBarrier*>(&ShapeBarrier), *GetOwner(), Material, *Context);
+	if (MeshCom == nullptr)
+		return;
+
+	const auto AttachmentRule = FAttachmentTransformRules::KeepRelativeTransform;
+	MeshCom->AttachToComponent(this, AttachmentRule);
+
+	if (RenderMeshCom != nullptr)
+		RenderMeshCom->AttachToComponent(MeshCom, AttachmentRule);
+
+	MeshSourceLocation = EAGX_StaticMeshSourceLocation::TSL_CHILD_STATIC_MESH_COMPONENT;
 }
 
 void UAGX_TrimeshShapeComponent::CreateVisualMesh(FAGX_SimpleMeshData& /*OutMeshData*/)
@@ -187,8 +331,8 @@ void UAGX_TrimeshShapeComponent::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("TrimeshShapeComponent '%s' in '%s' does not have a StaticMeshComponent to read triangle "
-				 "data from. The generated native shape will be invalid."),
+			TEXT("TrimeshShapeComponent '%s' in '%s' does not have a StaticMeshComponent to read "
+				 "triangle data from. The generated native shape will be invalid."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		NativeBarrier.AllocateNative({}, {}, /*bClockwise*/ false, GetName());
 	}

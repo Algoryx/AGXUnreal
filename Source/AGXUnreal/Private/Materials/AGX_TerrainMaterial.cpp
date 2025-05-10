@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/TerrainMaterialBarrier.h"
 
 // Unreal Engine includes.
@@ -923,7 +924,6 @@ UAGX_TerrainMaterial* UAGX_TerrainMaterial::CreateFromAsset(
 	UWorld* PlayingWorld, UAGX_TerrainMaterial* Source)
 {
 	check(Source);
-	check(!Source->IsInstance());
 	check(PlayingWorld);
 	check(PlayingWorld->IsGameWorld());
 
@@ -1087,10 +1087,11 @@ void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 }
 
 bool UAGX_TerrainMaterial::IsInstance() const
-{
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
-	//
+{   
+    // This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
 	// Cannot use a negated return value from IsAsset because sometimes we create runtime instances
 	// that we want to use as-if they are assets without actually creating real on-drive assets,
 	// and difficult to fool the IsAsset function into believing that something is an asset when it

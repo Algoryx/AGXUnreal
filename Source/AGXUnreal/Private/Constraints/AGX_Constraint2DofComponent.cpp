@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "Constraints/Constraint2DOFBarrier.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
 
 UAGX_Constraint2DofComponent::UAGX_Constraint2DofComponent()
@@ -130,6 +131,14 @@ void UAGX_Constraint2DofComponent::UpdateNativeProperties()
 	TargetSpeedController1.UpdateNativeProperties();
 	TargetSpeedController2.UpdateNativeProperties();
 	ScrewController.UpdateNativeProperties();
+}
+
+void UAGX_Constraint2DofComponent::CopyFrom(
+	const FConstraintBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	UAGX_ConstraintComponent::CopyFrom(Barrier, Context);
+	FAGX_ConstraintUtilities::CopyControllersFrom(
+		*this, *static_cast<const FConstraint2DOFBarrier*>(&Barrier));
 }
 
 TStaticArray<FAGX_ConstraintController*, 11> UAGX_Constraint2DofComponent::GetAllControllers()

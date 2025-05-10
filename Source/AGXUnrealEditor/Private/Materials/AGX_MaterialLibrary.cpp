@@ -111,7 +111,10 @@ namespace AGX_MaterialLibrary_helpers
 			Asset = FAGX_ImportUtilities::CreateAsset<MaterialType>(AssetDir, AssetName, "");
 		}
 
-		Asset->CopyFrom(Material);
+		if constexpr (std::is_same_v<MaterialType, UAGX_TerrainMaterial>)
+			Asset->CopyFrom(Material);
+		else
+			Asset->CopyFrom(Material, nullptr);
 
 		// Must fully load the package or else project packaging will fail with:
 		//
