@@ -1,9 +1,11 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "Widgets/AGX_SynchronizeModelDialog.h"
+#include "Widgets/AGX_ReimportModelDialog.h"
 
 // AGX Dynamics for Unreal includes.
+#include "Import/AGX_ImportSettings.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
@@ -12,9 +14,9 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
 
-#define LOCTEXT_NAMESPACE "SAGX_SynchronizeModelDialog"
+#define LOCTEXT_NAMESPACE "SAGX_ReimportModelDialog"
 
-void SAGX_SynchronizeModelDialog::Construct(const FArguments& InArgs)
+void SAGX_ReimportModelDialog::Construct(const FArguments& InArgs)
 {
 	FileTypes = ".agx";
 	ImportType = EAGX_ImportType::Agx;
@@ -57,18 +59,18 @@ void SAGX_SynchronizeModelDialog::Construct(const FArguments& InArgs)
 			.Padding(FMargin(5.0f, 5.0f))
 			.AutoHeight()
 			[
-				CreateSynchronizeButtonGui()
+				CreateReimportButtonGui()
 			]
 		]
 	];
 	// clang-format on
 }
 
-TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchronizeModelSettings()
+TOptional<FAGX_ReimportSettings> SAGX_ReimportModelDialog::ToReimportSettings()
 {
-	if (!bUserHasPressedImportOrSynchronize)
+	if (!bUserHasPressedImportOrReimport)
 	{
-		// The Window containing this Widget was closed, the user never pressed Synchronize.
+		// The Window containing this Widget was closed, the user never pressed Reimport.
 		return {};
 	}
 
@@ -79,7 +81,8 @@ TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchron
 		return {};
 	}
 
-	FAGX_SynchronizeModelSettings Settings;
+	FAGX_ReimportSettings Settings;
+	Settings.ImportType = FAGX_ImportUtilities::GetFrom(FilePath);
 	Settings.FilePath = FilePath;
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
 	Settings.bForceOverwriteProperties = bForceOverwriteProperties;
@@ -87,7 +90,7 @@ TOptional<FAGX_SynchronizeModelSettings> SAGX_SynchronizeModelDialog::ToSynchron
 	return Settings;
 }
 
-TSharedRef<SBorder> SAGX_SynchronizeModelDialog::CreateSettingsGui()
+TSharedRef<SBorder> SAGX_ReimportModelDialog::CreateSettingsGui()
 {
 	if (ImportType == EAGX_ImportType::Invalid)
 	{
@@ -132,7 +135,7 @@ TSharedRef<SBorder> SAGX_SynchronizeModelDialog::CreateSettingsGui()
 	// clang-format on
 }
 
-TSharedRef<SBorder> SAGX_SynchronizeModelDialog::CreateSynchronizeButtonGui()
+TSharedRef<SBorder> SAGX_ReimportModelDialog::CreateReimportButtonGui()
 {
 	if (ImportType == EAGX_ImportType::Invalid)
 	{
@@ -151,18 +154,18 @@ TSharedRef<SBorder> SAGX_SynchronizeModelDialog::CreateSynchronizeButtonGui()
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("SynchronizeButtonText", "Synchronize Model"))
-						.ToolTipText(LOCTEXT("SynchronizeButtonTooltip",
-							"Synchronizes the model against the source file of the original "
+						.Text(LOCTEXT("ReimportButtonText", "Reimport Model"))
+						.ToolTipText(LOCTEXT("ReimportButtonTooltip",
+							"Reimports the model against the source file of the original "
 							"import and updates the Components and Assets to match said source file."))
-						.OnClicked(this, &SAGX_SynchronizeModelDialog::OnSynchronizeButtonClicked)
+						.OnClicked(this, &SAGX_ReimportModelDialog::OnReimportButtonClicked)
 					]
 				];
 
 	// clang-format on
 }
 
-TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceOverwritePropertiesGui()
+TSharedRef<SWidget> SAGX_ReimportModelDialog::CreateForceOverwritePropertiesGui()
 {
 	// clang-format off
 	return SNew(SVerticalBox)
@@ -178,8 +181,9 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceOverwritePropertiesG
 					.ToolTipText(LOCTEXT("ForceOverwritePropertiesTooltip",
 						"Properties that has been changed by the user in Unreal will be overwritten unconditionally. "
 						"If left unchecked, properties changed by the user in Unreal will be preserved."))
-					.OnCheckStateChanged(this, &SAGX_SynchronizeModelDialog::OnForceOverwritePropertiesClicked)
+					.OnCheckStateChanged(this, &SAGX_ReimportModelDialog::OnForceOverwritePropertiesClicked)
 					.IsChecked(bForceOverwriteProperties)
+					.IsEnabled(!bForceReassignRenderMaterials) // These are mutually exclusive.
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -193,7 +197,7 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceOverwritePropertiesG
 	// clang-format on
 }
 
-TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceReassignRenderMaterialsGui()
+TSharedRef<SWidget> SAGX_ReimportModelDialog::CreateForceReassignRenderMaterialsGui()
 {
 	// clang-format off
 	return SNew(SVerticalBox)
@@ -208,9 +212,10 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceReassignRenderMateri
 				SNew(SCheckBox)
 					.ToolTipText(LOCTEXT("ForceReassignRenderMaterialsTooltip",
 						"Render Materials that has been assigned by the user in Unreal will be re-assigned unconditionally. "
-						"If left unchecked, render Materials assigned by the user in Unreal will be preserved."))
-					.OnCheckStateChanged(this, &SAGX_SynchronizeModelDialog::OnForceReassignRenderMaterialsClicked)
+						"To force overwrite all properties, use the ForceOverwriteProperties option."))
+					.OnCheckStateChanged(this, &SAGX_ReimportModelDialog::OnForceReassignRenderMaterialsClicked)
 					.IsChecked(bForceReassignRenderMaterials)
+					.IsEnabled(!bForceOverwriteProperties) // These are mutually exclusive.
 			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -224,9 +229,9 @@ TSharedRef<SWidget> SAGX_SynchronizeModelDialog::CreateForceReassignRenderMateri
 	// clang-format on
 }
 
-FReply SAGX_SynchronizeModelDialog::OnSynchronizeButtonClicked()
+FReply SAGX_ReimportModelDialog::OnReimportButtonClicked()
 {
-	bUserHasPressedImportOrSynchronize = true;
+	bUserHasPressedImportOrReimport = true;
 
 	// We are done, close the Window containing this Widget. The user of this Widget should get
 	// the user's input via the ToImportSettings function when the Window has closed.
@@ -237,15 +242,23 @@ FReply SAGX_SynchronizeModelDialog::OnSynchronizeButtonClicked()
 	return FReply::Handled();
 }
 
-void SAGX_SynchronizeModelDialog::OnForceOverwritePropertiesClicked(ECheckBoxState NewCheckedState)
+void SAGX_ReimportModelDialog::OnForceOverwritePropertiesClicked(ECheckBoxState NewCheckedState)
 {
 	bForceOverwriteProperties = NewCheckedState == ECheckBoxState::Checked;
+	if (bForceOverwriteProperties)
+		bForceReassignRenderMaterials = false; // These are incompatible.
+
+	RefreshGui();
 }
 
-void SAGX_SynchronizeModelDialog::OnForceReassignRenderMaterialsClicked(
+void SAGX_ReimportModelDialog::OnForceReassignRenderMaterialsClicked(
 	ECheckBoxState NewCheckedState)
 {
 	bForceReassignRenderMaterials = NewCheckedState == ECheckBoxState::Checked;
+	if (bForceReassignRenderMaterials)
+		bForceOverwriteProperties = false; // These are incompatible.
+
+	RefreshGui();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -59,6 +59,10 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// instead of a Render Data since the same Render Data can be used by many Shapes.
 		RenderDataPerShape,
 
+		// Runtime Import support added, where the Import and Reimport pipeline was refactored
+		// completely.
+		RuntimeImportSupport,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

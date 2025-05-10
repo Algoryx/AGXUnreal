@@ -10,6 +10,7 @@
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "Constraints/Controllers/AGX_LockController.h"
 #include "Constraints/Constraint1DOFBarrier.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
 
 UAGX_Constraint1DofComponent::UAGX_Constraint1DofComponent()
@@ -198,6 +199,14 @@ void UAGX_Constraint1DofComponent::UpdateNativeProperties()
 	LockController.UpdateNativeProperties();
 	RangeController.UpdateNativeProperties();
 	TargetSpeedController.UpdateNativeProperties();
+}
+
+void UAGX_Constraint1DofComponent::CopyFrom(
+	const FConstraintBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	UAGX_ConstraintComponent::CopyFrom(Barrier, Context);
+	FAGX_ConstraintUtilities::CopyControllersFrom(
+		*this, *static_cast<const FConstraint1DOFBarrier*>(&Barrier));
 }
 
 TStaticArray<FAGX_ConstraintController*, 5> UAGX_Constraint1DofComponent::GetAllControllers()

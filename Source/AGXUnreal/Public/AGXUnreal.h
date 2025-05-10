@@ -13,4 +13,5 @@ public:
 
 private:
 	void RegisterCoreRedirects();
+	void LoadRuntimeAssets();
 };

@@ -67,10 +67,7 @@ public:
 	FAGX_ConstraintElectricMotorController(bool bRotational);
 
 	void InitializeBarrier(TUniquePtr<FElectricMotorControllerBarrier> Barrier);
-	void CopyFrom(
-		const FElectricMotorControllerBarrier& Source,
-		TArray<FAGX_ConstraintElectricMotorController*>& ArchetypeInstances,
-		bool ForceOverwriteInstances);
+	void CopyFrom(const FElectricMotorControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;

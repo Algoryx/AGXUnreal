@@ -164,307 +164,6 @@ namespace AGX_ImportUtilities_helpers
 	}
 }
 
-UStaticMesh* FAGX_ImportUtilities::SaveImportedStaticMeshAsset(
-	const FTrimeshShapeBarrier& Trimesh, const FString& DirectoryPath, const FString& FallbackName,
-	UMaterialInstanceConstant* Material)
-{
-	auto InitAsset = [&](UStaticMesh& Asset)
-	{
-		AGX_ImportUtilities_helpers::InitStaticMesh(
-			&FAGX_EditorUtilities::CreateRawMeshFromTrimesh, Trimesh, Asset, true);
-
-		if (Material != nullptr)
-			Asset.SetMaterial(0, Material);
-	};
-
-	FString TrimeshSourceName = Trimesh.GetSourceName();
-	if (TrimeshSourceName.Contains("\\") || TrimeshSourceName.Contains("/"))
-	{
-		TrimeshSourceName = FPaths::GetBaseFilename(TrimeshSourceName);
-	}
-
-	if (!TrimeshSourceName.StartsWith(TEXT("SM_")) && !TrimeshSourceName.IsEmpty())
-	{
-		TrimeshSourceName = FString::Printf(TEXT("SM_%s"), *TrimeshSourceName);
-	}
-
-	return PrepareWriteAssetToDisk<UStaticMesh>(
-		DirectoryPath, TrimeshSourceName, FallbackName, TEXT("StaticMesh"), InitAsset);
-}
-
-UStaticMesh* FAGX_ImportUtilities::SaveImportedStaticMeshAsset(
-	const FRenderDataBarrier& RenderData, const FString& DirectoryPath,
-	UMaterialInstanceConstant* Material)
-{
-	auto InitAsset = [&](UStaticMesh& Asset)
-	{
-		AGX_ImportUtilities_helpers::InitStaticMesh(
-			&FAGX_EditorUtilities::CreateRawMeshFromRenderData, RenderData, Asset, true);
-
-		if (Material != nullptr)
-			Asset.SetMaterial(0, Material);
-	};
-
-	return PrepareWriteAssetToDisk<UStaticMesh>(
-		DirectoryPath, FString::Printf(TEXT("SM_RenderMesh_%s"), *RenderData.GetGuid().ToString()),
-		TEXT("SM_RenderMesh"), TEXT("RenderMesh"), InitAsset);
-}
-
-namespace
-{
-	bool IsUniqueTemplateComponentName(UActorComponent& Component, const FString& Name)
-	{
-		UObject* ExistingObject =
-			StaticFindObject(/*Class=*/nullptr, Component.GetOuter(), *Name, true);
-
-		if (ExistingObject != nullptr)
-		{
-			return false;
-		}
-
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(Component))
-		{
-			if (Instance != nullptr &&
-				Instance->HasAllFlags(RF_ArchetypeObject | RF_InheritableComponentTemplate))
-			{
-				return IsUniqueTemplateComponentName(*Instance, Name);
-			}
-		}
-		return true;
-	}
-
-	FString GetUniqueNameForComponentTemplate(UActorComponent& Component, const FString& WantedName)
-	{
-		AGX_CHECK(FAGX_ObjectUtilities::IsTemplateComponent(Component));
-		FString Name = WantedName;
-		int suffix = 1;
-		UBlueprint* Bp = FAGX_BlueprintUtilities::GetBlueprintFrom(Component);
-		if (Bp == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Unable to get Bluprint from Component '%s'. The final name may not be "
-					 "correct."),
-				*Component.GetName());
-			return Component.GetName() + FGuid::NewGuid().ToString();
-		}
-
-		auto IsUniqueName =
-			[](const FString& InName, UBlueprint& Blueprint, UActorComponent& InComponent)
-		{
-			if (Blueprint.SimpleConstructionScript->FindSCSNode(FName(InName)) != nullptr)
-			{
-				return false;
-			}
-
-			// This is a similar check as in UObject::Rename(). Normally, we expect to never get a
-			// match below since no SCS Node has this name (according to above check), but in some
-			// cases there was an unexpected crash caused by an object being found with the
-			// wanted name. The reason is not clear, perhaps some lingering, removed object not yet
-			// destroyed?
-			// See the comment in AGX_ImporterToBlueprint.cpp - RemoveDeletedComponents() which is
-			// related to this.
-			const FString TemplateName = InName + UActorComponent::ComponentTemplateNameSuffix;
-			return IsUniqueTemplateComponentName(InComponent, TemplateName);
-		};
-
-		while (!IsUniqueName(Name, *Bp, Component))
-		{
-			Name = FString::Printf(TEXT("%s%d"), *WantedName, suffix++);
-		}
-		return Name;
-	}
-
-	// This is to some extent mimicking the behavior of
-	// FComponentEditorUtils::GenerateValidVariableName but works for TemplateComponents which have
-	// no owner Actor.
-	FString GenerateValidVariableNameTemplateComponent(const UActorComponent& Component)
-	{
-		AGX_CHECK(FAGX_ObjectUtilities::IsTemplateComponent(Component));
-		FString ComponentName =
-			FBlueprintEditorUtils::GetClassNameWithoutSuffix(Component.GetClass());
-
-		const FString SuffixToStrip(TEXT("Component"));
-		if (ComponentName.EndsWith(SuffixToStrip))
-		{
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
-			ComponentName.LeftInline(ComponentName.Len() - SuffixToStrip.Len(), false);
-#else
-			ComponentName.LeftInline(
-				ComponentName.Len() - SuffixToStrip.Len(), EAllowShrinking::No);
-#endif
-		}
-
-		UBlueprint* Blueprint = FAGX_BlueprintUtilities::GetBlueprintFrom(Component);
-		if (Blueprint == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Unable to get Bluprint from Component '%s'. The final name may not be "
-					 "correct."),
-				*Component.GetName());
-			return Component.GetName() + FGuid::NewGuid().ToString();
-		}
-
-		// Find a suffix number that makes the name unique within the Blueprint. Start at 1 because
-		// that is what FComponentEditorUtils::GenerateValidVariableName does, and that function is
-		// called when the model is first imported, as opposed to synchronized which is what we're
-		// doing here.
-		for (int i = 1; FAGX_BlueprintUtilities::NameExists(*Blueprint, ComponentName); i++)
-		{
-			ComponentName = FString::Printf(TEXT("%s%d"), *ComponentName, i);
-		}
-		return ComponentName;
-	}
-
-	/**
-	 * Checks whether the component name is valid, and if not, generates a valid name and sets it to
-	 * the component.
-	 */
-	FString GetFinalizedComponentName(UActorComponent& Component, const FString& WantedName)
-	{
-		if (Component.GetOwner() == nullptr &&
-			!FAGX_ObjectUtilities::IsTemplateComponent(Component))
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Could not find the owning actor of Actor Component: %s during name "
-					 "finalization. The Component might not get the wanted name."),
-				*Component.GetName());
-			return FGuid::NewGuid().ToString();
-		}
-
-		if (!FComponentEditorUtils::IsValidVariableNameString(&Component, WantedName))
-		{
-			if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-			{
-				return GenerateValidVariableNameTemplateComponent(Component);
-			}
-			else
-			{
-				return FComponentEditorUtils::GenerateValidVariableName(
-					Component.GetClass(), Component.GetOwner());
-			}
-		}
-
-		return WantedName;
-	}
-}
-
-UAGX_TrackInternalMergeProperties*
-FAGX_ImportUtilities::SaveImportedTrackInternalMergePropertiesAsset(
-	const FTrackBarrier& Barrier, const FString& DirectoryPath, const FString& Name)
-{
-	auto InitAsset = [&](UAGX_TrackInternalMergeProperties& Asset) { Asset.CopyFrom(Barrier); };
-
-	UAGX_TrackInternalMergeProperties* Asset =
-		PrepareWriteAssetToDisk<UAGX_TrackInternalMergeProperties>(
-			DirectoryPath, Name, TEXT(""), TEXT("TrackInternalMergeProperties"), InitAsset);
-	if (Asset == nullptr || !WriteAssetToDisk(*Asset))
-	{
-		return nullptr;
-	}
-	return Asset;
-}
-
-UAGX_TrackProperties* FAGX_ImportUtilities::SaveImportedTrackPropertiesAsset(
-	const FTrackPropertiesBarrier& Barrier, const FString& DirectoryPath, const FString& Name)
-{
-	auto InitAsset = [&](UAGX_TrackProperties& Asset) { Asset.CopyFrom(Barrier); };
-
-	UAGX_TrackProperties* Asset = PrepareWriteAssetToDisk<UAGX_TrackProperties>(
-		DirectoryPath, Name, TEXT(""), TEXT("TrackProperties"), InitAsset);
-	if (Asset == nullptr || !WriteAssetToDisk(*Asset))
-	{
-		return nullptr;
-	}
-
-	return Asset;
-}
-
-FString FAGX_ImportUtilities::CreateName(UObject& Object, const FString& Name)
-{
-	if (Name.IsEmpty())
-	{
-		// Not having an imported name means use whatever default name Unreal decided.
-		return Name;
-	}
-	if (Object.Rename(*Name, nullptr, REN_Test))
-	{
-		return Name;
-	}
-	else
-	{
-		FName NewName = MakeUniqueObjectName(Object.GetOuter(), Object.GetClass(), FName(*Name));
-		UE_LOG(
-			LogAGX, Log, TEXT("%s '%s' imported with name '%s' because of name conflict."),
-			*Object.GetClass()->GetName(), *Name, *NewName.ToString());
-		return NewName.ToString();
-	}
-}
-
-void FAGX_ImportUtilities::Rename(UActorComponent& Component, const FString& Name)
-{
-	if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-	{
-		if (FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(Component.GetName()) ==
-			Name)
-			return; // Wanted name is already set, we are done.
-	}
-	else
-	{
-		if (Component.GetName() == Name)
-			return; // Wanted name is already set, we are done.
-	}
-
-	const FString ValidName = [&]()
-	{
-		if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-		{
-			return GetUniqueNameForComponentTemplate(Component, Name);
-		}
-		else
-		{
-			return CreateName(static_cast<UObject&>(Component), Name);
-		}
-	}();
-
-	const FString FinalName = GetFinalizedComponentName(Component, ValidName);
-
-	if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-	{
-		UBlueprint* Bp = FAGX_BlueprintUtilities::GetBlueprintFrom(Component);
-
-		USCS_Node* Node =
-			FAGX_BlueprintUtilities::GetSCSNodeFromComponent(*Bp, &Component, false).FoundNode;
-		if (Node == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Unable to set name '%s' for Component '%s' because the owning SCS Node could "
-					 "not be retrieved. The Component will not be renamed."),
-				*FinalName, *Component.GetName());
-			return;
-		}
-
-		// For future reference: earlier we sometimes got crashes inside this function. This was
-		// when model synchronization was made with the Blueprint Editor opened. Now we always close
-		// all asset editors prior to doing model synchronization, and the issue seems resolved.
-		// However, if this function for some reason starts crashing on Existing object found, then
-		// look in the internal gitlab history for feature/model-synchronization, commit 50ea329b.
-		// It has a work-around for this. Basically, the issue was that on rare occasions, an
-		// archetype instance was found for a Component Template that did not belong to that
-		// Component. So the solution was to check if any archetype instances had non matching
-		// names, and if so, calling SetVariableName with bRenameTemplate == false, and then
-		// updating matched archetype instances manually in that case.
-		Node->SetVariableName(FName(FinalName));
-	}
-	else
-	{
-		Component.Rename(*FinalName);
-	}
-}
-
 FLinearColor FAGX_ImportUtilities::SRGBToLinear(const FVector4& SRGB)
 {
 	FColor SRGBBytes(
@@ -506,12 +205,12 @@ FString FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName()
 	return FString("MergeSplitThresholds");
 }
 
-FString FAGX_ImportUtilities::GetImportStaticMeshDirectoryName()
+FString FAGX_ImportUtilities::GetImportCollisionStaticMeshDirectoryName()
 {
 	return FString("StaticMesh");
 }
 
-FString FAGX_ImportUtilities::GetImportRenderMeshDirectoryName()
+FString FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName()
 {
 	return FString("RenderMesh");
 }
@@ -519,6 +218,16 @@ FString FAGX_ImportUtilities::GetImportRenderMeshDirectoryName()
 FString FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName()
 {
 	return FString("ShovelProperties");
+}
+
+FString FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName()
+{
+	return FString("TrackProperties");
+}
+
+FString FAGX_ImportUtilities::GetImportTrackMergePropertiesDirectoryName()
+{
+	return FString("TrackInternalMergeProperties");
 }
 
 template <>
