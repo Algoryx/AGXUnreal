@@ -20,9 +20,10 @@ class FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
+class FShapeBarrier;
 
 /**
- *
+ * AGX Dynamics access barrier for Terrain.
  */
 class AGXUNREALBARRIER_API FTerrainBarrier
 {
@@ -34,9 +35,16 @@ public:
 
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
+	void AllocateNative(
+		int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+		const TArray<float>& MinimumHeights);
+
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;
 	void ReleaseNative();
+
+	uintptr_t GetNativeAddress() const;
+	void SetNativeAddress(uintptr_t NativeAddress);
 
 	void SetCanCollide(bool bCanCollide);
 	bool GetCanCollide() const;
@@ -60,6 +68,10 @@ public:
 	double GetMaximumParticleActivationVolume() const;
 
 	bool AddShovel(FShovelBarrier& Shovel);
+	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
+	void SetNoMerge(bool bNoMerge);
+	bool GetNoMerge() const;
+
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 
@@ -80,6 +92,9 @@ public:
 
 	int32 GetGridSizeX() const;
 	int32 GetGridSizeY() const;
+
+	FVector2D GetSize() const;
+	double GetElementSize() const;
 
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.
@@ -108,6 +123,8 @@ public:
 	 * optimization.
 	 */
 	void GetHeights(TArray<float>& OutHeights, bool bChangesOnly) const;
+	void GetMinimumHeights(TArray<float>& OutHeights) const;
+	FHeightFieldShapeBarrier GetHeightField() const;
 
 	/**
 	 * Get an array with the positions of the currently existing particles.

@@ -96,6 +96,8 @@ public:
 #endif
 	// ~End UObject interface.
 
+	virtual bool LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop) override;
+
 protected:
 	// ~Begin UAGX_ShapeComponent interface.
 	virtual FShapeBarrier* GetNativeBarrier() override;
