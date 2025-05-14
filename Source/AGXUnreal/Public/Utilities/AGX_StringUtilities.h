@@ -71,3 +71,17 @@ FORCEINLINE FString ToReadablePath(const FString& Path)
 {
 	return IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Path);
 }
+
+FORCEINLINE FString RemoveFromString(const FString& Str, const FString& CharsToRemove)
+{
+	FString Result;
+	Result.Reserve(Str.Len());
+	for (auto Ch : Str)
+	{
+		if (!CharsToRemove.Contains(FString(1, &Ch)))
+			Result.AppendChar(Ch);
+	}
+
+	return Result;
+}
+

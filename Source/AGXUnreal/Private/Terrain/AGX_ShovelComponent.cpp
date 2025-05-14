@@ -8,13 +8,16 @@
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_ImportContext.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_TerrainEnums.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
+#include "UObject/Package.h"
 
 class FRigidBodyBarrier;
 
@@ -234,80 +237,94 @@ FAGX_Frame* UAGX_ShovelComponent::GetFrame(EAGX_ShovelFrame Frame)
 	return nullptr;
 }
 
-void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, bool ForceOverwriteInstances)
+namespace AGX_ShovelComponent_helpers
 {
-	AGX_COPY_PROPERTY_FROM(bEnabled, Barrier.GetEnable(), *this, ForceOverwriteInstances);
+	UAGX_RigidBodyComponent* GetRigidBody(
+		const FShovelBarrier& Barrier, FAGX_ImportContext* Context)
+	{
+		if (Context == nullptr || Context->RigidBodies == nullptr)
+			return nullptr;
+
+		auto BodyBarrier = Barrier.GetRigidBody();
+		if (!BodyBarrier.HasNative())
+			return nullptr;
+
+		return Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
+	}
+
+	FString CreateShovelName(UAGX_ShovelComponent& Shovel, UAGX_RigidBodyComponent* RigidBody)
+	{
+		// Shovels don't have names in AGX Dynamics so generate one using the body's name.
+		FString Name;
+		if (RigidBody == nullptr)
+			Name = "Shovel_Bodyless";
+		else
+			Name = FString::Printf(TEXT("Shovel_%s"), *RigidBody->GetName());
+
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Shovel.GetOwner(), Name, UAGX_ShovelComponent::StaticClass());
+	}
+
+	UAGX_ShovelProperties* CreateShovelProperties(
+		const FShovelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		// Shovel properties share guid with shovel and is always unique to a shovel.
+		const FGuid Guid = Barrier.GetGuid();
+		AGX_CHECK(!Context.ShovelProperties->Contains(Guid));
+
+		auto Properties = NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
+		Properties->CopyFrom(Barrier, &Context);
+		return Properties;
+	}
+}
+
+void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	using namespace AGX_ShovelComponent_helpers;
+
+	bEnabled = Barrier.GetEnable();
 	const FTwoVectors Top = Barrier.GetTopEdge();
-	AGX_COPY_PROPERTY_FROM(TopEdge.Start.LocalLocation, Top.v1, *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		TopEdge.Start.LocalRotation, FRotator(ForceInitToZero), *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(TopEdge.End.LocalLocation, Top.v2, *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		TopEdge.End.LocalRotation, FRotator(ForceInitToZero), *this, ForceOverwriteInstances);
+	TopEdge.Start.LocalLocation = Top.v1;
+
+	TopEdge.Start.LocalRotation = FRotator(ForceInitToZero);
+	TopEdge.End.LocalLocation = Top.v2;
+
+	TopEdge.End.LocalRotation = FRotator(ForceInitToZero);
 	const FTwoVectors Cutting = Barrier.GetCuttingEdge();
-	AGX_COPY_PROPERTY_FROM(
-		CuttingEdge.Start.LocalLocation, Cutting.v1, *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		CuttingEdge.Start.LocalRotation, FRotator(ForceInitToZero), *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		CuttingEdge.End.LocalLocation, Cutting.v2, *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		CuttingEdge.End.LocalRotation, FRotator(ForceInitToZero), *this, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(
-		CuttingDirection.LocalLocation, 0.5 * (Cutting.v1 + Cutting.v2), *this,
-		ForceOverwriteInstances);
+
+	CuttingEdge.Start.LocalLocation = Cutting.v1;
+	CuttingEdge.Start.LocalRotation = FRotator(ForceInitToZero);
+	CuttingEdge.End.LocalLocation = Cutting.v2;
+	CuttingEdge.End.LocalRotation = FRotator(ForceInitToZero);
+
+	CuttingDirection.LocalLocation = 0.5 * (Cutting.v1 + Cutting.v2);
 	const FRotator CuttingDirectionRotation =
 		FRotationMatrix::MakeFromX(Barrier.GetCuttingDirection()).Rotator();
-	AGX_COPY_PROPERTY_FROM(
-		CuttingDirection.LocalRotation, CuttingDirectionRotation, *this, ForceOverwriteInstances);
+	CuttingDirection.LocalRotation = CuttingDirectionRotation;
 
-	AGX_COPY_PROPERTY_FROM(ImportGuid, Barrier.GetGuid(), *this, ForceOverwriteInstances);
+	ImportGuid = Barrier.GetGuid();
 
-	if (ShovelProperties != nullptr)
-	{
-		ShovelProperties->ToothLength = Barrier.GetToothLength();
-		ShovelProperties->ToothMinimumRadius = Barrier.GetToothMinimumRadius();
-		ShovelProperties->ToothMaximumRadius = Barrier.GetToothMaximumRadius();
-		ShovelProperties->NumberOfTeeth = Barrier.GetNumberOfTeeth();
-		ShovelProperties->NoMergeExtensionDistance = Barrier.GetNoMergeExtensionDistance();
-		ShovelProperties->MinimumSubmergedContactLengthFraction =
-			Barrier.GetMinimumSubmergedContactLengthFraction();
-		ShovelProperties->VerticalBladeSoilMergeDistance =
-			Barrier.GetVerticalBladeSoilMergeDistance();
-		ShovelProperties->SecondarySeparationDeadloadLimit =
-			Barrier.GetSecondarySeparationDeadloadLimit();
-		ShovelProperties->PenetrationDepthThreshold = Barrier.GetPenetrationDepthThreshold();
-		ShovelProperties->PenetrationForceScaling = Barrier.GetPenetrationForceScaling();
-		ShovelProperties->bEnableParticleFreeDeformers = Barrier.GetEnableParticleFreeDeformers();
-		ShovelProperties->bAlwaysRemoveShovelContacts = Barrier.GetAlwaysRemoveShovelContacts();
-		ShovelProperties->MaximumPenetrationForce = Barrier.GetMaximumPenetrationForce();
-		ShovelProperties->bOverride_ContactRegionThreshold = true;
-		ShovelProperties->ContactRegionThreshold = Barrier.GetContactRegionThreshold();
-		ShovelProperties->bOverride_ContactRegionVerticalLimit = true;
-		ShovelProperties->ContactRegionVerticalLimit = Barrier.GetContactRegionVerticalLimit();
-		ShovelProperties->bEnableInnerShapeCreateDynamicMass =
-			Barrier.GetEnableInnerShapeCreateDynamicMass();
-		ShovelProperties->bEnableParticleForceFeedback = Barrier.GetEnableParticleForceFeedback();
-		ShovelProperties->ParticleInclusionMultiplier = Barrier.GetParticleInclusionMultiplier();
+	UAGX_RigidBodyComponent* Body = GetRigidBody(Barrier, Context);
 
-		auto CopyExcavationSettings =
-			[&Barrier](EAGX_ExcavationMode Mode, FAGX_ShovelExcavationSettings& Settings)
-		{
-			Settings.bEnabled = Barrier.GetExcavationSettingsEnabled(Mode);
-			Settings.bEnableCreateDynamicMass =
-				Barrier.GetExcavationSettingsEnableCreateDynamicMass(Mode);
-			Settings.bEnableForceFeedback = Barrier.GetExcavationSettingsEnableForceFeedback(Mode);
-		};
+	Rename(*CreateShovelName(*this, Body));
 
-		CopyExcavationSettings(
-			EAGX_ExcavationMode::Primary, ShovelProperties->PrimaryExcavationSettings);
-		CopyExcavationSettings(
-			EAGX_ExcavationMode::DeformBack, ShovelProperties->DeformBackExcavationSettings);
-		CopyExcavationSettings(
-			EAGX_ExcavationMode::DeformRight, ShovelProperties->DeformRightExcavationSettings);
-		CopyExcavationSettings(
-			EAGX_ExcavationMode::DeformLeft, ShovelProperties->DeformLeftExcavationSettings);
-	}
+	const FName BodyName = Body != nullptr ? Body->GetFName() : NAME_None;
+	RigidBody.Name = BodyName;
+	TopEdge.Start.Parent.Name = BodyName;
+	TopEdge.End.Parent.Name = BodyName;
+	CuttingEdge.Start.Parent.Name = BodyName;
+	CuttingEdge.End.Parent.Name = BodyName;
+	CuttingDirection.Parent.Name = BodyName;
+
+	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr ||
+		Context->RigidBodies == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Shovels->Contains(ImportGuid));
+	Context->Shovels->Add(ImportGuid, this);
+
+	ShovelProperties = CreateShovelProperties(Barrier, *Context);
 }
 
 bool UAGX_ShovelComponent::SwapEdgeDirections()

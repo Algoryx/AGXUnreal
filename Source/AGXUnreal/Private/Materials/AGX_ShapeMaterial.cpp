@@ -8,6 +8,8 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -329,7 +331,7 @@ void UAGX_ShapeMaterial::SetSpookDampingBend(double InSpookDamping)
 	AGX_ASSET_SETTER_IMPL_VALUE(Wire.SpookDampingBend, InSpookDamping, SetSpookDampingBend);
 }
 
-void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source)
+void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_ImportContext* Context)
 {
 	// Copy shape material bulk properties.
 	Bulk.Density = Source.GetDensity();
@@ -346,7 +348,23 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source)
 	Surface.AdhesiveForce = Source.GetAdhesiveForce();
 	Surface.AdhesiveOverlap = Source.GetAdhesiveOverlap();
 
+	// Copy Wire properties.
+	Wire.YoungsModulusStretch = Source.GetYoungsModulusStretch();
+	Wire.YoungsModulusBend = Source.GetYoungsModulusBend();
+	Wire.SpookDampingStretch = Source.GetSpookDampingStretch();
+	Wire.SpookDampingBend = Source.GetSpookDampingBend();
+
 	ImportGuid = Source.GetGuid();
+
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
+	Rename(*Name);
+
+	if (Context != nullptr && Context->ShapeMaterials != nullptr &&
+		!Context->ShapeMaterials->Contains(ImportGuid))
+	{
+		Context->ShapeMaterials->Add(ImportGuid, this);
+	}
 }
 
 UAGX_ShapeMaterial* UAGX_ShapeMaterial::GetOrCreateInstance(UWorld* PlayingWorld)
@@ -420,7 +438,7 @@ void UAGX_ShapeMaterial::CommitToAsset()
 #if WITH_EDITOR
 			Asset->Modify();
 #endif
-			Asset->CopyFrom(*Barrier);
+			Asset->CopyFrom(*Barrier, nullptr);
 #if WITH_EDITOR
 			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
 #endif
@@ -536,8 +554,12 @@ void UAGX_ShapeMaterial::UpdateNativeProperties()
 
 bool UAGX_ShapeMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 
 	// Internal testing the hypothesis that UObject::IsAsset is a valid inverse of this function.

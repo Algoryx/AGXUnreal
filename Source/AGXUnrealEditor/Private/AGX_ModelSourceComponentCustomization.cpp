@@ -4,9 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
-#include "AGX_ImporterToBlueprint.h"
-#include "AGX_ImportSettings.h"
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ImporterToEditor.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Import/AGX_ModelSourceComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_MaterialReplacer.h"
@@ -42,7 +42,7 @@ void FAGX_ModelSourceComponentCustomization::CustomizeDetails(IDetailLayoutBuild
 		return;
 	}
 
-	IDetailCategoryBuilder& CategoryBuilder = InDetailBuilder.EditCategory("AGX Synchronize Model");
+	IDetailCategoryBuilder& CategoryBuilder = InDetailBuilder.EditCategory("AGX Reimport Model");
 
 	// clang-format off
 	CategoryBuilder.AddCustomRow(FText::GetEmpty())
@@ -52,19 +52,19 @@ void FAGX_ModelSourceComponentCustomization::CustomizeDetails(IDetailLayoutBuild
 		.AutoWidth()
 		[
 			SNew(SButton)
-			.Text(LOCTEXT("SynchronizeModelButtonText", "Synchronize Model"))
+			.Text(LOCTEXT("ReimportModelButtonText", "Reimport Model"))
 			.ToolTipText(LOCTEXT(
-				"SynchronizeModelTooltip",
-				"Synchronizes the model against the source file of the original "
+				"ReimportModelTooltip",
+				"Reimports the model against the source file of the original "
 				"import and updates the Components and Assets to match said source file."))
-			.OnClicked(this, &FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked)
+			.OnClicked(this, &FAGX_ModelSourceComponentCustomization::OnReimportModelButtonClicked)
 		]
 	];
 	// clang-format on
 
 	CustomizeMaterialReplacer(ModelSourceComponent);
 
-	InDetailBuilder.HideCategory(FName("AGX Synchronize Model Info"));
+	InDetailBuilder.HideCategory(FName("AGX Reimport Model Info"));
 	InDetailBuilder.HideCategory(FName("Activation"));
 	InDetailBuilder.HideCategory(FName("AssetUserData"));
 	InDetailBuilder.HideCategory(FName("Collision"));
@@ -94,7 +94,7 @@ namespace AGX_ModelSourceComponentCustomization_helpers
 		if (!ModelSourceComponent->IsInBlueprint())
 		{
 			FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
-				"Model synchronization is only supported when in a Blueprint.");
+				"Model reimport is only supported when in a Blueprint.");
 			return nullptr;
 		}
 
@@ -108,12 +108,12 @@ namespace AGX_ModelSourceComponentCustomization_helpers
 
 		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
 			"Unable to get the Blueprint from the AGX Model Source Component. Model "
-			"synchronization will not be possible.");
+			"reimport will not be possible.");
 		return nullptr;
 	}
 }
 
-FReply FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked()
+FReply FAGX_ModelSourceComponentCustomization::OnReimportModelButtonClicked()
 {
 	AGX_CHECK(DetailBuilder);
 	using namespace AGX_ModelSourceComponentCustomization_helpers;
@@ -124,9 +124,9 @@ FReply FAGX_ModelSourceComponentCustomization::OnSynchronizeModelButtonClicked()
 		return FReply::Handled();
 	}
 
-	FAGX_EditorUtilities::SynchronizeModel(*Blueprint);
+	FAGX_EditorUtilities::ReimportModel(*Blueprint, true);
 
-	// Any logging is done in SynchronizeModel.
+	// Any logging is done in ReimportModel.
 	return FReply::Handled();
 }
 

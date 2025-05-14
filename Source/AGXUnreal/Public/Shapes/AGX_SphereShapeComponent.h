@@ -53,7 +53,7 @@ public:
 	 *
 	 * @param Barrier The AGX Dynamics sphere to copy from.
 	 */
-	void CopyFrom(const FSphereShapeBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 protected:
 	// ~Begin UAGX_ShapeComponent interface.
