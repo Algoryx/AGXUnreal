@@ -38,7 +38,7 @@ public class AGXUnreal : ModuleRules
 		//       "CoreUObject", "Engine", "Slate", "SlateCore"
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"RHI", "RenderCore", "Projects", "Json", "Landscape", "Slate",
-			"SlateCore"});
+			"SlateCore", "MeshDescription", "StaticMeshDescription"});
 
 		if (Target.bBuildEditor)
 		{

@@ -24,205 +24,118 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 
 void FAGX_ConstraintUtilities::CopyControllersFrom(
-	UAGX_Constraint1DofComponent& Component, const FConstraint1DOFBarrier& Barrier,
-	bool ForceOverwriteInstances)
+	UAGX_Constraint1DofComponent& Component, const FConstraint1DOFBarrier& Barrier)
 {
-	TArray<FAGX_ConstraintElectricMotorController*> EMCInstances;
-	TArray<FAGX_ConstraintFrictionController*> FCInstances;
-	TArray<FAGX_ConstraintLockController*> LCInstances;
-	TArray<FAGX_ConstraintRangeController*> RCInstances;
-	TArray<FAGX_ConstraintTargetSpeedController*> TSCInstances;
-
-	if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-	{
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(Component))
-		{
-			EMCInstances.Add(&Instance->ElectricMotorController);
-			FCInstances.Add(&Instance->FrictionController);
-			LCInstances.Add(&Instance->LockController);
-			RCInstances.Add(&Instance->RangeController);
-			TSCInstances.Add(&Instance->TargetSpeedController);
-		}
-	}
-
-	StoreElectricMotorController(
-		Barrier, Component.ElectricMotorController, EMCInstances, ForceOverwriteInstances);
-	StoreFrictionController(
-		Barrier, Component.FrictionController, FCInstances, ForceOverwriteInstances);
-	StoreLockController(Barrier, Component.LockController, LCInstances, ForceOverwriteInstances);
-	StoreRangeController(Barrier, Component.RangeController, RCInstances, ForceOverwriteInstances);
-	StoreTargetSpeedController(
-		Barrier, Component.TargetSpeedController, TSCInstances, ForceOverwriteInstances);
+	StoreElectricMotorController(Barrier, Component.ElectricMotorController);
+	StoreFrictionController(Barrier, Component.FrictionController);
+	StoreLockController(Barrier, Component.LockController);
+	StoreRangeController(Barrier, Component.RangeController);
+	StoreTargetSpeedController(Barrier, Component.TargetSpeedController);
 }
 
 void FAGX_ConstraintUtilities::CopyControllersFrom(
-	UAGX_Constraint2DofComponent& Component, const FConstraint2DOFBarrier& Barrier,
-	bool ForceOverwriteInstances)
+	UAGX_Constraint2DofComponent& Component, const FConstraint2DOFBarrier& Barrier)
 {
 	const EAGX_Constraint2DOFFreeDOF First = EAGX_Constraint2DOFFreeDOF::FIRST;
 	const EAGX_Constraint2DOFFreeDOF Second = EAGX_Constraint2DOFFreeDOF::SECOND;
-	TArray<FAGX_ConstraintElectricMotorController*> EMCInstances1;
-	TArray<FAGX_ConstraintElectricMotorController*> EMCInstances2;
-	TArray<FAGX_ConstraintFrictionController*> FCInstances1;
-	TArray<FAGX_ConstraintFrictionController*> FCInstances2;
-	TArray<FAGX_ConstraintLockController*> LCInstances1;
-	TArray<FAGX_ConstraintLockController*> LCInstances2;
-	TArray<FAGX_ConstraintRangeController*> RCInstances1;
-	TArray<FAGX_ConstraintRangeController*> RCInstances2;
-	TArray<FAGX_ConstraintTargetSpeedController*> TSCInstances1;
-	TArray<FAGX_ConstraintTargetSpeedController*> TSCInstances2;
-	TArray<FAGX_ConstraintScrewController*> SCInstances;
 
-	if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-	{
-		for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(Component))
-		{
-			EMCInstances1.Add(&Instance->ElectricMotorController1);
-			EMCInstances2.Add(&Instance->ElectricMotorController2);
-			FCInstances1.Add(&Instance->FrictionController1);
-			FCInstances2.Add(&Instance->FrictionController2);
-			LCInstances1.Add(&Instance->LockController1);
-			LCInstances2.Add(&Instance->LockController2);
-			RCInstances1.Add(&Instance->RangeController1);
-			RCInstances2.Add(&Instance->RangeController2);
-			TSCInstances1.Add(&Instance->TargetSpeedController1);
-			TSCInstances2.Add(&Instance->TargetSpeedController2);
-			SCInstances.Add(&Instance->ScrewController);
-		}
-	}
+	StoreElectricMotorController(Barrier, Component.ElectricMotorController1, First);
+	StoreElectricMotorController(Barrier, Component.ElectricMotorController2, Second);
 
-	StoreElectricMotorController(
-		Barrier, Component.ElectricMotorController1, First, EMCInstances1, ForceOverwriteInstances);
-	StoreElectricMotorController(
-		Barrier, Component.ElectricMotorController2, Second, EMCInstances2,
-		ForceOverwriteInstances);
+	StoreFrictionController(Barrier, Component.FrictionController1, First);
+	StoreFrictionController(Barrier, Component.FrictionController2, Second);
 
-	StoreFrictionController(
-		Barrier, Component.FrictionController1, First, FCInstances1, ForceOverwriteInstances);
-	StoreFrictionController(
-		Barrier, Component.FrictionController2, Second, FCInstances2, ForceOverwriteInstances);
+	StoreLockController(Barrier, Component.LockController1, First);
+	StoreLockController(Barrier, Component.LockController2, Second);
 
-	StoreLockController(
-		Barrier, Component.LockController1, First, LCInstances1, ForceOverwriteInstances);
-	StoreLockController(
-		Barrier, Component.LockController2, Second, LCInstances2, ForceOverwriteInstances);
+	StoreRangeController(Barrier, Component.RangeController1, First);
+	StoreRangeController(Barrier, Component.RangeController2, Second);
 
-	StoreRangeController(
-		Barrier, Component.RangeController1, First, RCInstances1, ForceOverwriteInstances);
-	StoreRangeController(
-		Barrier, Component.RangeController2, Second, RCInstances2, ForceOverwriteInstances);
+	StoreTargetSpeedController(Barrier, Component.TargetSpeedController1, First);
+	StoreTargetSpeedController(Barrier, Component.TargetSpeedController2, Second);
 
-	StoreTargetSpeedController(
-		Barrier, Component.TargetSpeedController1, First, TSCInstances1, ForceOverwriteInstances);
-	StoreTargetSpeedController(
-		Barrier, Component.TargetSpeedController2, Second, TSCInstances2, ForceOverwriteInstances);
-
-	StoreScrewController(Barrier, Component.ScrewController, SCInstances, ForceOverwriteInstances);
+	StoreScrewController(Barrier, Component.ScrewController);
 }
 
 void FAGX_ConstraintUtilities::CopyControllersFrom(
-	UAGX_BallConstraintComponent& Component, const FBallJointBarrier& Barrier,
-	bool bForceOverwriteProperties)
+	UAGX_BallConstraintComponent& Component, const FBallJointBarrier& Barrier)
 {
-	TArray<FAGX_TwistRangeController*> ControllerInstances;
-	if (FAGX_ObjectUtilities::IsTemplateComponent(Component))
-	{
-		for (UAGX_BallConstraintComponent* Instance :
-			 FAGX_ObjectUtilities::GetArchetypeInstances(Component))
-		{
-			ControllerInstances.Add(&Instance->TwistRangeController);
-		}
-	}
-	StoreTwistRangeController(
-		Barrier, Component.TwistRangeController, ControllerInstances, bForceOverwriteProperties);
+	StoreTwistRangeController(Barrier, Component.TwistRangeController);
 }
 
 void FAGX_ConstraintUtilities::StoreElectricMotorController(
-	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintElectricMotorController& Controller,
-	TArray<FAGX_ConstraintElectricMotorController*>& Instances, bool ForceOverwriteInstances)
+	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintElectricMotorController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetElectricMotorController(), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetElectricMotorController());
 }
 
 void FAGX_ConstraintUtilities::StoreElectricMotorController(
 	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintElectricMotorController& Controller,
-	EAGX_Constraint2DOFFreeDOF Dof, TArray<FAGX_ConstraintElectricMotorController*>& Instances,
-	bool ForceOverwriteInstances)
+	EAGX_Constraint2DOFFreeDOF Dof)
 {
-	Controller.CopyFrom(
-		*Barrier.GetElectricMotorController(Dof), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetElectricMotorController(Dof));
 }
 
 void FAGX_ConstraintUtilities::StoreFrictionController(
-	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintFrictionController& Controller,
-	TArray<FAGX_ConstraintFrictionController*>& Instances, bool ForceOverwriteInstances)
+	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintFrictionController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetFrictionController(), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetFrictionController());
 }
 
 void FAGX_ConstraintUtilities::StoreFrictionController(
 	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintFrictionController& Controller,
-	EAGX_Constraint2DOFFreeDOF Dof, TArray<FAGX_ConstraintFrictionController*>& Instances,
-	bool ForceOverwriteInstances)
+	EAGX_Constraint2DOFFreeDOF Dof)
 {
-	Controller.CopyFrom(*Barrier.GetFrictionController(Dof), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetFrictionController(Dof));
 }
 
 void FAGX_ConstraintUtilities::StoreLockController(
-	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintLockController& Controller,
-	TArray<FAGX_ConstraintLockController*>& Instances, bool ForceOverwriteInstances)
+	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintLockController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetLockController(), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetLockController());
 }
 
 void FAGX_ConstraintUtilities::StoreLockController(
 	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintLockController& Controller,
-	EAGX_Constraint2DOFFreeDOF Dof, TArray<FAGX_ConstraintLockController*>& Instances,
-	bool ForceOverwriteInstances)
+	EAGX_Constraint2DOFFreeDOF Dof)
 {
-	Controller.CopyFrom(*Barrier.GetLockController(Dof), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetLockController(Dof));
 }
 
 void FAGX_ConstraintUtilities::StoreRangeController(
-	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintRangeController& Controller,
-	TArray<FAGX_ConstraintRangeController*>& Instances, bool ForceOverwriteInstances)
+	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintRangeController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetRangeController(), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetRangeController());
 }
 
 void FAGX_ConstraintUtilities::StoreRangeController(
 	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintRangeController& Controller,
-	EAGX_Constraint2DOFFreeDOF Dof, TArray<FAGX_ConstraintRangeController*>& Instances,
-	bool ForceOverwriteInstances)
+	EAGX_Constraint2DOFFreeDOF Dof)
 {
-	Controller.CopyFrom(*Barrier.GetRangeController(Dof), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetRangeController(Dof));
 }
 
 void FAGX_ConstraintUtilities::StoreTargetSpeedController(
-	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintTargetSpeedController& Controller,
-	TArray<FAGX_ConstraintTargetSpeedController*>& Instances, bool ForceOverwriteInstances)
+	const FConstraint1DOFBarrier& Barrier, FAGX_ConstraintTargetSpeedController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetTargetSpeedController(), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetTargetSpeedController());
 }
 
 void FAGX_ConstraintUtilities::StoreTargetSpeedController(
 	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintTargetSpeedController& Controller,
-	EAGX_Constraint2DOFFreeDOF Dof, TArray<FAGX_ConstraintTargetSpeedController*>& Instances,
-	bool ForceOverwriteInstances)
+	EAGX_Constraint2DOFFreeDOF Dof)
 {
-	Controller.CopyFrom(*Barrier.GetTargetSpeedController(Dof), Instances, ForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetTargetSpeedController(Dof));
 }
 
 void FAGX_ConstraintUtilities::StoreScrewController(
-	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintScrewController& Controller,
-	TArray<FAGX_ConstraintScrewController*> Instances, bool bForceOverwriteInstances)
+	const FConstraint2DOFBarrier& Barrier, FAGX_ConstraintScrewController& Controller)
 {
-	Controller.CopyFrom(*Barrier.GetScrewController(), Instances, bForceOverwriteInstances);
+	Controller.CopyFrom(*Barrier.GetScrewController());
 }
 
 void FAGX_ConstraintUtilities::StoreTwistRangeController(
-	const FBallJointBarrier& Barrier, FAGX_TwistRangeController& Controller,
-	TArray<FAGX_TwistRangeController*> Instances, bool bForceOverwriteInstances)
+	const FBallJointBarrier& Barrier, FAGX_TwistRangeController& Controller)
 {
 	// Not all Ball Constraints on the AGX Dynamics side have a Twist Range Controller. That feature
 	// was added with AGX Dynamics 2.37 so any AGX Dynamics archive with a Ball Constraint created
@@ -249,7 +162,7 @@ void FAGX_ConstraintUtilities::StoreTwistRangeController(
 		return;
 	}
 
-	Controller.CopyFrom(Source, Instances, bForceOverwriteInstances);
+	Controller.CopyFrom(Source);
 }
 
 #if WITH_EDITOR
