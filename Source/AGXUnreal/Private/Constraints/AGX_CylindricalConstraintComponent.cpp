@@ -12,9 +12,7 @@ class FRigidBodyBarrier;
 UAGX_CylindricalConstraintComponent::UAGX_CylindricalConstraintComponent()
 	: UAGX_Constraint2DofComponent(
 		  {EDofFlag::DofFlagRotational1, EDofFlag::DofFlagRotational2,
-		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2},
-		  /*bIsSecondaryConstraint1Rotational*/ false,
-		  /*bIsSecondaryConstraint2Rotational*/ true)
+		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2})
 {
 	NativeBarrier.Reset(new FCylindricalJointBarrier());
 }

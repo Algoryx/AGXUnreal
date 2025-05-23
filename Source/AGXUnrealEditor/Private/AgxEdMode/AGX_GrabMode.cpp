@@ -27,7 +27,7 @@ void FAGX_GrabMode::Activate()
 
 	if (!World->IsGameWorld())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"AGX Grab Mode can only be activated during play.");
 		return;
 	}

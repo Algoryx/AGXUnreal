@@ -297,6 +297,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetStabilizingHingeFrictionParameter(double FrictionParameter);
 
+	/*
+	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	FGuid ImportGuid;
+
 public:
 	UAGX_TrackProperties() = default;
 	virtual ~UAGX_TrackProperties() = default;

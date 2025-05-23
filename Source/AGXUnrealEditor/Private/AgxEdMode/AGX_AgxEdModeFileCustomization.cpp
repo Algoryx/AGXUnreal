@@ -34,7 +34,7 @@ void FAGX_AgxEdModeFileCustomization::CustomizeFileImporterCategory(
 	// Create import Buttons.
 
 	AddCustomButton(
-		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import model to Blueprint..."),
+		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import Model to Blueprint..."),
 		LOCTEXT("CreateButtonTextImportTt", "Import a model from a file to a Blueprint."),
 		[&]()
 		{
@@ -99,7 +99,7 @@ void FAGX_AgxEdModeFileCustomization::CustomizeMaterialLibraryCategory(
 			else
 			{
 				FAGX_NotificationUtilities::ShowNotification(
-					"Issues encountered during Refresh, see the Console Log for more details.",
+					"Issues encountered during Refresh, see the Output Log for more details.",
 					SNotificationItem::CS_Fail);
 			}
 			return FReply::Handled();

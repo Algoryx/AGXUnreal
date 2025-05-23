@@ -664,12 +664,8 @@ void UAGX_Simulation::Deinitialize()
 #endif
 
 	Super::Deinitialize();
-	if (!HasNative())
-	{
-		return;
-	}
-
-	ReleaseNative();
+	if (HasNative())
+		ReleaseNative();
 }
 
 #if WITH_EDITOR

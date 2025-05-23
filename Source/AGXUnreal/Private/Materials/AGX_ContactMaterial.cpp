@@ -9,8 +9,10 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
@@ -677,7 +679,7 @@ void UAGX_ContactMaterial::CommitToAsset()
 #if WITH_EDITOR
 			Asset->Modify();
 #endif
-			Asset->CopyFrom(*GetNative());
+			Asset->CopyFrom(*GetNative(), nullptr);
 #if WITH_EDITOR
 			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
 #endif
@@ -737,7 +739,32 @@ void UAGX_ContactMaterial::CopyFrom(const UAGX_ContactMaterial* Source)
 #undef COPY_PROPERTY
 }
 
-void UAGX_ContactMaterial::CopyFrom(const FContactMaterialBarrier& Source)
+namespace AGX_ContactMaterial_helpers
+{
+	void SetupMaterials(
+		const FContactMaterialBarrier& Barrier, UAGX_ContactMaterial& OutCm,
+		FAGX_ImportContext& Context)
+	{
+		FShapeMaterialBarrier MBarrier1 = Barrier.GetMaterial1();
+		FShapeMaterialBarrier MBarrier2 = Barrier.GetMaterial2();
+
+		const FString Name1 = MBarrier1.HasNative() ? MBarrier1.GetName() : "Default";
+		const FString Name2 = MBarrier2.HasNative() ? MBarrier2.GetName() : "Default";
+
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			OutCm.GetOuter(), FString::Printf(TEXT("CM_%s_%s"), *Name1, *Name2),
+			UAGX_ContactMaterial::StaticClass());
+		OutCm.Rename(*Name);
+
+		OutCm.Material1 = MBarrier1.HasNative()
+			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context) : nullptr;
+		OutCm.Material2 = MBarrier2.HasNative()
+			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context) : nullptr;
+	}
+}
+
+void UAGX_ContactMaterial::CopyFrom(
+	const FContactMaterialBarrier& Source, FAGX_ImportContext* Context)
 {
 	if (!Source.HasNative())
 	{
@@ -782,6 +809,9 @@ void UAGX_ContactMaterial::CopyFrom(const FContactMaterialBarrier& Source)
 	ImportGuid = Source.GetGuid();
 
 #undef COPY_PROPERTY
+
+	if (Context != nullptr)
+		AGX_ContactMaterial_helpers::SetupMaterials(Source, *this, *Context);
 }
 
 UAGX_ContactMaterial* UAGX_ContactMaterial::CreateInstanceFromAsset(
@@ -855,8 +885,12 @@ UAGX_ContactMaterial* UAGX_ContactMaterial::GetAsset()
 
 bool UAGX_ContactMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 
 	// Internal testing the hypothesis that UObject::IsAsset is a valid inverse of this function.

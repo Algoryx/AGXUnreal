@@ -307,7 +307,7 @@ void FAGX_TopMenu::FillConstraintMenu(FMenuBuilder& Builder)
 void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 {
 	AddFileMenuEntry(
-		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import model to Blueprint..."),
+		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
 		LOCTEXT(
 			"FileMenuEntryhTooltopImportBluePrint",
 			"Import an AGX Dynamics archive or URDF to a Blueprint."),
@@ -374,7 +374,7 @@ void FAGX_TopMenu::OnCreateConstraintClicked(UClass* ConstraintClass)
 
 	if (Actor1 == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Must select at least one actor with a Rigid Body component before creating a "
 			"constraint.");
 		return;
@@ -393,7 +393,7 @@ void FAGX_TopMenu::OnCreateConstraintClicked(UClass* ConstraintClass)
 
 	if (Bodies1.Num() != 1)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Cannot create constraint with actor '%s' because it doesn't contain exactly one "
 			"body.");
 		return;
@@ -401,7 +401,7 @@ void FAGX_TopMenu::OnCreateConstraintClicked(UClass* ConstraintClass)
 
 	if (Actor2 && Bodies2.Num() != 1)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Cannot create constraint with actor '%s' because it doesn't contain exactly one "
 			"body.");
 		return;
@@ -475,7 +475,7 @@ void FAGX_TopMenu::OnOpenAboutDialogClicked()
 		"www.algoryx.com");
 	// clang-format on
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(Message, Title);
+	FAGX_NotificationUtilities::ShowDialogBoxWithInfo(Message, Title);
 }
 
 void FAGX_TopMenu::OnOpenLicenseActivationDialogClicked()
@@ -530,7 +530,7 @@ void FAGX_TopMenu::OnStartGrabModeDialogClicked()
 
 	if (!World->IsGameWorld())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Grab mode if only supported during play.");
 		return;
 	}

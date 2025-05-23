@@ -252,7 +252,7 @@ FReply SAGX_LicenseDialog::OnActivateButtonClicked()
 	using namespace AGX_LicenseDialog_helpers;
 	if (LicenseData.LicenseId.IsEmpty() || LicenseData.ActivationCode.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License Id or Activation code was empty. Please enter a License Id and Activation "
 			"code.");
 		return FReply::Handled();
@@ -260,7 +260,7 @@ FReply SAGX_LicenseDialog::OnActivateButtonClicked()
 
 	if (!ContainsOnlyIntegers(LicenseData.LicenseId))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License id may only contain integer values.");
 		return FReply::Handled();
 	}
@@ -273,12 +273,12 @@ FReply SAGX_LicenseDialog::OnActivateButtonClicked()
 
 	if (!Result)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License activation was unsuccessful. The Output Log may contain more information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog("License activation was successful.");
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess("License activation was successful.");
 	return FReply::Handled();
 }
 
@@ -304,14 +304,14 @@ FReply SAGX_LicenseDialog::OnCopyExistingLicenseButtonClicked()
 {
 	if (LicenseData.SelectedExistingLicense.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Unable to copy license file since no license file has been selected.");
 		return FReply::Handled();
 	}
 
 	if (!FPaths::FileExists(LicenseData.SelectedExistingLicense))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Unable to copy license file since the selected file does not exist.");
 		return FReply::Handled();
 	}
@@ -321,7 +321,7 @@ FReply SAGX_LicenseDialog::OnCopyExistingLicenseButtonClicked()
 		DestinationDir, FPaths::GetCleanFilename(LicenseData.SelectedExistingLicense));
 	if (FPaths::FileExists(DestinationPath))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(FString::Printf(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(FString::Printf(
 			TEXT("Unable to copy existing license file since another file of the same "
 				 "name exists in '%s'. Please remove this file before attempting to copy to this "
 				 "location."),
@@ -332,13 +332,13 @@ FReply SAGX_LicenseDialog::OnCopyExistingLicenseButtonClicked()
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	if (!PlatformFile.CopyFile(*DestinationPath, *LicenseData.SelectedExistingLicense))
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Something went wrong when trying to copy the license file. The log may contain more "
 			"details.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		FString::Printf(TEXT("Successfully copied the license file to '%s'."), *DestinationPath));
 	RefreshGui();
 	return FReply::Handled();
@@ -349,7 +349,7 @@ FReply SAGX_LicenseDialog::OnRefreshButtonClicked()
 	if (!FAGX_Environment::IsAGXDynamicsVersionNewerOrEqualTo(2, 32, 0, 1))
 	{
 		const FString AGXVersion = FAGX_Environment::GetAGXDynamicsVersion();
-		FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(FString::Printf(
+		FAGX_NotificationUtilities::ShowDialogBoxWithInfo(FString::Printf(
 			TEXT("Refreshing the service license requires AGX Dynamics version 2.32.0.1 or "
 				 "later. The current version is %s. The suggested work-around is to dectivate "
 				 "the license and then activating it again."),
@@ -359,13 +359,13 @@ FReply SAGX_LicenseDialog::OnRefreshButtonClicked()
 
 	if (!FAGX_Environment::GetInstance().RefreshServiceLicense())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Refreshing service license was unsuccessful. The Output Log may contain more "
 			"information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog("Refreshing service license completed.");
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess("Refreshing service license completed.");
 	RefreshGui();
 	return FReply::Handled();
 }
@@ -382,12 +382,12 @@ FReply SAGX_LicenseDialog::OnDeactivateButtonClicked()
 
 	if (!FAGX_Environment::GetInstance().DeactivateServiceLicense())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"License deactivation was unsuccessful. The Output Log may contain more information.");
 		return FReply::Handled();
 	}
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog("License deactivation was successful.");
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess("License deactivation was successful.");
 	RefreshGui();
 	return FReply::Handled();
 }

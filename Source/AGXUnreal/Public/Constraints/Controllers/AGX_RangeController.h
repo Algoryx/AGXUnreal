@@ -38,13 +38,10 @@ struct AGXUNREAL_API FAGX_ConstraintRangeController : public FAGX_ConstraintCont
 	FAGX_RealInterval GetRange() const;
 
 public:
-	FAGX_ConstraintRangeController() = default;
-	FAGX_ConstraintRangeController(bool bRotational);
+	FAGX_ConstraintRangeController();
 
 	void InitializeBarrier(TUniquePtr<FRangeControllerBarrier> Barrier);
-	void CopyFrom(
-		const FRangeControllerBarrier& Source,
-		TArray<FAGX_ConstraintRangeController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FRangeControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;
