@@ -5,9 +5,8 @@
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 
-FAGX_ConstraintRangeController::FAGX_ConstraintRangeController(bool bRotational)
-	: FAGX_ConstraintController(bRotational)
-	, Range(ConstraintConstants::DefaultForceRange())
+FAGX_ConstraintRangeController::FAGX_ConstraintRangeController()
+	: Range(ConstraintConstants::DefaultForceRange())
 {
 }
 
@@ -15,7 +14,6 @@ void FAGX_ConstraintRangeController::InitializeBarrier(TUniquePtr<FRangeControll
 {
 	check(!HasNative());
 	NativeBarrier = std::move(Barrier);
-	check(HasNative());
 }
 
 namespace
@@ -37,14 +35,7 @@ void FAGX_ConstraintRangeController::SetRange(const FAGX_RealInterval& InRange)
 {
 	if (HasNative())
 	{
-		if (bRotational)
-		{
-			GetRangeBarrier(*this)->SetRangeRotational(InRange);
-		}
-		else
-		{
-			GetRangeBarrier(*this)->SetRangeTranslational(InRange);
-		}
+		GetRangeBarrier(*this)->SetRange(InRange);
 	}
 	Range = InRange;
 }
@@ -58,14 +49,7 @@ FAGX_RealInterval FAGX_ConstraintRangeController::GetRange() const
 {
 	if (HasNative())
 	{
-		if (bRotational)
-		{
-			return GetRangeBarrier(*this)->GetRangeRotational();
-		}
-		else
-		{
-			return GetRangeBarrier(*this)->GetRangeTranslational();
-		}
+		return GetRangeBarrier(*this)->GetRange();
 	}
 	return Range;
 }
@@ -74,36 +58,12 @@ void FAGX_ConstraintRangeController::UpdateNativePropertiesImpl()
 {
 	FRangeControllerBarrier* Barrier = GetRangeBarrier(*this);
 	check(Barrier);
-	if (bRotational)
-	{
-		Barrier->SetRangeRotational(Range);
-	}
-	else
-	{
-		Barrier->SetRangeTranslational(Range);
-	}
+	Barrier->SetRange(Range);
 }
 
-void FAGX_ConstraintRangeController::CopyFrom(
-	const FRangeControllerBarrier& Source, TArray<FAGX_ConstraintRangeController*>& Instances,
-	bool ForceOverwriteInstances)
+void FAGX_ConstraintRangeController::CopyFrom(const FRangeControllerBarrier& Source)
 {
-	TArray<FAGX_ConstraintController*> BaseInstances(Instances);
-	Super::CopyFrom(Source, BaseInstances, ForceOverwriteInstances);
-
-	const FAGX_RealInterval RangeBarrier =
-		bRotational ? Source.GetRangeRotational() : Source.GetRangeTranslational();
-
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->Range == Range)
-		{
-			Instance->Range = RangeBarrier;
-		}
-	}
-
+	Super::CopyFrom(Source);
+	const FAGX_RealInterval RangeBarrier = Source.GetRange();
 	Range = RangeBarrier;
 }

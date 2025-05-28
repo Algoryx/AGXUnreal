@@ -35,12 +35,8 @@ struct AGXUNREAL_API FAGX_ConstraintScrewController : public FAGX_ConstraintCont
 
 public:
 	FAGX_ConstraintScrewController() = default;
-	FAGX_ConstraintScrewController(bool bRotational);
-
 	void InitializeBarrier(TUniquePtr<FScrewControllerBarrier> Barrier);
-	void CopyFrom(
-		const FScrewControllerBarrier& Source,
-		TArray<FAGX_ConstraintScrewController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FScrewControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;

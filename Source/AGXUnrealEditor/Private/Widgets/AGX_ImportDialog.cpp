@@ -3,7 +3,7 @@
 #include "Widgets/AGX_ImportDialog.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportSettings.h"
 #include "AGX_LogCategory.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
@@ -51,7 +51,7 @@ namespace AGX_ImportDialog_helpers
 
 void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 {
-	FileTypes = ".agx;*.urdf";
+	FileTypes = ".agx;*.openplx;*.urdf";
 
 	// clang-format off
 	ChildSlot
@@ -85,6 +85,12 @@ void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 			.Padding(FMargin(5.0f, 0.0f))
 			.AutoHeight()
 			[
+				CreatePLXFileGui()
+			]
+			+ SVerticalBox::Slot()
+			.Padding(FMargin(5.0f, 0.0f))
+			.AutoHeight()
+			[
 				CreateURDFFileGui()
 			]
 			+ SVerticalBox::Slot()
@@ -112,7 +118,7 @@ void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 
 TOptional<FAGX_ImportSettings> SAGX_ImportDialog::ToImportSettings()
 {
-	if (!bUserHasPressedImportOrSynchronize)
+	if (!bUserHasPressedImportOrReimport)
 	{
 		// The Window containing this Widget was closed, the user never pressed Import.
 		return {};
@@ -120,13 +126,14 @@ TOptional<FAGX_ImportSettings> SAGX_ImportDialog::ToImportSettings()
 
 	if (FilePath.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"A file must be selected before importing.");
 		return {};
 	}
 
 	FAGX_ImportSettings Settings;
 	Settings.FilePath = FilePath;
+	Settings.SourceFilePath = FilePath;
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
 	Settings.ImportType = ImportType;
 	Settings.bOpenBlueprintEditorAfterImport = true;
@@ -327,7 +334,7 @@ FText SAGX_ImportDialog::GetUrdfInitJointsText() const
 
 FReply SAGX_ImportDialog::OnImportButtonClicked()
 {
-	bUserHasPressedImportOrSynchronize = true;
+	bUserHasPressedImportOrReimport = true;
 
 	// We are done, close the Window containing this Widget. The user of this Widget should get
 	// the user's input via the ToImportSettings function when the Window has closed.

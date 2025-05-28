@@ -31,6 +31,8 @@ class AGXUNREALBARRIER_API FSimulationBarrier
 {
 public:
 	FSimulationBarrier();
+	FSimulationBarrier(std::unique_ptr<FSimulationRef> Native);
+	FSimulationBarrier(FSimulationBarrier&& Other);
 	~FSimulationBarrier();
 
 	bool Add(FConstraintBarrier& Constraint);
