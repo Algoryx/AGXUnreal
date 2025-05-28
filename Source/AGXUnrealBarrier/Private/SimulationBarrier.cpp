@@ -36,6 +36,18 @@ FSimulationBarrier::FSimulationBarrier()
 {
 }
 
+FSimulationBarrier::FSimulationBarrier(std::unique_ptr<FSimulationRef> Native)
+	: NativeRef(std::move(Native))
+{
+	check(NativeRef);
+}
+
+FSimulationBarrier::FSimulationBarrier(FSimulationBarrier&& Other)
+	: NativeRef {std::move(Other.NativeRef)}
+{
+	Other.NativeRef.reset(new FSimulationRef);
+}
+
 FSimulationBarrier::~FSimulationBarrier()
 {
 	// Must provide a destructor implementation in the .cpp file because the

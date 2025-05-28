@@ -18,11 +18,13 @@
 #include <agx/CylindricalJoint.h>
 #include <agx/DistanceJoint.h>
 #include <agx/LockJoint.h>
+#include <agx/SingleControllerConstraint1DOF.h>
 #include <agxCollide/Contacts.h>
 #include <agxCollide/Sphere.h>
 #include <agxCollide/Box.h>
 #include <agxCollide/Trimesh.h>
 #include <agxModel/TwoBodyTire.h>
+#include <agxSDK/Simulation.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/TerrainMaterial.h>
@@ -36,6 +38,11 @@
 FRigidBodyBarrier AGXBarrierFactories::CreateRigidBodyBarrier(agx::RigidBody* Body)
 {
 	return {std::make_unique<FRigidBodyRef>(Body)};
+}
+
+FSimulationBarrier AGXBarrierFactories::CreateSimulationBarrier(agxSDK::Simulation* Simulation)
+{
+	return FSimulationBarrier(std::make_unique<FSimulationRef>(Simulation));
 }
 
 FAnyShapeBarrier AGXBarrierFactories::CreateAnyShapeBarrier(agxCollide::Shape* Shape)
@@ -104,6 +111,13 @@ FDistanceJointBarrier AGXBarrierFactories::CreateDistanceJointBarrier(
 FLockJointBarrier AGXBarrierFactories::CreateLockJointBarrier(agx::LockJoint* LockJoint)
 {
 	return {std::make_unique<FConstraintRef>(LockJoint)};
+}
+
+FSingleControllerConstraint1DOFBarrier
+AGXBarrierFactories::CreateSingleControllerConstraint1DOFBarrier(
+	agx::SingleControllerConstraint1DOF* Constraint)
+{
+	return {std::make_unique<FConstraintRef>(Constraint)};
 }
 
 FTwistRangeControllerBarrier AGXBarrierFactories::CreateTwistRangeControllerBarrier(

@@ -132,7 +132,7 @@ public:
 	/**
 	 * Takes a TimeStamp in seconds and converts it into a ROS2 builtin_interfaces::Time message.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
 	static FAGX_BuiltinInterfacesTime ConvertTime(double TimeStamp);
 
 	/**
@@ -158,7 +158,7 @@ public:
 	 * the timestamp of the first valid Point in the given array, even if other points have been
 	 * generated at later timestamps.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
 	static FAGX_SensorMsgsPointCloud2 ConvertXYZ(
 		const TArray<FAGX_LidarScanPoint>& Points, bool DoublePrecision = false,
 		bool ROSCoordinates = true, const FString& FrameId = "");
@@ -182,7 +182,7 @@ public:
 	 * the timestamp of the first valid Point in the given array, even if other points have been
 	 * generated at later timestamps.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	static FAGX_SensorMsgsPointCloud2 ConvertAnglesTOF(
 		const TArray<FAGX_LidarScanPoint>& Points, const FString& FrameId = "");
 

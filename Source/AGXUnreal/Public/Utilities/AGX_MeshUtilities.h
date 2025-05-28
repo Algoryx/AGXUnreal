@@ -34,8 +34,16 @@
 
 class AStaticMeshActor;
 class FDynamicMeshIndexBuffer32;
-struct FStaticMeshVertexBuffers;
+class FRenderDataBarrier;
+class FShapeBarrier;
+class UMaterial;
+class UMaterialInterface;
+class UStaticMesh;
+class UStaticMeshComponent;
+
+struct FAGX_RenderMaterial;
 struct FAGX_SimpleMeshTriangle;
+struct FStaticMeshVertexBuffers;
 
 /// \todo Each nested ***ConstructionData classes below could contain the respective Make-function
 /// as a member function, to even furter reduce potential usage mistakes!
@@ -335,4 +343,86 @@ public:
 
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
+
+	/**
+	 * Creates and builds a new Static Mesh.
+	 * This function supports runtime usage.
+	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const TArray<FVector3f>& Vertices, const TArray<uint32>& Triangles,
+		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
+		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
+		UMaterialInterface* Material);
+
+#if WITH_EDITOR
+	/**
+	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
+	 * Using this function makes it possible to run UStaticMesh::BatchBuild at a later stage on
+	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
+	 * built before it is used.
+	 */
+	static UStaticMesh* CreateStaticMeshNoBuild(
+		const TArray<FVector3f>& Vertices, const TArray<uint32>& Triangles,
+		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
+		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
+		UMaterialInterface* Material);
+#endif
+
+	/**
+	 * Copies triangle information and render material from one Static Mesh to another.
+	 * Does not copy other properties.
+	 * Always generates a new SimpleCollision (Box primitive) to the Destination Static Mesh.
+	 */
+	static bool CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destination);
+
+	/**
+	 * Creates and builds a new Static Mesh.
+	 * This function supports runtime usage.
+	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
+
+#if WITH_EDITOR
+	/**
+	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
+	 * Using this function makes it possible to run UStaticMesh::BatchBuild at a later stage on
+	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
+	 * built before it is used.
+	 */
+	static UStaticMesh* CreateStaticMeshNoBuild(
+		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
+#endif
+
+	static bool HasRenderDataMesh(const FShapeBarrier& Shape);
+
+	/**
+	 * Creates a new render Material instance based on the given RenderMaterial Barrier and Base.
+	 * If Base is nullptr, this functions returns nullptr.
+	 * This function supports runtime usage.
+	 */
+	static UMaterialInterface* CreateRenderMaterial(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial* Base, UObject& Owner);
+
+	/**
+	 * Returns the default (AGX) render material.
+	 */
+	static UMaterial* GetDefaultRenderMaterial(bool bIsSensor);
+
+	/**
+	 * Add a Simple Collision Box to the given StaticMesh.
+	 */
+	static bool AddBoxSimpleCollision(UStaticMesh& OutStaticMesh);
+
+	/**
+	 * Simple comparison to test if two meshes are equal.
+	 * Does not test all possible data, but does vertex and RenderMaterial comparisons.
+	 */
+	static bool AreStaticMeshesEqual(UStaticMesh* MeshA, UStaticMesh* MeshB);
+
+	/**
+	 * Checks whether two Render Materials are equal.
+	 */
+	static bool AreImportedRenderMaterialsEqual(UMaterialInterface* MatA, UMaterialInterface* MatB);
 };

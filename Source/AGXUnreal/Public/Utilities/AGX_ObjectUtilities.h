@@ -57,6 +57,32 @@ public:
 	 */
 	static bool IsTemplateComponent(const UActorComponent& Component);
 
+	static bool RemoveComponentAndPromoteChildren(USceneComponent* Component, AActor* Owner);
+
+	/**
+	 * Copy all properties from an UObject to another. The objects must be of same type.
+	 */
+	static bool CopyProperties(
+		const UObject& Source, UObject& OutDestination, bool UpdateArchetypeInstances = true);
+
+	/**
+	 * Returns a sanitized version of the given name that uses only valid characters.
+	 * UClass of the object can be passed to give a better default name in case of empty name.
+	 */
+	static FString SanitizeObjectName(FString Name, UClass* Class);
+
+	/**
+	 * Makes an Object Name that is unique in the given context (Owner).
+	 */
+	static FString MakeObjectNameUnique(UObject* Owner, FString Name);
+
+	/**
+	 * Combines SanitizeObjectName and MakeObjectNameUnique to make a valid, final name that can be
+	 * used for Components, Assets and Actors.
+	 * UClass of the object can be passed to give a better default name in case of empty name.
+	 */
+	static FString SanitizeAndMakeNameUnique(UObject* Owner, const FString& Name, UClass* Class);
+
 	/**
 	 * Give a list of pointer-to-base, return a new list with the elements that
 	 * are of a particular derived type.
@@ -76,6 +102,9 @@ public:
 
 	template <typename T>
 	static T* GetComponentByName(const AActor& Actor, const TCHAR* Name);
+
+	template <typename T>
+	static TArray<T*> GetChildrenOfType(const USceneComponent& Parent, bool Recursive);
 
 	template <typename T>
 	static T* Get(const FComponentReference& Reference, const AActor* FallbackOwner);
@@ -363,6 +392,22 @@ T* FAGX_ObjectUtilities::GetComponentByName(const AActor& Actor, const TCHAR* Na
 }
 
 template <typename T>
+inline TArray<T*> FAGX_ObjectUtilities::GetChildrenOfType(
+	const USceneComponent& Parent, bool Recursive)
+{
+	TArray<USceneComponent*> Children;
+	Parent.GetChildrenComponents(Recursive, Children);
+	TArray<T*> Result;
+	for (USceneComponent* Child : Children)
+	{
+		if (auto C = Cast<T>(Child))
+			Result.Add(C);
+	}
+
+	return Result;
+}
+
+template <typename T>
 T* FAGX_ObjectUtilities::Get(const FComponentReference& Reference, const AActor* FallbackOwner)
 {
 	// Search among the Properties.
@@ -396,7 +441,8 @@ T* FAGX_ObjectUtilities::Get(const FComponentReference& Reference, const AActor*
 template <typename AssetType>
 inline AssetType* FAGX_ObjectUtilities::GetAssetFromPath(const TCHAR* AssetPath)
 {
-	UObject* LoadResult = StaticLoadObject(AssetType::StaticClass(), nullptr, AssetPath);
+	UObject* LoadResult =
+		StaticLoadObject(AssetType::StaticClass(), nullptr, AssetPath, nullptr, LOAD_NoWarn);
 	return Cast<AssetType>(LoadResult);
 }
 

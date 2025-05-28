@@ -6,11 +6,13 @@
 #include "AGX_LogCategory.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/Level.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/PackageName.h"
+#include "UObject/NameTypes.h"
 #include "UObject/SavePackage.h"
 #include "Engine/World.h"
 
@@ -64,10 +66,133 @@ AActor* FAGX_ObjectUtilities::GetRootParentActor(UActorComponent& Component)
 	return GetRootParentActor(Component.GetTypedOuter<AActor>());
 }
 
-
 bool FAGX_ObjectUtilities::IsTemplateComponent(const UActorComponent& Component)
 {
 	return Component.HasAnyFlags(RF_ArchetypeObject);
+}
+
+bool FAGX_ObjectUtilities::RemoveComponentAndPromoteChildren(
+	USceneComponent* Component, AActor* Owner)
+{
+	if (Component == nullptr || Owner == nullptr || Component->GetOwner() != Owner)
+	{
+		UE_LOG(
+			LogAGX, Warning, TEXT("RemoveComponentAndPromoteChildren: Invalid Component or Owner"));
+		return false;
+	}
+
+	USceneComponent* ParentComponent = Component->GetAttachParent();
+
+	TArray<USceneComponent*> Children;
+	Component->GetChildrenComponents(false, Children);
+
+	for (USceneComponent* Child : Children)
+	{
+		if (Child == nullptr)
+			continue;
+
+		Child->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		if (ParentComponent != nullptr)
+			Child->AttachToComponent(
+				ParentComponent, FAttachmentTransformRules::KeepWorldTransform);
+		else
+			Child->AttachToComponent(
+				Owner->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	Component->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	Owner->RemoveInstanceComponent(Component);
+	Component->DestroyComponent();
+	return true;
+}
+
+bool FAGX_ObjectUtilities::CopyProperties(
+	const UObject& Source, UObject& OutDestination, bool UpdateArchetypeInstances)
+{
+	UClass* Class = Source.GetClass();
+	if (OutDestination.GetClass() != Class)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to copy properties from object '%s' of type '%s' to object '%s' of "
+				 "type '%s'. Types must match."),
+			*Source.GetName(), *Source.GetClass()->GetName(), *OutDestination.GetName(),
+			*OutDestination.GetClass()->GetName());
+		return false;
+	}
+
+	TArray<UObject*> ArchetypeInstances;
+	if (UpdateArchetypeInstances)
+		OutDestination.GetArchetypeInstances(ArchetypeInstances);
+
+	for (TFieldIterator<FProperty> PropIt(Class); PropIt; ++PropIt)
+	{
+		FProperty* Property = *PropIt;
+
+		// To speed up execution, can we add custom property flags for AGXUnreal properties?
+		if (Property && Property->HasAnyPropertyFlags(CPF_Edit))
+		{
+			const void* SourceValue = Property->ContainerPtrToValuePtr<void>(&Source);
+			void* DestValue = Property->ContainerPtrToValuePtr<void>(&OutDestination);
+			if (Property->Identical(SourceValue, DestValue))
+				continue; // Nothing to do, already equal.
+
+			if (UpdateArchetypeInstances)
+			{
+				for (UObject* Instance : ArchetypeInstances)
+				{
+					if (Instance == nullptr)
+						continue;
+
+					void* ArchetypeInstanceValue = Property->ContainerPtrToValuePtr<void>(Instance);
+					if (Property->Identical(ArchetypeInstanceValue, DestValue)) // In sync; copy!
+						Property->CopyCompleteValue(ArchetypeInstanceValue, SourceValue);
+				}
+			}
+
+			Property->CopyCompleteValue(DestValue, SourceValue);
+		}
+	}
+
+	return true;
+}
+
+FString FAGX_ObjectUtilities::SanitizeObjectName(FString Name, UClass* Class)
+{
+	if (Class != nullptr && (Name.IsEmpty() || Name.Equals("None")))
+		Name = Class->GetName();
+
+	if (Class != nullptr)
+	{
+		if (Class->IsChildOf(UActorComponent::StaticClass()))
+			Name.RemoveFromEnd("Component");
+		else if (!Class->IsChildOf(AActor::StaticClass())) // Assume asset type.
+			Name = RemoveFromString(Name, FString(INVALID_LONGPACKAGE_CHARACTERS));
+	}
+
+	return MakeObjectNameFromDisplayLabel(Name, FName(*Name)).ToString();
+}
+
+FString FAGX_ObjectUtilities::MakeObjectNameUnique(UObject* Owner, FString Name)
+{
+	if (Owner == nullptr)
+		return Name;
+
+	const FString WantedName = Name;
+	int32 Suffix = 0;
+	while (StaticFindObjectFast(UObject::StaticClass(), Owner, FName(*Name)) != nullptr)
+	{
+		Suffix++;
+		Name = FString::Printf(TEXT("%s_%s"), *WantedName, *FString::FromInt(Suffix));
+	}
+
+	return Name;
+}
+
+FString FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+	UObject* Owner, const FString& Name, UClass* Class)
+{
+	return MakeObjectNameUnique(Owner, SanitizeObjectName(Name, Class));
 }
 
 void FAGX_ObjectUtilities::GetActorsTree(

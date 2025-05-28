@@ -8,27 +8,12 @@
 #include "AGX_LogCategory.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "Constraints/Constraint2DOFBarrier.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
 
-UAGX_Constraint2DofComponent::UAGX_Constraint2DofComponent()
-{
-}
-
 UAGX_Constraint2DofComponent::UAGX_Constraint2DofComponent(
-	const TArray<EDofFlag>& LockedDofsOrdered, bool bIsSecondaryConstraint1Rotational,
-	bool bIsSecondaryConstraint2Rotational)
+	const TArray<EDofFlag>& LockedDofsOrdered)
 	: UAGX_ConstraintComponent(LockedDofsOrdered)
-	, ElectricMotorController1(bIsSecondaryConstraint1Rotational)
-	, ElectricMotorController2(bIsSecondaryConstraint2Rotational)
-	, FrictionController1(bIsSecondaryConstraint1Rotational)
-	, FrictionController2(bIsSecondaryConstraint2Rotational)
-	, LockController1(bIsSecondaryConstraint1Rotational)
-	, LockController2(bIsSecondaryConstraint2Rotational)
-	, RangeController1(bIsSecondaryConstraint1Rotational)
-	, RangeController2(bIsSecondaryConstraint2Rotational)
-	, TargetSpeedController1(bIsSecondaryConstraint1Rotational)
-	, TargetSpeedController2(bIsSecondaryConstraint2Rotational)
-	, ScrewController()
 {
 }
 
@@ -130,6 +115,14 @@ void UAGX_Constraint2DofComponent::UpdateNativeProperties()
 	TargetSpeedController1.UpdateNativeProperties();
 	TargetSpeedController2.UpdateNativeProperties();
 	ScrewController.UpdateNativeProperties();
+}
+
+void UAGX_Constraint2DofComponent::CopyFrom(
+	const FConstraintBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	UAGX_ConstraintComponent::CopyFrom(Barrier, Context);
+	FAGX_ConstraintUtilities::CopyControllersFrom(
+		*this, *static_cast<const FConstraint2DOFBarrier*>(&Barrier));
 }
 
 TStaticArray<FAGX_ConstraintController*, 11> UAGX_Constraint2DofComponent::GetAllControllers()
