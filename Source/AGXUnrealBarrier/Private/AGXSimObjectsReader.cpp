@@ -27,7 +27,7 @@
 #include <agx/LockJoint.h>
 #include <agx/Prismatic.h>
 #include <agx/RigidBody.h>
-#include <agxTerrain/Utils.h>
+//#include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
 // conflicts with a macro with the same name in Unreal. Undeffing the Unreal one.
@@ -409,92 +409,92 @@ namespace
 		TSet<const agx::Material*>& NonFreeMaterials,
 		TSet<const agx::ContactMaterial*>& NonFreeContactMaterials)
 	{
-		agxTerrain::ShovelPtrVector Shovels = agxTerrain::Shovel::findAll(&Simulation);
-		for (agxTerrain::Shovel* Shovel : Shovels)
-		{
-			// Shovels contains a bunch of rigid bodies, geometries, and constraints that are
-			// internal to the shovel, or rather shovel-terrain pairs, that should not be turned
-			// in Actor Components. Add all such objects are fetched and added to the
-			// non-free sets.
-			NonFreeGeometries.Add(Shovel->getActiveZone()->getGeometry());
-			using EExcavationMode = agxTerrain::Shovel::ExcavationMode;
-			agxTerrain::ShovelAggregateContactMaterialContainer* MaterialContainer =
-				Shovel->getShovelTerrainContactMaterialContainer();
-			NonFreeContactMaterials.Add(
-				MaterialContainer->getContactMaterial(EExcavationMode::PRIMARY));
-			NonFreeContactMaterials.Add(
-				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_BACK));
-			NonFreeContactMaterials.Add(
-				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_RIGHT));
-			NonFreeContactMaterials.Add(
-				MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_LEFT));
+		//agxTerrain::ShovelPtrVector Shovels = agxTerrain::Shovel::findAll(&Simulation);
+		//for (agxTerrain::Shovel* Shovel : Shovels)
+		//{
+		//	// Shovels contains a bunch of rigid bodies, geometries, and constraints that are
+		//	// internal to the shovel, or rather shovel-terrain pairs, that should not be turned
+		//	// in Actor Components. Add all such objects are fetched and added to the
+		//	// non-free sets.
+		//	NonFreeGeometries.Add(Shovel->getActiveZone()->getGeometry());
+		//	using EExcavationMode = agxTerrain::Shovel::ExcavationMode;
+		//	agxTerrain::ShovelAggregateContactMaterialContainer* MaterialContainer =
+		//		Shovel->getShovelTerrainContactMaterialContainer();
+		//	NonFreeContactMaterials.Add(
+		//		MaterialContainer->getContactMaterial(EExcavationMode::PRIMARY));
+		//	NonFreeContactMaterials.Add(
+		//		MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_BACK));
+		//	NonFreeContactMaterials.Add(
+		//		MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_RIGHT));
+		//	NonFreeContactMaterials.Add(
+		//		MaterialContainer->getContactMaterial(EExcavationMode::DEFORM_LEFT));
 
-			auto ReadAggregate = [&](agxTerrain::SoilParticleAggregate* Aggregate)
-			{
-				NonFreeBodies.Add(Aggregate->getInnerBody());
-				for (const agx::RigidBody* Body : Aggregate->getWedgeBodies(false))
-				{
-					NonFreeBodies.Add(Body);
-				}
-				NonFreeConstraints.Add(Aggregate->getInnerWedgeLockJoint());
-				for (const agx::Constraint* Lock : Aggregate->getWedgeLockJoints(false))
-				{
-					NonFreeConstraints.Add(Lock);
-				}
+		//	auto ReadAggregate = [&](agxTerrain::SoilParticleAggregate* Aggregate)
+		//	{
+		//		NonFreeBodies.Add(Aggregate->getInnerBody());
+		//		for (const agx::RigidBody* Body : Aggregate->getWedgeBodies(false))
+		//		{
+		//			NonFreeBodies.Add(Body);
+		//		}
+		//		NonFreeConstraints.Add(Aggregate->getInnerWedgeLockJoint());
+		//		for (const agx::Constraint* Lock : Aggregate->getWedgeLockJoints(false))
+		//		{
+		//			NonFreeConstraints.Add(Lock);
+		//		}
 
-				NonFreeMaterials.Add(Aggregate->getMaterial());
-			};
+		//		NonFreeMaterials.Add(Aggregate->getMaterial());
+		//	};
 
-			// The primary excavator is accessed through the soil particle aggregate.
-			{
-				agxTerrain::SoilParticleAggregate* Aggregate = Shovel->getSoilParticleAggregate();
-				ReadAggregate(Aggregate);
-			}
+		//	// The primary excavator is accessed through the soil particle aggregate.
+		//	{
+		//		agxTerrain::SoilParticleAggregate* Aggregate = Shovel->getSoilParticleAggregate();
+		//		ReadAggregate(Aggregate);
+		//	}
 
-			// All other excavators are accessed through their respective deform controllers.
-			agxTerrain::DeformController* DeformController = Shovel->getDeformController();
-			for (EExcavationMode ExcavationMode :
-				 {EExcavationMode::DEFORM_BACK, EExcavationMode::DEFORM_LEFT,
-				  EExcavationMode::DEFORM_RIGHT})
-			{
-				// -1 to skip the primary excavation mode.
-				const agx::UInt DeformersId = static_cast<agx::UInt>(ExcavationMode) - 1;
-				agxTerrain::DeformerCollection* Deformers =
-					DeformController->getDeformerCollection(DeformersId);
-				agxTerrain::SoilParticleAggregate* Aggregate = Deformers->getAggregate();
+		//	// All other excavators are accessed through their respective deform controllers.
+		//	agxTerrain::DeformController* DeformController = Shovel->getDeformController();
+		//	for (EExcavationMode ExcavationMode :
+		//		 {EExcavationMode::DEFORM_BACK, EExcavationMode::DEFORM_LEFT,
+		//		  EExcavationMode::DEFORM_RIGHT})
+		//	{
+		//		// -1 to skip the primary excavation mode.
+		//		const agx::UInt DeformersId = static_cast<agx::UInt>(ExcavationMode) - 1;
+		//		agxTerrain::DeformerCollection* Deformers =
+		//			DeformController->getDeformerCollection(DeformersId);
+		//		agxTerrain::SoilParticleAggregate* Aggregate = Deformers->getAggregate();
 
-				ReadAggregate(Aggregate);
+		//		ReadAggregate(Aggregate);
 
-				// In addition to the soil particle aggregate objects, a deformer also has an
-				// active zone with a geometry.
-				NonFreeGeometries.Add(Deformers->getActiveZone()->getGeometry());
+		//		// In addition to the soil particle aggregate objects, a deformer also has an
+		//		// active zone with a geometry.
+		//		NonFreeGeometries.Add(Deformers->getActiveZone()->getGeometry());
 
-				NonFreeContactMaterials.Add(
-					DeformController->getAggregateShovelContactMaterial(DeformersId));
-				NonFreeContactMaterials.Add(
-					DeformController->getAggregateTerrainContactMaterial(DeformersId));
-			}
+		//		NonFreeContactMaterials.Add(
+		//			DeformController->getAggregateShovelContactMaterial(DeformersId));
+		//		NonFreeContactMaterials.Add(
+		//			DeformController->getAggregateTerrainContactMaterial(DeformersId));
+		//	}
 
-			// Each shovel holds a bunch of internal convex shapes for each Terrain.
-			const agxCollide::GeometryRefVector& InternalGeometries =
-				Shovel->getVoxelCollisionGeometries();
-			for (const agxCollide::GeometryRef& InternalGeometry : InternalGeometries)
-			{
-				NonFreeGeometries.Add(InternalGeometry);
-			}
+		//	// Each shovel holds a bunch of internal convex shapes for each Terrain.
+		//	const agxCollide::GeometryRefVector& InternalGeometries =
+		//		Shovel->getVoxelCollisionGeometries();
+		//	for (const agxCollide::GeometryRef& InternalGeometry : InternalGeometries)
+		//	{
+		//		NonFreeGeometries.Add(InternalGeometry);
+		//	}
 
-			// Each shovel holds a prismatic.
-			NonFreeConstraints.Add(Shovel->getPenetrationResistance()->getPenetrationPrismatic());
+		//	// Each shovel holds a prismatic.
+		//	NonFreeConstraints.Add(Shovel->getPenetrationResistance()->getPenetrationPrismatic());
 
-			agxTerrain::AggregateContactGenerator* ContactGenerator =
-				Shovel->getAggregateContactGenerator();
-			NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
-			NonFreeContactMaterials.Add(ContactGenerator->getAggregateTerrainContactMaterial());
+		//	agxTerrain::AggregateContactGenerator* ContactGenerator =
+		//		Shovel->getAggregateContactGenerator();
+		//	NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
+		//	NonFreeContactMaterials.Add(ContactGenerator->getAggregateTerrainContactMaterial());
 
-			OutSimObjects.GetShovels().Add(FShovelBarrier(std::make_unique<FShovelRef>(Shovel)));
-		}
+		//	OutSimObjects.GetShovels().Add(FShovelBarrier(std::make_unique<FShovelRef>(Shovel)));
+		//}
 
-		agxTerrain::freeContainerMemory(Shovels);
+		//agxTerrain::freeContainerMemory(Shovels);
 	}
 
 	void ReadObserverFrames(
