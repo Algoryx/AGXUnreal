@@ -10,7 +10,7 @@
 	"DocsURL": "https://us.download.algoryx.se/AGXUnreal/documentation/1.16.1/index.html",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/41605aa41cbf47549d678c910f56dc29",
 	"SupportURL": "support@algoryx.se",
-	"EngineVersion": "5.3.0",
+	"EngineVersion": "5.5.0",
 	"CanContainContent": true,
 	"IsBetaVersion": false,
 	"Installed": false,

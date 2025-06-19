@@ -1,0 +1,400 @@
+#include "/ParticleRenderingShaders/ParticleUpsamplingUtils.ush"
+// clang-format off
+
+// HashTable Defines
+#define ID_TO_VOXEL_INDEX(id) ({ParameterName}_ActiveVoxelIndices[MyId].xyz)
+#define INDEX_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom.xyz)
+#define ROOM_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom.w)
+#define VELOCITY_AT_HASH(h) ({ParameterName}_HashTable[h].VelocityAndMass.xyz)
+#define MASS_AT_HASH(h) ({ParameterName}_HashTable[h].VelocityAndMass.w)
+#define MAXBOUND_AT_HASH(h) ({ParameterName}_HashTable[h].MaxBounds.xyz)
+#define MINBOUND_AT_HASH(h) ({ParameterName}_HashTable[h].MinBounds.xyz)
+#define HASH_OCCUPANCY(h) ({ParameterName}_HTOccupancy[h])
+
+// Particle Defines
+#define CP_POSITION(p) ({ParameterName}_CoarseParticles[p].PositionAndRadius.xyz)
+#define CP_RADIUS(p) ({ParameterName}_CoarseParticles[p].PositionAndRadius.w)
+#define CP_VELOCITY(p) ({ParameterName}_CoarseParticles[p].VelocityAndMass.xyz)
+#define CP_MASS(p) ({ParameterName}_CoarseParticles[p].VelocityAndMass.w)
+
+// Variable Defines
+#define TABLE_SIZE ({ParameterName}_TableSize)
+#define VOXEL_SIZE ({ParameterName}_VoxelSize)
+#define NUM_ACTIVE_VOXELS ({ParameterName}_NumActiveVoxels)
+#define NUM_COARSE_PARTICLES ({ParameterName}_NumCoarseParticles)
+#define NOMINAL_RADIUS ({ParameterName}_NominalRadius)
+#define FINE_PARTICLE_MASS ({ParameterName}_FineParticleMass)
+#define TIME ({ParameterName}_Time)
+#define ANIMATION_SPEED ({ParameterName}_AnimationSpeed)
+#define FINE_PARTICLE_RADIUS ({ParameterName}_FineParticleRadius)
+
+// Function Defines
+#define COMPUTE_HASH(key) (ComputeHash(key, {ParameterName}_TableSize))
+#define LOOKUP_ROOM_AND_BOUNDS(key, room, maxbound, minbound) (LookupRoomAndBounds_{ParameterName}(key, room, maxbound, minbound))
+#define ADD_TO_ROOM_AT_INDEX(index, amount, result) (AddToRoomAtIndex_{ParameterName}(index, amount, result))
+#define LOOKUP_VELOCITY(key, vel) (LookupVelocity_{ParameterName}(key, vel))
+
+// Particle Buffers
+StructuredBuffer<CoarseParticle>    {ParameterName}_CoarseParticles;
+int                                 {ParameterName}_NumCoarseParticles;
+float                               {ParameterName}_FineParticleMass;
+float                               {ParameterName}_FineParticleRadius;
+float                               {ParameterName}_NominalRadius;
+
+// HashTable Buffers
+StructuredBuffer<int4>              {ParameterName}_ActiveVoxelIndices;
+int                                 {ParameterName}_NumActiveVoxels;
+
+RWStructuredBuffer<VoxelEntry>      {ParameterName}_HashTable;
+RWStructuredBuffer<int>             {ParameterName}_HTOccupancy;
+
+int                                 {ParameterName}_TableSize;
+float                               {ParameterName}_VoxelSize;
+
+// Other Variables
+int                                 {ParameterName}_Time;
+float                               {ParameterName}_AnimationSpeed;
+
+bool LookupRoomAndBounds_{ParameterName}(int3 In_Index, out int Out_Room, out float3 Out_MaxBound, out float3 Out_MinBound)
+{
+    // Compute the hash value
+    uint HashValue = COMPUTE_HASH(In_Index);
+
+    Out_Room = UNDEFINED_INT;
+    for (int i = 0; i < (int) TABLE_SIZE; i++) 
+    {
+        if (HASH_OCCUPANCY(HashValue) == TAKEN && all(INDEX_AT_HASH(HashValue) == In_Index))
+        {
+            Out_Room = ROOM_AT_HASH(HashValue);
+            Out_MaxBound = MAXBOUND_AT_HASH(HashValue);
+            Out_MinBound = MINBOUND_AT_HASH(HashValue);
+            return true;
+        }
+        if (HASH_OCCUPANCY(HashValue) == EMPTY)
+        {
+            return false;
+        }
+        // Linearly probe forward
+        HashValue = (HashValue + 1) & (TABLE_SIZE - 1);
+    }
+    return false;
+}
+
+bool LookupVelocity_{ParameterName}(int3 In_Index, out float3 Out_Velocity)
+{
+    // Compute the hash value
+    uint HashValue = COMPUTE_HASH(In_Index);
+
+    Out_Velocity = UNDEFINED_INT;
+    for (int i = 0; i < (int) TABLE_SIZE; i++) 
+    {
+        if (HASH_OCCUPANCY(HashValue) == TAKEN && all(INDEX_AT_HASH(HashValue) == In_Index))
+        {
+            Out_Velocity = VELOCITY_AT_HASH(HashValue);
+            return true;
+        }
+        if (HASH_OCCUPANCY(HashValue) == EMPTY)
+        {
+            return false;
+        }
+        // Linearly probe forward
+        HashValue = (HashValue + 1) & (TABLE_SIZE - 1);
+    }
+    return false;
+}
+
+void AddToRoomAtIndex_{ParameterName}(in int3 In_Index, in int In_Amount, out int Out_Result)
+{
+    uint HashValue = COMPUTE_HASH(In_Index);
+
+    Out_Result = UNDEFINED_INT;
+    for (int i = 0; i < (int) TABLE_SIZE; i++)
+    {
+        if (HASH_OCCUPANCY(HashValue) == TAKEN && all(INDEX_AT_HASH(HashValue) == In_Index))
+        {
+            InterlockedAdd(ROOM_AT_HASH(HashValue), In_Amount, Out_Result);
+            return;
+        }
+        if (HASH_OCCUPANCY(HashValue) == EMPTY)
+        {
+            return;
+        }
+        // Linearly probe forward
+        HashValue = (HashValue + 1) & (TABLE_SIZE - 1);
+    }
+}
+
+void InsertIndex_{ParameterName}(in int3 In_Index, in int In_Room, in float3 In_Velocity, in float In_Mass, in float3 In_MaxBound, in float3 In_MinBound)
+{
+    // Compute the hash value
+    uint HashValue = COMPUTE_HASH(In_Index);
+    
+    [allow_uav_condition]
+    for (int i = 0; i < (int) TABLE_SIZE; i++) 
+    {
+        // Check if current slot is empty, otherwise probe forward
+        int Prev;
+        InterlockedCompareExchange(HASH_OCCUPANCY(HashValue), EMPTY, TAKEN, Prev);
+        if (Prev == EMPTY)
+        {
+            INDEX_AT_HASH(HashValue) = In_Index;
+            ROOM_AT_HASH(HashValue) = In_Room;
+            VELOCITY_AT_HASH(HashValue) = In_Velocity;
+            MASS_AT_HASH(HashValue) = In_Mass;
+            MAXBOUND_AT_HASH(HashValue) = In_MaxBound;
+            MINBOUND_AT_HASH(HashValue) = In_MinBound;
+            return;
+        }
+        // Linearly probe forward
+        HashValue = (HashValue + 1) & (TABLE_SIZE - 1);
+    }
+}
+
+void ClearTable_{ParameterName}(in int In_VoxelId)
+{
+    uint MyId = In_VoxelId;
+    if (MyId >= TABLE_SIZE)
+        return;
+
+    HASH_OCCUPANCY(MyId) = EMPTY;
+}
+
+// Updates the grid in the world,
+// Runs Per Voxel
+void UpdateGrid_{ParameterName}(int In_VoxelId)
+{
+    uint MyId = In_VoxelId;
+    if ((int)MyId >= NUM_ACTIVE_VOXELS)
+        return;
+    
+    int3 VoxelIndex = ID_TO_VOXEL_INDEX(MyId);
+    float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
+    
+    float3 MaxBounds, MinBounds, Velocity = float3(0.0, 0.0, 0.0);
+    float Mass, TotalWeight = 0.0;
+    bool First = true;
+    for(int i = 0; i < NUM_COARSE_PARTICLES; i++)
+    {
+        float AABBRadius = VOLUME_MOD * CP_RADIUS(i) / 2;
+        float3 ToEdge = abs(CP_POSITION(i) - VoxelPos) - AABBRadius;
+
+        // If particle intersects my voxel
+        if (all(VOXEL_SIZE / 2 > ToEdge))
+        {
+            // Calculate particles AABB volume that is inside current voxel
+            float3 AABBMax = CP_POSITION(i) + AABBRadius;
+            float3 AABBMin = CP_POSITION(i) - AABBRadius;
+            AABBMax = min(AABBMax, VoxelPos + VOXEL_SIZE/ 2);
+            AABBMin = max(AABBMin, VoxelPos - VOXEL_SIZE/ 2);
+            float3 IntersectingBox = AABBMax - AABBMin;
+            float Weight = IntersectingBox.x * IntersectingBox.y * IntersectingBox.z / (AABBRadius * AABBRadius * AABBRadius * 8);
+
+            TotalWeight += Weight;
+            Mass += CP_MASS(i) * Weight;
+            Velocity += CP_VELOCITY(i) * Weight;
+            if (First)
+            {
+                MaxBounds = AABBMax;
+                MinBounds = AABBMin;
+                First = false;
+            }
+            else
+            {
+                MaxBounds = max(MaxBounds, AABBMax);
+                MinBounds = min(MinBounds, AABBMin);
+            }
+        }
+    }
+    if (!First)
+    {
+        MaxBounds = min(MaxBounds, VoxelPos + VOXEL_SIZE / 2);
+        MinBounds = max(MinBounds, VoxelPos - VOXEL_SIZE / 2);
+    }
+    else
+    {
+        MaxBounds = float3(0.0, 0.0, 0.0);
+        MinBounds = float3(0.0, 0.0, 0.0);
+    }
+
+    if (TotalWeight > 0.0f)
+    {
+        Velocity /= TotalWeight;
+    }
+
+    int NumParticlesWhichFitInVoxel = ceil(Mass / FINE_PARTICLE_MASS);
+    InsertIndex_{ParameterName}(VoxelIndex, NumParticlesWhichFitInVoxel, Velocity, Mass, MaxBounds, MinBounds);
+}
+
+// Moves the fine particles by interpolating the velocity of the grid
+// Runs Per Fine Particle
+void MoveParticles_{ParameterName}(in int In_ParticleIndex, in float3 In_ParticlePosition, in float In_ParticleEase, in float In_DeltaTime, out float3 Out_ParticlePositionNew, out float Out_ParticleEaseNew, out float3 Out_ParticleVelocityNew, out bool Out_IsAlive)
+{
+    int3 ParticleVoxelIndex = GetVoxelIndexFromWorldPosition(In_ParticlePosition, VOXEL_SIZE);
+    
+    float WeightSum = 0.0f;
+    float3 VelocitySum = float3(0.0, 0.0, 0.0);
+    
+    int3 VoxelIndex;
+    float3 VoxelPos, VoxelVelocity;
+    
+    for (int x = -1; x < 2; x++)
+    {
+        for (int y = -1; y < 2; y++)
+        {
+            for (int z = -1; z < 2; z++)
+            {
+                // Reduce checked voxels to only one voxel in each direction of each axis
+                if (x + y + z != 0 && abs(x) + abs(y) + abs(z) != 1)
+                    continue;
+                VoxelIndex = ParticleVoxelIndex + int3(x, y, z);
+                if (LOOKUP_VELOCITY(VoxelIndex, VoxelVelocity))
+                {
+                    VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
+                    float VoxelWeight = pow(max(0.0f, 1.0f - (Distance2(VoxelPos, In_ParticlePosition) / (VOXEL_SIZE* VOXEL_SIZE))), 2);
+                    WeightSum += VoxelWeight;
+                    VelocitySum+= VoxelWeight * VoxelVelocity;
+                }
+            }
+        }
+    }
+
+    float3 Velocity = float3(0.0, 0.0, 0.0);
+    float3 RandomOffset = float3(Random(In_ParticleIndex + 1) * 0.02f - 0.01f, Random(In_ParticleIndex + 2) * 0.02f - 0.01f, Random(In_ParticleIndex + 3) * 0.02f - 0.01f);
+    if (WeightSum != 0.0f)
+    {
+        Velocity = (1.0f / WeightSum) * VelocitySum;
+    }
+
+    Out_ParticlePositionNew = In_ParticlePosition + ((Velocity + RandomOffset) * In_DeltaTime);
+    Out_ParticleVelocityNew = (Velocity + RandomOffset);
+    In_ParticleEase += ANIMATION_SPEED;
+    // Clamp ease to be at most 1.0 and to avoid dead particles hanging in mid air, mark particles with negative ease and negligible velocity (not counting random offset) for removal next synch
+    if (In_ParticleEase < 0 && all(Velocity < 0.001))
+    {
+        Out_ParticleEaseNew = NAN;
+        Out_IsAlive = false;
+    }
+    else
+    {
+        Out_ParticleEaseNew = min(1.0, In_ParticleEase);
+        Out_IsAlive = true;
+    }
+}
+
+// Applies the particle to the voxel grid, reducing the room for each particle in the voxel
+// Runs Per Fine Particle
+void ApplyParticleMass_{ParameterName}(in float3 In_ParticlePosition, in float In_ParticleEase, out float Out_ParticleEaseNew, out bool Out_IsAlive)
+{
+    Out_IsAlive = true;
+    if (!isnan(In_ParticleEase))
+    {
+        int Result;
+        int3 VoxelIndex = GetVoxelIndexFromWorldPosition(In_ParticlePosition, VOXEL_SIZE);
+        float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
+        ADD_TO_ROOM_AT_INDEX(VoxelIndex, -1, Result);
+        if (Result < -EXTRA_PARTICLES_IN_VOXEL)
+        {
+            if (abs(In_ParticleEase) < 2 * ANIMATION_SPEED)
+            {
+                // Remove particle
+                Out_ParticleEaseNew = NAN;
+                Out_IsAlive = false;
+            }
+            else if (In_ParticleEase > 0.0f)
+            {
+                // Ease out particle
+                Out_ParticleEaseNew = -In_ParticleEase;
+            }
+        }
+        else
+        {
+            int _;
+            float3 MaxBounds, MinBounds;
+            LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, _, MaxBounds, MinBounds);
+
+            float3 R = float3(NOMINAL_RADIUS, NOMINAL_RADIUS, NOMINAL_RADIUS);
+            float3 InnerMaxBounds = MaxBounds - (MaxBounds < (VoxelPos + VOXEL_SIZE / 2)) * R;
+            float3 InnerMinBounds = MinBounds + (MinBounds > (VoxelPos - VOXEL_SIZE / 2)) * R;
+            float3 InnerBoundsSize = InnerMaxBounds - InnerMinBounds;
+            float3 InnerBoundsSizeHalf = InnerBoundsSize / 2;
+            float3 InnerBoundsCenter = InnerMinBounds + InnerBoundsSizeHalf;
+            if (length(max(abs(In_ParticlePosition - InnerBoundsCenter) - InnerBoundsSizeHalf, float3(0.0, 0.0, 0.0))) >= NOMINAL_RADIUS)
+            {
+                // Ease out particle
+                Out_ParticleEaseNew = -In_ParticleEase;
+            }
+            else
+            {
+                Out_ParticleEaseNew = In_ParticleEase;
+            }
+        }
+    }
+    else
+    {
+        Out_IsAlive = false;
+    }
+}
+
+// Calculates the number of particles to spawn in this voxels, 
+// Runs Per Voxel
+void SpawnParticles_{ParameterName}(in int In_VoxelId, out bool Out_ShouldSpawn, out int Out_ParticleRoom, out float3 Out_VoxelIndex, out float3 Out_MaxBounds, out float3 Out_MinBounds)
+{
+    Out_ShouldSpawn = false;
+    Out_ParticleRoom = 0;
+    Out_VoxelIndex, Out_MaxBounds, Out_MinBounds = float3(0.0, 0.0, 0.0);
+    uint MyId = In_VoxelId;
+    
+    if ((int)MyId >= NUM_ACTIVE_VOXELS)
+        return;
+    
+    int3 VoxelIndex = ID_TO_VOXEL_INDEX(MyId);
+    float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
+    
+    int ParticleRoom = 0;
+    float3 MaxBounds, MinBounds = float3(0.0, 0.0, 0.0);
+    LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, ParticleRoom, MaxBounds, MinBounds);
+    
+    if (all(MaxBounds == 0) && all(MinBounds == 0))
+        return;
+
+    Out_ParticleRoom = ParticleRoom;
+    Out_VoxelIndex = VoxelIndex;
+    Out_MaxBounds = MaxBounds;
+    Out_MinBounds = MinBounds;
+    Out_ShouldSpawn = ParticleRoom > 0;
+}
+
+void GetVoxelPositionAndRoom_{ParameterName}(in int In_VoxelId, out float3 Out_VoxelPosition, out int Out_Room, out float3 Out_MaxBounds, out float3 Out_MinBounds)
+{
+    uint MyId = In_VoxelId;
+    if ((int)MyId >= NUM_ACTIVE_VOXELS)
+        return;
+    int3 VoxelIndex = ID_TO_VOXEL_INDEX(MyId);
+
+    Out_VoxelPosition = float3(VoxelIndex * VOXEL_SIZE);
+    LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, Out_Room, Out_MaxBounds, Out_MinBounds);
+    uint HashValue = COMPUTE_HASH(VoxelIndex);
+    Out_Room = VELOCITY_AT_HASH(HashValue);
+}
+
+void GetFineParticleRadius_{ParameterName}(out float Out_FineParticleRadius)
+{
+    Out_FineParticleRadius = FINE_PARTICLE_RADIUS;
+}
+
+void GetCoarseParticleInfo_{ParameterName}(in int In_CoarseParticleIndex, out float4 Out_ParticlePositionAndRadius, out float3 Out_ParticleVelocity)
+{
+    uint MyId = In_CoarseParticleIndex;
+    if ((int)MyId >= NUM_COARSE_PARTICLES)
+        return;
+    
+    Out_ParticlePositionAndRadius = {ParameterName}_CoarseParticles[MyId].PositionAndRadius;
+    Out_ParticleVelocity = {ParameterName}_CoarseParticles[MyId].VelocityAndMass.xyz;
+}
+
+void GetNominalRadius_{ParameterName}(out float Out_NominalRadius)
+{
+    Out_NominalRadius = NOMINAL_RADIUS;
+}
+
+// clang-format on
