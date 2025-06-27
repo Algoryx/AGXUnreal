@@ -676,13 +676,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.IncludePath(IncludePath);
 			string Dest = BundledAGXResources.IncludePath(IncludePath);
-
-
-			// Todo: this is a temporary workaround for a compilation error caused by OpenPLX having
-			// very generic include paths, such as "Math/Quat.h" which collides with Unreal Quat.h.
-			// This ignore should be removed once it has been fixed in OpenPLX.
-			List<string> FilesToIgnore = new List<string> {"Math/Quat.h", "Math\\Quat.h" };
-
 			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();

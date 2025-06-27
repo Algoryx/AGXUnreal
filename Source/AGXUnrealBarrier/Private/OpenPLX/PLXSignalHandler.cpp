@@ -19,11 +19,12 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/SignalSourceMapper.h"
-#include "Math/Vec3.h"
-#include "Physics/Signals/BoolInputSignal.h"
-#include "Physics/Signals/IntInputSignal.h"
-#include "Physics/Signals/RealInputSignal.h"
-#include "Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Math/Vec3.h"
+#include "openplx/Physics/Signals/BoolInputSignal.h"
+#include "openplx/Physics/Signals/IntInputSignal.h"
+#include "openplx/Physics/Signals/RealInputSignal.h"
+#include "openplx/Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Physics/Signals/AngleOutput.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
