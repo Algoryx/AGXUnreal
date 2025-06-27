@@ -14,7 +14,7 @@
 FString FPLXUtilities::GetBundlePath()
 {
 	return FPaths::Combine(
-		FAGX_Environment::GetPluginSourcePath(), "Thirdparty", "agx", "openplxbundles");
+		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles");
 }
 
 FString FPLXUtilities::GetModelsDirectory()
