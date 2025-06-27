@@ -6,7 +6,7 @@
 #include "agxOpenPLX/InputSignalListener.h"
 #include "agxOpenPLX/OutputSignalListener.h"
 #include "agxOpenPLX/SignalSourceMapper.h"
-#include "Physics3D/System.h"
+#include "openplx/Physics3D/System.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -20,24 +20,24 @@
 #include <vector>
 #include <unordered_map>
 
-struct FInputSignalHandlerRef
+struct FInputSignalListenerRef
 {
 	agx::ref_ptr<agxopenplx::InputSignalListener> Native;
 
-	FInputSignalHandlerRef() = default;
-	FInputSignalHandlerRef(
+	FInputSignalListenerRef() = default;
+	FInputSignalListenerRef(
 		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
 		: Native(new agxopenplx::InputSignalListener(Assembly, InputQueue, Mapper))
 	{
 	}
 };
 
-struct FOutputSignalHandlerRef
+struct FOutputSignalListenerRef
 {
 	agx::ref_ptr<agxopenplx::OutputSignalListener> Native;
 
-	FOutputSignalHandlerRef() = default;
-	FOutputSignalHandlerRef(
+	FOutputSignalListenerRef() = default;
+	FOutputSignalListenerRef(
 		const std::shared_ptr<openplx::Core::Object>& PlxModel,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
 		std::shared_ptr<agxopenplx::SignalSourceMapper> Mapper)

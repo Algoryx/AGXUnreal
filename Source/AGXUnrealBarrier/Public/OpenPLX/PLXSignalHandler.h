@@ -13,9 +13,9 @@ class FRigidBodyBarrier;
 class FSimulationBarrier;
 
 struct FAssemblyRef;
-struct FInputSignalHandlerRef;
+struct FInputSignalListenerRef;
 struct FInputSignalQueueRef;
-struct FOutputSignalHandlerRef;
+struct FOutputSignalListenerRef;
 struct FOutputSignalQueueRef;
 struct FPLX_Input;
 struct FPLX_Output;
@@ -59,8 +59,8 @@ private:
 	FPLXModelRegistry::Handle ModelHandle {FPLXModelRegistry::InvalidHandle};
 
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
-	std::shared_ptr<FInputSignalHandlerRef> InputSignalHandlerRef;
-	std::shared_ptr<FOutputSignalHandlerRef> OutputSignalHandlerRef;
+	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
+	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
 	std::shared_ptr<FSignalSourceMapperRef> SignalSourceMapper;
 	std::shared_ptr<FInputSignalQueueRef> InputQueueRef;
 	std::shared_ptr<FOutputSignalQueueRef> OutputQueueRef;
