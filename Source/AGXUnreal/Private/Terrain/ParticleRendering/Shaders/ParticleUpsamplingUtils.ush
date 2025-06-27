@@ -1,0 +1,83 @@
+#pragma once
+
+#define EMPTY 0
+#define TAKEN 1
+#define NAN asfloat(0xffffffff)
+#define UNDEFINED_INT -2147483647
+#define UNDEFINED_FLOAT3 float3(340000000000000000000000000000000.0f, 340000000000000000000000000000000.0f, 340000000000000000000000000000000.0f)
+#define VOLUME_MOD 1.6119919540164696407169668466392849389446140723238615
+#define ZEROING_GRP_SIZE 128
+#define EXTRA_PARTICLES_IN_VOXEL 0
+
+struct CoarseParticle
+{
+    float4 PositionAndRadius;
+    float4 VelocityAndMass;
+};
+
+struct VoxelEntry
+{
+    int4 IndexAndRoom;
+    float4 VelocityAndMass;
+    float4 MaxBounds;
+    float4 MinBounds;
+};
+
+uint ComputeHash(int3 In_Key, uint TableSize)
+{
+    int Prime = 2362873;
+    uint HashValue = 1;
+    
+    HashValue = (HashValue * Prime) + In_Key.x;
+    HashValue = (HashValue * Prime) + In_Key.y;
+    HashValue = (HashValue * Prime) + In_Key.z;
+    
+    HashValue = (HashValue ^ (HashValue >> 17)) * Prime;
+    HashValue = (HashValue ^ (HashValue >> 13)) * Prime;
+    HashValue = HashValue ^ (HashValue >> 16);
+    
+    return HashValue & (TableSize - 1);
+}
+
+float Distance2(float3 In_Point1, float3 In_Point2)
+{
+    float3 V = In_Point1 - In_Point2;
+    return dot(V, V);
+}
+
+int3 GetVoxelIndexFromWorldPosition(float3 In_Position, float In_VoxelSize)
+{
+    float3 Pos = In_Position;
+    Pos /= In_VoxelSize;
+    Pos += sign(Pos) * 0.5;
+    return int3((int) Pos.x, (int) Pos.y, (int) Pos.z);
+}
+
+uint Hash(uint In_X)
+{
+    In_X += (In_X << 10u);
+    In_X ^= (In_X >> 6u);
+    In_X += (In_X << 3u);
+    In_X ^= (In_X >> 11u);
+    In_X += (In_X << 15u);
+    return In_X;
+}
+
+// Construct a float with half-open range [0:1] using low 23 bits.
+// All zeroes yields 0.0, all ones yields the next smallest representable value below 1.0.
+float FloatConstruct(uint In_M)
+{
+    const uint IeeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
+    const uint IeeeOne = 0x3F800000u; // 1.0 in IEEE binary32
+
+    In_M &= IeeeMantissa; // Keep only mantissa bits (fractional part)
+    In_M |= IeeeOne; // Add fractional part to 1.0
+
+    float F = asfloat(In_M); // Range [1:2]
+    return F - 1.0; // Range [0:1]
+}
+
+float Random(uint In_X)
+{
+    return FloatConstruct(Hash(In_X));
+}

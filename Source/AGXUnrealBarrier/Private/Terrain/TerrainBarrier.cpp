@@ -397,6 +397,17 @@ TArray<FQuat> FTerrainBarrier::GetParticleRotations() const
 	return Rotations;
 }
 
+TArray<float> FTerrainBarrier::GetParticleMasses() const
+{
+	check(HasNative());
+	const size_t NumParticles = FTerrainUtilities::GetNumParticles(*this);
+	TArray<float> Masses;
+	Masses.Reserve(NumParticles);
+
+	FTerrainUtilities::AppendParticleMasses(*this, Masses);
+	return Masses;
+}
+
 FParticleData FTerrainBarrier::GetParticleData(const EParticleDataFlags ToInclude) const
 {
 	const size_t NumParticles = FTerrainUtilities::GetNumParticles(*this);
@@ -405,6 +416,7 @@ FParticleData FTerrainBarrier::GetParticleData(const EParticleDataFlags ToInclud
 	ParticleData.Velocities.Reserve(NumParticles);
 	ParticleData.Radii.Reserve(NumParticles);
 	ParticleData.Rotations.Reserve(NumParticles);
+	ParticleData.Masses.Reserve(NumParticles);
 
 	FTerrainUtilities::AppendParticleData(*this, ParticleData, ToInclude);
 
@@ -430,6 +442,10 @@ FParticleDataById FTerrainBarrier::GetParticleDataById(EParticleDataFlags ToIncl
 	if (ToInclude & EParticleDataFlags::Radii)
 	{
 		FTerrainUtilities::GetParticleRadiiById(*this, ParticleData.Radii);
+	}
+	if (ToInclude & EParticleDataFlags::Masses)
+	{
+		FTerrainUtilities::GetParticleMassesById(*this, ParticleData.Masses);
 	}
 
 	return ParticleData;

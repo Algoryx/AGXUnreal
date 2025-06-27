@@ -259,6 +259,10 @@ FParticleDataById FTerrainPagerBarrier::GetParticleDataById(EParticleDataFlags T
 		{
 			FTerrainUtilities::GetParticleRadiiById(TerrainBarrier, ParticleData.Radii);
 		}
+		if (ToInclude & EParticleDataFlags::Masses)
+		{
+			FTerrainUtilities::GetParticleMassesById(TerrainBarrier, ParticleData.Masses);
+		}
 	}
 
 	return ParticleData;
