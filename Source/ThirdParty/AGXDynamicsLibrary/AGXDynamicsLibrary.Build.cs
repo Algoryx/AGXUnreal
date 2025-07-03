@@ -196,17 +196,17 @@ public class AGXDynamicsLibrary : ModuleRules
 		// RuntimeDependencies list. See
 		// https://docs.unrealengine.com/en-US/ProductionPipelines/BuildTools/UnrealBuildTool/ThirdPartyLibraries/index.html
 		Dictionary<string, LibSource> RuntimeLibFiles = new Dictionary<string, LibSource>();
-		RuntimeLibFiles.Add("agxPhysics", LibSource.AGX);
+		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.AGX);
+		RuntimeLibFiles.Add("agxCable", LibSource.AGX);
 		RuntimeLibFiles.Add("agxCore", LibSource.AGX);
 		RuntimeLibFiles.Add("agxHydraulics", LibSource.AGX);
+		RuntimeLibFiles.Add("agxModel", LibSource.AGX);
+		RuntimeLibFiles.Add("agxPhysics", LibSource.AGX);
+		RuntimeLibFiles.Add("agxROS2", LibSource.AGX);
 		RuntimeLibFiles.Add("agxSabre", LibSource.AGX);
 		RuntimeLibFiles.Add("agxSensor", LibSource.AGX);
 		RuntimeLibFiles.Add("agxTerrain", LibSource.AGX);
-		RuntimeLibFiles.Add("agxCable", LibSource.AGX);
-		RuntimeLibFiles.Add("agxModel", LibSource.AGX);
 		RuntimeLibFiles.Add("agxVehicle", LibSource.AGX);
-		RuntimeLibFiles.Add("agxROS2", LibSource.AGX);
-		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.AGX);
 		RuntimeLibFiles.Add("AlgoryxGPUSensorsImpl", LibSource.AGX);
 		RuntimeLibFiles.Add("colamd", LibSource.AGX);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.AGX);
@@ -216,10 +216,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.AGX);
 		RuntimeLibFiles.Add("console_bridge", LibSource.AGX);
-		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.AGX);
 		RuntimeLibFiles.Add("fmt", LibSource.AGX);
 		RuntimeLibFiles.Add("hash-library", LibSource.AGX);
-		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-analysis", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-bundle", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-core.api", LibSource.AGX);
@@ -229,19 +227,29 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-nodes", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-parser", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-runtime", LibSource.AGX);
-		RuntimeLibFiles.Add("openplxurdfplugin", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Physics", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Physics1D", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Physics3D", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Robotics", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Sensors", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Simulation", LibSource.AGX);
-		RuntimeLibFiles.Add("spdlog", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Terrain", LibSource.AGX);
-		RuntimeLibFiles.Add("tinyxml2", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxbundles-Urdf", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Vehicles", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Visuals", LibSource.AGX);
+		RuntimeLibFiles.Add("orocos*", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxurdfplugin", LibSource.AGX);
+		RuntimeLibFiles.Add("spdlog", LibSource.AGX);
+		RuntimeLibFiles.Add("tinyxml2", LibSource.AGX);
 		RuntimeLibFiles.Add("urdfdom_model", LibSource.AGX);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
+			// Additional libraries in the AGX Dynamics bundle on Linux.
+
+			RuntimeLibFiles.Add("libzmq.so.5", LibSource.AGX);
+			RuntimeLibFiles.Add("protobuf", LibSource.AGX);
+
 			// We must pass the full library file name for this one because
 			// it doesn't follow the regular prefix+name+postfix template due
 			// to the '.4.0' at the end.
@@ -250,16 +258,11 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("liburdfdom_sensor.so.4.0", LibSource.AGX);
 			RuntimeLibFiles.Add("liburdfdom_world.so.4.0", LibSource.AGX);
 		}
-		RuntimeLibFiles.Add("openplxbundles-Vehicles", LibSource.AGX);
-		RuntimeLibFiles.Add("openplxbundles-Visuals", LibSource.AGX);
-		RuntimeLibFiles.Add("orocos*", LibSource.AGX);
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
+			// Additional libraries in the AGX Dynamics bundle on Windows.
+
 			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.AGX);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.AGX);
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux) {
-			RuntimeLibFiles.Add("libzmq.so.5", LibSource.AGX);
-			RuntimeLibFiles.Add("protobuf", LibSource.AGX);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
