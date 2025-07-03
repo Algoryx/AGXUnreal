@@ -10,12 +10,11 @@
 #include "TypeConversions.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
-
 // Standard library includes.
 #include <limits>
 
 FOpenPLXModelRegistry::FOpenPLXModelRegistry()
-	: Native(std::make_unique<FPLXModelDataArray>())
+	: Native(std::make_unique<FOpenPLXModelDataArray>())
 {
 }
 
@@ -33,7 +32,7 @@ void FOpenPLXModelRegistry::ReleaseNative()
 	Native = nullptr;
 }
 
-namespace FPLXModelRegistry_helpers
+namespace OpenPLXModelRegistry_helpers
 {
 	FOpenPLXModelRegistry::Handle Convert(size_t Val)
 	{
@@ -75,13 +74,13 @@ namespace FPLXModelRegistry_helpers
 	}
 }
 
-FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::Register(const FString& PLXFile)
+FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::Register(const FString& OpenPLXFile)
 {
 	check(HasNative());
 
-	Handle Handle = GetFrom(PLXFile);
-	if (Handle == InvalidHandle) // We have never seen this PLX Model before.
-		Handle = LoadNewModel(PLXFile);
+	Handle Handle = GetFrom(OpenPLXFile);
+	if (Handle == InvalidHandle) // We have never seen this OpenPLX Model before.
+		Handle = LoadNewModel(OpenPLXFile);
 
 	return Handle;
 }
@@ -93,21 +92,21 @@ T* FOpenPLXModelRegistry::GetModelDataImpl(Handle Handle) const
 	if (Handle == InvalidHandle)
 		return nullptr;
 
-	const size_t Index = FPLXModelRegistry_helpers::Convert(Handle);
+	const size_t Index = OpenPLXModelRegistry_helpers::Convert(Handle);
 	if (Index >= Native->ModelData.size())
 		return nullptr;
 
 	return &Native->ModelData[Index];
 }
 
-const FPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle) const
+const FOpenPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle) const
 {
-	return GetModelDataImpl<const FPLXModelData>(Handle);
+	return GetModelDataImpl<const FOpenPLXModelData>(Handle);
 }
 
-FPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle)
+FOpenPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle)
 {
-	return GetModelDataImpl<FPLXModelData>(Handle);
+	return GetModelDataImpl<FOpenPLXModelData>(Handle);
 }
 
 FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::GetFrom(const FString& PLXFile) const
@@ -118,13 +117,13 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::GetFrom(const FString& PLXF
 
 FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString& PLXFile)
 {
-	// Here we create a new slot in the PLXModelData array with the PLX model tree as well
+	// Here we create a new slot in the OpenPLXModelData array with the OpenPLX model tree as well
 	// as some other required objects like the AGX Cache.
 	AGX_CHECK(GetFrom(PLXFile) == InvalidHandle);
 
-	FPLXModelData NewModel;
-	NewModel.PLXModel = FPLXUtilitiesInternal::LoadModel(PLXFile, nullptr);
-	if (NewModel.PLXModel == nullptr)
+	FOpenPLXModelData NewModel;
+	NewModel.OpenPLXModel = FPLXUtilitiesInternal::LoadModel(PLXFile, nullptr);
+	if (NewModel.OpenPLXModel == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Error,
@@ -134,7 +133,7 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString&
 		return InvalidHandle;
 	}
 
-	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(NewModel.PLXModel);
+	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(NewModel.OpenPLXModel);
 	if (System == nullptr)
 	{
 		UE_LOG(
@@ -144,8 +143,8 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString&
 		return InvalidHandle;
 	}
 
-	NewModel.Inputs = FPLXModelRegistry_helpers::MapInputs(System.get());
-	const Handle NewHandle = FPLXModelRegistry_helpers::Convert(Native->ModelData.size());
+	NewModel.Inputs = OpenPLXModelRegistry_helpers::MapInputs(System.get());
+	const Handle NewHandle = OpenPLXModelRegistry_helpers::Convert(Native->ModelData.size());
 	Native->ModelData.emplace_back(std::move(NewModel));
 	KnownModels.insert({Convert(PLXFile), NewHandle});
 

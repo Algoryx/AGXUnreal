@@ -801,7 +801,7 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 		return;
 
 	// Handle deletion of OpenPLX file copies.
-	if (!GetDefault<UAGX_Simulation>()->bDeletePLXFileCopyOnBlueprintDeletion)
+	if (!GetDefault<UAGX_Simulation>()->bDeleteOpenPLXFileCopyOnBlueprintDeletion)
 		return;
 
 	static const FString BaseBPPrefix = FAGX_ImportUtilities::GetImportBaseBlueprintNamePrefix();

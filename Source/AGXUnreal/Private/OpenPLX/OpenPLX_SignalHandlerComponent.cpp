@@ -18,7 +18,7 @@ UOpenPLX_SignalHandlerComponent::UOpenPLX_SignalHandlerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-namespace PLX_SignalHandlerComponent_helpers
+namespace OpenPLX_SignalHandlerComponent_helpers
 {
 	template <typename BarrierT, typename ComponentT>
 	TArray<BarrierT*> CollectBarriers(AActor* Owner)
@@ -41,7 +41,7 @@ namespace PLX_SignalHandlerComponent_helpers
 		return Barriers;
 	}
 
-	TOptional<FString> GetPLXFilePath(AActor* Owner)
+	TOptional<FString> GetOpenPLXFilePath(AActor* Owner)
 	{
 		if (Owner == nullptr)
 			return {};
@@ -391,10 +391,10 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 
 void UOpenPLX_SignalHandlerComponent::BeginPlay()
 {
-	using namespace PLX_SignalHandlerComponent_helpers;
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	Super::BeginPlay();
 
-	auto PLXFile = GetPLXFilePath(GetOwner());
+	auto PLXFile = GetOpenPLXFilePath(GetOwner());
 	if (!PLXFile.IsSet())
 	{
 		UE_LOG(
@@ -411,7 +411,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("PLX Signal Hander Component in '%s' was unable to get the native AGX Simulation. "
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX Simulation. "
 				 "Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
@@ -424,7 +424,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("PLX Signal Hander Component in '%s' was unable to get the model registry barrier "
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry barrier "
 				 "object. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;

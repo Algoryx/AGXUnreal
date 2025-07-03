@@ -718,19 +718,19 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
-	const FString Name = "PLX_SignalHandler";
+	const FString Name = "OpenPLX_SignalHandler";
 	if (Context.SignalHandler != nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("FAGX_Importer::AddSignalHandlerComponent called, but a "
-				 "PLX_SignalHandler has already been added."));
+			TEXT("FAGX_Importer::AddSignalHandlerComponent called, but an "
+				 "OpenPLX_SignalHandler has already been added."));
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
 	auto Component = NewObject<UOpenPLX_SignalHandlerComponent>(&OutActor);
 	Component->Rename(*Name);
-	Component->CopyFrom(SimObjects.GetPLXInputs(), SimObjects.GetPLXOutputs(), &Context);
+	Component->CopyFrom(SimObjects.GetOpenPLXInputs(), SimObjects.GetOpenPLXOutputs(), &Context);
 	FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, OutActor, Context.SessionGuid);
 	return EAGX_ImportResult::Success;
 }

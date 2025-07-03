@@ -127,11 +127,11 @@ public:
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
 
-	TArray<FOpenPLX_Input>& GetPLXInputs();
-	const TArray<FOpenPLX_Input>& GetPLXInputs() const;
+	TArray<FOpenPLX_Input>& GetOpenPLXInputs();
+	const TArray<FOpenPLX_Input>& GetOpenPLXInputs() const;
 
-	TArray<FOpenPLX_Output>& GetPLXOutputs();
-	const TArray<FOpenPLX_Output>& GetPLXOutputs() const;
+	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
+	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
 
 private:
 	FSimulationObjectCollection(const FSimulationObjectCollection&) = delete;

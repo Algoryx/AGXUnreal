@@ -203,7 +203,7 @@ TArray<FOpenPLX_Input> FPLXUtilitiesInternal::GetInputs(openplx::Physics3D::Syst
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Imported unsupported PLX Input: %s. The Input may not work as expected."),
+				TEXT("Imported unsupported OpenPLX Input: %s. The Input may not work as expected."),
 				*Convert(Input->getName()));
 		}
 	}
@@ -246,7 +246,7 @@ TArray<FOpenPLX_Output> FPLXUtilitiesInternal::GetOutputs(openplx::Physics3D::Sy
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Imported unsupported PLX Output: %s. The Output may not work as expected."),
+				TEXT("Imported unsupported OpenPLX Output: %s. The Output may not work as expected."),
 				*Convert(Output->getName()));
 		}
 	}

@@ -90,15 +90,16 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Class, TEXT("PLX_SignalHandlerComponent"),
 		TEXT("OpenPLX_SignalHandlerComponent"));
-	Redirects.Emplace(
-		ECoreRedirectFlags::Type_Struct, TEXT("PLX_Input"), TEXT("OpenPLX_Input"));
-	Redirects.Emplace(
-		ECoreRedirectFlags::Type_Struct, TEXT("PLX_Output"), TEXT("OpenPLX_Output"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Input"), TEXT("OpenPLX_Input"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Output"), TEXT("OpenPLX_Output"));
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_InputType"), TEXT("EOpenPLX_InputType"));
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_OutputType"), TEXT("EOpenPLX_OutputType"));
-
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Property,
+		TEXT("/Script/AGXUnreal.AGX_Simulation.bDeletePLXFileCopyOnBlueprintDeletion"),
+		TEXT("bDeleteOpenPLXFileCopyOnBlueprintDeletion"));
 
 	// The Shovel Refactor effort, the addition of Shovel Component, also introduced
 	// FAGX_ComponentReference and replaced the FAGX_RigidBodyComponentReference and

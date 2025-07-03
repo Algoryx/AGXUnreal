@@ -676,10 +676,10 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, Filename, OutSimObjects);
 
-	// Read PLX inputs.
+	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
-	OutSimObjects.GetPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
-	OutSimObjects.GetPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
+	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
+	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
 	return true;
 }

@@ -35,42 +35,42 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 }
 
 void FOpenPLXSignalHandler::Init(
-	const FString& PLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
+	const FString& OpenPLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
 	TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
 
 	ModelRegistry = &InModelRegistry;
-	ModelHandle = ModelRegistry->Register(PLXFile);
+	ModelHandle = ModelRegistry->Register(OpenPLXFile);
 	if (ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Could not load OpenPLX model '%s'. The Output Log may contain more information."),
-			*PLXFile);
+			*OpenPLXFile);
 		return;
 	}
 
-	FPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
+	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 	if (ModelData == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("Unexpected error: Unable to get registered OpenPLX model '%s'. The OpenPLX model "
 				 "may not behave as intended."),
-			*PLXFile);
+			*OpenPLXFile);
 		return;
 	}
 
-	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(ModelData->PLXModel);
+	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(ModelData->OpenPLXModel);
 	if (System == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Unable to get a openplx::Physics3D::System from the registered OpenPLX model "
 				 "'%s'. The OpenPLX model may not behave as intended."),
-			*PLXFile);
+			*OpenPLXFile);
 		return;
 	}
 
@@ -82,7 +82,7 @@ void FOpenPLXSignalHandler::Init(
 			LogAGX, Warning,
 			TEXT("Unable to get a valid AGX Assembly from simulated model instance for OpenPLX "
 				 "model '%s'. The Output Log may contain more details."),
-			*PLXFile);
+			*OpenPLXFile);
 		return;
 	}
 
@@ -109,7 +109,7 @@ void FOpenPLXSignalHandler::Init(
 		OutputQueueRef =
 			std::make_shared<FOutputSignalQueueRef>(agxopenplx::OutputSignalQueue::create());
 		OutputSignalListenerRef = std::make_shared<FOutputSignalListenerRef>(
-			ModelData->PLXModel, OutputQueueRef->Native, SignalSourceMapper->Native);
+			ModelData->OpenPLXModel, OutputQueueRef->Native, SignalSourceMapper->Native);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -121,7 +121,7 @@ bool FOpenPLXSignalHandler::IsInitialized() const
 	return bIsInitialized;
 }
 
-namespace PLXSignalHandler_helpers
+namespace OpenPLXSignalHandler_helpers
 {
 	TOptional<double> ConvertReal(const FOpenPLX_Input& Input, double Value)
 	{
@@ -251,7 +251,7 @@ namespace PLXSignalHandler_helpers
 			return false;
 		}
 
-		FPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
+		FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 		if (ModelData == nullptr)
 			return false;
 
@@ -274,10 +274,7 @@ namespace PLXSignalHandler_helpers
 		InputQueue->Native->send(Signal);
 		return true;
 	}
-}
 
-namespace PLXSignalHandler_helpers
-{
 	template <typename T>
 	TOptional<T> TypeMismatchResult(const FOpenPLX_Output& Output)
 	{
@@ -497,80 +494,80 @@ namespace PLXSignalHandler_helpers
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Send<double, openplx::Physics::Signals::RealInputSignal>(
+	return OpenPLXSignalHandler_helpers::Send<double, openplx::Physics::Signals::RealInputSignal>(
 		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
-		PLXSignalHandler_helpers::ConvertReal);
+		OpenPLXSignalHandler_helpers::ConvertReal);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Receive(
+	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
-		PLXSignalHandler_helpers::GetRealValueFrom);
+		OpenPLXSignalHandler_helpers::GetRealValueFrom);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Send<
+	return OpenPLXSignalHandler_helpers::Send<
 		FVector2D, openplx::Physics::Signals::RealRangeInputSignal>(
 		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
-		PLXSignalHandler_helpers::ConvertVector2D);
+		OpenPLXSignalHandler_helpers::ConvertVector2D);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Receive(
+	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
-		PLXSignalHandler_helpers::GetVector2DValueFrom);
+		OpenPLXSignalHandler_helpers::GetVector2DValueFrom);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Send<FVector, openplx::Physics::Signals::Vec3InputSignal>(
+	return OpenPLXSignalHandler_helpers::Send<FVector, openplx::Physics::Signals::Vec3InputSignal>(
 		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
-		PLXSignalHandler_helpers::ConvertVector3D);
+		OpenPLXSignalHandler_helpers::ConvertVector3D);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Receive(
+	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
-		PLXSignalHandler_helpers::GetVectorValueFrom);
+		OpenPLXSignalHandler_helpers::GetVectorValueFrom);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Send<int64, openplx::Physics::Signals::IntInputSignal>(
+	return OpenPLXSignalHandler_helpers::Send<int64, openplx::Physics::Signals::IntInputSignal>(
 		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
-		PLXSignalHandler_helpers::ConvertInteger);
+		OpenPLXSignalHandler_helpers::ConvertInteger);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Receive(
+	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
-		PLXSignalHandler_helpers::GetIntegerValueFrom);
+		OpenPLXSignalHandler_helpers::GetIntegerValueFrom);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Send<bool, openplx::Physics::Signals::BoolInputSignal>(
+	return OpenPLXSignalHandler_helpers::Send<bool, openplx::Physics::Signals::BoolInputSignal>(
 		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
-		PLXSignalHandler_helpers::ConvertBoolean);
+		OpenPLXSignalHandler_helpers::ConvertBoolean);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
 {
 	check(IsInitialized());
-	return PLXSignalHandler_helpers::Receive(
+	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
-		PLXSignalHandler_helpers::GetBooleanValueFrom);
+		OpenPLXSignalHandler_helpers::GetBooleanValueFrom);
 }

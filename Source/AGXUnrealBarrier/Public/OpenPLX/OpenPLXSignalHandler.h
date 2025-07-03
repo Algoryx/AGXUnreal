@@ -28,7 +28,7 @@ public:
 	FOpenPLXSignalHandler();
 
 	void Init(
-		const FString& PLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
+		const FString& OpenPLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
 		TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints);
 
 	bool IsInitialized() const;

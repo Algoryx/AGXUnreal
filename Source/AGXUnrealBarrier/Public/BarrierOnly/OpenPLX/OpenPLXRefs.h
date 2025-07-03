@@ -83,13 +83,13 @@ struct FSignalSourceMapperRef
 	}
 };
 
-struct FPLXModelData
+struct FOpenPLXModelData
 {
-	openplx::Core::ObjectPtr PLXModel;
+	openplx::Core::ObjectPtr OpenPLXModel;
 	std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>> Inputs;
 };
 
-struct FPLXModelDataArray
+struct FOpenPLXModelDataArray
 {
-	std::vector<FPLXModelData> ModelData;
+	std::vector<FOpenPLXModelData> ModelData;
 };

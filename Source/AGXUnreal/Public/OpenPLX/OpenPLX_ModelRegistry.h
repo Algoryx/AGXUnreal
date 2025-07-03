@@ -13,11 +13,11 @@
 #include "OpenPLX_ModelRegistry.generated.h"
 
 /**
- * The PLX Model Registry is responsible for keeping track of runtime OpenPLX data generated from a
- * specific OpenPLX model, which can be shared across all instances of that model in a
+ * The OpenPLX Model Registry is responsible for keeping track of runtime OpenPLX data generated
+ * from a specific OpenPLX model, which can be shared across all instances of that model in a
  * Simulation.
  */
-UCLASS(ClassGroup = "PLX", Category = "PLX")
+UCLASS(ClassGroup = "OpenPLX", Category = "OpenPLX")
 class AGXUNREAL_API UOpenPLX_ModelRegistry : public ULevelInstanceSubsystem
 {
 	GENERATED_BODY()

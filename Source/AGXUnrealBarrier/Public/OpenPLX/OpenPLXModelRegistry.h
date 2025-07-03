@@ -13,8 +13,8 @@
 class FSimulationBarrier;
 
 struct FAssemblyRef;
-struct FPLXModelData;
-struct FPLXModelDataArray;
+struct FOpenPLXModelData;
+struct FOpenPLXModelDataArray;
 
 class AGXUNREALBARRIER_API FOpenPLXModelRegistry
 {
@@ -29,20 +29,20 @@ public:
 	void ReleaseNative();
 
 	/**
-	 * The PLXFile is the absolute path of a OpenPLX model to be loaded.
+	 * The OpenPLXFile is the absolute path of a OpenPLX model to be loaded.
 	 *
 	 * The Handle returned can be used to later access the loaded OpenPLX model. This Handle will be
-	 * shared by all who register the same PLX file, for example when the same PLX model is
+	 * shared by all who register the same OpenPLX file, for example when the same OpenPLX model is
 	 * instanced many times in the same Level.
 	 */
-	Handle Register(const FString& PLXFile);
+	Handle Register(const FString& OpenPLXFile);
 
 	/**
-	 * Important note: the lifetime of the returned FPLXModelData is only guaranteed during direct
+	 * Important note: the lifetime of the returned FOpenPLXModelData is only guaranteed during direct
 	 * usage in local scope. It is not thread safe. Do not store this pointer for later use.
 	 */
-	const FPLXModelData* GetModelData(Handle Handle) const;
-	FPLXModelData* GetModelData(Handle Handle);
+	const FOpenPLXModelData* GetModelData(Handle Handle) const;
+	FOpenPLXModelData* GetModelData(Handle Handle);
 
 private:
 	FOpenPLXModelRegistry(const FOpenPLXModelRegistry&) = delete;
@@ -54,6 +54,6 @@ private:
 	Handle GetFrom(const FString& PLXFile) const;
 	Handle LoadNewModel(const FString& PLXFile);
 
-	std::unique_ptr<FPLXModelDataArray> Native;
+	std::unique_ptr<FOpenPLXModelDataArray> Native;
 	std::unordered_map<std::string, Handle> KnownModels;
 };
