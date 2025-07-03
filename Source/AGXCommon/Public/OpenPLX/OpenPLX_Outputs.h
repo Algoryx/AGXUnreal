@@ -28,15 +28,15 @@ struct AGXCOMMON_API FOpenPLX_Output
 	{
 	}
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
 	FName Name;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Alias;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
 	EOpenPLX_OutputType Type {EOpenPLX_OutputType::Unsupported};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
 	bool bEnabled {false};
 };

@@ -28,12 +28,12 @@ struct AGXCOMMON_API FOpenPLX_Input
 	{
 	}
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Name;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Alias;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPXL")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	EOpenPLX_InputType Type {EOpenPLX_InputType::Unsupported};
 };
