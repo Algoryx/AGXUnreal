@@ -679,7 +679,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.IncludePath(IncludePath);
 			string Dest = BundledAGXResources.IncludePath(IncludePath);
-			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
+			if (!CopyDirectoryRecursively(Source, Dest))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
