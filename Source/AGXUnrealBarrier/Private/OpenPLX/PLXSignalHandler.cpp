@@ -19,11 +19,12 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/SignalSourceMapper.h"
-#include "Math/Vec3.h"
-#include "Physics/Signals/BoolInputSignal.h"
-#include "Physics/Signals/IntInputSignal.h"
-#include "Physics/Signals/RealInputSignal.h"
-#include "Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Math/Vec3.h"
+#include "openplx/Physics/Signals/BoolInputSignal.h"
+#include "openplx/Physics/Signals/IntInputSignal.h"
+#include "openplx/Physics/Signals/RealInputSignal.h"
+#include "openplx/Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Physics/Signals/AngleOutput.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -98,18 +99,18 @@ void FPLXSignalHandler::Init(
 	{
 		InputQueueRef =
 			std::make_shared<FInputSignalQueueRef>(agxopenplx::InputSignalQueue::create());
-		InputSignalHandlerRef =
-			std::make_shared<FInputSignalHandlerRef>(AssemblyRef->Native, InputQueueRef->Native, SignalSourceMapper->Native);
-		Simulation.GetNative()->Native->add(InputSignalHandlerRef->Native);
+		InputSignalListenerRef =
+			std::make_shared<FInputSignalListenerRef>(AssemblyRef->Native, InputQueueRef->Native, SignalSourceMapper->Native);
+		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
 	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		OutputQueueRef =
 			std::make_shared<FOutputSignalQueueRef>(agxopenplx::OutputSignalQueue::create());
-		OutputSignalHandlerRef = std::make_shared<FOutputSignalHandlerRef>(
+		OutputSignalListenerRef = std::make_shared<FOutputSignalListenerRef>(
 			ModelData->PLXModel, OutputQueueRef->Native, SignalSourceMapper->Native);
-		Simulation.GetNative()->Native->add(OutputSignalHandlerRef->Native);
+		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
 	bIsInitialized = true;

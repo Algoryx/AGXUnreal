@@ -196,17 +196,17 @@ public class AGXDynamicsLibrary : ModuleRules
 		// RuntimeDependencies list. See
 		// https://docs.unrealengine.com/en-US/ProductionPipelines/BuildTools/UnrealBuildTool/ThirdPartyLibraries/index.html
 		Dictionary<string, LibSource> RuntimeLibFiles = new Dictionary<string, LibSource>();
-		RuntimeLibFiles.Add("agxPhysics", LibSource.AGX);
+		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.AGX);
+		RuntimeLibFiles.Add("agxCable", LibSource.AGX);
 		RuntimeLibFiles.Add("agxCore", LibSource.AGX);
 		RuntimeLibFiles.Add("agxHydraulics", LibSource.AGX);
+		RuntimeLibFiles.Add("agxModel", LibSource.AGX);
+		RuntimeLibFiles.Add("agxPhysics", LibSource.AGX);
+		RuntimeLibFiles.Add("agxROS2", LibSource.AGX);
 		RuntimeLibFiles.Add("agxSabre", LibSource.AGX);
 		RuntimeLibFiles.Add("agxSensor", LibSource.AGX);
 		RuntimeLibFiles.Add("agxTerrain", LibSource.AGX);
-		RuntimeLibFiles.Add("agxCable", LibSource.AGX);
-		RuntimeLibFiles.Add("agxModel", LibSource.AGX);
 		RuntimeLibFiles.Add("agxVehicle", LibSource.AGX);
-		RuntimeLibFiles.Add("agxROS2", LibSource.AGX);
-		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.AGX);
 		RuntimeLibFiles.Add("AlgoryxGPUSensorsImpl", LibSource.AGX);
 		RuntimeLibFiles.Add("colamd", LibSource.AGX);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.AGX);
@@ -216,32 +216,40 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.AGX);
 		RuntimeLibFiles.Add("console_bridge", LibSource.AGX);
-		RuntimeLibFiles.Add("DriveTrain", LibSource.AGX);
 		RuntimeLibFiles.Add("fmt", LibSource.AGX);
 		RuntimeLibFiles.Add("hash-library", LibSource.AGX);
-		RuntimeLibFiles.Add("Math", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.analysis", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.bundle", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.core.api", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.error", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.eval", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.internal", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.nodes", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.parser", LibSource.AGX);
-		RuntimeLibFiles.Add("openplx.runtime", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-analysis", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-bundle", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-core.api", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-error", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-eval", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-internal", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-nodes", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-parser", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-runtime", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Physics", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Physics1D", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Physics3D", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Robotics", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Sensors", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Simulation", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Terrain", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Urdf", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Vehicles", LibSource.AGX);
+		RuntimeLibFiles.Add("openplxbundles-Visuals", LibSource.AGX);
+		RuntimeLibFiles.Add("orocos*", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxurdfplugin", LibSource.AGX);
-		RuntimeLibFiles.Add("Physics", LibSource.AGX);
-		RuntimeLibFiles.Add("Physics1D", LibSource.AGX);
-		RuntimeLibFiles.Add("Physics3D", LibSource.AGX);
-		RuntimeLibFiles.Add("Robotics", LibSource.AGX);
-		RuntimeLibFiles.Add("Sensors", LibSource.AGX);
-		RuntimeLibFiles.Add("Simulation", LibSource.AGX);
 		RuntimeLibFiles.Add("spdlog", LibSource.AGX);
-		RuntimeLibFiles.Add("Terrain", LibSource.AGX);
 		RuntimeLibFiles.Add("tinyxml2", LibSource.AGX);
-		RuntimeLibFiles.Add("Urdf", LibSource.AGX);
 		RuntimeLibFiles.Add("urdfdom_model", LibSource.AGX);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
+			// Additional libraries in the AGX Dynamics bundle on Linux.
+
+			RuntimeLibFiles.Add("libzmq.so.5", LibSource.AGX);
+			RuntimeLibFiles.Add("protobuf", LibSource.AGX);
+
 			// We must pass the full library file name for this one because
 			// it doesn't follow the regular prefix+name+postfix template due
 			// to the '.4.0' at the end.
@@ -250,16 +258,11 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("liburdfdom_sensor.so.4.0", LibSource.AGX);
 			RuntimeLibFiles.Add("liburdfdom_world.so.4.0", LibSource.AGX);
 		}
-		RuntimeLibFiles.Add("Vehicles", LibSource.AGX);
-		RuntimeLibFiles.Add("Visuals", LibSource.AGX);
-		RuntimeLibFiles.Add("orocos*", LibSource.AGX);
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
+			// Additional libraries in the AGX Dynamics bundle on Windows.
+
 			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.AGX);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.AGX);
-		}
-		else if (Target.Platform == UnrealTargetPlatform.Linux) {
-			RuntimeLibFiles.Add("libzmq.so.5", LibSource.AGX);
-			RuntimeLibFiles.Add("protobuf", LibSource.AGX);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
@@ -283,27 +286,27 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("fmt", LibSource.AGX);
 		LinkLibFiles.Add("spdlog", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
-		LinkLibFiles.Add("openplx.analysis", LibSource.AGX);
-		LinkLibFiles.Add("openplx.bundle", LibSource.AGX);
-		LinkLibFiles.Add("openplx.core.api", LibSource.AGX);
-		LinkLibFiles.Add("openplx.error", LibSource.AGX);
-		LinkLibFiles.Add("openplx.eval", LibSource.AGX);
-		LinkLibFiles.Add("openplx.generate", LibSource.AGX);
-		LinkLibFiles.Add("openplx.internal", LibSource.AGX);
-		LinkLibFiles.Add("openplx.nodes", LibSource.AGX);
-		LinkLibFiles.Add("openplx.parser", LibSource.AGX);
-		LinkLibFiles.Add("openplx.runtime", LibSource.AGX);
-		LinkLibFiles.Add("DriveTrain", LibSource.AGX);
-		LinkLibFiles.Add("Math", LibSource.AGX);
-		LinkLibFiles.Add("Physics", LibSource.AGX);
-		LinkLibFiles.Add("Physics1D", LibSource.AGX);
-		LinkLibFiles.Add("Physics3D", LibSource.AGX);
-		LinkLibFiles.Add("Robotics", LibSource.AGX);
-		LinkLibFiles.Add("Simulation", LibSource.AGX);
-		LinkLibFiles.Add("Terrain", LibSource.AGX);
-		LinkLibFiles.Add("Urdf", LibSource.AGX);
-		LinkLibFiles.Add("Vehicles", LibSource.AGX);
-		LinkLibFiles.Add("Visuals", LibSource.AGX);
+		LinkLibFiles.Add("openplx-analysis", LibSource.AGX);
+		LinkLibFiles.Add("openplx-bundle", LibSource.AGX);
+		LinkLibFiles.Add("openplx-core.api", LibSource.AGX);
+		LinkLibFiles.Add("openplx-error", LibSource.AGX);
+		LinkLibFiles.Add("openplx-eval", LibSource.AGX);
+		LinkLibFiles.Add("openplx-generate", LibSource.AGX);
+		LinkLibFiles.Add("openplx-internal", LibSource.AGX);
+		LinkLibFiles.Add("openplx-nodes", LibSource.AGX);
+		LinkLibFiles.Add("openplx-parser", LibSource.AGX);
+		LinkLibFiles.Add("openplx-runtime", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Math", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Physics", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Physics1D", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Physics3D", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Robotics", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Simulation", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Terrain", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Urdf", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Vehicles", LibSource.AGX);
+		LinkLibFiles.Add("openplxbundles-Visuals", LibSource.AGX);
 		LinkLibFiles.Add("openplxurdfplugin", LibSource.AGX);
 		LinkLibFiles.Add("urdfdom_model", LibSource.AGX);
 		LinkLibFiles.Add("urdfdom_model_state", LibSource.AGX);
@@ -395,27 +398,27 @@ public class AGXDynamicsLibrary : ModuleRules
 			// OpenPLX:
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.AGX);
-			DelayLoadLibraries.Add("DriveTrain", LibSource.AGX);
-			DelayLoadLibraries.Add("Math", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.analysis", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.bundle", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.core.api", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.error", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.eval", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.internal", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.nodes", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.parser", LibSource.AGX);
-			DelayLoadLibraries.Add("openplx.runtime", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-analysis", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-bundle", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-core.api", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-error", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-eval", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-internal", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-nodes", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-parser", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-runtime", LibSource.AGX);
 			DelayLoadLibraries.Add("openplxurdfplugin", LibSource.AGX);
-			DelayLoadLibraries.Add("Physics", LibSource.AGX);
-			DelayLoadLibraries.Add("Physics1D", LibSource.AGX);
-			DelayLoadLibraries.Add("Physics3D", LibSource.AGX);
-			DelayLoadLibraries.Add("Robotics", LibSource.AGX);
-			DelayLoadLibraries.Add("Simulation", LibSource.AGX);
-			DelayLoadLibraries.Add("Terrain", LibSource.AGX);
-			DelayLoadLibraries.Add("Urdf", LibSource.AGX);
-			DelayLoadLibraries.Add("Vehicles", LibSource.AGX);
-			DelayLoadLibraries.Add("Visuals", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Physics", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Physics1D", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Physics3D", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Robotics", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Simulation", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Terrain", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Urdf", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Vehicles", LibSource.AGX);
+			DelayLoadLibraries.Add("openplxbundles-Visuals", LibSource.AGX);
 			AddDelayLoadDependencies(DelayLoadLibraries);
 		}
 
@@ -676,13 +679,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.IncludePath(IncludePath);
 			string Dest = BundledAGXResources.IncludePath(IncludePath);
-
-
-			// Todo: this is a temporary workaround for a compilation error caused by OpenPLX having
-			// very generic include paths, such as "Math/Quat.h" which collides with Unreal Quat.h.
-			// This ignore should be removed once it has been fixed in OpenPLX.
-			List<string> FilesToIgnore = new List<string> {"Math/Quat.h", "Math\\Quat.h" };
-
 			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
