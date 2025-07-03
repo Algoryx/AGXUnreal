@@ -16,14 +16,14 @@ struct FAssemblyRef;
 struct FPLXModelData;
 struct FPLXModelDataArray;
 
-class AGXUNREALBARRIER_API FPLXModelRegistry
+class AGXUNREALBARRIER_API FOpenPLXModelRegistry
 {
 public:
 	using Handle = int32;
 	inline static constexpr Handle InvalidHandle = -1;
 
-	FPLXModelRegistry();
-	~FPLXModelRegistry();
+	FOpenPLXModelRegistry();
+	~FOpenPLXModelRegistry();
 
 	bool HasNative() const;
 	void ReleaseNative();
@@ -45,8 +45,8 @@ public:
 	FPLXModelData* GetModelData(Handle Handle);
 
 private:
-	FPLXModelRegistry(const FPLXModelRegistry&) = delete;
-	void operator=(const FPLXModelRegistry&) = delete;
+	FOpenPLXModelRegistry(const FOpenPLXModelRegistry&) = delete;
+	void operator=(const FOpenPLXModelRegistry&) = delete;
 
 	template <typename T>
 	T* GetModelDataImpl(Handle Handle) const;

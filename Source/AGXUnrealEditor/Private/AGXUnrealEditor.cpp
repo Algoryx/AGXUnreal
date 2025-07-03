@@ -65,8 +65,8 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
-#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
@@ -520,9 +520,9 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName(),
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FPLX_SignalHandlerComponentCustomization::MakeInstance));
+			&FOpenPLX_SignalHandlerComponentCustomization::MakeInstance));
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -620,7 +620,7 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName());
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName());
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }

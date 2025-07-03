@@ -18,7 +18,7 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackBarrier.h"

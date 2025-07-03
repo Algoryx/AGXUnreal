@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
-class AGXUNREALBARRIER_API FPLXUtilities
+class AGXUNREALBARRIER_API FOpenPLXUtilities
 {
 public:
 	static FString GetBundlePath();

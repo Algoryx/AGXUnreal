@@ -3,14 +3,14 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "OpenPLX/PLXModelRegistry.h"
+#include "OpenPLX/OpenPLXModelRegistry.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
-#include "PLX_ModelRegistry.generated.h"
+#include "OpenPLX_ModelRegistry.generated.h"
 
 /**
  * The PLX Model Registry is responsible for keeping track of runtime OpenPLX data generated from a
@@ -18,16 +18,16 @@
  * Simulation.
  */
 UCLASS(ClassGroup = "PLX", Category = "PLX")
-class AGXUNREAL_API UPLX_ModelRegistry : public ULevelInstanceSubsystem
+class AGXUNREAL_API UOpenPLX_ModelRegistry : public ULevelInstanceSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	static UPLX_ModelRegistry* GetFrom(UWorld* World);
+	static UOpenPLX_ModelRegistry* GetFrom(UWorld* World);
 
 	bool HasNative() const;
-	FPLXModelRegistry* GetNative();
-	const FPLXModelRegistry* GetNative() const;
+	FOpenPLXModelRegistry* GetNative();
+	const FOpenPLXModelRegistry* GetNative() const;
 
 private:
 	// ~Begin USubsystem interface.
@@ -35,5 +35,5 @@ private:
 	virtual void Deinitialize() override;
 	// ~End USubsystem interface.
 
-	FPLXModelRegistry Native;
+	FOpenPLXModelRegistry Native;
 };

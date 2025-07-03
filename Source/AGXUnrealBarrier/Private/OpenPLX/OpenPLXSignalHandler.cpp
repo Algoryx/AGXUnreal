@@ -1,6 +1,6 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "OpenPLX/PLXSignalHandler.h"
+#include "OpenPLX/OpenPLXSignalHandler.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
@@ -8,8 +8,8 @@
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "Constraints/ConstraintBarrier.h"
-#include "OpenPLX/PLX_Inputs.h"
-#include "OpenPLX/PLX_Outputs.h"
+#include "OpenPLX/OpenPLX_Inputs.h"
+#include "OpenPLX/OpenPLX_Outputs.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
@@ -30,12 +30,12 @@
 // Standard library includes.
 #include <cstdint>
 
-FPLXSignalHandler::FPLXSignalHandler()
+FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 {
 }
 
-void FPLXSignalHandler::Init(
-	const FString& PLXFile, FSimulationBarrier& Simulation, FPLXModelRegistry& InModelRegistry,
+void FOpenPLXSignalHandler::Init(
+	const FString& PLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
 	TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints)
 {
 	check(Simulation.HasNative());
@@ -43,7 +43,7 @@ void FPLXSignalHandler::Init(
 
 	ModelRegistry = &InModelRegistry;
 	ModelHandle = ModelRegistry->Register(PLXFile);
-	if (ModelHandle == FPLXModelRegistry::InvalidHandle)
+	if (ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -116,29 +116,29 @@ void FPLXSignalHandler::Init(
 	bIsInitialized = true;
 }
 
-bool FPLXSignalHandler::IsInitialized() const
+bool FOpenPLXSignalHandler::IsInitialized() const
 {
 	return bIsInitialized;
 }
 
 namespace PLXSignalHandler_helpers
 {
-	TOptional<double> ConvertReal(const FPLX_Input& Input, double Value)
+	TOptional<double> ConvertReal(const FOpenPLX_Input& Input, double Value)
 	{
 		switch (Input.Type)
 		{
-			case EPLX_InputType::AngleInput:
-			case EPLX_InputType::AngularVelocity1DInput:
+			case EOpenPLX_InputType::AngleInput:
+			case EOpenPLX_InputType::AngularVelocity1DInput:
 				return ConvertAngleToAGX(Value);
-			case EPLX_InputType::DurationInput:
-			case EPLX_InputType::AutomaticClutchEngagementDurationInput:
-			case EPLX_InputType::AutomaticClutchDisengagementDurationInput:
-			case EPLX_InputType::FractionInput:
-			case EPLX_InputType::Force1DInput:
-			case EPLX_InputType::Torque1DInput:
+			case EOpenPLX_InputType::DurationInput:
+			case EOpenPLX_InputType::AutomaticClutchEngagementDurationInput:
+			case EOpenPLX_InputType::AutomaticClutchDisengagementDurationInput:
+			case EOpenPLX_InputType::FractionInput:
+			case EOpenPLX_InputType::Force1DInput:
+			case EOpenPLX_InputType::Torque1DInput:
 				return Value;
-			case EPLX_InputType::Position1DInput:
-			case EPLX_InputType::LinearVelocity1DInput:
+			case EOpenPLX_InputType::Position1DInput:
+			case EOpenPLX_InputType::LinearVelocity1DInput:
 				return ConvertDistanceToAGX(Value);
 		}
 
@@ -151,12 +151,12 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<std::shared_ptr<openplx::Math::Vec2>> ConvertVector2D(
-		const FPLX_Input& Input, const FVector2D& Value)
+		const FOpenPLX_Input& Input, const FVector2D& Value)
 	{
 		switch (Input.Type)
 		{
-			case EPLX_InputType::ForceRangeInput:
-			case EPLX_InputType::TorqueRangeInput:
+			case EOpenPLX_InputType::ForceRangeInput:
+			case EOpenPLX_InputType::TorqueRangeInput:
 				return openplx::Math::Vec2::from_xy(Value.X, Value.Y);
 		}
 
@@ -169,18 +169,18 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<std::shared_ptr<openplx::Math::Vec3>> ConvertVector3D(
-		const FPLX_Input& Input, const FVector& Value)
+		const FOpenPLX_Input& Input, const FVector& Value)
 	{
 		switch (Input.Type)
 		{
-			case EPLX_InputType::AngularVelocity3DInput:
+			case EOpenPLX_InputType::AngularVelocity3DInput:
 			{
 				return openplx::Math::Vec3::from_xyz(
 					ConvertToAGX(FMath::DegreesToRadians(Value.X)),
 					-ConvertToAGX(FMath::DegreesToRadians(Value.Y)),
 					-ConvertToAGX(FMath::DegreesToRadians(Value.Z)));
 			}
-			case EPLX_InputType::LinearVelocity3DInput:
+			case EOpenPLX_InputType::LinearVelocity3DInput:
 			{
 				return openplx::Math::Vec3::from_xyz(
 					ConvertDistanceToAGX(Value.X), -ConvertDistanceToAGX(Value.Y),
@@ -196,11 +196,11 @@ namespace PLXSignalHandler_helpers
 		return {};
 	}
 
-	TOptional<int64_t> ConvertInteger(const FPLX_Input& Input, int64 Value)
+	TOptional<int64_t> ConvertInteger(const FOpenPLX_Input& Input, int64 Value)
 	{
 		switch (Input.Type)
 		{
-			case EPLX_InputType::IntInput:
+			case EOpenPLX_InputType::IntInput:
 				return static_cast<int64_t>(Value);
 		}
 
@@ -212,15 +212,15 @@ namespace PLXSignalHandler_helpers
 		return {};
 	}
 
-	TOptional<bool> ConvertBoolean(const FPLX_Input& Input, bool Value)
+	TOptional<bool> ConvertBoolean(const FOpenPLX_Input& Input, bool Value)
 	{
 		switch (Input.Type)
 		{
-			case EPLX_InputType::BoolInput:
-			case EPLX_InputType::ActivateInput:
-			case EPLX_InputType::EnableInteractionInput:
-			case EPLX_InputType::EngageInput:
-			case EPLX_InputType::TorqueConverterLockUpInput:
+			case EOpenPLX_InputType::BoolInput:
+			case EOpenPLX_InputType::ActivateInput:
+			case EOpenPLX_InputType::EnableInteractionInput:
+			case EOpenPLX_InputType::EngageInput:
+			case EOpenPLX_InputType::TorqueConverterLockUpInput:
 				return Value;
 		}
 
@@ -234,11 +234,11 @@ namespace PLXSignalHandler_helpers
 
 	template <typename ValueT, typename SignalT, typename ConversionFuncT>
 	bool Send(
-		const FPLX_Input& Input, ValueT Value, FPLXModelRegistry* ModelRegistry,
-		FPLXModelRegistry::Handle ModelHandle, FInputSignalQueueRef* InputQueue,
+		const FOpenPLX_Input& Input, ValueT Value, FOpenPLXModelRegistry* ModelRegistry,
+		FOpenPLXModelRegistry::Handle ModelHandle, FInputSignalQueueRef* InputQueue,
 		ConversionFuncT Func)
 	{
-		if (ModelRegistry == nullptr || ModelHandle == FPLXModelRegistry::InvalidHandle)
+		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 			return false;
 
 		if (InputQueue == nullptr || InputQueue->Native == nullptr)
@@ -279,7 +279,7 @@ namespace PLXSignalHandler_helpers
 namespace PLXSignalHandler_helpers
 {
 	template <typename T>
-	TOptional<T> TypeMismatchResult(const FPLX_Output& Output)
+	TOptional<T> TypeMismatchResult(const FOpenPLX_Output& Output)
 	{
 		UE_LOG(
 			LogAGX, Error,
@@ -291,7 +291,7 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<double> GetRealValueFrom(
-		const FPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
+		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
 		if (Signal == nullptr)
 			return {};
@@ -303,21 +303,21 @@ namespace PLXSignalHandler_helpers
 
 		switch (Output.Type)
 		{
-			case EPLX_OutputType::DurationOutput:
-			case EPLX_OutputType::AutomaticClutchEngagementDurationOutput:
-			case EPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
-			case EPLX_OutputType::FractionOutput:
-			case EPLX_OutputType::Force1DOutput:
-			case EPLX_OutputType::Torque1DOutput:
-			case EPLX_OutputType::TorqueConverterPumpTorqueOutput:
-			case EPLX_OutputType::TorqueConverterTurbineTorqueOutput:
+			case EOpenPLX_OutputType::DurationOutput:
+			case EOpenPLX_OutputType::AutomaticClutchEngagementDurationOutput:
+			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
+			case EOpenPLX_OutputType::FractionOutput:
+			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::Torque1DOutput:
+			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
+			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:
 				return Value->value();
-			case EPLX_OutputType::AngleOutput:
-			case EPLX_OutputType::AngularVelocity1DOutput:
+			case EOpenPLX_OutputType::AngleOutput:
+			case EOpenPLX_OutputType::AngularVelocity1DOutput:
 				return ConvertAngleToUnreal<double>(Value->value());
-			case EPLX_OutputType::LinearVelocity1DOutput:
-			case EPLX_OutputType::Position1DOutput:
-			case EPLX_OutputType::RelativeVelocity1DOutput:
+			case EOpenPLX_OutputType::LinearVelocity1DOutput:
+			case EOpenPLX_OutputType::Position1DOutput:
+			case EOpenPLX_OutputType::RelativeVelocity1DOutput:
 				return ConvertDistanceToUnreal<double>(Value->value());
 		}
 
@@ -330,7 +330,7 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<FVector2D> GetVector2DValueFrom(
-		const FPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
+		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
 		if (Signal == nullptr)
 			return {};
@@ -342,8 +342,8 @@ namespace PLXSignalHandler_helpers
 
 		switch (Output.Type)
 		{
-			case EPLX_OutputType::ForceRangeOutput:
-			case EPLX_OutputType::TorqueRangeOutput:
+			case EOpenPLX_OutputType::ForceRangeOutput:
+			case EOpenPLX_OutputType::TorqueRangeOutput:
 				return FVector2D(Value->value()->x(), Value->value()->y());
 		}
 
@@ -356,7 +356,7 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<FVector> GetVectorValueFrom(
-		const FPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
+		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
 		if (Signal == nullptr)
 			return {};
@@ -368,30 +368,30 @@ namespace PLXSignalHandler_helpers
 
 		switch (Output.Type)
 		{
-			case EPLX_OutputType::AngularVelocity3DOutput:
-			case EPLX_OutputType::MateConnectorAngularAcceleration3DOutput:
-			case EPLX_OutputType::MateConnectorRPYOutput:
-			case EPLX_OutputType::RPYOutput:
+			case EOpenPLX_OutputType::AngularVelocity3DOutput:
+			case EOpenPLX_OutputType::MateConnectorAngularAcceleration3DOutput:
+			case EOpenPLX_OutputType::MateConnectorRPYOutput:
+			case EOpenPLX_OutputType::RPYOutput:
 			{
 				return FVector(
 					FMath::RadiansToDegrees(Value->value()->x()),
 					-FMath::RadiansToDegrees(Value->value()->y()),
 					-FMath::RadiansToDegrees(Value->value()->z()));
 			}
-			case EPLX_OutputType::LinearVelocity3DOutput:
-			case EPLX_OutputType::MateConnectorAcceleration3DOutput:
-			case EPLX_OutputType::MateConnectorPositionOutput:
-			case EPLX_OutputType::Position3DOutput:
+			case EOpenPLX_OutputType::LinearVelocity3DOutput:
+			case EOpenPLX_OutputType::MateConnectorAcceleration3DOutput:
+			case EOpenPLX_OutputType::MateConnectorPositionOutput:
+			case EOpenPLX_OutputType::Position3DOutput:
 			{
 				return FVector(
 					ConvertDistanceToUnreal<double>(Value->value()->x()),
 					-ConvertDistanceToUnreal<double>(Value->value()->y()),
 					ConvertDistanceToUnreal<double>(Value->value()->z()));
 			}
-			case EPLX_OutputType::Force3DOutput:
+			case EOpenPLX_OutputType::Force3DOutput:
 				return ConvertVector(
 					agx::Vec3(Value->value()->x(), Value->value()->y(), Value->value()->z()));
-			case EPLX_OutputType::Torque3DOutput:
+			case EOpenPLX_OutputType::Torque3DOutput:
 				return ConvertTorque(
 					agx::Vec3(Value->value()->x(), Value->value()->y(), Value->value()->z()));
 		}
@@ -405,7 +405,7 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<int64> GetIntegerValueFrom(
-		const FPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
+		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
 		if (Signal == nullptr)
 			return {};
@@ -417,7 +417,7 @@ namespace PLXSignalHandler_helpers
 
 		switch (Output.Type)
 		{
-			case EPLX_OutputType::IntOutput:
+			case EOpenPLX_OutputType::IntOutput:
 				return Value->value();
 		}
 
@@ -431,7 +431,7 @@ namespace PLXSignalHandler_helpers
 	}
 
 	TOptional<bool> GetBooleanValueFrom(
-		const FPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
+		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
 		if (Signal == nullptr)
 			return {};
@@ -443,11 +443,11 @@ namespace PLXSignalHandler_helpers
 
 		switch (Output.Type)
 		{
-			case EPLX_OutputType::BoolOutput:
-			case EPLX_OutputType::ActivatedOutput:
-			case EPLX_OutputType::InteractionEnabledOutput:
-			case EPLX_OutputType::EngagedOutput:
-			case EPLX_OutputType::TorqueConverterLockedUpOutput:
+			case EOpenPLX_OutputType::BoolOutput:
+			case EOpenPLX_OutputType::ActivatedOutput:
+			case EOpenPLX_OutputType::InteractionEnabledOutput:
+			case EOpenPLX_OutputType::EngagedOutput:
+			case EOpenPLX_OutputType::TorqueConverterLockedUpOutput:
 				return Value->value();
 		}
 
@@ -462,11 +462,11 @@ namespace PLXSignalHandler_helpers
 
 	template <typename ValueT, typename ValueGetterFuncT>
 	bool Receive(
-		const FPLX_Output& Output, ValueT& OutValue, FPLXModelRegistry* ModelRegistry,
-		FPLXModelRegistry::Handle ModelHandle, FOutputSignalQueueRef* OutputQueue,
+		const FOpenPLX_Output& Output, ValueT& OutValue, FOpenPLXModelRegistry* ModelRegistry,
+		FOpenPLXModelRegistry::Handle ModelHandle, FOutputSignalQueueRef* OutputQueue,
 		ValueGetterFuncT Func)
 	{
-		if (ModelRegistry == nullptr || ModelHandle == FPLXModelRegistry::InvalidHandle)
+		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 			return false;
 
 		if (OutputQueue == nullptr || OutputQueue->Native == nullptr)
@@ -494,7 +494,7 @@ namespace PLXSignalHandler_helpers
 	}
 }
 
-bool FPLXSignalHandler::Send(const FPLX_Input& Input, double Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Send<double, openplx::Physics::Signals::RealInputSignal>(
@@ -502,7 +502,7 @@ bool FPLXSignalHandler::Send(const FPLX_Input& Input, double Value)
 		PLXSignalHandler_helpers::ConvertReal);
 }
 
-bool FPLXSignalHandler::Receive(const FPLX_Output& Output, double& OutValue)
+bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Receive(
@@ -510,7 +510,7 @@ bool FPLXSignalHandler::Receive(const FPLX_Output& Output, double& OutValue)
 		PLXSignalHandler_helpers::GetRealValueFrom);
 }
 
-bool FPLXSignalHandler::Send(const FPLX_Input& Input, const FVector2D& Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Send<
@@ -519,7 +519,7 @@ bool FPLXSignalHandler::Send(const FPLX_Input& Input, const FVector2D& Value)
 		PLXSignalHandler_helpers::ConvertVector2D);
 }
 
-bool FPLXSignalHandler::Receive(const FPLX_Output& Output, FVector2D& OutValue)
+bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Receive(
@@ -527,7 +527,7 @@ bool FPLXSignalHandler::Receive(const FPLX_Output& Output, FVector2D& OutValue)
 		PLXSignalHandler_helpers::GetVector2DValueFrom);
 }
 
-bool FPLXSignalHandler::Send(const FPLX_Input& Input, const FVector& Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Send<FVector, openplx::Physics::Signals::Vec3InputSignal>(
@@ -535,7 +535,7 @@ bool FPLXSignalHandler::Send(const FPLX_Input& Input, const FVector& Value)
 		PLXSignalHandler_helpers::ConvertVector3D);
 }
 
-bool FPLXSignalHandler::Receive(const FPLX_Output& Output, FVector& OutValue)
+bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Receive(
@@ -543,7 +543,7 @@ bool FPLXSignalHandler::Receive(const FPLX_Output& Output, FVector& OutValue)
 		PLXSignalHandler_helpers::GetVectorValueFrom);
 }
 
-bool FPLXSignalHandler::Send(const FPLX_Input& Input, int64 Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Send<int64, openplx::Physics::Signals::IntInputSignal>(
@@ -551,7 +551,7 @@ bool FPLXSignalHandler::Send(const FPLX_Input& Input, int64 Value)
 		PLXSignalHandler_helpers::ConvertInteger);
 }
 
-bool FPLXSignalHandler::Receive(const FPLX_Output& Output, int64& OutValue)
+bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Receive(
@@ -559,7 +559,7 @@ bool FPLXSignalHandler::Receive(const FPLX_Output& Output, int64& OutValue)
 		PLXSignalHandler_helpers::GetIntegerValueFrom);
 }
 
-bool FPLXSignalHandler::Send(const FPLX_Input& Input, bool Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Send<bool, openplx::Physics::Signals::BoolInputSignal>(
@@ -567,7 +567,7 @@ bool FPLXSignalHandler::Send(const FPLX_Input& Input, bool Value)
 		PLXSignalHandler_helpers::ConvertBoolean);
 }
 
-bool FPLXSignalHandler::Receive(const FPLX_Output& Output, bool& OutValue)
+bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
 {
 	check(IsInitialized());
 	return PLXSignalHandler_helpers::Receive(

@@ -1,9 +1,9 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
@@ -18,24 +18,24 @@
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Widgets/Text/STextBlock.h"
 
-#define LOCTEXT_NAMESPACE "FPLX_SignalHandlerComponentCustomization"
+#define LOCTEXT_NAMESPACE "FOpenPLX_SignalHandlerComponentCustomization"
 
-TSharedRef<IDetailCustomization> FPLX_SignalHandlerComponentCustomization::MakeInstance()
+TSharedRef<IDetailCustomization> FOpenPLX_SignalHandlerComponentCustomization::MakeInstance()
 {
-	return MakeShareable(new FPLX_SignalHandlerComponentCustomization);
+	return MakeShareable(new FOpenPLX_SignalHandlerComponentCustomization);
 }
 
-void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
+void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	IDetailLayoutBuilder& InDetailBuilder)
 {
-	UPLX_SignalHandlerComponent* Component =
-		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UPLX_SignalHandlerComponent>(
+	UOpenPLX_SignalHandlerComponent* Component =
+		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UOpenPLX_SignalHandlerComponent>(
 			InDetailBuilder);
 	if (Component == nullptr)
 		return;
 
-	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UPLX_SignalHandlerComponent, Outputs));
-	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UPLX_SignalHandlerComponent, Inputs));
+	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UOpenPLX_SignalHandlerComponent, Outputs));
+	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UOpenPLX_SignalHandlerComponent, Inputs));
 	InDetailBuilder.HideCategory(FName("Sockets"));
 
 	IDetailCategoryBuilder& SignalInterfaceCategory = InDetailBuilder.EditCategory(
@@ -62,7 +62,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	for (const FName& Alias : SortedInputAliasKeys)
 	{
 		const FName& Key = Component->InputAliases[Alias];
-		const FPLX_Input* Input = Component->Inputs.Find(Key);
+		const FOpenPLX_Input* Input = Component->Inputs.Find(Key);
 		if (!Input)
 			continue;
 
@@ -125,7 +125,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	for (const FName& Alias : SortedOutputAliasKeys)
 	{
 		const FName& Key = Component->OutputAliases[Alias];
-		const FPLX_Output* Output = Component->Outputs.Find(Key);
+		const FOpenPLX_Output* Output = Component->Outputs.Find(Key);
 		if (!Output)
 			continue;
 
@@ -203,7 +203,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 
 	for (const FName& Key : SortedInputKeys)
 	{
-		const FPLX_Input& Input = Component->Inputs[Key];
+		const FOpenPLX_Input& Input = Component->Inputs[Key];
 		FString InputTypeName = UEnum::GetValueAsString(Input.Type);
 		InputTypeName = InputTypeName.RightChop(InputTypeName.Find(TEXT("::")) + 2);
 
@@ -294,7 +294,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 
 	for (const FName& Key : SortedOutputKeys)
 	{
-		const FPLX_Output& Output = Component->Outputs[Key];
+		const FOpenPLX_Output& Output = Component->Outputs[Key];
 		if (!Component->bShowDisabledOutputs && !Output.bEnabled)
 			continue;
 

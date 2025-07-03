@@ -8,7 +8,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
@@ -95,7 +95,7 @@ EAGX_ImportType FAGX_ImportRuntimeUtilities::GetImportTypeFrom(const FString& Fi
 
 FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& FilePath)
 {
-	FString ModelsDir = FPLXUtilities::GetModelsDirectory();
+	FString ModelsDir = FOpenPLXUtilities::GetModelsDirectory();
 	FPaths::NormalizeDirectoryName(ModelsDir);
 
 	if (!FilePath.StartsWith(ModelsDir))

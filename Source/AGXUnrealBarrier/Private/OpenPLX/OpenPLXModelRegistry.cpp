@@ -1,6 +1,6 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "OpenPLX/PLXModelRegistry.h"
+#include "OpenPLX/OpenPLXModelRegistry.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
@@ -14,41 +14,41 @@
 // Standard library includes.
 #include <limits>
 
-FPLXModelRegistry::FPLXModelRegistry()
+FOpenPLXModelRegistry::FOpenPLXModelRegistry()
 	: Native(std::make_unique<FPLXModelDataArray>())
 {
 }
 
-FPLXModelRegistry::~FPLXModelRegistry()
+FOpenPLXModelRegistry::~FOpenPLXModelRegistry()
 {
 }
 
-bool FPLXModelRegistry::HasNative() const
+bool FOpenPLXModelRegistry::HasNative() const
 {
 	return Native != nullptr;
 }
 
-void FPLXModelRegistry::ReleaseNative()
+void FOpenPLXModelRegistry::ReleaseNative()
 {
 	Native = nullptr;
 }
 
 namespace FPLXModelRegistry_helpers
 {
-	FPLXModelRegistry::Handle Convert(size_t Val)
+	FOpenPLXModelRegistry::Handle Convert(size_t Val)
 	{
-		if (Val > std::numeric_limits<FPLXModelRegistry::Handle>::max())
+		if (Val > std::numeric_limits<FOpenPLXModelRegistry::Handle>::max())
 		{
 			// This should never ever happen. It means we have more than
 			// int32::max number of models in the world.
 			AGX_CHECK(false);
-			return std::numeric_limits<FPLXModelRegistry::Handle>::max();
+			return std::numeric_limits<FOpenPLXModelRegistry::Handle>::max();
 		}
 
-		return static_cast<FPLXModelRegistry::Handle>(Val);
+		return static_cast<FOpenPLXModelRegistry::Handle>(Val);
 	}
 
-	size_t Convert(FPLXModelRegistry::Handle Val)
+	size_t Convert(FOpenPLXModelRegistry::Handle Val)
 	{
 		check(Val >= 0);
 		return static_cast<size_t>(Val);
@@ -75,7 +75,7 @@ namespace FPLXModelRegistry_helpers
 	}
 }
 
-FPLXModelRegistry::Handle FPLXModelRegistry::Register(const FString& PLXFile)
+FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::Register(const FString& PLXFile)
 {
 	check(HasNative());
 
@@ -87,7 +87,7 @@ FPLXModelRegistry::Handle FPLXModelRegistry::Register(const FString& PLXFile)
 }
 
 template <typename T>
-T* FPLXModelRegistry::GetModelDataImpl(Handle Handle) const
+T* FOpenPLXModelRegistry::GetModelDataImpl(Handle Handle) const
 {
 	check(HasNative());
 	if (Handle == InvalidHandle)
@@ -100,23 +100,23 @@ T* FPLXModelRegistry::GetModelDataImpl(Handle Handle) const
 	return &Native->ModelData[Index];
 }
 
-const FPLXModelData* FPLXModelRegistry::GetModelData(Handle Handle) const
+const FPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle) const
 {
 	return GetModelDataImpl<const FPLXModelData>(Handle);
 }
 
-FPLXModelData* FPLXModelRegistry::GetModelData(Handle Handle)
+FPLXModelData* FOpenPLXModelRegistry::GetModelData(Handle Handle)
 {
 	return GetModelDataImpl<FPLXModelData>(Handle);
 }
 
-FPLXModelRegistry::Handle FPLXModelRegistry::GetFrom(const FString& PLXFile) const
+FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::GetFrom(const FString& PLXFile) const
 {
 	auto It = KnownModels.find(Convert(PLXFile));
 	return It != KnownModels.end() ? It->second : InvalidHandle;
 }
 
-FPLXModelRegistry::Handle FPLXModelRegistry::LoadNewModel(const FString& PLXFile)
+FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString& PLXFile)
 {
 	// Here we create a new slot in the PLXModelData array with the PLX model tree as well
 	// as some other required objects like the AGX Cache.

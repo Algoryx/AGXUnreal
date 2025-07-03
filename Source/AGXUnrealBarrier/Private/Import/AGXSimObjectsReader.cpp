@@ -14,7 +14,7 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // OpenPLX includes.
@@ -641,7 +641,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FPLXUtilities::GetBundlePath();
+	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.

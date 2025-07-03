@@ -329,22 +329,22 @@ const std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimul
 	return Simulation;
 }
 
-TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs()
+TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetPLXInputs()
 {
 	return PLXInputs;
 }
 
-const TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs() const
+const TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetPLXInputs() const
 {
 	return PLXInputs;
 }
 
-TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs()
+TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetPLXOutputs()
 {
 	return PLXOutputs;
 }
 
-const TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs() const
+const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetPLXOutputs() const
 {
 	return PLXOutputs;
 }

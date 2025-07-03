@@ -3,24 +3,24 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "OpenPLX/PLX_Enums.h"
+#include "OpenPLX/OpenPLX_Enums.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "UObject/Class.h"
 
-#include "PLX_Outputs.generated.h"
+#include "OpenPLX_Outputs.generated.h"
 
 /**
  * EXPERIMENTAL
  */
 USTRUCT(BlueprintType)
-struct AGXCOMMON_API FPLX_Output
+struct AGXCOMMON_API FOpenPLX_Output
 {
 	GENERATED_BODY()
 
-	FPLX_Output() = default;
-	FPLX_Output(const FName& InName, const FName& InAlias, EPLX_OutputType InType, bool InEnabled)
+	FOpenPLX_Output() = default;
+	FOpenPLX_Output(const FName& InName, const FName& InAlias, EOpenPLX_OutputType InType, bool InEnabled)
 		: Name(InName)
 		, Alias(InAlias)
 		, Type(InType)
@@ -35,9 +35,8 @@ struct AGXCOMMON_API FPLX_Output
 	FName Alias;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPXL")
-	EPLX_OutputType Type {EPLX_OutputType::Unsupported};
+	EOpenPLX_OutputType Type {EOpenPLX_OutputType::Unsupported};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPXL")
 	bool bEnabled {false};
 };
-
