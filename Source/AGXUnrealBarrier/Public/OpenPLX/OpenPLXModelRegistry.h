@@ -29,7 +29,7 @@ public:
 	void ReleaseNative();
 
 	/**
-	 * The OpenPLXFile is the absolute path of a OpenPLX model to be loaded.
+	 * The OpenPLXFile is the absolute path of an OpenPLX model to be loaded.
 	 *
 	 * The Handle returned can be used to later access the loaded OpenPLX model. This Handle will be
 	 * shared by all who register the same OpenPLX file, for example when the same OpenPLX model is
@@ -38,8 +38,8 @@ public:
 	Handle Register(const FString& OpenPLXFile);
 
 	/**
-	 * Important note: the lifetime of the returned FOpenPLXModelData is only guaranteed during direct
-	 * usage in local scope. It is not thread safe. Do not store this pointer for later use.
+	 * Important note: the lifetime of the returned FOpenPLXModelData is only guaranteed during
+	 * direct usage in local scope. It is not thread safe. Do not store this pointer for later use.
 	 */
 	const FOpenPLXModelData* GetModelData(Handle Handle) const;
 	FOpenPLXModelData* GetModelData(Handle Handle);
