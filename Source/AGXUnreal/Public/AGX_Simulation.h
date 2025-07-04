@@ -216,7 +216,7 @@ public: // Properties.
 	UPROPERTY(
 		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
 		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
-	bool bDeletePLXFileCopyOnBlueprintDeletion {true};
+	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
 
 	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.

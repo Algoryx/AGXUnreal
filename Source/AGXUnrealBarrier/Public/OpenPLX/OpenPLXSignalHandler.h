@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "OpenPLX/PLXModelRegistry.h"
+#include "OpenPLX/OpenPLXModelRegistry.h"
 
 // Standard library includes.
 #include <memory>
@@ -17,46 +17,46 @@ struct FInputSignalListenerRef;
 struct FInputSignalQueueRef;
 struct FOutputSignalListenerRef;
 struct FOutputSignalQueueRef;
-struct FPLX_Input;
-struct FPLX_Output;
+struct FOpenPLX_Input;
+struct FOpenPLX_Output;
 struct FSignalSourceMapperRef;
 
 
-class AGXUNREALBARRIER_API FPLXSignalHandler
+class AGXUNREALBARRIER_API FOpenPLXSignalHandler
 {
 public:
-	FPLXSignalHandler();
+	FOpenPLXSignalHandler();
 
 	void Init(
-		const FString& PLXFile, FSimulationBarrier& Simulation, FPLXModelRegistry& InModelRegistry,
+		const FString& OpenPLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
 		TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints);
 
 	bool IsInitialized() const;
 
 	/// Scalars.
-	bool Send(const FPLX_Input& Input, double Value);
-	bool Receive(const FPLX_Output& Output, double& OutValue);
+	bool Send(const FOpenPLX_Input& Input, double Value);
+	bool Receive(const FOpenPLX_Output& Output, double& OutValue);
 
 	/// Ranges (Vec2 real).
-	bool Send(const FPLX_Input& Input, const FVector2D& Value);
-	bool Receive(const FPLX_Output& Output, FVector2D& OutValue);
+	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value);
+	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/// FVectors (Vec3 real).
-	bool Send(const FPLX_Input& Input, const FVector& Value);
-	bool Receive(const FPLX_Output& Output, FVector& OutValue);
+	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
+	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	/// Integers.
-	bool Send(const FPLX_Input& Input, int64 Value);
-	bool Receive(const FPLX_Output& Output, int64& OutValue);
+	bool Send(const FOpenPLX_Input& Input, int64 Value);
+	bool Receive(const FOpenPLX_Output& Output, int64& OutValue);
 
 	/// Booleans.
-	bool Send(const FPLX_Input& Input, bool Value);
-	bool Receive(const FPLX_Output& Output, bool& OutValue);
+	bool Send(const FOpenPLX_Input& Input, bool Value);
+	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
 
 private:
 	bool bIsInitialized {false};
-	FPLXModelRegistry* ModelRegistry {nullptr};
-	FPLXModelRegistry::Handle ModelHandle {FPLXModelRegistry::InvalidHandle};
+	FOpenPLXModelRegistry* ModelRegistry {nullptr};
+	FOpenPLXModelRegistry::Handle ModelHandle {FOpenPLXModelRegistry::InvalidHandle};
 
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
 	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;

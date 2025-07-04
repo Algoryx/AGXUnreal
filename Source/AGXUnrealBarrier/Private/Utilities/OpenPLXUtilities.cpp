@@ -1,6 +1,6 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
@@ -11,19 +11,19 @@
 #include "HAL/PlatformFileManager.h"
 #include "Misc/Paths.h"
 
-FString FPLXUtilities::GetBundlePath()
+FString FOpenPLXUtilities::GetBundlePath()
 {
 	return FPaths::Combine(
 		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles");
 }
 
-FString FPLXUtilities::GetModelsDirectory()
+FString FOpenPLXUtilities::GetModelsDirectory()
 {
 	const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
 	return FPaths::Combine(ProjectPath, TEXT("OpenPLXModels"));
 }
 
-FString FPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
+FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
 {
 	const FString ModelName = FPaths::GetBaseFilename(Filepath);
 	const FString BaseModelDir = FPaths::Combine(GetModelsDirectory(), ModelName);
@@ -46,7 +46,7 @@ FString FPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
 	return "";
 }
 
-FString FPLXUtilities::CopyAllDependenciesToProject(FString Filepath, const FString& Destination)
+FString FOpenPLXUtilities::CopyAllDependenciesToProject(FString Filepath, const FString& Destination)
 {
 	const TArray<FString> Dependencies = FPLXUtilitiesInternal::GetFileDependencies(Filepath);
 	if (Dependencies.Num() == 0)

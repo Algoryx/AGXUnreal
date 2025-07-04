@@ -10,7 +10,7 @@ class IDetailLayoutBuilder;
 /**
  * Defines the design of the Model Source Component in the Editor.
  */
-class AGXUNREALEDITOR_API FPLX_SignalHandlerComponentCustomization : public IDetailCustomization
+class AGXUNREALEDITOR_API FOpenPLX_SignalHandlerComponentCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
