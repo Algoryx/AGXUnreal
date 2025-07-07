@@ -215,7 +215,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.AGX);
-		RuntimeLibFiles.Add("console_bridge", LibSource.AGX);
 		RuntimeLibFiles.Add("fmt", LibSource.AGX);
 		RuntimeLibFiles.Add("hash-library", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-analysis", LibSource.AGX);
@@ -242,21 +241,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("orocos*", LibSource.AGX);
 		RuntimeLibFiles.Add("openplxurdfplugin", LibSource.AGX);
 		RuntimeLibFiles.Add("spdlog", LibSource.AGX);
-		RuntimeLibFiles.Add("tinyxml2", LibSource.AGX);
-		RuntimeLibFiles.Add("urdfdom_model", LibSource.AGX);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.AGX);
 			RuntimeLibFiles.Add("protobuf", LibSource.AGX);
-
-			// We must pass the full library file name for this one because
-			// it doesn't follow the regular prefix+name+postfix template due
-			// to the '.4.0' at the end.
-			RuntimeLibFiles.Add("liburdfdom_model_state.so.4.0", LibSource.AGX);
-			RuntimeLibFiles.Add("liburdfdom_model.so.4.0", LibSource.AGX);
-			RuntimeLibFiles.Add("liburdfdom_sensor.so.4.0", LibSource.AGX);
-			RuntimeLibFiles.Add("liburdfdom_world.so.4.0", LibSource.AGX);
 		}
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
@@ -308,11 +297,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("openplxbundles-Vehicles", LibSource.AGX);
 		LinkLibFiles.Add("openplxbundles-Visuals", LibSource.AGX);
 		LinkLibFiles.Add("openplxurdfplugin", LibSource.AGX);
-		LinkLibFiles.Add("urdfdom_model", LibSource.AGX);
-		LinkLibFiles.Add("urdfdom_model_state", LibSource.AGX);
-		LinkLibFiles.Add("urdfdom_world", LibSource.AGX);
-		LinkLibFiles.Add("urdfdom_sensor", LibSource.AGX);
-		LinkLibFiles.Add("console_bridge", LibSource.AGX);
 		LinkLibFiles.Add("hash-library", LibSource.AGX);
 
 		// List of the include directories from aGX Dynamics and its
@@ -992,12 +976,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		//
 		// The above description may be incorrect. More investigation needed.
 		var DontTouch = new HashSet<String>();
-		DontTouch.Add("liburdfdom_model_state.so.4.0");
-		DontTouch.Add("liburdfdom_model.so.4.0");
-		DontTouch.Add("liburdfdom_sensor.so.4.0");
-		DontTouch.Add("liburdfdom_world.so.4.0");
-		DontTouch.Add("libconsole_bridge.so.1.0");
-		DontTouch.Add("libtinyxml2.so.10");
 		DontTouch.Add("libprotobuf.so");
 		DontTouch.Add("libprotobuf.so.32");
 		DontTouch.Add("libprotobuf.so.3.21.12.0");
