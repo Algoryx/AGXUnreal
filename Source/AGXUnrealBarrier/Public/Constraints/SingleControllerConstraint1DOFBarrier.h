@@ -24,7 +24,8 @@ public:
 		const FRigidBodyBarrier* Rb2, const FVector& FramePosition2, const FQuat& FrameRotation2,
 		FConstraintControllerBarrier* Controller,
 		EAGX_ConstraintControllerType ControllerType,
-		EAGX_ConstraintAngleControllerType ControllerAngleType);
+		EAGX_ConstraintAngleControllerType ControllerAngleType,
+		const FString& Name);
 
 	EAGX_ConstraintControllerType GetControllerType() const;
 	EAGX_ConstraintAngleControllerType GetControllerAngleType() const;
