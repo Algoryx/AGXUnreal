@@ -214,6 +214,8 @@ FParticleData FTerrainPagerBarrier::GetParticleData() const
 	ParticleData.Positions.Reserve(NumParticles);
 	ParticleData.Radii.Reserve(NumParticles);
 	ParticleData.Rotations.Reserve(NumParticles);
+	ParticleData.Velocities.Reserve(NumParticles);
+	ParticleData.Masses.Reserve(NumParticles);
 
 	const TerrainPager::TileAttachmentPtrVector ActiveTiles =
 		NativeRef->Native->getActiveTileAttachments();
@@ -222,7 +224,7 @@ FParticleData FTerrainPagerBarrier::GetParticleData() const
 		const FTerrainBarrier TerrainBarrier = AGXBarrierFactories::CreateTerrainBarrier(Terrain);
 		EParticleDataFlags ToInclude = EParticleDataFlags::Positions |
 									   EParticleDataFlags::Rotations | EParticleDataFlags::Radii |
-									   EParticleDataFlags::Velocities;
+									   EParticleDataFlags::Velocities | EParticleDataFlags::Masses;
 		FTerrainUtilities::AppendParticleData(TerrainBarrier, ParticleData, ToInclude);
 	}
 
@@ -258,6 +260,10 @@ FParticleDataById FTerrainPagerBarrier::GetParticleDataById(EParticleDataFlags T
 		if (ToInclude & EParticleDataFlags::Radii)
 		{
 			FTerrainUtilities::GetParticleRadiiById(TerrainBarrier, ParticleData.Radii);
+		}
+		if (ToInclude & EParticleDataFlags::Masses)
+		{
+			FTerrainUtilities::GetParticleMassesById(TerrainBarrier, ParticleData.Masses);
 		}
 	}
 
