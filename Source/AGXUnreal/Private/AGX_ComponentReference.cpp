@@ -69,14 +69,46 @@ namespace FAGX_ComponentReference_helpers
 	}
 
 	UActorComponent* FindComponent(
-		TSubclassOf<UActorComponent> ComponentType, const AActor* const Scope, const FName& Name,
+		TSubclassOf<UActorComponent> ComponentType, const AActor* const Scope,
+		const FName& FullName,
 		bool bSearchChildActors)
 	{
+		if (!Scope)
+			return nullptr;
+
+		FString FullNameStr = FullName.ToString();
+		FString ChildActorCompName, InnerCompName;
+
+		// Check if the name is in the form "ChildActorComponent.InnerComponent"
+		if (FullNameStr.Split(TEXT("."), &ChildActorCompName, &InnerCompName))
+		{
+			// Find the correct ChildActorComponent first
+			for (UActorComponent* Comp : Scope->GetComponents())
+			{
+				if (UChildActorComponent* CAC = Cast<UChildActorComponent>(Comp))
+				{
+					if (CAC->GetName() == ChildActorCompName && CAC->GetChildActor())
+					{
+						// Now search only in the child actor for the inner component
+						TArray<UActorComponent*> InnerComps;
+						CAC->GetChildActor()->GetComponents(ComponentType, InnerComps, false);
+						for (UActorComponent* Inner : InnerComps)
+						{
+							if (Inner->GetFName().ToString() == InnerCompName)
+								return Inner;
+						}
+					}
+				}
+			}
+			return nullptr;
+		}
+
+		// Original behavior for non-prefixed names
 		TArray<UActorComponent*> Components =
 			GetCompatibleComponents(ComponentType, Scope, bSearchChildActors);
 		UActorComponent** It = Components.FindByPredicate(
-			[&Name](UActorComponent* Component) { return Component->GetFName() == Name; });
-		return It != nullptr ? *It : nullptr;
+			[&FullName](UActorComponent* Component) { return Component->GetFName() == FullName; });
+		return It ? *It : nullptr;
 	}
 }
 

@@ -27,6 +27,30 @@ TSharedRef<IPropertyTypeCustomization> FAGX_ComponentReferenceCustomization::Mak
 
 namespace AGX_ComponentReferenceCustomization_helpers
 {
+	FString GetChildActorPrefix(const UActorComponent* Component, const AActor* Scope)
+	{
+		if (!Component || !Scope)
+			return TEXT("");
+
+		AActor* OwnerActor = Component->GetOwner();
+		if (!OwnerActor || OwnerActor == Scope)
+			return TEXT(""); // Not inside a child actor, just return empty.
+
+		// Look through all ChildActorComponents in the scope to find which one owns this child
+		// actor.
+		for (UActorComponent* Comp : Scope->GetComponents())
+		{
+			if (UChildActorComponent* CAC = Cast<UChildActorComponent>(Comp))
+			{
+				if (CAC->GetChildActor() == OwnerActor)
+				{
+					return CAC->GetName() + TEXT(".");
+				}
+			}
+		}
+		return TEXT("");
+	}
+
 	/**
 	 * Get a combo-box compatible list of Component names of the compatible Components found in the
 	 * Owner in the given Component Reference. That is, find out what options the user currently
@@ -42,7 +66,9 @@ namespace AGX_ComponentReferenceCustomization_helpers
 		OutNames.Empty();
 		for (const UActorComponent* Component : CompatibleComponents)
 		{
-			OutNames.Add(MakeShareable(new FName(Component->GetFName())));
+			FString Prefix = GetChildActorPrefix(Component, ComponentReference.GetScope());
+			FString CombinedName = Prefix + Component->GetName();
+			OutNames.Add(MakeShareable(new FName(*CombinedName)));
 		}
 	}
 
