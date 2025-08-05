@@ -109,9 +109,9 @@ namespace AGX_SensorEnvironment_helpers
 		const FVector CurrentLocation = Sphere->GetComponentLocation();
 		const FVector TargetLocation = Lidar->GetComponentLocation();
 
-		Sphere->SetWorldLocation(TargetLocation);
+		Sphere->SetWorldLocation(TargetLocation); // Updates overlaps if moved.
 
-		// Force overlap update when location hasn't changed.
+		// Update overlaps when location hasn't changed.
 		if (CurrentLocation.Equals(TargetLocation, SMALL_NUMBER))
 			Sphere->UpdateOverlaps();
 	}
