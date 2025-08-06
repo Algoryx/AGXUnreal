@@ -36,6 +36,9 @@ class AGXUNREAL_API UAGX_ShapeMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_ShapeMaterial& Other) const;
+
 	// Bulk properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Material")

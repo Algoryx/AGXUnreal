@@ -14,6 +14,11 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 
+bool UAGX_ShapeMaterial::operator==(const UAGX_ShapeMaterial& Other) const
+{
+	return Bulk == Other.Bulk && Surface == Other.Surface && Wire == Other.Wire;
+}
+
 #if WITH_EDITOR
 void UAGX_ShapeMaterial::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {

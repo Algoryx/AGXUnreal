@@ -778,10 +778,10 @@ void FAGXUnrealEditorModule::UnregisterPlacementCategory()
 
 void FAGXUnrealEditorModule::InitializeAssets()
 {
-	AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateShapeMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateContactMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary();
 }
 
 void FAGXUnrealEditorModule::OnGrabModeCommand() const

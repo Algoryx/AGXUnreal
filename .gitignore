@@ -1,7 +1,3 @@
-/Content/Terrain/TerrainMaterialLibrary
-/Content/Shape/ContactMaterialLibrary
-/Content/Shape/ShapeMaterialLibrary
-/Content/Sensor/Lidar/AmbientMaterialLibrary
 /license/agx.lic
 /Source/AGXUnreal/Public/AGX_BuildInfo.h
 /Source/ThirdParty/agx
