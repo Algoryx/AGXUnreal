@@ -1347,9 +1347,6 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 		MergeSplitProperties.CopyFrom(Msp, Context);
 
 	ImportGuid = Barrier.GetGuid();
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_WireComponent::StaticClass());
-	Rename(*Name);
 
 	auto ParameterControllerBarrier = Barrier.GetParameterController();
 	if (ParameterControllerBarrier.HasNative())
@@ -1357,6 +1354,10 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 
 	if (Context == nullptr || Context->Wires == nullptr || Context->ShapeMaterials == nullptr)
 		return; // We are done.
+
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), Barrier.GetName(), UAGX_WireComponent::StaticClass());
+	Rename(*Name);
 
 	AGX_CHECK(!Context->Wires->Contains(ImportGuid));
 	Context->Wires->Add(ImportGuid, this);

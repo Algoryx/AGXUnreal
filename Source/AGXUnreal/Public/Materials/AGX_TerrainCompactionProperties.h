@@ -20,6 +20,9 @@ struct AGXUNREAL_API FAGX_TerrainCompactionProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainCompactionProperties&) const = default;
+
 	/**
 	 * Sets how the compaction should increase the angle of repose.
 	 */

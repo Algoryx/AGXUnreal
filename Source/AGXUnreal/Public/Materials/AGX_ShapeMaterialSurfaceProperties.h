@@ -19,6 +19,9 @@ struct AGXUNREAL_API FAGX_ShapeMaterialSurfaceProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ShapeMaterialSurfaceProperties& Other) const = default;
+
 	/**
 	 * Specify if the friction should be used when solving contacts for this Material.
 	 * If this is set to false, the solver will NOT calculate any friction when this material

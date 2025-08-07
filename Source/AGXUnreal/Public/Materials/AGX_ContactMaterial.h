@@ -48,6 +48,9 @@ class AGXUNREAL_API UAGX_ContactMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_ContactMaterial& Other) const;
+
 	/**
 	 * First material.
 	 */

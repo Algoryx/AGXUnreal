@@ -104,12 +104,12 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 
 	ImplicitFrictionMultiplier = Barrier.GetImplicitFrictionMultiplier();
 
+	if (Context == nullptr || Context->Tires == nullptr || Context->RigidBodies == nullptr)
+		return; // We are done.
+
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), Barrier.GetName(), UAGX_TwoBodyTireComponent::StaticClass());
 	Rename(*Name);
-
-	if (Context == nullptr || Context->Tires == nullptr || Context->RigidBodies == nullptr)
-		return; // We are done.
 
 	if (SetupRigidBodies(Barrier, *this, *Context))
 	{

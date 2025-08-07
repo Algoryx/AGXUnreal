@@ -307,8 +307,6 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 
 	UAGX_RigidBodyComponent* Body = GetRigidBody(Barrier, Context);
 
-	Rename(*CreateShovelName(*this, Body));
-
 	const FName BodyName = Body != nullptr ? Body->GetFName() : NAME_None;
 	RigidBody.Name = BodyName;
 	TopEdge.Start.Parent.Name = BodyName;
@@ -320,6 +318,8 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr ||
 		Context->RigidBodies == nullptr)
 		return; // We are done.
+
+	Rename(*CreateShovelName(*this, Body));
 
 	AGX_CHECK(!Context->Shovels->Contains(ImportGuid));
 	Context->Shovels->Add(ImportGuid, this);

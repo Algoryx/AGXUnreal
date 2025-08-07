@@ -14,6 +14,11 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 
+bool UAGX_ShapeMaterial::operator==(const UAGX_ShapeMaterial& Other) const
+{
+	return Bulk == Other.Bulk && Surface == Other.Surface && Wire == Other.Wire;
+}
+
 #if WITH_EDITOR
 void UAGX_ShapeMaterial::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
@@ -356,13 +361,13 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 
 	ImportGuid = Source.GetGuid();
 
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
-	Rename(*Name);
-
 	if (Context != nullptr && Context->ShapeMaterials != nullptr &&
 		!Context->ShapeMaterials->Contains(ImportGuid))
 	{
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
+		Rename(*Name);
+
 		Context->ShapeMaterials->Add(ImportGuid, this);
 	}
 }

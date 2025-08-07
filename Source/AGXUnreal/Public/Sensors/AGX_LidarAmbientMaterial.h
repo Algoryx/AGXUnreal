@@ -20,6 +20,8 @@ class AGXUNREAL_API UAGX_LidarAmbientMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+	bool operator==(const UAGX_LidarAmbientMaterial& Other) const;
+
 	UPROPERTY(EditAnywhere, Category = "AGX Lidar")
 	float RefractiveIndex {1.000273f};
 
