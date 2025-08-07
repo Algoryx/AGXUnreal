@@ -12,10 +12,6 @@
 void UAGX_ObserverFrameComponent::CopyFrom(
 	const FObserverFrameData& Data, FAGX_ImportContext* Context)
 {
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Data.Name, UAGX_ObserverFrameComponent::StaticClass());
-	Rename(*Name);
-
 	SetRelativeTransform(Data.Transform);
 	ImportGuid = Data.ObserverGuid;
 
@@ -23,5 +19,9 @@ void UAGX_ObserverFrameComponent::CopyFrom(
 	{
 		AGX_CHECK(!Context->ObserverFrames->Contains(ImportGuid));
 		Context->ObserverFrames->Add(ImportGuid, this);
+
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			GetOwner(), Data.Name, UAGX_ObserverFrameComponent::StaticClass());
+		Rename(*Name);
 	}
 }

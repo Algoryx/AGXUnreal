@@ -500,10 +500,6 @@ void UAGX_RigidBodyComponent::WritePropertiesToNative()
 void UAGX_RigidBodyComponent::CopyFrom(
 	const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context)
 {
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Barrier.GetName(), UAGX_RigidBodyComponent::StaticClass());
-	Rename(*Name);
-
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
 	const FMassPropertiesBarrier& MassProperties = Barrier.GetMassProperties();
 	ImportGuid = Barrier.GetGuid();
@@ -530,6 +526,10 @@ void UAGX_RigidBodyComponent::CopyFrom(
 
 	if (Context == nullptr || Context->RigidBodies == nullptr)
 		return; // We are done.
+
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), Barrier.GetName(), UAGX_RigidBodyComponent::StaticClass());
+	Rename(*Name);
 
 	AGX_CHECK(!Context->RigidBodies->Contains(ImportGuid));
 	Context->RigidBodies->Add(ImportGuid, this);

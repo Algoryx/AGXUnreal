@@ -582,10 +582,6 @@ void UAGX_ConstraintComponent::CopyFrom(
 	SolveType = SolveTypeBarrier;
 	bComputeForces = Barrier.GetEnableComputeForces();
 
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Barrier.GetName(), UAGX_ConstraintComponent::StaticClass());
-	Rename(*Name);
-
 	const static TArray<EGenericDofIndex> Dofs {
 		EGenericDofIndex::Translational1, EGenericDofIndex::Translational2,
 		EGenericDofIndex::Translational3, EGenericDofIndex::Rotational1,
@@ -611,6 +607,10 @@ void UAGX_ConstraintComponent::CopyFrom(
 
 	if (Context != nullptr && Context->Constraints != nullptr && Context->RigidBodies != nullptr)
 	{
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			GetOuter(), Barrier.GetName(), UAGX_ConstraintComponent::StaticClass());
+		Rename(*Name);
+
 		AGX_ConstraintComponent_helpers::SetupBodyAttachments(Barrier, *this, *Context);
 		AGX_CHECK(!Context->Constraints->Contains(ImportGuid));
 		Context->Constraints->Add(ImportGuid, this);

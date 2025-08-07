@@ -378,9 +378,6 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	ImportGuid = Barrier.GetShapeGuid();
 	ImportName = Barrier.GetName();
 	SurfaceVelocity = Barrier.GetSurfaceVelocity();
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_ShapeComponent::StaticClass());
-	Rename(*Name);
 
 	const EAGX_ShapeSensorType BarrierSensorType = Barrier.GetIsSensorGeneratingContactData()
 													   ? EAGX_ShapeSensorType::ContactsSensor
@@ -400,6 +397,10 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 
 	if (Context == nullptr || Context->Shapes == nullptr || Context->Outer == nullptr)
 		return; // We are done.
+
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), Barrier.GetName(), UAGX_ShapeComponent::StaticClass());
+	Rename(*Name);
 
 	AGX_CHECK(!Context->Shapes->Contains(ImportGuid));
 	Context->Shapes->Add(ImportGuid, this);
