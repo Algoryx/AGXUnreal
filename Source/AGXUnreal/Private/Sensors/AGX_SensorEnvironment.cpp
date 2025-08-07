@@ -736,6 +736,8 @@ void AAGX_SensorEnvironment::BeginPlay()
 		RegisterLidars();
 	}
 
+	RegisterIMUs();
+
 	if (bAutoAddObjects)
 	{
 		// Add Terrains.

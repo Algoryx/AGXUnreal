@@ -109,7 +109,9 @@ FIMUBarrier* UAGX_IMUSensorComponent::GetOrCreateNative()
 		return GetNative();
 
 	NativeBarrier.AllocateNative();
-	UpdateNativeProperties();
+	if (HasNative())
+		UpdateNativeProperties();
+
 	return GetNative();
 }
 
