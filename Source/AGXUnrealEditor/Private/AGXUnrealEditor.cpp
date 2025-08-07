@@ -74,6 +74,7 @@
 #include "Sensors/AGX_CameraSensorComponentCustomization.h"
 #include "Sensors/AGX_CameraSensorComponentVisualizer.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
+#include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarAmbientMaterialCustomization.h"
@@ -456,6 +457,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_HeightFieldBoundsComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_IMUSensorComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_LidarAmbientMaterial::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_LidarAmbientMaterialCustomization::MakeInstance));
@@ -590,6 +596,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_LidarAmbientMaterial::StaticClass()->GetFName());
