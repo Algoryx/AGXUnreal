@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/AGX_IMUSensorReference.h"
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_ShapeInstanceData.h"
 
@@ -35,6 +36,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
 	TArray<FAGX_LidarSensorReference> LidarSensors;
+
+	/**
+	 * Array of all IMU Sensor Components that should be active in the simulation.
+	 * Any IMU Sensor Components that should be active has to be added by the user to this Array.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
+	TArray<FAGX_IMUSensorReference> IMUSensors;
 
 	/**
 	 * Objects in the Level that gets within the range of any added Lidar will automatically be

@@ -76,6 +76,7 @@
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
+#include "Sensors/AGX_IMUSensorReference.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarAmbientMaterialCustomization.h"
 #include "Sensors/AGX_LidarAmbientMaterialTypeActions.h"
@@ -366,6 +367,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_FrameCustomization::MakeInstance));
 
+	// IMU Sensor Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
 	// Lidar Sensor Reference uses the base class customization.
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName(),
@@ -551,6 +558,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 		FAGX_ConstraintBodyAttachment::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(FAGX_Frame::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName());
