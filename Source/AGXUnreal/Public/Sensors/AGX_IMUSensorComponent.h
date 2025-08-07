@@ -62,6 +62,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX IMU", Meta = (ExposeOnSpawn))
 	bool bUseMagnetometer {false};
 
+	void UpdateNativeTransform();
+
 	FIMUBarrier* GetOrCreateNative();
 	FIMUBarrier* GetNative();
 	const FIMUBarrier* GetNative() const;

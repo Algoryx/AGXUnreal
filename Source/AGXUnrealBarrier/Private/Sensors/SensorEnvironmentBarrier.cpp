@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/RtAmbientMaterialBarrier.h"
 #include "Sensors/RtLambertianOpaqueMaterialBarrier.h"
@@ -85,6 +86,13 @@ bool FSensorEnvironmentBarrier::Add(FLidarBarrier& Lidar)
 	return NativeRef->Native->add(Lidar.GetNative()->Native);
 }
 
+bool FSensorEnvironmentBarrier::Add(FIMUBarrier& IMU)
+{
+	check(HasNative());
+	check(IMU.HasNative());
+	return NativeRef->Native->add(IMU.GetNative()->Native);
+}
+
 bool FSensorEnvironmentBarrier::Add(FTerrainBarrier& Terrain)
 {
 	check(HasNative());
@@ -111,6 +119,13 @@ bool FSensorEnvironmentBarrier::Remove(FLidarBarrier& Lidar)
 	check(HasNative());
 	check(Lidar.HasNative());
 	return NativeRef->Native->remove(Lidar.GetNative()->Native);
+}
+
+bool FSensorEnvironmentBarrier::Remove(FIMUBarrier& IMU)
+{
+	check(HasNative());
+	check(IMU.HasNative());
+	return NativeRef->Native->remove(IMU.GetNative()->Native);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FTerrainBarrier& Terrain)

@@ -97,6 +97,12 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 
 #undef LOCTEXT_NAMESPACE
 
+void UAGX_IMUSensorComponent::UpdateNativeTransform()
+{
+	if (HasNative())
+		NativeBarrier.SetTransform(GetComponentTransform());
+}
+
 FIMUBarrier* UAGX_IMUSensorComponent::GetOrCreateNative()
 {
 	if (HasNative())
