@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 
@@ -77,8 +78,33 @@ void UAGX_IMUSensorComponent::PostInitProperties()
 void UAGX_IMUSensorComponent::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogTemp, Warning,
+			TEXT("UpdateNativeProperties called on IMU Sensor Component '%s' in '%s' which does "
+				 "not have a Native. Nothing will be done."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
 
 	NativeBarrier.SetEnabled(bEnabled);
+}
+
+void UAGX_IMUSensorComponent::CreateNative()
+{
+	AGX_CHECK(!HasNative());
+	if (HasNative())
+		return;
+
+	FIMUAllocationParameters Params;
+	Params.bUseAccelerometer = bUseAccelerometer;
+	Params.bUseGyroscope = bUseGyroscope;
+	Params.bUseMagnetometer = bUseMagnetometer;
+
+	NativeBarrier.AllocateNative(Params);
+	if (HasNative())
+		UpdateNativeProperties();
 }
 
 void UAGX_IMUSensorComponent::InitPropertyDispatcher()
@@ -97,6 +123,32 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 
 #undef LOCTEXT_NAMESPACE
 
+FVector UAGX_IMUSensorComponent::GetAcclerometerData() const
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_IMUSensorComponent::GetAcclerometerData() called in IMU Sensor Component "
+				 "'%s' in '%s' that "
+				 "does not have a Native object. Returning zero vector."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+
+	if (!bUseAccelerometer)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_IMUSensorComponent::GetAcclerometerData() called in IMU Sensor Component "
+				 "'%s' in '%s' that does not have an Accelerometer. Returning zero vector."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+
+	return NativeBarrier.GetAccelerometerData();
+}
+
 void UAGX_IMUSensorComponent::UpdateNativeTransform()
 {
 	if (HasNative())
@@ -108,10 +160,7 @@ FIMUBarrier* UAGX_IMUSensorComponent::GetOrCreateNative()
 	if (HasNative())
 		return GetNative();
 
-	NativeBarrier.AllocateNative();
-	if (HasNative())
-		UpdateNativeProperties();
-
+	CreateNative();
 	return GetNative();
 }
 

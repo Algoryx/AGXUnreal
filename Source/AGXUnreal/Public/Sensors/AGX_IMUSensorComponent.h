@@ -17,7 +17,7 @@
  * Gyroscope and Magnetometer which can be individually enabled or disabled. All three sub-sensor
  * types have a number of features such as signal noise, zero offset bias among others that can be
  * configured to yield realistic sensor data.
- * 
+ *
  * Note that to use the IMU Sensor Component, it must be registered with an AGX Sensor Environment
  * Actor.
  */
@@ -62,6 +62,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX IMU", Meta = (ExposeOnSpawn))
 	bool bUseMagnetometer {false};
 
+	/**
+	 * Get the latest Accelerometer data from this IMU Sensor.
+	 * This funcion should only be called during Play and if this IMU Sensor has an Accelerometer.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAcclerometerData() const;
+
 	void UpdateNativeTransform();
 
 	FIMUBarrier* GetOrCreateNative();
@@ -74,7 +81,6 @@ public:
 	virtual void SetNativeAddress(uint64 NativeAddress) override;
 	// ~/End IAGX_NativeOwner interface.
 
-
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -84,7 +90,6 @@ public:
 #endif
 	//~ End UActorComponent Interface
 
-
 	//~ Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
@@ -92,9 +97,9 @@ public:
 #endif
 	//~ End UObject interface.
 
-
 private:
 	void UpdateNativeProperties();
+	void CreateNative();
 
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
