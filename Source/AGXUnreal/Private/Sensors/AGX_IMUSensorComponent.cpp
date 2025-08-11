@@ -7,6 +7,8 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_RigidBodyComponent.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 #define LOCTEXT_NAMESPACE "AGX_IMUSensor"
 
@@ -75,6 +77,50 @@ void UAGX_IMUSensorComponent::PostInitProperties()
 	InitPropertyDispatcher();
 }
 
+void UAGX_IMUSensorComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
+		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
+}
+#endif // WITH_EDITOR
+
+namespace AGX_IMUSensorComponent_helpers
+{
+	void SetLocalScope(UAGX_IMUSensorComponent& Component)
+	{
+		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		Component.RigidBody.LocalScope = Owner;
+	}
+
+	bool EnsureHasNative(const UAGX_IMUSensorComponent& IMU, const TCHAR* FunctionName)
+	{
+		if (IMU.HasNative())
+			return true;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("%s called on IMU Sensor Component '%s' in '%s' with no Native object. Ignoring."),
+			FunctionName, *IMU.GetName(), *GetLabelSafe(IMU.GetOwner()));
+		return false;
+	}
+}
+
+void UAGX_IMUSensorComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// On Register is called after all object initialization has completed, i.e. Unreal Engine
+	// will not be messing with this object anymore. It is now safe to set the Local Scope on our
+	// Component References.
+	AGX_IMUSensorComponent_helpers::SetLocalScope(*this);
+}
+
 void UAGX_IMUSensorComponent::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
@@ -83,7 +129,7 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 		UE_LOG(
 			LogTemp, Warning,
 			TEXT("UpdateNativeProperties called on IMU Sensor Component '%s' in '%s' which does "
-				 "not have a Native. Nothing will be done."),
+				 "not have a Native object. Nothing will be done."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -97,42 +143,48 @@ void UAGX_IMUSensorComponent::CreateNative()
 	if (HasNative())
 		return;
 
+	auto Body = RigidBody.GetRigidBody();
+	if (Body == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_IMUSensorComponent::CreateNative called on IMU Sensor Component '%s' in "
+				 "'%s' which does not have a valid Rigid Body selected. Native object will not be "
+				 "created."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	auto BodyBarrier = Body->GetOrCreateNative();
+
+	if (BodyBarrier == nullptr || !BodyBarrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("The selected Rigid Body for IMU Sensor Component '%s' in "
+				 "'%s' does not have a valid Native Object."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	FTransform BodyTransform(Body->GetRotation(), Body->GetPosition());
+
 	FIMUAllocationParameters Params;
 	Params.bUseAccelerometer = bUseAccelerometer;
 	Params.bUseGyroscope = bUseGyroscope;
 	Params.bUseMagnetometer = bUseMagnetometer;
+	Params.LocalTransform = GetComponentTransform().GetRelativeTransform(BodyTransform);
 
-	NativeBarrier.AllocateNative(Params);
+	NativeBarrier.AllocateNative(Params, *BodyBarrier);
 	if (HasNative())
 		UpdateNativeProperties();
 }
 
-void UAGX_IMUSensorComponent::InitPropertyDispatcher()
+FVector UAGX_IMUSensorComponent::GetAcclerometerDataLocal() const
 {
-	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
-		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
-	if (PropertyDispatcher.IsInitialized())
-		return;
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
-}
-
-#endif // WITH_EDITOR
-
-#undef LOCTEXT_NAMESPACE
-
-FVector UAGX_IMUSensorComponent::GetAcclerometerData() const
-{
-	if (!HasNative())
+	using namespace AGX_IMUSensorComponent_helpers;
+	if (!EnsureHasNative(*this, TEXT("UAGX_IMUSensorComponent::GetAcclerometerData()")))
 	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("UAGX_IMUSensorComponent::GetAcclerometerData() called in IMU Sensor Component "
-				 "'%s' in '%s' that "
-				 "does not have a Native object. Returning zero vector."),
-			*GetName(), *GetLabelSafe(GetOwner()));
 		return FVector::ZeroVector;
 	}
 
@@ -149,10 +201,75 @@ FVector UAGX_IMUSensorComponent::GetAcclerometerData() const
 	return NativeBarrier.GetAccelerometerData();
 }
 
-void UAGX_IMUSensorComponent::UpdateNativeTransform()
+FVector UAGX_IMUSensorComponent::GetAcclerometerDataWorld() const
 {
-	if (HasNative())
-		NativeBarrier.SetTransform(GetComponentTransform());
+	const FVector LocalAccel = GetAcclerometerDataLocal();
+	const FTransform IMUTransform = NativeBarrier.GetTransform();
+	const FVector WorldAccel = IMUTransform.TransformVectorNoScale(LocalAccel);
+	return WorldAccel;
+}
+
+FVector UAGX_IMUSensorComponent::GetGyroscopeDataLocal() const
+{
+	using namespace AGX_IMUSensorComponent_helpers;
+	if (!EnsureHasNative(*this, TEXT("UAGX_IMUSensorComponent::GetGyroscopeDataLocal()")))
+		return FVector::ZeroVector;
+
+	if (!bUseGyroscope)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_IMUSensorComponent::GetGyroscopeDataLocal() called in IMU Sensor Component "
+				 "'%s' in '%s' that does not have a Gyroscope. Returning zero vector."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+
+	return NativeBarrier.GetGyroscopeData();
+}
+
+FVector UAGX_IMUSensorComponent::GetGyroscopeDataWorld() const
+{
+	const FVector LocalGyro = GetGyroscopeDataLocal();
+	const FTransform IMUTransform = NativeBarrier.GetTransform();
+	const FVector WorldGyro = IMUTransform.TransformVectorNoScale(LocalGyro);
+	return WorldGyro;
+}
+
+FVector UAGX_IMUSensorComponent::GetMagnetometerDataLocal() const
+{
+	using namespace AGX_IMUSensorComponent_helpers;
+	if (!EnsureHasNative(*this, TEXT("UAGX_IMUSensorComponent::GetMagnetometerDataLocal()")))
+		return FVector::ZeroVector;
+
+	if (!bUseMagnetometer)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"UAGX_IMUSensorComponent::GetMagnetometerDataLocal() called in IMU Sensor "
+				"Component '%s' in '%s' that does not have a Magnetometer. Returning zero vector."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return FVector::ZeroVector;
+	}
+
+	return NativeBarrier.GetMagnetometerData();
+}
+
+FVector UAGX_IMUSensorComponent::GetMagnetometerDataWorld() const
+{
+	const FVector LocalMag = GetMagnetometerDataLocal();
+	const FTransform IMUTransform = NativeBarrier.GetTransform();
+	const FVector WorldMag = IMUTransform.TransformVectorNoScale(LocalMag);
+	return WorldMag;
+}
+
+void UAGX_IMUSensorComponent::UpdateTransformFromNative()
+{
+	if (!HasNative())
+		return;
+
+	SetWorldTransform(NativeBarrier.GetTransform());
 }
 
 FIMUBarrier* UAGX_IMUSensorComponent::GetOrCreateNative()
@@ -225,3 +342,5 @@ TStructOnScope<FActorComponentInstanceData> UAGX_IMUSensorComponent::GetComponen
 			return static_cast<IAGX_NativeOwner*>(AsThisClass);
 		});
 }
+
+#undef LOCTEXT_NAMESPACE

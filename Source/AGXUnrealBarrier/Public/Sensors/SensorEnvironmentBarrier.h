@@ -54,6 +54,10 @@ public:
 	void SetLidarSurfaceMaterialOrDefault(
 		FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material);
 
+	/// In Tesla [T].
+	void SetMagneticField(const FVector& Field);
+	FVector GetMagneticField() const;
+
 	/// Returns true if raytrace (RTX) is supported on this computer.
 	static bool IsRaytraceSupported();
 

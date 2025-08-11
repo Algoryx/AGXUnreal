@@ -8,6 +8,8 @@
 // Standard library includes.
 #include <memory>
 
+class FRigidBodyBarrier;
+
 struct FIMURef;
 
 struct FIMUAllocationParameters
@@ -15,6 +17,7 @@ struct FIMUAllocationParameters
 	bool bUseAccelerometer {false};
 	bool bUseGyroscope {false};
 	bool bUseMagnetometer {false};
+	FTransform LocalTransform;
 };
 
 class AGXUNREALBARRIER_API FIMUBarrier
@@ -26,7 +29,7 @@ public:
 	~FIMUBarrier();
 
 	bool HasNative() const;
-	void AllocateNative(const FIMUAllocationParameters& Params);
+	void AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body);
 	FIMURef* GetNative();
 	const FIMURef* GetNative() const;
 	uint64 GetNativeAddress() const;
@@ -40,10 +43,22 @@ public:
 	FTransform GetTransform() const;
 
 	/**
-	* Gets the latest Accelerometer output data from the IMU.
-	* This data is only valid if this IMU was created with an Accelerometer.
-	*/
+	 * Gets the latest Accelerometer output data from the IMU.
+	 * The Accelerometer data is expressed in the IMU's frame.
+	 * This data is only valid if this IMU was created with an Accelerometer.
+	 */
 	FVector GetAccelerometerData() const;
+
+public:
+	/**
+	 * Gyroscope angular velocity in the IMU frame [deg/s]. Valid only if IMU has a Gyroscope.
+	 */
+	FVector GetGyroscopeData() const;
+
+	/**
+	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.
+	 */
+	FVector GetMagnetometerData() const;
 
 	/**
 	 * Get the Output data from the IMU sensor produced during the latest AGX step.
@@ -55,7 +70,7 @@ public:
 	 * I.e. For an IMU with an Accelerometer and a Magnetometer, the output will be:
 	 * [Acc_x, Acc_y, Acc_z, Mag_x, Mag_y, Mag_z].
 	 */
-	//TArray<double> GetOutput() const;
+	// TArray<double> GetOutput() const;
 
 	/**
 	 * Increment the reference count of the AGX Dynamics object. This should always be paired with

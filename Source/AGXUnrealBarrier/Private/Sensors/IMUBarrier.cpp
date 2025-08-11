@@ -3,6 +3,8 @@
 #include "Sensors/IMUBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXRefs.h"
+#include "RigidBodyBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "TypeConversions.h"
 
@@ -16,6 +18,8 @@
 #include <agxSensor/IMUModelSensorAttachment.h>
 #include <agxSensor/MagnetometerModel.h>
 #include "EndAGXIncludes.h"
+
+#define IMUOutputID 1
 
 FIMUBarrier::FIMUBarrier()
 	: NativeRef {new FIMURef}
@@ -67,7 +71,7 @@ namespace IMUBarrier_helpers
 	template <typename T>
 	IMUOut3Dof GetDataFrom(agxSensor::IMUOutputHandler* Handler, size_t Offset)
 	{
-		auto View = Handler->template view<T>(0);
+		auto View = Handler->template view<T>(IMUOutputID);
 		if (View.size() == 0)
 		{
 			return {}; // default-initialized IMUOutXYZ (all zeros)
@@ -100,11 +104,10 @@ namespace IMUBarrier_helpers
 	template <typename T, FieldT... Fs>
 	static agxSensor::IMUOutput* AddOutput(agxSensor::IMUOutputHandler* H)
 	{
-		// If add() fails, return nullptr
-		auto Opt = H->add<T, Fs...>();
-		if (!Opt)
+		if (!H->add<T, Fs...>(IMUOutputID))
 			return nullptr;
-		return Opt->second; // IMUOutput*
+
+		return H->get(1);
 	}
 
 	agxSensor::IMUOutput* AddOutputs(agxSensor::IMUOutputHandler* H, size_t NumSensors)
@@ -113,28 +116,31 @@ namespace IMUBarrier_helpers
 		{
 			case 1:
 				return AddOutput<
-					IMUOut3Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64, FieldT::SENSOR_0_Z_F64>(
-					H);
+					IMUOut3Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64,
+					FieldT::SENSOR_0_Z_F64>(H);
 
 			case 2:
 				return AddOutput<
-					IMUOut6Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64, FieldT::SENSOR_0_Z_F64,
-					FieldT::SENSOR_1_X_F64, FieldT::SENSOR_1_Y_F64, FieldT::SENSOR_1_Z_F64>(H);
+					IMUOut6Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64,
+					FieldT::SENSOR_0_Z_F64, FieldT::SENSOR_1_X_F64, FieldT::SENSOR_1_Y_F64,
+					FieldT::SENSOR_1_Z_F64>(H);
 
 			case 3:
 				return AddOutput<
-					IMUOut9Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64, FieldT::SENSOR_0_Z_F64,
-					FieldT::SENSOR_1_X_F64, FieldT::SENSOR_1_Y_F64, FieldT::SENSOR_1_Z_F64, FieldT::SENSOR_2_X_F64,
-					FieldT::SENSOR_2_Y_F64, FieldT::SENSOR_2_Z_F64>(H);
+					IMUOut9Dof, FieldT::SENSOR_0_X_F64, FieldT::SENSOR_0_Y_F64,
+					FieldT::SENSOR_0_Z_F64, FieldT::SENSOR_1_X_F64, FieldT::SENSOR_1_Y_F64,
+					FieldT::SENSOR_1_Z_F64, FieldT::SENSOR_2_X_F64, FieldT::SENSOR_2_Y_F64,
+					FieldT::SENSOR_2_Z_F64>(H);
 		}
 
 		return nullptr;
 	}
 }
 
-void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params)
+void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
 {
 	check(!HasNative());
+	check(Body.HasNative());
 
 	using namespace agxSensor;
 	IMUModelSensorAttachmentRefVector SensorAttachments;
@@ -157,8 +163,11 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params)
 			agx::AffineMatrix4x4(), MagnetometerModel::makeIdealModel()));
 	}
 
-	NativeRef->Native =
-		new agxSensor::IMU(new agx::Frame(), new agxSensor::IMUModel(SensorAttachments));
+	agx::FrameRef IMUFrame =
+		ConvertFrame(Params.LocalTransform.GetLocation(), Params.LocalTransform.GetRotation());
+	IMUFrame->setParent(Body.GetNative()->Native->getFrame());
+
+	NativeRef->Native = new agxSensor::IMU(IMUFrame, new agxSensor::IMUModel(SensorAttachments));
 
 	const auto NumSensors = IMUBarrier_helpers::GetNumSensors(*NativeRef->Native);
 	if (NumSensors > 0)
@@ -242,7 +251,7 @@ FVector FIMUBarrier::GetAccelerometerData() const
 				 "Returning zero data."));
 		return Result;
 	}
-	
+
 	static constexpr size_t Offset = 0; // Accelerometer is always first.
 	IMUOut3Dof OutputAGX =
 		IMUBarrier_helpers::GetData(NativeRef->Native->getOutputHandler(), NumSensors, Offset);
@@ -250,6 +259,50 @@ FVector FIMUBarrier::GetAccelerometerData() const
 	// [m/s^2] to [cm/s^2].
 	Result = ConvertDisplacement(OutputAGX.Data[0], OutputAGX.Data[1], OutputAGX.Data[2]);
 	return Result;
+}
+
+FVector FIMUBarrier::GetGyroscopeData() const
+{
+	using namespace IMUBarrier_helpers;
+
+	const size_t NumSensors = GetNumSensors(*NativeRef->Native);
+	const bool bHasAcc = HasAccelerometer();
+	const size_t Offset = bHasAcc ? 3 : 0; // Gyro is either right after Accelerometer or first.
+	if (NumSensors == 0 || NumSensors < (Offset / 3))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FIMUBarrier::GetGyroscopeData called on IMU without a Gyroscope. Returning zero "
+				 "data."));
+		return FVector::ZeroVector;
+	}
+
+	IMUOut3Dof OutputAGX = GetData(NativeRef->Native->getOutputHandler(), NumSensors, Offset);
+
+	return ConvertAngularVelocity(
+		agx::Vec3(OutputAGX.Data[0], OutputAGX.Data[1], OutputAGX.Data[2]));
+}
+
+FVector FIMUBarrier::GetMagnetometerData() const
+{
+	using namespace IMUBarrier_helpers;
+
+	const size_t NumSensors = GetNumSensors(*NativeRef->Native);
+	const size_t Offset = (NumSensors - 1) * 3; // Magnetometer is always last.
+	if (NumSensors == 0)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FIMUBarrier::GetMagnetometerData called on IMU without a Magnetometer. Returning zero "
+				 "data."));
+		return FVector::ZeroVector;
+	}
+
+	IMUOut3Dof OutputAGX = GetData(NativeRef->Native->getOutputHandler(), NumSensors, Offset);
+
+	// In Tesla [T], no unit conversion needed, just axis flip.
+	return ConvertVector(
+		agx::Vec3(OutputAGX.Data[0], OutputAGX.Data[1], OutputAGX.Data[2]));
 }
 
 void FIMUBarrier::IncrementRefCount() const

@@ -23,6 +23,7 @@
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceSurfaceMaterial.h>
 #include <agxSensor/RaytraceConfig.h>
+#include <agxSensor/UniformMagneticField.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
@@ -197,6 +198,33 @@ void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
 	FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material)
 {
 	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterialOrDefault(Wire, Material);
+}
+
+void FSensorEnvironmentBarrier::SetMagneticField(const FVector& MagneticField)
+{
+	check(HasNative());
+	agxSensor::UniformMagneticFieldRef Field = dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
+	if (Field == nullptr)
+	{
+		Field = new agxSensor::UniformMagneticField();
+		NativeRef->Native->setMagneticField(Field);
+	}
+
+	Field->setMagneticField(ConvertVector(MagneticField));
+}
+
+FVector FSensorEnvironmentBarrier::GetMagneticField() const
+{
+	check(HasNative());
+	FVector FieldUnreal = FVector::ZeroVector;
+
+	agxSensor::UniformMagneticFieldRef Field =
+		dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
+	if (Field == nullptr)
+		return FieldUnreal;
+
+	FieldUnreal = ConvertVector(Field->getMagneticField());
+	return FieldUnreal;
 }
 
 bool FSensorEnvironmentBarrier::IsRaytraceSupported()

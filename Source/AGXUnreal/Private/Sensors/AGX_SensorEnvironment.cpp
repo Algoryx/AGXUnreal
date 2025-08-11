@@ -1,8 +1,10 @@
 #include "Sensors/AGX_SensorEnvironment.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_MeshWithTransform.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "AGX_Simulation.h"
 #include "Materials/AGX_TerrainMaterial.h"
@@ -205,6 +207,21 @@ AAGX_SensorEnvironment::AAGX_SensorEnvironment()
 
 	RootComponent = CreateDefaultSubobject<UAGX_SensorEnvironmentSpriteComponent>(
 		USceneComponent::GetDefaultSceneRootVariableName());
+}
+
+void AAGX_SensorEnvironment::SetMagneticField(const FVector& Field)
+{
+	MagneticField = Field;
+	if (HasNative())
+		NativeBarrier.SetMagneticField(Field);
+}
+
+FVector AAGX_SensorEnvironment::GetMagneticField() const
+{
+	if (HasNative())
+		return NativeBarrier.GetMagneticField();
+
+	return MagneticField;
 }
 
 bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
@@ -812,6 +829,8 @@ void AAGX_SensorEnvironment::InitializeNative()
 			*GetName());
 	}
 
+	NativeBarrier.SetMagneticField(MagneticField);
+
 	// In case the Level has no other AGX types in it.
 	Sim->EnsureStepperCreated();
 
@@ -1043,7 +1062,7 @@ void AAGX_SensorEnvironment::TickTrackedIMUs() const
 	for (auto IMURef : TrackedIMUs)
 	{
 		if (auto IMU = IMURef.GetIMUComponent())
-			IMU->UpdateNativeTransform();
+			IMU->UpdateTransformFromNative();
 	}
 }
 
@@ -1190,4 +1209,28 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshCo
 	ShapeInstanceData->InstanceData.RefCount--;
 	if (ShapeInstanceData->InstanceData.RefCount == 0)
 		TrackedAGXMeshes.Remove(&Mesh);
+}
+
+void AAGX_SensorEnvironment::PostInitProperties()
+{
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
+}
+
+void AAGX_SensorEnvironment::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+	{
+		return;
+	}
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagneticField);
+}
+
+void AAGX_SensorEnvironment::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+	Super::PostEditChangeChainProperty(Event);
 }

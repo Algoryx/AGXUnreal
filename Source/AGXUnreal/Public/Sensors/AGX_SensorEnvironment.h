@@ -96,6 +96,27 @@ public:
 	bool UpdateAddedInstancedMeshesTransforms {true};
 
 	/**
+	 * The (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
+	FVector MagneticField {0.0, 44.754e-6, 0.0};
+
+	/**
+	 * Set the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	void SetMagneticField(const FVector& Field);
+
+	/**
+	 * Get the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	FVector GetMagneticField() const;
+
+	/**
 	 * For debugging purposes. If set to true, a message is logged in the Output Console each time
 	 * an object is succesfully added to this Sensor Environment.
 	 */
@@ -292,6 +313,12 @@ private:
 	void OnLidarEndOverlapInstancedStaticMeshComponent(
 		UInstancedStaticMeshComponent& Mesh, int32 Index);
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
+
+#if WITH_EDITOR
+	virtual void PostInitProperties() override;
+	void InitPropertyDispatcher();
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif // WITH_EDITOR
 
 private:
 	TMap<FAGX_LidarSensorReference, TObjectPtr<USphereComponent>> TrackedLidars;

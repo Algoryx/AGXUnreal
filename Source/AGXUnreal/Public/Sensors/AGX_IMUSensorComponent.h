@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "AGX_RigidBodyReference.h"
 #include "Sensors/IMUBarrier.h"
 
 // Unreal Engine includes.
@@ -18,6 +19,9 @@
  * types have a number of features such as signal noise, zero offset bias among others that can be
  * configured to yield realistic sensor data.
  *
+ * To get the latest data from the sub-sensors, the GetAccelerometerData, GetGyroscopeData and
+ * GetMagnetometer data can be called respectively.
+ *
  * Note that to use the IMU Sensor Component, it must be registered with an AGX Sensor Environment
  * Actor.
  */
@@ -28,6 +32,14 @@ class AGXUNREAL_API UAGX_IMUSensorComponent : public USceneComponent, public IAG
 
 public:
 	UAGX_IMUSensorComponent();
+
+	/**
+	 * The Rigid Body this IMU Sensor is rigidly attached to.
+	 * The relative transform this IMU Sensor has to this body at BeginPlay (or when registered) is
+	 * preserved, keeping that offset fixed for the duration of the simulation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX IMU")
+	FAGX_RigidBodyReference RigidBody;
 
 	/**
 	 * Enable or disable this IMU Sensor Component.
@@ -63,13 +75,56 @@ public:
 	bool bUseMagnetometer {false};
 
 	/**
-	 * Get the latest Accelerometer data from this IMU Sensor.
-	 * This funcion should only be called during Play and if this IMU Sensor has an Accelerometer.
+	 * Get the latest Accelerometer data from this IMU Sensor (expressed in the local IMU Sensor
+	 * frame). This funcion should only be called during Play and if this IMU Sensor has an
+	 * Accelerometer [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	FVector GetAcclerometerData() const;
+	FVector GetAcclerometerDataLocal() const;
 
-	void UpdateNativeTransform();
+	/**
+	 * Get the latest Accelerometer data from this IMU Sensor (expressed in the world frame).
+	 * This funcion should only be called during Play and if this IMU Sensor has an
+	 * Accelerometer [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAcclerometerDataWorld() const;
+
+	/**
+	 * Get the latest Gyroscope data from this IMU Sensor (expressed in the local IMU Sensor
+	 * frame). This funcion should only be called during Play and if this IMU Sensor has a
+	 * Gyroscope [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeDataLocal() const;
+
+	/**
+	 * Get the latest Gyroscope data from this IMU Sensor (expressed in the world frame).
+	 * This funcion should only be called during Play and if this IMU Sensor has a
+	 * Gyroscope [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeDataWorld() const;
+
+	/**
+	 * Get the latest Magnetometer data from this IMU Sensor (expressed in the local IMU Sensor
+	 * frame). This funcion should only be called during Play and if this IMU Sensor has a
+	 * Magnetometer [T].
+	 * Note that the magnetic field can be set in the AGX Sensor Environment.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerDataLocal() const;
+
+	/**
+	 * Get the latest Magnetometer data from this IMU Sensor (expressed in the world frame).
+	 * This funcion should only be called during Play and if this IMU Sensor has a
+	 * Magnetometer [T].
+	 * Note that the magnetic field can be set in the AGX Sensor Environment.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerDataWorld() const;
+
+	void UpdateTransformFromNative();
 
 	FIMUBarrier* GetOrCreateNative();
 	FIMUBarrier* GetNative();
@@ -95,6 +150,7 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	virtual void PostInitProperties() override;
 #endif
+	virtual void OnRegister() override;
 	//~ End UObject interface.
 
 private:
