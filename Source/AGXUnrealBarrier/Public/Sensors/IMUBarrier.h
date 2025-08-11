@@ -95,8 +95,6 @@ private:
 	FIMUBarrier(const FIMUBarrier&) = delete;
 	void operator=(const FIMUBarrier&) = delete;
 
-	bool HasAccelerometer() const;
-
 private:
 	std::unique_ptr<FIMURef> NativeRef;
 };
