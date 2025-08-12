@@ -98,6 +98,8 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerAxisCrossSensitivity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerZeroGBias);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerNoiseRMS);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerSpectralNoiseDensity);
 }
 #endif // WITH_EDITOR
 
@@ -146,9 +148,11 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetEnabled(bEnabled);
-	NativeBarrier.SetAcclerometerRange(AccelerometerRange);
-	NativeBarrier.SetAcclerometerAxisCrossSensitivity(AccelerometerAxisCrossSensitivity);
-	NativeBarrier.SetAcclerometerZeroGBias(AccelerometerZeroGBias);
+	NativeBarrier.SetAccelerometerRange(AccelerometerRange);
+	NativeBarrier.SetAccelerometerAxisCrossSensitivity(AccelerometerAxisCrossSensitivity);
+	NativeBarrier.SetAccelerometerZeroGBias(AccelerometerZeroGBias);
+	NativeBarrier.SetAccelerometerNoiseRMS(AccelerometerNoiseRMS);
+	NativeBarrier.SetAccelerometerSpectralNoiseDensity(AccelerometerSpectralNoiseDensity);
 }
 
 void UAGX_IMUSensorComponent::CreateNative()
@@ -199,13 +203,13 @@ void UAGX_IMUSensorComponent::SetAccelerometerRange(FAGX_RealInterval Range)
 	AccelerometerRange = Range;
 
 	if (HasNative())
-		NativeBarrier.SetAcclerometerRange(Range);
+		NativeBarrier.SetAccelerometerRange(Range);
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetAccelerometerRange() const
 {
 	if (HasNative())
-		return NativeBarrier.GetAcclerometerRange();
+		return NativeBarrier.GetAccelerometerRange();
 
 	return AccelerometerRange;
 }
@@ -215,7 +219,7 @@ void UAGX_IMUSensorComponent::SetAccelerometerAxisCrossSensitivity(double Sensit
 	AccelerometerAxisCrossSensitivity = Sensitivity;
 
 	if (HasNative())
-		NativeBarrier.SetAcclerometerAxisCrossSensitivity(Sensitivity);
+		NativeBarrier.SetAccelerometerAxisCrossSensitivity(Sensitivity);
 }
 
 double UAGX_IMUSensorComponent::GetAccelerometerAxisCrossSensitivity() const
@@ -230,21 +234,53 @@ void UAGX_IMUSensorComponent::SetAccelerometerZeroGBias(FVector Bias)
 	AccelerometerZeroGBias = Bias;
 
 	if (HasNative())
-		NativeBarrier.SetAcclerometerZeroGBias(Bias);
+		NativeBarrier.SetAccelerometerZeroGBias(Bias);
 }
 
 FVector UAGX_IMUSensorComponent::GetAccelerometerZeroGBias() const
 {
 	if (HasNative())
-		return NativeBarrier.GetAcclerometerZeroGBias();
+		return NativeBarrier.GetAccelerometerZeroGBias();
 
 	return AccelerometerZeroGBias;
 }
 
-FVector UAGX_IMUSensorComponent::GetAcclerometerDataLocal() const
+void UAGX_IMUSensorComponent::SetAccelerometerNoiseRMS(FVector Noise)
+{
+	AccelerometerNoiseRMS = Noise;
+
+	if (HasNative())
+		NativeBarrier.SetAccelerometerNoiseRMS(Noise);
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerNoiseRMS() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAccelerometerNoiseRMS();
+
+	return AccelerometerNoiseRMS;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerSpectralNoiseDensity(FVector Noise)
+{
+	AccelerometerSpectralNoiseDensity = Noise;
+
+	if (HasNative())
+		NativeBarrier.SetAccelerometerSpectralNoiseDensity(Noise);
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerSpectralNoiseDensity() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAccelerometerSpectralNoiseDensity();
+
+	return AccelerometerSpectralNoiseDensity;
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerDataLocal() const
 {
 	using namespace AGX_IMUSensorComponent_helpers;
-	if (!EnsureHasNative(*this, TEXT("UAGX_IMUSensorComponent::GetAcclerometerData()")))
+	if (!EnsureHasNative(*this, TEXT("UAGX_IMUSensorComponent::GetAccelerometerData()")))
 	{
 		return FVector::ZeroVector;
 	}
@@ -253,7 +289,7 @@ FVector UAGX_IMUSensorComponent::GetAcclerometerDataLocal() const
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("UAGX_IMUSensorComponent::GetAcclerometerData() called in IMU Sensor Component "
+			TEXT("UAGX_IMUSensorComponent::GetAccelerometerData() called in IMU Sensor Component "
 				 "'%s' in '%s' that does not have an Accelerometer. Returning zero vector."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return FVector::ZeroVector;
@@ -262,9 +298,9 @@ FVector UAGX_IMUSensorComponent::GetAcclerometerDataLocal() const
 	return NativeBarrier.GetAccelerometerData();
 }
 
-FVector UAGX_IMUSensorComponent::GetAcclerometerDataWorld() const
+FVector UAGX_IMUSensorComponent::GetAccelerometerDataWorld() const
 {
-	const FVector LocalAccel = GetAcclerometerDataLocal();
+	const FVector LocalAccel = GetAccelerometerDataLocal();
 	const FTransform IMUTransform = NativeBarrier.GetTransform();
 	const FVector WorldAccel = IMUTransform.TransformVectorNoScale(LocalAccel);
 	return WorldAccel;

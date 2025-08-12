@@ -10,14 +10,15 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agxSensor/AccelerometerModel.h>
-#include <agxSensor/GyroscopeModel.h>
-#include <agxSensor/MagnetometerModel.h>
+#include <agxSensor/Accelerometer.h>
+#include <agxSensor/Gyroscope.h>
+#include <agxSensor/Magnetometer.h>
 #include <agxSensor/IMUModelAccelerometerAttachment.h>
 #include <agxSensor/IMUModelGyroscopeAttachment.h>
 #include <agxSensor/IMUModelMagnetometerAttachment.h>
 #include <agxSensor/IMUModelSensorAttachment.h>
 #include <agxSensor/MagnetometerModel.h>
+#include <agxSensor/TriaxialOutputHandler.h>
 #include "EndAGXIncludes.h"
 
 #define AccelOutputID 1
@@ -92,9 +93,50 @@ namespace IMUBarrier_helpers
 		return nullptr;
 	}
 
-	void LogMissingModel(const FString& ModelName, const FString& FunctionName)
+	agxSensor::Accelerometer* GetAccelerometer(const agxSensor::IMU& IMU)
 	{
-		UE_LOG(LogAGX, Warning, TEXT("Unable to get %s Model in %s."), *ModelName, *FunctionName);
+		return IMU.findChild<agxSensor::Accelerometer>(/*recursive*/ true);
+	}
+
+	agxSensor::Gyroscope* GetGyroscope(const agxSensor::IMU& IMU)
+	{
+		return IMU.findChild<agxSensor::Gyroscope>(/*recursive*/ true);
+	}
+
+	agxSensor::Magnetometer* GetMagnetometer(const agxSensor::IMU& IMU)
+	{
+		return IMU.findChild<agxSensor::Magnetometer>(/*recursive*/ true);
+	}
+
+	template <typename T>
+	T* GetOutputModifier(const auto& Sensor)
+	{
+		for (auto Modifier : Sensor.getOutputHandler()->getOutputModifiers())
+		{
+			if (T* WantedModifier = Modifier->as<T>())
+				return WantedModifier;
+		}
+
+		return nullptr;
+	}
+
+	template <typename T>
+	T* GetOrCreateOutputModifier(const auto& Sensor)
+	{
+		auto Modifier = GetOutputModifier<T>(Sensor);
+
+		if (Modifier == nullptr)
+		{
+			Modifier = new T();
+			Sensor.getOutputHandler()->add(Modifier);
+		}
+
+		return Modifier;
+	}
+
+	void LogMissingObject(const FString& ObjectName, const FString& FunctionName)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("Unable to get %s in %s."), *ObjectName, *FunctionName);
 	}
 }
 
@@ -160,7 +202,6 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
       agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
       agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(MagnOutputID);
 	}
-
 	// clang-format on
 }
 
@@ -217,7 +258,7 @@ FTransform FIMUBarrier::GetTransform() const
 	return Convert(*NativeRef->Native->getFrame());
 }
 
-void FIMUBarrier::SetAcclerometerRange(FAGX_RealInterval Range)
+void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
 {
 	using namespace IMUBarrier_helpers;
 
@@ -225,7 +266,7 @@ void FIMUBarrier::SetAcclerometerRange(FAGX_RealInterval Range)
 	auto Model = GetAccelerometerModel(*NativeRef->Native);
 	if (Model == nullptr)
 	{
-		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerRange");
+		LogMissingObject("Accelerometer Model", "FIMUBarrier::SetAccelerometerRange");
 		return;
 	}
 
@@ -233,7 +274,7 @@ void FIMUBarrier::SetAcclerometerRange(FAGX_RealInterval Range)
 	Model->setRange(agxSensor::TriaxialRange(ConvertDistance(Range)));
 }
 
-FAGX_RealInterval FIMUBarrier::GetAcclerometerRange() const
+FAGX_RealInterval FIMUBarrier::GetAccelerometerRange() const
 {
 	using namespace IMUBarrier_helpers;
 
@@ -241,7 +282,7 @@ FAGX_RealInterval FIMUBarrier::GetAcclerometerRange() const
 	auto Model = GetAccelerometerModel(*NativeRef->Native);
 	if (Model == nullptr)
 	{
-		LogMissingModel("Accelerometer", "FIMUBarrier::GetAcclerometerRange");
+		LogMissingObject("Accelerometer Model", "FIMUBarrier::GetAccelerometerRange");
 		return {0.0, 0.0};
 	}
 
@@ -249,7 +290,7 @@ FAGX_RealInterval FIMUBarrier::GetAcclerometerRange() const
 	return ConvertDistance(Model->getRange().getRangeX());
 }
 
-void FIMUBarrier::SetAcclerometerAxisCrossSensitivity(double Sensitivity)
+void FIMUBarrier::SetAccelerometerAxisCrossSensitivity(double Sensitivity)
 {
 	using namespace IMUBarrier_helpers;
 
@@ -257,14 +298,14 @@ void FIMUBarrier::SetAcclerometerAxisCrossSensitivity(double Sensitivity)
 	auto Model = GetAccelerometerModel(*NativeRef->Native);
 	if (Model == nullptr)
 	{
-		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerAxisCrossSensitivity");
+		LogMissingObject("Accelerometer Model", "FIMUBarrier::SetAccelerometerAxisCrossSensitivity");
 		return;
 	}
 
 	Model->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
 }
 
-void FIMUBarrier::SetAcclerometerZeroGBias(FVector Bias)
+void FIMUBarrier::SetAccelerometerZeroGBias(FVector Bias)
 {
 	using namespace IMUBarrier_helpers;
 
@@ -272,14 +313,14 @@ void FIMUBarrier::SetAcclerometerZeroGBias(FVector Bias)
 	auto Model = GetAccelerometerModel(*NativeRef->Native);
 	if (Model == nullptr)
 	{
-		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerZeroGBias");
+		LogMissingObject("Accelerometer Model", "FIMUBarrier::SetAccelerometerZeroGBias");
 		return;
 	}
 
 	Model->setZeroGBias(ConvertDisplacement(Bias));
 }
 
-FVector FIMUBarrier::GetAcclerometerZeroGBias() const
+FVector FIMUBarrier::GetAccelerometerZeroGBias() const
 {
 	using namespace IMUBarrier_helpers;
 
@@ -287,11 +328,87 @@ FVector FIMUBarrier::GetAcclerometerZeroGBias() const
 	auto Model = GetAccelerometerModel(*NativeRef->Native);
 	if (Model == nullptr)
 	{
-		LogMissingModel("Accelerometer", "FIMUBarrier::GetAcclerometerZeroGBias");
+		LogMissingObject("Accelerometer Model", "FIMUBarrier::GetAccelerometerZeroGBias");
 		return FVector::ZeroVector;
 	}
 
 	return ConvertDisplacement(Model->getZeroGBias());
+}
+
+void FIMUBarrier::SetAccelerometerNoiseRMS(const FVector& Noise)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerNoiseRMS");
+		return;
+	}
+
+	agxSensor::TriaxialGaussianNoiseRef Modifier =
+		GetOrCreateOutputModifier<agxSensor::TriaxialGaussianNoise>(*Accel);
+
+	// [cm/s^2] to [m/s^2].
+	Modifier->setNoiseRms(ConvertDisplacement(Noise));
+}
+
+FVector FIMUBarrier::GetAccelerometerNoiseRMS() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerNoiseRMS");
+		return FVector::ZeroVector;
+	}
+
+	agxSensor::TriaxialGaussianNoiseRef Modifier =
+		GetOutputModifier<agxSensor::TriaxialGaussianNoise>(*Accel);
+	if (Modifier == nullptr)
+		return FVector::ZeroVector;
+
+	// [cm/s^2] to [m/s^2].
+	return ConvertDisplacement(Modifier->getNoiseRms());
+}
+
+void FIMUBarrier::SetAccelerometerSpectralNoiseDensity(const FVector& Noise)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerSpectralNoiseDensity");
+		return;
+	}
+
+	agxSensor::TriaxialSpectralGaussianNoiseRef Modifier =
+		GetOrCreateOutputModifier<agxSensor::TriaxialSpectralGaussianNoise>(*Accel);
+
+	// [cm/s^2/hz] to [m/s^2/hz].
+	Modifier->setNoiseDensity(ConvertVector(Noise));
+}
+
+FVector FIMUBarrier::GetAccelerometerSpectralNoiseDensity() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerSpectralNoiseDensity");
+		return FVector::ZeroVector;
+	}
+
+	agxSensor::TriaxialSpectralGaussianNoiseRef Modifier =
+		GetOutputModifier<agxSensor::TriaxialSpectralGaussianNoise>(*Accel);
+	if (Modifier == nullptr)
+		return FVector::ZeroVector;
+
+	// [cm/s^2/hz] to [m/s^2/hz].
+	return ConvertDisplacement(Modifier->getNoiseDensity());
 }
 
 FVector FIMUBarrier::GetAccelerometerData() const

@@ -147,12 +147,56 @@ public:
 	FVector GetAccelerometerZeroGBias() const;
 
 	/**
+	 * Applied as a gaussian noise to the output data with the given noise Root Mean Square (RMS)
+	 * value [cm/s^2].
+	 * The noise RMS value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer"))
+	FVector AccelerometerNoiseRMS {0.0};
+
+	/**
+	 * Set a gaussian noise RMS value that will be applied to the Accelerometer output data [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerNoiseRMS(FVector NoiseRMS);
+
+	/**
+	 * Get the gaussian noise RMS value [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAccelerometerNoiseRMS() const;
+
+	/**
+	 * Specifies the spectral noise density applied to the Accelerometer output data, i.e. a
+	 * gaussian noise that is frequency dependant [(measurement unit)/Hz].
+	 * The noise value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer"))
+	FVector AccelerometerSpectralNoiseDensity {0.0};
+
+	/**
+	 * Set a gaussian spectral noise density value that will be applied to the Accelerometer output data.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerSpectralNoiseDensity(FVector Noise);
+
+	/**
+	 * Get the gaussian spectral noise density value.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAccelerometerSpectralNoiseDensity() const;
+
+	/**
 	 * Get the latest Accelerometer data from this IMU Sensor (expressed in the local IMU Sensor
 	 * frame). This funcion should only be called during Play and if this IMU Sensor has an
 	 * Accelerometer [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	FVector GetAcclerometerDataLocal() const;
+	FVector GetAccelerometerDataLocal() const;
 
 	/**
 	 * Get the latest Accelerometer data from this IMU Sensor (expressed in the world frame).
@@ -160,7 +204,7 @@ public:
 	 * Accelerometer [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	FVector GetAcclerometerDataWorld() const;
+	FVector GetAccelerometerDataWorld() const;
 
 	/**
 	 * Get the latest Gyroscope data from this IMU Sensor (expressed in the local IMU Sensor

@@ -43,13 +43,23 @@ public:
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
 
-	void SetAcclerometerRange(FAGX_RealInterval Range);
-	FAGX_RealInterval GetAcclerometerRange() const;
+	//
+	// Accelerometer
+	//
 
-	void SetAcclerometerAxisCrossSensitivity(double Sensitivity); // No clean AGX getter exists.
+	void SetAccelerometerRange(FAGX_RealInterval Range);
+	FAGX_RealInterval GetAccelerometerRange() const;
 
-	void SetAcclerometerZeroGBias(FVector Bias);
-	FVector GetAcclerometerZeroGBias() const;
+	void SetAccelerometerAxisCrossSensitivity(double Sensitivity); // No clean AGX getter exists.
+
+	void SetAccelerometerZeroGBias(FVector Bias);
+	FVector GetAccelerometerZeroGBias() const;
+
+	void SetAccelerometerNoiseRMS(const FVector& Noise);
+	FVector GetAccelerometerNoiseRMS() const;
+
+	void SetAccelerometerSpectralNoiseDensity(const FVector& Noise);
+	FVector GetAccelerometerSpectralNoiseDensity() const;
 
 	/**
 	 * Gets the latest Accelerometer output data from the IMU.
@@ -58,10 +68,18 @@ public:
 	 */
 	FVector GetAccelerometerData() const;
 
+	//
+	// Gyroscope
+	//
+
 	/**
 	 * Gyroscope angular velocity in the IMU frame [deg/s]. Valid only if IMU has a Gyroscope.
 	 */
 	FVector GetGyroscopeData() const;
+
+	//
+	// Magnetometer
+	//
 
 	/**
 	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.
