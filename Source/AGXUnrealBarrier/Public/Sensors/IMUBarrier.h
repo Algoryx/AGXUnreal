@@ -50,7 +50,7 @@ public:
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetAccelerometerRange() const;
 
-	void SetAccelerometerAxisCrossSensitivity(double Sensitivity); // No clean AGX getter exists.
+	void SetAccelerometerCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
 
 	void SetAccelerometerZeroGBias(FVector Bias);
 	FVector GetAccelerometerZeroGBias() const;
@@ -72,6 +72,23 @@ public:
 	// Gyroscope
 	//
 
+	void SetGyroscopeRange(FAGX_RealInterval Range);
+	FAGX_RealInterval GetGyroscopeRange() const;
+
+	void SetGyroscopeCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
+
+	void SetGyroscopeZeroRateBias(FVector Bias);
+	FVector GetGyroscopeZeroRateBias() const;
+
+	void SetGyroscopeNoiseRMS(const FVector& Noise);
+	FVector GetGyroscopeNoiseRMS() const;
+
+	void SetGyroscopeSpectralNoiseDensity(const FVector& Noise);
+	FVector GetGyroscopeSpectralNoiseDensity() const;
+
+	void SetGyroscopeLinearAccelerationEffects(
+		const FVector& Effects); // No clean AGX getter exists.
+
 	/**
 	 * Gyroscope angular velocity in the IMU frame [deg/s]. Valid only if IMU has a Gyroscope.
 	 */
@@ -80,6 +97,20 @@ public:
 	//
 	// Magnetometer
 	//
+
+	void SetMagnetometerRange(FAGX_RealInterval Range);
+	FAGX_RealInterval GetMagnetometerRange() const;
+
+	void SetMagnetometerCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
+
+	void SetMagnetometerZeroFluxBias(FVector Bias);
+	FVector GetMagnetometerZeroFluxBias() const;
+
+	void SetMagnetometerNoiseRMS(const FVector& Noise);
+	FVector GetMagnetometerNoiseRMS() const;
+
+	void SetMagnetometerSpectralNoiseDensity(const FVector& Noise);
+	FVector GetMagnetometerSpectralNoiseDensity() const;
 
 	/**
 	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.

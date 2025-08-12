@@ -76,6 +76,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX IMU", Meta = (ExposeOnSpawn))
 	bool bUseMagnetometer {false};
 
+	//
+	// Accelerometer
+	//
+
 	/**
 	 * Detectable range of acceleration for the accelerometer used by this IMU Sensor [cm/s^2].
 	 * Acceleration output data will be clamped within this range.
@@ -102,7 +106,7 @@ public:
 	FAGX_RealInterval GetAccelerometerRange() const;
 
 	/**
-	 * The Accelerometer axis cross sensitivity specifies how much an acceleration applied to one
+	 * The Accelerometer cross axis sensitivity specifies how much an acceleration applied to one
 	 * axis bleeds over into the signal of another axis.
 	 * Applies equally to all axes.
 	 * Valid range is [0.0 - 1.0].
@@ -110,24 +114,24 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
-	double AccelerometerAxisCrossSensitivity {0.0};
+	double AccelerometerCrossAxisSensitivity {0.0};
 
 	/**
-	 * Set the Accelerometer axis cross sensitivity.
+	 * Set the Accelerometer cross axis sensitivity.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	void SetAccelerometerAxisCrossSensitivity(double Sensitivity);
+	void SetAccelerometerCrossAxisSensitivity(double Sensitivity);
 
 	/**
-	 * Get the Accelerometer axis cross sensitivity.
+	 * Get the Accelerometer cross axis sensitivity.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	double GetAccelerometerAxisCrossSensitivity() const;
+	double GetAccelerometerCrossAxisSensitivity() const;
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero external acceleration
 	 * [cm/s^2].
-	 * The bias will be active at any measurable acceleration.
+	 * The bias will be active at any measured acceleration.
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
@@ -157,7 +161,8 @@ public:
 	FVector AccelerometerNoiseRMS {0.0};
 
 	/**
-	 * Set a gaussian noise RMS value that will be applied to the Accelerometer output data [cm/s^2].
+	 * Set a gaussian noise RMS value that will be applied to the Accelerometer output data
+	 * [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
 	void SetAccelerometerNoiseRMS(FVector NoiseRMS);
@@ -179,7 +184,8 @@ public:
 	FVector AccelerometerSpectralNoiseDensity {0.0};
 
 	/**
-	 * Set a gaussian spectral noise density value that will be applied to the Accelerometer output data.
+	 * Set a gaussian spectral noise density value that will be applied to the Accelerometer output
+	 * data.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
 	void SetAccelerometerSpectralNoiseDensity(FVector Noise);
@@ -206,6 +212,147 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
 	FVector GetAccelerometerDataWorld() const;
 
+	//
+	// Gyroscope
+	//
+
+	/**
+	 * Detectable range of angular rate for the Gyroscope used by this IMU Sensor [deg/s].
+	 * Gyroscope output data will be clamped within this range.
+	 * Applies equally to all axes.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope"))
+	FAGX_RealInterval GyroscopeRange {
+		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
+
+	/**
+	 * Set the detectable range of angular rate for the Gyroscope used by this IMU Sensor
+	 * [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeRange(FAGX_RealInterval Range);
+
+	/**
+	 * Get the detectable range of angular rate for the Gyroscope used by this IMU Sensor
+	 * [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FAGX_RealInterval GetGyroscopeRange() const;
+
+	/**
+	 * The Gyroscope cross axis sensitivity specifies how much an angular rate applied to one
+	 * axis bleeds over into the signal of another axis.
+	 * Applies equally to all axes.
+	 * Valid range is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
+	double GyroscopeCrossAxisSensitivity {0.0};
+
+	/**
+	 * Set the Gyroscope cross axis sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeCrossAxisSensitivity(double Sensitivity);
+
+	/**
+	 * Get the Gyroscope cross axis sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	double GetGyroscopeCrossAxisSensitivity() const;
+
+	/**
+	 * Specifies the measurement bias in each of the three axes at zero angular rate
+	 * [deg/s].
+	 * The bias will be active at any measured angular rate.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope"))
+	FVector GyroscopeZeroRateBias {0.0};
+
+	/**
+	 * Set the Gyroscope zero rate bias [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeZeroRateBias(FVector Bias);
+
+	/**
+	 * Get the Gyroscope zero rate bias [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeZeroRateBias() const;
+
+	/**
+	 * Applied as a gaussian noise to the output data with the given noise Root Mean Square (RMS)
+	 * value [deg/s].
+	 * The noise RMS value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope"))
+	FVector GyroscopeNoiseRMS {0.0};
+
+	/**
+	 * Set a gaussian noise RMS value that will be applied to the Gyroscope output data
+	 * [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeNoiseRMS(FVector NoiseRMS);
+
+	/**
+	 * Get the gaussian noise RMS value [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeNoiseRMS() const;
+
+	/**
+	 * Specifies the spectral noise density applied to the Gyroscope output data, i.e. a
+	 * gaussian noise that is frequency dependant [(measurement unit)/Hz].
+	 * The noise value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope"))
+	FVector GyroscopeSpectralNoiseDensity {0.0};
+
+	/**
+	 * Set a gaussian spectral noise density value that will be applied to the Gyroscope output
+	 * data.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeSpectralNoiseDensity(FVector Noise);
+
+	/**
+	 * Get the gaussian spectral noise density value.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeSpectralNoiseDensity() const;
+
+	/**
+	 * Lets accelerations along an axis perturb the output data for that axis, according to the
+	 * specified multiplier.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector GyroscopeLinearAccelerationEffects {0.0};
+
+	/**
+	 * Set the Gyroscope acceleration effects multiplier.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeLinearAccelerationEffects(FVector AccelEffects);
+
+	/**
+	 * Get the Gyroscope acceleration effects multiplier.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeLinearAccelerationEffects() const;
+
 	/**
 	 * Get the latest Gyroscope data from this IMU Sensor (expressed in the local IMU Sensor
 	 * frame). This funcion should only be called during Play and if this IMU Sensor has a
@@ -221,6 +368,126 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
 	FVector GetGyroscopeDataWorld() const;
+
+	//
+	// Magnetometer
+	//
+
+	/**
+	 * Detectable range of magnetic flux for the Magnetometer used by this IMU Sensor [T].
+	 * Magnetometer output data will be clamped within this range.
+	 * Applies equally to all axes.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer"))
+	FAGX_RealInterval MagnetometerRange {
+		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
+
+	/**
+	 * Set the detectable range of magnetic flux for the Magnetometer used by this IMU Sensor
+	 * [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerRange(FAGX_RealInterval Range);
+
+	/**
+	 * Get the detectable range of magnetic flux for the Magnetometer used by this IMU Sensor
+	 * [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FAGX_RealInterval GetMagnetometerRange() const;
+
+	/**
+	 * The Magnetometer cross axis sensitivity specifies how much a magnetic field applied to one
+	 * axis bleeds over into the signal of another axis.
+	 * Applies equally to all axes.
+	 * Valid range is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
+	double MagnetometerCrossAxisSensitivity {0.0};
+
+	/**
+	 * Set the Magnetometer cross axis sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerCrossAxisSensitivity(double Sensitivity);
+
+	/**
+	 * Get the Magnetometer cross axis sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	double GetMagnetometerCrossAxisSensitivity() const;
+
+	/**
+	 * Specifies the measurement bias in each of the three axes at zero magnetic flux
+	 * [T].
+	 * The bias will be active at any measured magnetic flux.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer"))
+	FVector MagnetometerZeroFluxBias {0.0};
+
+	/**
+	 * Set the Magnetometer zero flux bias [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerZeroFluxBias(FVector Bias);
+
+	/**
+	 * Get the Magnetometer zero flux bias [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerZeroFluxBias() const;
+
+	/**
+	 * Applied as a gaussian noise to the output data with the given noise Root Mean Square (RMS)
+	 * value [T].
+	 * The noise RMS value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer"))
+	FVector MagnetometerNoiseRMS {0.0};
+
+	/**
+	 * Set a gaussian noise RMS value that will be applied to the Magnetometer output data
+	 * [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerNoiseRMS(FVector NoiseRMS);
+
+	/**
+	 * Get the gaussian noise RMS value [T].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerNoiseRMS() const;
+
+	/**
+	 * Specifies the spectral noise density applied to the Magnetometer output data, i.e. a
+	 * gaussian noise that is frequency dependant [(measurement unit)/Hz].
+	 * The noise value is applied to each axis of the IMU individually.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer"))
+	FVector MagnetometerSpectralNoiseDensity {0.0};
+
+	/**
+	 * Set a gaussian spectral noise density value that will be applied to the Magnetometer output
+	 * data.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerSpectralNoiseDensity(FVector Noise);
+
+	/**
+	 * Get the gaussian spectral noise density value.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerSpectralNoiseDensity() const;
 
 	/**
 	 * Get the latest Magnetometer data from this IMU Sensor (expressed in the local IMU Sensor
