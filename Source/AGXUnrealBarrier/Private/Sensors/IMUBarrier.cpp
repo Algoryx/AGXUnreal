@@ -12,6 +12,7 @@
 #include "BeginAGXIncludes.h"
 #include <agxSensor/AccelerometerModel.h>
 #include <agxSensor/GyroscopeModel.h>
+#include <agxSensor/MagnetometerModel.h>
 #include <agxSensor/IMUModelAccelerometerAttachment.h>
 #include <agxSensor/IMUModelGyroscopeAttachment.h>
 #include <agxSensor/IMUModelMagnetometerAttachment.h>
@@ -54,6 +55,47 @@ namespace IMUBarrier_helpers
 	{
 		agx::Real Data[3];
 	};
+
+	agxSensor::AccelerometerModel* GetAccelerometerModel(const agxSensor::IMU& IMU)
+	{
+		for (auto SensorAttachment : IMU.getModel()->getSensorAttachments())
+		{
+			if (auto AccelerometerAttachment =
+					SensorAttachment->as<agxSensor::IMUModelAccelerometerAttachment>())
+				return AccelerometerAttachment->getModel();
+		}
+
+		return nullptr;
+	}
+
+	agxSensor::GyroscopeModel* GetGyroscopeModel(const agxSensor::IMU& IMU)
+	{
+		for (auto SensorAttachment : IMU.getModel()->getSensorAttachments())
+		{
+			if (auto GyroscopeAttachment =
+					SensorAttachment->as<agxSensor::IMUModelGyroscopeAttachment>())
+				return GyroscopeAttachment->getModel();
+		}
+
+		return nullptr;
+	}
+
+	agxSensor::MagnetometerModel* GetMagnetometerModel(const agxSensor::IMU& IMU)
+	{
+		for (auto SensorAttachment : IMU.getModel()->getSensorAttachments())
+		{
+			if (auto MagnetometerAttachment =
+					SensorAttachment->as<agxSensor::IMUModelMagnetometerAttachment>())
+				return MagnetometerAttachment->getModel();
+		}
+
+		return nullptr;
+	}
+
+	void LogMissingModel(const FString& ModelName, const FString& FunctionName)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("Unable to get %s Model in %s."), *ModelName, *FunctionName);
+	}
 }
 
 void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
@@ -175,6 +217,83 @@ FTransform FIMUBarrier::GetTransform() const
 	return Convert(*NativeRef->Native->getFrame());
 }
 
+void FIMUBarrier::SetAcclerometerRange(FAGX_RealInterval Range)
+{
+	using namespace IMUBarrier_helpers;
+
+	check(HasNative());
+	auto Model = GetAccelerometerModel(*NativeRef->Native);
+	if (Model == nullptr)
+	{
+		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerRange");
+		return;
+	}
+
+	// [cm/s^2] to [m/s^2].
+	Model->setRange(agxSensor::TriaxialRange(ConvertDistance(Range)));
+}
+
+FAGX_RealInterval FIMUBarrier::GetAcclerometerRange() const
+{
+	using namespace IMUBarrier_helpers;
+
+	check(HasNative());
+	auto Model = GetAccelerometerModel(*NativeRef->Native);
+	if (Model == nullptr)
+	{
+		LogMissingModel("Accelerometer", "FIMUBarrier::GetAcclerometerRange");
+		return {0.0, 0.0};
+	}
+
+	// We assume same range for all axes. [m/s^2] to [cm/s^2].
+	return ConvertDistance(Model->getRange().getRangeX());
+}
+
+void FIMUBarrier::SetAcclerometerAxisCrossSensitivity(double Sensitivity)
+{
+	using namespace IMUBarrier_helpers;
+
+	check(HasNative());
+	auto Model = GetAccelerometerModel(*NativeRef->Native);
+	if (Model == nullptr)
+	{
+		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerAxisCrossSensitivity");
+		return;
+	}
+
+	Model->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+}
+
+void FIMUBarrier::SetAcclerometerZeroGBias(FVector Bias)
+{
+	using namespace IMUBarrier_helpers;
+
+	check(HasNative());
+	auto Model = GetAccelerometerModel(*NativeRef->Native);
+	if (Model == nullptr)
+	{
+		LogMissingModel("Accelerometer", "FIMUBarrier::SetAcclerometerZeroGBias");
+		return;
+	}
+
+	Model->setZeroGBias(ConvertDisplacement(Bias));
+}
+
+FVector FIMUBarrier::GetAcclerometerZeroGBias() const
+{
+	using namespace IMUBarrier_helpers;
+
+	check(HasNative());
+	auto Model = GetAccelerometerModel(*NativeRef->Native);
+	if (Model == nullptr)
+	{
+		LogMissingModel("Accelerometer", "FIMUBarrier::GetAcclerometerZeroGBias");
+		return FVector::ZeroVector;
+	}
+
+	return ConvertDisplacement(Model->getZeroGBias());
+}
+
 FVector FIMUBarrier::GetAccelerometerData() const
 {
 	using namespace IMUBarrier_helpers;
@@ -229,4 +348,3 @@ void FIMUBarrier::DecrementRefCount() const
 	check(HasNative());
 	NativeRef->Native->unreference();
 }
-

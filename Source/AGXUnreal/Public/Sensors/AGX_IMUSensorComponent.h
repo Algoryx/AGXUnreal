@@ -13,6 +13,8 @@
 
 #include "AGX_IMUSensorComponent.generated.h"
 
+struct FAGX_RealInterval;
+
 /**
  * 3D Inertial Measurement Unit (IMU) Sensor Component, supporting sub-sensors: Accelerometer,
  * Gyroscope and Magnetometer which can be individually enabled or disabled. All three sub-sensor
@@ -73,6 +75,76 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX IMU", Meta = (ExposeOnSpawn))
 	bool bUseMagnetometer {false};
+
+	/**
+	 * Detectable range of acceleration for the accelerometer used by this IMU Sensor [cm/s^2].
+	 * Acceleration output data will be clamped within this range.
+	 * Applies equally to all axes.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer"))
+	FAGX_RealInterval AccelerometerRange {
+		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
+
+	/**
+	 * Set the detectable range of acceleration for the accelerometer used by this IMU Sensor
+	 * [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerRange(FAGX_RealInterval Range);
+
+	/**
+	 * Get the detectable range of acceleration for the accelerometer used by this IMU Sensor
+	 * [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FAGX_RealInterval GetAccelerometerRange() const;
+
+	/**
+	 * The Accelerometer axis cross sensitivity specifies how much an acceleration applied to one
+	 * axis bleeds over into the signal of another axis.
+	 * Applies equally to all axes.
+	 * Valid range is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
+	double AccelerometerAxisCrossSensitivity {0.0};
+
+	/**
+	 * Set the Accelerometer axis cross sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerAxisCrossSensitivity(double Sensitivity);
+
+	/**
+	 * Get the Accelerometer axis cross sensitivity.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	double GetAccelerometerAxisCrossSensitivity() const;
+
+	/**
+	 * Specifies the measurement bias in each of the three axes at zero external acceleration
+	 * [cm/s^2].
+	 * The bias will be active at any measurable acceleration.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer"))
+	FVector AccelerometerZeroGBias {0.0};
+
+	/**
+	 * Set the Accelerometer zero g bias [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerZeroGBias(FVector Bias);
+
+	/**
+	 * Get the Accelerometer zero g bias [cm/s^2].
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAccelerometerZeroGBias() const;
 
 	/**
 	 * Get the latest Accelerometer data from this IMU Sensor (expressed in the local IMU Sensor

@@ -10,6 +10,7 @@
 
 class FRigidBodyBarrier;
 
+struct FAGX_RealInterval;
 struct FIMURef;
 
 struct FIMUAllocationParameters
@@ -42,6 +43,14 @@ public:
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
 
+	void SetAcclerometerRange(FAGX_RealInterval Range);
+	FAGX_RealInterval GetAcclerometerRange() const;
+
+	void SetAcclerometerAxisCrossSensitivity(double Sensitivity); // No clean AGX getter exists.
+
+	void SetAcclerometerZeroGBias(FVector Bias);
+	FVector GetAcclerometerZeroGBias() const;
+
 	/**
 	 * Gets the latest Accelerometer output data from the IMU.
 	 * The Accelerometer data is expressed in the IMU's frame.
@@ -49,7 +58,6 @@ public:
 	 */
 	FVector GetAccelerometerData() const;
 
-public:
 	/**
 	 * Gyroscope angular velocity in the IMU frame [deg/s]. Valid only if IMU has a Gyroscope.
 	 */
@@ -59,18 +67,6 @@ public:
 	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.
 	 */
 	FVector GetMagnetometerData() const;
-
-	/**
-	 * Get the Output data from the IMU sensor produced during the latest AGX step.
-	 * Note that the number of elements in the returned Array depends on the number of sub-sensors
-	 * (Accelerometer, Gyroscope, Magnetometer) that the IMU uses.
-	 * Length is either 3, 6 or 9 depending on which sub-sensors are used, and always come in the
-	 * order: Accelerometer (x,y,z), Gyroscope (x,y,z), Magnetometer (x,y,z).
-	 *
-	 * I.e. For an IMU with an Accelerometer and a Magnetometer, the output will be:
-	 * [Acc_x, Acc_y, Acc_z, Mag_x, Mag_y, Mag_z].
-	 */
-	// TArray<double> GetOutput() const;
 
 	/**
 	 * Increment the reference count of the AGX Dynamics object. This should always be paired with

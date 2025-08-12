@@ -3,10 +3,12 @@
 #include "Sensors/AGX_IMUSensorComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_RealInterval.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -53,8 +55,7 @@ bool UAGX_IMUSensorComponent::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, bUseAccelerometer),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bUseGyroscope),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bUseMagnetometer),
-			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)
-		};
+			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;
@@ -89,6 +90,14 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
 		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, AccelerometerRange),
+		GET_MEMBER_NAME_CHECKED(FAGX_RealInterval, Min), [](ThisClass* This)
+		{ This->SetAccelerometerRange(FAGX_RealInterval(This->AccelerometerRange)); });
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerAxisCrossSensitivity);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerZeroGBias);
 }
 #endif // WITH_EDITOR
 
@@ -137,6 +146,9 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetEnabled(bEnabled);
+	NativeBarrier.SetAcclerometerRange(AccelerometerRange);
+	NativeBarrier.SetAcclerometerAxisCrossSensitivity(AccelerometerAxisCrossSensitivity);
+	NativeBarrier.SetAcclerometerZeroGBias(AccelerometerZeroGBias);
 }
 
 void UAGX_IMUSensorComponent::CreateNative()
@@ -180,6 +192,53 @@ void UAGX_IMUSensorComponent::CreateNative()
 	NativeBarrier.AllocateNative(Params, *BodyBarrier);
 	if (HasNative())
 		UpdateNativeProperties();
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerRange(FAGX_RealInterval Range)
+{
+	AccelerometerRange = Range;
+
+	if (HasNative())
+		NativeBarrier.SetAcclerometerRange(Range);
+}
+
+FAGX_RealInterval UAGX_IMUSensorComponent::GetAccelerometerRange() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAcclerometerRange();
+
+	return AccelerometerRange;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerAxisCrossSensitivity(double Sensitivity)
+{
+	AccelerometerAxisCrossSensitivity = Sensitivity;
+
+	if (HasNative())
+		NativeBarrier.SetAcclerometerAxisCrossSensitivity(Sensitivity);
+}
+
+double UAGX_IMUSensorComponent::GetAccelerometerAxisCrossSensitivity() const
+{
+	// No clean AGX getter exists, but this value should always be in sync since we are the only one
+	// that sets it.
+	return AccelerometerAxisCrossSensitivity;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerZeroGBias(FVector Bias)
+{
+	AccelerometerZeroGBias = Bias;
+
+	if (HasNative())
+		NativeBarrier.SetAcclerometerZeroGBias(Bias);
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerZeroGBias() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAcclerometerZeroGBias();
+
+	return AccelerometerZeroGBias;
 }
 
 FVector UAGX_IMUSensorComponent::GetAcclerometerDataLocal() const
