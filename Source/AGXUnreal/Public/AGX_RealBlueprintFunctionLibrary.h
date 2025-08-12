@@ -87,4 +87,19 @@ public:
 	{
 		return static_cast<float>(Real.Value);
 	}
+
+	UFUNCTION(
+		BlueprintPure, meta = (BlueprintAutocast, DisplayName = "To AGX Real"),
+		Category = "AGX Real")
+	static FAGX_Real Conv_DoubleToAGXReal(double In)
+	{
+		return FAGX_Real(In);
+	}
+
+	UFUNCTION(
+		BlueprintPure, meta = (BlueprintAutocast, DisplayName = "To Double"), Category = "AGX Real")
+	static double Conv_AGXRealToDouble(FAGX_Real In)
+	{
+		return In.Value;
+	}
 };
