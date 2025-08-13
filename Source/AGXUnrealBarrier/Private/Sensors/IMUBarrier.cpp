@@ -43,6 +43,7 @@ FIMUBarrier::FIMUBarrier(FIMUBarrier&& Other)
 
 FIMUBarrier::~FIMUBarrier()
 {
+	ReleaseNative();
 }
 
 bool FIMUBarrier::HasNative() const
@@ -313,8 +314,8 @@ void FIMUBarrier::SetAccelerometerNoiseRMS(const FVector& Noise)
 	agxSensor::TriaxialGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialGaussianNoise>(*Accel);
 
-	// [cm/s^2] to [m/s^2].
-	Modifier->setNoiseRms(ConvertDisplacement(Noise));
+	// [cm/s^2] to [m/s^2], no sign flip.
+	Modifier->setNoiseRms(ConvertDistance(Noise));
 }
 
 FVector FIMUBarrier::GetAccelerometerNoiseRMS() const
@@ -333,8 +334,8 @@ FVector FIMUBarrier::GetAccelerometerNoiseRMS() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	// [m/s^2] to [cm/s^2].
-	return ConvertDisplacement(Modifier->getNoiseRms());
+	// [m/s^2] to [cm/s^2], no sign flip.
+	return ConvertDistance(Modifier->getNoiseRms());
 }
 
 void FIMUBarrier::SetAccelerometerSpectralNoiseDensity(const FVector& Noise)
@@ -351,8 +352,8 @@ void FIMUBarrier::SetAccelerometerSpectralNoiseDensity(const FVector& Noise)
 	agxSensor::TriaxialSpectralGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialSpectralGaussianNoise>(*Accel);
 
-	// [cm/s^2/hz] to [m/s^2/hz].
-	Modifier->setNoiseDensity(ConvertDisplacement(Noise));
+	// [cm/s^2/hz] to [m/s^2/hz], no sign flip.
+	Modifier->setNoiseDensity(ConvertDistance(Noise));
 }
 
 FVector FIMUBarrier::GetAccelerometerSpectralNoiseDensity() const
@@ -371,8 +372,8 @@ FVector FIMUBarrier::GetAccelerometerSpectralNoiseDensity() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	// [m/s^2/hz] to [cm/s^2/hz].
-	return ConvertDisplacement(Modifier->getNoiseDensity());
+	// [m/s^2/hz] to [cm/s^2/hz], no sign flip.
+	return ConvertDistance(Modifier->getNoiseDensity());
 }
 
 FVector FIMUBarrier::GetAccelerometerData() const
@@ -480,7 +481,7 @@ void FIMUBarrier::SetGyroscopeNoiseRMS(const FVector& Noise)
 	agxSensor::TriaxialGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialGaussianNoise>(*Gyro);
 
-	// [deg/s] to [rad/s].
+	// [deg/s] to [rad/s], no sign flip.
 	Modifier->setNoiseRms(agx::Vec3(
 		FMath::DegreesToRadians(Noise.X), FMath::DegreesToRadians(Noise.Y),
 		FMath::DegreesToRadians(Noise.Z)));
@@ -502,7 +503,7 @@ FVector FIMUBarrier::GetGyroscopeNoiseRMS() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	// [rad/s] to [deg/s].
+	// [rad/s] to [deg/s], no sign flip.
 	agx::Vec3 NoiseAGX = Modifier->getNoiseRms();
 	return FVector(
 		FMath::RadiansToDegrees(NoiseAGX.x()), FMath::RadiansToDegrees(NoiseAGX.y()),
@@ -523,7 +524,7 @@ void FIMUBarrier::SetGyroscopeSpectralNoiseDensity(const FVector& Noise)
 	agxSensor::TriaxialSpectralGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialSpectralGaussianNoise>(*Gyro);
 
-	// [deg/s/hz] to [rad/s/hz].
+	// [deg/s/hz] to [rad/s/hz], no sign flip.
 	Modifier->setNoiseDensity(agx::Vec3(
 		FMath::DegreesToRadians(Noise.X), FMath::DegreesToRadians(Noise.Y),
 		FMath::DegreesToRadians(Noise.Z)));
@@ -545,7 +546,7 @@ FVector FIMUBarrier::GetGyroscopeSpectralNoiseDensity() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	// [rad/s/hz] to [deg/s/hz].
+	// [rad/s/hz] to [deg/s/hz], no sign flip.
 	agx::Vec3 NoiseAGX = Modifier->getNoiseDensity();
 	return FVector(
 		FMath::RadiansToDegrees(NoiseAGX.x()), FMath::RadiansToDegrees(NoiseAGX.y()),
@@ -672,7 +673,7 @@ void FIMUBarrier::SetMagnetometerNoiseRMS(const FVector& Noise)
 	agxSensor::TriaxialGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialGaussianNoise>(*Magn);
 
-	Modifier->setNoiseRms(ConvertVector(Noise));
+	Modifier->setNoiseRms(Convert(Noise));
 }
 
 FVector FIMUBarrier::GetMagnetometerNoiseRMS() const
@@ -691,7 +692,7 @@ FVector FIMUBarrier::GetMagnetometerNoiseRMS() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	return ConvertVector(Modifier->getNoiseRms());
+	return Convert(Modifier->getNoiseRms());
 }
 
 void FIMUBarrier::SetMagnetometerSpectralNoiseDensity(const FVector& Noise)
@@ -708,7 +709,7 @@ void FIMUBarrier::SetMagnetometerSpectralNoiseDensity(const FVector& Noise)
 	agxSensor::TriaxialSpectralGaussianNoiseRef Modifier =
 		GetOrCreateOutputModifier<agxSensor::TriaxialSpectralGaussianNoise>(*Magn);
 
-	Modifier->setNoiseDensity(ConvertVector(Noise));
+	Modifier->setNoiseDensity(Convert(Noise));
 }
 
 FVector FIMUBarrier::GetMagnetometerSpectralNoiseDensity() const
@@ -727,7 +728,7 @@ FVector FIMUBarrier::GetMagnetometerSpectralNoiseDensity() const
 	if (Modifier == nullptr)
 		return FVector::ZeroVector;
 
-	return ConvertVector(Modifier->getNoiseDensity());
+	return Convert(Modifier->getNoiseDensity());
 }
 
 FVector FIMUBarrier::GetMagnetometerData() const

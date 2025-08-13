@@ -338,7 +338,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
+		Meta = (EditCondition = "bUseGyroscope"))
 	FVector GyroscopeLinearAccelerationEffects {0.0};
 
 	/**

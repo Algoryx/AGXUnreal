@@ -91,32 +91,20 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
 		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, AccelerometerRange),
-		GET_MEMBER_NAME_CHECKED(FAGX_RealInterval, Min), [](ThisClass* This)
-		{ This->SetAccelerometerRange(FAGX_RealInterval(This->AccelerometerRange)); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerRange);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerZeroGBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerNoiseRMS);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerSpectralNoiseDensity);
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, GyroscopeRange),
-		GET_MEMBER_NAME_CHECKED(FAGX_RealInterval, Min), [](ThisClass* This)
-		{ This->SetGyroscopeRange(FAGX_RealInterval(This->GyroscopeRange)); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeRange);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeCrossAxisSensitivity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeZeroRateBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeNoiseRMS);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeSpectralNoiseDensity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeLinearAccelerationEffects);
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, MagnetometerRange),
-		GET_MEMBER_NAME_CHECKED(FAGX_RealInterval, Min), [](ThisClass* This)
-		{ This->SetMagnetometerRange(FAGX_RealInterval(This->MagnetometerRange)); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerRange);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerCrossAxisSensitivity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerZeroFluxBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerNoiseRMS);
