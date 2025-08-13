@@ -1211,6 +1211,7 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshCo
 		TrackedAGXMeshes.Remove(&Mesh);
 }
 
+#if WITH_EDITOR
 void AAGX_SensorEnvironment::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -1234,3 +1235,4 @@ void AAGX_SensorEnvironment::PostEditChangeChainProperty(FPropertyChangedChainEv
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
 	Super::PostEditChangeChainProperty(Event);
 }
+#endif // WITH_EDITOR
