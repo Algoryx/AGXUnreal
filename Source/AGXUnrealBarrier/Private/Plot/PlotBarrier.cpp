@@ -146,9 +146,3 @@ void FPlotBarrier::ClearDataSeries()
 	check(HasNative());
 	NativeRef->Native->clearDataSeries();
 }
-
-void FPlotBarrier::DisableAllPlottingGlobally()
-{
-	check(HasNative());
-	NativeRef->Native->disableAllPlotting();
-}

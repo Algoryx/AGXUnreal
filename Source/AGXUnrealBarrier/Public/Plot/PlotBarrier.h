@@ -41,7 +41,6 @@ public:
 
 	void DisableWindows();
 	void ClearDataSeries();
-	void DisableAllPlottingGlobally();
 
 private:
 	FPlotBarrier(const FPlotBarrier&) = delete;

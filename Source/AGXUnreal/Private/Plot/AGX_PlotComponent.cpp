@@ -92,21 +92,6 @@ void UAGX_PlotComponent::ClearDataSeries()
 	NativeBarrier.ClearDataSeries();
 }
 
-void UAGX_PlotComponent::DisableAllPlottingGlobally()
-{
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("DisableAllPlottingGlobally was called on Plot '%s' in '%s' but the Plot does not have a AGX "
-				 "Native. This function should only be called during Play."),
-			*GetName(), *GetLabelSafe(GetOwner()));
-		return;
-	}
-
-	NativeBarrier.DisableAllPlottingGlobally();
-}
-
 FPlotBarrier* UAGX_PlotComponent::GetOrCreateNative()
 {
 	if (!HasNative())

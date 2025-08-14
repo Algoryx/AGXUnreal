@@ -54,13 +54,6 @@ public:
 	void ClearDataSeries();
 
 	/**
-	 * (Globally) disables all plotting.
-	 * This will have effect across all Plot Components in the same Level.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
-	void DisableAllPlottingGlobally();
-
-	/**
 	 * If set to true, the plot window is opened automatically on BeginPlay.
 	 * The plot window is opened in the default web browser.
 	 */
