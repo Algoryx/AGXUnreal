@@ -62,6 +62,51 @@ void UAGX_PlotComponent::OpenPlotWindow()
 	NativeBarrier.OpenWebPlot();
 }
 
+void UAGX_PlotComponent::DisableWindows()
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("DisableWindows was called on Plot '%s' in '%s' but the Plot does not have a AGX "
+				 "Native. This function should only be called during Play."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	NativeBarrier.DisableWindows();
+}
+
+void UAGX_PlotComponent::ClearDataSeries()
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("ClearDataSeries was called on Plot '%s' in '%s' but the Plot does not have a AGX "
+				 "Native. This function should only be called during Play."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	NativeBarrier.ClearDataSeries();
+}
+
+void UAGX_PlotComponent::DisableAllPlottingGlobally()
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("DisableAllPlottingGlobally was called on Plot '%s' in '%s' but the Plot does not have a AGX "
+				 "Native. This function should only be called during Play."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	NativeBarrier.DisableAllPlottingGlobally();
+}
+
 FPlotBarrier* UAGX_PlotComponent::GetOrCreateNative()
 {
 	if (!HasNative())

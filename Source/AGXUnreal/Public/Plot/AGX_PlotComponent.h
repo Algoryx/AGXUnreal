@@ -42,6 +42,25 @@ public:
 	void OpenPlotWindow();
 
 	/**
+	 * Sets all Plot Windows in the system to disabled.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
+	void DisableWindows();
+
+	/**
+	 * Clear all old data from Plot Data Series.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
+	void ClearDataSeries();
+
+	/**
+	 * (Globally) disables all plotting.
+	 * This will have effect across all Plot Components in the same Level.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
+	void DisableAllPlottingGlobally();
+
+	/**
 	 * If set to true, the plot window is opened automatically on BeginPlay.
 	 * The plot window is opened in the default web browser.
 	 */
