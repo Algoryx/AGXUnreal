@@ -264,7 +264,7 @@ namespace LidarBarrier_helpers
 		agxSensor::RtOutputNoiseRefVector Noises = Lidar.getOutputHandler()->getOutputNoises();
 		for (auto Noise : Noises)
 		{
-			if (auto DistanceNoise = Noise->as<agxSensor::RtDistanceGaussianNoise>())
+			if (auto DistanceNoise = Noise->asSafe<agxSensor::RtDistanceGaussianNoise>())
 				return DistanceNoise;
 		}
 
@@ -277,7 +277,7 @@ namespace LidarBarrier_helpers
 			Lidar.getRayDistortionHandler()->getDistortions();
 		for (auto Distortion : Distortions)
 		{
-			if (auto DistortionNoise = Distortion->as<agxSensor::LidarRayAngleGaussianNoise>())
+			if (auto DistortionNoise = Distortion->asSafe<agxSensor::LidarRayAngleGaussianNoise>())
 				return DistortionNoise;
 		}
 

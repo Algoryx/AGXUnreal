@@ -78,7 +78,7 @@ namespace IMUBarrier_helpers
 	{
 		for (auto Modifier : Sensor.getOutputHandler()->getOutputModifiers())
 		{
-			if (T* WantedModifier = Modifier->as<T>())
+			if (T* WantedModifier = Modifier->asSafe<T>())
 				return WantedModifier;
 		}
 
