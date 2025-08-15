@@ -555,6 +555,38 @@ FVector UAGX_IMUSensorComponent::GetMagnetometerDataWorld() const
 	return WorldMag;
 }
 
+void UAGX_IMUSensorComponent::SetPosition(FVector Position)
+{
+	SetWorldLocation(Position);
+
+	if (HasNative())
+		NativeBarrier.SetPosition(Position);
+}
+
+FVector UAGX_IMUSensorComponent::GetPosition() const
+{
+	if (HasNative())
+		return NativeBarrier.GetPosition();
+
+	return GetComponentLocation();
+}
+
+void UAGX_IMUSensorComponent::SetRotation(FQuat Rotation)
+{
+	SetWorldRotation(Rotation);
+
+	if (HasNative())
+		NativeBarrier.SetRotation(Rotation);
+}
+
+FQuat UAGX_IMUSensorComponent::GetRotation() const
+{
+	if (HasNative())
+		return NativeBarrier.GetRotation();
+
+	return GetComponentQuat();
+}
+
 void UAGX_IMUSensorComponent::UpdateTransformFromNative()
 {
 	if (!HasNative())

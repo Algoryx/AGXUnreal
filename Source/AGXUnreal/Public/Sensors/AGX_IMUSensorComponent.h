@@ -507,6 +507,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
 	FVector GetMagnetometerDataWorld() const;
 
+	/**
+	 * Set the position of the IMU Sensor, in world coordinates.
+	 * This will update the local transform of the IMU Sensor in relation to the Rigid Body it is
+	 * attached to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
+	void SetPosition(FVector Position);
+
+	/**
+	 * Get the position of the IMU Sensor, in world coordinates.
+	 * This is the exact, ideal position based on the actual frame of the IMU Sensor, it is not
+	 * based on the output data produced by any sub-sensor.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX IMU")
+	FVector GetPosition() const;
+
+	/**
+	 * Set the rotation of the IMU Sensor, in world coordinates.
+	 * This will update the local transform of the IMU Sensor in relation to the Rigid Body it is
+	 * attached to.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
+	void SetRotation(FQuat Rotation);
+
+	/**
+	 * Get the rotation of the IMU Sensor, in world coordinates.
+	 * This is the exact, ideal position based on the actual frame of the IMU Sensor, it is not
+	 * based on the output data produced by any sub-sensor.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX IMU")
+	FQuat GetRotation() const;
+
 	void UpdateTransformFromNative();
 
 	FIMUBarrier* GetOrCreateNative();

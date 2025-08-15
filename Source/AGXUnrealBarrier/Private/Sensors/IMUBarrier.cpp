@@ -223,6 +223,30 @@ FTransform FIMUBarrier::GetTransform() const
 	return Convert(*NativeRef->Native->getFrame());
 }
 
+void FIMUBarrier::SetPosition(FVector Position)
+{
+	check(HasNative());
+	NativeRef->Native->getFrame()->setTranslate(ConvertDisplacement(Position));
+}
+
+FVector FIMUBarrier::GetPosition() const
+{
+	check(HasNative());
+	return ConvertDisplacement(NativeRef->Native->getFrame()->getTranslate());
+}
+
+void FIMUBarrier::SetRotation(FQuat Rotation)
+{
+	check(HasNative());
+	NativeRef->Native->getFrame()->setRotate(Convert(Rotation));
+}
+
+FQuat FIMUBarrier::GetRotation() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getFrame()->getRotate());
+}
+
 void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
 {
 	using namespace IMUBarrier_helpers;

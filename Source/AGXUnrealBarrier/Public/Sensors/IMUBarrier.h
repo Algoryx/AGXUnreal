@@ -43,6 +43,12 @@ public:
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
 
+	void SetPosition(FVector Position);
+	FVector GetPosition() const;
+
+	void SetRotation(FQuat Rotation);
+	FQuat GetRotation() const;
+
 	//
 	// Accelerometer
 	//
