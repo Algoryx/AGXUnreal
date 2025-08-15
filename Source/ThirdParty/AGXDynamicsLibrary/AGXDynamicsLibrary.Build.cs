@@ -185,7 +185,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		BundledAGXResources =
 			new AGXResourcesInfo(Target, AGXResourcesLocation.BundledAGX, BundledAGXResourcesPath);
 		InstalledAGXResources =
-			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.LocalBuildAGX) : null;
+			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.InstalledAGX) : null;
 
 		// The AGX Dynamics version we are currently building against.
 		AGXVersion TargetAGXVersion =
