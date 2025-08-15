@@ -39,6 +39,9 @@ public:
 
 	void OpenWebPlot();
 
+	void DisableWindows();
+	void ClearDataSeries();
+
 private:
 	FPlotBarrier(const FPlotBarrier&) = delete;
 	void operator=(const FPlotBarrier&) = delete;

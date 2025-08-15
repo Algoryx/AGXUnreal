@@ -23,6 +23,8 @@ struct AGXUNREAL_API FAGX_PlotDataSeries
 
 	void Write(float Data);
 
+	void ClearData();
+
 	bool HasNative() const;
 
 	// We must provide operator = because the Unreal framework will attempt to invoke it.
@@ -47,5 +49,11 @@ class AGXUNREAL_API UAGX_PlotDataSeries_FL : public UBlueprintFunctionLibrary
 	static void Write(UPARAM(ref) FAGX_PlotDataSeries& Series, float Data)
 	{
 		Series.Write(Data);
-	};
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
+	static void ClearData(UPARAM(ref) FAGX_PlotDataSeries& Series)
+	{
+		Series.ClearData();
+	}
 };

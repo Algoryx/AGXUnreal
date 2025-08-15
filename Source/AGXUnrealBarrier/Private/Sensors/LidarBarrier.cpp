@@ -200,6 +200,12 @@ void FLidarBarrier::SetTransform(const FTransform& Transform)
 		*ConvertFrame(Transform.GetLocation(), Transform.GetRotation());
 }
 
+FTransform FLidarBarrier::GetTransform() const
+{
+	check(HasNative());
+	return Convert(*NativeRef->Native->getFrame());
+}
+
 void FLidarBarrier::SetRange(FAGX_RealInterval Range)
 {
 	check(HasNative());
