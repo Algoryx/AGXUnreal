@@ -43,6 +43,9 @@ void UAGX_SingleControllerConstraint1DofComponent::CopyFrom(
 
 	ControllerType = BarrierSCC1DOF->GetControllerType();
 	ControllerAngleType = BarrierSCC1DOF->GetControllerAngleType();
+
+	// This is a workaround for this constraint type only. See internal issue 1686 in the AGX repo.
+	ImportName = "";
 }
 
 bool UAGX_SingleControllerConstraint1DofComponent::GetValid() const
