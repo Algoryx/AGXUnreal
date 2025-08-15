@@ -8,7 +8,6 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
-#include "AGX_RealInterval.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "AGX_RealInterval.h"
 #include "AGX_RigidBodyReference.h"
 #include "Sensors/IMUBarrier.h"
 
@@ -12,8 +13,6 @@
 #include "CoreMinimal.h"
 
 #include "AGX_IMUSensorComponent.generated.h"
-
-struct FAGX_RealInterval;
 
 /**
  * 3D Inertial Measurement Unit (IMU) Sensor Component, supporting sub-sensors: Accelerometer,
