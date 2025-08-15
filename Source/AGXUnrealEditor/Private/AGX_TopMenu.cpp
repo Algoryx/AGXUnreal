@@ -472,6 +472,7 @@ void FAGX_TopMenu::OnOpenAboutDialogClicked()
 		"Revision: " + FAGX_Environment::GetPluginRevision() + "\n"
 		"\n"
 		"AGX Dynamics version: " + FAGX_Environment::GetAGXDynamicsVersion() + "\n"
+		"OpenPLX version: " + FAGX_Environment::GetOpenPLXVersion() + "\n"
 		+ LicenseText + "\n"
 		"Copyright Algoryx Simulation AB\n"
 		"www.algoryx.com");
