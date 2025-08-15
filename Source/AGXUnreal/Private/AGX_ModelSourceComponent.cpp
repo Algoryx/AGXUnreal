@@ -135,7 +135,8 @@ const TMap<FString, FGuid>& UAGX_ModelSourceComponent::GetDeprecatedRenderDataTa
 void UAGX_ModelSourceComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
-	if (bRuntimeImport && FAGX_ImportRuntimeUtilities::GetFrom(FilePath) == EAGX_ImportType::Plx)
+	if (bRuntimeImport &&
+		FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath) == EAGX_ImportType::Plx)
 	{
 		if (FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(FilePath).IsEmpty())
 		{

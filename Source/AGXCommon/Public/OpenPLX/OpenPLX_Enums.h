@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 #include "UObject/ObjectMacros.h"
 
 UENUM()
-enum class EPLX_InputType : uint8
+enum class EOpenPLX_InputType : uint8
 {
 	Unsupported,
 	/* Real Inputs */
@@ -38,7 +38,7 @@ enum class EPLX_InputType : uint8
 };
 
 UENUM()
-enum class EPLX_OutputType : uint8
+enum class EOpenPLX_OutputType : uint8
 {
 	Unsupported,
 	/* Real Outputs */

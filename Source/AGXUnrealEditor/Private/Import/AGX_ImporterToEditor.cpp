@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Import/AGX_ImporterToEditor.h"
 
@@ -17,7 +17,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -30,7 +30,7 @@
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -44,6 +44,7 @@
 #include "FileHelpers.h"
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Kismet2/KismetEditorUtilities.h"
@@ -1571,14 +1572,14 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
-	if (OutSettings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	if (OutSettings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
-	const FString DestinationDir = FPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+	const FString DestinationDir = FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
 	const FString NewLocation =
-		FPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
+		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))
 	{
 		IFileManager::Get().DeleteDirectory(
@@ -1593,7 +1594,7 @@ void FAGX_ImporterToEditor::PreReimport(
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
-	if (OutSettings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	if (OutSettings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	USCS_Node* MsNode = Blueprint.SimpleConstructionScript->FindSCSNode(TEXT("AGX_ModelSource"));
@@ -1605,11 +1606,11 @@ void FAGX_ImporterToEditor::PreReimport(
 		return;
 
 	const FString TargetDir = FPaths::GetPath(Ms->FilePath);
-	if (!TargetDir.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	if (!TargetDir.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	const FString NewLocation =
-		FPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, TargetDir);
+		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, TargetDir);
 	OutSettings.FilePath = NewLocation;
 }
 

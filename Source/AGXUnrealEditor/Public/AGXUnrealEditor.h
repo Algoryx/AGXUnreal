@@ -13,6 +13,8 @@ class FMenuBuilder;
 class IAssetTools;
 class IAssetTypeActions;
 
+struct FAssetData;
+
 class FAGXUnrealEditorModule : public IModuleInterface
 {
 public:

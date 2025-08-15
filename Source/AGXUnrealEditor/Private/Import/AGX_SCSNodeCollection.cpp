@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Import/AGX_SCSNodeCollection.h"
 
@@ -13,7 +13,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -152,7 +152,7 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 			if (Track->ImportGuid.IsValid())
 				Tracks.Add(Track->ImportGuid, Node);
 		}
-		else if (auto Sh = Cast<UPLX_SignalHandlerComponent>(Component))
+		else if (auto Sh = Cast<UOpenPLX_SignalHandlerComponent>(Component))
 		{
 			AGX_CHECK(SignalHandler == nullptr);
 			SignalHandler = Node;

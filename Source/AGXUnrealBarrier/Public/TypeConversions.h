@@ -1631,6 +1631,11 @@ inline FString Convert(const std::string& Str)
 	return FString(Str.c_str());
 }
 
+inline FName ConvertStrToName(const std::string& Str)
+{
+	return FName(Str.c_str());
+}
+
 template <typename SourceT, typename DestinationT>
 inline TArray<DestinationT> ToUnrealArray(const std::vector<SourceT>& V)
 {

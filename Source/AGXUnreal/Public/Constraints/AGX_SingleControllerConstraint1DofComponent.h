@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -41,7 +41,7 @@ public:
 	UAGX_SingleControllerConstraint1DofComponent();
 	virtual ~UAGX_SingleControllerConstraint1DofComponent() override;
 
-	FSingleControllerConstraint1DOFBarrier* GetNativeFingleControllerConstraint1DOF();
+	FSingleControllerConstraint1DOFBarrier* GetNativeSingleControllerConstraint1DOF();
 	const FSingleControllerConstraint1DOFBarrier* GetNativeSingleControllerConstraint1DOF() const;
 
 	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;

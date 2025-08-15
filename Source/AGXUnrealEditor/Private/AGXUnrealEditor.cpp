@@ -65,8 +65,8 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
-#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
@@ -123,6 +123,7 @@
 #include "Wire/AGX_WireWinchVisualizer.h"
 
 // Unreal Engine includes.
+#include "AssetRegistry/AssetData.h"
 #include "AssetToolsModule.h"
 #include "AssetTypeCategories.h"
 #include "Editor/UnrealEdEngine.h"
@@ -206,6 +207,13 @@ void FAGXUnrealEditorModule::ShutdownModule()
 	UnregisterPlacementCategory();
 
 	AgxTopMenu = nullptr;
+
+	if (FModuleManager::Get().IsModuleLoaded("AssetRegistry"))
+	{
+		FAssetRegistryModule& AssetRegistryModule =
+			FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+	}
 }
 
 const TSharedPtr<FAGX_TopMenu>& FAGXUnrealEditorModule::GetAgxTopMenu() const
@@ -512,9 +520,9 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName(),
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FPLX_SignalHandlerComponentCustomization::MakeInstance));
+			&FOpenPLX_SignalHandlerComponentCustomization::MakeInstance));
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -612,7 +620,7 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName());
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName());
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -793,7 +801,7 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 		return;
 
 	// Handle deletion of OpenPLX file copies.
-	if (!GetDefault<UAGX_Simulation>()->bDeletePLXFileCopyOnBlueprintDeletion)
+	if (!GetDefault<UAGX_Simulation>()->bDeleteOpenPLXFileCopyOnBlueprintDeletion)
 		return;
 
 	static const FString BaseBPPrefix = FAGX_ImportUtilities::GetImportBaseBlueprintNamePrefix();

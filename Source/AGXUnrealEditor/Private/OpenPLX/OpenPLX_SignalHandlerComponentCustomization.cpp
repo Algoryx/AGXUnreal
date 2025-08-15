@@ -1,39 +1,45 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
-#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Styling/SlateTypes.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Layout/SExpandableArea.h"
 #include "Widgets/Text/STextBlock.h"
 
-#define LOCTEXT_NAMESPACE "FPLX_SignalHandlerComponentCustomization"
+#define LOCTEXT_NAMESPACE "FOpenPLX_SignalHandlerComponentCustomization"
 
-TSharedRef<IDetailCustomization> FPLX_SignalHandlerComponentCustomization::MakeInstance()
+TSharedRef<IDetailCustomization> FOpenPLX_SignalHandlerComponentCustomization::MakeInstance()
 {
-	return MakeShareable(new FPLX_SignalHandlerComponentCustomization);
+	return MakeShareable(new FOpenPLX_SignalHandlerComponentCustomization);
 }
 
-void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
+void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	IDetailLayoutBuilder& InDetailBuilder)
 {
-	UPLX_SignalHandlerComponent* Component =
-		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UPLX_SignalHandlerComponent>(
+	UOpenPLX_SignalHandlerComponent* Component =
+		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UOpenPLX_SignalHandlerComponent>(
 			InDetailBuilder);
 	if (Component == nullptr)
 		return;
 
-	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UPLX_SignalHandlerComponent, Outputs));
-	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UPLX_SignalHandlerComponent, Inputs));
+	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UOpenPLX_SignalHandlerComponent, Outputs));
+	InDetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UOpenPLX_SignalHandlerComponent, Inputs));
 	InDetailBuilder.HideCategory(FName("Sockets"));
 
-	IDetailCategoryBuilder& SignalInterfaceCategory =
-		InDetailBuilder.EditCategory("OpenPLX Signal Interface", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& SignalInterfaceCategory = InDetailBuilder.EditCategory(
+		"OpenPLX Signal Interface", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// clang-format off
 
@@ -46,13 +52,17 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		.Font(IDetailLayoutBuilder::GetDetailFontBold())
 	];
 
-	TArray<FString> SortedInputAliasKeys;
+	TArray<FName> SortedInputAliasKeys;
 	Component->InputAliases.GetKeys(SortedInputAliasKeys);
-	SortedInputAliasKeys.Sort();
-	for (const FString& Alias : SortedInputAliasKeys)
+	SortedInputAliasKeys.Sort([](const FName& A, const FName& B)
 	{
-		const FString& Key = Component->InputAliases[Alias];
-		const FPLX_Input* Input = Component->Inputs.Find(Key);
+		return A.LexicalLess(B);
+	});
+
+	for (const FName& Alias : SortedInputAliasKeys)
+	{
+		const FName& Key = Component->InputAliases[Alias];
+		const FOpenPLX_Input* Input = Component->Inputs.Find(Key);
 		if (!Input)
 			continue;
 
@@ -67,7 +77,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 			.HeaderContent()
 			[
 				SNew(SEditableTextBox)
-				.Text(FText::FromString(Alias))
+				.Text(FText::FromName(Alias))
 				.IsReadOnly(true)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
@@ -88,7 +98,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.Padding(32.f, 4.f, 32.f, 4.f)
 				[
 					SNew(SEditableTextBox)
-					.Text(FText::FromString(FString::Printf(TEXT("Full name: %s"), *Input->Name)))
+					.Text(FText::FromString(FString::Printf(TEXT("Full name: %s"), *Input->Name.ToString())))
 					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
@@ -105,13 +115,17 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		.Font(IDetailLayoutBuilder::GetDetailFontBold())
 	];
 
-	TArray<FString> SortedOutputAliasKeys;
+	TArray<FName> SortedOutputAliasKeys;
 	Component->OutputAliases.GetKeys(SortedOutputAliasKeys);
-	SortedOutputAliasKeys.Sort();
-	for (const FString& Alias : SortedOutputAliasKeys)
+	SortedOutputAliasKeys.Sort([](const FName& A, const FName& B)
 	{
-		const FString& Key = Component->OutputAliases[Alias];
-		const FPLX_Output* Output = Component->Outputs.Find(Key);
+		return A.LexicalLess(B);
+	});
+
+	for (const FName& Alias : SortedOutputAliasKeys)
+	{
+		const FName& Key = Component->OutputAliases[Alias];
+		const FOpenPLX_Output* Output = Component->Outputs.Find(Key);
 		if (!Output)
 			continue;
 
@@ -129,7 +143,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 			.HeaderContent()
 			[
 				SNew(SEditableTextBox)
-				.Text(FText::FromString(Alias))
+				.Text(FText::FromName(Alias))
 				.IsReadOnly(true)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
@@ -159,7 +173,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.Padding(32.f, 4.f, 32.f, 4.f)
 				[
 					SNew(SEditableTextBox)
-					.Text(FText::FromString(FString::Printf(TEXT("Full name: %s"), *Output->Name)))
+					.Text(FText::FromString(FString::Printf(TEXT("Full name: %s"), *Output->Name.ToString())))
 					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
@@ -180,12 +194,16 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		.Font(IDetailLayoutBuilder::GetDetailFontBold())
 	];
 
-	TArray<FString> SortedInputKeys;
+	TArray<FName> SortedInputKeys;
 	Component->Inputs.GetKeys(SortedInputKeys);
-	SortedInputKeys.Sort();
-	for (const FString& Key : SortedInputKeys)
+	SortedInputKeys.Sort([](const FName& A, const FName& B)
 	{
-		const FPLX_Input& Input = Component->Inputs[Key];
+		return A.LexicalLess(B);
+	});
+
+	for (const FName& Key : SortedInputKeys)
+	{
+		const FOpenPLX_Input& Input = Component->Inputs[Key];
 		FString InputTypeName = UEnum::GetValueAsString(Input.Type);
 		InputTypeName = InputTypeName.RightChop(InputTypeName.Find(TEXT("::")) + 2);
 
@@ -197,7 +215,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 			.HeaderContent()
 			[
 				SNew(SEditableTextBox)
-				.Text(FText::FromString(Key))
+				.Text(FText::FromName(Key))
 				.IsReadOnly(true)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
@@ -218,10 +236,10 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.Padding(FMargin(32.f, 4.f, 0.f, 0.f))
 				[
 					SNew(SBox)
-					.Visibility(Input.Alias.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible)
+					.Visibility(Input.Alias.IsNone() ? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(SEditableTextBox)
-						.Text(FText::FromString(FString::Printf(TEXT("Alias: %s"), *Input.Alias)))
+						.Text(FText::FromString(FString::Printf(TEXT("Alias: %s"), *Input.Alias.ToString())))
 						.IsReadOnly(true)
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]
@@ -267,12 +285,16 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	];
 
 	// All Outputs.
-	TArray<FString> SortedOutputKeys;
+	TArray<FName> SortedOutputKeys;
 	Component->Outputs.GetKeys(SortedOutputKeys);
-	SortedOutputKeys.Sort();
-	for (const FString& Key : SortedOutputKeys)
+	SortedOutputKeys.Sort([](const FName& A, const FName& B)
 	{
-		const FPLX_Output& Output = Component->Outputs[Key];
+		return A.LexicalLess(B);
+	});
+
+	for (const FName& Key : SortedOutputKeys)
+	{
+		const FOpenPLX_Output& Output = Component->Outputs[Key];
 		if (!Component->bShowDisabledOutputs && !Output.bEnabled)
 			continue;
 
@@ -287,7 +309,7 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 			.HeaderContent()
 			[
 				SNew(SEditableTextBox)
-				.Text(FText::FromString(Key))
+				.Text(FText::FromName(Key))
 				.IsReadOnly(true)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			]
@@ -317,10 +339,10 @@ void FPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.Padding(FMargin(32.f, 4.f, 0.f, 0.f))
 				[
 					SNew(SBox)
-					.Visibility(Output.Alias.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible)
+					.Visibility(Output.Alias.IsNone() ? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(SEditableTextBox)
-						.Text(FText::FromString(FString::Printf(TEXT("Alias: %s"), *Output.Alias)))
+						.Text(FText::FromString(FString::Printf(TEXT("Alias: %s"), *Output.Alias.ToString())))
 						.IsReadOnly(true)
 						.Font(IDetailLayoutBuilder::GetDetailFont())
 					]

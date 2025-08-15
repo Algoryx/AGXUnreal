@@ -20,6 +20,7 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
+#include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Tires/AGX_TireComponent.h"
@@ -274,6 +275,12 @@ void UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
 	}
 }
 
+void UAGX_Simulation::Add(UAGX_ShovelComponent& Shovel)
+{
+	EnsureStepperCreated();
+	AGX_Simulation_helpers::Add(*this, Shovel);
+}
+
 void UAGX_Simulation::Add(UAGX_StaticMeshComponent& Body)
 {
 	EnsureStepperCreated();
@@ -379,6 +386,11 @@ void UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
 				 "contain more information about the failure."),
 			*Shape.GetName());
 	}
+}
+
+void UAGX_Simulation::Remove(UAGX_ShovelComponent& Shovel)
+{
+	AGX_Simulation_helpers::Remove(*this, Shovel);
 }
 
 void UAGX_Simulation::Remove(UAGX_StaticMeshComponent& Body)

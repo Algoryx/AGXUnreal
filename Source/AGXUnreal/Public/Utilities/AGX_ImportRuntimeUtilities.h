@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -28,15 +28,20 @@ public:
 
 	static void WriteSessionGuidToAssetType(UObject& Object, const FGuid& SessionGuid);
 
-	static void OnComponentCreated(UActorComponent& OutComponent, AActor& Owner, const FGuid& SessionGuid);
+	static void OnComponentCreated(
+		UActorComponent& OutComponent, AActor& Owner, const FGuid& SessionGuid);
 
 	static void OnAssetTypeCreated(UObject& OutObject, const FGuid& SessionGuid);
 
 	static UAGX_ShapeMaterial* GetOrCreateShapeMaterial(
 		const FShapeMaterialBarrier& Barrier, FAGX_ImportContext* Context);
 
-	static EAGX_ImportType GetFrom(const FString& FilePath);
+	static EAGX_ImportType GetImportTypeFrom(const FString& FilePath);
 
-	/// Returns the deleted directory if any.
+	/**
+	 * Given an absolute path to an OpenPLX file in
+	 * <project>/OpenPLXModels/<mymodel>/.../model.openplx, removes the <mymodel> directory and
+	 * everything inside it. Returns the deleted directory if any.
+	 */
 	static FString RemoveImportedOpenPLXFiles(const FString& FilePath);
 };

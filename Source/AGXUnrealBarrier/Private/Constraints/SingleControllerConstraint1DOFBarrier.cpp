@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/SingleControllerConstraint1DOFBarrier.h"
 
@@ -8,6 +8,7 @@
 #include "BarrierOnly/AGXRefs.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "RigidBodyBarrier.h"
+#include "TypeConversions.h"
 #include "Utilities/AGX_BarrierConstraintUtilities.h"
 
 #include "BeginAGXIncludes.h"
@@ -23,7 +24,6 @@ FSingleControllerConstraint1DOFBarrier::FSingleControllerConstraint1DOFBarrier(
 	std::unique_ptr<FConstraintRef> Native)
 	: FConstraint1DOFBarrier(std::move(Native))
 {
-	/// \todo Should we allow nullptr hinge here?
 	check(NativeRef->Native->is<agx::SingleControllerConstraint1DOF>());
 }
 
@@ -35,7 +35,7 @@ void FSingleControllerConstraint1DOFBarrier::AllocateNative(
 	const FRigidBodyBarrier& Rb1, const FVector& FramePosition1, const FQuat& FrameRotation1,
 	const FRigidBodyBarrier* Rb2, const FVector& FramePosition2, const FQuat& FrameRotation2,
 	FConstraintControllerBarrier* Controller, EAGX_ConstraintControllerType ControllerType,
-	EAGX_ConstraintAngleControllerType ControllerAngleType)
+	EAGX_ConstraintAngleControllerType ControllerAngleType, const FString& Name)
 {
 	check(!HasNative());
 	check(Controller != nullptr);
@@ -78,6 +78,8 @@ void FSingleControllerConstraint1DOFBarrier::AllocateNative(
 			*GetName());
 		return;
 	}
+
+	Controller->GetNative()->Native->setName(Convert(Name));
 
 	agx::RigidBody* NativeRigidBody1 = nullptr;
 	agx::RigidBody* NativeRigidBody2 = nullptr;

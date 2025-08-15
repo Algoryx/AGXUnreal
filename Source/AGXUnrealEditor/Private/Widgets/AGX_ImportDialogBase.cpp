@@ -107,7 +107,7 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 						[
 							SNew(STextBlock)
 							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
-							.Text(LOCTEXT("PLXExperimentalTesxt", "Note: OpenPLX support is currently Experimental, "
+							.Text(LOCTEXT("PLXExperimentalText", "Note: OpenPLX support is currently Experimental, "
 								"meaning the supported features \nare limited and backwards compatibility in "
 								"future releases is not guaranteed."))
 							.Font(FAGX_SlateUtilities::CreateFont(10))
@@ -153,7 +153,7 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 	const FString CurrentSelectedDir = FPaths::GetPath(FilePath);
 	const FString StartDir = FPaths::DirectoryExists(CurrentSelectedDir) ? CurrentSelectedDir : "";
 	FilePath = FAGX_EditorUtilities::SelectExistingFileDialog("file", FileTypes, StartDir);
-	ImportType = FAGX_ImportRuntimeUtilities::GetFrom(FilePath);
+	ImportType = FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath);
 
 	RefreshGui();
 
@@ -187,7 +187,7 @@ void SAGX_ImportDialogBase::OnFilePathTextCommitted(
 	const FText& InNewText, ETextCommit::Type InCommitType)
 {
 	FilePath = InNewText.ToString();
-	ImportType = FAGX_ImportRuntimeUtilities::GetFrom(FilePath);
+	ImportType = FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath);
 	RefreshGui();
 }
 

@@ -1,9 +1,10 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_SingleControllerConstraint1DofComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "Constraints/ControllerConstraintBarriers.h"
 #include "Constraints/SingleControllerConstraint1DOFBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
@@ -22,7 +23,7 @@ UAGX_SingleControllerConstraint1DofComponent::~UAGX_SingleControllerConstraint1D
 }
 
 FSingleControllerConstraint1DOFBarrier*
-UAGX_SingleControllerConstraint1DofComponent::GetNativeFingleControllerConstraint1DOF()
+UAGX_SingleControllerConstraint1DofComponent::GetNativeSingleControllerConstraint1DOF()
 {
 	return FAGX_ConstraintUtilities::GetNativeCast(this);
 }
@@ -42,6 +43,9 @@ void UAGX_SingleControllerConstraint1DofComponent::CopyFrom(
 
 	ControllerType = BarrierSCC1DOF->GetControllerType();
 	ControllerAngleType = BarrierSCC1DOF->GetControllerAngleType();
+
+	// This is a workaround for this constraint type only. See internal issue 1686 in the AGX repo.
+	ImportName = "";
 }
 
 bool UAGX_SingleControllerConstraint1DofComponent::GetValid() const
@@ -124,8 +128,15 @@ void UAGX_SingleControllerConstraint1DofComponent::CreateNativeImpl()
 	FTransform Transform2 =
 		FAGX_ConstraintUtilities::GetFrameTransform(BodyAttachment2, GetFName(), OwnerName);
 
+	// agxOpenPLX require that both a Single Controller Constraint and its Secondary Constraint,
+	// e.g. a Target Speed Controller, have the same name as in the OpenPLX model. This is required
+	// for input signal routing to work. So this name must match the name set on the Native in
+	// UAGX_ConstraintComponent::UpdateNativeProperties.
+	const FString ConstraintName = !ImportName.IsEmpty() ? ImportName : GetName();
+
 	auto BarrierSCC1DOF = static_cast<FSingleControllerConstraint1DOFBarrier*>(NativeBarrier.Get());
 	BarrierSCC1DOF->AllocateNative(
 		*Body1, Transform1.GetLocation(), Transform1.GetRotation(), Body2, Transform2.GetLocation(),
-		Transform2.GetRotation(), Controller->GetNative(), ControllerType, ControllerAngleType);
+		Transform2.GetRotation(), Controller->GetNative(), ControllerType, ControllerAngleType,
+		ConstraintName);
 }

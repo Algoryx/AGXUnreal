@@ -1266,6 +1266,9 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 
 void AAGX_Terrain::CreateNativeShovels()
 {
+	// Todo: most of this logic can be moved to ShovelComponent. Since AGX Dynamics 2.40, Shovels
+	// are added to the Simulation instead of the Terrains.
+
 	if (!HasNative())
 	{
 		UE_LOG(
@@ -1285,7 +1288,10 @@ void AAGX_Terrain::CreateNativeShovels()
 		}
 		else
 		{
-			return NativeBarrier.AddShovel(ShovelBarrier);
+			UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+			if (Simulation == nullptr)
+				return false;
+			return Simulation->GetNative()->Add(ShovelBarrier);
 		}
 	};
 

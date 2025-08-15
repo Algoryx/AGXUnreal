@@ -238,7 +238,7 @@ FText FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString()
 			LogAGX, Error,
 			TEXT("Unable to get Simulation object in "
 				 "FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString."));
-		FText::FromString("Unknown");
+		return FText::FromString("Unknown");
 	}
 
 	const int32 CurrentDeviceIndex = Simulation->RaytraceDeviceIndex;

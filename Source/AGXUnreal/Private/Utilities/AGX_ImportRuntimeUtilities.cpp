@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 
@@ -8,7 +8,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
@@ -74,7 +74,7 @@ UAGX_ShapeMaterial* FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(
 	return Sm;
 }
 
-EAGX_ImportType FAGX_ImportRuntimeUtilities::GetFrom(const FString& FilePath)
+EAGX_ImportType FAGX_ImportRuntimeUtilities::GetImportTypeFrom(const FString& FilePath)
 {
 	const FString FileExtension = FPaths::GetExtension(FilePath);
 	if (FileExtension.Equals("agx"))
@@ -95,7 +95,7 @@ EAGX_ImportType FAGX_ImportRuntimeUtilities::GetFrom(const FString& FilePath)
 
 FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& FilePath)
 {
-	FString ModelsDir = FPLXUtilities::GetModelsDirectory();
+	FString ModelsDir = FOpenPLXUtilities::GetModelsDirectory();
 	FPaths::NormalizeDirectoryName(ModelsDir);
 
 	if (!FilePath.StartsWith(ModelsDir))

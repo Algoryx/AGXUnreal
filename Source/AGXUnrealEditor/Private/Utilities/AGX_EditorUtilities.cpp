@@ -30,6 +30,7 @@
 #include "ActorEditorUtils.h"
 #include "AssetDeleteModel.h"
 #include "AssetToolsModule.h"
+#include "BlueprintEditorModule.h"
 #include "Containers/Ticker.h"
 #include "ContentBrowserModule.h"
 #include "DesktopPlatformModule.h"
@@ -1018,32 +1019,57 @@ bool FAGX_EditorUtilities::IsSelected(const UActorComponent& Component)
 	if (!FActorEditorUtils::IsAPreviewOrInactiveActor(Component.GetOwner()) &&
 		Component.IsSelected())
 	{
-		// The shovel is directly selected in the level editor.
+		// The Component is directly selected in the level editor.
 		return true;
 	}
 
-	// Check if the shovel is owned by a Blueprint editor and if so if the shovel is currently
+	// Check if the Component is owned by a Blueprint editor and if so if the Component is currently
 	// selected in that Blueprint editor.
+	TArray<TSharedPtr<IBlueprintEditor>> BlueprintEditors;
+
+	// For some situations the GetIBlueprintEditorForObject function fails to find the Blueprint Editor
+	// for a Component. This is true for example when a Component is owned by a parent Blueprint, and
+	//  we get a Component pointer in a ComponentVisualizer when editing a Child Bleprint.
+	// For that reason, below we use a fallback to search through all opened Blueprint Editors in case
+	// GetIBlueprintEditorForObject fails.
 	TSharedPtr<IBlueprintEditor> BlueprintEditor =
 		FKismetEditorUtilities::GetIBlueprintEditorForObject(&Component, false);
-	if (BlueprintEditor.IsValid())
+
+	if (BlueprintEditor != nullptr)
+		BlueprintEditors.Add(BlueprintEditor);
+	else
+		BlueprintEditors = GetBlueprintEditors();
+
+	for (auto Editor : BlueprintEditors)
 	{
-		TArray<TSharedPtr<FSubobjectEditorTreeNode>> Selection =
-			BlueprintEditor->GetSelectedSubobjectEditorTreeNodes();
-		for (TSharedPtr<FSubobjectEditorTreeNode>& Selected : Selection)
+		if (Editor.IsValid())
 		{
-			const UActorComponent* SelectedComponent = Selected->GetComponentTemplate();
-			if (SelectedComponent == &Component)
+			for (auto& Selected : Editor->GetSelectedSubobjectEditorTreeNodes())
 			{
-				return true;
+				if (Selected == nullptr)
+					continue;
+
+				const UActorComponent* SelectedComponent = Selected->GetComponentTemplate();
+				if (SelectedComponent == nullptr)
+					continue;
+
+				if (SelectedComponent == &Component)
+					return true;
+
+				for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(
+						 *const_cast<UActorComponent*>(SelectedComponent)))
+				{
+					if (Instance == &Component)
+						return true;
+				}
 			}
 		}
 	}
 
-	// If the Shovel is part of a preview that we also want to consider it selected if the
-	// Shovel it is a preview of is selected. This happens when we are looking at the Shovel
-	// that exists within the viewport of a Blueprint editor. Then the shovel we see isn't
-	// selected anywhere, but the CSC node template shovel the preview shovel was created from
+	// If the Component is part of a preview then we also want to consider it selected if the
+	// Component it is a preview of is selected. This happens when we are looking at the Component
+	// that exists within the viewport of a Blueprint editor. Then the Component we see isn't
+	// selected anywhere, but the CSC node template Component the preview Component was created from
 	// might be.
 	if (Component.GetOwner() != nullptr &&
 		FActorEditorUtils::IsAPreviewOrInactiveActor(Component.GetOwner()))
@@ -1383,6 +1409,17 @@ FString FAGX_EditorUtilities::GetRelativePath(const FString& BasePath, FString F
 	FullPath.RemoveFromStart(BasePath);
 	FullPath.RemoveFromStart("/");
 	return FullPath;
+}
+
+TArray<TSharedPtr<IBlueprintEditor>> FAGX_EditorUtilities::GetBlueprintEditors()
+{
+	TArray<TSharedPtr<IBlueprintEditor>> Editors;
+
+	FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+	for (auto Editor : BlueprintEditorModule.GetBlueprintEditors())
+		Editors.Add(Editor);
+
+	return Editors;
 }
 
 #undef LOCTEXT_NAMESPACE

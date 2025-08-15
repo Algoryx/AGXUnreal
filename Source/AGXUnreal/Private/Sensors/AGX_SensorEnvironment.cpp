@@ -71,15 +71,16 @@ namespace AGX_SensorEnvironment_helpers
 		}
 
 		OutIndices.Reserve(MeshData->Indices.Num() / 3);
-		for (int32 I = 3; I < MeshData->Indices.Num(); I += 3)
+		for (int32 I = 2; I < MeshData->Indices.Num(); I += 3)
 		{
 			FTriIndices TriInd;
-			TriInd.v0 = static_cast<int32>(MeshData->Indices[I - 3]);
-			TriInd.v1 = static_cast<int32>(MeshData->Indices[I - 2]);
-			TriInd.v2 = static_cast<int32>(MeshData->Indices[I - 1]);
+			TriInd.v0 = static_cast<int32>(MeshData->Indices[I - 2]);
+			TriInd.v1 = static_cast<int32>(MeshData->Indices[I - 1]);
+			TriInd.v2 = static_cast<int32>(MeshData->Indices[I - 0]);
 			OutIndices.Add(TriInd);
 		}
 
+		AGX_CHECK(OutIndices.Num() == MeshData->Indices.Num() / 3);
 		return true;
 	}
 
@@ -105,7 +106,14 @@ namespace AGX_SensorEnvironment_helpers
 			Sphere->SetSphereRadius(Radius, /*bUpdateOverlaps*/ false);
 		}
 
-		Sphere->SetWorldLocation(Lidar->GetComponentLocation());
+		const FVector CurrentLocation = Sphere->GetComponentLocation();
+		const FVector TargetLocation = Lidar->GetComponentLocation();
+
+		Sphere->SetWorldLocation(TargetLocation); // Updates overlaps if moved.
+
+		// Update overlaps when location hasn't changed.
+		if (CurrentLocation.Equals(TargetLocation, SMALL_NUMBER))
+			Sphere->UpdateOverlaps();
 	}
 
 	template <typename InMapType>
@@ -690,7 +698,7 @@ void AAGX_SensorEnvironment::EndPlay(const EEndPlayReason::Type Reason)
 	if (AmbientMaterial != nullptr && AmbientMaterial->HasNative())
 		AmbientMaterial->ReleaseNative();
 
-    if (HasNative())
+	if (HasNative())
 		NativeBarrier.ReleaseNative();
 }
 

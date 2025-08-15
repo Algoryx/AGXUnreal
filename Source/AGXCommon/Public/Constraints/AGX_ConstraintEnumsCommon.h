@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -22,19 +22,19 @@ enum class EAGX_ConstraintControllerType : uint8
 {
 	Invalid,
 
-	/// Corresponds to FAGX_ConstraintTargetSpeedController type.
+	/// Corresponds to agx::TargetSpeedController type.
 	ConstraintTargetSpeedController,
 
-	/// Corresponds to FAGX_ConstraintLockController type.
+	/// Corresponds to agx::LockController type.
 	ConstraintLockController,
 
-	/// Corresponds to FAGX_ConstraintRangeController type.
+	/// Corresponds to agx::RangeController type.
 	ConstraintRangeController,
 
-	/// Corresponds to FAGX_ConstraintElectricMotorController type.
+	/// Corresponds to agx::ElectricMotorController type.
 	ConstraintElectricMotorController,
 
-	/// Corresponds to FAGX_ConstraintFrictionController type.
+	/// Corresponds to agx::FrictionController type.
 	ConstraintFrictionController
 
 };

@@ -82,7 +82,7 @@ namespace AGX_ROS2Utilities_helpers
 			OutData.Add(static_cast<uint8_t>(Bits & 0xFF));
 			Bits >>= 8;
 		}
-	};
+	}
 
 	void AppendFloatToUint8Array(float Val, TArray<uint8>& OutData)
 	{
@@ -94,7 +94,7 @@ namespace AGX_ROS2Utilities_helpers
 			OutData.Add(static_cast<uint8_t>(Bits & 0xFF));
 			Bits >>= 8;
 		}
-	};
+	}
 
 	auto AppendUint32ToUint8Array(uint32 Val, TArray<uint8>& OutData)
 	{
@@ -103,7 +103,17 @@ namespace AGX_ROS2Utilities_helpers
 			OutData.Add(static_cast<uint8_t>(Val & 0xFF));
 			Val >>= 8;
 		}
-	};
+	}
+
+	constexpr double CmToM(double Val)
+	{
+		return Val / 100.0;
+	}
+
+	constexpr double MToCm(double Val)
+	{
+		return Val * 100.0;
+	}
 }
 
 FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
@@ -237,21 +247,13 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertXYZ(
 		}
 	};
 
-	// Centimeter to meter.
-	static constexpr double CtM = 0.01;
-
 	for (int32 i = FirstValidIndex; i < Points.Num(); i++)
 	{
 		if (!Points[i].bIsValid)
 			continue;
 
-		FVector Pos = Points[i].Position;
-		if (ROSCoordinates)
-		{
-			Pos = CtM * Pos;
-			Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
-		}
-
+		FVector Pos =
+			ROSCoordinates ? ConvertPositionToROS(Points[i].Position) : Points[i].Position;
 		AppendToInt8Array(Pos.X);
 		AppendToInt8Array(Pos.Y);
 		AppendToInt8Array(Pos.Z);
@@ -418,4 +420,78 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
 
 	return Msg;
+}
+
+double UAGX_ROS2Utilities::ConvertDistanceToROS(double DistanceUnreal)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	return CmToM(DistanceUnreal);
+}
+
+double UAGX_ROS2Utilities::ConvertDistanceToUnreal(double DistanceROS)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	return MToCm(DistanceROS);
+}
+
+FVector UAGX_ROS2Utilities::ConvertPositionToROS(FVector Pos)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	Pos *= CmToM(1.0);
+	Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
+	return Pos;
+}
+
+FVector UAGX_ROS2Utilities::ConvertPositionToUnreal(FVector Pos)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	Pos *= MToCm(1.0);
+	Pos.Y = -Pos.Y; // Flip Y due to left vs righ handed coordinates.
+	return Pos;
+}
+
+FVector UAGX_ROS2Utilities::ConvertVelocityToROS(FVector Vel)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	Vel *= CmToM(1.0);
+	Vel.Y = -Vel.Y; // Flip Y due to left vs righ handed coordinates.
+	return Vel;
+}
+
+FVector UAGX_ROS2Utilities::ConvertVelocityToUnreal(FVector Vel)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	Vel *= MToCm(1.0);
+	Vel.Y = -Vel.Y; // Flip Y due to left vs righ handed coordinates.
+	return Vel;
+}
+
+FVector UAGX_ROS2Utilities::ConvertAngularVelocityToROS(FVector V)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+
+	// Based on TypeConversions.h ConvertAngularVelocity.
+	return FVector(
+		FMath::DegreesToRadians(V.X), FMath::DegreesToRadians(-V.Y), FMath::DegreesToRadians(-V.Z));
+}
+
+FVector UAGX_ROS2Utilities::ConvertAngularVelocityToUnreal(FVector V)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+
+	// Based on TypeConversions.h ConvertAngularVelocity.
+	return FVector(
+		FMath::RadiansToDegrees(V.X), FMath::RadiansToDegrees(-V.Y), FMath::RadiansToDegrees(-V.Z));
+}
+
+FQuat UAGX_ROS2Utilities::ConvertRotationToROS(FQuat Q)
+{
+	// Based on TypeConversions.h
+	return FQuat(Q.X, -Q.Y, Q.Z, -Q.W);
+}
+
+FQuat UAGX_ROS2Utilities::ConvertRotationToUnreal(FQuat Q)
+{
+	// Based on TypeConversions.h
+	return FQuat(Q.X, -Q.Y, Q.Z, -Q.W);
 }

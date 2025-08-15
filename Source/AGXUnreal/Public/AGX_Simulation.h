@@ -25,6 +25,7 @@ class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
+class UAGX_ShovelComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
 class UAGX_TireComponent;
@@ -215,7 +216,7 @@ public: // Properties.
 	UPROPERTY(
 		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
 		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
-	bool bDeletePLXFileCopyOnBlueprintDeletion {true};
+	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
 
 	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.
@@ -484,6 +485,7 @@ public: // Member functions.
 	void Add(UAGX_RigidBodyComponent& Body);
 	void Add(UAGX_ShapeComponent& Shape);
 	void Add(UAGX_ShapeMaterial& Shape);
+	void Add(UAGX_ShovelComponent& Shovel);
 	void Add(UAGX_StaticMeshComponent& Body);
 	void Add(AAGX_Terrain& Terrain);
 	void Add(UAGX_TireComponent& Tire);
@@ -493,6 +495,7 @@ public: // Member functions.
 	void Remove(UAGX_RigidBodyComponent& Body);
 	void Remove(UAGX_ShapeComponent& Shape);
 	void Remove(UAGX_ShapeMaterial& Shape);
+	void Remove(UAGX_ShovelComponent& Shovel);
 	void Remove(UAGX_StaticMeshComponent& Body);
 	void Remove(AAGX_Terrain& Terrain);
 	void Remove(UAGX_TireComponent& Tire);
