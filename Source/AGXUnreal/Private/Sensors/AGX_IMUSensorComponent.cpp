@@ -158,23 +158,33 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	}
 
 	NativeBarrier.SetEnabled(bEnabled);
-	NativeBarrier.SetAccelerometerRange(AccelerometerRange);
-	NativeBarrier.SetAccelerometerCrossAxisSensitivity(AccelerometerCrossAxisSensitivity);
-	NativeBarrier.SetAccelerometerZeroGBias(AccelerometerZeroGBias);
-	NativeBarrier.SetAccelerometerNoiseRMS(AccelerometerNoiseRMS);
-	NativeBarrier.SetAccelerometerSpectralNoiseDensity(AccelerometerSpectralNoiseDensity);
 
-	NativeBarrier.SetGyroscopeRange(GyroscopeRange);
-	NativeBarrier.SetGyroscopeCrossAxisSensitivity(GyroscopeCrossAxisSensitivity);
-	NativeBarrier.SetGyroscopeZeroRateBias(GyroscopeZeroRateBias);
-	NativeBarrier.SetGyroscopeNoiseRMS(GyroscopeNoiseRMS);
-	NativeBarrier.SetGyroscopeSpectralNoiseDensity(GyroscopeSpectralNoiseDensity);
+	if (bUseAccelerometer)
+	{
+		NativeBarrier.SetAccelerometerRange(AccelerometerRange);
+		NativeBarrier.SetAccelerometerCrossAxisSensitivity(AccelerometerCrossAxisSensitivity);
+		NativeBarrier.SetAccelerometerZeroGBias(AccelerometerZeroGBias);
+		NativeBarrier.SetAccelerometerNoiseRMS(AccelerometerNoiseRMS);
+		NativeBarrier.SetAccelerometerSpectralNoiseDensity(AccelerometerSpectralNoiseDensity);
+	}
 
-	NativeBarrier.SetMagnetometerRange(MagnetometerRange);
-	NativeBarrier.SetMagnetometerCrossAxisSensitivity(MagnetometerCrossAxisSensitivity);
-	NativeBarrier.SetMagnetometerZeroFluxBias(MagnetometerZeroFluxBias);
-	NativeBarrier.SetMagnetometerNoiseRMS(MagnetometerNoiseRMS);
-	NativeBarrier.SetMagnetometerSpectralNoiseDensity(MagnetometerSpectralNoiseDensity);
+	if (bUseGyroscope)
+	{
+		NativeBarrier.SetGyroscopeRange(GyroscopeRange);
+		NativeBarrier.SetGyroscopeCrossAxisSensitivity(GyroscopeCrossAxisSensitivity);
+		NativeBarrier.SetGyroscopeZeroRateBias(GyroscopeZeroRateBias);
+		NativeBarrier.SetGyroscopeNoiseRMS(GyroscopeNoiseRMS);
+		NativeBarrier.SetGyroscopeSpectralNoiseDensity(GyroscopeSpectralNoiseDensity);
+	}
+
+	if (bUseMagnetometer)
+	{
+		NativeBarrier.SetMagnetometerRange(MagnetometerRange);
+		NativeBarrier.SetMagnetometerCrossAxisSensitivity(MagnetometerCrossAxisSensitivity);
+		NativeBarrier.SetMagnetometerZeroFluxBias(MagnetometerZeroFluxBias);
+		NativeBarrier.SetMagnetometerNoiseRMS(MagnetometerNoiseRMS);
+		NativeBarrier.SetMagnetometerSpectralNoiseDensity(MagnetometerSpectralNoiseDensity);
+	}
 }
 
 void UAGX_IMUSensorComponent::CreateNative()
