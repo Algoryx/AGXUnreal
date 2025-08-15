@@ -126,7 +126,9 @@ namespace AGX_IMUSensorComponent_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("%s called on IMU Sensor Component '%s' in '%s' with no Native object. Ignoring."),
+			TEXT("%s called on IMU Sensor Component '%s' in '%s' with no Native object. Ignoring. "
+				 "Make sure this IMU Sensor Component has been registered with an AGX Sensor "
+				 "Environment Actor in the Level."),
 			FunctionName, *IMU.GetName(), *GetLabelSafe(IMU.GetOwner()));
 		return false;
 	}
