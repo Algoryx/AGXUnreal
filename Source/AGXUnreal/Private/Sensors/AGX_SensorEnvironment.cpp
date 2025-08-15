@@ -737,11 +737,10 @@ void AAGX_SensorEnvironment::BeginPlay()
 	if (LidarSensors.Num() > 0 && !RaytraceRTXSupported)
 	{
 		const FString Message =
-			"Lidar raytracing (RTX) not supported on this computer, unable to run the Sensor "
-			"Environment. To enable Lidar raytracing (RTX) support, use an RTX "
+			"Lidar raytracing (RTX) not supported on this computer, the Lidar Sensors will not "
+			"work. To enable Lidar raytracing (RTX) support, use an RTX "
 			"Graphical Processing Unit (GPU) with updated driver.";
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
-		return;
 	}
 
 	if (!HasNative())
@@ -791,9 +790,6 @@ void AAGX_SensorEnvironment::InitializeNative()
 	if (HasNative())
 		return;
 
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
-		return;
-
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim == nullptr || !Sim->HasNative())
 	{
@@ -807,16 +803,26 @@ void AAGX_SensorEnvironment::InitializeNative()
 	}
 
 	// Make sure correct Raytrace device is set.
-	if (Sim->RaytraceDeviceIndex != FSensorEnvironmentBarrier::GetCurrentRayraceDevice())
+	if (FSensorEnvironmentBarrier::IsRaytraceSupported())
 	{
-		if (!FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(Sim->RaytraceDeviceIndex))
+		if (Sim->RaytraceDeviceIndex != FSensorEnvironmentBarrier::GetCurrentRayraceDevice())
 		{
-			const FString Message = FString::Printf(
-				TEXT("Tried to set Raytrace device id %d, but the selection failed. Please review "
-					 "the AGX Lidar category in the plugin settings."),
-				Sim->RaytraceDeviceIndex);
-			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
+			if (!FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(Sim->RaytraceDeviceIndex))
+			{
+				const FString Message = FString::Printf(
+					TEXT("Tried to set Raytrace device id %d, but the selection failed. Please "
+						 "review "
+						 "the AGX Lidar category in the plugin settings."),
+					Sim->RaytraceDeviceIndex);
+				FAGX_NotificationUtilities::ShowNotification(
+					Message, SNotificationItem::CS_Fail, 8.f);
+			}
 		}
+
+		// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same
+		// step.
+		// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
+		Sim->SetPreIntegratePositions(true);
 	}
 
 	NativeBarrier.AllocateNative(*Sim->GetNative());
@@ -833,10 +839,6 @@ void AAGX_SensorEnvironment::InitializeNative()
 
 	// In case the Level has no other AGX types in it.
 	Sim->EnsureStepperCreated();
-
-	// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same step.
-	// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
-	Sim->SetPreIntegratePositions(true);
 }
 
 void AAGX_SensorEnvironment::RegisterLidars()

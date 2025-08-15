@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SensorUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -295,6 +296,18 @@ FLidarBarrier* UAGX_LidarSensorComponent::GetOrCreateNative()
 {
 	if (HasNative())
 		return GetNative();
+
+	const bool RaytraceRTXSupported = FSensorEnvironmentBarrier::IsRaytraceSupported();
+	if (!RaytraceRTXSupported)
+	{
+		const FString Message =
+			"UAGX_LidarSensorComponent::GetOrCreateNative called, but Lidar raytracing (RTX) is "
+			"not supported on this computer, the Lidar Sensor will not "
+			"work. To enable Lidar raytracing (RTX) support, use an RTX "
+			"Graphical Processing Unit (GPU) with updated driver.";
+		UE_LOG(LogAGX, Warning, TEXT("%s"), *Message);
+		return nullptr;
+	}
 
 	if (ModelParameters == nullptr)
 	{
