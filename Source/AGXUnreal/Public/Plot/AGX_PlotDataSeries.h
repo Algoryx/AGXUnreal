@@ -48,10 +48,4 @@ class AGXUNREAL_API UAGX_PlotDataSeries_FL : public UBlueprintFunctionLibrary
 	{
 		Series.Write(Data);
 	}
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Plot")
-	static void ClearData(UPARAM(ref) FAGX_PlotDataSeries& Series)
-	{
-		Series.ClearData();
-	}
 };
