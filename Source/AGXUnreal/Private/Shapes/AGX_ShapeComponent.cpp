@@ -211,6 +211,7 @@ void UAGX_ShapeComponent::PostInitProperties()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(IsSensor);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SensorType);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SurfaceVelocity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShapeMaterial);
 
@@ -565,6 +566,26 @@ bool UAGX_ShapeComponent::GetIsSensor() const
 	}
 
 	return bIsSensor;
+}
+
+void UAGX_ShapeComponent::SetSensorType(EAGX_ShapeSensorType Type)
+{
+	if (HasNative() && GetNative()->GetIsSensor())
+		GetNative()->SetIsSensor(true, Type == EAGX_ShapeSensorType::ContactsSensor);
+
+	SensorType = Type;
+}
+
+EAGX_ShapeSensorType UAGX_ShapeComponent::GetSensorType() const
+{
+	if (HasNative())
+	{
+		return GetNative()->GetIsSensorGeneratingContactData()
+				   ? EAGX_ShapeSensorType::ContactsSensor
+				   : EAGX_ShapeSensorType::BooleanSensor;
+	}
+
+	return SensorType;
 }
 
 void UAGX_ShapeComponent::SetSurfaceVelocity(FVector InSurfaceVelocity)
