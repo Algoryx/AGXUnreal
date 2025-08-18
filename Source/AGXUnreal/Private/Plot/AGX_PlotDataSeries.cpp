@@ -22,23 +22,6 @@ void FAGX_PlotDataSeries::Write(float Data)
 	NativeBarrier.Write(static_cast<double>(Data));
 }
 
-void FAGX_PlotDataSeries::ClearData()
-{
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("ClearData was called on PlotDataSeries '%s' but it does not have an AGX Native. Make "
-				 "sure this PlotDataSeries is part of a Plot. It is registered by calling the "
-				 "AGX_PlotComponent::CreatePlot function. Also note that the ClearData function should "
-				 "only be called during Play."),
-			*Label);
-		return;
-	}
-
-	NativeBarrier.ClearData();
-}
-
 bool FAGX_PlotDataSeries::HasNative() const
 {
 	return NativeBarrier.HasNative();

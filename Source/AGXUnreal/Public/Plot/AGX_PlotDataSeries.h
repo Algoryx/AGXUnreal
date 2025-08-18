@@ -23,8 +23,6 @@ struct AGXUNREAL_API FAGX_PlotDataSeries
 
 	void Write(float Data);
 
-	void ClearData();
-
 	bool HasNative() const;
 
 	// We must provide operator = because the Unreal framework will attempt to invoke it.

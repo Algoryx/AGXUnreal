@@ -134,15 +134,3 @@ void FPlotBarrier::OpenWebPlot()
 	check(HasNative());
 	NativeRef->Native->add(new agxPlot::WebPlot(true));
 }
-
-void FPlotBarrier::DisableWindows()
-{
-	check(HasNative());
-	NativeRef->Native->disableWindows();
-}
-
-void FPlotBarrier::ClearDataSeries()
-{
-	check(HasNative());
-	NativeRef->Native->clearDataSeries();
-}

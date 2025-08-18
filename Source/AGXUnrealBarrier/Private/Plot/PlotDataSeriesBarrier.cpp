@@ -71,9 +71,3 @@ void FPlotDataSeriesBarrier::Write(double Data)
 	check(HasNative());
 	NativeRef->Native->push(Data);
 }
-
-void FPlotDataSeriesBarrier::ClearData()
-{
-	check(HasNative());
-	NativeRef->Native->clearData();
-}

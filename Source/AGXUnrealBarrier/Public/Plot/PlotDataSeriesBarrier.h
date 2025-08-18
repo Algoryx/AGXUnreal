@@ -29,8 +29,6 @@ public:
 
 	void Write(double Data);
 
-	void ClearData();
-
 private:
 	FPlotDataSeriesBarrier(const FPlotDataSeriesBarrier&) = delete;
 	void operator=(const FPlotDataSeriesBarrier&) = delete;
