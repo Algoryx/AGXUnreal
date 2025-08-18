@@ -570,8 +570,10 @@ bool UAGX_ShapeComponent::GetIsSensor() const
 
 void UAGX_ShapeComponent::SetSensorType(EAGX_ShapeSensorType Type)
 {
-	if (HasNative() && GetNative()->GetIsSensor())
-		GetNative()->SetIsSensor(true, Type == EAGX_ShapeSensorType::ContactsSensor);
+	if (HasNative())
+	{
+		GetNative()->SetIsSensor(GetIsSensor(), Type == EAGX_ShapeSensorType::ContactsSensor);
+	}
 
 	SensorType = Type;
 }
