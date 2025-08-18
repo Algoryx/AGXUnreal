@@ -53,6 +53,29 @@ UAGX_TrackComponent::UAGX_TrackComponent()
 			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMatPath));
 }
 
+bool UAGX_TrackComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
+{
+	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
+	ShapeMaterial = InShapeMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeShapeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeShapeMaterial())
+	{
+		// Something went wrong, restore original ShapeMaterial.
+		ShapeMaterial = ShapeMaterialOrig;
+		return false;
+	}
+
+	return true;
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license
@@ -704,7 +727,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, ShapeMaterial),
-		[](ThisClass* Self) { Self->UpdateNativeMaterial(); });
+		[](ThisClass* Self) { Self->UpdateNativeShapeMaterial(); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackProperties),
@@ -864,37 +887,6 @@ void UAGX_TrackComponent::CreateNative()
 	UpdateNativeProperties();
 }
 
-void UAGX_TrackComponent::UpdateNativeMaterial()
-{
-	if (!HasNative() || !GetWorld() || !GetWorld()->IsGameWorld())
-	{
-		return;
-	}
-
-	if (ShapeMaterial == nullptr)
-	{
-		GetNative()->ClearMaterial();
-		return;
-	}
-
-	// Create instance if necessary.
-	UAGX_ShapeMaterial* MaterialInstance =
-		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
-	check(MaterialInstance);
-	// Replace asset reference with instance reference.
-	if (ShapeMaterial != MaterialInstance)
-	{
-		ShapeMaterial = MaterialInstance;
-	}
-
-	const FShapeMaterialBarrier* MaterialBarrier =
-		MaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
-	check(MaterialBarrier);
-
-	// Assign native.
-	GetNative()->SetMaterial(*MaterialBarrier);
-}
-
 void UAGX_TrackComponent::WriteTrackPropertiesToNative()
 {
 	if (!HasNative() || GetWorld() == nullptr || !GetWorld()->IsGameWorld())
@@ -1050,7 +1042,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	NativeBarrier.SetName(GetName());
 
 	// Set shape material on all native geometries.
-	UpdateNativeMaterial();
+	UpdateNativeShapeMaterial();
 
 	// Set track properties.
 	WriteTrackPropertiesToNative();
@@ -1267,6 +1259,31 @@ void UAGX_TrackComponent::WriteRenderMaterialsToVisualMesh()
 		if (VisualMeshes->GetMaterial(Elem) != RenderMaterials[Elem])
 			VisualMeshes->SetMaterial(Elem, RenderMaterials[Elem]);
 	}
+}
+
+bool UAGX_TrackComponent::UpdateNativeShapeMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (ShapeMaterial == nullptr)
+	{
+		GetNative()->ClearMaterial();
+		return true;
+	}
+
+	UAGX_ShapeMaterial* Instance =
+		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
+	check(Instance);
+
+	if (ShapeMaterial != Instance)
+		ShapeMaterial = Instance;
+
+	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(GetWorld());
+	check(MaterialBarrier);
+
+	GetNative()->SetMaterial(*MaterialBarrier);
+	return true;
 }
 
 #if WITH_EDITOR
