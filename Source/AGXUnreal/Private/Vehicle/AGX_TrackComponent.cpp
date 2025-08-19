@@ -199,9 +199,11 @@ namespace AGX_TrackComponent_helpers
 			Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(PropertiesBarrier);
-		const FString TrackName = Barrier.GetName();
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *TrackName),
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackProperties::StaticClass());
 		Properties->Rename(*Name);
 
@@ -220,9 +222,12 @@ namespace AGX_TrackComponent_helpers
 			Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(Barrier);
-		const FString TrackName = Barrier.GetName();
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *TrackName),
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackInternalMergeProperties::StaticClass());
 		Properties->Rename(*Name);
 
@@ -240,6 +245,12 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	InitialDistanceTension = static_cast<float>(Barrier.GetInitialDistanceTension());
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
+	Rename(*Name);
 
 	if (Barrier.GetNumNodes() > 0)
 	{
@@ -260,10 +271,6 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	if (Context == nullptr || Context->Tracks == nullptr || Context->ShapeMaterials == nullptr ||
 		Context->TrackProperties == nullptr)
 		return; // We are done.
-
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_TrackComponent::StaticClass());
-	Rename(*Name);
 
 	AGX_CHECK(!Context->Tracks->Contains(ImportGuid));
 	Context->Tracks->Add(ImportGuid, this);

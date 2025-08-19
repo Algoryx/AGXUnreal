@@ -11,6 +11,7 @@
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -500,6 +501,12 @@ void UAGX_RigidBodyComponent::WritePropertiesToNative()
 void UAGX_RigidBodyComponent::CopyFrom(
 	const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), CleanBarrierName, UAGX_RigidBodyComponent::StaticClass());
+	Rename(*Name);
+
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
 	const FMassPropertiesBarrier& MassProperties = Barrier.GetMassProperties();
 	ImportGuid = Barrier.GetGuid();
@@ -526,10 +533,6 @@ void UAGX_RigidBodyComponent::CopyFrom(
 
 	if (Context == nullptr || Context->RigidBodies == nullptr)
 		return; // We are done.
-
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Barrier.GetName(), UAGX_RigidBodyComponent::StaticClass());
-	Rename(*Name);
 
 	AGX_CHECK(!Context->RigidBodies->Contains(ImportGuid));
 	Context->RigidBodies->Add(ImportGuid, this);
