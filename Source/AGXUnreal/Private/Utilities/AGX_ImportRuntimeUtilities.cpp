@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -126,4 +127,16 @@ FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& F
 	}
 
 	return "";
+}
+
+FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+	const FString& BarrierName, FAGX_ImportContext* Context)
+{
+	if (Context == nullptr || Context->RootModelName.IsEmpty())
+		return BarrierName;
+
+	FString Name = BarrierName;
+	Name.RemoveFromStart(Context->RootModelName);
+	Name.RemoveFromStart(".");
+	return Name;
 }

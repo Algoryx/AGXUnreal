@@ -9,6 +9,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
@@ -356,8 +357,10 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 
 	ImportGuid = Source.GetGuid();
 
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Source.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
+		GetOuter(), CleanBarrierName, UAGX_ShapeMaterial::StaticClass());
 	Rename(*Name);
 
 	if (Context != nullptr && Context->ShapeMaterials != nullptr &&

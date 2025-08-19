@@ -69,7 +69,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
 
 	UAGX_ModelSourceComponent* ModelSourceComponent {nullptr};
-	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar{nullptr};
+	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar {nullptr};
 	UAGX_CollisionGroupDisablerComponent* CollisionGroupDisabler {nullptr};
 	UOpenPLX_SignalHandlerComponent* SignalHandler {nullptr};
 
@@ -79,4 +79,10 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	// TransientPackage for editor imports and UWorld for runtime imports.
 	UObject* Outer {nullptr};
+
+	/**
+	 *The root model name, not always set.
+	 * For OpenPLX imports, this is set to the root System name.
+	 */
+	FString RootModelName = "";
 };
