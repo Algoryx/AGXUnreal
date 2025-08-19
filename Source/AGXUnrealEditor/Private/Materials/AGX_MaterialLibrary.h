@@ -16,4 +16,6 @@ namespace AGX_MaterialLibrary
 	bool UpdateTerrainMaterialAssetLibrary();
 
 	bool UpdateLidarAmbientMaterialAssetLibrary();
+
+	bool UpdateAllMaterialAssetLibraries();
 }

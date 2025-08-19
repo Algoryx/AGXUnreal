@@ -386,3 +386,9 @@ bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 
 	return Result;
 }
+
+bool AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries()
+{
+	return UpdateShapeMaterialAssetLibrary() && UpdateContactMaterialAssetLibrary() &&
+		   UpdateTerrainMaterialAssetLibrary() && UpdateLidarAmbientMaterialAssetLibrary();
+}

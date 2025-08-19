@@ -778,10 +778,7 @@ void FAGXUnrealEditorModule::UnregisterPlacementCategory()
 
 void FAGXUnrealEditorModule::InitializeAssets()
 {
-	AGX_MaterialLibrary::UpdateShapeMaterialAssetLibrary();
-	AGX_MaterialLibrary::UpdateContactMaterialAssetLibrary();
-	AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary();
-	AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries();
 }
 
 void FAGXUnrealEditorModule::OnGrabModeCommand() const
