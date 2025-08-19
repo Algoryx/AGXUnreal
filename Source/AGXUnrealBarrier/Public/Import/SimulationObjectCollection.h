@@ -133,6 +133,9 @@ public:
 	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
 	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
 
+	void SetModelName(const FString& Name);
+	FString GetModelName() const;
+
 private:
 	FSimulationObjectCollection(const FSimulationObjectCollection&) = delete;
 	void operator=(const FSimulationObjectCollection&) = delete;
@@ -168,4 +171,6 @@ private:
 
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;
+
+	FString ModelName;
 };

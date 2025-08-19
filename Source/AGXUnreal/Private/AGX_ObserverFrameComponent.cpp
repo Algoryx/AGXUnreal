@@ -12,8 +12,10 @@
 void UAGX_ObserverFrameComponent::CopyFrom(
 	const FObserverFrameData& Data, FAGX_ImportContext* Context)
 {
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Data.Name, Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Data.Name, UAGX_ObserverFrameComponent::StaticClass());
+		GetOwner(), CleanBarrierName, UAGX_ObserverFrameComponent::StaticClass());
 	Rename(*Name);
 
 	SetRelativeTransform(Data.Transform);
