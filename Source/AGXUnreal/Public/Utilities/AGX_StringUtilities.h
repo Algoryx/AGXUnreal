@@ -84,10 +84,3 @@ FORCEINLINE FString RemoveFromString(const FString& Str, const FString& CharsToR
 
 	return Result;
 }
-
-FORCEINLINE FString RemoveFromStringStart(const FString& Str, const FString& CharsToRemove)
-{
-	FString Result = Str;
-	Result.RemoveFromStart(CharsToRemove);
-	return Result;
-}
