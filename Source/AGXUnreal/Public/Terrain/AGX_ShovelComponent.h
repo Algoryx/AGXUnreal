@@ -58,12 +58,23 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge TopEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetTopEdge(FAGX_Edge InTopEdge);
+
+	/**
+	 * Returns the position of the Top Edge start point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	FVector GetTopEdgeStartPositionWorld();
+
+	/**
+	 * Returns the position of the Top Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	FVector GetTopEdgeEndPositionWorld();
 
 	/**
 	 * The cutting edge of the active zone.
@@ -72,12 +83,24 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge CuttingEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetCuttingEdge(FAGX_Edge InCuttingEdge);
+
+	/**
+	 * Returns the position of the Cutting Edge start point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	FVector GetCuttingEdgeStartPositionWorld();
+
+
+	/**
+	 * Returns the position of the Cutting Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	FVector GetCuttingEdgeEndPositionWorld();
 
 	/**
 	 * The cutting direction of the shovel where the penetration resistance will be active, which is
@@ -87,8 +110,7 @@ public:
 	 * Direction or Finalize Shovel Edit must be called to commit the changes to the native AGX
 	 * Dynamics representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Frame CuttingDirection;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
