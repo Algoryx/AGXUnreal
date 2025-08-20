@@ -67,13 +67,13 @@ public:
 	/**
 	 * Returns the position of the Top Edge start point in the world coordinate system.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
 	FVector GetTopEdgeStartPositionWorld();
 
 	/**
 	 * Returns the position of the Top Edge end point in the world coordinate system.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
 	FVector GetTopEdgeEndPositionWorld();
 
 	/**
@@ -92,14 +92,14 @@ public:
 	/**
 	 * Returns the position of the Cutting Edge start point in the world coordinate system.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
 	FVector GetCuttingEdgeStartPositionWorld();
 
 
 	/**
 	 * Returns the position of the Cutting Edge end point in the world coordinate system.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
 	FVector GetCuttingEdgeEndPositionWorld();
 
 	/**
