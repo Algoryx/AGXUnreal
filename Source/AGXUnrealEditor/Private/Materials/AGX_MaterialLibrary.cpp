@@ -74,105 +74,6 @@ namespace AGX_MaterialLibrary_helpers
 		return FString();
 	}
 
-	template <typename MaterialType, typename BarrierType, typename MaterialLoadFunc>
-	MaterialType* EnsureMaterialImported(
-		const FString& NameAGX, LibraryMaterialType Type, MaterialLoadFunc LoadFunc,
-		bool ForceOverwrite)
-	{
-		// Create a package for our asset.
-		const FString Name = UPackageTools::SanitizePackageName(NameAGX);
-		const FString AssetName = ToAssetName(NameAGX, Type);
-		const FString AssetDir = ToMaterialDirectoryContentBrowser(Type);
-		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
-		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
-
-		// Create the asset itself, reading data from the AGX Dynamics material library.
-		auto OptionalBarrier = LoadFunc(Name);
-		if (!OptionalBarrier.IsSet())
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("Unable to import Material '%s' from AGX Material Library to '%s'. The "
-					 "material may not be avaiable in the AGX Dynamics for Unreal Contents."),
-				*NameAGX, *AssetPath);
-			return nullptr;
-		}
-
-		const BarrierType& Material = OptionalBarrier.GetValue();
-		MaterialType* Asset = nullptr;
-		if (OldAssetExists)
-		{
-			Asset = LoadObject<MaterialType>(nullptr, *AssetPath);
-			if (!ForceOverwrite)
-				return Asset;
-		}
-		else
-		{
-			Asset = FAGX_ImportUtilities::CreateAsset<MaterialType>(AssetDir, AssetName, "");
-		}
-
-		if constexpr (std::is_same_v<MaterialType, UAGX_TerrainMaterial>)
-			Asset->CopyFrom(Material);
-		else
-			Asset->CopyFrom(Material, nullptr);
-
-		// Must fully load the package or else project packaging will fail with:
-		//
-		//    Package /AGXUnreal/Terrain/TerrainMaterialLibrary/AGX_TM_gravel_1 supposed
-		//    to be fully loaded but isn't. RF_WasLoaded is set
-		//
-		//    Unable to cook package for platform because it is unable to be loaded:
-		//    <PATH>/AGXUnreal/Content/Terrain/TerrainMaterialLibrary/AGX_TM_gravel_1.uasset
-		//
-		// I'm not entirely sure where the FullyLoad call should be for it to
-		// take effect in all cases, so there are a few of them. Remove the
-		// unnecessary ones once we know which can safely be removed.
-		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
-		return Asset;
-	}
-
-	template <typename BarrierFunc>
-	bool UpdateLidarAmbientMaterialAssetLibrary(
-		const FString& Name, BarrierFunc Func, bool ForceOverwrite)
-	{
-		const FString AssetDir(TEXT("/AGXUnreal/Sensor/Lidar/AmbientMaterialLibrary"));
-
-		// Create a package for our asset.
-		const FString AssetName = UPackageTools::SanitizePackageName(Name);
-		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
-		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
-
-		UAGX_LidarAmbientMaterial* Asset = nullptr;
-		if (OldAssetExists)
-		{
-			Asset = LoadObject<UAGX_LidarAmbientMaterial>(nullptr, *AssetPath);
-			if (!ForceOverwrite)
-				return Asset != nullptr;
-		}
-		else
-		{
-			Asset = FAGX_ImportUtilities::CreateAsset<UAGX_LidarAmbientMaterial>(
-				AssetDir, AssetName, "");
-		}
-
-		if (Asset == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error, TEXT("Unable to initialize Lidar Ambient Material Asset '%s'"),
-				*AssetPath);
-			return false;
-		}
-
-		FRtAmbientMaterialBarrier Barrier;
-		Barrier.AllocateNative();
-		Func(Barrier);
-		Asset->CopyFrom(Barrier);
-		Barrier.ReleaseNative();
-
-		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
-		return true;
-	}
-
 	bool AssignLibraryShapeMaterialsToContactMaterial(
 		UAGX_ContactMaterial& OutCm, const FString& NameAGX)
 	{
@@ -211,9 +112,146 @@ namespace AGX_MaterialLibrary_helpers
 		OutCm.Material2 = Mat2;
 		return true;
 	}
+
+	// Assigns Shape Materials and fixes known broken properties.
+	void FixupContactMaterialPostCopyFrom(UAGX_ContactMaterial* Cm, const FString& NameAGX)
+	{
+		if (Cm == nullptr)
+			return;
+
+		// The AGX Dynamics Material Library imports Contact Materials without a Friction Model.
+		// This causes the value to be set to Not Defined, which in turn causes no AGX Dynamics
+		// Friction Model to be created at Begin Play.
+		if (Cm->FrictionModel == EAGX_FrictionModel::NotDefined)
+		{
+			Cm->FrictionModel = EAGX_FrictionModel::IterativeProjectedConeFriction;
+		}
+		if (Cm->ContactSolver == EAGX_ContactSolver::NotDefined)
+		{
+			Cm->ContactSolver = EAGX_ContactSolver::Split;
+		}
+
+		AssignLibraryShapeMaterialsToContactMaterial(*Cm, NameAGX);
+	}
+
+	template <typename MaterialType, typename BarrierType, typename MaterialLoadFunc>
+	MaterialType* EnsureMaterialImported(
+		const FString& NameAGX, LibraryMaterialType Type, MaterialLoadFunc LoadFunc)
+	{
+		// Create a package for our asset.
+		const FString Name = UPackageTools::SanitizePackageName(NameAGX);
+		const FString AssetName = ToAssetName(NameAGX, Type);
+		const FString AssetDir = ToMaterialDirectoryContentBrowser(Type);
+		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
+		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
+
+		// Create the asset itself, reading data from the AGX Dynamics material library.
+		auto OptionalBarrier = LoadFunc(Name);
+		if (!OptionalBarrier.IsSet())
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Unable to import Material '%s' from AGX Material Library to '%s'. The "
+					 "material may not be available in the AGX Dynamics for Unreal Contents."),
+				*NameAGX, *AssetPath);
+			return nullptr;
+		}
+
+		const BarrierType& Barrier = OptionalBarrier.GetValue();
+
+		MaterialType* Asset = nullptr;
+
+		if (OldAssetExists)
+		{
+			MaterialType* TempMaterial = NewObject<MaterialType>(
+				GetTransientPackage(), MaterialType::StaticClass(), NAME_None, RF_Transient);
+			if constexpr (std::is_same_v<MaterialType, UAGX_TerrainMaterial>)
+				TempMaterial->CopyFrom(Barrier);
+			else
+				TempMaterial->CopyFrom(Barrier, nullptr);
+
+			if constexpr (std::is_same_v<MaterialType, UAGX_ContactMaterial>)
+				FixupContactMaterialPostCopyFrom(TempMaterial, NameAGX);
+
+			Asset = LoadObject<MaterialType>(nullptr, *AssetPath);
+			if (*TempMaterial == *Asset)
+				return Asset; // No changes done, use the old asset.
+		}
+		else
+		{
+			Asset = FAGX_ImportUtilities::CreateAsset<MaterialType>(AssetDir, AssetName, "");
+		}
+
+		if constexpr (std::is_same_v<MaterialType, UAGX_TerrainMaterial>)
+			Asset->CopyFrom(Barrier);
+		else
+			Asset->CopyFrom(Barrier, nullptr);
+
+		if constexpr (std::is_same_v<MaterialType, UAGX_ContactMaterial>)
+			FixupContactMaterialPostCopyFrom(Asset, NameAGX);
+
+		// Must fully load the package or else project packaging will fail with:
+		//
+		//    Package /AGXUnreal/Terrain/TerrainMaterialLibrary/AGX_TM_gravel_1 supposed
+		//    to be fully loaded but isn't. RF_WasLoaded is set
+		//
+		//    Unable to cook package for platform because it is unable to be loaded:
+		//    <PATH>/AGXUnreal/Content/Terrain/TerrainMaterialLibrary/AGX_TM_gravel_1.uasset
+		//
+		// I'm not entirely sure where the FullyLoad call should be for it to
+		// take effect in all cases, so there are a few of them. Remove the
+		// unnecessary ones once we know which can safely be removed.
+		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
+		return Asset;
+	}
+
+	template <typename BarrierFunc>
+	bool UpdateLidarAmbientMaterialAssetLibrary(const FString& Name, BarrierFunc Func)
+	{
+		const FString AssetDir(TEXT("/AGXUnreal/Sensor/Lidar/AmbientMaterialLibrary"));
+
+		// Create a package for our asset.
+		const FString AssetName = UPackageTools::SanitizePackageName(Name);
+		const FString AssetPath = FString::Printf(TEXT("%s/%s"), *AssetDir, *AssetName);
+		const bool OldAssetExists = FPackageName::DoesPackageExist(AssetPath);
+
+		FRtAmbientMaterialBarrier Barrier;
+		Barrier.AllocateNative();
+		Func(Barrier);
+
+		UAGX_LidarAmbientMaterial* Asset = nullptr;
+		if (OldAssetExists)
+		{
+			auto TempMaterial = NewObject<UAGX_LidarAmbientMaterial>(
+				GetTransientPackage(), UAGX_LidarAmbientMaterial::StaticClass(), NAME_None,
+				RF_Transient);
+			TempMaterial->CopyFrom(Barrier);
+
+			Asset = LoadObject<UAGX_LidarAmbientMaterial>(nullptr, *AssetPath);
+			if (*Asset == *TempMaterial)
+				return true; // Already up to date, we are done.
+		}
+		else
+		{
+			Asset = FAGX_ImportUtilities::CreateAsset<UAGX_LidarAmbientMaterial>(
+				AssetDir, AssetName, "");
+		}
+
+		if (Asset == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Error, TEXT("Unable to initialize Lidar Ambient Material Asset '%s'"),
+				*AssetPath);
+			return false;
+		}
+
+		Asset->CopyFrom(Barrier);
+		FAGX_ObjectUtilities::SaveAsset(*Asset, true);
+		return true;
+	}
 }
 
-bool AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary(bool ForceOverwrite)
+bool AGX_MaterialLibrary::UpdateContactMaterialAssetLibrary()
 {
 	using namespace AGX_MaterialLibrary_helpers;
 	using namespace AGX_MaterialLibraryBarrier;
@@ -224,55 +262,18 @@ bool AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary(bool ForceOverwr
 	{
 		UAGX_ContactMaterial* Cm =
 			EnsureMaterialImported<UAGX_ContactMaterial, FContactMaterialBarrier>(
-				NameAGX, LibraryMaterialType::ContactMaterial, LoadContactMaterialProfile,
-				ForceOverwrite);
+				NameAGX, LibraryMaterialType::ContactMaterial, LoadContactMaterialProfile);
 		if (Cm == nullptr)
 		{
 			IssuesEncountered = true;
 			continue; // Logging done in EnsureMaterialImported.
-		}
-
-		bool bNeedSave {false};
-
-		// The AGX Dynamics Material Library imports Contact Materials without a Friction Model.
-		// This causes the value to be set to Not Defined, which in turn causes no AGX Dynamics
-		// Friction Model to be created at Begin Play.
-		if (Cm->FrictionModel == EAGX_FrictionModel::NotDefined)
-		{
-			Cm->FrictionModel = EAGX_FrictionModel::IterativeProjectedConeFriction;
-			bNeedSave = true;
-		}
-		if (Cm->ContactSolver == EAGX_ContactSolver::NotDefined)
-		{
-			Cm->ContactSolver = EAGX_ContactSolver::Split;
-			bNeedSave = true;
-		}
-
-		if (AssignLibraryShapeMaterialsToContactMaterial(*Cm, NameAGX))
-		{
-			bNeedSave = true;
-		}
-		else
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Unable to assign Shape Materials for Contact Material '%s' in the Material "
-					 "Library. This Contact Material will not have the correct Shape Materials set "
-					 "up."),
-				*Cm->GetName());
-			IssuesEncountered = true;
-		}
-
-		if (bNeedSave)
-		{
-			FAGX_ObjectUtilities::SaveAsset(*Cm, true);
 		}
 	}
 
 	return !IssuesEncountered;
 }
 
-bool AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary(bool ForceOverwrite)
+bool AGX_MaterialLibrary::UpdateShapeMaterialAssetLibrary()
 {
 	using namespace AGX_MaterialLibrary_helpers;
 	using namespace AGX_MaterialLibraryBarrier;
@@ -282,7 +283,7 @@ bool AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary(bool ForceOverwrit
 	for (const FString& NameAGX : Names)
 	{
 		auto mat = EnsureMaterialImported<UAGX_ShapeMaterial, FShapeMaterialBarrier>(
-			NameAGX, LibraryMaterialType::ShapeMaterial, LoadShapeMaterialProfile, ForceOverwrite);
+			NameAGX, LibraryMaterialType::ShapeMaterial, LoadShapeMaterialProfile);
 		if (mat == nullptr)
 			IssuesEncountered = true;
 	}
@@ -290,7 +291,7 @@ bool AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary(bool ForceOverwrit
 	return !IssuesEncountered;
 }
 
-bool AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(bool ForceOverwrite)
+bool AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary()
 {
 	using namespace AGX_MaterialLibrary_helpers;
 	using namespace AGX_MaterialLibraryBarrier;
@@ -300,8 +301,7 @@ bool AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(bool ForceOverwr
 	for (const FString& NameAGX : Names)
 	{
 		auto mat = EnsureMaterialImported<UAGX_TerrainMaterial, FTerrainMaterialBarrier>(
-			NameAGX, LibraryMaterialType::TerrainMaterial, LoadTerrainMaterialProfile,
-			ForceOverwrite);
+			NameAGX, LibraryMaterialType::TerrainMaterial, LoadTerrainMaterialProfile);
 		if (mat == nullptr)
 			IssuesEncountered = true;
 	}
@@ -309,10 +309,8 @@ bool AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(bool ForceOverwr
 	return !IssuesEncountered;
 }
 
-bool AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary(bool ForceOverwrite)
+bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 {
-	using namespace AGX_MaterialLibrary_helpers;
-
 	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
 	{
 		UE_LOG(
@@ -330,71 +328,67 @@ bool AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary(bool ForceO
 
 	bool Result = true;
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Air_1000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(1.0f); }, ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(1.0f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Air_2500m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(2.5f); }, ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(2.5f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Air_5000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(5.0f); }, ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(5.0f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Air_50000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(50.0f); }, ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsAir(50.0f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Fog_3000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(3.0f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(3.0f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Fog_2000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(2.0f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(2.0f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Fog_1000m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(1.0f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(1.0f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Fog_200m_Visibility",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(0.2f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsFog(0.2f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Rainfall_1mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(1.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(1.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Rainfall_4mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(4.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(4.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Rainfall_8mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(8.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsRainfall(8.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Snowfall_1mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(1.f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(1.f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Snowfall_4mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(4.f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(4.f, 900.f); });
 
-	Result &= UpdateLidarAmbientMaterialAssetLibrary(
+	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Snowfall_8mm_Per_Hour",
-		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(8.f, 900.f); },
-		ForceOverwrite);
+		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(8.f, 900.f); });
 
 	return Result;
+}
+
+bool AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries()
+{
+	return UpdateShapeMaterialAssetLibrary() && UpdateContactMaterialAssetLibrary() &&
+		   UpdateTerrainMaterialAssetLibrary() && UpdateLidarAmbientMaterialAssetLibrary();
 }

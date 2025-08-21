@@ -45,6 +45,7 @@
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "Kismet2/KismetEditorUtilities.h"
@@ -519,7 +520,12 @@ namespace AGX_ImporterToEditor_helpers
 
 	bool HasMatchingSessionGuid(const UObject& Object, const FGuid& SessionGuid)
 	{
-		UMetaData* MetaData = Object.GetOutermost()->GetMetaData();
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
+		auto MetaData = Object.GetOutermost()->GetMetaData();
+#else
+		auto MetaData = &Object.GetOutermost()->GetMetaData();
+#endif // UE_VERSION_OLDER_THAN(...)
+
 		const FString GuidStr = MetaData->GetValue(&Object, TEXT("AGX_ImportSessionGuid"));
 		return FGuid(GuidStr) == SessionGuid;
 	}
