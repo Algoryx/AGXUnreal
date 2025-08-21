@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 #define LOCTEXT_NAMESPACE "AGX_IMUSensor"
 
