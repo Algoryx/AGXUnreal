@@ -9,7 +9,10 @@
 #include "Import/AGX_ImportSettings.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
+
+#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
+#endif
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
@@ -91,10 +94,12 @@ EAGX_ImportType FAGX_ImportRuntimeUtilities::GetImportTypeFrom(const FString& Fi
 	{
 		return EAGX_ImportType::Agx;
 	}
+#if AGXUNREAL_USE_OPENPLX
 	else if (FileExtension.Equals("openplx"))
 	{
 		return EAGX_ImportType::Plx;
 	}
+#endif
 	else if (FileExtension.Equals("urdf"))
 	{
 		return EAGX_ImportType::Urdf;
@@ -103,6 +108,7 @@ EAGX_ImportType FAGX_ImportRuntimeUtilities::GetImportTypeFrom(const FString& Fi
 	return EAGX_ImportType::Invalid;
 }
 
+#if AGXUNREAL_USE_OPENPLX
 FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& FilePath)
 {
 	FString ModelsDir = FOpenPLXUtilities::GetModelsDirectory();
@@ -137,6 +143,7 @@ FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& F
 
 	return "";
 }
+#endif
 
 FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
 	const FString& BarrierName, FAGX_ImportContext* Context)

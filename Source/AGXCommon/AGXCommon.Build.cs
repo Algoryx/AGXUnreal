@@ -27,5 +27,8 @@ public class AGXCommon : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Projects"});
+
+
+		PublicDefinitions.Add("AGXUNREAL_USE_OPENPLX=0");
 	}
 }

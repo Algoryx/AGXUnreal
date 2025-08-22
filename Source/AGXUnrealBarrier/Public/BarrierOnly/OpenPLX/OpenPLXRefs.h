@@ -1,5 +1,7 @@
 #pragma once
 
+#if AGXUNREAL_USE_OPENPLX
+
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxCache.h"
@@ -93,3 +95,5 @@ struct FOpenPLXModelDataArray
 {
 	std::vector<FOpenPLXModelData> ModelData;
 };
+
+#endif

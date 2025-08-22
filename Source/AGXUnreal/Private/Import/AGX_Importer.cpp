@@ -28,7 +28,9 @@
 #include "Import/SimulationObjectCollection.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#if AGXUNREAL_USE_OPENPLX
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#endif
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -45,7 +47,9 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
+#endif
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/TrackBarrier.h"
 #include "Wire/AGX_WireComponent.h"
@@ -132,11 +136,13 @@ namespace AGX_Importer_helpers
 					Settings.FilePath, Settings.UrdfPackagePath, Settings.UrdfInitialJoints,
 					OutSimObjects));
 			}
+#if AGXUNREAL_USE_OPENPLX
 			case EAGX_ImportType::Plx:
 			{
 				return CheckResult(
 					FAGXSimObjectsReader::ReadOpenPLXFile(Settings.FilePath, OutSimObjects));
 			}
+#endif
 		}
 
 		UE_LOG(
@@ -203,6 +209,7 @@ namespace AGX_Importer_helpers
 
 	bool CheckFilePath(const FAGX_ImportSettings& Settings)
 	{
+#if AGXUNREAL_USE_OPENPLX
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
 			if (!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
@@ -223,6 +230,7 @@ namespace AGX_Importer_helpers
 				return false;
 			}
 		}
+#endif
 
 		if (!FPaths::FileExists(Settings.FilePath))
 		{
@@ -235,6 +243,7 @@ namespace AGX_Importer_helpers
 
 	void ConditionallyHideShapes(FAGX_ImportContext& Context)
 	{
+#if AGXUNREAL_USE_OPENPLX
 		// This is the same behavior as for AGXViewer, where if a loaded OpenPLX model has ANY
 		// visual geometries, all collision geometries are hidden.
 		AGX_CHECK(Context.Settings->ImportType == EAGX_ImportType::Plx);
@@ -246,6 +255,7 @@ namespace AGX_Importer_helpers
 			if (Shape != nullptr)
 				Shape->SetVisibility(false, /*bPropagateToChildren*/ false);
 		}
+#endif
 	}
 }
 
@@ -666,8 +676,10 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 
 	Res |= AddModelSourceComponent(OutActor);
 
+#if AGXUNREAL_USE_OPENPLX
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 		Res |= AddSignalHandlerComponent(SimObjects, OutActor);
+#endif
 
 	return Res;
 }
@@ -717,6 +729,7 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
 }
 
+#if AGXUNREAL_USE_OPENPLX
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
@@ -736,9 +749,12 @@ EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, OutActor, Context.SessionGuid);
 	return EAGX_ImportResult::Success;
 }
+#endif
 
 void FAGX_Importer::PostImport()
 {
+#if AGXUNREAL_USE_OPENPLX
 	if (Context.Settings->ImportType == EAGX_ImportType::Plx)
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
+#endif
 }

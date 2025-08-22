@@ -208,6 +208,9 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Simulation")
 	bool bEnableGlobalContactEventListener {true};
 
+// Error: 'USTRUCT' must not be inside preprocessor blocks, except for WITH_EDITORONLY_DATA
+// #if AGXUNREAL_USE_OPENPLX
+#if 0
 	/**
 	 * If enabled, whenever a Blueprint Asset from an imported OpenPLX file is deleted, the
 	 * corresponding OpenPLX files located in Project/OpenPLXModels used by that Blueprint is
@@ -217,6 +220,7 @@ public: // Properties.
 		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
 		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
 	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
+#endif
 
 	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.

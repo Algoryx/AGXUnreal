@@ -165,9 +165,11 @@ FAGX_TopMenu::~FAGX_TopMenu()
 			LOCTEXT("FileMenuLabel", "File"),
 			LOCTEXT(
 				"FileMenuTooltip",
-				"Interoperability with external file formats, such AGX Dynamics files (.agx), "
-				"OpenPLX (.openplx) or URDF (.urdf) files. "
-				"or URDF files (.urdf)."),
+				"Interoperability with external file formats, such AGX Dynamics files (.agx)"
+#if AGXUNREAL_USE_OPENPLX
+				", OpenPLX (.openplx)"
+#endif
+				" or URDF (.urdf) files."),
 			FNewMenuDelegate::CreateRaw(this, &FAGX_TopMenu::FillFileMenu), false, FileIcon);
 	}
 
@@ -312,7 +314,11 @@ void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
 		LOCTEXT(
 			"FileMenuEntryhTooltopImportBluePrint",
+#if AGXUNREAL_USE_OPENPLX
 			"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint."),
+#else
+			"Import an AGX Dynamics archive or URDF file to a Blueprint."),
+#endif
 		[]() { UAGX_AgxEdModeFile::ImportToBlueprint(); });
 
 	// Export AGX Archive menu item
@@ -472,7 +478,9 @@ void FAGX_TopMenu::OnOpenAboutDialogClicked()
 		"Revision: " + FAGX_Environment::GetPluginRevision() + "\n"
 		"\n"
 		"AGX Dynamics version: " + FAGX_Environment::GetAGXDynamicsVersion() + "\n"
+#if AGXUNREAL_USE_OPENPLX
 		"OpenPLX version: " + FAGX_Environment::GetOpenPLXVersion() + "\n"
+#endif
 		+ LicenseText + "\n"
 		"Copyright Algoryx Simulation AB\n"
 		"www.algoryx.com");

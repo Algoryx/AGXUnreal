@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Error: 'USTRUCT' must not be inside preprocessor blocks, except for WITH_EDITORONLY_DATA
+// #if AGXUNREAL_USE_OPENPLX
+#if 0
+
 // AGX Dynamics for Unreal includes.
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
@@ -231,3 +235,6 @@ public:
 private:
 	FOpenPLXSignalHandler SignalHandler;
 };
+
+
+#endif

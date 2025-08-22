@@ -51,7 +51,11 @@ namespace AGX_ImportDialog_helpers
 
 void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 {
-	FileTypes = ".agx;*.openplx;*.urdf";
+	FileTypes = ".agx"
+#if AGXUNREAL_USE_OPENPLX
+		";*.openplx"
+#endif
+		";*.urdf";
 
 	// clang-format off
 	ChildSlot
@@ -81,12 +85,14 @@ void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 			[
 				CreateAGXFileGui()
 			]
+#if AGXUNREAL_USE_OPENPLX
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(5.0f, 0.0f))
 			.AutoHeight()
 			[
 				CreatePLXFileGui()
 			]
+#endif
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(5.0f, 0.0f))
 			.AutoHeight()
@@ -297,7 +303,7 @@ TSharedRef<SBorder> SAGX_ImportDialog::CreateURDFInitJointsGui()
 						.AutoHeight()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("InitJointsDetailsText", 
+							.Text(LOCTEXT("InitJointsDetailsText",
 								"Enter a space separated list of initial joint positions (degrees), for example: 30 0 5.5 -14.4\n"
 								"Note that only revolute, continuous and prismatic joints are counted so the number of joint\n"
 								"elements should match the total number of those joint types in the URDF model."))

@@ -56,7 +56,9 @@ public:
 	static void GetAGXDynamicsVersion(
 		int32& OutGeneration, int32& OutMajor, int32& OutMinor, int32& OutPatch);
 
+#if AGXUNREAL_USE_OPENPLX
 	static FString GetOpenPLXVersion();
+#endif
 
 	static bool IsAGXDynamicsVersionNewerOrEqualTo(
 		int32 InGeneration, int32 InMajor, int32 InMinor, int32 InPatch);
