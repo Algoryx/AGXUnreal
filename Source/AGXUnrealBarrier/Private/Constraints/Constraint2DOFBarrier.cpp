@@ -75,6 +75,26 @@ double FConstraint2DOFBarrier::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const
 	}
 }
 
+double FConstraint2DOFBarrier::GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	check(HasNative());
+
+	agx::Constraint2DOF* Constraint = Get2DOF(NativeRef);
+	const agx::Real SpeedAGX = Constraint->getCurrentSpeed(Convert(Dof));
+	const agx::Motor1D* MotorAGX = Constraint->getMotor1D(Convert(Dof));
+	const agx::Angle::Type DofType = FAGX_BarrierConstraintUtilities::GetDofType(MotorAGX);
+	switch (DofType)
+	{
+		case agx::Angle::ROTATIONAL:
+			return ConvertAngleToUnreal<double>(SpeedAGX);
+		case agx::Angle::TRANSLATIONAL:
+			return ConvertDistanceToUnreal<double>(SpeedAGX);
+		default:
+			// Don't know the type, so pass the value unchanged to the caller.
+			return SpeedAGX;
+	}
+}
+
 TUniquePtr<FElectricMotorControllerBarrier> FConstraint2DOFBarrier::GetElectricMotorController(
 	EAGX_Constraint2DOFFreeDOF Dof)
 {
