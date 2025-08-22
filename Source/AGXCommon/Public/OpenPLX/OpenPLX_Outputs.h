@@ -2,6 +2,12 @@
 
 #pragma once
 
+
+// Error: 'USTRUCT' must not be inside preprocessor blocks, except for WITH_EDITORONLY_DATA
+// #if AGXUNREAL_USE_OPENPLX
+#if 0
+
+
 // AGX Dynamics for Unreal includes.
 #include "OpenPLX/OpenPLX_Enums.h"
 
@@ -40,3 +46,6 @@ struct AGXCOMMON_API FOpenPLX_Output
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
 	bool bEnabled {false};
 };
+
+
+#endif

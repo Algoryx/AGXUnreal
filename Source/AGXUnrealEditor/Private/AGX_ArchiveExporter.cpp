@@ -11,6 +11,7 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 
+
 bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 {
 	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();

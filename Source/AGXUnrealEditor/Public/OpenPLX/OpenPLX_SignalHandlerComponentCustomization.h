@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if AGXUNREAL_USE_OPENPLX
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "IDetailCustomization.h"
@@ -17,3 +19,5 @@ public:
 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder) override;
 };
+
+#endif

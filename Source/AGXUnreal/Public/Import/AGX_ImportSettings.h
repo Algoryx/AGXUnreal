@@ -18,8 +18,11 @@ struct AGXUNREAL_API FAGX_ImportSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Import")
 	EAGX_ImportType ImportType = EAGX_ImportType::Invalid;
 
+	// #if AGXUNREAL_USE_OPENPLX
+	// Reminder: Re-add OpenPLX below.
+
 	/**
-	 * Absolute file path to the .agx archive, OpenPLX or Urdf file to be imported.
+	 * Absolute file path to the .agx archive or Urdf file to be imported.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Import")
 	FString FilePath;
@@ -51,12 +54,12 @@ struct AGXUNREAL_API FAGX_ImportSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Import")
 	TArray<double> UrdfInitialJoints;
 
+	// #if AGXUNREAL_USE_OPENPLX
+	// Reminder: Re-add OpenPLX below, and text about differing paths for copied OpenPLX models.
+
 	/**
-	 * Absolute file path to the original .agx archive, OpenPLX or Urdf file that was selected for
-	 * Import or Reimport. In most cases this is the same as the FilePath property, but may differ
-	 * in some cases, for example for OpenPLX models where the files are copied to the project dir
-	 * (which is what FilePath points to in that case). In that case, this points to the original
-	 * source file that was copied.
+	 * Absolute file path to the original .agx archive or Urdf file that was selected for
+	 * Import or Reimport.
 	 */
 	UPROPERTY()
 	FString SourceFilePath;

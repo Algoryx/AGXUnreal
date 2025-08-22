@@ -1,5 +1,7 @@
 // Copyright 2025, Algoryx Simulation AB.
 
+#if AGXUNREAL_USE_OPENPLX
+
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // AGX Dynamics for Unreal includes.
@@ -710,3 +712,5 @@ std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()
 {
 	return "OpenPlxPowerLine";
 }
+
+#endif

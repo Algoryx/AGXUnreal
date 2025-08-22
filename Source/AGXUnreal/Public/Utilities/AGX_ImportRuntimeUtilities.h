@@ -38,17 +38,22 @@ public:
 
 	static EAGX_ImportType GetImportTypeFrom(const FString& FilePath);
 
+#if AGXUNREAL_USE_OPENPLX
 	/**
 	 * Given an absolute path to an OpenPLX file in
 	 * <project>/OpenPLXModels/<mymodel>/.../model.openplx, removes the <mymodel> directory and
 	 * everything inside it. Returns the deleted directory if any.
 	 */
 	static FString RemoveImportedOpenPLXFiles(const FString& FilePath);
+#endif
+
+	// #if AGXUNREAL_USE_OPENPLX
+	// Reminder: Re-add OpenPLX below.
 
 	/**
-	 * In some cases, for example in the case of OpenPLX imports, many Barrier names will start with
-	 * the root model name (the System name). This function returns the Barrier name with the root
-	 * model name removed from the beginning (if applicable).
+	 * In some cases many Barrier names will start with the root model name (the System name). This
+	 * function returns the Barrier name with the root model name removed from the beginning (if
+	 * applicable).
 	 */
 	static FString RemoveModelNameFromBarrierName(
 		const FString& BarrierName, FAGX_ImportContext* Context);

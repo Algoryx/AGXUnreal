@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if AGXUNREAL_USE_OPENPLX
+
 // AGX Dynamics for Unreal includes.
 #include "OpenPLX/OpenPLXModelRegistry.h"
 
@@ -65,3 +67,5 @@ private:
 	std::shared_ptr<FInputSignalQueueRef> InputQueueRef;
 	std::shared_ptr<FOutputSignalQueueRef> OutputQueueRef;
 };
+
+#endif

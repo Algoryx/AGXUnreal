@@ -47,12 +47,14 @@ class AGXUNREAL_API FAGX_Importer
 public:
 	FAGX_Importer();
 
+	// #if AGXUNREAL_USE_OPENPLX
+	// Reminder: Re-add OpenPLX below. And text about required location for OpenPLX files.
+
 	/**
-	 * Import an .agx archive, OpenPLX or Urdf model to an Actor that can either be instantiated
+	 * Import an .agx archive or Urdf model to an Actor that can either be instantiated
 	 * immediately in a world, or used to create a Blueprint from it.
 	 * The Outer must be set to a World if doing runtime imports, otherwise it can be set to
 	 * TransientPackage.
-	 * OpenPLX files must reside in the Unreal project/OpenPLXModels directory.
 	 */
 	FAGX_ImportResult Import(const FAGX_ImportSettings& Settings, UObject& Outer);
 	const FAGX_ImportContext& GetContext() const;
@@ -85,8 +87,10 @@ private:
 
 	EAGX_ImportResult AddShovel(const FShovelBarrier& Shovel, AActor& OutActor);
 
+#if AGXUNREAL_USE_OPENPLX
 	EAGX_ImportResult AddSignalHandlerComponent(
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
+#endif
 
 	void PostImport();
 

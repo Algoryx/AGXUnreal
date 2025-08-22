@@ -2,6 +2,8 @@
 
 #pragma once
 
+#if AGXUNREAL_USE_OPENPLX
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
@@ -57,3 +59,5 @@ private:
 	std::unique_ptr<FOpenPLXModelDataArray> Native;
 	std::unordered_map<std::string, Handle> KnownModels;
 };
+
+#endif

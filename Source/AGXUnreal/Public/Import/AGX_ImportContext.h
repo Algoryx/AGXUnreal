@@ -26,7 +26,9 @@ class UAGX_TwoBodyTireComponent;
 class UAGX_WireComponent;
 class UMaterialInstanceConstant;
 class UMaterialInterface;
+#if AGXUNREAL_USE_OPENPLX
 class UOpenPLX_SignalHandlerComponent;
+#endif
 class UStaticMesh;
 class UStaticMeshComponent;
 class UWorld;
@@ -71,7 +73,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 	UAGX_ModelSourceComponent* ModelSourceComponent {nullptr};
 	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar {nullptr};
 	UAGX_CollisionGroupDisablerComponent* CollisionGroupDisabler {nullptr};
+#if AGXUNREAL_USE_OPENPLX
 	UOpenPLX_SignalHandlerComponent* SignalHandler {nullptr};
+#endif
 
 	FGuid SessionGuid;
 
@@ -81,7 +85,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	UObject* Outer {nullptr};
 
 	/**
-	 *The root model name, not always set.
+	 * The root model name, not always set.
 	 * For OpenPLX imports, this is set to the root System name.
 	 */
 	FString RootModelName = "";
