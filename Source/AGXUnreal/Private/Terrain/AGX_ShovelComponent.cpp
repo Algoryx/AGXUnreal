@@ -173,12 +173,56 @@ void UAGX_ShovelComponent::SetTopEdge(FAGX_Edge InTopEdge)
 		[this](const FTwoVectors& EdgeInBody) { NativeBarrier.SetTopEdge(EdgeInBody); });
 }
 
+FVector UAGX_ShovelComponent::GetTopEdgeStartPositionWorld()
+{
+	if (HasNative())
+	{
+		FTwoVectors Edge = NativeBarrier.GetTopEdgeWorld();
+		return Edge.v1;
+	}
+
+	return GetComponentTransform().TransformPosition(TopEdge.Start.LocalLocation);
+}
+
+FVector UAGX_ShovelComponent::GetTopEdgeEndPositionWorld()
+{
+	if (HasNative())
+	{
+		FTwoVectors Edge = NativeBarrier.GetTopEdgeWorld();
+		return Edge.v2;
+	}
+
+	return GetComponentTransform().TransformPosition(TopEdge.End.LocalLocation);
+}
+
 void UAGX_ShovelComponent::SetCuttingEdge(FAGX_Edge InCuttingEdge)
 {
 	CuttingEdge = InCuttingEdge;
 	AGX_ShovelComponent_helpers::PropagateEdgeUpdate(
 		*this, CuttingEdge, TEXT("Cutting Edge"),
 		[this](const FTwoVectors& EdgeInBody) { NativeBarrier.SetCuttingEdge(EdgeInBody); });
+}
+
+FVector UAGX_ShovelComponent::GetCuttingEdgeStartPositionWorld()
+{
+	if (HasNative())
+	{
+		FTwoVectors Edge = NativeBarrier.GetCuttingEdgeWorld();
+		return Edge.v1;
+	}
+
+	return GetComponentTransform().TransformPosition(CuttingEdge.Start.LocalLocation);
+}
+
+FVector UAGX_ShovelComponent::GetCuttingEdgeEndPositionWorld()
+{
+	if (HasNative())
+	{
+		FTwoVectors Edge = NativeBarrier.GetCuttingEdgeWorld();
+		return Edge.v2;
+	}
+
+	return GetComponentTransform().TransformPosition(CuttingEdge.End.LocalLocation);
 }
 
 void UAGX_ShovelComponent::SetCuttingDirection(FAGX_Frame InCuttingDirection)
