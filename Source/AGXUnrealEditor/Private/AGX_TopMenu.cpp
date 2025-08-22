@@ -158,18 +158,25 @@ FAGX_TopMenu::~FAGX_TopMenu()
 /*virtual*/ void FAGX_TopMenu::FillTopMenu(FMenuBuilder& Builder)
 {
 	{
+		FText FileMenuTooltip;
+
+#if AGXUNREAL_USE_OPENPLX
+		FileMenuTooltip = LOCTEXT(
+			"FileMenuTooltip",
+			"Interoperability with external file formats, such AGX Dynamics files (.agx), OpenPLX "
+			"(.openplx) or URDF (.urdf) files.");
+#else
+		FileMenuTooltip = LOCTEXT(
+			"FileMenuTooltip",
+			"Interoperability with external file formats, such AGX Dynamics files (.agx) or URDF "
+			"(.urdf) files.");
+#endif
+
 		const FSlateIcon FileIcon(
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::FileIconSmall,
 			FAGX_EditorStyle::FileIconSmall);
 		Builder.AddSubMenu(
-			LOCTEXT("FileMenuLabel", "File"),
-			LOCTEXT(
-				"FileMenuTooltip",
-				"Interoperability with external file formats, such AGX Dynamics files (.agx)"
-#if AGXUNREAL_USE_OPENPLX
-				", OpenPLX (.openplx)"
-#endif
-				" or URDF (.urdf) files."),
+			LOCTEXT("FileMenuLabel", "File"), FileMenuTooltip,
 			FNewMenuDelegate::CreateRaw(this, &FAGX_TopMenu::FillFileMenu), false, FileIcon);
 	}
 
@@ -310,16 +317,20 @@ void FAGX_TopMenu::FillConstraintMenu(FMenuBuilder& Builder)
 
 void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 {
+	FText FileMenuTooltip;
+#if AGXUNREAL_USE_OPENPLX
+	FileMenuTooltip = LOCTEXT(
+		"FileMenuEntryhTooltopImportBluePrint",
+		"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint.");
+#else
+	FileMenuTooltip = LOCTEXT(
+		"FileMenuEntryhTooltopImportBluePrint",
+		"Import an AGX Dynamics archive or URDF file to a Blueprint.");
+#endif
+
 	AddFileMenuEntry(
 		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
-		LOCTEXT(
-			"FileMenuEntryhTooltopImportBluePrint",
-#if AGXUNREAL_USE_OPENPLX
-			"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint."),
-#else
-			"Import an AGX Dynamics archive or URDF file to a Blueprint."),
-#endif
-		[]() { UAGX_AgxEdModeFile::ImportToBlueprint(); });
+		FileMenuTooltip, []() { UAGX_AgxEdModeFile::ImportToBlueprint(); });
 
 	// Export AGX Archive menu item
 	AddFileMenuEntry(
