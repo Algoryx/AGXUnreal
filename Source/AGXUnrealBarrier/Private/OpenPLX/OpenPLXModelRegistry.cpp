@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLXModelRegistry.h"
 
 // AGX Dynamics for Unreal includes.
@@ -152,5 +150,3 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString&
 
 	return NewHandle;
 }
-
-#endif

@@ -20,9 +20,7 @@ void SAGX_ReimportModelDialog::Construct(const FArguments& InArgs)
 {
 
 	FileTypes = ".agx"
-#if AGXUNREAL_USE_OPENPLX
 		";*.openplx"
-#endif
 	;
 	ImportType = EAGX_ImportType::Agx;
 

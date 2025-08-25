@@ -19,19 +19,16 @@ class AGXUNREALEDITOR_API FAGX_ImporterToEditor
 {
 public:
 
-	// #if AGXUNREAL_USE_OPENPLX
-	// Reminder: Re-add OpenPLX below. And text about the model file being copied into the project.
-
 	/**
-	 * Import an .agx archive or URDF model to a Blueprint.
+	 * Import an .agx archive, OpenPLX or URDF model to a Blueprint.
+	 * For OpenPLX imports, it is allowed to pass a path to an OpenPLX file anywhere on the system,
+	 * but it will automatically be copied to the projects OpenPLXModels directory prior to being
+	 * imported.
 	 */
 	UBlueprint* Import(FAGX_ImportSettings Settings);
 
-	// #if AGXUNREAL_USE_OPENPLX
-	// Reminder: Re-add OpenPLX below.
-
 	/**
-	 * Reimport an .agx archive to an existing Blueprint.
+	 * Reimport an .agx archive or OpenPLX model to an existing Blueprint.
 	 */
 	bool Reimport(
 		UBlueprint& BaseBP, FAGX_ReimportSettings Settings,

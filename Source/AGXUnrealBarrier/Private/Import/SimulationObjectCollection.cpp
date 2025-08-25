@@ -329,7 +329,6 @@ const std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimul
 	return Simulation;
 }
 
-#if AGXUNREAL_USE_OPENPLX
 TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetOpenPLXInputs()
 {
 	return PLXInputs;
@@ -349,7 +348,6 @@ const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() 
 {
 	return PLXOutputs;
 }
-#endif
 
 void FSimulationObjectCollection::SetModelName(const FString& Name)
 {

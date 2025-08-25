@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLX_ModelRegistry.h"
 
 // Unreal Engine includes.
@@ -47,5 +45,3 @@ void UOpenPLX_ModelRegistry::Deinitialize()
 	Native.ReleaseNative();
 	Super::Deinitialize();
 }
-
-#endif

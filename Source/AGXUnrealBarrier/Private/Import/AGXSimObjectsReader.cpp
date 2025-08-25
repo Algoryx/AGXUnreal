@@ -14,17 +14,13 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
-#endif
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/AllocationUtils.h"
-#endif
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -641,8 +637,6 @@ AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
 	return true;
 }
 
-#if AGXUNREAL_USE_OPENPLX
-
 bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
@@ -690,5 +684,3 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.SetModelName(Convert(System->getName()));
 	return true;
 }
-
-#endif

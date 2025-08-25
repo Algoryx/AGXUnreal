@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "Utilities/OpenPLXUtilities.h"
 
 // AGX Dynamics for Unreal includes.
@@ -90,5 +88,3 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(FString Filepath, const 
 
 	return CopiedMainFilePath;
 }
-
-#endif

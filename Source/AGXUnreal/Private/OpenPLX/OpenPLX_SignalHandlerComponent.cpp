@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 
 // AGX Dynamics for Unreal includes.
@@ -468,4 +466,3 @@ void UOpenPLX_SignalHandlerComponent::CopyFrom(
 	}
 }
 
-#endif

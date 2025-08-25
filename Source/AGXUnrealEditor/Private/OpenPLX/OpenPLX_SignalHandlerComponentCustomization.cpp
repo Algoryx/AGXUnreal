@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
@@ -25,6 +23,20 @@
 TSharedRef<IDetailCustomization> FOpenPLX_SignalHandlerComponentCustomization::MakeInstance()
 {
 	return MakeShareable(new FOpenPLX_SignalHandlerComponentCustomization);
+}
+
+namespace SignalHandlerComponentCustomization_helpers
+{
+	template <typename TEnum>
+	static FString GetEnumDisplayName(TEnum Value)
+	{
+		if (const UEnum* Enum = StaticEnum<TEnum>())
+		{
+			return Enum->GetDisplayNameTextByValue(static_cast<int64>(Value)).ToString();
+		}
+
+		return UEnum::GetValueAsString(Value);
+	}
 }
 
 void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
@@ -68,9 +80,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Input)
 			continue;
 
-		FString InputTypeName = UEnum::GetValueAsString(Input->Type);
-		InputTypeName = InputTypeName.RightChop(InputTypeName.Find(TEXT("::")) + 2);
-
+		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Input->Type);
 		SignalInterfaceCategory.AddCustomRow(FText::FromString("InputExpandable"))
 		.WholeRowContent()
 		[
@@ -134,9 +144,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Component->bShowDisabledOutputs && !Output->bEnabled)
 			continue;
 
-		FString OutputTypeName = UEnum::GetValueAsString(Output->Type);
-		OutputTypeName = OutputTypeName.RightChop(OutputTypeName.Find(TEXT("::")) + 2);
-
+		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Output->Type);
 		SignalInterfaceCategory.AddCustomRow(FText::FromString("OutputExpandable"))
 		.WholeRowContent()
 		[
@@ -206,8 +214,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	for (const FName& Key : SortedInputKeys)
 	{
 		const FOpenPLX_Input& Input = Component->Inputs[Key];
-		FString InputTypeName = UEnum::GetValueAsString(Input.Type);
-		InputTypeName = InputTypeName.RightChop(InputTypeName.Find(TEXT("::")) + 2);
+		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Input.Type);
 
 		InputsCategory.AddCustomRow(FText::FromString("InputExpandable"))
 		.WholeRowContent()
@@ -300,9 +307,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Component->bShowDisabledOutputs && !Output.bEnabled)
 			continue;
 
-		FString OutputTypeName = UEnum::GetValueAsString(Output.Type);
-		OutputTypeName = OutputTypeName.RightChop(OutputTypeName.Find(TEXT("::")) + 2);
-
+		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Output.Type);
 		OutputsCategory.AddCustomRow(FText::FromString("OutputExpandable"))
 		.WholeRowContent()
 		[
@@ -356,5 +361,3 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 }
 
 #undef LOCTEXT_NAMESPACE
-
-#endif
