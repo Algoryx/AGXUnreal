@@ -252,14 +252,13 @@ bool UAGX_WireController::HasNative() const
 	// This gave us errors on startup with UE5.6 because it was called before the plugin
 	// was loaded (on Windows).
 	// Therefore, we have moved this call here, to act as a "lazy" native initialization.
-	if (!NativeBarrier.HasNative())
-		const_cast<UAGX_WireController*>(this)->EnsureNativeIsSet();
+	const_cast<UAGX_WireController*>(this)->EnsureNativeIsSet();
 
 	return NativeBarrier.HasNative();
 }
 
 void UAGX_WireController::EnsureNativeIsSet()
 {
-	if (!HasNative())
+	if (!NativeBarrier.HasNative())
 		NativeBarrier.InitializeNative();
 }
