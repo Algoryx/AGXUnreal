@@ -2,10 +2,6 @@
 
 #pragma once
 
-// Error: 'USTRUCT' must not be inside preprocessor blocks, except for WITH_EDITORONLY_DATA
-// #if AGXUNREAL_USE_OPENPLX
-#if 0
-
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
@@ -82,6 +78,3 @@ enum class EOpenPLX_OutputType : uint8
 	EngagedOutput, // Child of BoolOutput
 	TorqueConverterLockedUpOutput, // Child of BoolOutput
 };
-
-
-#endif

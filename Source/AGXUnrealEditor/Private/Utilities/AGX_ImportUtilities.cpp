@@ -18,9 +18,7 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
-#endif
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackBarrier.h"
@@ -330,7 +328,6 @@ void FAGX_ImportUtilities::OnImportedBlueprintDeleted(const UBlueprint& Bp)
 	if (ModelSource == nullptr)
 		return;
 
-#if AGXUNREAL_USE_OPENPLX
 	if (FAGX_ImportRuntimeUtilities::GetImportTypeFrom(ModelSource->FilePath) !=
 		EAGX_ImportType::Plx)
 		return;
@@ -344,5 +341,4 @@ void FAGX_ImportUtilities::OnImportedBlueprintDeleted(const UBlueprint& Bp)
 				TEXT("Automatically deleted folder and contents in: %s"), *DeletedFolder),
 			SNotificationItem::CS_Success);
 	}
-#endif
 }

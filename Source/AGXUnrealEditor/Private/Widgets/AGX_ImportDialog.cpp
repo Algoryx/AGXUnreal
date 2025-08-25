@@ -52,9 +52,7 @@ namespace AGX_ImportDialog_helpers
 void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 {
 	FileTypes = ".agx"
-#if AGXUNREAL_USE_OPENPLX
 		";*.openplx"
-#endif
 		";*.urdf";
 
 	// clang-format off
@@ -85,14 +83,12 @@ void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 			[
 				CreateAGXFileGui()
 			]
-#if AGXUNREAL_USE_OPENPLX
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(5.0f, 0.0f))
 			.AutoHeight()
 			[
 				CreatePLXFileGui()
 			]
-#endif
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(5.0f, 0.0f))
 			.AutoHeight()

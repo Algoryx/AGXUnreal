@@ -4,10 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 // For some reason, these could not be forward declared without compiler error.
-#if AGXUNREAL_USE_OPENPLX
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
-#endif
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -129,13 +127,11 @@ public:
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
 
-#if AGXUNREAL_USE_OPENPLX
 	TArray<FOpenPLX_Input>& GetOpenPLXInputs();
 	const TArray<FOpenPLX_Input>& GetOpenPLXInputs() const;
 
 	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
 	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
-#endif
 
 	void SetModelName(const FString& Name);
 	FString GetModelName() const;
@@ -173,10 +169,8 @@ private:
 	TArray<FShovelBarrier> Shovels;
 	TArray<FTrackBarrier> Tracks;
 
-#if AGXUNREAL_USE_OPENPLX
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;
-#endif
 
 	FString ModelName;
 };

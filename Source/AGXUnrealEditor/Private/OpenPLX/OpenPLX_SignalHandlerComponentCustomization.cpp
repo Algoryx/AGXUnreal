@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
@@ -356,5 +354,3 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 }
 
 #undef LOCTEXT_NAMESPACE
-
-#endif

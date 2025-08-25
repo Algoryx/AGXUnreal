@@ -82,7 +82,6 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreateAGXFileGui()
 	return MakeShared<SBorder>();
 }
 
-#if AGXUNREAL_USE_OPENPLX
 TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 {
 	if (ImportType != EAGX_ImportType::Plx)
@@ -117,7 +116,6 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 				];
 	// clang-format on
 }
-#endif
 
 TSharedRef<SWidget> SAGX_ImportDialogBase::CreateIgnoreDisabledTrimeshGui()
 {
