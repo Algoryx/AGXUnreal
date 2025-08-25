@@ -61,11 +61,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Utilities")
 	static FVector CalculateCenterOfMass(const TArray<UAGX_RigidBodyComponent*>& Bodies);
 
-	// #if AGXUNREAL_USE_OPENPLX
-	// Reminder: Re-add OpenPLX below.
-
 	/**
-	 * Import an .agx archive or Urdf model and get a AActor template back.
+	 * Import an .agx archive, OpenPLX or Urdf model and get a AActor template back.
 	 * This template AActor must be instantiated to be part of the world, see InstantiateActor.
 	 * The FilePath of the ImportSettings struct may be absolute or relative to the current Projects
 	 * root directory or stand-alone application root directory.

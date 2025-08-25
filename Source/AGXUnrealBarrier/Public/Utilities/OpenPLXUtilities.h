@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if AGXUNREAL_USE_OPENPLX
-
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
@@ -35,5 +33,3 @@ public:
 	 */
 	static FString CopyAllDependenciesToProject(FString Filepath, const FString& Destination);
 };
-
-#endif

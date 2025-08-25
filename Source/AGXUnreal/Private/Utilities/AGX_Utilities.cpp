@@ -9,9 +9,7 @@
 #include "Import/AGX_ImportSettings.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
-#endif
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -62,7 +60,6 @@ FVector UAGX_AGXUtilities::CalculateCenterOfMass(const TArray<UAGX_RigidBodyComp
 
 namespace AGX_AGXUtilities_helpers
 {
-#if AGXUNREAL_USE_OPENPLX
 	void PreOpenPLXImport(FAGX_ImportSettings& OutSettings)
 	{
 		if (OutSettings.ImportType != EAGX_ImportType::Plx)
@@ -87,7 +84,6 @@ namespace AGX_AGXUtilities_helpers
 
 		OutSettings.FilePath = NewLocation;
 	}
-#endif
 
 	void ResolveImportPaths(FAGX_ImportSettings& OutSettings)
 	{
@@ -118,10 +114,9 @@ AActor* UAGX_AGXUtilities::Import(UObject* WorldContextObject, FAGX_ImportSettin
 	Settings.bRuntimeImport = true;
 	AGX_AGXUtilities_helpers::ResolveImportPaths(Settings);
 	UWorld* World = WorldContextObject->GetWorld();
-#if AGXUNREAL_USE_OPENPLX
+
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 		AGX_AGXUtilities_helpers::PreOpenPLXImport(Settings);
-#endif
 
 	FAGX_Importer Importer;
 	FAGX_ImportResult Result = Importer.Import(Settings, *World);

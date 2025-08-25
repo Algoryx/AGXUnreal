@@ -135,7 +135,6 @@ const TMap<FString, FGuid>& UAGX_ModelSourceComponent::GetDeprecatedRenderDataTa
 void UAGX_ModelSourceComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
-#if AGXUNREAL_USE_OPENPLX
 	if (bRuntimeImport &&
 		FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath) == EAGX_ImportType::Plx)
 	{
@@ -146,7 +145,6 @@ void UAGX_ModelSourceComponent::EndPlay(const EEndPlayReason::Type Reason)
 				*FilePath);
 		}
 	}
-#endif
 }
 
 #undef LOCTEXT_NAMESPACE

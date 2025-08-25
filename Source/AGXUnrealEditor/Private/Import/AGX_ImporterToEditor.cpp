@@ -17,9 +17,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
-#endif
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -32,9 +30,7 @@
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "Utilities/OpenPLXUtilities.h"
-#endif
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -468,21 +464,15 @@ namespace AGX_ImporterToEditor_helpers
 		auto IsReimportSupported = [&]()
 		{
 			return Settings.ImportType == EAGX_ImportType::Agx
-#if AGXUNREAL_USE_OPENPLX
 				|| Settings.ImportType == EAGX_ImportType::Plx
-#endif
 			;
 		};
 
 		if (!IsReimportSupported())
 		{
 			const FString Text =
-#if AGXUNREAL_USE_OPENPLX
 				FString::Printf(TEXT("Reimport is only supported for AGX Archives (.agx) and "
 									 "OpenPLX (.openplx) files."));
-#else
-				FString::Printf(TEXT("Reimport is only supported for AGX Archives (.agx) files."));
-#endif
 			FAGX_NotificationUtilities::ShowDialogBoxWithError(Text, "Reimport model");
 			return false;
 		}
@@ -1566,7 +1556,6 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		}
 	}
 
-#if AGXUNREAL_USE_OPENPLX
 	if (auto Component = Context.SignalHandler)
 	{
 		FGuid UnusedGuid = FGuid::NewGuid();
@@ -1581,14 +1570,12 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 				OverwriteRule);
 		}
 	}
-#endif
 
 	return Result;
 }
 
 void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 {
-#if AGXUNREAL_USE_OPENPLX
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
@@ -1607,13 +1594,11 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 			*DestinationDir, /*RequireExists=*/true, /*Tree=*/false); // Cleanup.
 	}
 	OutSettings.FilePath = NewLocation;
-#endif
 }
 
 void FAGX_ImporterToEditor::PreReimport(
 	const UBlueprint& Blueprint, FAGX_ImportSettings& OutSettings)
 {
-#if AGXUNREAL_USE_OPENPLX
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
@@ -1635,12 +1620,10 @@ void FAGX_ImporterToEditor::PreReimport(
 	const FString NewLocation =
 		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, TargetDir);
 	OutSettings.FilePath = NewLocation;
-#endif
 }
 
 void FAGX_ImporterToEditor::PostImport(const FAGX_ImportSettings& Settings)
 {
-#if AGXUNREAL_USE_OPENPLX
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 	{
 		FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
@@ -1648,5 +1631,4 @@ void FAGX_ImporterToEditor::PostImport(const FAGX_ImportSettings& Settings)
 				 "runtime and should not be removed as long as the imported model is used."),
 			*FPaths::GetPath(Settings.FilePath)));
 	}
-#endif
 }

@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#if AGXUNREAL_USE_OPENPLX
-
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
 // AGX Dynamics for Unreal includes.
@@ -573,5 +571,3 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
 		OpenPLXSignalHandler_helpers::GetBooleanValueFrom);
 }
-
-#endif
