@@ -65,10 +65,8 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
-#if AGXUNREAL_USE_OPENPLX
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
-#endif
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
@@ -521,12 +519,10 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		UAGX_WireWinchComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
-#if AGXUNREAL_USE_OPENPLX
 	PropertyModule.RegisterCustomClassLayout(
 		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FOpenPLX_SignalHandlerComponentCustomization::MakeInstance));
-#endif
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -623,10 +619,8 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
 
-#if AGXUNREAL_USE_OPENPLX
 	PropertyModule.UnregisterCustomClassLayout(
 		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName());
-#endif
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -800,7 +794,6 @@ bool FAGXUnrealEditorModule::OnCanExecuteGrabModeCommand() const
 
 void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 {
-#if AGXUNREAL_USE_OPENPLX
 	if (AssetData.GetClass() != UBlueprint::StaticClass())
 		return;
 
@@ -819,7 +812,6 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 		return;
 
 	FAGX_ImportUtilities::OnImportedBlueprintDeleted(*Blueprint);
-#endif
 }
 
 #undef LOCTEXT_NAMESPACE

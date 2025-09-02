@@ -2,8 +2,6 @@
 
 #pragma once
 
-#if AGXUNREAL_USE_OPENPLX
-
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
@@ -151,6 +149,3 @@ std::vector<std::pair<std::string, std::shared_ptr<T>>> FPLXUtilitiesInternal::G
 	agxopenplx::freeContainerMemory(AllEntries);
 	return Output;
 }
-
-
-#endif
