@@ -549,7 +549,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	// Get the dependencies from the OpenPLX context.
 	auto ContextInternal =
 		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
-	const auto& Docs = ContextInternal->documents();
+	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
 	const FString BundlePath = FOpenPLXUtilities::GetBundlePath();
 	for (auto& D : Docs)
 	{
@@ -570,6 +570,8 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 			}
 		}
 	}
+	agxopenplx::freeContainerMemory(Docs);
+
 	return Dependencies;
 }
 
