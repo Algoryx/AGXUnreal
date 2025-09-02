@@ -214,6 +214,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.AGX);
 		RuntimeLibFiles.Add("fmt", LibSource.AGX);
 		RuntimeLibFiles.Add("hash-library", LibSource.AGX);
@@ -222,6 +223,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-core.api", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-error", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-eval", LibSource.AGX);
+		RuntimeLibFiles.Add("openplx-generate", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-internal", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-nodes", LibSource.AGX);
 		RuntimeLibFiles.Add("openplx-parser", LibSource.AGX);
@@ -275,6 +277,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("fmt", LibSource.AGX);
 		LinkLibFiles.Add("spdlog", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-analysis", LibSource.AGX);
 		LinkLibFiles.Add("openplx-bundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core.api", LibSource.AGX);
@@ -381,6 +384,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			// OpenPLX:
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
+			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.AGX);
 			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.AGX);
 			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.AGX);
@@ -389,6 +393,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("openplx-core.api", LibSource.AGX);
 			DelayLoadLibraries.Add("openplx-error", LibSource.AGX);
 			DelayLoadLibraries.Add("openplx-eval", LibSource.AGX);
+			DelayLoadLibraries.Add("openplx-generate", LibSource.AGX);
 			DelayLoadLibraries.Add("openplx-internal", LibSource.AGX);
 			DelayLoadLibraries.Add("openplx-nodes", LibSource.AGX);
 			DelayLoadLibraries.Add("openplx-parser", LibSource.AGX);
@@ -816,11 +821,11 @@ public class AGXDynamicsLibrary : ModuleRules
 							String.Format("{0}", Target.Version.MinorVersion) != UEVersion[1])
 						{
 							Console.WriteLine(
-								"\n\n  WARNING: The AGX Dynamics packages has not been built for this version of Unreal Engine.");
+								"\n\n WARNING: The AGX Dynamics packages has not been built for this version of Unreal Engine.");
 							Console.WriteLine(
-								"  WARNING: AGX Dynamics compile-time Unreal Engine version: {0}", Line);
+								" WARNING: AGX Dynamics compile-time Unreal Engine version: {0}", Line);
 							Console.WriteLine(
-								"  WARNING: Current Unreal Engine version: {0}.{1}", Target.Version.MajorVersion, Target.Version.MinorVersion);
+								" WARNING: Current Unreal Engine version: {0}.{1}", Target.Version.MajorVersion, Target.Version.MinorVersion);
 							Console.WriteLine("\n\n");
 						}
 					}
