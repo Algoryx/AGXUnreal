@@ -43,11 +43,7 @@ void UAGX_AgxEdModeFile::ImportToBlueprint()
 			.SupportsMinimize(false)
 			.SupportsMaximize(false)
 			.SizingRule(ESizingRule::Autosized)
-#if AGXUNREAL_USE_OPENPLX
 			.Title(NSLOCTEXT("AGX", "AGXUnrealImport", "Import AGX Dynamics, OpenPLX or URDF file"));
-#else
-			.Title(NSLOCTEXT("AGX", "AGXUnrealImport", "Import AGX Dynamics or URDF file"));
-#endif
 
 	TSharedRef<SAGX_ImportDialog> ImportDialog = SNew(SAGX_ImportDialog);
 	Window->SetContent(ImportDialog);

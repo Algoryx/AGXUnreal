@@ -160,17 +160,10 @@ FAGX_TopMenu::~FAGX_TopMenu()
 	{
 		FText FileMenuTooltip;
 
-#if AGXUNREAL_USE_OPENPLX
 		FileMenuTooltip = LOCTEXT(
 			"FileMenuTooltip",
 			"Interoperability with external file formats, such AGX Dynamics files (.agx), OpenPLX "
 			"(.openplx) or URDF (.urdf) files.");
-#else
-		FileMenuTooltip = LOCTEXT(
-			"FileMenuTooltip",
-			"Interoperability with external file formats, such AGX Dynamics files (.agx) or URDF "
-			"(.urdf) files.");
-#endif
 
 		const FSlateIcon FileIcon(
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::FileIconSmall,
@@ -318,15 +311,9 @@ void FAGX_TopMenu::FillConstraintMenu(FMenuBuilder& Builder)
 void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 {
 	FText FileMenuTooltip;
-#if AGXUNREAL_USE_OPENPLX
 	FileMenuTooltip = LOCTEXT(
 		"FileMenuEntryhTooltopImportBluePrint",
 		"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint.");
-#else
-	FileMenuTooltip = LOCTEXT(
-		"FileMenuEntryhTooltopImportBluePrint",
-		"Import an AGX Dynamics archive or URDF file to a Blueprint.");
-#endif
 
 	AddFileMenuEntry(
 		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
@@ -489,9 +476,7 @@ void FAGX_TopMenu::OnOpenAboutDialogClicked()
 		"Revision: " + FAGX_Environment::GetPluginRevision() + "\n"
 		"\n"
 		"AGX Dynamics version: " + FAGX_Environment::GetAGXDynamicsVersion() + "\n"
-#if AGXUNREAL_USE_OPENPLX
 		"OpenPLX version: " + FAGX_Environment::GetOpenPLXVersion() + "\n"
-#endif
 		+ LicenseText + "\n"
 		"Copyright Algoryx Simulation AB\n"
 		"www.algoryx.com");
