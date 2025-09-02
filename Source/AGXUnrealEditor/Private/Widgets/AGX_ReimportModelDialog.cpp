@@ -18,7 +18,10 @@
 
 void SAGX_ReimportModelDialog::Construct(const FArguments& InArgs)
 {
-	FileTypes = ".agx;*.openplx";
+
+	FileTypes = ".agx"
+		";*.openplx"
+	;
 	ImportType = EAGX_ImportType::Agx;
 
 	// clang-format off

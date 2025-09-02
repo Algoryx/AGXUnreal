@@ -15,6 +15,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "HAL/FileManager.h"
+#include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
 #include "UObject/MetaData.h"
 
@@ -29,9 +30,17 @@ void FAGX_ImportRuntimeUtilities::WriteSessionGuidToAssetType(
 	UObject& Object, const FGuid& SessionGuid)
 {
 #if WITH_EDITOR
-	if (auto MetaData = Object.GetOutermost()->GetMetaData())
+
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
+	auto MetaData = Object.GetOutermost()->GetMetaData();
+#else
+	auto MetaData = &Object.GetOutermost()->GetMetaData();
+#endif // UE_VERSION_OLDER_THAN(...)
+
+	if (MetaData != nullptr)
 		MetaData->SetValue(&Object, TEXT("AGX_ImportSessionGuid"), *SessionGuid.ToString());
-#endif
+
+#endif // WITH_EDITOR
 }
 
 void FAGX_ImportRuntimeUtilities::OnComponentCreated(

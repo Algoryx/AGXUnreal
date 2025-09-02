@@ -465,3 +465,4 @@ void UOpenPLX_SignalHandlerComponent::CopyFrom(
 		Context->SignalHandler = this;
 	}
 }
+

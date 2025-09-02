@@ -82,7 +82,17 @@ public:
 	 * angle is in [deg].
 	 * @return The angle [deg] or position [cm] of the given free degree of freedom.
 	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint")
 	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
+
+	/**
+	 * Get the current speed in the given free degree of freedom (DOF). If this is a translational
+	 * constraint then the speed is in [cm/s], if it is a rotational constraint then the speed is in
+	 * [deg/s].
+	 * @return The speed, either [cm/s] or [rad/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint")
+	double GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const;
 
 	UAGX_Constraint2DofComponent() = default;
 	UAGX_Constraint2DofComponent(const TArray<EDofFlag>& LockedDofsOrdered);

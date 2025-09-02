@@ -81,7 +81,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	UObject* Outer {nullptr};
 
 	/**
-	 *The root model name, not always set.
+	 * The root model name, not always set.
 	 * For OpenPLX imports, this is set to the root System name.
 	 */
 	FString RootModelName = "";

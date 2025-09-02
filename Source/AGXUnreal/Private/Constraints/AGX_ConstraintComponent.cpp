@@ -1228,17 +1228,6 @@ void UAGX_ConstraintComponent::CreateNative()
 	}
 
 	UpdateNativeProperties();
-	if (!GetValid())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Constraint '%s' in '%s': GetValid returned false after creating Native AGX "
-				 "Dynamics Constraint. The LogAGXDynamics category in the Output Log may contain "
-				 "more information."),
-			*GetName(), *GetLabelSafe(GetOwner()));
-	}
-
-
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)
 	{

@@ -16,6 +16,14 @@
 
 // Bulk properties.
 
+bool UAGX_TerrainMaterial::operator==(const UAGX_TerrainMaterial& Other) const
+{
+	return TerrainBulk == Other.TerrainBulk && TerrainCompaction == Other.TerrainCompaction &&
+		   TerrainParticles == Other.TerrainParticles &&
+		   TerrainExcavationContact == Other.TerrainExcavationContact && Bulk == Other.Bulk &&
+		   Surface == Other.Surface && Wire == Other.Wire;
+}
+
 void UAGX_TerrainMaterial::SetAdhesionOverlapFactor(double AdhesionOverlapFactor)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
