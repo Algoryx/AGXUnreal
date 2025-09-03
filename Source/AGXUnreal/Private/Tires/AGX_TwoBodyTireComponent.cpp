@@ -8,6 +8,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Tires/AGX_TwoBodyTireActor.h"
 #include "Tires/TwoBodyTireBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 UAGX_TwoBodyTireComponent::UAGX_TwoBodyTireComponent()
@@ -104,8 +105,10 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 
 	ImplicitFrictionMultiplier = Barrier.GetImplicitFrictionMultiplier();
 
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_TwoBodyTireComponent::StaticClass());
+		GetOwner(), CleanBarrierName, UAGX_TwoBodyTireComponent::StaticClass());
 	Rename(*Name);
 
 	if (Context == nullptr || Context->Tires == nullptr || Context->RigidBodies == nullptr)

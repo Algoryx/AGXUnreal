@@ -42,6 +42,8 @@ class AGXUNREAL_API UAGX_TerrainMaterial : public UObject
 public:
 	GENERATED_BODY()
 
+	bool operator==(const UAGX_TerrainMaterial& Other) const;
+
 	// Terrain Bulk properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material")

@@ -95,10 +95,24 @@ public:
 	bool GetIsSensor() const;
 
 	/**
-	 * Determines the sensor type. Only relevant if the Is Sensor property is checked.
+	 * Determines the sensor type. Only relevant if the Is Sensor property is set to true.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Contacts", Meta = (EditCondition = "bIsSensor"))
 	EAGX_ShapeSensorType SensorType {EAGX_ShapeSensorType::ContactsSensor};
+
+	/**
+	 * Sets the Sensor Type of this Shape Component.
+	 * This will only have an effect on the underlying AGX Dynamics Native object if the Is Sensor
+	 * property is set to true.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape Contacts")
+	void SetSensorType(EAGX_ShapeSensorType Type);
+
+	/**
+	 * Returns the Sensor Type of this Shape Component.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape Contacts")
+	EAGX_ShapeSensorType GetSensorType() const;
 
 	/**
 	 * Set the velocity of this Shape's surface in the Shape's local coordinate frame [cm/s].
@@ -151,7 +165,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/*

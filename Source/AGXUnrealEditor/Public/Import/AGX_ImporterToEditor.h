@@ -18,6 +18,7 @@ struct FAGX_SCSNodeCollection;
 class AGXUNREALEDITOR_API FAGX_ImporterToEditor
 {
 public:
+
 	/**
 	 * Import an .agx archive, OpenPLX or URDF model to a Blueprint.
 	 * For OpenPLX imports, it is allowed to pass a path to an OpenPLX file anywhere on the system,

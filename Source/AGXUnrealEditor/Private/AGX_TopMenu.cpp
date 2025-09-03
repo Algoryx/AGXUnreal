@@ -158,16 +158,18 @@ FAGX_TopMenu::~FAGX_TopMenu()
 /*virtual*/ void FAGX_TopMenu::FillTopMenu(FMenuBuilder& Builder)
 {
 	{
+		FText FileMenuTooltip;
+
+		FileMenuTooltip = LOCTEXT(
+			"FileMenuTooltip",
+			"Interoperability with external file formats, such AGX Dynamics files (.agx), OpenPLX "
+			"(.openplx) or URDF (.urdf) files.");
+
 		const FSlateIcon FileIcon(
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::FileIconSmall,
 			FAGX_EditorStyle::FileIconSmall);
 		Builder.AddSubMenu(
-			LOCTEXT("FileMenuLabel", "File"),
-			LOCTEXT(
-				"FileMenuTooltip",
-				"Interoperability with external file formats, such AGX Dynamics files (.agx), "
-				"OpenPLX (.openplx) or URDF (.urdf) files. "
-				"or URDF files (.urdf)."),
+			LOCTEXT("FileMenuLabel", "File"), FileMenuTooltip,
 			FNewMenuDelegate::CreateRaw(this, &FAGX_TopMenu::FillFileMenu), false, FileIcon);
 	}
 
@@ -308,12 +310,14 @@ void FAGX_TopMenu::FillConstraintMenu(FMenuBuilder& Builder)
 
 void FAGX_TopMenu::FillFileMenu(FMenuBuilder& Builder)
 {
+	FText FileMenuTooltip;
+	FileMenuTooltip = LOCTEXT(
+		"FileMenuEntryhTooltopImportBluePrint",
+		"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint.");
+
 	AddFileMenuEntry(
 		Builder, LOCTEXT("FileMEnuEntryLabelImportBluePrint", "Import Model to Blueprint..."),
-		LOCTEXT(
-			"FileMenuEntryhTooltopImportBluePrint",
-			"Import an AGX Dynamics archive, OpenPLX or URDF file to a Blueprint."),
-		[]() { UAGX_AgxEdModeFile::ImportToBlueprint(); });
+		FileMenuTooltip, []() { UAGX_AgxEdModeFile::ImportToBlueprint(); });
 
 	// Export AGX Archive menu item
 	AddFileMenuEntry(

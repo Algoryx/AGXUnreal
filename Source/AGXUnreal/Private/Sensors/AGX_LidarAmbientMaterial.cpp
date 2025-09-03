@@ -12,6 +12,15 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
+bool UAGX_LidarAmbientMaterial::operator==(const UAGX_LidarAmbientMaterial& Other) const
+{
+	return RefractiveIndex == Other.RefractiveIndex &&
+		   AttenuationCoefficient == Other.AttenuationCoefficient &&
+		   ReturnProbabilityScaling == Other.ReturnProbabilityScaling &&
+		   ReturnGammaDistributionShapeParameter == Other.ReturnGammaDistributionShapeParameter &&
+		   ReturnGammaDistributionScaleParameter == Other.ReturnGammaDistributionScaleParameter;
+}
+
 void UAGX_LidarAmbientMaterial::SetRefractiveIndex(float InRefractiveIndex)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(RefractiveIndex, InRefractiveIndex, SetRefractiveIndex);

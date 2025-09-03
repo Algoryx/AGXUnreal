@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -14,6 +15,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/Actor.h"
 #include "HAL/FileManager.h"
+#include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
 #include "UObject/MetaData.h"
 
@@ -28,9 +30,17 @@ void FAGX_ImportRuntimeUtilities::WriteSessionGuidToAssetType(
 	UObject& Object, const FGuid& SessionGuid)
 {
 #if WITH_EDITOR
-	if (auto MetaData = Object.GetOutermost()->GetMetaData())
+
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
+	auto MetaData = Object.GetOutermost()->GetMetaData();
+#else
+	auto MetaData = &Object.GetOutermost()->GetMetaData();
+#endif // UE_VERSION_OLDER_THAN(...)
+
+	if (MetaData != nullptr)
 		MetaData->SetValue(&Object, TEXT("AGX_ImportSessionGuid"), *SessionGuid.ToString());
-#endif
+
+#endif // WITH_EDITOR
 }
 
 void FAGX_ImportRuntimeUtilities::OnComponentCreated(
@@ -126,4 +136,16 @@ FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& F
 	}
 
 	return "";
+}
+
+FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+	const FString& BarrierName, FAGX_ImportContext* Context)
+{
+	if (Context == nullptr || Context->RootModelName.IsEmpty())
+		return BarrierName;
+
+	FString Name = BarrierName;
+	Name.RemoveFromStart(Context->RootModelName);
+	Name.RemoveFromStart(".");
+	return Name;
 }

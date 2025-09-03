@@ -27,6 +27,7 @@ public:
 	virtual ~FConstraint2DOFBarrier();
 
 	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
+	double GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const;
 
 	TUniquePtr<FElectricMotorControllerBarrier> GetElectricMotorController(
 		EAGX_Constraint2DOFFreeDOF Dof);

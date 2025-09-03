@@ -53,6 +53,29 @@ UAGX_TrackComponent::UAGX_TrackComponent()
 			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMatPath));
 }
 
+bool UAGX_TrackComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
+{
+	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
+	ShapeMaterial = InShapeMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeShapeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeShapeMaterial())
+	{
+		// Something went wrong, restore original ShapeMaterial.
+		ShapeMaterial = ShapeMaterialOrig;
+		return false;
+	}
+
+	return true;
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license
@@ -199,9 +222,11 @@ namespace AGX_TrackComponent_helpers
 			Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(PropertiesBarrier);
-		const FString TrackName = Barrier.GetName();
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *TrackName),
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackProperties::StaticClass());
 		Properties->Rename(*Name);
 
@@ -220,9 +245,12 @@ namespace AGX_TrackComponent_helpers
 			Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(Barrier);
-		const FString TrackName = Barrier.GetName();
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *TrackName),
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackInternalMergeProperties::StaticClass());
 		Properties->Rename(*Name);
 
@@ -241,8 +269,10 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_TrackComponent::StaticClass());
+		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
 	Rename(*Name);
 
 	if (Barrier.GetNumNodes() > 0)
@@ -704,7 +734,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, ShapeMaterial),
-		[](ThisClass* Self) { Self->UpdateNativeMaterial(); });
+		[](ThisClass* Self) { Self->UpdateNativeShapeMaterial(); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackProperties),
@@ -864,37 +894,6 @@ void UAGX_TrackComponent::CreateNative()
 	UpdateNativeProperties();
 }
 
-void UAGX_TrackComponent::UpdateNativeMaterial()
-{
-	if (!HasNative() || !GetWorld() || !GetWorld()->IsGameWorld())
-	{
-		return;
-	}
-
-	if (ShapeMaterial == nullptr)
-	{
-		GetNative()->ClearMaterial();
-		return;
-	}
-
-	// Create instance if necessary.
-	UAGX_ShapeMaterial* MaterialInstance =
-		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
-	check(MaterialInstance);
-	// Replace asset reference with instance reference.
-	if (ShapeMaterial != MaterialInstance)
-	{
-		ShapeMaterial = MaterialInstance;
-	}
-
-	const FShapeMaterialBarrier* MaterialBarrier =
-		MaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
-	check(MaterialBarrier);
-
-	// Assign native.
-	GetNative()->SetMaterial(*MaterialBarrier);
-}
-
 void UAGX_TrackComponent::WriteTrackPropertiesToNative()
 {
 	if (!HasNative() || GetWorld() == nullptr || !GetWorld()->IsGameWorld())
@@ -1050,7 +1049,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	NativeBarrier.SetName(GetName());
 
 	// Set shape material on all native geometries.
-	UpdateNativeMaterial();
+	UpdateNativeShapeMaterial();
 
 	// Set track properties.
 	WriteTrackPropertiesToNative();
@@ -1267,6 +1266,31 @@ void UAGX_TrackComponent::WriteRenderMaterialsToVisualMesh()
 		if (VisualMeshes->GetMaterial(Elem) != RenderMaterials[Elem])
 			VisualMeshes->SetMaterial(Elem, RenderMaterials[Elem]);
 	}
+}
+
+bool UAGX_TrackComponent::UpdateNativeShapeMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (ShapeMaterial == nullptr)
+	{
+		GetNative()->ClearMaterial();
+		return true;
+	}
+
+	UAGX_ShapeMaterial* Instance =
+		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
+	check(Instance);
+
+	if (ShapeMaterial != Instance)
+		ShapeMaterial = Instance;
+
+	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(GetWorld());
+	check(MaterialBarrier);
+
+	GetNative()->SetMaterial(*MaterialBarrier);
+	return true;
 }
 
 #if WITH_EDITOR

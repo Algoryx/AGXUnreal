@@ -85,7 +85,6 @@ private:
 	void OnBlueprintLoaded(UObject* LoadedObject);
 #endif
 
-
 private:
 	// Key is the name of the imported Static Mesh Component's SCS Node and the value is the guid
 	// of the owning RenderData.

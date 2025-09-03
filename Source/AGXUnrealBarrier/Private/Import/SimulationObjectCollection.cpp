@@ -348,3 +348,13 @@ const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() 
 {
 	return PLXOutputs;
 }
+
+void FSimulationObjectCollection::SetModelName(const FString& Name)
+{
+	ModelName = Name;
+}
+
+FString FSimulationObjectCollection::GetModelName() const
+{
+	return ModelName;
+}

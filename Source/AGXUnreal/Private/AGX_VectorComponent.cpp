@@ -16,6 +16,7 @@
 #include "Misc/EngineVersionComparison.h"
 #include "PrimitiveSceneProxy.h"
 #include "SceneInterface.h"
+#include "SceneView.h"
 #include "StaticMeshResources.h"
 #include "Misc/EngineVersionComparison.h"
 

@@ -21,6 +21,9 @@ struct AGXUNREAL_API FAGX_ContactMaterialMechanicsApproach
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ContactMaterialMechanicsApproach& Other) const = default;
+
 	/**
 	 * Whether contacts using this contact material use the new area-based approach for processing
 	 * contacts, instead of the default point-based approach.
