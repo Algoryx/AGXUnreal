@@ -31,9 +31,9 @@ enum class EOpenPLX_InputType : uint8
 	ForceRangeInput UMETA(DisplayName = "Force Range Input [Range Real]"),
 	TorqueRangeInput UMETA(DisplayName = "Torque Range Input [Range Real]"),
 
-	/* Vec3 Real Inputs */
-	AngularVelocity3DInput UMETA(DisplayName = "Angular Velocity 3D Input [Vec3 Real]"),
-	LinearVelocity3DInput UMETA(DisplayName = "Linear Velocity 3D Input [Vec3 Real]"),
+	/* Vector Inputs */
+	AngularVelocity3DInput UMETA(DisplayName = "Angular Velocity 3D Input [Vector]"),
+	LinearVelocity3DInput UMETA(DisplayName = "Linear Velocity 3D Input [Vector]"),
 
 	/* Integer Inputs */
 	IntInput UMETA(DisplayName = "Int Input [Integer]"),
@@ -68,6 +68,7 @@ enum class EOpenPLX_OutputType : uint8
 	LinearVelocity1DOutput UMETA(DisplayName = "Linear Velocity 1D Output [Real]"),
 	Position1DOutput UMETA(DisplayName = "Position 1D Output [Real]"),
 	RelativeVelocity1DOutput UMETA(DisplayName = "Relative Velocity 1D Output [Real]"),
+	RpmOutput UMETA(DisplayName = "RPM Output [Real]"),
 	Torque1DOutput UMETA(DisplayName = "Torque 1D Output [Real]"),
 	TorqueConverterPumpTorqueOutput UMETA(
 		DisplayName = "Torque Converter Pump Torque Output [Real]"),
@@ -78,19 +79,19 @@ enum class EOpenPLX_OutputType : uint8
 	ForceRangeOutput UMETA(DisplayName = "Force Range Output [Range Real]"),
 	TorqueRangeOutput UMETA(DisplayName = "Torque Range Output [Range Real]"),
 
-	/* Vec3 Real Outputs */
-	AngularVelocity3DOutput UMETA(DisplayName = "Angular Velocity 3D Output [Vec3 Real]"),
-	Force3DOutput UMETA(DisplayName = "Force 3D Output [Vec3 Real]"),
-	LinearVelocity3DOutput UMETA(DisplayName = "Linear Velocity 3D Output [Vec3 Real]"),
+	/* Vector Outputs */
+	AngularVelocity3DOutput UMETA(DisplayName = "Angular Velocity 3D Output [Vector]"),
+	Force3DOutput UMETA(DisplayName = "Force 3D Output [Vector]"),
+	LinearVelocity3DOutput UMETA(DisplayName = "Linear Velocity 3D Output [Vector]"),
 	MateConnectorAcceleration3DOutput UMETA(
-		DisplayName = "Mate Connector Acceleration 3D Output [Vec3 Real]"),
+		DisplayName = "Mate Connector Acceleration 3D Output [Vector]"),
 	MateConnectorAngularAcceleration3DOutput UMETA(
-		DisplayName = "Mate Connector Angular Acceleration 3D Output [Vec3 Real]"),
-	MateConnectorPositionOutput UMETA(DisplayName = "Mate Connector Position Output [Vec3 Real]"),
-	MateConnectorRPYOutput UMETA(DisplayName = "Mate Connector RPY Output [Vec3 Real]"),
-	Position3DOutput UMETA(DisplayName = "Position 3D Output [Vec3 Real]"),
-	RPYOutput UMETA(DisplayName = "RPY Output [Vec3 Real]"),
-	Torque3DOutput UMETA(DisplayName = "Torque 3D Output [Vec3 Real]"),
+		DisplayName = "Mate Connector Angular Acceleration 3D Output [Vector]"),
+	MateConnectorPositionOutput UMETA(DisplayName = "Mate Connector Position Output [Vector]"),
+	MateConnectorRPYOutput UMETA(DisplayName = "Mate Connector RPY Output [Vector]"),
+	Position3DOutput UMETA(DisplayName = "Position 3D Output [Vector]"),
+	RPYOutput UMETA(DisplayName = "RPY Output [Vector]"),
+	Torque3DOutput UMETA(DisplayName = "Torque 3D Output [Vector]"),
 
 	/* Integer Outputs */
 	IntOutput UMETA(DisplayName = "Int Output [Integer]"),

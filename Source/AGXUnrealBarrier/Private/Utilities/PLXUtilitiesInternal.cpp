@@ -415,6 +415,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::RelativeVelocity1DOutput;
 	}
+	if (dynamic_cast<const RpmOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RpmOutput;
+	}
 	if (dynamic_cast<const RPYOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::RPYOutput;
