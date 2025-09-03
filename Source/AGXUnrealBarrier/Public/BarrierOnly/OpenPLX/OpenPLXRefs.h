@@ -25,9 +25,8 @@ struct FInputSignalListenerRef
 	agx::ref_ptr<agxopenplx::InputSignalListener> Native;
 
 	FInputSignalListenerRef() = default;
-	FInputSignalListenerRef(
-		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
-		: Native(new agxopenplx::InputSignalListener(Assembly, InputQueue, Mapper))
+	FInputSignalListenerRef(std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
+		: Native(new agxopenplx::InputSignalListener(InputQueue, Mapper))
 	{
 	}
 };
