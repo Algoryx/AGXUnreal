@@ -10,6 +10,11 @@
 #include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include <agxUtil/agxUtil.h>
+#include "EndAGXIncludes.h"
+
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "openplx/OpenPlxContext.h"
@@ -544,18 +549,20 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	// Get the dependencies from the OpenPLX context.
 	auto ContextInternal =
 		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
-	const auto& Docs = ContextInternal->documents();
+	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
 	const FString BundlePath = FOpenPLXUtilities::GetBundlePath();
 	for (auto& D : Docs)
 	{
-		const FString Path = FPaths::ConvertRelativePathToFull(Convert(D->path.string()));
+		std::filesystem::path PathPLX = D->getPath();
+		const FString Path = FPaths::ConvertRelativePathToFull(Convert(PathPLX.string()));
+		agxUtil::freeContainerMemory(PathPLX);
 		if (!Path.StartsWith(BundlePath))
 		{
 			if (FPaths::FileExists(Path))
 				Dependencies.AddUnique(Path);
 
-			const FString BundleConfig =
-				FPaths::ConvertRelativePathToFull(Convert(D->bundle.config_file_path.string()));
+			const FString BundleConfig = FPaths::ConvertRelativePathToFull(
+				Convert(D->getBundleConfig().config_file_path.string()));
 			if (!BundleConfig.StartsWith(BundlePath))
 			{
 				if (FPaths::FileExists(BundleConfig))
@@ -563,6 +570,8 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 			}
 		}
 	}
+	agxopenplx::freeContainerMemory(Docs);
+
 	return Dependencies;
 }
 
