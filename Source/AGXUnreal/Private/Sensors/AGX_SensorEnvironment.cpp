@@ -1,11 +1,14 @@
 #include "Sensors/AGX_SensorEnvironment.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_MeshWithTransform.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "AGX_Simulation.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarLambertianOpaqueMaterial.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
@@ -206,6 +209,21 @@ AAGX_SensorEnvironment::AAGX_SensorEnvironment()
 		USceneComponent::GetDefaultSceneRootVariableName());
 }
 
+void AAGX_SensorEnvironment::SetMagneticField(const FVector& Field)
+{
+	MagneticField = Field;
+	if (HasNative())
+		NativeBarrier.SetMagneticField(Field);
+}
+
+FVector AAGX_SensorEnvironment::GetMagneticField() const
+{
+	if (HasNative())
+		return NativeBarrier.GetMagneticField();
+
+	return MagneticField;
+}
+
 bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
 {
 	if (Lidar == nullptr)
@@ -222,6 +240,24 @@ bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
 	LidarRef.OwningActor = Lidar->GetOwner();
 	LidarRef.Name = FName(*Lidar->GetName());
 	return RegisterLidar(LidarRef);
+}
+
+bool AAGX_SensorEnvironment::AddIMU(UAGX_IMUSensorComponent* IMU)
+{
+	if (IMU == nullptr)
+		return false;
+
+	if (!HasNative())
+	{
+		InitializeNative();
+		if (!HasNative())
+			return false;
+	}
+
+	FAGX_IMUSensorReference IMURef;
+	IMURef.OwningActor = IMU->GetOwner();
+	IMURef.Name = FName(*IMU->GetName());
+	return RegisterIMU(IMURef);
 }
 
 bool AAGX_SensorEnvironment::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
@@ -542,7 +578,37 @@ bool AAGX_SensorEnvironment::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 	if (!HasNative() || Lidar == nullptr || !Lidar->HasNative())
 		return false;
 
-	return NativeBarrier.Remove(*Lidar->GetNative());
+	const bool bNativeRemoved = NativeBarrier.Remove(*Lidar->GetNative());
+
+	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
+	{
+		if (It.Key().GetLidarComponent() == Lidar)
+		{
+			It.RemoveCurrent();
+			break;
+		}
+	}
+
+	return bNativeRemoved;
+}
+
+bool AAGX_SensorEnvironment::RemoveIMU(UAGX_IMUSensorComponent* IMU)
+{
+	if (!HasNative() || IMU == nullptr || !IMU->HasNative())
+		return false;
+
+	const bool bNativeRemoved = NativeBarrier.Remove(*IMU->GetNative());
+
+	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
+	{
+		if (It->GetIMUComponent() == IMU)
+		{
+			It.RemoveCurrent();
+			break;
+		}
+	}
+
+	return bNativeRemoved;
 }
 
 bool AAGX_SensorEnvironment::RemoveMesh(UStaticMeshComponent* Mesh)
@@ -653,6 +719,7 @@ void AAGX_SensorEnvironment::Tick(float DeltaSeconds)
 		return;
 
 	UpdateTrackedLidars();
+	UpdateTrackedIMUs();
 	UpdateTrackedMeshes();
 
 	if (UpdateAddedInstancedMeshesTransforms)
@@ -660,6 +727,7 @@ void AAGX_SensorEnvironment::Tick(float DeltaSeconds)
 
 	UpdateTrackedAGXMeshes();
 	TickTrackedLidars();
+	TickTrackedIMUs();
 }
 
 void AAGX_SensorEnvironment::BeginPlay()
@@ -669,11 +737,10 @@ void AAGX_SensorEnvironment::BeginPlay()
 	if (LidarSensors.Num() > 0 && !RaytraceRTXSupported)
 	{
 		const FString Message =
-			"Lidar raytracing (RTX) not supported on this computer, unable to run the Sensor "
-			"Environment. To enable Lidar raytracing (RTX) support, use an RTX "
+			"Lidar raytracing (RTX) not supported on this computer, the Lidar Sensors will not "
+			"work. To enable Lidar raytracing (RTX) support, use an RTX "
 			"Graphical Processing Unit (GPU) with updated driver.";
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
-		return;
 	}
 
 	if (!HasNative())
@@ -684,12 +751,27 @@ void AAGX_SensorEnvironment::BeginPlay()
 		UpdateAmbientMaterial();
 		RegisterLidars();
 	}
+
+	RegisterIMUs();
+
+	if (bAutoAddObjects)
+	{
+		// Add Terrains.
+		for (TActorIterator<AActor> ActorIt(GetWorld()); ActorIt; ++ActorIt)
+		{
+			if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
+			{
+				AddTerrain(Terrain);
+			}
+		}
+	}
 }
 
 void AAGX_SensorEnvironment::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
 
+	TrackedIMUs.Empty();
 	TrackedLidars.Empty();
 	TrackedMeshes.Empty();
 	TrackedInstancedMeshes.Empty();
@@ -708,9 +790,6 @@ void AAGX_SensorEnvironment::InitializeNative()
 	if (HasNative())
 		return;
 
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
-		return;
-
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim == nullptr || !Sim->HasNative())
 	{
@@ -724,16 +803,26 @@ void AAGX_SensorEnvironment::InitializeNative()
 	}
 
 	// Make sure correct Raytrace device is set.
-	if (Sim->RaytraceDeviceIndex != FSensorEnvironmentBarrier::GetCurrentRayraceDevice())
+	if (FSensorEnvironmentBarrier::IsRaytraceSupported())
 	{
-		if (!FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(Sim->RaytraceDeviceIndex))
+		if (Sim->RaytraceDeviceIndex != FSensorEnvironmentBarrier::GetCurrentRayraceDevice())
 		{
-			const FString Message = FString::Printf(
-				TEXT("Tried to set Raytrace device id %d, but the selection failed. Please review "
-					 "the AGX Lidar category in the plugin settings."),
-				Sim->RaytraceDeviceIndex);
-			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
+			if (!FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(Sim->RaytraceDeviceIndex))
+			{
+				const FString Message = FString::Printf(
+					TEXT("Tried to set Raytrace device id %d, but the selection failed. Please "
+						 "review "
+						 "the AGX Lidar category in the plugin settings."),
+					Sim->RaytraceDeviceIndex);
+				FAGX_NotificationUtilities::ShowNotification(
+					Message, SNotificationItem::CS_Fail, 8.f);
+			}
 		}
+
+		// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same
+		// step.
+		// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
+		Sim->SetPreIntegratePositions(true);
 	}
 
 	NativeBarrier.AllocateNative(*Sim->GetNative());
@@ -746,12 +835,10 @@ void AAGX_SensorEnvironment::InitializeNative()
 			*GetName());
 	}
 
+	NativeBarrier.SetMagneticField(MagneticField);
+
 	// In case the Level has no other AGX types in it.
 	Sim->EnsureStepperCreated();
-
-	// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same step.
-	// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
-	Sim->SetPreIntegratePositions(true);
 }
 
 void AAGX_SensorEnvironment::RegisterLidars()
@@ -763,18 +850,6 @@ void AAGX_SensorEnvironment::RegisterLidars()
 	for (FAGX_LidarSensorReference& LidarRef : LidarSensors)
 	{
 		RegisterLidar(LidarRef);
-	}
-
-	if (bAutoAddObjects)
-	{
-		// Add Terrains.
-		for (TActorIterator<AActor> ActorIt(GetWorld()); ActorIt; ++ActorIt)
-		{
-			if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
-			{
-				AddTerrain(Terrain);
-			}
-		}
 	}
 }
 
@@ -839,6 +914,48 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 	return true;
 }
 
+void AAGX_SensorEnvironment::RegisterIMUs()
+{
+	AGX_CHECK(HasNative());
+	if (!HasNative())
+		return;
+
+	for (FAGX_IMUSensorReference& IMURef : IMUSensors)
+		RegisterIMU(IMURef);
+}
+
+bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
+{
+	if (TrackedIMUs.Contains(IMURef))
+		return false;
+
+	UAGX_IMUSensorComponent* IMU = IMURef.GetIMUComponent();
+	if (IMU == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SensorEnvironment::RegisterIMU tried to get IMU Sensor Component given IMU "
+				 "Sensor Reference '%s' but the returned Component was nullptr."),
+			*IMURef.Name.ToString());
+		return false;
+	}
+
+	FIMUBarrier* Barrier = IMU->GetOrCreateNative();
+	if (Barrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SensorEnvironment::RegisterIMU tried to get Native for IMU Sensor Component "
+				 "'%s' in '%s' but got nullptr."),
+			*IMU->GetName(), *GetLabelSafe(IMU->GetOwner()));
+		return false;
+	}
+
+	NativeBarrier.Add(*Barrier);
+	TrackedIMUs.Add(IMURef);
+	return true;
+}
+
 void AAGX_SensorEnvironment::UpdateTrackedLidars()
 {
 	// Update Collision Spheres and remove any destroyed Lidars.
@@ -855,6 +972,17 @@ void AAGX_SensorEnvironment::UpdateTrackedLidars()
 		if (bAutoAddObjects)
 			AGX_SensorEnvironment_helpers::UpdateCollisionSphere(
 				It->Key.GetLidarComponent(), It->Value.Get());
+	}
+}
+
+void AAGX_SensorEnvironment::UpdateTrackedIMUs()
+{
+	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
+	{
+		if (!IsValid(It->GetIMUComponent()))
+		{
+			It.RemoveCurrent();
+		}
 	}
 }
 
@@ -928,6 +1056,15 @@ void AAGX_SensorEnvironment::TickTrackedLidars() const
 	{
 		if (auto Lidar = It->Key.GetLidarComponent())
 			Lidar->UpdateNativeTransform();
+	}
+}
+
+void AAGX_SensorEnvironment::TickTrackedIMUs() const
+{
+	for (auto IMURef : TrackedIMUs)
+	{
+		if (auto IMU = IMURef.GetIMUComponent())
+			IMU->UpdateTransformFromNative();
 	}
 }
 
@@ -1075,3 +1212,29 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshCo
 	if (ShapeInstanceData->InstanceData.RefCount == 0)
 		TrackedAGXMeshes.Remove(&Mesh);
 }
+
+#if WITH_EDITOR
+void AAGX_SensorEnvironment::PostInitProperties()
+{
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
+}
+
+void AAGX_SensorEnvironment::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+	{
+		return;
+	}
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagneticField);
+}
+
+void AAGX_SensorEnvironment::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+	Super::PostEditChangeChainProperty(Event);
+}
+#endif // WITH_EDITOR

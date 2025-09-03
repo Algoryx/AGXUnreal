@@ -32,6 +32,8 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(
 
 /**
  * Lidar Sensor Component, allowing to create point clouds at runtime.
+ * Note that to use the Lidar Sensor Component, it must be registered with an AGX Sensor Environment
+ * Actor.
  */
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),

@@ -24,8 +24,6 @@ const FName FAGX_EditorStyle::LicenseKeyIcon("LicenseKey");
 const FName FAGX_EditorStyle::TerrainIcon("TerrainIcon");
 const FName FAGX_EditorStyle::TerrainIconSmall("TerrainIcon.Small");
 
-
-
 void FAGX_EditorStyle::Initialize()
 {
 	if (!StyleInstance.IsValid())
@@ -189,8 +187,12 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_CameraSensor16BitComponent",
 		new IMAGE_BRUSH("Icons/camera_sensor_32x32", IconSize16));
+	Style->Set("ClassIcon.AGX_IMUSensorComponent", new IMAGE_BRUSH("Icons/imu_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorComponent", new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_LidarSurfaceMaterialComponent",
+		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
@@ -220,7 +222,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_WireWinchComponent", new IMAGE_BRUSH("Icons/wire_winch_32x32", IconSize16));
 	// OpenPLX
 	Style->Set(
-		"ClassIcon.OpenPLX_SignalHandlerComponent", new IMAGE_BRUSH("Icons/openplx_32x32", IconSize16));
+		"ClassIcon.OpenPLX_SignalHandlerComponent",
+		new IMAGE_BRUSH("Icons/openplx_32x32", IconSize16));
 	// Others.
 	Style->Set(
 		"ClassIcon.AGX_ModelSourceComponent", new IMAGE_BRUSH("Icons/file_32x32", IconSize16));

@@ -720,6 +720,13 @@ inline FTransform Convert(const agx::AffineMatrix4x4& T)
 	return FTransform(Rotation, Translation);
 }
 
+inline FTransform Convert(const agx::Frame& T)
+{
+	const FVector Translation = ConvertDisplacement(T.getTranslate());
+	const FQuat Rotation = Convert(T.getRotate());
+	return FTransform(Rotation, Translation);
+}
+
 inline agx::FrameRef ConvertFrame(const FVector& FramePosition, const FQuat& FrameRotation)
 {
 	return new agx::Frame(

@@ -42,6 +42,7 @@ public:
 	bool GetEnabled() const;
 
 	void SetTransform(const FTransform& Transform);
+	FTransform GetTransform() const;
 
 	void SetRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetRange() const;
