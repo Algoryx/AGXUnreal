@@ -103,6 +103,14 @@ namespace IMUBarrier_helpers
 	{
 		UE_LOG(LogAGX, Warning, TEXT("Unable to get %s in %s."), *ObjectName, *FunctionName);
 	}
+
+	bool IsMatrixScalar(const agx::Matrix3x3& M)
+	{
+		if (!M.isDiagonal())
+			return false;
+
+		return agx::equivalent(M(0,0), M(1,1)) && agx::equivalent(M(1,1), M(2,2));
+	}
 }
 
 void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
@@ -294,6 +302,24 @@ void FIMUBarrier::SetAccelerometerCrossAxisSensitivity(double Sensitivity)
 	Accel->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
 }
 
+TOptional<double> FIMUBarrier::GetAccelerometerCrossAxisSensitivity() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivity");
+		return {};
+	}
+
+	const agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	if (!IsMatrixScalar(M))
+		return {};
+
+	return M(0, 0);
+}
+
 void FIMUBarrier::SetAccelerometerZeroGBias(FVector Bias)
 {
 	using namespace IMUBarrier_helpers;
@@ -459,6 +485,24 @@ void FIMUBarrier::SetGyroscopeCrossAxisSensitivity(double Sensitivity)
 	}
 
 	Gyro->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+}
+
+TOptional<double> FIMUBarrier::GetGyroscopeCrossAxisSensitivity() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Gyro = GetGyroscope(*NativeRef->Native);
+	if (Gyro == nullptr)
+	{
+		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivity");
+		return {};
+	}
+
+	const agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	if (!IsMatrixScalar(M))
+		return {};
+
+	return M(0, 0);
 }
 
 void FIMUBarrier::SetGyroscopeZeroRateBias(FVector Bias)
@@ -651,6 +695,24 @@ void FIMUBarrier::SetMagnetometerCrossAxisSensitivity(double Sensitivity)
 	}
 
 	Magn->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+}
+
+TOptional<double> FIMUBarrier::GetMagnetometerCrossAxisSensitivity() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Magn = GetMagnetometer(*NativeRef->Native);
+	if (Magn == nullptr)
+	{
+		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivity");
+		return {};
+	}
+
+	const agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	if (!IsMatrixScalar(M))
+		return {};
+
+	return M(0, 0);
 }
 
 void FIMUBarrier::SetMagnetometerZeroFluxBias(FVector Bias)

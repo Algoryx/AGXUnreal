@@ -255,11 +255,24 @@ void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivity(double Sensit
 		NativeBarrier.SetAccelerometerCrossAxisSensitivity(Sensitivity);
 }
 
-double UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivity() const
+bool UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivity(double& OutResult) const
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return AccelerometerCrossAxisSensitivity;
+	if (HasNative())
+	{
+		auto Val = NativeBarrier.GetAccelerometerCrossAxisSensitivity();
+		if (Val.IsSet())
+		{
+			OutResult = Val.GetValue();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	OutResult = AccelerometerCrossAxisSensitivity;
+	return true;
 }
 
 void UAGX_IMUSensorComponent::SetAccelerometerZeroGBias(FVector Bias)
@@ -334,11 +347,24 @@ void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivity(double Sensitivit
 		NativeBarrier.SetGyroscopeCrossAxisSensitivity(Sensitivity);
 }
 
-double UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivity() const
+bool UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivity(double& OutResult) const
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return GyroscopeCrossAxisSensitivity;
+	if (HasNative())
+	{
+		auto Val = NativeBarrier.GetGyroscopeCrossAxisSensitivity();
+		if (Val.IsSet())
+		{
+			OutResult = Val.GetValue();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	OutResult = GyroscopeCrossAxisSensitivity;
+	return true;
 }
 
 void UAGX_IMUSensorComponent::SetGyroscopeZeroRateBias(FVector Bias)
@@ -428,11 +454,24 @@ void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivity(double Sensiti
 		NativeBarrier.SetMagnetometerCrossAxisSensitivity(Sensitivity);
 }
 
-double UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivity() const
+bool UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivity(double& OutResult) const
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return MagnetometerCrossAxisSensitivity;
+	if (HasNative())
+	{
+		auto Val = NativeBarrier.GetMagnetometerCrossAxisSensitivity();
+		if (Val.IsSet())
+		{
+			OutResult = Val.GetValue();
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	OutResult = MagnetometerCrossAxisSensitivity;
+	return true;
 }
 
 void UAGX_IMUSensorComponent::SetMagnetometerZeroFluxBias(FVector Bias)

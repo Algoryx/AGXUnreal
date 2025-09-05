@@ -123,9 +123,12 @@ public:
 
 	/**
 	 * Get the Accelerometer cross axis sensitivity.
+	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
+	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
+	 * returned. If false is returned, the OutResult value is not valid.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	double GetAccelerometerCrossAxisSensitivity() const;
+	bool GetAccelerometerCrossAxisSensitivity(double& OutResult) const;
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero external acceleration
@@ -259,9 +262,12 @@ public:
 
 	/**
 	 * Get the Gyroscope cross axis sensitivity.
+	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
+	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
+	 * returned. If false is returned, the OutResult value is not valid.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
-	double GetGyroscopeCrossAxisSensitivity() const;
+	bool GetGyroscopeCrossAxisSensitivity(double& OutResult) const;
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero angular rate
@@ -416,9 +422,12 @@ public:
 
 	/**
 	 * Get the Magnetometer cross axis sensitivity.
+	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
+	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
+	 * returned. If false is returned, the OutResult value is not valid.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
-	double GetMagnetometerCrossAxisSensitivity() const;
+	bool GetMagnetometerCrossAxisSensitivity(double& OutResult) const;
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero magnetic flux
