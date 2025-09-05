@@ -52,10 +52,8 @@ bool UAGX_IMUSensorComponent::CanEditChange(const FProperty* InProperty) const
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseAccelerometer),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseGyroscope),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseMagnetometer),
-			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
+			AGX_MEMBER_NAME(bUseAccelerometer), AGX_MEMBER_NAME(bUseGyroscope),
+			AGX_MEMBER_NAME(bUseMagnetometer), AGX_MEMBER_NAME(RigidBody)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;

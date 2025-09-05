@@ -448,10 +448,8 @@ bool UAGX_LidarSensorComponent::CanEditChange(const FProperty* InProperty) const
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, Model),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ModelParameters),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bEnableRendering),
-			GET_MEMBER_NAME_CHECKED(ThisClass, NiagaraSystemAsset)};
+			AGX_MEMBER_NAME(Model), AGX_MEMBER_NAME(ModelParameters),
+			AGX_MEMBER_NAME(bEnableRendering), AGX_MEMBER_NAME(NiagaraSystemAsset)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
