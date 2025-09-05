@@ -252,9 +252,9 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.Dependencies);
-      RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
-      RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
-      RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
+			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
+			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
+			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
     }
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
