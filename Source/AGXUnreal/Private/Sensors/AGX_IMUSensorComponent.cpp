@@ -779,6 +779,8 @@ void UAGX_IMUSensorComponent::SetNativeAddress(uint64 NativeAddress)
 void UAGX_IMUSensorComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	// Native is not created here, instead the Sensor Environment will call GetOrCreateNative on any
+	// registered IMU.
 }
 
 void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
