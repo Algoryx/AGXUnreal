@@ -11,6 +11,7 @@
 struct FAGX_LidarOutputPositionData;
 struct FAGX_LidarOutputPositionIntensityData;
 struct FAGX_LidarScanPoint;
+struct FAGX_SensorMsgsImu;
 struct FAGX_SensorMsgsImage;
 struct FAGX_SensorMsgsPointCloud2;
 
@@ -31,103 +32,103 @@ class AGXUNREAL_API UAGX_ROS2Utilities : public UBlueprintFunctionLibrary
 public:
 	GENERATED_BODY()
 
-    /**
-     * Converts a distance from Unreal's unit system [cm] to ROS2's unit system [m].
-     *
-     * DistanceUnreal - The distance in Unreal's unit system [cm].
-     * Returns the converted distance in ROS2's unit system [m].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static double ConvertDistanceToROS(double DistanceUnreal);
+	/**
+	 * Converts a distance from Unreal's unit system [cm] to ROS2's unit system [m].
+	 *
+	 * DistanceUnreal - The distance in Unreal's unit system [cm].
+	 * Returns the converted distance in ROS2's unit system [m].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static double ConvertDistanceToROS(double DistanceUnreal);
 
-    /**
-     * Converts a distance from ROS2's unit system [m] to Unreal's unit system [cm].
-     *
-     * DistanceROS - The distance in ROS2's unit system [m].
-     * Returns the converted distance in Unreal's unit system [cm].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static double ConvertDistanceToUnreal(double DistanceROS);
+	/**
+	 * Converts a distance from ROS2's unit system [m] to Unreal's unit system [cm].
+	 *
+	 * DistanceROS - The distance in ROS2's unit system [m].
+	 * Returns the converted distance in Unreal's unit system [cm].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static double ConvertDistanceToUnreal(double DistanceROS);
 
-    /**
-     * Converts a position from Unreal's coordinate system [cm] to ROS2's coordinate system [m].
-     * Unreal uses left-handed coordinate systems, while ROS2 uses right-handed coordinate systems.
-     *
-     * PosUnreal - The position in Unreal's coordinate system (left-handed) [cm].
-     * Returns the converted position in ROS2's coordinate system (right-handed) [m].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertPositionToROS(FVector PosUnreal);
+	/**
+	 * Converts a position from Unreal's coordinate system [cm] to ROS2's coordinate system [m].
+	 * Unreal uses left-handed coordinate systems, while ROS2 uses right-handed coordinate systems.
+	 *
+	 * PosUnreal - The position in Unreal's coordinate system (left-handed) [cm].
+	 * Returns the converted position in ROS2's coordinate system (right-handed) [m].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertPositionToROS(FVector PosUnreal);
 
-    /**
-     * Converts a position from ROS2's coordinate system [m] to Unreal's coordinate system [cm].
-     * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * PosROS - The position in ROS2's coordinate system (right-handed) [m].
-     * Returns the converted position in Unreal's coordinate system (left-handed) [cm].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertPositionToUnreal(FVector PosROS);
+	/**
+	 * Converts a position from ROS2's coordinate system [m] to Unreal's coordinate system [cm].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * PosROS - The position in ROS2's coordinate system (right-handed) [m].
+	 * Returns the converted position in Unreal's coordinate system (left-handed) [cm].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertPositionToUnreal(FVector PosROS);
 
-    /**
-     * Converts a velocity from Unreal's unit system [cm/s] to ROS2's unit system [m/s].
-		 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * VelUnreal - The velocity in Unreal's unit system (left-handed) [cm/s].
-     * Returns the converted velocity in ROS2's unit system (right-handed) [m/s].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertVelocityToROS(FVector VelUnreal);
+	/**
+	 * Converts a velocity from Unreal's unit system [cm/s] to ROS2's unit system [m/s].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * VelUnreal - The velocity in Unreal's unit system (left-handed) [cm/s].
+	 * Returns the converted velocity in ROS2's unit system (right-handed) [m/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertVelocityToROS(FVector VelUnreal);
 
-    /**
-     * Converts a velocity from ROS2's unit system [m/s] to Unreal's unit system [cm/s].
-		 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * VelROS - The velocity in ROS2's unit system (right-handed) [m/s].
-     * Returns the converted velocity in Unreal's unit system (left-handed) [cm/s].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertVelocityToUnreal(FVector VelROS);
+	/**
+	 * Converts a velocity from ROS2's unit system [m/s] to Unreal's unit system [cm/s].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * VelROS - The velocity in ROS2's unit system (right-handed) [m/s].
+	 * Returns the converted velocity in Unreal's unit system (left-handed) [cm/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertVelocityToUnreal(FVector VelROS);
 
-    /**
-     * Converts an angular velocity from Unreal's unit system [deg/s] to ROS2's unit system [rad/s].
-		 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * AngVelUnreal - The angular velocity in Unreal's unit system (left-handed) [deg/s].
-     * Returns the converted angular velocity in ROS2's unit system (right-handed) [rad/s].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertAngularVelocityToROS(FVector AngVelUnreal);
+	/**
+	 * Converts an angular velocity from Unreal's unit system [deg/s] to ROS2's unit system [rad/s].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * AngVelUnreal - The angular velocity in Unreal's unit system (left-handed) [deg/s].
+	 * Returns the converted angular velocity in ROS2's unit system (right-handed) [rad/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertAngularVelocityToROS(FVector AngVelUnreal);
 
-    /**
-     * Converts an angular velocity from ROS2's unit system [rad/s] to Unreal's unit system [deg/s].
-     * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * AngVelROS - The angular velocity in ROS2's unit system (right-handed) [rad/s].
-     * Returns the converted angular velocity in Unreal's unit system (left-handed) [deg/s].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FVector ConvertAngularVelocityToUnreal(FVector AngVelROS);
+	/**
+	 * Converts an angular velocity from ROS2's unit system [rad/s] to Unreal's unit system [deg/s].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * AngVelROS - The angular velocity in ROS2's unit system (right-handed) [rad/s].
+	 * Returns the converted angular velocity in Unreal's unit system (left-handed) [deg/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FVector ConvertAngularVelocityToUnreal(FVector AngVelROS);
 
-    /**
-     * Converts a rotation from Unreal's coordinate system [deg] to ROS2's coordinate system [rad].
-     * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * RotUnreal - The rotation in Unreal's coordinate system (left-handed) [deg].
-     * Returns the converted rotation in ROS2's coordinate system (right-handed) [rad].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FQuat ConvertRotationToROS(FQuat RotUnreal);
+	/**
+	 * Converts a rotation from Unreal's coordinate system [deg] to ROS2's coordinate system [rad].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * RotUnreal - The rotation in Unreal's coordinate system (left-handed) [deg].
+	 * Returns the converted rotation in ROS2's coordinate system (right-handed) [rad].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FQuat ConvertRotationToROS(FQuat RotUnreal);
 
-    /**
-     * Converts a rotation from ROS2's coordinate system [rad] to Unreal's coordinate system [deg].
-     * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
-     *
-     * RotROS - The rotation in ROS2's coordinate system (right-handed) [rad].
-     * Returns the converted rotation in Unreal's coordinate system (left-handed) [deg].
-     */
-    UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-    static FQuat ConvertRotationToUnreal(FQuat RotROS);
+	/**
+	 * Converts a rotation from ROS2's coordinate system [rad] to Unreal's coordinate system [deg].
+	 * ROS2 uses right-handed coordinate systems, while Unreal uses left-handed coordinate systems.
+	 *
+	 * RotROS - The rotation in ROS2's coordinate system (right-handed) [rad].
+	 * Returns the converted rotation in Unreal's coordinate system (left-handed) [deg].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FQuat ConvertRotationToUnreal(FQuat RotROS);
 
 	/**
 	 * Takes a TimeStamp in seconds and converts it into a ROS2 builtin_interfaces::Time message.
@@ -193,7 +194,7 @@ public:
 	 * i.e. 12 bytes per point.
 	 *
 	 * It is assumed that the given Output Data is dense, i.e. that no point misses are included.
-	 * 
+	 *
 	 * The points written will be in ROS2 coordinates, i.e. right-handed and z up.
 	 *
 	 * The timestamp written to the Header member of the sensor_msgs::PointCloud2 message is set
@@ -202,7 +203,7 @@ public:
 	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
 	 * If not set, it will be an empty string.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
 	static FAGX_SensorMsgsPointCloud2 ConvertPositionData(
 		const TArray<FAGX_LidarOutputPositionData>& Data, double TimeStamp,
 		const FString& FrameId = "");
@@ -223,8 +224,36 @@ public:
 	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
 	 * If not set, it will be an empty string.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
 	static FAGX_SensorMsgsPointCloud2 ConvertPositionIntensityData(
 		const TArray<FAGX_LidarOutputPositionIntensityData>& Data, double TimeStamp,
 		const FString& FrameId = "");
+
+	/**
+	 * Takes Accelerometer and Gyroscope output from an IMU Sensor and creates a ROS2
+	 * sensor_msgs::Imu message from it.
+	 *
+	 * The Accelerometer and Gyroscope output can be in local or world coordinates; simply pass in
+	 * the output data from the corresponding Data getter function exposed by the IMU Sensor
+	 * Component.
+	 *
+	 * The Accelerometer data is converted from Unreal's [cm/s^2] to ROS2 [m/s^2] and the coordinate
+	 * system is converted from Unreal's left-handed system to ROS2's right-handed system.
+	 *
+	 * The Gyroscope data is converted from Unreal's [deg/s] to ROS2 [rad/s] and the coordinate
+	 * system is converted from Unreal's left-handed system to ROS2's right-handed system.
+	 *
+	 * The OrientationCovariance, AngularVelocityCovariance and LinearAccelerationCovariance
+	 * matrices of the created sensor_msgs::Imu message is all set to zero.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::Imu message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX ROS2")
+	static FAGX_SensorMsgsImu ConvertIMUData(
+		const FVector& AccelerometerOutput, const FVector& GyroscopeOutput,
+		const FQuat& IMURotation, double TimeStamp, const FString& FrameId = "");
 };
