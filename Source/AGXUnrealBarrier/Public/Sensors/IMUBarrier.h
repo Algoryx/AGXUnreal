@@ -26,8 +26,6 @@ class AGXUNREALBARRIER_API FIMUBarrier
 {
 public:
 	FIMUBarrier();
-	FIMUBarrier(std::unique_ptr<FIMURef> Native);
-	FIMUBarrier(FIMUBarrier&& Other);
 	~FIMUBarrier();
 
 	bool HasNative() const;
@@ -164,9 +162,5 @@ public:
 	void DecrementRefCount() const;
 
 private:
-	FIMUBarrier(const FIMUBarrier&) = delete;
-	void operator=(const FIMUBarrier&) = delete;
-
-private:
-	std::unique_ptr<FIMURef> NativeRef;
+	std::shared_ptr<FIMURef> NativeRef;
 };

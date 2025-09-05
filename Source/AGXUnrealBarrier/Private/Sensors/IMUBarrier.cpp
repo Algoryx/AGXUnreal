@@ -30,17 +30,6 @@ FIMUBarrier::FIMUBarrier()
 {
 }
 
-FIMUBarrier::FIMUBarrier(std::unique_ptr<FIMURef> Native)
-	: NativeRef(std::move(Native))
-{
-}
-
-FIMUBarrier::FIMUBarrier(FIMUBarrier&& Other)
-	: NativeRef {std::move(Other.NativeRef)}
-{
-	Other.NativeRef.reset(new FIMURef);
-}
-
 FIMUBarrier::~FIMUBarrier()
 {
 	ReleaseNative();
