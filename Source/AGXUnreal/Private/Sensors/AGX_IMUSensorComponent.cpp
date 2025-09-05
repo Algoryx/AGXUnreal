@@ -87,10 +87,7 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerRange);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivityX);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivityY);

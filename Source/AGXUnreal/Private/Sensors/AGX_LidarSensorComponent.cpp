@@ -491,33 +491,12 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamDivergence);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamExitRadius);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(RaytraceDepth);
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableRemovePointsMisses),
-		[](ThisClass* This)
-		{ This->SetEnableRemovePointsMisses(This->bEnableRemovePointsMisses); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableDistanceGaussianNoise),
-		[](ThisClass* This)
-		{ This->SetEnableDistanceGaussianNoise(This->bEnableDistanceGaussianNoise); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableRayAngleGaussianNoise),
-		[](ThisClass* This)
-		{ This->SetEnableRayAngleGaussianNoise(This->bEnableRayAngleGaussianNoise); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, DistanceNoiseSettings),
-		[](ThisClass* This) { This->SetDistanceNoiseSettings(This->DistanceNoiseSettings); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, RayAngleNoiseSettings),
-		[](ThisClass* This) { This->SetRayAngleNoiseSettings(This->RayAngleNoiseSettings); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRemovePointsMisses);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableDistanceGaussianNoise);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRayAngleGaussianNoise);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(DistanceNoiseSettings);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(RayAngleNoiseSettings);
 }
 #endif // WITH_EDITOR
 
