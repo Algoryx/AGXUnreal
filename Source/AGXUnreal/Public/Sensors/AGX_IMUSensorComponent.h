@@ -105,30 +105,76 @@ public:
 	FAGX_RealInterval GetAccelerometerRange() const;
 
 	/**
-	 * The Accelerometer cross axis sensitivity specifies how much an acceleration applied to one
-	 * axis bleeds over into the signal of another axis.
-	 * Applies equally to all axes.
-	 * Valid range is [0.0 - 1.0].
+	 * The Accelerometer cross axis sensitivity specifies how much a measured acceleration in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
-	double AccelerometerCrossAxisSensitivity {0.0};
+	FVector AccelerometerCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
 	/**
-	 * Set the Accelerometer cross axis sensitivity.
+	 * Set the Accelerometer cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	void SetAccelerometerCrossAxisSensitivity(double Sensitivity);
+	void SetAccelerometerCrossAxisSensitivityX(FVector X);
 
 	/**
-	 * Get the Accelerometer cross axis sensitivity.
-	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
-	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
-	 * returned. If false is returned, the OutResult value is not valid.
+	 * Get the Accelerometer cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
-	bool GetAccelerometerCrossAxisSensitivity(double& OutResult) const;
+	FVector GetAccelerometerCrossAxisSensitivityX();
+
+	/**
+	 * The Accelerometer cross axis sensitivity specifies how much a measured acceleration in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector AccelerometerCrossAxisSensitivityY {0.0, 1.0, 0.0};
+
+	/**
+	 * Set the Accelerometer cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerCrossAxisSensitivityY(FVector Y);
+
+	/**
+	 * Get the Accelerometer cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAccelerometerCrossAxisSensitivityY();
+
+	/**
+	 * The Accelerometer cross axis sensitivity specifies how much a measured acceleration in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Accelerometer",
+		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector AccelerometerCrossAxisSensitivityZ {0.0, 0.0, 1.0};
+
+	/**
+	 * Set the Accelerometer cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerCrossAxisSensitivityZ(FVector Z);
+
+	/**
+	 * Get the Accelerometer cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	FVector GetAccelerometerCrossAxisSensitivityZ();
+
+	/**
+	 * Set the Accelerometer cross axis sensitivity for all axes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Accelerometer")
+	void SetAccelerometerCrossAxisSensitivity(FVector X, FVector Y, FVector Z);
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero external acceleration
@@ -244,30 +290,76 @@ public:
 	FAGX_RealInterval GetGyroscopeRange() const;
 
 	/**
-	 * The Gyroscope cross axis sensitivity specifies how much an angular rate applied to one
-	 * axis bleeds over into the signal of another axis.
-	 * Applies equally to all axes.
-	 * Valid range is [0.0 - 1.0].
+	 * The Gyroscope cross axis sensitivity specifies how much a measured angular velocity in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
 		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
-	double GyroscopeCrossAxisSensitivity {0.0};
+	FVector GyroscopeCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
 	/**
-	 * Set the Gyroscope cross axis sensitivity.
+	 * Set the Gyroscope cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
-	void SetGyroscopeCrossAxisSensitivity(double Sensitivity);
+	void SetGyroscopeCrossAxisSensitivityX(FVector X);
 
 	/**
-	 * Get the Gyroscope cross axis sensitivity.
-	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
-	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
-	 * returned. If false is returned, the OutResult value is not valid.
+	 * Get the Gyroscope cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
-	bool GetGyroscopeCrossAxisSensitivity(double& OutResult) const;
+	FVector GetGyroscopeCrossAxisSensitivityX();
+
+	/**
+	 * The Gyroscope cross axis sensitivity specifies how much a measured angular velocity in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector GyroscopeCrossAxisSensitivityY {0.0, 1.0, 0.0};
+
+	/**
+	 * Set the Gyroscope cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeCrossAxisSensitivityY(FVector Y);
+
+	/**
+	 * Get the Gyroscope cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeCrossAxisSensitivityY();
+
+	/**
+	 * The Gyroscope cross axis sensitivity specifies how much a measured angular velocity in one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Gyroscope",
+		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector GyroscopeCrossAxisSensitivityZ {0.0, 0.0, 1.0};
+
+	/**
+	 * Set the Gyroscope cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeCrossAxisSensitivityZ(FVector Z);
+
+	/**
+	 * Get the Gyroscope cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	FVector GetGyroscopeCrossAxisSensitivityZ();
+
+	/**
+	 * Set the Gyroscope cross axis sensitivity for all axes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Gyroscope")
+	void SetGyroscopeCrossAxisSensitivity(FVector X, FVector Y, FVector Z);
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero angular rate
@@ -405,29 +497,75 @@ public:
 
 	/**
 	 * The Magnetometer cross axis sensitivity specifies how much a magnetic field applied to one
-	 * axis bleeds over into the signal of another axis.
-	 * Applies equally to all axes.
-	 * Valid range is [0.0 - 1.0].
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
-	double MagnetometerCrossAxisSensitivity {0.0};
+	FVector MagnetometerCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
 	/**
-	 * Set the Magnetometer cross axis sensitivity.
+	 * Set the Magnetometer cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
-	void SetMagnetometerCrossAxisSensitivity(double Sensitivity);
+	void SetMagnetometerCrossAxisSensitivityX(FVector X);
 
 	/**
-	 * Get the Magnetometer cross axis sensitivity.
-	 * This operation may fail if the underlying AGX Dynamics cross axis sensitivity matrix is not
-	 * scalar. In that case, the matrix cannot be represented by a double value, and false is
-	 * returned. If false is returned, the OutResult value is not valid.
+	 * Get the Magnetometer cross axis sensitivity for the X axis.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
-	bool GetMagnetometerCrossAxisSensitivity(double& OutResult) const;
+	FVector GetMagnetometerCrossAxisSensitivityX();
+
+	/**
+	 * The Magnetometer cross axis sensitivity specifies how much a magnetic field applied to one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector MagnetometerCrossAxisSensitivityY {0.0, 1.0, 0.0};
+
+	/**
+	 * Set the Magnetometer cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerCrossAxisSensitivityY(FVector Y);
+
+	/**
+	 * Get the Magnetometer cross axis sensitivity for the Y axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerCrossAxisSensitivityY();
+
+	/**
+	 * The Magnetometer cross axis sensitivity specifies how much a magnetic field applied to one
+	 * axis bleeds over into the signal of another axis. I.e. this determines how much a measurement
+	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Magnetometer",
+		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
+	FVector MagnetometerCrossAxisSensitivityZ {0.0, 0.0, 1.0};
+
+	/**
+	 * Set the Magnetometer cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerCrossAxisSensitivityZ(FVector Z);
+
+	/**
+	 * Get the Magnetometer cross axis sensitivity for the Z axis.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	FVector GetMagnetometerCrossAxisSensitivityZ();
+
+	/**
+	 * Set the Magnetometer cross axis sensitivity for all axes.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Magnetometer")
+	void SetMagnetometerCrossAxisSensitivity(FVector X, FVector Y, FVector Z);
 
 	/**
 	 * Specifies the measurement bias in each of the three axes at zero magnetic flux

@@ -93,12 +93,16 @@ namespace IMUBarrier_helpers
 		UE_LOG(LogAGX, Warning, TEXT("Unable to get %s in %s."), *ObjectName, *FunctionName);
 	}
 
-	bool IsMatrixScalar(const agx::Matrix3x3& M)
+	void SetMatrixRow(agx::Matrix3x3& M, size_t RowIndex, const FVector V)
 	{
-		if (!M.isDiagonal())
-			return false;
+		M(RowIndex, 0) = V.X;
+		M(RowIndex, 1) = V.Y;
+		M(RowIndex, 2) = V.Z;
+	}
 
-		return agx::equivalent(M(0,0), M(1,1)) && agx::equivalent(M(1,1), M(2,2));
+	FVector GetMatrixRow(const agx::Matrix3x3& M, size_t RowIndex)
+	{
+		return FVector {M(RowIndex, 0), M(RowIndex, 1), M(RowIndex, 2)};
 	}
 }
 
@@ -276,37 +280,97 @@ FAGX_RealInterval FIMUBarrier::GetAccelerometerRange() const
 	return ConvertDistance(Accel->getModel()->getRange().getRangeX());
 }
 
-void FIMUBarrier::SetAccelerometerCrossAxisSensitivity(double Sensitivity)
+void FIMUBarrier::SetAccelerometerCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
-
 	check(HasNative());
 	auto Accel = GetAccelerometer(*NativeRef->Native);
 	if (Accel == nullptr)
 	{
-		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivity");
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityX");
 		return;
 	}
 
-	Accel->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 0, X);
+	Accel->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
 }
 
-TOptional<double> FIMUBarrier::GetAccelerometerCrossAxisSensitivity() const
+FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
 	auto Accel = GetAccelerometer(*NativeRef->Native);
 	if (Accel == nullptr)
 	{
-		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivity");
-		return {};
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityX");
+		return FVector::ZeroVector;
 	}
 
-	const agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
-	if (!IsMatrixScalar(M))
-		return {};
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 0);
+}
 
-	return M(0, 0);
+void FIMUBarrier::SetAccelerometerCrossAxisSensitivityY(FVector Y)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityY");
+		return;
+	}
+
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 1, Y);
+	Accel->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityY() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityY");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 1);
+}
+
+void FIMUBarrier::SetAccelerometerCrossAxisSensitivityZ(FVector Z)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityZ");
+		return;
+	}
+
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 2, Z);
+	Accel->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityZ() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Accel = GetAccelerometer(*NativeRef->Native);
+	if (Accel == nullptr)
+	{
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityZ");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Accel->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 2);
 }
 
 void FIMUBarrier::SetAccelerometerZeroGBias(FVector Bias)
@@ -461,37 +525,97 @@ FAGX_RealInterval FIMUBarrier::GetGyroscopeRange() const
 	return ConvertAngle(Gyro->getModel()->getRange().getRangeX());
 }
 
-void FIMUBarrier::SetGyroscopeCrossAxisSensitivity(double Sensitivity)
+void FIMUBarrier::SetGyroscopeCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
-
 	check(HasNative());
 	auto Gyro = GetGyroscope(*NativeRef->Native);
 	if (Gyro == nullptr)
 	{
-		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivity");
+		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityX");
 		return;
 	}
 
-	Gyro->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 0, X);
+	Gyro->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
 }
 
-TOptional<double> FIMUBarrier::GetGyroscopeCrossAxisSensitivity() const
+FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
 	auto Gyro = GetGyroscope(*NativeRef->Native);
 	if (Gyro == nullptr)
 	{
-		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivity");
-		return {};
+		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityX");
+		return FVector::ZeroVector;
 	}
 
-	const agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
-	if (!IsMatrixScalar(M))
-		return {};
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 0);
+}
 
-	return M(0, 0);
+void FIMUBarrier::SetGyroscopeCrossAxisSensitivityY(FVector Y)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Gyro = GetGyroscope(*NativeRef->Native);
+	if (Gyro == nullptr)
+	{
+		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityY");
+		return;
+	}
+
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 1, Y);
+	Gyro->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityY() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Gyro = GetGyroscope(*NativeRef->Native);
+	if (Gyro == nullptr)
+	{
+		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityY");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 1);
+}
+
+void FIMUBarrier::SetGyroscopeCrossAxisSensitivityZ(FVector Z)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Gyro = GetGyroscope(*NativeRef->Native);
+	if (Gyro == nullptr)
+	{
+		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityZ");
+		return;
+	}
+
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 2, Z);
+	Gyro->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityZ() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Gyro = GetGyroscope(*NativeRef->Native);
+	if (Gyro == nullptr)
+	{
+		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityZ");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Gyro->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 2);
 }
 
 void FIMUBarrier::SetGyroscopeZeroRateBias(FVector Bias)
@@ -671,37 +795,97 @@ FAGX_RealInterval FIMUBarrier::GetMagnetometerRange() const
 	return Convert(Magn->getModel()->getRange().getRangeX());
 }
 
-void FIMUBarrier::SetMagnetometerCrossAxisSensitivity(double Sensitivity)
+void FIMUBarrier::SetMagnetometerCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
-
 	check(HasNative());
 	auto Magn = GetMagnetometer(*NativeRef->Native);
 	if (Magn == nullptr)
 	{
-		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivity");
+		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityX");
 		return;
 	}
 
-	Magn->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(Sensitivity));
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 0, X);
+	Magn->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
 }
 
-TOptional<double> FIMUBarrier::GetMagnetometerCrossAxisSensitivity() const
+FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
 	auto Magn = GetMagnetometer(*NativeRef->Native);
 	if (Magn == nullptr)
 	{
-		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivity");
-		return {};
+		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityX");
+		return FVector::ZeroVector;
 	}
 
-	const agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
-	if (!IsMatrixScalar(M))
-		return {};
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 0);
+}
 
-	return M(0, 0);
+void FIMUBarrier::SetMagnetometerCrossAxisSensitivityY(FVector Y)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Magn = GetMagnetometer(*NativeRef->Native);
+	if (Magn == nullptr)
+	{
+		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityY");
+		return;
+	}
+
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 1, Y);
+	Magn->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityY() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Magn = GetMagnetometer(*NativeRef->Native);
+	if (Magn == nullptr)
+	{
+		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityY");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 1);
+}
+
+void FIMUBarrier::SetMagnetometerCrossAxisSensitivityZ(FVector Z)
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Magn = GetMagnetometer(*NativeRef->Native);
+	if (Magn == nullptr)
+	{
+		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityZ");
+		return;
+	}
+
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	SetMatrixRow(M, /*RowIndex*/ 2, Z);
+	Magn->getModel()->setCrossAxisSensitivity(agxSensor::TriaxialCrossSensitivity(M));
+}
+
+FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityZ() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	auto Magn = GetMagnetometer(*NativeRef->Native);
+	if (Magn == nullptr)
+	{
+		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityZ");
+		return FVector::ZeroVector;
+	}
+
+	agx::Matrix3x3 M = Magn->getModel()->getCrossAxisSensitivity().getCrossAxisMatrix();
+	return GetMatrixRow(M, /*RowIndex*/ 2);
 }
 
 void FIMUBarrier::SetMagnetometerZeroFluxBias(FVector Bias)

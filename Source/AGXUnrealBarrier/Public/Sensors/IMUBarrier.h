@@ -55,13 +55,14 @@ public:
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetAccelerometerRange() const;
 
-	void SetAccelerometerCrossAxisSensitivity(double Sensitivity);
+	void SetAccelerometerCrossAxisSensitivityX(FVector X);
+	FVector GetAccelerometerCrossAxisSensitivityX() const;
 
-	/**
-	 * If the underlying Cross axis Sensitivity matrix is scalar, i.e. equal diagonal elements with
-	 * all other elements being zero, a diagonal element value is returned. If not, empty is returned.
-	 */
-	TOptional<double> GetAccelerometerCrossAxisSensitivity() const;
+	void SetAccelerometerCrossAxisSensitivityY(FVector Y);
+	FVector GetAccelerometerCrossAxisSensitivityY() const;
+
+	void SetAccelerometerCrossAxisSensitivityZ(FVector Z);
+	FVector GetAccelerometerCrossAxisSensitivityZ() const;
 
 	void SetAccelerometerZeroGBias(FVector Bias);
 	FVector GetAccelerometerZeroGBias() const;
@@ -86,14 +87,14 @@ public:
 	void SetGyroscopeRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetGyroscopeRange() const;
 
-	void SetGyroscopeCrossAxisSensitivity(double Sensitivity);
+	void SetGyroscopeCrossAxisSensitivityX(FVector X);
+	FVector GetGyroscopeCrossAxisSensitivityX() const;
 
-	/**
-	 * If the underlying Cross axis Sensitivity matrix is scalar, i.e. equal diagonal elements with
-	 * all other elements being zero, a diagonal element value is returned. If not, empty is
-	 * returned.
-	 */
-	TOptional<double> GetGyroscopeCrossAxisSensitivity() const;
+	void SetGyroscopeCrossAxisSensitivityY(FVector Y);
+	FVector GetGyroscopeCrossAxisSensitivityY() const;
+
+	void SetGyroscopeCrossAxisSensitivityZ(FVector Z);
+	FVector GetGyroscopeCrossAxisSensitivityZ() const;
 
 	void SetGyroscopeZeroRateBias(FVector Bias);
 	FVector GetGyroscopeZeroRateBias() const;
@@ -119,14 +120,14 @@ public:
 	void SetMagnetometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetMagnetometerRange() const;
 
-	void SetMagnetometerCrossAxisSensitivity(double Sensitivity);
+	void SetMagnetometerCrossAxisSensitivityX(FVector X);
+	FVector GetMagnetometerCrossAxisSensitivityX() const;
 
-	/**
-	 * If the underlying Cross axis Sensitivity matrix is scalar, i.e. equal diagonal elements with
-	 * all other elements being zero, a diagonal element value is returned. If not, empty is
-	 * returned.
-	 */
-	TOptional<double> GetMagnetometerCrossAxisSensitivity() const;
+	void SetMagnetometerCrossAxisSensitivityY(FVector Y);
+	FVector GetMagnetometerCrossAxisSensitivityY() const;
+
+	void SetMagnetometerCrossAxisSensitivityZ(FVector Z);
+	FVector GetMagnetometerCrossAxisSensitivityZ() const;
 
 	void SetMagnetometerZeroFluxBias(FVector Bias);
 	FVector GetMagnetometerZeroFluxBias() const;
