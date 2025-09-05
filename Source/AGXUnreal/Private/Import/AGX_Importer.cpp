@@ -295,6 +295,8 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
+	Context.RootModelName = SimObjects.GetModelName();
+
 	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *Actor);
 	if (IsUnrecoverableError(Result))
 		return FAGX_ImportResult(Result);

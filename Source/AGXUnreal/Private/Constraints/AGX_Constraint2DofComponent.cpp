@@ -49,6 +49,21 @@ double UAGX_Constraint2DofComponent::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) co
 	return Get2DofBarrier(*this)->GetAngle(Dof);
 }
 
+double UAGX_Constraint2DofComponent::GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Speed was called in Constraint '%s' that does not have a Native object. Only "
+				 "call this function during Play."),
+			*GetName());
+		return 0.0;
+	}
+
+	return Get2DofBarrier(*this)->GetSpeed(Dof);
+}
+
 namespace AGX_Constraint2DofComponent_helpers
 {
 	void InitializeControllerBarriers(UAGX_Constraint2DofComponent& Constraint)

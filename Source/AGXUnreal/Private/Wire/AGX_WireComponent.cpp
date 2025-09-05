@@ -1347,8 +1347,11 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 		MergeSplitProperties.CopyFrom(Msp, Context);
 
 	ImportGuid = Barrier.GetGuid();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_WireComponent::StaticClass());
+		GetOwner(), CleanBarrierName, UAGX_WireComponent::StaticClass());
 	Rename(*Name);
 
 	auto ParameterControllerBarrier = Barrier.GetParameterController();

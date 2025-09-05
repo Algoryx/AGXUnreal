@@ -24,7 +24,6 @@ public class AGXCommon : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core", "CoreUObject", "Engine"});
 
-
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Projects"});
 	}

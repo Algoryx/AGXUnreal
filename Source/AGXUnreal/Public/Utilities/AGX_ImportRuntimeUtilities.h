@@ -44,4 +44,12 @@ public:
 	 * everything inside it. Returns the deleted directory if any.
 	 */
 	static FString RemoveImportedOpenPLXFiles(const FString& FilePath);
+
+	/**
+	 * In some cases, for example in the case of OpenPLX imports, many Barrier names will start with
+	 * the root model name (the System name). This function returns the Barrier name with the root
+	 * model name removed from the beginning (if applicable).
+	 */
+	static FString RemoveModelNameFromBarrierName(
+		const FString& BarrierName, FAGX_ImportContext* Context);
 };

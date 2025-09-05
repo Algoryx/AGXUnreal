@@ -84,4 +84,3 @@ FORCEINLINE FString RemoveFromString(const FString& Str, const FString& CharsToR
 
 	return Result;
 }
-

@@ -56,7 +56,9 @@ namespace OpenPLX_SignalHandlerComponent_helpers
 
 bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutInput)
 {
-	if (const FName* FullName = InputAliases.Find(Name))
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = InputAliases.Find(TrimmedName))
 	{
 		if (const FOpenPLX_Input* Input = Inputs.Find(*FullName))
 		{
@@ -65,7 +67,7 @@ bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutIn
 		}
 	}
 
-	if (const FOpenPLX_Input* Input = Inputs.Find(Name))
+	if (const FOpenPLX_Input* Input = Inputs.Find(TrimmedName))
 	{
 		OutInput = *Input;
 		return true;
@@ -77,7 +79,9 @@ bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutIn
 bool UOpenPLX_SignalHandlerComponent::GetInputFromType(
 	EOpenPLX_InputType Type, FName Name, FOpenPLX_Input& OutInput)
 {
-	if (const FName* FullName = InputAliases.Find(Name))
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = InputAliases.Find(TrimmedName))
 	{
 		if (const FOpenPLX_Input* Input = Inputs.Find(*FullName))
 		{
@@ -89,7 +93,7 @@ bool UOpenPLX_SignalHandlerComponent::GetInputFromType(
 		}
 	}
 
-	if (const FOpenPLX_Input* Input = Inputs.Find(Name))
+	if (const FOpenPLX_Input* Input = Inputs.Find(TrimmedName))
 	{
 		if (Input->Type == Type)
 		{
@@ -103,7 +107,9 @@ bool UOpenPLX_SignalHandlerComponent::GetInputFromType(
 
 bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& OutOutput)
 {
-	if (const FName* FullName = OutputAliases.Find(Name))
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = OutputAliases.Find(TrimmedName))
 	{
 		if (const FOpenPLX_Output* Output = Outputs.Find(*FullName))
 		{
@@ -112,7 +118,7 @@ bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& Out
 		}
 	}
 
-	if (const FOpenPLX_Output* Output = Outputs.Find(Name))
+	if (const FOpenPLX_Output* Output = Outputs.Find(TrimmedName))
 	{
 		OutOutput = *Output;
 		return true;
@@ -124,7 +130,9 @@ bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& Out
 bool UOpenPLX_SignalHandlerComponent::GetOutputFromType(
 	EOpenPLX_OutputType Type, FName Name, FOpenPLX_Output& OutOutput)
 {
-	if (const FName* FullName = OutputAliases.Find(Name))
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = OutputAliases.Find(TrimmedName))
 	{
 		if (const FOpenPLX_Output* Output = Outputs.Find(*FullName))
 		{
@@ -136,7 +144,7 @@ bool UOpenPLX_SignalHandlerComponent::GetOutputFromType(
 		}
 	}
 
-	if (const FOpenPLX_Output* Output = Outputs.Find(Name))
+	if (const FOpenPLX_Output* Output = Outputs.Find(TrimmedName))
 	{
 		if (Output->Type == Type)
 		{
@@ -465,3 +473,4 @@ void UOpenPLX_SignalHandlerComponent::CopyFrom(
 		Context->SignalHandler = this;
 	}
 }
+

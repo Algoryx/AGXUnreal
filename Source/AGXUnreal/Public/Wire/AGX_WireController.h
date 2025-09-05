@@ -161,5 +161,7 @@ public:
 	bool HasNative() const;
 
 private:
+	void EnsureNativeIsSet();
+
 	FWireControllerBarrier NativeBarrier;
 };

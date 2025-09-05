@@ -16,6 +16,7 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -582,8 +583,10 @@ void UAGX_ConstraintComponent::CopyFrom(
 	SolveType = SolveTypeBarrier;
 	bComputeForces = Barrier.GetEnableComputeForces();
 
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Barrier.GetName(), UAGX_ConstraintComponent::StaticClass());
+		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);
 
 	const static TArray<EGenericDofIndex> Dofs {
@@ -1225,17 +1228,6 @@ void UAGX_ConstraintComponent::CreateNative()
 	}
 
 	UpdateNativeProperties();
-	if (!GetValid())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Constraint '%s' in '%s': GetValid returned false after creating Native AGX "
-				 "Dynamics Constraint. The LogAGXDynamics category in the Output Log may contain "
-				 "more information."),
-			*GetName(), *GetLabelSafe(GetOwner()));
-	}
-
-
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)
 	{

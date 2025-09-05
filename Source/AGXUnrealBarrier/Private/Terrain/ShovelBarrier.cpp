@@ -51,6 +51,14 @@ FTwoVectors FShovelBarrier::GetTopEdge() const
 	return TopEdgeUnreal;
 }
 
+FTwoVectors FShovelBarrier::GetTopEdgeWorld() const
+{
+	check(HasNative());
+	const agx::Line TopEdgeAGX = NativeRef->Native->getTopEdgeWorld();
+	const FTwoVectors TopEdgeUnreal = ConvertDisplacement(TopEdgeAGX);
+	return TopEdgeUnreal;
+}
+
 void FShovelBarrier::SetCuttingEdge(const FTwoVectors& CuttingEdge)
 {
 	check(HasNative());
@@ -62,6 +70,14 @@ FTwoVectors FShovelBarrier::GetCuttingEdge() const
 {
 	check(HasNative());
 	const agx::Line CuttingEdgeAGX = NativeRef->Native->getCuttingEdge();
+	const FTwoVectors CuttingEdgeUnreal = ConvertDisplacement(CuttingEdgeAGX);
+	return CuttingEdgeUnreal;
+}
+
+FTwoVectors FShovelBarrier::GetCuttingEdgeWorld() const
+{
+	check(HasNative());
+	const agx::Line CuttingEdgeAGX = NativeRef->Native->getCuttingEdgeWorld();
 	const FTwoVectors CuttingEdgeUnreal = ConvertDisplacement(CuttingEdgeAGX);
 	return CuttingEdgeUnreal;
 }

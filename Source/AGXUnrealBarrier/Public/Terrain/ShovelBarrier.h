@@ -40,9 +40,11 @@ public:
 
 	void SetTopEdge(const FTwoVectors& TopEdge);
 	FTwoVectors GetTopEdge() const;
+	FTwoVectors GetTopEdgeWorld() const;
 
 	void SetCuttingEdge(const FTwoVectors& CuttingEdge);
 	FTwoVectors GetCuttingEdge() const;
+	FTwoVectors GetCuttingEdgeWorld() const;
 
 	void SetCuttingDirection(const FVector& CuttingDirection);
 	FVector GetCuttingDirection() const;
