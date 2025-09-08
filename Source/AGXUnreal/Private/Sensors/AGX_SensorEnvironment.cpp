@@ -701,6 +701,7 @@ bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(ThisClass, LidarSensors),
+			GET_MEMBER_NAME_CHECKED(ThisClass, IMUSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bAutoAddObjects),
 			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial)};
 
