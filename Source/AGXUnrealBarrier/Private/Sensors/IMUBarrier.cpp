@@ -133,8 +133,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 			agx::AffineMatrix4x4(), MagnetometerModel::makeIdealModel()));
 	}
 
-	agx::FrameRef IMUFrame =
-		ConvertFrame(Params.LocalTransform.GetLocation(), Params.LocalTransform.GetRotation());
+	agx::FrameRef IMUFrame = new agx::Frame(Convert(Params.LocalTransform));
 	IMUFrame->setParent(Body.GetNative()->Native->getFrame());
 
 	NativeRef->Native = new agxSensor::IMU(IMUFrame, new agxSensor::IMUModel(SensorAttachments));
