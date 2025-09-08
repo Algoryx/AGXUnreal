@@ -237,8 +237,7 @@ bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
 	}
 
 	FAGX_LidarSensorReference LidarRef;
-	LidarRef.OwningActor = Lidar->GetOwner();
-	LidarRef.Name = FName(*Lidar->GetName());
+	LidarRef.SetComponent(Lidar);
 	return RegisterLidar(LidarRef);
 }
 
@@ -255,8 +254,7 @@ bool AAGX_SensorEnvironment::AddIMU(UAGX_IMUSensorComponent* IMU)
 	}
 
 	FAGX_IMUSensorReference IMURef;
-	IMURef.OwningActor = IMU->GetOwner();
-	IMURef.Name = FName(*IMU->GetName());
+	IMURef.SetComponent(IMU);
 	return RegisterIMU(IMURef);
 }
 
