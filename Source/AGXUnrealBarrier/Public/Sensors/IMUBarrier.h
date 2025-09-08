@@ -39,7 +39,10 @@ public:
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
 
+	/// Set the transform in world coordinate system.
 	void SetTransform(const FTransform& Transform);
+
+	/// Get the transform in world coordinate system.
 	FTransform GetTransform() const;
 
 	void SetPosition(FVector Position);

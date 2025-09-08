@@ -213,14 +213,13 @@ bool FIMUBarrier::GetEnabled() const
 void FIMUBarrier::SetTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	*NativeRef->Native->getFrame() =
-		*ConvertFrame(Transform.GetLocation(), Transform.GetRotation());
+	NativeRef->Native->getFrame()->setMatrix(Convert(Transform));
 }
 
 FTransform FIMUBarrier::GetTransform() const
 {
 	check(HasNative());
-	return Convert(*NativeRef->Native->getFrame());
+	return Convert(NativeRef->Native->getFrame()->getMatrix());
 }
 
 void FIMUBarrier::SetPosition(FVector Position)
