@@ -426,7 +426,7 @@ FVector FIMUBarrier::GetAccelerometerNoiseRMS() const
 	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
 	if (Accel == nullptr)
 	{
-		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerNoiseRMS");
+		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerNoiseRMS");
 		return FVector::ZeroVector;
 	}
 
@@ -674,7 +674,7 @@ FVector FIMUBarrier::GetGyroscopeNoiseRMS() const
 	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
 	if (Gyro == nullptr)
 	{
-		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeNoiseRMS");
+		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeNoiseRMS");
 		return FVector::ZeroVector;
 	}
 
@@ -942,7 +942,7 @@ FVector FIMUBarrier::GetMagnetometerNoiseRMS() const
 	agxSensor::Magnetometer* Magn = GetMagnetometer(*NativeRef->Native);
 	if (Magn == nullptr)
 	{
-		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerNoiseRMS");
+		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerNoiseRMS");
 		return FVector::ZeroVector;
 	}
 
@@ -992,8 +992,6 @@ FVector FIMUBarrier::GetMagnetometerSpectralNoiseDensity() const
 
 FVector FIMUBarrier::GetMagnetometerData() const
 {
-	using namespace IMUBarrier_helpers;
-
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
