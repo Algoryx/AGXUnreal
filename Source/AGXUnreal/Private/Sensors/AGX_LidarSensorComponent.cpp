@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SensorUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -65,12 +66,17 @@ void UAGX_LidarSensorComponent::SetEnabled(bool InEnabled)
 		NativeBarrier.SetEnabled(InEnabled);
 }
 
-bool UAGX_LidarSensorComponent::GetEnabled() const
+bool UAGX_LidarSensorComponent::IsEnabled() const
 {
 	if (HasNative())
 		return NativeBarrier.GetEnabled();
 
 	return bEnabled;
+}
+
+bool UAGX_LidarSensorComponent::GetEnabled() const
+{
+	return IsEnabled();
 }
 
 void UAGX_LidarSensorComponent::SetRange(FAGX_RealInterval InRange)
@@ -296,6 +302,18 @@ FLidarBarrier* UAGX_LidarSensorComponent::GetOrCreateNative()
 	if (HasNative())
 		return GetNative();
 
+	const bool RaytraceRTXSupported = FSensorEnvironmentBarrier::IsRaytraceSupported();
+	if (!RaytraceRTXSupported)
+	{
+		const FString Message =
+			"UAGX_LidarSensorComponent::GetOrCreateNative called, but Lidar raytracing (RTX) is "
+			"not supported on this computer, the Lidar Sensor will not "
+			"work. To enable Lidar raytracing (RTX) support, use an RTX "
+			"Graphical Processing Unit (GPU) with updated driver.";
+		UE_LOG(LogAGX, Warning, TEXT("%s"), *Message);
+		return nullptr;
+	}
+
 	if (ModelParameters == nullptr)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
@@ -435,10 +453,8 @@ bool UAGX_LidarSensorComponent::CanEditChange(const FProperty* InProperty) const
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, Model),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ModelParameters),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bEnableRendering),
-			GET_MEMBER_NAME_CHECKED(ThisClass, NiagaraSystemAsset)};
+			AGX_MEMBER_NAME(Model), AGX_MEMBER_NAME(ModelParameters),
+			AGX_MEMBER_NAME(bEnableRendering), AGX_MEMBER_NAME(NiagaraSystemAsset)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -478,33 +494,12 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamDivergence);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamExitRadius);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(RaytraceDepth);
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableRemovePointsMisses),
-		[](ThisClass* This)
-		{ This->SetEnableRemovePointsMisses(This->bEnableRemovePointsMisses); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableDistanceGaussianNoise),
-		[](ThisClass* This)
-		{ This->SetEnableDistanceGaussianNoise(This->bEnableDistanceGaussianNoise); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, bEnableRayAngleGaussianNoise),
-		[](ThisClass* This)
-		{ This->SetEnableRayAngleGaussianNoise(This->bEnableRayAngleGaussianNoise); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, DistanceNoiseSettings),
-		[](ThisClass* This) { This->SetDistanceNoiseSettings(This->DistanceNoiseSettings); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, RayAngleNoiseSettings),
-		[](ThisClass* This) { This->SetRayAngleNoiseSettings(This->RayAngleNoiseSettings); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRemovePointsMisses);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableDistanceGaussianNoise);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRayAngleGaussianNoise);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(DistanceNoiseSettings);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(RayAngleNoiseSettings);
 }
 #endif // WITH_EDITOR
 

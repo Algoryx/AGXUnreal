@@ -100,7 +100,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
 	bool IsEnabled() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Dynamics",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	/**
