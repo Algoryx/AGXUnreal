@@ -69,6 +69,11 @@ public:
 	void SetEnabled(bool InEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
+	bool IsEnabled() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Lidar",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	// clang-format off

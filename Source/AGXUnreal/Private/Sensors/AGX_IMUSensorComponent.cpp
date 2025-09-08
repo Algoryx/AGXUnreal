@@ -27,7 +27,7 @@ void UAGX_IMUSensorComponent::SetEnabled(bool InEnabled)
 		NativeBarrier.SetEnabled(InEnabled);
 }
 
-bool UAGX_IMUSensorComponent::GetEnabled() const
+bool UAGX_IMUSensorComponent::IsEnabled() const
 {
 	if (HasNative())
 		return NativeBarrier.GetEnabled();

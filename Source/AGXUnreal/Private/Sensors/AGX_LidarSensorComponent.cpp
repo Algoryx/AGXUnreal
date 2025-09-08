@@ -66,12 +66,17 @@ void UAGX_LidarSensorComponent::SetEnabled(bool InEnabled)
 		NativeBarrier.SetEnabled(InEnabled);
 }
 
-bool UAGX_LidarSensorComponent::GetEnabled() const
+bool UAGX_LidarSensorComponent::IsEnabled() const
 {
 	if (HasNative())
 		return NativeBarrier.GetEnabled();
 
 	return bEnabled;
+}
+
+bool UAGX_LidarSensorComponent::GetEnabled() const
+{
+	return IsEnabled();
 }
 
 void UAGX_LidarSensorComponent::SetRange(FAGX_RealInterval InRange)

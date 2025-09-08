@@ -52,7 +52,7 @@ public:
 	void SetEnabled(bool InEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
-	bool GetEnabled() const;
+	bool IsEnabled() const;
 
 	/**
 	 * Enable or disable Accelerometer for this IMU.
