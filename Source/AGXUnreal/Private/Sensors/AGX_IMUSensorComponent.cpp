@@ -238,12 +238,24 @@ void UAGX_IMUSensorComponent::CreateNative()
 		UpdateNativeProperties();
 }
 
+void UAGX_IMUSensorComponent::SetAccelerometerRange(double Min, double Max)
+{
+	SetAccelerometerRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetAccelerometerRange(FAGX_RealInterval Range)
 {
 	AccelerometerRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetAccelerometerRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetAccelerometerRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetAccelerometerRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetAccelerometerRange() const
@@ -354,12 +366,24 @@ FVector UAGX_IMUSensorComponent::GetAccelerometerSpectralNoiseDensity() const
 	return AccelerometerSpectralNoiseDensity;
 }
 
+void UAGX_IMUSensorComponent::SetGyroscopeRange(double Min, double Max)
+{
+	SetGyroscopeRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetGyroscopeRange(FAGX_RealInterval Range)
 {
 	GyroscopeRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetGyroscopeRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetGyroscopeRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetGyroscopeRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetGyroscopeRange() const
@@ -485,12 +509,24 @@ FVector UAGX_IMUSensorComponent::GetGyroscopeLinearAccelerationEffects() const
 	return GyroscopeLinearAccelerationEffects;
 }
 
+void UAGX_IMUSensorComponent::SetMagnetometerRange(double Min, double Max)
+{
+	SetMagnetometerRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetMagnetometerRange(FAGX_RealInterval Range)
 {
 	MagnetometerRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetMagnetometerRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetMagnetometerRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetMagnetometerRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetMagnetometerRange() const

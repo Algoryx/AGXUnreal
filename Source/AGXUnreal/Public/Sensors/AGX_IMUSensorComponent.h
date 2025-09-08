@@ -95,6 +95,8 @@ public:
 	 * [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Accelerometer")
+	void SetAccelerometerRange(double Min, double Max);
+
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 
 	/**
@@ -102,6 +104,8 @@ public:
 	 * [cm/s^2].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Accelerometer")
+	void GetAccelerometerRange(double& Min, double& Max) const;
+
 	FAGX_RealInterval GetAccelerometerRange() const;
 
 	/**
@@ -279,6 +283,8 @@ public:
 	 * [deg/s].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Gyroscope")
+	void SetGyroscopeRange(double Min, double Max);
+
 	void SetGyroscopeRange(FAGX_RealInterval Range);
 
 	/**
@@ -286,6 +292,8 @@ public:
 	 * [deg/s].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Gyroscope")
+	void GetGyroscopeRange(double& Min, double& Max) const;
+
 	FAGX_RealInterval GetGyroscopeRange() const;
 
 	/**
@@ -481,6 +489,8 @@ public:
 	 * [T].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Magnetometer")
+	void SetMagnetometerRange(double Min, double Max);
+
 	void SetMagnetometerRange(FAGX_RealInterval Range);
 
 	/**
@@ -488,6 +498,8 @@ public:
 	 * [T].
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU|AGX Magnetometer")
+	void GetMagnetometerRange(double& Min, double& Max) const;
+
 	FAGX_RealInterval GetMagnetometerRange() const;
 
 	/**
