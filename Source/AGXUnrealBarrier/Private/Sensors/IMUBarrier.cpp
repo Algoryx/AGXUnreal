@@ -21,10 +21,6 @@
 #include <agxSensor/TriaxialOutputHandler.h>
 #include "EndAGXIncludes.h"
 
-#define AccelOutputID 1
-#define GyroOutputID 2
-#define MagnOutputID 3
-
 FIMUBarrier::FIMUBarrier()
 	: NativeRef {new FIMURef}
 {
@@ -42,6 +38,10 @@ bool FIMUBarrier::HasNative() const
 
 namespace IMUBarrier_helpers
 {
+	static constexpr size_t AccelerometerID = 1;
+	static constexpr size_t GyroscopeID = 2;
+	static constexpr size_t MagnetometerID = 3;
+
 	struct IMUOut3Dof
 	{
 		agx::Real Data[3];
@@ -148,7 +148,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 			IMUOut3Dof,
 			agxSensor::IMUOutput::ACCELEROMETER_X_F64,
       agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
-      agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(AccelOutputID);
+      agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
 	}
 
 	if (Params.bUseGyroscope)
@@ -157,7 +157,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 			IMUOut3Dof,
 			agxSensor::IMUOutput::GYROSCOPE_X_F64,
       agxSensor::IMUOutput::GYROSCOPE_Y_F64,
-      agxSensor::IMUOutput::GYROSCOPE_Z_F64>(GyroOutputID);
+      agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
 	}
 
 	if (Params.bUseMagnetometer)
@@ -166,7 +166,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 			IMUOut3Dof,
 			agxSensor::IMUOutput::MAGNETOMETER_X_F64,
       agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
-      agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(MagnOutputID);
+      agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
 	}
 	// clang-format on
 }
@@ -484,7 +484,8 @@ FVector FIMUBarrier::GetAccelerometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
-	auto OutputAGX = NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(AccelOutputID);
+	auto OutputAGX = NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(
+		IMUBarrier_helpers::AccelerometerID);
 	if (OutputAGX.empty())
 		return Result;
 
@@ -756,7 +757,8 @@ FVector FIMUBarrier::GetGyroscopeData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
-	auto OutputAGX = NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(GyroOutputID);
+	auto OutputAGX =
+		NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::GyroscopeID);
 	if (OutputAGX.empty())
 		return Result;
 
@@ -997,7 +999,8 @@ FVector FIMUBarrier::GetMagnetometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
-	auto OutputAGX = NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(MagnOutputID);
+	auto OutputAGX =
+		NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::MagnetometerID);
 	if (OutputAGX.empty())
 		return Result;
 
