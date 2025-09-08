@@ -146,8 +146,8 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 		NativeRef->Native->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::ACCELEROMETER_X_F64,
-      agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
-      agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
+			agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
+			agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
 	}
 
 	if (Params.bUseGyroscope)
@@ -155,8 +155,8 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 		NativeRef->Native->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::GYROSCOPE_X_F64,
-      agxSensor::IMUOutput::GYROSCOPE_Y_F64,
-      agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
+			agxSensor::IMUOutput::GYROSCOPE_Y_F64,
+			agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
 	}
 
 	if (Params.bUseMagnetometer)
@@ -164,8 +164,8 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 		NativeRef->Native->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::MAGNETOMETER_X_F64,
-      agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
-      agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
+			agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
+			agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
 	}
 	// clang-format on
 }
