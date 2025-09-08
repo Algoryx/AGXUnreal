@@ -45,7 +45,7 @@ public:
 	/**
 	 * Enable or disable this IMU Sensor Component.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX IMU")
+	UPROPERTY(EditAnywhere, Category = "AGX IMU")
 	bool bEnabled {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
@@ -85,7 +85,7 @@ public:
 	 * Applies equally to all axes.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer"))
 	FAGX_RealInterval AccelerometerRange {
 		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
@@ -110,7 +110,7 @@ public:
 	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector AccelerometerCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
@@ -132,7 +132,7 @@ public:
 	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector AccelerometerCrossAxisSensitivityY {0.0, 1.0, 0.0};
 
@@ -154,7 +154,7 @@ public:
 	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector AccelerometerCrossAxisSensitivityZ {0.0, 0.0, 1.0};
 
@@ -182,7 +182,7 @@ public:
 	 * The bias will be active at any measured acceleration.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer"))
 	FVector AccelerometerZeroGBias {0.0};
 
@@ -204,7 +204,7 @@ public:
 	 * The noise RMS value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer"))
 	FVector AccelerometerNoiseRMS {0.0};
 
@@ -227,7 +227,7 @@ public:
 	 * The noise value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Accelerometer",
+		EditAnywhere, Category = "AGX IMU|AGX Accelerometer",
 		Meta = (EditCondition = "bUseAccelerometer"))
 	FVector AccelerometerSpectralNoiseDensity {0.0};
 
@@ -270,8 +270,7 @@ public:
 	 * Applies equally to all axes.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope"))
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope", Meta = (EditCondition = "bUseGyroscope"))
 	FAGX_RealInterval GyroscopeRange {
 		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
 
@@ -295,7 +294,7 @@ public:
 	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope",
 		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector GyroscopeCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
@@ -317,7 +316,7 @@ public:
 	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope",
 		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector GyroscopeCrossAxisSensitivityY {0.0, 1.0, 0.0};
 
@@ -339,7 +338,7 @@ public:
 	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope",
 		Meta = (EditCondition = "bUseGyroscope", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector GyroscopeCrossAxisSensitivityZ {0.0, 0.0, 1.0};
 
@@ -367,8 +366,7 @@ public:
 	 * The bias will be active at any measured angular rate.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope"))
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope", Meta = (EditCondition = "bUseGyroscope"))
 	FVector GyroscopeZeroRateBias {0.0};
 
 	/**
@@ -389,8 +387,7 @@ public:
 	 * The noise RMS value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope"))
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope", Meta = (EditCondition = "bUseGyroscope"))
 	FVector GyroscopeNoiseRMS {0.0};
 
 	/**
@@ -412,8 +409,7 @@ public:
 	 * The noise value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope"))
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope", Meta = (EditCondition = "bUseGyroscope"))
 	FVector GyroscopeSpectralNoiseDensity {0.0};
 
 	/**
@@ -434,8 +430,7 @@ public:
 	 * specified multiplier.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Gyroscope",
-		Meta = (EditCondition = "bUseGyroscope"))
+		EditAnywhere, Category = "AGX IMU|AGX Gyroscope", Meta = (EditCondition = "bUseGyroscope"))
 	FVector GyroscopeLinearAccelerationEffects {0.0};
 
 	/**
@@ -476,7 +471,7 @@ public:
 	 * Applies equally to all axes.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer"))
 	FAGX_RealInterval MagnetometerRange {
 		std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max()};
@@ -501,7 +496,7 @@ public:
 	 * in the X axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector MagnetometerCrossAxisSensitivityX {1.0, 0.0, 0.0};
 
@@ -523,7 +518,7 @@ public:
 	 * in the Y axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector MagnetometerCrossAxisSensitivityY {0.0, 1.0, 0.0};
 
@@ -545,7 +540,7 @@ public:
 	 * in the Z axis effect the other axes. Valid range of each element is [0.0 - 1.0].
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer", ClampMin = "0.0", ClampMax = "1.0"))
 	FVector MagnetometerCrossAxisSensitivityZ {0.0, 0.0, 1.0};
 
@@ -573,7 +568,7 @@ public:
 	 * The bias will be active at any measured magnetic flux.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer"))
 	FVector MagnetometerZeroFluxBias {0.0};
 
@@ -595,7 +590,7 @@ public:
 	 * The noise RMS value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer"))
 	FVector MagnetometerNoiseRMS {0.0};
 
@@ -618,7 +613,7 @@ public:
 	 * The noise value is applied to each axis of the IMU individually.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX IMU|AGX Magnetometer",
+		EditAnywhere, Category = "AGX IMU|AGX Magnetometer",
 		Meta = (EditCondition = "bUseMagnetometer"))
 	FVector MagnetometerSpectralNoiseDensity {0.0};
 
