@@ -199,14 +199,12 @@ public:
 
 	/**
 	 * Manually remove a Lidar Sensor Component from this Sensor Environment.
-	 * Only valid to call during Play.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveLidar(UAGX_LidarSensorComponent* Lidar);
 
 	/**
 	 * Manually remove an IMU Sensor Component from this Sensor Environment.
-	 * Only valid to call during Play.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveIMU(UAGX_IMUSensorComponent* IMU);
