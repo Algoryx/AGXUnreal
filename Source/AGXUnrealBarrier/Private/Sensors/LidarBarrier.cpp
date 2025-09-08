@@ -73,7 +73,7 @@ namespace LidarBarrier_helpers
 			ConvertAngleToAGX(Params.Resolution.X), ConvertAngleToAGX(Params.Resolution.Y)};
 
 		return new agxSensor::Lidar(
-			nullptr,
+			new agx::Frame(),
 			new agxSensor::LidarModelHorizontalSweep(FovAGX, ResolutionAGX, Params.Frequency));
 	}
 
@@ -83,7 +83,7 @@ namespace LidarBarrier_helpers
 		auto BeamSpacingAGX = Convert(Params.BeamSpacing);
 		auto Mode = Convert(Params.Mode);
 		return new agxSensor::Lidar(
-			nullptr, new agxSensor::LidarModelOusterOS0(CountAGX, BeamSpacingAGX, Mode));
+			new agx::Frame(), new agxSensor::LidarModelOusterOS0(CountAGX, BeamSpacingAGX, Mode));
 	}
 
 	agxSensor::Lidar* CreateAGXLidar(const UAGX_OusterOS1Parameters& Params)
@@ -92,7 +92,7 @@ namespace LidarBarrier_helpers
 		auto BeamSpacingAGX = Convert(Params.BeamSpacing);
 		auto Mode = Convert(Params.Mode);
 		return new agxSensor::Lidar(
-			nullptr, new agxSensor::LidarModelOusterOS1(CountAGX, BeamSpacingAGX, Mode));
+			new agx::Frame(), new agxSensor::LidarModelOusterOS1(CountAGX, BeamSpacingAGX, Mode));
 	}
 
 	agxSensor::Lidar* CreateAGXLidar(const UAGX_OusterOS2Parameters& Params)
@@ -101,13 +101,13 @@ namespace LidarBarrier_helpers
 		auto BeamSpacingAGX = Convert(Params.BeamSpacing);
 		auto Mode = Convert(Params.Mode);
 		return new agxSensor::Lidar(
-			nullptr, new agxSensor::LidarModelOusterOS2(CountAGX, BeamSpacingAGX, Mode));
+			new agx::Frame(), new agxSensor::LidarModelOusterOS2(CountAGX, BeamSpacingAGX, Mode));
 	}
 
 	agxSensor::Lidar* CreateAGXLidar(FCustomPatternFetcherBase* PatternFetcher)
 	{
 		return new agxSensor::Lidar(
-			nullptr, new UnrealLidarModel(new FCustomPatternGenerator(PatternFetcher)));
+			new agx::Frame(), new UnrealLidarModel(new FCustomPatternGenerator(PatternFetcher)));
 	}
 }
 
@@ -196,14 +196,13 @@ bool FLidarBarrier::GetEnabled() const
 void FLidarBarrier::SetTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	*NativeRef->Native->getFrame() =
-		*ConvertFrame(Transform.GetLocation(), Transform.GetRotation());
+	NativeRef->Native->getFrame()->setMatrix(Convert(Transform));
 }
 
 FTransform FLidarBarrier::GetTransform() const
 {
 	check(HasNative());
-	return Convert(*NativeRef->Native->getFrame());
+	return Convert(NativeRef->Native->getFrame()->getMatrix());
 }
 
 void FLidarBarrier::SetRange(FAGX_RealInterval Range)
@@ -349,7 +348,8 @@ bool FLidarBarrier::GetEnableDistanceGaussianNoise() const
 	return GetDistanceNoise(*NativeRef->Native) != nullptr;
 }
 
-void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(const FAGX_RayAngleGaussianNoiseSettings& Settings)
+void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(
+	const FAGX_RayAngleGaussianNoiseSettings& Settings)
 {
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
