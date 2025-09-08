@@ -22,15 +22,11 @@ struct AGXUNREAL_API FAGX_IMUSensorReference : public FAGX_ComponentReference
 	UAGX_IMUSensorComponent* GetIMUComponent() const;
 };
 
-#if UE_BUILD_DEBUG
-uint32 GetTypeHash(const FAGX_IMUSensorReference& Thing);
-#else // optimize by inlining in shipping and development builds
 FORCEINLINE uint32 GetTypeHash(const FAGX_IMUSensorReference& Thing)
 {
 	uint32 Hash = FCrc::MemCrc32(&Thing, sizeof(FAGX_IMUSensorReference));
 	return Hash;
 }
-#endif
 
 // Blueprint API
 
