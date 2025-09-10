@@ -74,10 +74,11 @@ public:
 	bool SetPrimaryDirection(const FVector& Direction);
 	bool GetPrimaryDirection(FVector& Direction) const;
 
-	// Functions that deal with oriented friction models. These do nothing / return empty string
-	// if the friction model isn't one of the oriented ones.
+	// Functions that deal with oriented friction models. These do nothing / return empty string or
+	// guid if the friction model isn't one of the oriented ones.
 	bool SetOrientedFrictionModelReferenceFrame(FRigidBodyBarrier* RigidBody);
 	FString GetOrientedFrictionModelReferenceFrameBodyName() const;
+	FGuid GetOrientedFrictionModelReferenceFrameBodyGuid() const;
 
 	void SetAdhesiveForce(double AdhesiveForce) const;
 	void SetAdhesiveOverlap(double AdhesiveOverlap) const;
