@@ -775,10 +775,14 @@ namespace AGX_ContactMaterial_helpers
 		FShapeMaterialBarrier MBarrier1 = Barrier.GetMaterial1();
 		FShapeMaterialBarrier MBarrier2 = Barrier.GetMaterial2();
 
-		OutCm.Material1 = MBarrier1.HasNative()
-			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context) : nullptr;
-		OutCm.Material2 = MBarrier2.HasNative()
-			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context) : nullptr;
+		OutCm.Material1 =
+			MBarrier1.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context)
+				: nullptr;
+		OutCm.Material2 =
+			MBarrier2.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context)
+				: nullptr;
 
 		const FString Name1 = OutCm.Material1 != nullptr ? OutCm.Material1->GetName() : "Default";
 		const FString Name2 = OutCm.Material2 != nullptr ? OutCm.Material2->GetName() : "Default";
@@ -824,8 +828,22 @@ void UAGX_ContactMaterial::CopyFrom(
 	Source.GetPrimaryDirection(PrimaryDirection);
 
 	OrientedFrictionReferenceFrameActor = FName();
-	OrientedFrictionReferenceFrameComponent =
-		FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+
+	OrientedFrictionReferenceFrameComponent = [&]() -> FName
+	{
+		// Use the actual Component Name if possible since it may be different than the Native AGX
+		// Rigid Body name.
+		if (Context != nullptr && Context->RigidBodies != nullptr)
+		{
+			const FGuid OrientedFrictionBodyGuid =
+				Source.GetOrientedFrictionModelReferenceFrameBodyGuid();
+			if (auto Body = Context->RigidBodies->FindRef(OrientedFrictionBodyGuid))
+				return Body->GetFName();
+		}
+
+		// Fallback.
+		return FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+	}();
 
 	COPY_PROPERTY(Restitution);
 	COPY_PROPERTY(YoungsModulus);
