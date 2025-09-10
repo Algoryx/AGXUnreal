@@ -26,7 +26,9 @@
  * Note that to use the IMU Sensor Component, it must be registered with an AGX Sensor Environment
  * Actor.
  */
-UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent))
+UCLASS(
+	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UAGX_IMUSensorComponent : public USceneComponent, public IAGX_NativeOwner
 {
 	GENERATED_BODY()
