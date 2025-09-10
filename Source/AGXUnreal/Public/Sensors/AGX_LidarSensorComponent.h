@@ -32,6 +32,8 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(
 
 /**
  * Lidar Sensor Component, allowing to create point clouds at runtime.
+ * Note that to use the Lidar Sensor Component, it must be registered with an AGX Sensor Environment
+ * Actor.
  */
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
@@ -60,13 +62,18 @@ public:
 	 * Enable or disable this Lidar Sensor Component. If disabled, it will not perform raytracing
 	 * and will thus not produce any output data.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar")
 	bool bEnabled {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
 	void SetEnabled(bool InEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
+	bool IsEnabled() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Lidar",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	// clang-format off
@@ -75,7 +82,7 @@ public:
 	 * Objects outside this range will not be detected by this Lidar Sensor.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",		
+		EditAnywhere, Category = "AGX Lidar",		
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))	
 	FAGX_RealInterval Range {0.0, 10000.0};
 	// clang-format on
@@ -94,7 +101,7 @@ public:
 	 * This property affects the calculated intensity.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	FAGX_Real BeamDivergence {0.001 * 180.0 / PI};
 	// clang-format on
@@ -111,7 +118,7 @@ public:
 	 * This property affects the calculated intensity.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	FAGX_Real BeamExitRadius {0.5};
 	// clang-format on
@@ -136,7 +143,7 @@ public:
 	 * It should be noted that the time and memory complexity of the raytrace will grow
 	 * exponentially with the maximum number of raytrace steps.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar", Meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar", Meta = (ClampMin = "1"))
 	int32 RaytraceDepth {1};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
@@ -148,7 +155,7 @@ public:
 	/**
 	 * Enables or disables removal of point misses, i.e. makes the output dense if set to true.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar")
 	bool bEnableRemovePointsMisses {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
@@ -163,7 +170,7 @@ public:
 	 * measurements of Position.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	bool bEnableDistanceGaussianNoise {false};
 	// clang-format on
@@ -180,7 +187,7 @@ public:
 	 * s = stdDev + d * stdDevSlope where d is the distance in centimeters.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "bEnableDistanceGaussianNoise"))
 	FAGX_DistanceGaussianNoiseSettings DistanceNoiseSettings;
 	// clang-format on
@@ -197,7 +204,7 @@ public:
 	 * ray.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	bool bEnableRayAngleGaussianNoise {false};
 	// clang-format on
@@ -213,7 +220,7 @@ public:
 	 * Determines the lidar ray noise characteristics.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "bEnableRayAngleGaussianNoise"))	
 	FAGX_RayAngleGaussianNoiseSettings RayAngleNoiseSettings;
 	// clang-format on
