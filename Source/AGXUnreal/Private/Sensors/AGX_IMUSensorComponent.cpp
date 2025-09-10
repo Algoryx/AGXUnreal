@@ -27,7 +27,7 @@ void UAGX_IMUSensorComponent::SetEnabled(bool InEnabled)
 		NativeBarrier.SetEnabled(InEnabled);
 }
 
-bool UAGX_IMUSensorComponent::GetEnabled() const
+bool UAGX_IMUSensorComponent::IsEnabled() const
 {
 	if (HasNative())
 		return NativeBarrier.GetEnabled();
@@ -52,10 +52,8 @@ bool UAGX_IMUSensorComponent::CanEditChange(const FProperty* InProperty) const
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseAccelerometer),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseGyroscope),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bUseMagnetometer),
-			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
+			AGX_MEMBER_NAME(bUseAccelerometer), AGX_MEMBER_NAME(bUseGyroscope),
+			AGX_MEMBER_NAME(bUseMagnetometer), AGX_MEMBER_NAME(RigidBody)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;
@@ -87,25 +85,28 @@ void UAGX_IMUSensorComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_IMUSensorComponent, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
-
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerRange);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivity);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivityX);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivityY);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerCrossAxisSensitivityZ);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerZeroGBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerNoiseRMS);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(AccelerometerSpectralNoiseDensity);
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeRange);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeCrossAxisSensitivity);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeCrossAxisSensitivityX);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeCrossAxisSensitivityY);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeCrossAxisSensitivityZ);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeZeroRateBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeNoiseRMS);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeSpectralNoiseDensity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(GyroscopeLinearAccelerationEffects);
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerRange);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerCrossAxisSensitivity);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerCrossAxisSensitivityX);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerCrossAxisSensitivityY);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerCrossAxisSensitivityZ);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerZeroFluxBias);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerNoiseRMS);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MagnetometerSpectralNoiseDensity);
@@ -163,7 +164,9 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	if (bUseAccelerometer)
 	{
 		NativeBarrier.SetAccelerometerRange(AccelerometerRange);
-		NativeBarrier.SetAccelerometerCrossAxisSensitivity(AccelerometerCrossAxisSensitivity);
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityX(AccelerometerCrossAxisSensitivityX);
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityY(AccelerometerCrossAxisSensitivityY);
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityZ(AccelerometerCrossAxisSensitivityZ);
 		NativeBarrier.SetAccelerometerZeroGBias(AccelerometerZeroGBias);
 		NativeBarrier.SetAccelerometerNoiseRMS(AccelerometerNoiseRMS);
 		NativeBarrier.SetAccelerometerSpectralNoiseDensity(AccelerometerSpectralNoiseDensity);
@@ -172,7 +175,9 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	if (bUseGyroscope)
 	{
 		NativeBarrier.SetGyroscopeRange(GyroscopeRange);
-		NativeBarrier.SetGyroscopeCrossAxisSensitivity(GyroscopeCrossAxisSensitivity);
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityX(GyroscopeCrossAxisSensitivityX);
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityY(GyroscopeCrossAxisSensitivityY);
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityZ(GyroscopeCrossAxisSensitivityZ);
 		NativeBarrier.SetGyroscopeZeroRateBias(GyroscopeZeroRateBias);
 		NativeBarrier.SetGyroscopeNoiseRMS(GyroscopeNoiseRMS);
 		NativeBarrier.SetGyroscopeSpectralNoiseDensity(GyroscopeSpectralNoiseDensity);
@@ -181,7 +186,9 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	if (bUseMagnetometer)
 	{
 		NativeBarrier.SetMagnetometerRange(MagnetometerRange);
-		NativeBarrier.SetMagnetometerCrossAxisSensitivity(MagnetometerCrossAxisSensitivity);
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityX(MagnetometerCrossAxisSensitivityX);
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityY(MagnetometerCrossAxisSensitivityY);
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityZ(MagnetometerCrossAxisSensitivityZ);
 		NativeBarrier.SetMagnetometerZeroFluxBias(MagnetometerZeroFluxBias);
 		NativeBarrier.SetMagnetometerNoiseRMS(MagnetometerNoiseRMS);
 		NativeBarrier.SetMagnetometerSpectralNoiseDensity(MagnetometerSpectralNoiseDensity);
@@ -231,12 +238,24 @@ void UAGX_IMUSensorComponent::CreateNative()
 		UpdateNativeProperties();
 }
 
+void UAGX_IMUSensorComponent::SetAccelerometerRange(double Min, double Max)
+{
+	SetAccelerometerRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetAccelerometerRange(FAGX_RealInterval Range)
 {
 	AccelerometerRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetAccelerometerRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetAccelerometerRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetAccelerometerRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetAccelerometerRange() const
@@ -247,19 +266,56 @@ FAGX_RealInterval UAGX_IMUSensorComponent::GetAccelerometerRange() const
 	return AccelerometerRange;
 }
 
-void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivity(double Sensitivity)
+void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivityX(FVector X)
 {
-	AccelerometerCrossAxisSensitivity = Sensitivity;
-
+	AccelerometerCrossAxisSensitivityX = X;
 	if (HasNative())
-		NativeBarrier.SetAccelerometerCrossAxisSensitivity(Sensitivity);
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityX(X);
 }
 
-double UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivity() const
+FVector UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivityX()
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return AccelerometerCrossAxisSensitivity;
+	if (HasNative())
+		return NativeBarrier.GetAccelerometerCrossAxisSensitivityX();
+
+	return AccelerometerCrossAxisSensitivityX;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivityY(FVector Y)
+{
+	AccelerometerCrossAxisSensitivityY = Y;
+	if (HasNative())
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityY(Y);
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivityY()
+{
+	if (HasNative())
+		return NativeBarrier.GetAccelerometerCrossAxisSensitivityY();
+
+	return AccelerometerCrossAxisSensitivityY;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivityZ(FVector Z)
+{
+	AccelerometerCrossAxisSensitivityZ = Z;
+	if (HasNative())
+		NativeBarrier.SetAccelerometerCrossAxisSensitivityZ(Z);
+}
+
+FVector UAGX_IMUSensorComponent::GetAccelerometerCrossAxisSensitivityZ()
+{
+	if (HasNative())
+		return NativeBarrier.GetAccelerometerCrossAxisSensitivityZ();
+
+	return AccelerometerCrossAxisSensitivityZ;
+}
+
+void UAGX_IMUSensorComponent::SetAccelerometerCrossAxisSensitivity(FVector X, FVector Y, FVector Z)
+{
+	SetAccelerometerCrossAxisSensitivityX(X);
+	SetAccelerometerCrossAxisSensitivityY(Y);
+	SetAccelerometerCrossAxisSensitivityZ(Z);
 }
 
 void UAGX_IMUSensorComponent::SetAccelerometerZeroGBias(FVector Bias)
@@ -310,12 +366,24 @@ FVector UAGX_IMUSensorComponent::GetAccelerometerSpectralNoiseDensity() const
 	return AccelerometerSpectralNoiseDensity;
 }
 
+void UAGX_IMUSensorComponent::SetGyroscopeRange(double Min, double Max)
+{
+	SetGyroscopeRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetGyroscopeRange(FAGX_RealInterval Range)
 {
 	GyroscopeRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetGyroscopeRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetGyroscopeRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetGyroscopeRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetGyroscopeRange() const
@@ -326,19 +394,56 @@ FAGX_RealInterval UAGX_IMUSensorComponent::GetGyroscopeRange() const
 	return GyroscopeRange;
 }
 
-void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivity(double Sensitivity)
+void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivityX(FVector X)
 {
-	GyroscopeCrossAxisSensitivity = Sensitivity;
-
+	GyroscopeCrossAxisSensitivityX = X;
 	if (HasNative())
-		NativeBarrier.SetGyroscopeCrossAxisSensitivity(Sensitivity);
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityX(X);
 }
 
-double UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivity() const
+FVector UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivityX()
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return GyroscopeCrossAxisSensitivity;
+	if (HasNative())
+		return NativeBarrier.GetGyroscopeCrossAxisSensitivityX();
+
+	return GyroscopeCrossAxisSensitivityX;
+}
+
+void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivityY(FVector Y)
+{
+	GyroscopeCrossAxisSensitivityY = Y;
+	if (HasNative())
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityY(Y);
+}
+
+FVector UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivityY()
+{
+	if (HasNative())
+		return NativeBarrier.GetGyroscopeCrossAxisSensitivityY();
+
+	return GyroscopeCrossAxisSensitivityY;
+}
+
+void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivityZ(FVector Z)
+{
+	GyroscopeCrossAxisSensitivityZ = Z;
+	if (HasNative())
+		NativeBarrier.SetGyroscopeCrossAxisSensitivityZ(Z);
+}
+
+FVector UAGX_IMUSensorComponent::GetGyroscopeCrossAxisSensitivityZ()
+{
+	if (HasNative())
+		return NativeBarrier.GetGyroscopeCrossAxisSensitivityZ();
+
+	return GyroscopeCrossAxisSensitivityZ;
+}
+
+void UAGX_IMUSensorComponent::SetGyroscopeCrossAxisSensitivity(FVector X, FVector Y, FVector Z)
+{
+	SetGyroscopeCrossAxisSensitivityX(X);
+	SetGyroscopeCrossAxisSensitivityY(Y);
+	SetGyroscopeCrossAxisSensitivityZ(Z);
 }
 
 void UAGX_IMUSensorComponent::SetGyroscopeZeroRateBias(FVector Bias)
@@ -404,12 +509,24 @@ FVector UAGX_IMUSensorComponent::GetGyroscopeLinearAccelerationEffects() const
 	return GyroscopeLinearAccelerationEffects;
 }
 
+void UAGX_IMUSensorComponent::SetMagnetometerRange(double Min, double Max)
+{
+	SetMagnetometerRange({Min, Max});
+}
+
 void UAGX_IMUSensorComponent::SetMagnetometerRange(FAGX_RealInterval Range)
 {
 	MagnetometerRange = Range;
 
 	if (HasNative())
 		NativeBarrier.SetMagnetometerRange(Range);
+}
+
+void UAGX_IMUSensorComponent::GetMagnetometerRange(double& Min, double& Max) const
+{
+	FAGX_RealInterval Range = GetMagnetometerRange();
+	Min = Range.Min;
+	Max = Range.Max;
 }
 
 FAGX_RealInterval UAGX_IMUSensorComponent::GetMagnetometerRange() const
@@ -420,19 +537,56 @@ FAGX_RealInterval UAGX_IMUSensorComponent::GetMagnetometerRange() const
 	return MagnetometerRange;
 }
 
-void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivity(double Sensitivity)
+void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivityX(FVector X)
 {
-	MagnetometerCrossAxisSensitivity = Sensitivity;
-
+	MagnetometerCrossAxisSensitivityX = X;
 	if (HasNative())
-		NativeBarrier.SetMagnetometerCrossAxisSensitivity(Sensitivity);
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityX(X);
 }
 
-double UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivity() const
+FVector UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivityX()
 {
-	// No clean AGX getter exists, but this value should always be in sync since we are the only one
-	// that sets it.
-	return MagnetometerCrossAxisSensitivity;
+	if (HasNative())
+		return NativeBarrier.GetMagnetometerCrossAxisSensitivityX();
+
+	return MagnetometerCrossAxisSensitivityX;
+}
+
+void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivityY(FVector Y)
+{
+	MagnetometerCrossAxisSensitivityY = Y;
+	if (HasNative())
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityY(Y);
+}
+
+FVector UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivityY()
+{
+	if (HasNative())
+		return NativeBarrier.GetMagnetometerCrossAxisSensitivityY();
+
+	return MagnetometerCrossAxisSensitivityY;
+}
+
+void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivityZ(FVector Z)
+{
+	MagnetometerCrossAxisSensitivityZ = Z;
+	if (HasNative())
+		NativeBarrier.SetMagnetometerCrossAxisSensitivityZ(Z);
+}
+
+FVector UAGX_IMUSensorComponent::GetMagnetometerCrossAxisSensitivityZ()
+{
+	if (HasNative())
+		return NativeBarrier.GetMagnetometerCrossAxisSensitivityZ();
+
+	return MagnetometerCrossAxisSensitivityZ;
+}
+
+void UAGX_IMUSensorComponent::SetMagnetometerCrossAxisSensitivity(FVector X, FVector Y, FVector Z)
+{
+	SetMagnetometerCrossAxisSensitivityX(X);
+	SetMagnetometerCrossAxisSensitivityY(Y);
+	SetMagnetometerCrossAxisSensitivityZ(Z);
 }
 
 void UAGX_IMUSensorComponent::SetMagnetometerZeroFluxBias(FVector Bias)
@@ -656,6 +810,8 @@ void UAGX_IMUSensorComponent::SetNativeAddress(uint64 NativeAddress)
 void UAGX_IMUSensorComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	// Native is not created here, instead the Sensor Environment will call GetOrCreateNative on any
+	// registered IMU.
 }
 
 void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)

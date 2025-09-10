@@ -511,6 +511,8 @@ bool FContactMaterialBarrier::GetPrimaryDirection(FVector& Direction) const
 	{
 		return false;
 	}
+
+	Direction = ConvertVector(DirAGX);
 	return true;
 }
 

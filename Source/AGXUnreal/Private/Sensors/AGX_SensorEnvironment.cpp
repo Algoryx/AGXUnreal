@@ -229,17 +229,20 @@ bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
 	if (Lidar == nullptr)
 		return false;
 
-	if (!HasNative())
+	for (const auto& L : LidarSensors)
 	{
-		InitializeNative();
-		if (!HasNative())
+		if (L.GetLidarComponent() == Lidar)
 			return false;
 	}
 
 	FAGX_LidarSensorReference LidarRef;
-	LidarRef.OwningActor = Lidar->GetOwner();
-	LidarRef.Name = FName(*Lidar->GetName());
-	return RegisterLidar(LidarRef);
+	LidarRef.SetComponent(Lidar);
+	LidarSensors.Add(LidarRef);
+
+	if (HasNative())
+		RegisterLidar(LidarRef);
+
+	return true;
 }
 
 bool AAGX_SensorEnvironment::AddIMU(UAGX_IMUSensorComponent* IMU)
@@ -247,17 +250,20 @@ bool AAGX_SensorEnvironment::AddIMU(UAGX_IMUSensorComponent* IMU)
 	if (IMU == nullptr)
 		return false;
 
-	if (!HasNative())
+	for (const auto& L : IMUSensors)
 	{
-		InitializeNative();
-		if (!HasNative())
+		if (L.GetIMUComponent() == IMU)
 			return false;
 	}
 
 	FAGX_IMUSensorReference IMURef;
-	IMURef.OwningActor = IMU->GetOwner();
-	IMURef.Name = FName(*IMU->GetName());
-	return RegisterIMU(IMURef);
+	IMURef.SetComponent(IMU);
+	IMUSensors.Add(IMURef);
+
+	if (HasNative())
+		RegisterIMU(IMURef);
+
+	return true;
 }
 
 bool AAGX_SensorEnvironment::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
@@ -575,40 +581,69 @@ bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
 
 bool AAGX_SensorEnvironment::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 {
-	if (!HasNative() || Lidar == nullptr || !Lidar->HasNative())
-		return false;
+	bool DidRemove = false;
 
-	const bool bNativeRemoved = NativeBarrier.Remove(*Lidar->GetNative());
+	if (Lidar == nullptr)
+		return DidRemove;
+
+	for (int32 i = LidarSensors.Num() - 1; i >= 0; --i)
+	{
+		if (LidarSensors[i].GetLidarComponent() == Lidar)
+		{
+			LidarSensors.RemoveAt(i);
+			DidRemove = true;
+		}
+	}
+
+	if (!HasNative() || !Lidar->HasNative())
+		return DidRemove;
+
+	DidRemove |= NativeBarrier.Remove(*Lidar->GetNative());
 
 	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
 	{
 		if (It.Key().GetLidarComponent() == Lidar)
 		{
 			It.RemoveCurrent();
+			DidRemove = true;
 			break;
 		}
 	}
 
-	return bNativeRemoved;
+	return DidRemove;
 }
 
 bool AAGX_SensorEnvironment::RemoveIMU(UAGX_IMUSensorComponent* IMU)
 {
-	if (!HasNative() || IMU == nullptr || !IMU->HasNative())
-		return false;
+	bool DidRemove = false;
 
-	const bool bNativeRemoved = NativeBarrier.Remove(*IMU->GetNative());
+	if (IMU == nullptr)
+		return DidRemove;
 
+	for (int32 i = IMUSensors.Num() - 1; i >= 0; --i)
+	{
+		if (IMUSensors[i].GetIMUComponent() == IMU)
+		{
+			IMUSensors.RemoveAt(i);
+			DidRemove = true;
+		}
+	}
+
+	if (!HasNative() || !IMU->HasNative())
+		return DidRemove;
+
+	DidRemove |= NativeBarrier.Remove(*IMU->GetNative());
 	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
 	{
 		if (It->GetIMUComponent() == IMU)
 		{
 			It.RemoveCurrent();
+			DidRemove = true;
 			break;
 		}
 	}
 
-	return bNativeRemoved;
+	return DidRemove;
 }
 
 bool AAGX_SensorEnvironment::RemoveMesh(UStaticMeshComponent* Mesh)
@@ -701,6 +736,7 @@ bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(ThisClass, LidarSensors),
+			GET_MEMBER_NAME_CHECKED(ThisClass, IMUSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bAutoAddObjects),
 			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial)};
 

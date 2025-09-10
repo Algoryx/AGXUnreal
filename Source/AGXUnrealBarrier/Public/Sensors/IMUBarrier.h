@@ -4,6 +4,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Misc/Optional.h"
 
 // Standard library includes.
 #include <memory>
@@ -25,8 +26,6 @@ class AGXUNREALBARRIER_API FIMUBarrier
 {
 public:
 	FIMUBarrier();
-	FIMUBarrier(std::unique_ptr<FIMURef> Native);
-	FIMUBarrier(FIMUBarrier&& Other);
 	~FIMUBarrier();
 
 	bool HasNative() const;
@@ -40,7 +39,10 @@ public:
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
 
+	/// Set the transform in world coordinate system.
 	void SetTransform(const FTransform& Transform);
+
+	/// Get the transform in world coordinate system.
 	FTransform GetTransform() const;
 
 	void SetPosition(FVector Position);
@@ -56,7 +58,14 @@ public:
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetAccelerometerRange() const;
 
-	void SetAccelerometerCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
+	void SetAccelerometerCrossAxisSensitivityX(FVector X);
+	FVector GetAccelerometerCrossAxisSensitivityX() const;
+
+	void SetAccelerometerCrossAxisSensitivityY(FVector Y);
+	FVector GetAccelerometerCrossAxisSensitivityY() const;
+
+	void SetAccelerometerCrossAxisSensitivityZ(FVector Z);
+	FVector GetAccelerometerCrossAxisSensitivityZ() const;
 
 	void SetAccelerometerZeroGBias(FVector Bias);
 	FVector GetAccelerometerZeroGBias() const;
@@ -81,7 +90,14 @@ public:
 	void SetGyroscopeRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetGyroscopeRange() const;
 
-	void SetGyroscopeCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
+	void SetGyroscopeCrossAxisSensitivityX(FVector X);
+	FVector GetGyroscopeCrossAxisSensitivityX() const;
+
+	void SetGyroscopeCrossAxisSensitivityY(FVector Y);
+	FVector GetGyroscopeCrossAxisSensitivityY() const;
+
+	void SetGyroscopeCrossAxisSensitivityZ(FVector Z);
+	FVector GetGyroscopeCrossAxisSensitivityZ() const;
 
 	void SetGyroscopeZeroRateBias(FVector Bias);
 	FVector GetGyroscopeZeroRateBias() const;
@@ -107,7 +123,14 @@ public:
 	void SetMagnetometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetMagnetometerRange() const;
 
-	void SetMagnetometerCrossAxisSensitivity(double Sensitivity); // No clean AGX getter exists.
+	void SetMagnetometerCrossAxisSensitivityX(FVector X);
+	FVector GetMagnetometerCrossAxisSensitivityX() const;
+
+	void SetMagnetometerCrossAxisSensitivityY(FVector Y);
+	FVector GetMagnetometerCrossAxisSensitivityY() const;
+
+	void SetMagnetometerCrossAxisSensitivityZ(FVector Z);
+	FVector GetMagnetometerCrossAxisSensitivityZ() const;
 
 	void SetMagnetometerZeroFluxBias(FVector Bias);
 	FVector GetMagnetometerZeroFluxBias() const;
@@ -143,9 +166,5 @@ public:
 	void DecrementRefCount() const;
 
 private:
-	FIMUBarrier(const FIMUBarrier&) = delete;
-	void operator=(const FIMUBarrier&) = delete;
-
-private:
-	std::unique_ptr<FIMURef> NativeRef;
+	std::shared_ptr<FIMURef> NativeRef;
 };
