@@ -163,7 +163,10 @@ namespace TrimshShapeComponent_helpers
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*StaticMesh, Context.SessionGuid);
 
 		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			&Owner, FString::Printf(TEXT("CollisionMesh_%s"), *Barrier.GetGuid().ToString()),
+			&Owner,
+			FString::Printf(
+				TEXT("%s%s"), *UAGX_TrimeshShapeComponent::GetCollisionMeshComponentNamePrefix(),
+				*Barrier.GetGuid().ToString()),
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
@@ -233,6 +236,11 @@ void UAGX_TrimeshShapeComponent::CopyFrom(
 		RenderMeshCom->AttachToComponent(MeshCom, AttachmentRule);
 
 	MeshSourceLocation = EAGX_StaticMeshSourceLocation::TSL_CHILD_STATIC_MESH_COMPONENT;
+}
+
+FString UAGX_TrimeshShapeComponent::GetCollisionMeshComponentNamePrefix()
+{
+	return FString("CollisionMesh_");
 }
 
 void UAGX_TrimeshShapeComponent::CreateVisualMesh(FAGX_SimpleMeshData& /*OutMeshData*/)

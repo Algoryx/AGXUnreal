@@ -217,7 +217,8 @@ namespace AGX_Importer_helpers
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Original OpenPLX Source File must NOT reside in '%s'. Do not store your original "
+					TEXT("Original OpenPLX Source File must NOT reside in '%s'. Do not store your "
+						 "original "
 						 "OpenPLX models in this directory."),
 					*FOpenPLXUtilities::GetModelsDirectory());
 				return false;
@@ -244,7 +245,25 @@ namespace AGX_Importer_helpers
 		for (const auto& [Guid, Shape] : *Context.Shapes)
 		{
 			if (Shape != nullptr)
+			{
 				Shape->SetVisibility(false, /*bPropagateToChildren*/ false);
+				if (auto Trimesh = Cast<UAGX_TrimeshShapeComponent>(Shape))
+				{
+					// We also must update the visibility of any Collision Static Mesh Component
+					// owned by a Trimesh. The Render Static Mesh should not be touched.
+					auto StaticMeshComps =
+						FAGX_ObjectUtilities::GetChildrenOfType<UStaticMeshComponent>(
+							*Trimesh, /*recursive*/ false);
+					for (auto SM : StaticMeshComps)
+					{
+						if (SM->GetName().StartsWith(
+							UAGX_TrimeshShapeComponent::GetCollisionMeshComponentNamePrefix()))
+						{
+							SM->SetVisibility(false, /*bPropagateToChildren*/ false);
+						}
+					}
+				}
+			}
 		}
 	}
 }
