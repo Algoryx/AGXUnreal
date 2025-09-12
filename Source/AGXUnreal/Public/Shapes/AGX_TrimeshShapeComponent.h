@@ -80,6 +80,8 @@ public:
 	 */
 	virtual void CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportContext* Context) override;
 
+	static FString GetCollisionMeshComponentNamePrefix();
+
 #if WITH_EDITOR
 	// ~Begin UObject interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
