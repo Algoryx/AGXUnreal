@@ -219,8 +219,7 @@ namespace AGX_Importer_helpers
 				UE_LOG(
 					LogAGX, Error,
 					TEXT("Original OpenPLX Source File must NOT reside in '%s'. Do not store your "
-						 "original "
-						 "OpenPLX models in this directory."),
+						 "original OpenPLX models in this directory."),
 					*FOpenPLXUtilities::GetModelsDirectory());
 				return false;
 			}
