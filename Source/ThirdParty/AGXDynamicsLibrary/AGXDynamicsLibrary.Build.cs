@@ -541,7 +541,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			// the file size as well.
 			if (!File.Exists(TempZipPath) || new FileInfo(TempZipPath).Length < 1e6)
 			{
-				Console.WriteLine($"Could not find zip file gilven URL: {TempZipPath}");
+				Console.WriteLine($"Could not find zip file given URL: {Url}");
 				return false;
 			}
 
