@@ -20,6 +20,7 @@ class UAGX_TrackInternalMergeProperties;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 class UStaticMesh;
+struct FAGX_ImportContext;
 
 /**
  * Object holding track node transforms and sizes generated before the actual simulation
@@ -55,25 +56,25 @@ public:
 	/**
 	 * Whether the AGX Dynamics Tracks should be created or not. Cannot be changed while playing.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	bool bEnabled = true;
 
 	/**
 	 * Number of nodes in the track.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	int NumberOfNodes = 20;
 
 	/**
 	 * Width of the track nodes [cm].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	float Width = 50.0f;
 
 	/**
 	 * Thickness of the track nodes [cm].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	float Thickness = 15.0f;
 
 	/**
@@ -83,7 +84,7 @@ public:
 	 * Since contacts and other factors are included it's not possible to know the exact
 	 * tension after the system has been created.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	float InitialDistanceTension = 0.01f;
 
 	/**
@@ -92,67 +93,72 @@ public:
 	 * It is recommended to also create a Contact Material between the selected Shape Material and
 	 * the Shape Materials set on the Shapes that the Track will drive on.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	UAGX_ShapeMaterial* ShapeMaterial;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 
 	/**
 	 * Additional properties defining the setup and behavior of the Track.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	UAGX_TrackProperties* TrackProperties;
 
 	/**
 	 * Properties controlling how the Rigid Bodies created for the Track shoes may be merged with
 	 * each other.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	UAGX_TrackInternalMergeProperties* InternalMergeProperties;
 
 	/**
 	 * List of collision groups that the track nodes are part of.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	TArray<FName> CollisionGroups;
 
 	/**
 	 * The mass of the each track node Rigid Body [kg].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track", Meta = (EditCondition = "!bAutoGenerateMass"))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
+		Meta = (EditCondition = "!bAutoGenerateMass"))
 	float NodeMass = 1.0f;
 
 	/**
 	 * Whether the track node mass should be computed automatically from the collision shape
 	 * volume and material density.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	bool bAutoGenerateMass = true;
 
 	/**
 	 * Center of mass offset [cm].
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Track",
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
 		Meta = (EditCondition = "!bAutoGenerateCenterOfMassOffset"))
 	FVector NodeCenterOfMassOffset = FVector::ZeroVector;
 
 	/**
 	 * Whether the center of mass offset should be computed automatically.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	bool bAutoGenerateCenterOfMassOffset = true;
 
 	/**
 	 * The three-component diagonal of the inertia tensor [kgm^2].
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Track",
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
 		Meta = (EditCondition = "!bAutoGeneratePrincipalInertia"))
 	FVector NodePrincipalInertia = FVector::OneVector;
 
 	/**
 	 * Whether the principal inertia should be computed automatically.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	bool bAutoGeneratePrincipalInertia = true;
 
 	/**
@@ -162,7 +168,7 @@ public:
 	 * At BeginPlay these nodes are used to initialize the track and after that the wheel objects
 	 * aren't used anymore.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheels")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheels")
 	TArray<FAGX_TrackWheel> Wheels;
 
 	/**
@@ -183,14 +189,14 @@ public:
 	 *  Rotation Axis:         Green Arrow
 	 *
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Debug Visual")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Debug Visual")
 	bool bShowEditorDebugGraphics = true;
 
 	/**
 	 * Whether the debug graphics should colorize the collision boxes based on merged states
 	 * (black means no merge).
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Debug Visual")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Debug Visual")
 	bool bColorizeMergedBodies = false;
 
 	/**
@@ -200,14 +206,14 @@ public:
 	 * For manual update, click the 'Update Preview' from the Track Component's Details Panel,
 	 * or the 'Update Visuals' button from the Track Renderer's Detail Panel.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Debug Visual")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Debug Visual")
 	bool bAutoUpdateTrackPreview = true;
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/**
@@ -221,13 +227,7 @@ public:
 		return TrackPreviewNeedsUpdateEvent;
 	}
 
-	/*
-	 * Copy configuration from the given Barrier.
-	 * Only the basic properties, such as number of nodes and Width, are copied. More complicated
-	 * properties, such as Material, Wheels etc, must be handled elsewhere. During AGX
-	 * Dynamics archive import those are handled by Sim Objects Importer Helper.
-	 */
-	void CopyFrom(const FTrackBarrier& Barrier);
+	void CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportContext* Context);
 
 	/**
 	 * Get the number of nodes in this track.
@@ -441,9 +441,6 @@ private:
 	// Create the native AGX Dynamics object.
 	void CreateNative();
 
-	// Set ShapeMaterial assignment on native. Create native ShapeMaterial if not yet created.
-	void UpdateNativeMaterial();
-
 	// Set TrackProperties assignment on native. Create native TrackProperties if not yet created.
 	void WriteTrackPropertiesToNative();
 
@@ -469,6 +466,7 @@ private:
 	bool ComputeVisualScaleAndOffset(
 		FVector& OutVisualScale, FVector& OutVisualOffset, const FVector& PhysicsNodeSize) const;
 	void WriteRenderMaterialsToVisualMesh();
+	bool UpdateNativeShapeMaterial();
 
 #if WITH_EDITOR
 	void WriteRenderMaterialsToVisualMeshWithCheck();

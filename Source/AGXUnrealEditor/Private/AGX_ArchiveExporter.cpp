@@ -11,6 +11,7 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 
+
 bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 {
 	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
@@ -36,7 +37,7 @@ bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(
-				TEXT("Unable to export .agx to: '%s'. The Console Log may contain more "
+				TEXT("Unable to export .agx to: '%s'. The Output Log may contain more "
 					 "information."),
 				*ArchivePath),
 			SNotificationItem::CS_Fail);

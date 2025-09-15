@@ -14,6 +14,7 @@ namespace agx
 	class DistanceJoint;
 	class Hinge;
 	class LockJoint;
+	class SingleControllerConstraint1DOF;
 	class MassProperties;
 	class Material;
 	class Prismatic;
@@ -71,6 +72,7 @@ class FCylindricalJointBarrier;
 class FDistanceJointBarrier;
 class FHingeBarrier;
 class FLockJointBarrier;
+class FSingleControllerConstraint1DOFBarrier;
 class FMassPropertiesBarrier;
 class FPrismaticBarrier;
 class FRigidBodyBarrier;
@@ -117,6 +119,8 @@ public:
 	static agx::DistanceJoint* GetFrom(const FDistanceJointBarrier* Barrier);
 	static agx::Hinge* GetFrom(const FHingeBarrier* Barrier);
 	static agx::LockJoint* GetFrom(const FLockJointBarrier* Barrier);
+	static agx::SingleControllerConstraint1DOF* GetFrom(
+		const FSingleControllerConstraint1DOFBarrier* Barrier);
 	static agx::MassProperties* GetFrom(const FMassPropertiesBarrier* Barrier);
 	static agx::Material* GetFrom(const FShapeMaterialBarrier* Barrier);
 	static agx::Prismatic* GetFrom(const FPrismaticBarrier* Barrier);

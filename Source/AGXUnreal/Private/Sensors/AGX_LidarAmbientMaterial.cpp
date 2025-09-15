@@ -12,6 +12,15 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
+bool UAGX_LidarAmbientMaterial::operator==(const UAGX_LidarAmbientMaterial& Other) const
+{
+	return RefractiveIndex == Other.RefractiveIndex &&
+		   AttenuationCoefficient == Other.AttenuationCoefficient &&
+		   ReturnProbabilityScaling == Other.ReturnProbabilityScaling &&
+		   ReturnGammaDistributionShapeParameter == Other.ReturnGammaDistributionShapeParameter &&
+		   ReturnGammaDistributionScaleParameter == Other.ReturnGammaDistributionScaleParameter;
+}
+
 void UAGX_LidarAmbientMaterial::SetRefractiveIndex(float InRefractiveIndex)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(RefractiveIndex, InRefractiveIndex, SetRefractiveIndex);
@@ -219,8 +228,12 @@ void UAGX_LidarAmbientMaterial::UpdateNativeProperties()
 
 bool UAGX_LidarAmbientMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 	AGX_CHECK(bIsInstance != IsAsset());
 	return bIsInstance;

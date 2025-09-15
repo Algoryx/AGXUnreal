@@ -6,8 +6,14 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AMOR/AGX_WireMergeSplitThresholds.h"
+#include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Wire/AGX_WireComponent.h"
+
+// Unreal Engine includes.
+#include "UObject/Package.h"
 
 void FAGX_WireMergeSplitProperties::OnBeginPlay(UAGX_WireComponent& Owner)
 {
@@ -137,4 +143,35 @@ void FAGX_WireMergeSplitProperties::UpdateNativeThresholds()
 UAGX_MergeSplitThresholdsBase* FAGX_WireMergeSplitProperties::GetThresholds()
 {
 	return Thresholds;
+}
+
+void FAGX_WireMergeSplitProperties::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || Context->MSThresholds == nullptr)
+		return; // We are done.
+
+	// Get or create Merge Split Threashold from Context.
+	FWireMergeSplitThresholdsBarrier ThresholdsBarrier =
+		Barrier.GetWireMergeSplitThresholds();
+	if (!ThresholdsBarrier.HasNative())
+		return;
+
+	const auto MSTGuid = ThresholdsBarrier.GetGuid();
+	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	{
+		Thresholds = Cast<UAGX_WireMergeSplitThresholds>(MST);
+		return; // We are done.
+	}
+
+	Thresholds = NewObject<UAGX_WireMergeSplitThresholds>(
+		Context->Outer, NAME_None, RF_Public | RF_Standalone);
+	FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Thresholds, Context->SessionGuid);
+	const FString THName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_WMST_%s"), *MSTGuid.ToString()), nullptr);
+	Thresholds->Rename(*THName);
+	Thresholds->CopyFrom(ThresholdsBarrier);
+	Context->MSThresholds->Add(MSTGuid, Thresholds);
 }

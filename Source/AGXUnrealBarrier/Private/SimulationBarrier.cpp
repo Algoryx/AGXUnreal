@@ -12,6 +12,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/ShapeBarrier.h"
+#include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Tires/TireBarrier.h"
@@ -34,6 +35,18 @@
 FSimulationBarrier::FSimulationBarrier()
 	: NativeRef {new FSimulationRef}
 {
+}
+
+FSimulationBarrier::FSimulationBarrier(std::unique_ptr<FSimulationRef> Native)
+	: NativeRef(std::move(Native))
+{
+	check(NativeRef);
+}
+
+FSimulationBarrier::FSimulationBarrier(FSimulationBarrier&& Other)
+	: NativeRef {std::move(Other.NativeRef)}
+{
+	Other.NativeRef.reset(new FSimulationRef);
 }
 
 FSimulationBarrier::~FSimulationBarrier()
@@ -76,6 +89,13 @@ bool FSimulationBarrier::Add(FShapeMaterialBarrier& Material)
 	check(HasNative());
 	check(Material.HasNative());
 	return NativeRef->Native->add(Material.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Add(FShovelBarrier& Shovel)
+{
+	check(HasNative());
+	check(Shovel.HasNative());
+	return NativeRef->Native->add(Shovel.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Add(FTerrainBarrier& Terrain)
@@ -139,6 +159,13 @@ bool FSimulationBarrier::Remove(FShapeMaterialBarrier& Material)
 	check(HasNative());
 	check(Material.HasNative());
 	return NativeRef->Native->remove(Material.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FShovelBarrier& Shovel)
+{
+	check(HasNative());
+	check(Shovel.HasNative());
+	return NativeRef->Native->remove(Shovel.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FTerrainBarrier& Terrain)

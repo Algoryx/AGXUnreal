@@ -20,6 +20,7 @@
 #include "Constraints/HingeBarrier.h"
 #include "Constraints/LockJointBarrier.h"
 #include "Constraints/PrismaticBarrier.h"
+#include "Constraints/SingleControllerConstraint1DOFBarrier.h"
 #include "Contacts/ContactPointBarrier.h"
 #include "Contacts/ContactPointEntity.h"
 #include "MassPropertiesBarrier.h"
@@ -46,6 +47,7 @@
 #include <agx/DistanceJoint.h>
 #include <agx/Hinge.h>
 #include <agx/LockJoint.h>
+#include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/MassProperties.h>
 #include <agx/Material.h>
 #include <agx/Prismatic.h>
@@ -239,6 +241,12 @@ agx::Hinge* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FHingeBarrier* Barrier)
 agx::LockJoint* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FLockJointBarrier* Barrier)
 {
 	return AgxDynamicsObjectAccess_Helper::GetFromAs<agx::LockJoint>(Barrier);
+}
+
+agx::SingleControllerConstraint1DOF* FAGX_AgxDynamicsObjectsAccess::GetFrom(
+	const FSingleControllerConstraint1DOFBarrier* Barrier)
+{
+	return AgxDynamicsObjectAccess_Helper::GetFromAs<agx::SingleControllerConstraint1DOF>(Barrier);
 }
 
 agx::Prismatic* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FPrismaticBarrier* Barrier)

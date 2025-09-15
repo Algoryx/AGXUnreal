@@ -128,9 +128,7 @@ public: // Native management.
 	 * Note that no properties held by child classes will be copied. To do that pass a Barrier of
 	 * the child class type.
 	 */
-	void CopyFrom(
-		const FElementaryConstraintBarrier& Source,
-		TArray<FAGX_ElementaryConstraint*>& ArchetypeInstances, bool bForceOverwriteInstances);
+	void CopyFrom(const FElementaryConstraintBarrier& Source);
 
 protected:
 	FElementaryConstraintBarrier Barrier;

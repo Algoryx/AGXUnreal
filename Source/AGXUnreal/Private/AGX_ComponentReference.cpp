@@ -8,6 +8,7 @@
 // Unreal Engine includes.
 #include "GameFramework/Actor.h"
 
+
 FAGX_ComponentReference::FAGX_ComponentReference()
 	: FAGX_ComponentReference(UActorComponent::StaticClass())
 {

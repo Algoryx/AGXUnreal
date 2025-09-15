@@ -64,13 +64,9 @@ struct AGXUNREAL_API FAGX_ConstraintElectricMotorController : public FAGX_Constr
 
 public:
 	FAGX_ConstraintElectricMotorController() = default;
-	FAGX_ConstraintElectricMotorController(bool bRotational);
 
 	void InitializeBarrier(TUniquePtr<FElectricMotorControllerBarrier> Barrier);
-	void CopyFrom(
-		const FElectricMotorControllerBarrier& Source,
-		TArray<FAGX_ConstraintElectricMotorController*>& ArchetypeInstances,
-		bool ForceOverwriteInstances);
+	void CopyFrom(const FElectricMotorControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;

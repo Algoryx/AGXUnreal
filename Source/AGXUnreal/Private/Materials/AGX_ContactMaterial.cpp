@@ -9,8 +9,10 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
@@ -18,6 +20,33 @@
 #include "Engine/World.h"
 
 #define LOCTEXT_NAMESPACE "UAGX_ContactMaterial"
+
+bool UAGX_ContactMaterial::operator==(const UAGX_ContactMaterial& Other) const
+{
+	// clang-format off
+	return ContactSolver == Other.ContactSolver
+            && ContactReduction == Other.ContactReduction
+            && MechanicsApproach == Other.MechanicsApproach
+            && FrictionModel == Other.FrictionModel
+            && NormalForceMagnitude == Other.NormalForceMagnitude
+            && bScaleNormalForceWithDepth == Other.bScaleNormalForceWithDepth
+            && bEnableSurfaceFriction == Other.bEnableSurfaceFriction
+            && FrictionCoefficient == Other.FrictionCoefficient
+            && SecondaryFrictionCoefficient == Other.SecondaryFrictionCoefficient
+            && bUseSecondaryFrictionCoefficient == Other.bUseSecondaryFrictionCoefficient
+            && SurfaceViscosity == Other.SurfaceViscosity
+            && SecondarySurfaceViscosity == Other.SecondarySurfaceViscosity
+            && bUseSecondarySurfaceViscosity == Other.bUseSecondarySurfaceViscosity
+            && PrimaryDirection == Other.PrimaryDirection
+            && OrientedFrictionReferenceFrameActor == Other.OrientedFrictionReferenceFrameActor
+            && OrientedFrictionReferenceFrameComponent == Other.OrientedFrictionReferenceFrameComponent
+            && Restitution == Other.Restitution
+            && YoungsModulus == Other.YoungsModulus
+            && SpookDamping == Other.SpookDamping
+            && AdhesiveForce == Other.AdhesiveForce
+            && AdhesiveOverlap == Other.AdhesiveOverlap;
+	// clang-format on
+}
 
 void UAGX_ContactMaterial::SetContactSolver(EAGX_ContactSolver InContactSolver)
 {
@@ -677,7 +706,7 @@ void UAGX_ContactMaterial::CommitToAsset()
 #if WITH_EDITOR
 			Asset->Modify();
 #endif
-			Asset->CopyFrom(*GetNative());
+			Asset->CopyFrom(*GetNative(), nullptr);
 #if WITH_EDITOR
 			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
 #endif
@@ -737,7 +766,36 @@ void UAGX_ContactMaterial::CopyFrom(const UAGX_ContactMaterial* Source)
 #undef COPY_PROPERTY
 }
 
-void UAGX_ContactMaterial::CopyFrom(const FContactMaterialBarrier& Source)
+namespace AGX_ContactMaterial_helpers
+{
+	void SetupMaterials(
+		const FContactMaterialBarrier& Barrier, UAGX_ContactMaterial& OutCm,
+		FAGX_ImportContext& Context)
+	{
+		FShapeMaterialBarrier MBarrier1 = Barrier.GetMaterial1();
+		FShapeMaterialBarrier MBarrier2 = Barrier.GetMaterial2();
+
+		OutCm.Material1 =
+			MBarrier1.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context)
+				: nullptr;
+		OutCm.Material2 =
+			MBarrier2.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context)
+				: nullptr;
+
+		const FString Name1 = OutCm.Material1 != nullptr ? OutCm.Material1->GetName() : "Default";
+		const FString Name2 = OutCm.Material2 != nullptr ? OutCm.Material2->GetName() : "Default";
+
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			OutCm.GetOuter(), FString::Printf(TEXT("CM_%s_%s"), *Name1, *Name2),
+			UAGX_ContactMaterial::StaticClass());
+		OutCm.Rename(*Name);
+	}
+}
+
+void UAGX_ContactMaterial::CopyFrom(
+	const FContactMaterialBarrier& Source, FAGX_ImportContext* Context)
 {
 	if (!Source.HasNative())
 	{
@@ -770,8 +828,22 @@ void UAGX_ContactMaterial::CopyFrom(const FContactMaterialBarrier& Source)
 	Source.GetPrimaryDirection(PrimaryDirection);
 
 	OrientedFrictionReferenceFrameActor = FName();
-	OrientedFrictionReferenceFrameComponent =
-		FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+
+	OrientedFrictionReferenceFrameComponent = [&]() -> FName
+	{
+		// Use the actual Component Name if possible since it may be different than the Native AGX
+		// Rigid Body name.
+		if (Context != nullptr && Context->RigidBodies != nullptr)
+		{
+			const FGuid OrientedFrictionBodyGuid =
+				Source.GetOrientedFrictionModelReferenceFrameBodyGuid();
+			if (auto Body = Context->RigidBodies->FindRef(OrientedFrictionBodyGuid))
+				return Body->GetFName();
+		}
+
+		// Fallback.
+		return FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+	}();
 
 	COPY_PROPERTY(Restitution);
 	COPY_PROPERTY(YoungsModulus);
@@ -782,6 +854,9 @@ void UAGX_ContactMaterial::CopyFrom(const FContactMaterialBarrier& Source)
 	ImportGuid = Source.GetGuid();
 
 #undef COPY_PROPERTY
+
+	if (Context != nullptr)
+		AGX_ContactMaterial_helpers::SetupMaterials(Source, *this, *Context);
 }
 
 UAGX_ContactMaterial* UAGX_ContactMaterial::CreateInstanceFromAsset(
@@ -855,8 +930,12 @@ UAGX_ContactMaterial* UAGX_ContactMaterial::GetAsset()
 
 bool UAGX_ContactMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 
 	// Internal testing the hypothesis that UObject::IsAsset is a valid inverse of this function.
@@ -1126,11 +1205,10 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 #error "Macro name NESTED_DISPATCHER already in use, chose a different name."
 #endif
 
-#define NESTED_DISPATCHER(OuterProperty, OuterType, InnerProperty, Setter) \
-	Dispatcher.Add(                                                        \
-		GET_MEMBER_NAME_CHECKED(ThisClass, OuterProperty),                 \
-		GET_MEMBER_NAME_CHECKED(OuterType, InnerProperty),                 \
-		[](ThisClass* This)                                                \
+#define NESTED_DISPATCHER(OuterProperty, OuterType, InnerProperty, Setter)     \
+	Dispatcher.Add(                                                            \
+		GET_MEMBER_NAME_CHECKED(ThisClass, OuterProperty),                     \
+		GET_MEMBER_NAME_CHECKED(OuterType, InnerProperty), [](ThisClass* This) \
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(OuterProperty.InnerProperty, Setter) });
 
 #ifdef SETTER_DISPATCHER

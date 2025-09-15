@@ -59,6 +59,9 @@ public:
 
 	virtual UAGX_MergeSplitThresholdsBase* GetThresholds() override;
 
+	virtual void CopyFrom(
+		const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context) override;
+
 private:
 	void CreateNativeThresholds(UAGX_ConstraintComponent& Owner);
 	void UpdateNativeProperties();

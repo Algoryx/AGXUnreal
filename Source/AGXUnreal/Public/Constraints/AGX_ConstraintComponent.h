@@ -19,6 +19,7 @@
 #include "AGX_ConstraintComponent.generated.h"
 
 struct FAGX_ConstraintController;
+struct FAGX_ImportContext;
 class FConstraintBarrier;
 
 /**
@@ -224,10 +225,11 @@ public:
 	 * initialized.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
-	bool GetValid() const;
+	virtual bool GetValid() const;
 
 	/**
-	 * Get the current force [N] or torque [Nm] of the constraint along a particular degree of freedom.
+	 * Get the current force [N] or torque [Nm] of the constraint along a particular degree of
+	 * freedom.
 	 *
 	 * Only degrees of freedoms listed in the return value of GetLockedDofsBitmask may be passed.
 	 *
@@ -342,8 +344,7 @@ public:
 		const UAGX_RigidBodyComponent* Body, FVector& OutForce, FVector& OutTorque,
 		bool bForceAtCm = false) const;
 
-	// Does not setup body attachments. This must be done by the caller of this function.
-	void CopyFrom(const FConstraintBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context);
 
 	/**
 	 * Returns true if for any of the locked DOFs both the global attachment frame transforms do no
@@ -424,8 +425,15 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
+
+	/*
+	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	FString ImportName;
 
 public: // Deprecated functions.
 	UFUNCTION(

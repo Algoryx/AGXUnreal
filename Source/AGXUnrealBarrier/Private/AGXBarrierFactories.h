@@ -13,6 +13,7 @@
 #include "Constraints/HingeBarrier.h"
 #include "Constraints/LockJointBarrier.h"
 #include "Constraints/PrismaticBarrier.h"
+#include "Constraints/SingleControllerConstraint1DOFBarrier.h"
 #include "Constraints/TwistRangeControllerBarrier.h"
 #include "Contacts/ContactPointBarrier.h"
 #include "Contacts/ShapeContactBarrier.h"
@@ -27,6 +28,7 @@
 #include "Shapes/CylinderShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
+#include "SimulationBarrier.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Vehicle/TrackBarrier.h"
@@ -45,6 +47,7 @@ namespace agx
 	class BallJoint;
 	class CylindricalJoint;
 	class DistanceJoint;
+	class SingleControllerConstraint1DOF;
 	class TwistRangeController;
 }
 
@@ -71,6 +74,11 @@ namespace agxTerrain
 	class Shovel;
 	class Terrain;
 	class TerrainMaterial;
+}
+
+namespace agxSDK
+{
+	class Simulation;
 }
 
 namespace agxSensor
@@ -102,6 +110,8 @@ namespace AGXBarrierFactories
 {
 	FRigidBodyBarrier AGXUNREALBARRIER_API CreateRigidBodyBarrier(agx::RigidBody* Body);
 
+	FSimulationBarrier CreateSimulationBarrier(agxSDK::Simulation* Simulation);
+
 	FAnyShapeBarrier CreateAnyShapeBarrier(agxCollide::Shape* Shape);
 
 	FSphereShapeBarrier CreateSphereShapeBarrier(agxCollide::Sphere* Sphere);
@@ -127,6 +137,9 @@ namespace AGXBarrierFactories
 	FDistanceJointBarrier CreateDistanceJointBarrier(agx::DistanceJoint* DistanceJoint);
 
 	FLockJointBarrier CreateLockJointBarrier(agx::LockJoint* LockJoint);
+
+	FSingleControllerConstraint1DOFBarrier CreateSingleControllerConstraint1DOFBarrier(
+		agx::SingleControllerConstraint1DOF* Constraint);
 
 	FTwistRangeControllerBarrier CreateTwistRangeControllerBarrier(
 		agx::TwistRangeController* Controller);

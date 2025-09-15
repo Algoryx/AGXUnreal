@@ -16,6 +16,8 @@
 
 #include "AGX_ShovelComponent.generated.h"
 
+struct FAGX_ImportContext;
+
 class UAGX_ShovelProperties;
 
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
@@ -56,12 +58,23 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge TopEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetTopEdge(FAGX_Edge InTopEdge);
+
+	/**
+	 * Returns the position of the Top Edge start point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetTopEdgeStartPositionWorld();
+
+	/**
+	 * Returns the position of the Top Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetTopEdgeEndPositionWorld();
 
 	/**
 	 * The cutting edge of the active zone.
@@ -70,12 +83,24 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge CuttingEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetCuttingEdge(FAGX_Edge InCuttingEdge);
+
+	/**
+	 * Returns the position of the Cutting Edge start point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetCuttingEdgeStartPositionWorld();
+
+
+	/**
+	 * Returns the position of the Cutting Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetCuttingEdgeEndPositionWorld();
 
 	/**
 	 * The cutting direction of the shovel where the penetration resistance will be active, which is
@@ -85,8 +110,7 @@ public:
 	 * Direction or Finalize Shovel Edit must be called to commit the changes to the native AGX
 	 * Dynamics representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Frame CuttingDirection;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
@@ -96,7 +120,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/**
@@ -113,7 +137,7 @@ public:
 	 */
 	FAGX_Frame* GetFrame(EAGX_ShovelFrame Frame);
 
-	void CopyFrom(const FShovelBarrier& Barrier, bool ForceOverwriteInstances = false);
+	void CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context);
 
 	bool SwapEdgeDirections();
 

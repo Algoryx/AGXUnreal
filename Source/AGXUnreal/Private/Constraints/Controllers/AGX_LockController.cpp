@@ -4,16 +4,11 @@
 
 #include "Constraints/ControllerConstraintBarriers.h"
 
-FAGX_ConstraintLockController::FAGX_ConstraintLockController(bool bRotational)
-	: FAGX_ConstraintController(bRotational)
-{
-}
 
 void FAGX_ConstraintLockController::InitializeBarrier(TUniquePtr<FLockControllerBarrier> Barrier)
 {
 	check(!HasNative());
 	NativeBarrier = std::move(Barrier);
-	check(HasNative());
 }
 
 namespace
@@ -35,14 +30,7 @@ void FAGX_ConstraintLockController::SetPosition(double InPosisiton)
 {
 	if (HasNative())
 	{
-		if (bRotational)
-		{
-			GetLockBarrier(*this)->SetPositionRotational(InPosisiton);
-		}
-		else
-		{
-			GetLockBarrier(*this)->SetPositionTranslational(InPosisiton);
-		}
+		GetLockBarrier(*this)->SetPosition(InPosisiton);
 	}
 	Position = InPosisiton;
 }
@@ -50,16 +38,8 @@ void FAGX_ConstraintLockController::SetPosition(double InPosisiton)
 double FAGX_ConstraintLockController::GetPosition() const
 {
 	if (HasNative())
-	{
-		if (bRotational)
-		{
-			return GetLockBarrier(*this)->GetPositionRotational();
-		}
-		else
-		{
-			return GetLockBarrier(*this)->GetPositionTranslational();
-		}
-	}
+		return GetLockBarrier(*this)->GetPosition();
+
 	return Position;
 }
 
@@ -67,36 +47,12 @@ void FAGX_ConstraintLockController::UpdateNativePropertiesImpl()
 {
 	FLockControllerBarrier* Barrier = GetLockBarrier(*this);
 	check(Barrier);
-	if (bRotational)
-	{
-		Barrier->SetPositionRotational(Position);
-	}
-	else
-	{
-		Barrier->SetPositionTranslational(Position);
-	}
+	Barrier->SetPosition(Position);
 }
 
-void FAGX_ConstraintLockController::CopyFrom(
-	const FLockControllerBarrier& Source, TArray<FAGX_ConstraintLockController*>& Instances,
-	bool ForceOverwriteInstances)
+void FAGX_ConstraintLockController::CopyFrom(const FLockControllerBarrier& Source)
 {
-	TArray<FAGX_ConstraintController*> BaseInstances(Instances);
-	Super::CopyFrom(Source, BaseInstances, ForceOverwriteInstances);
-
-	const double PositionBarrier =
-		bRotational ? Source.GetPositionRotational() : Source.GetPositionTranslational();
-
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->Position == Position)
-		{
-			Instance->Position = PositionBarrier;
-		}
-	}
-
+	Super::CopyFrom(Source);
+	const double PositionBarrier = Source.GetPosition();
 	Position = PositionBarrier;
 }

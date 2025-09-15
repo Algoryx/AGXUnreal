@@ -5,17 +5,12 @@
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 
-FAGX_ConstraintTargetSpeedController::FAGX_ConstraintTargetSpeedController(bool bRotational)
-	: FAGX_ConstraintController(bRotational)
-{
-}
 
 void FAGX_ConstraintTargetSpeedController::InitializeBarrier(
 	TUniquePtr<FTargetSpeedControllerBarrier> Barrier)
 {
 	check(!HasNative());
 	NativeBarrier = std::move(Barrier);
-	check(HasNative());
 }
 
 namespace
@@ -38,14 +33,7 @@ void FAGX_ConstraintTargetSpeedController::SetSpeed(double InSpeed)
 {
 	if (HasNative())
 	{
-		if (bRotational)
-		{
-			GetSpeedBarrier(*this)->SetSpeedRotational(InSpeed);
-		}
-		else
-		{
-			GetSpeedBarrier(*this)->SetSpeedTranslational(InSpeed);
-		}
+		GetSpeedBarrier(*this)->SetSpeed(InSpeed);
 	}
 	Speed = InSpeed;
 }
@@ -54,14 +42,7 @@ double FAGX_ConstraintTargetSpeedController::GetSpeed() const
 {
 	if (HasNative())
 	{
-		if (bRotational)
-		{
-			return GetSpeedBarrier(*this)->GetSpeedRotational();
-		}
-		else
-		{
-			return GetSpeedBarrier(*this)->GetSpeedTranslational();
-		}
+		return GetSpeedBarrier(*this)->GetSpeed();
 	}
 	return Speed;
 }
@@ -92,42 +73,13 @@ void FAGX_ConstraintTargetSpeedController::UpdateNativePropertiesImpl()
 	FTargetSpeedControllerBarrier* Barrier = GetSpeedBarrier(*this);
 	check(Barrier);
 	Barrier->SetLockedAtZeroSpeed(bLockedAtZeroSpeed);
-	if (bRotational)
-	{
-		Barrier->SetSpeedRotational(Speed);
-	}
-	else
-	{
-		Barrier->SetSpeedTranslational(Speed);
-	}
+	Barrier->SetSpeed(Speed);
 }
 
 void FAGX_ConstraintTargetSpeedController::CopyFrom(
-	const FTargetSpeedControllerBarrier& Source,
-	TArray<FAGX_ConstraintTargetSpeedController*>& Instances, bool ForceOverwriteInstances)
+	const FTargetSpeedControllerBarrier& Source)
 {
-	TArray<FAGX_ConstraintController*> BaseInstances(Instances);
-	Super::CopyFrom(Source, BaseInstances, ForceOverwriteInstances);
-
-	const double SpeedBarrier =
-		bRotational ? Source.GetSpeedRotational() : Source.GetSpeedTranslational();
-
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->bLockedAtZeroSpeed == bLockedAtZeroSpeed)
-		{
-			Instance->bLockedAtZeroSpeed = Source.GetLockedAtZeroSpeed();
-		}
-
-		if (ForceOverwriteInstances || Instance->Speed == Speed)
-		{
-			Instance->Speed = SpeedBarrier;
-		}
-	}
-
+	Super::CopyFrom(Source);
 	bLockedAtZeroSpeed = Source.GetLockedAtZeroSpeed();
-	Speed = SpeedBarrier;
+	Speed = Source.GetSpeed();
 }

@@ -509,6 +509,20 @@ double FTerrainMaterialBarrier::GetDepthIncreaseFactor() const
 	return NativeRef->Native->getExcavationContactProperties()->getDepthIncreaseFactor();
 }
 
+void FTerrainMaterialBarrier::SetDepthAngleThreshold(double DepthAngleThreshold)
+{
+	check(HasNative());
+	NativeRef->Native->getExcavationContactProperties()->setDepthAngleThreshold(
+		ConvertAngleToAGX(DepthAngleThreshold));
+}
+
+double FTerrainMaterialBarrier::GetDepthAngleThreshold() const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(
+		NativeRef->Native->getExcavationContactProperties()->getDepthAngleThreshold());
+}
+
 void FTerrainMaterialBarrier::SetMaximumAggregateNormalForce(double MaximumAggregateNormalForce)
 {
 	check(HasNative());

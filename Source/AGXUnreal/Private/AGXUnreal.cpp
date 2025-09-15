@@ -8,6 +8,7 @@
 #include "AGX_RuntimeStyle.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "UObject/CoreRedirects.h"
@@ -37,6 +38,7 @@ void FAGXUnrealModule::StartupModule()
 	RegisterCoreRedirects();
 	FAGX_RuntimeStyle::Initialize();
 	FAGX_RuntimeStyle::ReloadTextures();
+	LoadRuntimeAssets();
 }
 
 void FAGXUnrealModule::ShutdownModule()
@@ -78,8 +80,26 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 		ECoreRedirectFlags::Type_Class, TEXT("AGX_TerrainMaterialInstance"),
 		TEXT("AGX_TerrainMaterial"));
 	Redirects.Emplace(
-		ECoreRedirectFlags::Type_Class, TEXT("AGX_MaterialBase"),
-		TEXT("AGX_ShapeMaterial"));
+		ECoreRedirectFlags::Type_Class, TEXT("AGX_MaterialBase"), TEXT("AGX_ShapeMaterial"));
+
+	// Redirects created during the change of OpenPLX name prefixes from 'PLX_' to 'OpenPLX_'. The
+	// old names were never seen by users so once all examples, tests, and experiment scenes have
+	// been opened and resaved we can remove these.
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("PLX_ModelRegistry"), TEXT("OpenPLX_ModelRegistry"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("PLX_SignalHandlerComponent"),
+		TEXT("OpenPLX_SignalHandlerComponent"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Input"), TEXT("OpenPLX_Input"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Output"), TEXT("OpenPLX_Output"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_InputType"), TEXT("EOpenPLX_InputType"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_OutputType"), TEXT("EOpenPLX_OutputType"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Property,
+		TEXT("/Script/AGXUnreal.AGX_Simulation.bDeletePLXFileCopyOnBlueprintDeletion"),
+		TEXT("bDeleteOpenPLXFileCopyOnBlueprintDeletion"));
 
 	// The Shovel Refactor effort, the addition of Shovel Component, also introduced
 	// FAGX_ComponentReference and replaced the FAGX_RigidBodyComponentReference and
@@ -119,7 +139,8 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 	for (TFieldIterator<UFunction> FuncIt(UAGX_ShapeMaterial::StaticClass()); FuncIt; ++FuncIt)
 	{
 		UFunction* Function = *FuncIt;
-		const FString BpName = FString::Printf(TEXT("AGX_ShapeMaterial.%s_BP"), *Function->GetName());
+		const FString BpName =
+			FString::Printf(TEXT("AGX_ShapeMaterial.%s_BP"), *Function->GetName());
 		Redirects.Emplace(ECoreRedirectFlags::Type_Function, *BpName, *Function->GetName());
 	}
 
@@ -134,6 +155,51 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 	}
 
 	FCoreRedirects::AddRedirectList(Redirects, TEXT("AGXUnreal"));
+}
+
+void FAGXUnrealModule::LoadRuntimeAssets()
+{
+	// Explicitly loading these assets here ensures they are included in cooked builds.
+	// This is critical for e.g. runtime import since some assets may be needed and there is no way
+	// for Unreal Engine to know at cook-time which assets might be needed since only a path to a
+	// model file may be what is available at that time, for example.
+	// Assets that are referenced directly or indirectly by something in the Level itself will be
+	// included in the cooked build automatically, so there is no need to list all AGXUnreal assets
+	// here, only those that may be needed for runtime creation.
+	// Also note that using a node in the Blueprint Event Graph to select an asset to assign to some
+	// object in runtime is enough to make it included in the cooked build automatically as well.
+
+	// Example to make this more clear: the UAGX_WireComponent uses some Static Meshes to render
+	// itself. If a user adds a WireComponent in the Level, and builds a standalone executable from
+	// the project, the Static Meshes will be included automatically in the Cooked Build since it is
+	// referenced at cook time. HOWEVER, say a user has an empty Level and wishes to runtime import
+	// an .agx file containing a Wire. This will not work automatically since there was no way for
+	// Unreal to know at cook time that the Wire's Static Meshes would be needed during runtime.
+	// Therefore, the Static Meshes used by the UAGX_WireComponent must be listed below.
+
+	auto LoadWCheck = [](const TCHAR* Path)
+	{
+		auto A = FAGX_ObjectUtilities::GetAssetFromPath<UObject>(Path);
+		if (A == nullptr)
+		{
+			// Log Error to catch this in unit tests.
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Could not load Asset given path '%s'. Ensure it has not beed deleted."),
+				Path);
+		}
+	};
+
+	// Render Materials.
+	LoadWCheck(TEXT("Material'/AGXUnreal/Runtime/Materials/M_SensorMaterial.M_SensorMaterial'"));
+	LoadWCheck(TEXT("Material'/AGXUnreal/Runtime/Materials/M_ImportedBase.M_ImportedBase'"));
+	LoadWCheck(TEXT("Material'/AGXUnreal/Track/Materials/MI_TrackDefault.MI_TrackDefault'"));
+	LoadWCheck(TEXT("Material'/AGXUnreal/Wire/MI_GrayWire.MI_GrayWire'"));
+
+	// Static Meshes.
+	LoadWCheck(TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualCylinder.SM_WireVisualCylinder'"));
+	LoadWCheck(TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualSphere.SM_WireVisualSphere'"));
+	LoadWCheck(TEXT("StaticMesh'/AGXUnreal/Track/StaticMeshes/SM_TrackShoeCube.SM_TrackShoeCube'"));
 }
 
 #undef LOCTEXT_NAMESPACE

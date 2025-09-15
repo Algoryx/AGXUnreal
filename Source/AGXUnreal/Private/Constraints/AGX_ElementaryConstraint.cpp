@@ -239,41 +239,10 @@ void FAGX_ElementaryConstraint::UpdateNativeProperties()
 	Barrier.SetForceRange(ForceRange);
 }
 
-void FAGX_ElementaryConstraint::CopyFrom(
-	const FElementaryConstraintBarrier& Source,
-	TArray<FAGX_ElementaryConstraint*>& ArchetypeInstances, bool bForceOverwriteInstances)
+void FAGX_ElementaryConstraint::CopyFrom(const FElementaryConstraintBarrier& Source)
 {
-	const bool bEnableBarrier = Source.GetEnabled();
-	const FAGX_Real ComplianceBarrier = Source.GetCompliance();
-	const FAGX_Real SpookDampingBarrier = Source.GetSpookDamping();
-	const FAGX_RealInterval ForceRangeBarrier = Source.GetForceRange();
-
-	for (auto Instance : ArchetypeInstances)
-	{
-		if (Instance == nullptr)
-		{
-			continue;
-		}
-
-		if (bForceOverwriteInstances)
-		{
-			Instance->bEnable = bEnableBarrier;
-			Instance->Compliance = ComplianceBarrier;
-			Instance->SpookDamping = SpookDampingBarrier;
-			Instance->ForceRange = ForceRangeBarrier;
-		}
-		else
-		{
-			FAGX_ObjectUtilities::SetIfEqual(Instance->bEnable, bEnable, bEnableBarrier);
-			FAGX_ObjectUtilities::SetIfEqual(Instance->Compliance, Compliance, ComplianceBarrier);
-			FAGX_ObjectUtilities::SetIfEqual(
-				Instance->SpookDamping, SpookDamping, SpookDampingBarrier);
-			FAGX_ObjectUtilities::SetIfEqual(Instance->ForceRange, ForceRange, ForceRangeBarrier);
-		}
-	}
-
-	bEnable = bEnableBarrier;
-	Compliance = ComplianceBarrier;
-	SpookDamping = SpookDampingBarrier;
-	ForceRange = ForceRangeBarrier;
+	bEnable = Source.GetEnabled();
+	Compliance = Source.GetCompliance();
+	SpookDamping = Source.GetSpookDamping();
+	ForceRange = Source.GetForceRange();
 }

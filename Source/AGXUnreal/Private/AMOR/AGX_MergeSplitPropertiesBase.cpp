@@ -75,7 +75,8 @@ FMergeSplitPropertiesBarrier* FAGX_MergeSplitPropertiesBase::GetNative()
 	return HasNative() ? &NativeBarrier : nullptr;
 }
 
-void FAGX_MergeSplitPropertiesBase::CopyFrom(const FMergeSplitPropertiesBarrier& Barrier)
+void FAGX_MergeSplitPropertiesBase::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* /*Context*/)
 {
 	bEnableMerge = Barrier.GetEnableMerge();
 	bEnableSplit = Barrier.GetEnableSplit();

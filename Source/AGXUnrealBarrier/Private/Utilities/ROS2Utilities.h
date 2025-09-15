@@ -1,3 +1,5 @@
+// Copyright 2025, Algoryx Simulation AB.
+
 #pragma once
 
 namespace AGX_ROS2Utilities

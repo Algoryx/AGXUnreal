@@ -42,6 +42,7 @@
 #include "RenderResource.h"
 #include "SceneInterface.h"
 #include "SceneManagement.h"
+#include "SceneView.h"
 #include "StaticMeshResources.h"
 #include "UObject/ConstructorHelpers.h"
 #include "VertexFactory.h"

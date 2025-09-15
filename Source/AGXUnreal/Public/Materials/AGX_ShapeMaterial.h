@@ -14,6 +14,8 @@
 
 #include "AGX_ShapeMaterial.generated.h"
 
+struct FAGX_ImportContext;
+
 /**
  * Defines contacts properties between Shapes as well as properties affecting the mass
  * distribution of AGX Rigid Bodies.
@@ -34,6 +36,9 @@ class AGXUNREAL_API UAGX_ShapeMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_ShapeMaterial& Other) const;
+
 	// Bulk properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Material")
@@ -134,15 +139,15 @@ public:
 	void SetSpookDampingBend(double InSpookDamping);
 
 	/*
-	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	void CommitToAsset();
 
-	void CopyFrom(const FShapeMaterialBarrier& Source);
+	void CopyFrom(const FShapeMaterialBarrier& Source, FAGX_ImportContext* Context);
 
 	static UAGX_ShapeMaterial* CreateInstanceFromAsset(
 		UWorld* PlayingWorld, UAGX_ShapeMaterial* Source);

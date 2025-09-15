@@ -25,7 +25,7 @@ namespace FAGX_AgxEdModeTerrainCustomization_helpers
 {
 	bool RefreshTerrainMaterialLibrary()
 	{
-		return AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(true);
+		return AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary();
 	}
 }
 
@@ -61,7 +61,7 @@ void FAGX_AgxEdModeTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& 
 				else
 				{
 					FAGX_NotificationUtilities::ShowNotification(
-						"Issues encountered during Refresh, see the Console Log for more details.",
+						"Issues encountered during Refresh, see the Output Log for more details.",
 						SNotificationItem::CS_Fail);
 				}
 				return FReply::Handled();

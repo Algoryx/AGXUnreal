@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "Constraints/ConstraintBarrier.h"
 #include "Constraints/BallJointBarrier.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -100,6 +101,14 @@ void UAGX_BallConstraintComponent::PostEditChangeChainProperty(FPropertyChangedC
 //~ End UObject interface.
 
 // Native management.
+
+void UAGX_BallConstraintComponent::CopyFrom(
+	const FConstraintBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	UAGX_ConstraintComponent::CopyFrom(Barrier, Context);
+	FAGX_ConstraintUtilities::CopyControllersFrom(
+		*this, *static_cast<const FBallJointBarrier*>(&Barrier));
+}
 
 FBallJointBarrier* UAGX_BallConstraintComponent::GetNativeBallJoint()
 {

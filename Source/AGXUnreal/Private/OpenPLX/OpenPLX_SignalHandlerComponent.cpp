@@ -1,0 +1,476 @@
+// Copyright 2025, Algoryx Simulation AB.
+
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+
+// AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
+#include "AGX_RigidBodyComponent.h"
+#include "AGX_Simulation.h"
+#include "Constraints/AGX_ConstraintComponent.h"
+#include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ModelSourceComponent.h"
+#include "OpenPLX/OpenPLX_ModelRegistry.h"
+#include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
+
+UOpenPLX_SignalHandlerComponent::UOpenPLX_SignalHandlerComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+}
+
+namespace OpenPLX_SignalHandlerComponent_helpers
+{
+	template <typename BarrierT, typename ComponentT>
+	TArray<BarrierT*> CollectBarriers(AActor* Owner)
+	{
+		TArray<BarrierT*> Barriers;
+		if (Owner == nullptr)
+			return Barriers;
+
+		TArray<ComponentT*> ComponentsInThisActor =
+			FAGX_ObjectUtilities::Filter<ComponentT>(Owner->GetComponents());
+		for (ComponentT* Component : ComponentsInThisActor)
+		{
+			if (auto CBarrier = Component->GetOrCreateNative())
+			{
+				if (CBarrier->HasNative())
+					Barriers.Add(CBarrier);
+			}
+		}
+
+		return Barriers;
+	}
+
+	TOptional<FString> GetOpenPLXFilePath(AActor* Owner)
+	{
+		if (Owner == nullptr)
+			return {};
+
+		auto ModelSource = Owner->GetComponentByClass<UAGX_ModelSourceComponent>();
+		if (ModelSource == nullptr)
+			return {};
+
+		return ModelSource->FilePath;
+	}
+}
+
+bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutInput)
+{
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = InputAliases.Find(TrimmedName))
+	{
+		if (const FOpenPLX_Input* Input = Inputs.Find(*FullName))
+		{
+			OutInput = *Input;
+			return true;
+		}
+	}
+
+	if (const FOpenPLX_Input* Input = Inputs.Find(TrimmedName))
+	{
+		OutInput = *Input;
+		return true;
+	}
+
+	return false;
+}
+
+bool UOpenPLX_SignalHandlerComponent::GetInputFromType(
+	EOpenPLX_InputType Type, FName Name, FOpenPLX_Input& OutInput)
+{
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = InputAliases.Find(TrimmedName))
+	{
+		if (const FOpenPLX_Input* Input = Inputs.Find(*FullName))
+		{
+			if (Input->Type == Type)
+			{
+				OutInput = *Input;
+				return true;
+			}
+		}
+	}
+
+	if (const FOpenPLX_Input* Input = Inputs.Find(TrimmedName))
+	{
+		if (Input->Type == Type)
+		{
+			OutInput = *Input;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& OutOutput)
+{
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = OutputAliases.Find(TrimmedName))
+	{
+		if (const FOpenPLX_Output* Output = Outputs.Find(*FullName))
+		{
+			OutOutput = *Output;
+			return true;
+		}
+	}
+
+	if (const FOpenPLX_Output* Output = Outputs.Find(TrimmedName))
+	{
+		OutOutput = *Output;
+		return true;
+	}
+
+	return false;
+}
+
+bool UOpenPLX_SignalHandlerComponent::GetOutputFromType(
+	EOpenPLX_OutputType Type, FName Name, FOpenPLX_Output& OutOutput)
+{
+	FString TrimmedString = Name.ToString().TrimStartAndEnd();
+	FName TrimmedName(*TrimmedString);
+	if (const FName* FullName = OutputAliases.Find(TrimmedName))
+	{
+		if (const FOpenPLX_Output* Output = Outputs.Find(*FullName))
+		{
+			if (Output->Type == Type)
+			{
+				OutOutput = *Output;
+				return true;
+			}
+		}
+	}
+
+	if (const FOpenPLX_Output* Output = Outputs.Find(TrimmedName))
+	{
+		if (Output->Type == Type)
+		{
+			OutOutput = *Output;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendReal(const FOpenPLX_Input& Input, double Value)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendRealByname: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendReal(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveReal(const FOpenPLX_Output& Output, double& OutValue)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, double& Value)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveRealByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveReal(Output, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendRangeRealByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendRangeReal(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(
+	FName NameOrAlias, FVector2D& OutValue)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveRangeRealByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveRangeReal(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVector Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendVectorByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendVector(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVector& OutValue)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveVectorByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveVector(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, int64 Value)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64 Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendIntegerByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendInteger(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, int64& OutValue)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveIntegerByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveInteger(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, bool Value)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendBooleanByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendBoolean(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue)
+{
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bool& OutValue)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveBooleanByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveBoolean(Output, OutValue);
+}
+
+void UOpenPLX_SignalHandlerComponent::BeginPlay()
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	Super::BeginPlay();
+
+	auto PLXFile = GetOpenPLXFilePath(GetOwner());
+	if (!PLXFile.IsSet())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UOpenPLX_SignalHandlerComponent '%s' in '%s' was unable to get OpenPLX file path "
+				 "from UAGX_ModelSourceComponent. OpenPLX Signals will not work properly."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	auto Sim = UAGX_Simulation::GetFrom(this);
+	auto SimulationBarrier = Sim != nullptr ? Sim->GetNative() : nullptr;
+	if (SimulationBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX Simulation. "
+				 "Signal handling may not work."),
+			*GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	auto PLXModelRegistry = UOpenPLX_ModelRegistry::GetFrom(GetWorld());
+	auto PLXModelRegistryBarrier =
+		PLXModelRegistry != nullptr ? PLXModelRegistry->GetNative() : nullptr;
+	if (PLXModelRegistryBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry barrier "
+				 "object. Signal handling may not work."),
+			*GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	// Collect all relevant AGX objects in the same AActor as us.
+	auto ConstraintBarriers =
+		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
+	auto RigidBodyBarriers =
+		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+
+	// Initialize SignalHandler in Barrier module.
+	SignalHandler.Init(
+		*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, RigidBodyBarriers,
+		ConstraintBarriers);
+}
+
+void UOpenPLX_SignalHandlerComponent::CopyFrom(
+	const TArray<FOpenPLX_Input>& InInputs, TArray<FOpenPLX_Output> InOutputs, FAGX_ImportContext* Context)
+{
+	for (const auto& Input : InInputs)
+	{
+		Inputs.Add(Input.Name, Input);
+		if (!Input.Alias.IsNone())
+			InputAliases.Add(Input.Alias, Input.Name);
+	}
+
+	for (const auto& Output : InOutputs)
+	{
+		Outputs.Add(Output.Name, Output);
+		if (!Output.Alias.IsNone())
+			OutputAliases.Add(Output.Alias, Output.Name);
+	}
+
+	if (Context != nullptr)
+	{
+		AGX_CHECK(Context->SignalHandler == nullptr);
+		Context->SignalHandler = this;
+	}
+}
+

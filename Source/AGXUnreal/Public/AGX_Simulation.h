@@ -25,6 +25,7 @@ class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
+class UAGX_ShovelComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
 class UAGX_TireComponent;
@@ -208,6 +209,16 @@ public: // Properties.
 	bool bEnableGlobalContactEventListener {true};
 
 	/**
+	 * If enabled, whenever a Blueprint Asset from an imported OpenPLX file is deleted, the
+	 * corresponding OpenPLX files located in Project/OpenPLXModels used by that Blueprint is
+	 * deleted.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
+		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
+	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
+
+	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.
 	 * Note that each RigidBody / Geometry / Wire / Constraint need to enable merge/split
 	 * individually for AMOR to be used for those.
@@ -249,6 +260,7 @@ public: // Properties.
 	int32 RaytraceDeviceIndex {0};
 
 #if WITH_EDITORONLY_DATA
+
 	/**
 	 * Set to true to write an AGX Dynamics for Unreal archive of the initial state.
 	 * The archive is written to the path set in ExportPath on the first game Tick.
@@ -473,6 +485,7 @@ public: // Member functions.
 	void Add(UAGX_RigidBodyComponent& Body);
 	void Add(UAGX_ShapeComponent& Shape);
 	void Add(UAGX_ShapeMaterial& Shape);
+	void Add(UAGX_ShovelComponent& Shovel);
 	void Add(UAGX_StaticMeshComponent& Body);
 	void Add(AAGX_Terrain& Terrain);
 	void Add(UAGX_TireComponent& Tire);
@@ -482,6 +495,7 @@ public: // Member functions.
 	void Remove(UAGX_RigidBodyComponent& Body);
 	void Remove(UAGX_ShapeComponent& Shape);
 	void Remove(UAGX_ShapeMaterial& Shape);
+	void Remove(UAGX_ShovelComponent& Shovel);
 	void Remove(UAGX_StaticMeshComponent& Body);
 	void Remove(AAGX_Terrain& Terrain);
 	void Remove(UAGX_TireComponent& Tire);

@@ -17,6 +17,7 @@
 #include <agxPlot/DataSeries.h>
 #include <agxPlot/System.h>
 #include <agxPlot/WebPlot.h>
+#include <agxSDK/Assembly.h>
 #include <agxSDK/MergeSplitHandler.h>
 #include <agxSDK/MergeSplitThresholds.h>
 #include <agxSDK/Simulation.h>
@@ -185,6 +186,17 @@ struct FSimulationRef
 
 	FSimulationRef() = default;
 	FSimulationRef(agxSDK::Simulation* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FAssemblyRef
+{
+	agxSDK::AssemblyRef Native;
+
+	FAssemblyRef() = default;
+	FAssemblyRef(agxSDK::Assembly* InNative)
 		: Native(InNative)
 	{
 	}

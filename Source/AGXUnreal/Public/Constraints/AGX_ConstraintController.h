@@ -90,6 +90,9 @@ struct AGXUNREAL_API FAGX_ConstraintController
 
 	double GetForce();
 
+	UPROPERTY(EditAnywhere, Category = "AGX Constraint Controller")
+	FString Name;
+
 	/**
 	 * Handle serialization backwards compatibility. May be overridden by subclasses as long as they
 	 * call Super::Serialize.
@@ -98,15 +101,9 @@ struct AGXUNREAL_API FAGX_ConstraintController
 	virtual void Serialize(FArchive& Archive);
 
 protected:
-	// Would like to have this const but Unreal provides default copy operations
-	// that don't compile when USTRUCT structs contains constant members.
-	// Perhaps there is a way to disable the default copy operations.
-	/// Whether the controller is on a Rotational or Translational DOF.
-	bool bRotational;
 
 public:
 	FAGX_ConstraintController();
-	FAGX_ConstraintController(bool bInRotational);
 	virtual ~FAGX_ConstraintController();
 
 	// We must provide an assignment operator because Unreal must be able to copy structs and we
@@ -134,9 +131,7 @@ protected:
 	 * Copy properties from the give AGX Dynamics constraint controller into this AGXUnreal
 	 * constraint controller.
 	 */
-	void CopyFrom(
-		const FConstraintControllerBarrier& Source,
-		TArray<FAGX_ConstraintController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FConstraintControllerBarrier& Source);
 
 	/**
 	 * Handle to the AGX Dynamics instance.

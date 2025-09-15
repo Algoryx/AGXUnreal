@@ -16,8 +16,10 @@
 
 #include "AGX_ShovelProperties.generated.h"
 
+class FShovelBarrier;
 class UAGX_ShovelComponent;
 class UWorld;
+struct FAGX_ImportContext;
 
 /**
  * An asset used to hold configuration properties for Shovel Components.
@@ -314,7 +316,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import GUID")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import GUID")
 	FGuid ImportGuid;
 
 #if WITH_EDITOR
@@ -400,6 +402,8 @@ public:
 	void SetbEnableParticleFreeDeformers(bool InbEnableParticleFreeDeformers);
 	void SetbEnableInnerShapeCreateDynamicMass(bool InbEnableInnerShapeCreateDynamicMass);
 	void SetbEnableParticleForceFeedback(bool InbEnableParticleForceFeedback);
+
+	void CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context);
 
 private:
 #if WITH_EDITOR

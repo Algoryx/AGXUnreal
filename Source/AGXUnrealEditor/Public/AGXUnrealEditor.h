@@ -13,6 +13,8 @@ class FMenuBuilder;
 class IAssetTools;
 class IAssetTypeActions;
 
+struct FAssetData;
+
 class FAGXUnrealEditorModule : public IModuleInterface
 {
 public:
@@ -72,6 +74,8 @@ private:
 
 	void OnGrabModeCommand() const;
 	bool OnCanExecuteGrabModeCommand() const;
+
+	void OnAssetRemoved(const FAssetData& AssetData);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;

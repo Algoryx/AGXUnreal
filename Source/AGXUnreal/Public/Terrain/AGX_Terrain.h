@@ -377,6 +377,7 @@ private:
 	void UpdateParticlesArrays();
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
+	virtual void PostLoad() override;
 #endif
 	virtual void Serialize(FArchive& Archive) override;
 
@@ -419,6 +420,14 @@ private: // Deprecated functions.
 	// clang-format on
 
 private:
+
+	UPROPERTY(Transient)
+	bool bNeedsShapeMaterialWarning {false};
+
+#if WITH_EDITOR
+	void ShowShapeMaterialWarning() const;
+#endif
+
 	/**
 	 * Even if Terrain paging is enabled, and this Terrain has a NativeTerrainPagerBarrier, it will
 	 * also have a regular NativeBarrier agx::Terrain that will in that case be used as a template

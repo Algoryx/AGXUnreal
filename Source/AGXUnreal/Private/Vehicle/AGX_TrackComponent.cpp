@@ -9,15 +9,18 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackPropertiesBarrier.h"
+#include "Vehicle/TrackWheelBarrier.h"
 
 // Unreal Engine includes.
 #include "Components/InstancedStaticMeshComponent.h"
@@ -48,6 +51,29 @@ UAGX_TrackComponent::UAGX_TrackComponent()
 	if (RenderMaterials.Num() == 0)
 		RenderMaterials.Add(
 			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMatPath));
+}
+
+bool UAGX_TrackComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
+{
+	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
+	ShapeMaterial = InShapeMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeShapeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeShapeMaterial())
+	{
+		// Something went wrong, restore original ShapeMaterial.
+		ShapeMaterial = ShapeMaterialOrig;
+		return false;
+	}
+
+	return true;
 }
 
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
@@ -170,14 +196,84 @@ void UAGX_TrackComponent::RaiseTrackPreviewNeedsUpdate(bool bDoNotBroadcastIfAlr
 	}
 }
 
-void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier)
+namespace AGX_TrackComponent_helpers
 {
+	UAGX_ShapeMaterial* GetOrCreateShapeMaterial(
+		const FTrackBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FShapeMaterialBarrier SMB = Barrier.GetMaterial();
+		if (!SMB.HasNative())
+			return nullptr;
+
+		return FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(SMB, &Context);
+	}
+
+	UAGX_TrackProperties* GetOrCreateTrackProperties(
+		const FTrackBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		auto PropertiesBarrier = Barrier.GetProperties();
+		if (!PropertiesBarrier.HasNative())
+			return nullptr;
+
+		if (auto Existing = Context.TrackProperties->FindRef(PropertiesBarrier.GetGuid()))
+			return Existing;
+
+		auto Properties = NewObject<UAGX_TrackProperties>(
+			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
+		Properties->CopyFrom(PropertiesBarrier);
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
+			UAGX_TrackProperties::StaticClass());
+		Properties->Rename(*Name);
+
+		Context.TrackProperties->Add(PropertiesBarrier.GetGuid(), Properties);
+		return Properties;
+	}
+
+	UAGX_TrackInternalMergeProperties* GetOrCreateMergeProperties(
+		const FTrackBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FGuid Guid = Barrier.GetGuid();
+		if (auto Existing = Context.TrackMergeProperties->FindRef(Guid))
+			return Existing;
+
+		auto Properties = NewObject<UAGX_TrackInternalMergeProperties>(
+			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
+		Properties->CopyFrom(Barrier);
+
+		const FString CleanTrackBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *CleanTrackBarrierName),
+			UAGX_TrackInternalMergeProperties::StaticClass());
+		Properties->Rename(*Name);
+
+		Context.TrackMergeProperties->Add(Guid, Properties);
+		return Properties;
+	}
+}
+
+void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	using namespace AGX_TrackComponent_helpers;
 	NumberOfNodes = Barrier.GetNumNodes();
 	Width = static_cast<float>(Barrier.GetWidth());
 	Thickness = static_cast<float>(Barrier.GetThickness());
 	InitialDistanceTension = static_cast<float>(Barrier.GetInitialDistanceTension());
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
+	Rename(*Name);
 
 	if (Barrier.GetNumNodes() > 0)
 	{
@@ -193,6 +289,47 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier)
 			NodeCenterOfMassOffset = FirstBodyBarrier.GetCenterOfMassOffset();
 			NodePrincipalInertia = MassProperties.GetPrincipalInertia();
 		}
+	}
+
+	if (Context == nullptr || Context->Tracks == nullptr || Context->ShapeMaterials == nullptr ||
+		Context->TrackProperties == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Tracks->Contains(ImportGuid));
+	Context->Tracks->Add(ImportGuid, this);
+
+	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
+	TrackProperties = GetOrCreateTrackProperties(Barrier, *Context);
+	InternalMergeProperties = GetOrCreateMergeProperties(Barrier, *Context);
+
+	// Wheels.
+	auto SetRigidBody = [&](UAGX_RigidBodyComponent* Body, FAGX_RigidBodyReference& BodyRef)
+	{
+		if (Body == nullptr)
+			return;
+
+		BodyRef.Name = Body->GetFName();
+	};
+
+	for (const FTrackWheelBarrier& WheelBarrier : Barrier.GetWheels())
+	{
+		FAGX_TrackWheel Wheel;
+		auto WheelBodyBarrier = WheelBarrier.GetRigidBody();
+		if (WheelBodyBarrier.HasNative())
+		{
+			UAGX_RigidBodyComponent* Rb = Context->RigidBodies->FindRef(WheelBodyBarrier.GetGuid());
+			SetRigidBody(Rb, Wheel.RigidBody);
+		}
+
+		Wheel.bUseFrameDefiningComponent = false;
+		Wheel.RelativeLocation = WheelBarrier.GetRelativeLocation();
+		Wheel.RelativeRotation = WheelBarrier.GetRelativeRotation();
+		Wheel.Radius = static_cast<float>(WheelBarrier.GetRadius());
+		Wheel.Model = WheelBarrier.GetModel();
+		Wheel.bSplitSegments = WheelBarrier.GetSplitSegments();
+		Wheel.bMoveNodesToRotationPlane = WheelBarrier.GetMoveNodesToRotationPlane();
+		Wheel.bMoveNodesToWheel = WheelBarrier.GetMoveNodesToWheel();
+		Wheels.Add(Wheel);
 	}
 }
 
@@ -597,7 +734,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, ShapeMaterial),
-		[](ThisClass* Self) { Self->UpdateNativeMaterial(); });
+		[](ThisClass* Self) { Self->UpdateNativeShapeMaterial(); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackProperties),
@@ -757,37 +894,6 @@ void UAGX_TrackComponent::CreateNative()
 	UpdateNativeProperties();
 }
 
-void UAGX_TrackComponent::UpdateNativeMaterial()
-{
-	if (!HasNative() || !GetWorld() || !GetWorld()->IsGameWorld())
-	{
-		return;
-	}
-
-	if (ShapeMaterial == nullptr)
-	{
-		GetNative()->ClearMaterial();
-		return;
-	}
-
-	// Create instance if necessary.
-	UAGX_ShapeMaterial* MaterialInstance =
-		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
-	check(MaterialInstance);
-	// Replace asset reference with instance reference.
-	if (ShapeMaterial != MaterialInstance)
-	{
-		ShapeMaterial = MaterialInstance;
-	}
-
-	const FShapeMaterialBarrier* MaterialBarrier =
-		MaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
-	check(MaterialBarrier);
-
-	// Assign native.
-	GetNative()->SetMaterial(*MaterialBarrier);
-}
-
 void UAGX_TrackComponent::WriteTrackPropertiesToNative()
 {
 	if (!HasNative() || GetWorld() == nullptr || !GetWorld()->IsGameWorld())
@@ -943,7 +1049,7 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	NativeBarrier.SetName(GetName());
 
 	// Set shape material on all native geometries.
-	UpdateNativeMaterial();
+	UpdateNativeShapeMaterial();
 
 	// Set track properties.
 	WriteTrackPropertiesToNative();
@@ -1097,7 +1203,7 @@ bool UAGX_TrackComponent::ComputeNodeTransforms(TArray<FTransform>& OutTransform
 #else
 		OutTransforms.SetNum(Preview->NodeTransforms.Num(), EAllowShrinking::Yes);
 #endif
-		
+
 		for (int i = 0; i < Preview->NodeTransforms.Num(); ++i)
 		{
 			const FVector WorldOffset = Preview->NodeTransforms[i].GetRotation().RotateVector(
@@ -1160,6 +1266,31 @@ void UAGX_TrackComponent::WriteRenderMaterialsToVisualMesh()
 		if (VisualMeshes->GetMaterial(Elem) != RenderMaterials[Elem])
 			VisualMeshes->SetMaterial(Elem, RenderMaterials[Elem]);
 	}
+}
+
+bool UAGX_TrackComponent::UpdateNativeShapeMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (ShapeMaterial == nullptr)
+	{
+		GetNative()->ClearMaterial();
+		return true;
+	}
+
+	UAGX_ShapeMaterial* Instance =
+		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(GetWorld()));
+	check(Instance);
+
+	if (ShapeMaterial != Instance)
+		ShapeMaterial = Instance;
+
+	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(GetWorld());
+	check(MaterialBarrier);
+
+	GetNative()->SetMaterial(*MaterialBarrier);
+	return true;
 }
 
 #if WITH_EDITOR
@@ -1225,7 +1356,7 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 				"changes. It is recommended to make a copy and place the "
 				"material within the project Contents, that way the behavior will be the same "
 				"on any computer opening this project.";
-			FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(Message);
+			FAGX_NotificationUtilities::ShowDialogBoxWithInfo(Message);
 
 			// Clear the material selection.
 			for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*this))

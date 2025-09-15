@@ -16,6 +16,7 @@
 
 class UAGX_ContactMaterialRegistrarComponent;
 class UAGX_ShapeMaterial;
+struct FAGX_ImportContext;
 
 /**
  * Defines material properties for contacts between Shapes with specific Shape Materials. This
@@ -47,6 +48,9 @@ class AGXUNREAL_API UAGX_ContactMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_ContactMaterial& Other) const;
+
 	/**
 	 * First material.
 	 */
@@ -451,7 +455,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -462,7 +466,7 @@ public:
 	virtual ~UAGX_ContactMaterial() = default;
 
 	void CopyFrom(const UAGX_ContactMaterial* Source);
-	void CopyFrom(const FContactMaterialBarrier& Source);
+	void CopyFrom(const FContactMaterialBarrier& Source, FAGX_ImportContext* Context);
 
 	/**
 	 * Create the Play instance for the given Source Contact Material, which should be an asset.
@@ -522,7 +526,6 @@ public:
 	// ~End UObject interface.
 
 public: // Deprecated functions.
-
 	// clang-format off
 
 	UFUNCTION(

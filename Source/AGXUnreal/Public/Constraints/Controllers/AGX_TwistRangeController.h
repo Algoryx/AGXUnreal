@@ -71,9 +71,7 @@ public: // Native management.
 	 * @param ArchetypeInstances Template instances to update.
 	 * @param bForceOverwriteInstances Whether to also update instances with edited values.
 	 */
-	void CopyFrom(
-		const FTwistRangeControllerBarrier& Source,
-		TArray<FAGX_TwistRangeController*>& ArchetypeInstances, bool bForceOverwriteInstances);
+	void CopyFrom(const FTwistRangeControllerBarrier& Source);
 
 public: // Member function overrides.
 	//~ Begin FAGX_ElementaryConstraint interface.

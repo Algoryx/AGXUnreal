@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_ShapeUtilities.h"
@@ -208,13 +209,14 @@ void UAGX_CylinderShapeComponent::EndPlay(const EEndPlayReason::Type Reason)
 }
 
 void UAGX_CylinderShapeComponent::CopyFrom(
-	const FCylinderShapeBarrier& Barrier, bool ForceOverwriteInstances)
+	const FShapeBarrier& ShapeBarrier, FAGX_ImportContext* Context)
 {
-	Super::CopyFrom(Barrier, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(Height, Barrier.GetHeight(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(Radius, Barrier.GetRadius(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(bPulley, Barrier.GetPulleyProperty(), *this, ForceOverwriteInstances)
-	AGX_COPY_PROPERTY_FROM(bGypsy, Barrier.GetGypsyProperty(), *this, ForceOverwriteInstances)
+	Super::CopyFrom(ShapeBarrier, Context);
+	const auto Barrier = static_cast<const FCylinderShapeBarrier*>(&ShapeBarrier);
+	Height = Barrier->GetHeight();
+	Radius = Barrier->GetRadius();
+	bPulley = Barrier->GetPulleyProperty();
+	bGypsy = Barrier->GetGypsyProperty();
 }
 
 void UAGX_CylinderShapeComponent::CreateVisualMesh(FAGX_SimpleMeshData& OutMeshData)

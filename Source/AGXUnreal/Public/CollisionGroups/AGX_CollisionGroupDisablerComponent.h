@@ -11,6 +11,8 @@
 
 #include "AGX_CollisionGroupDisablerComponent.generated.h"
 
+struct FAGX_ImportContext;
+
 /**
  * From the Collision Group Disabler Component's detail panel, it is possible to disable
  * collision between AGX Shape Components in the world with a specific collision group
@@ -70,6 +72,8 @@ public:
 
 	bool IsCollisionGroupPairDisabled(
 		const FName& CollisionGroup1, const FName& CollisionGroup2) const;
+
+	void CopyFrom(const TArray<std::pair<FString, FString>>& Groups, FAGX_ImportContext* Context);
 
 protected:
 	virtual void BeginPlay() override;

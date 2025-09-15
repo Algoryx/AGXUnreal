@@ -35,6 +35,7 @@
 #include "RenderingThread.h"
 #include "RenderResource.h"
 #include "SceneInterface.h"
+#include "SceneView.h"
 #include "StaticMeshResources.h"
 #include "UObject/ConstructorHelpers.h"
 #include "VertexFactory.h"

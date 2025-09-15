@@ -6,7 +6,13 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Constraints/AGX_ConstraintComponent.h"
+#include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
+
+// Unreal Engine includes.
+#include "UObject/Package.h"
 
 void FAGX_ConstraintMergeSplitProperties::OnBeginPlay(UAGX_ConstraintComponent& Owner)
 {
@@ -137,4 +143,35 @@ void FAGX_ConstraintMergeSplitProperties::UpdateNativeThresholds()
 UAGX_MergeSplitThresholdsBase* FAGX_ConstraintMergeSplitProperties::GetThresholds()
 {
 	return Thresholds;
+}
+
+void FAGX_ConstraintMergeSplitProperties::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || Context->MSThresholds == nullptr)
+		return;
+
+	// Get or create Merge Split Threashold from Context.
+	FConstraintMergeSplitThresholdsBarrier ThresholdsBarrier =
+		Barrier.GetConstraintMergeSplitThresholds();
+	if (!ThresholdsBarrier.HasNative())
+		return;
+
+	const auto MSTGuid = ThresholdsBarrier.GetGuid();
+	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	{
+		Thresholds = Cast<UAGX_ConstraintMergeSplitThresholds>(MST);
+		return;
+	}
+
+	Thresholds = NewObject<UAGX_ConstraintMergeSplitThresholds>(
+		Context->Outer, NAME_None, RF_Public | RF_Standalone);
+	FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Thresholds, Context->SessionGuid);
+	const FString THName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_CMST_%s"), *MSTGuid.ToString()), nullptr);
+	Thresholds->Rename(*THName);
+	Thresholds->CopyFrom(ThresholdsBarrier);
+	Context->MSThresholds->Add(MSTGuid, Thresholds);
 }

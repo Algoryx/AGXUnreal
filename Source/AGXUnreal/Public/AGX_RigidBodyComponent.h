@@ -18,6 +18,8 @@
 
 class UAGX_ShapeComponent;
 
+struct FAGX_ImportContext;
+
 UCLASS(
 	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
@@ -98,7 +100,11 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
 	bool IsEnabled() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Dynamics",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	/**
@@ -479,7 +485,7 @@ public:
 #endif
 	// ~End UObject interface.
 
-	void CopyFrom(const FRigidBodyBarrier& Barrier, bool ForceOverwriteInstances);
+	void CopyFrom(const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context);
 
 	static TArray<UAGX_RigidBodyComponent*> GetFromActor(const AActor* Actor);
 	static UAGX_RigidBodyComponent* GetFirstFromActor(const AActor* Actor);
@@ -510,8 +516,15 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
+
+	/*
+	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	FString ImportName;
 
 private: // Deprecated functions.
 

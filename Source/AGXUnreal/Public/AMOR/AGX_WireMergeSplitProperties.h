@@ -15,6 +15,7 @@
 
 class FWireBarrier;
 class UAGX_WireComponent;
+struct FAGX_ImportContext;
 
 /*
  * Defines the AMOR (merge split) properties for Wires. For this to take affect, AMOR has to
@@ -58,6 +59,9 @@ public:
 	void BindBarrierToOwner(FWireBarrier& NewOwner);
 
 	virtual UAGX_MergeSplitThresholdsBase* GetThresholds() override;
+
+	virtual void CopyFrom(
+		const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 private:
 	void UpdateNativeProperties();

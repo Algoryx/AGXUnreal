@@ -17,36 +17,48 @@ public:
 	 * Displays a dialog box with an OK button and adds a log message with the text. If a title is
 	 * not specified, 'AGX Dynamics for Unreal' is used.
 	 */
-	static void ShowDialogBoxWithLogLog(const FString& Text, const FString& Title = "");
+	static void ShowDialogBoxWithSuccess(const FString& Text, const FString& Title = "");
 
 	/**
-	 * Same as ShowDialogBoxWithLogLog but does not show a message box during Play.
+	 * Same as ShowDialogBoxWithSuccess but does not show a message box during Play.
 	 */
-	static void ShowDialogBoxWithLogLogInEditor(
+	static void ShowDialogBoxWithSuccessInEditor(
+		const FString& Text, UWorld* World, const FString& Title = "");
+
+	/**
+	 * Displays a dialog box with an OK button and adds a log message with the text. If a title is
+	 * not specified, 'AGX Dynamics for Unreal' is used.
+	 */
+	static void ShowDialogBoxWithInfo(const FString& Text, const FString& Title = "");
+
+	/**
+	 * Same as ShowDialogBoxWithInfo but does not show a message box during Play.
+	 */
+	static void ShowDialogBoxWithInfoInEditor(
 		const FString& Text, UWorld* World, const FString& Title = "");
 
 	/**
 	 * Displays a dialog box with an OK button and adds a warning log message with the text. If a
 	 * title is not specified, 'AGX Dynamics for Unreal' is used.
 	 */
-	static void ShowDialogBoxWithWarningLog(const FString& Text, const FString& Title = "");
+	static void ShowDialogBoxWithWarning(const FString& Text, const FString& Title = "");
 
 	/**
-	 * Same as ShowDialogBoxWithWarningLog but does not show a message box during Play.
+	 * Same as ShowDialogBoxWithWarning but does not show a message box during Play.
 	 */
-	static void ShowDialogBoxWithWarningLogInEditor(
+	static void ShowDialogBoxWithWarningInEditor(
 		const FString& Text, UWorld* World, const FString& Title = "");
 
 	/**
 	 * Displays a dialog box with an OK button and add an error log message with the text. If a
 	 * title is not specified, 'AGX Dynamics for Unreal' is used.
 	 */
-	static void ShowDialogBoxWithErrorLog(const FString& Text, const FString& Title = "");
+	static void ShowDialogBoxWithError(const FString& Text, const FString& Title = "");
 
 	/**
-	 * Same as ShowDialogBoxWithErrorLog but does not show a message box during Play.
+	 * Same as ShowDialogBoxWithError but does not show a message box during Play.
 	 */
-	static void ShowDialogBoxWithErrorLogInEditor(
+	static void ShowDialogBoxWithErrorInEditor(
 		const FString& Text, UWorld* World, const FString& Title = "");
 
 	/**
@@ -66,7 +78,7 @@ public:
 	 * bottom when they time out.
 	 * The State parameter can be used to indicate success or failure etc.
 	 * The Duration parameter determines for how many seconds the Notificaion will be visible.
-	 * A Console Log is always printed with the same Text, as 'Error' if the State is set to
+	 * A Output Log is always printed with the same Text, as 'Error' if the State is set to
 	 * Failure, as 'Log' otherwise.
 	 */
 	static void ShowNotification(

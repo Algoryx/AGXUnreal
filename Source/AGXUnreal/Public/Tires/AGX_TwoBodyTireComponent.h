@@ -13,6 +13,7 @@
 #include "AGX_TwoBodyTireComponent.generated.h"
 
 class FTwoBodyTireBarrier;
+struct FAGX_ImportContext;
 
 /**
  * TwoBodyTire is a tire model that uses two Rigid Bodies, a tire Rigid Body and a hub Rigid Body.
@@ -133,7 +134,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/**
@@ -152,9 +153,7 @@ public:
 	 */
 	FTransform GetGlobalTireTransform() const;
 
-	// Does not set references to hub/tire Rigid Bodies. This must be done by the caller of this
-	// function.
-	void CopyFrom(const FTwoBodyTireBarrier& Barrier, bool ForceOverwriteInstances = false);
+	void CopyFrom(const FTwoBodyTireBarrier& Barrier, FAGX_ImportContext* Context);
 
 	bool IsDefaultSubObjectOfTwoBodyTireActor() const;
 

@@ -41,15 +41,6 @@ public:
 	/// Get the native AGX Dynamics representation of this HeightField. May return nullptr.
 	FHeightFieldShapeBarrier* GetNativeHeightField();
 
-	/**
-	 * Copy properties from the given AGX Dynamics Height Field into this component.
-	 * Will only copy properties inherited from UAGX_ShapeComponent, no changes to the Landscape
-	 * will be performed.
-	 *
-	 * @param Barrier The AGX Dynamics Height Field to copy from.
-	 */
-	void CopyFrom(const FHeightFieldShapeBarrier& Barrier, bool ForceOverwriteInstances = false);
-
 	virtual void DestroyComponent(bool bPromoteChildren) override;
 
 protected:

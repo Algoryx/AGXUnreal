@@ -15,6 +15,7 @@
 #include <tuple>
 
 struct FGeometryAndShapeRef;
+class FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 
 class FRenderDataBarrier;
@@ -84,11 +85,6 @@ public:
 
 	void ClearMaterial();
 	void SetMaterial(const FShapeMaterialBarrier& Material);
-
-	/// \todo Should GetMaterial() create a new FShapeMaterialBarrier, or get an existing somehow?
-	/// If it creates a new FShapeMaterialBarrier we should implement comparison operators etc since
-	/// multiple FShapeMaterialBarrier that points to the same native object should be logically
-	/// seen as same object (similar to smart pointers).
 	FShapeMaterialBarrier GetMaterial() const;
 
 	void SetEnableCollisions(bool CanCollide);
@@ -103,6 +99,9 @@ public:
 
 	FGuid GetShapeGuid() const;
 	FGuid GetGeometryGuid() const;
+
+	/** Returns the Shape GUID. */
+	FGuid GetGuid() const;
 
 	/**
 	 * Get all collision groups registered for this Shape.
@@ -144,6 +143,12 @@ public:
 	 * material.
 	 */
 	FAGX_RenderMaterial GetRenderMaterial() const;
+
+	/**
+	 * Return the owning RigidBody if there is one. If none exists, a RigidBodyBarrier without a
+	 * Native is returned.
+	 */
+	FRigidBodyBarrier GetRigidBody() const;
 
 protected:
 	template <typename TFunc, typename... TPack>

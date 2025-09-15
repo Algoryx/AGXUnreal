@@ -42,6 +42,8 @@ class AGXUNREAL_API UAGX_TerrainMaterial : public UObject
 public:
 	GENERATED_BODY()
 
+	bool operator==(const UAGX_TerrainMaterial& Other) const;
+
 	// Terrain Bulk properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material")
@@ -259,6 +261,12 @@ public:
 	double GetDepthIncreaseFactor() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
+	void SetDepthAngleThreshold(double DepthAngleThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
+	double GetDepthAngleThreshold() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
 	void SetMaximumAggregateNormalForce(double MaximumAggregateNormalForce);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
@@ -270,14 +278,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
 	double GetMaximumContactDepth() const;
 
-	/**
-	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
-	 * Should never be assigned manually.
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
-	FGuid ImportGuid;
-
 	virtual void Serialize(FArchive& Archive) override;
+
+	void CopyFrom(const FTerrainMaterialBarrier& Source);
 
 	FTerrainMaterialBarrier* GetOrCreateTerrainMaterialNative(UWorld* PlayingWorld);
 	FTerrainMaterialBarrier* GetTerrainMaterialNative();
@@ -288,7 +291,6 @@ public:
 
 	void CopyTerrainMaterialProperties(const UAGX_TerrainMaterial* Source);
 	void UpdateTerrainMaterialNativeProperties();
-	void CopyFrom(const FTerrainMaterialBarrier& Source);
 
 	bool IsInstance() const;
 

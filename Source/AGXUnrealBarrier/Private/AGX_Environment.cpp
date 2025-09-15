@@ -14,6 +14,9 @@
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
+// OpenPLX includes.
+#include "openplx/OpenPlxCoreApi.h"
+
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
 #include "GenericPlatform/GenericPlatformProcess.h"
@@ -510,6 +513,11 @@ void FAGX_Environment::GetAGXDynamicsVersion(
 	OutMajor = AGX_MAJOR_VERSION;
 	OutMinor = AGX_MINOR_VERSION;
 	OutPatch = AGX_PATCH_VERSION;
+}
+
+FString FAGX_Environment::GetOpenPLXVersion()
+{
+	return Convert(openplx::Core::Api::getOpenPlxCoreVersion());
 }
 
 bool FAGX_Environment::IsAGXDynamicsVersionNewerOrEqualTo(

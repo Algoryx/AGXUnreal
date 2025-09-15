@@ -14,8 +14,7 @@ UAGX_HingeConstraintComponent::UAGX_HingeConstraintComponent()
 	: UAGX_Constraint1DofComponent(
 		  {EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2,
 		   EDofFlag::DofFlagTranslational3, EDofFlag::DofFlagRotational1,
-		   EDofFlag::DofFlagRotational2},
-		  /*bbIsSecondaryConstraintRotational*/ true)
+		   EDofFlag::DofFlagRotational2})
 {
 	NativeBarrier.Reset(new FHingeBarrier());
 }
