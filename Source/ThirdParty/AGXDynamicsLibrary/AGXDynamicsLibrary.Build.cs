@@ -537,14 +537,13 @@ public class AGXDynamicsLibrary : ModuleRules
 			if (!DownloadFile(Url, TempZipPath))
 				return false;
 
-			if (!File.Exists(TempZipPath))
-				return false;
-
 			// On Linux, we might get an almost empty zip file even if the url is broken, so we check
 			// the file size as well.
-			FileInfo FileInfo = new FileInfo(TempZipPath);
-			if (FileInfo.Length < 1e6)
+			if (!File.Exists(TempZipPath) || new FileInfo(TempZipPath).Length < 1e6)
+			{
+				Console.WriteLine($"Could not find zip file gilven URL: {TempZipPath}");
 				return false;
+			}
 
 			Console.WriteLine($"Extracting {TempZipPath} to {ThirdPartyDir}...");
 
