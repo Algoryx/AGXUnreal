@@ -631,8 +631,8 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
-				string Args = $"-L \"{Url}\" -o \"{DestinationPath}\"";
-				Success = RunProcess("curl", Args);
+				string Args = $"\"{Url}\" -O \"{DestinationPath}\"";
+				Success = RunProcess("wget", Args);
 			}
 
 			if (!Success)
