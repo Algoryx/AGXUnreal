@@ -232,6 +232,8 @@ public:
 	virtual FShapeBarrier* GetOrCreateNative()
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetOrCreateNative, return nullptr;);
 
+	static FString GetRenderMeshComponentNamePrefix();
+
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
