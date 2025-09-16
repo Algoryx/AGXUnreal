@@ -102,9 +102,7 @@ public:
 
 	UFUNCTION(
 		BlueprintCallable, BlueprintPure, Category = "AGX Dynamics",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage = "Use IsEnabled instead."))
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	/**
@@ -190,7 +188,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
 	double CalculateMass() const;
-
 
 	/**
 	 * The three-component diagonal of the inertia tensor [kgm^2].
@@ -470,6 +467,11 @@ public:
 	/// Return the native AGX Dynamics representation of this rigid body. May return nullptr.
 	FRigidBodyBarrier* GetNative();
 
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Rigid Body",
+		Meta = (DisplayName = "Get Native"))
+	FRigidBodyBarrier& GetNativeByRef();
+
 	const FRigidBodyBarrier* GetNative() const;
 
 	// ~Begin IAGX_NativeOwner interface.
@@ -527,7 +529,6 @@ public:
 	FString ImportName;
 
 private: // Deprecated functions.
-
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Dynamics",
 		Meta =
@@ -536,7 +537,6 @@ private: // Deprecated functions.
 	float CalculateMass_BP() const;
 
 private:
-
 #if WITH_EDITOR
 	// Fill in a bunch of callbacks in PropertyDispatcher so we don't have to manually check each
 	// and every UPROPERTY in PostEditChangeProperty and PostEditChangeChainProperty.

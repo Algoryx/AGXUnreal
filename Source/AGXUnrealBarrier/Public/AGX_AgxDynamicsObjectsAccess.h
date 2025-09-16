@@ -75,7 +75,7 @@ class FLockJointBarrier;
 class FSingleControllerConstraint1DOFBarrier;
 class FMassPropertiesBarrier;
 class FPrismaticBarrier;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 
 // Namespace agxCollide.

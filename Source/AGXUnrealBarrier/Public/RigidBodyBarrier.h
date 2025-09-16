@@ -15,6 +15,8 @@
 // Standard library includes.
 #include <memory>
 
+#include "RigidBodyBarrier.generated.h"
+
 struct FRigidBodyRef;
 
 class FAnyShapeBarrier;
@@ -35,13 +37,13 @@ class FTrimeshShapeBarrier;
  * This class handles all translation between Unreal Engine types and
  * AGX Dynamics types, such as back and forth between FVector and agx::Vec3.
  */
-class AGXUNREALBARRIER_API FRigidBodyBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FRigidBodyBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FRigidBodyBarrier();
-	FRigidBodyBarrier(std::unique_ptr<FRigidBodyRef> Native);
-	FRigidBodyBarrier(FRigidBodyBarrier&& Other);
-	~FRigidBodyBarrier();
+	FRigidBodyBarrier(std::shared_ptr<FRigidBodyRef> Native);
 
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
@@ -125,10 +127,6 @@ public:
 	TArray<FTrimeshShapeBarrier> GetTrimeshShapes() const;
 
 private:
-	FRigidBodyBarrier(const FRigidBodyBarrier&) = delete;
-	void operator=(const FRigidBodyBarrier&) = delete;
-
-private:
-	std::unique_ptr<FRigidBodyRef> NativeRef;
+	std::shared_ptr<FRigidBodyRef> NativeRef;
 	FMassPropertiesBarrier MassProperties;
 };

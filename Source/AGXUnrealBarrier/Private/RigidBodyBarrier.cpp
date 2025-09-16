@@ -31,27 +31,11 @@ FRigidBodyBarrier::FRigidBodyBarrier()
 {
 }
 
-FRigidBodyBarrier::FRigidBodyBarrier(std::unique_ptr<FRigidBodyRef> Native)
+FRigidBodyBarrier::FRigidBodyBarrier(std::shared_ptr<FRigidBodyRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
 	MassProperties.BindTo(*NativeRef);
-}
-
-FRigidBodyBarrier::FRigidBodyBarrier(FRigidBodyBarrier&& Other)
-	: NativeRef {std::move(Other.NativeRef)}
-{
-	Other.NativeRef.reset(new FRigidBodyRef);
-	Other.MassProperties.BindTo(*Other.NativeRef);
-
-	MassProperties.BindTo(*NativeRef);
-}
-
-FRigidBodyBarrier::~FRigidBodyBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FRigidBodyRef.
 }
 
 void FRigidBodyBarrier::SetEnabled(bool Enabled)

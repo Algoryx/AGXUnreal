@@ -11,7 +11,7 @@
 // Standard library includes.
 #include <memory>
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;
 class FTerrainHeightFetcherBase;

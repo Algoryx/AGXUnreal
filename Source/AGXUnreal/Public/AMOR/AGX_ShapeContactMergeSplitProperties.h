@@ -13,8 +13,8 @@
 
 #include "AGX_ShapeContactMergeSplitProperties.generated.h"
 
-class FRigidBodyBarrier;
 class FShapeBarrier;
+struct FRigidBodyBarrier;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeComponent;
 

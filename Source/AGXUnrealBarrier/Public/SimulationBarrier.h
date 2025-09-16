@@ -17,7 +17,7 @@
 
 struct FSimulationRef;
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
 class FShapeBarrier;

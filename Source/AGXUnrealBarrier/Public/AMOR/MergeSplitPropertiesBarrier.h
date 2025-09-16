@@ -14,8 +14,8 @@
 #include <memory>
 
 class FConstraintBarrier;
-class FRigidBodyBarrier;
 class FShapeBarrier;
+struct FRigidBodyBarrier;
 class FWireBarrier;
 
 struct FMergeSplitPropertiesPtr;
