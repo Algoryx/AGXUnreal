@@ -27,6 +27,7 @@ class FMassPropertiesBarrier;
 class FShapeBarrier;
 class FSphereShapeBarrier;
 class FTrimeshShapeBarrier;
+struct FMergeSplitPropertiesBarrier;
 
 /**
  * Barrier between UAGX_RigidBody and agx::RigidBody. UAGX_RigidBody holds an
@@ -99,6 +100,8 @@ struct AGXUNREALBARRIER_API FRigidBodyBarrier
 	void AddTorqueWorld(const FVector& Torque);
 	void AddTorqueLocal(const FVector& Torque);
 	FVector GetTorque() const;
+
+	FMergeSplitPropertiesBarrier GetMergeSplitProperties() const;
 
 	bool IsAutomaticallyMerged();
 	bool Split();

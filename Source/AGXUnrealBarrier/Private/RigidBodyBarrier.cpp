@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
+#include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
@@ -275,6 +276,13 @@ FVector FRigidBodyBarrier::GetTorque() const
 	check(HasNative());
 	const agx::Vec3 TorqueAGX = NativeRef->Native->getTorque();
 	return ConvertTorque(TorqueAGX);
+}
+
+FMergeSplitPropertiesBarrier FRigidBodyBarrier::GetMergeSplitProperties() const
+{
+	check(HasNative());
+	agxSDK::MergeSplitProperties* Properties = agxSDK::MergeSplitHandler::getProperties(NativeRef->Native.get());
+	return FMergeSplitPropertiesBarrier(std::make_shared<FMergeSplitPropertiesPtr>(Properties));
 }
 
 bool FRigidBodyBarrier::IsAutomaticallyMerged()

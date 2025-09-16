@@ -89,7 +89,7 @@ class FTireBarrier;
 class FTwoBodyTireBarrier;
 
 // Namespace agxSDK.
-class FMergeSplitPropertiesBarrier;
+struct FMergeSplitPropertiesBarrier;
 class FMergeSplitThresholdsBarrier;
 class FSimulationBarrier;
 

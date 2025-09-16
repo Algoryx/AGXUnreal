@@ -13,20 +13,22 @@
 // Standard library includes
 #include <memory>
 
+#include "MergeSplitPropertiesBarrier.generated.h"
+
 class FConstraintBarrier;
-class FShapeBarrier;
 struct FRigidBodyBarrier;
+struct FShapeBarrier;
 class FWireBarrier;
 
 struct FMergeSplitPropertiesPtr;
 
-class AGXUNREALBARRIER_API FMergeSplitPropertiesBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FMergeSplitPropertiesBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FMergeSplitPropertiesBarrier();
-	FMergeSplitPropertiesBarrier(std::unique_ptr<FMergeSplitPropertiesPtr>&& Native);
-	FMergeSplitPropertiesBarrier(FMergeSplitPropertiesBarrier&& Other) noexcept;
-	~FMergeSplitPropertiesBarrier();
+	FMergeSplitPropertiesBarrier(std::shared_ptr<FMergeSplitPropertiesPtr> Native);
 
 	bool HasNative() const;
 	FMergeSplitPropertiesPtr* GetNative();
@@ -68,7 +70,5 @@ private:
 	template <typename T>
 	void BindToNewOwnerImpl(T& NewOwner);
 
-	FMergeSplitPropertiesBarrier& operator=(const FMergeSplitPropertiesBarrier& Other) = delete;
-
-	std::unique_ptr<FMergeSplitPropertiesPtr> NativePtr;
+	std::shared_ptr<FMergeSplitPropertiesPtr> NativePtr;
 };
