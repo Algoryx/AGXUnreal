@@ -35,7 +35,7 @@
 class AStaticMeshActor;
 class FDynamicMeshIndexBuffer32;
 class FRenderDataBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class UMaterial;
 class UMaterialInterface;
 class UStaticMesh;

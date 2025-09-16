@@ -81,7 +81,7 @@ class FShapeMaterialBarrier;
 // Namespace agxCollide.
 class FContactPointBarrier;
 class FRenderDataBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class FShapeContactBarrier;
 
 // Namespace agxModel.

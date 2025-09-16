@@ -8,8 +8,8 @@
 // Standard library includes.
 #include <memory>
 
-class FShapeBarrier;
 struct FRigidBodyBarrier;
+struct FShapeBarrier;
 class FWireBarrier;
 struct FWireControllerPtr;
 

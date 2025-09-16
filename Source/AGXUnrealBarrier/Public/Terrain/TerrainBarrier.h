@@ -16,7 +16,7 @@
 
 struct FTerrainRef;
 
-class FHeightFieldShapeBarrier;
+struct FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;

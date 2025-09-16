@@ -19,14 +19,14 @@
 
 struct FRigidBodyRef;
 
-class FAnyShapeBarrier;
-class FBoxShapeBarrier;
-class FCapsuleShapeBarrier;
-class FCylinderShapeBarrier;
+struct FAnyShapeBarrier;
+struct FBoxShapeBarrier;
+struct FCapsuleShapeBarrier;
+struct FCylinderShapeBarrier;
 class FMassPropertiesBarrier;
-class FShapeBarrier;
-class FSphereShapeBarrier;
-class FTrimeshShapeBarrier;
+struct FShapeBarrier;
+struct FSphereShapeBarrier;
+struct FTrimeshShapeBarrier;
 struct FMergeSplitPropertiesBarrier;
 
 /**
