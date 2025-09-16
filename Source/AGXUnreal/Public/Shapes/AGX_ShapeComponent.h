@@ -10,10 +10,8 @@
 #include "Contacts/AGX_ShapeContact.h"
 #include "Shapes/AGX_ShapeEnums.h"
 #include "Shapes/ShapeBarrier.h"
-#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
-#include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 
@@ -174,6 +172,9 @@ public:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UAGX_RigidBodyComponent* GetRigidBody() const;
 
 	/**
 	 * Get all shape contacts for this shape.
@@ -369,8 +370,7 @@ void UAGX_ShapeComponent::UpdateNativeLocalTransform(TNative& Native)
 	// Component then the Shape is free-floating and the native's frame hierarchy does not have any
 	// parent, i.e. the local transform is the same as the global transform. This assumption will
 	// not hold once we start supporting AGX Dynamics' Assembly.
-	UAGX_RigidBodyComponent* Body =
-		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+	UAGX_RigidBodyComponent* Body = GetRigidBody();
 	if (Body != nullptr)
 	{
 		const FTransform& BodyTransform = Body->GetComponentTransform();
