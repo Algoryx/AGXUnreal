@@ -3,7 +3,7 @@
 #include "Shapes/RenderDataBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 #include "Shapes/RenderMaterial.h"
 #include "TypeConversions.h"
 

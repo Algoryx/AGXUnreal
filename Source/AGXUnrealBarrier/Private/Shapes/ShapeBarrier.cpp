@@ -10,7 +10,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/RenderDataBarrier.h"
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
