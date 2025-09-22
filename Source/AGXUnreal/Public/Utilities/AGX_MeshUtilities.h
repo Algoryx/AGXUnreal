@@ -350,7 +350,7 @@ public:
 	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
 	 */
 	static UStaticMesh* CreateStaticMesh(
-		const TArray<FVector3f>& Vertices, const TArray<uint32>& Triangles,
+		const TArray<FVector3f>& Positions, const TArray<uint32>& Triangles,
 		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
 		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
 		UMaterialInterface* Material);
