@@ -8,6 +8,7 @@
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
+#include "Shapes/TrimeshShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -2077,10 +2078,13 @@ namespace AGX_MeshUtilities_helpers
 	enum class ERenderDataLayout
 	{
 		// Normals, UVs, and tangents are all stored per-vertex.
-		Vertex_N_U_T__Triangle,
+		Vertex_N_U_T__Triangle__Index,
 
 		// Tangents are stored per-vertex; normals are stored per triangle, no tangents.
-		Vertex_T_Triangle_N,
+		Vertex_T_Triangle_N__Index,
+
+		// UVs and tangents are stored per-vertex; normals are stored per index.
+		Vertex_U_T__Triangle__Index_N,
 
 		Unknown
 	};
@@ -2098,10 +2102,49 @@ namespace AGX_MeshUtilities_helpers
 		const int32 Tri = I / 3;
 
 		if (N == P && U == P && T == P)
-			return ERenderDataLayout::Vertex_N_U_T__Triangle;
+			return ERenderDataLayout::Vertex_N_U_T__Triangle__Index;
 		if (N == Tri && U == 0 && T == P)
-			return ERenderDataLayout::Vertex_T_Triangle_N;
+			return ERenderDataLayout::Vertex_T_Triangle_N__Index;
+		if (N == I && U == P && T == P)
+			return ERenderDataLayout::Vertex_U_T__Triangle__Index_N;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot create static mesh because the given mesh data doesn't match any "
+				 "recognized layout."));
+		UE_LOG(LogAGX, Warning, TEXT("- Num positions: %d"), Positions.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num indices: %d"), Indices.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), Normals.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num UVs: %d"), UVs.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num tangents: %d"), Tangents.Num());
+
 		return ERenderDataLayout::Unknown;
+	}
+
+	bool VerifyAttributeNums(
+		const TArray<FVector3f>& Normals, int32 ExpectedNumNormals, const TArray<FVector2D>& UVs,
+		int32 ExpectedNumUVs, const TArray<FVector3f>& Tangents, int32 ExpectedNumTangents)
+	{
+		// clang-format off
+		bool bAllOK =    Normals.Num()  == ExpectedNumNormals
+		              && UVs.Num()      == ExpectedNumUVs
+		              && Tangents.Num() == ExpectedNumTangents;
+		// clang-format on
+		if (!bAllOK)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("While creating Static Mesh: Got incorrect vertex attributes."));
+			UE_LOG(
+				LogAGX, Warning, TEXT("Normals.Num() should be %d  is %d."), ExpectedNumNormals,
+				Normals.Num());
+			UE_LOG(
+				LogAGX, Warning, TEXT("UVs.Num() should be %d, is %d."), ExpectedNumUVs, UVs.Num());
+			UE_LOG(
+				LogAGX, Warning, TEXT("Tangents.Num() should be %d, is %d."), ExpectedNumTangents,
+				Tangents.Num());
+		}
+		return bAllOK;
 	}
 
 	void CopyPositions(
@@ -2137,7 +2180,7 @@ namespace AGX_MeshUtilities_helpers
 	 * - Tangents: Per vertex.
 	 */
 	template <>
-	bool CopyAttributes<ERenderDataLayout::Vertex_N_U_T__Triangle>(
+	bool CopyAttributes<ERenderDataLayout::Vertex_N_U_T__Triangle__Index>(
 		FMeshDescription& MeshDescription, FStaticMeshAttributes& Attributes,
 		TMap<int32, FVertexID>& VertexIDMap, const TArray<FVector3f>& Positions,
 		const TArray<uint32>& Indices, const TArray<FVector3f>& Normals,
@@ -2181,7 +2224,7 @@ namespace AGX_MeshUtilities_helpers
 	 * - Tangents: Per vertex.
 	 */
 	template <>
-	bool CopyAttributes<ERenderDataLayout::Vertex_T_Triangle_N>(
+	bool CopyAttributes<ERenderDataLayout::Vertex_T_Triangle_N__Index>(
 		FMeshDescription& MeshDescription, FStaticMeshAttributes& Attributes,
 		TMap<int32, FVertexID>& VertexIDMap, const TArray<FVector3f>& Positions,
 		const TArray<uint32>& Indices, const TArray<FVector3f>& Normals,
@@ -2192,32 +2235,8 @@ namespace AGX_MeshUtilities_helpers
 		const int32 NumInstanceVertices = Indices.Num();
 		const int32 NumTriangles = Indices.Num() / 3;
 
-		// We expect to have the following Render Data vertex data available.
-		// clang-format off
-		if (   Positions.Num() != NumVertices
-			|| Indices.Num() != NumInstanceVertices
-			|| Normals.Num() != NumTriangles
-			|| UVs.Num() != 0
-			|| Tangents.Num() != NumVertices)
-		// clang-format on
+		if (!VerifyAttributeNums(Normals, NumTriangles, UVs, 0, Tangents, NumVertices))
 		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("While creating Static Mesh from Render Data: Got incorrect Render Data "
-					 "vertex attributes."));
-			UE_LOG(
-				LogAGX, Warning, TEXT("Positions.Num() should be %d but is %d."), NumVertices,
-				Positions.Num());
-			UE_LOG(
-				LogAGX, Warning, TEXT("Indices.Num() should be %d but is %d."), NumInstanceVertices,
-				Indices.Num());
-			UE_LOG(
-				LogAGX, Warning, TEXT("Normals.Num() should be %d but is %d."), NumTriangles,
-				Normals.Num());
-			UE_LOG(LogAGX, Warning, TEXT("UVs.Num() should be %d but is %d."), 0, UVs.Num());
-			UE_LOG(
-				LogAGX, Warning, TEXT("Tangents.Num() should be %d but is %d."), NumVertices,
-				Tangents.Num());
 			return false;
 		}
 
@@ -2227,7 +2246,8 @@ namespace AGX_MeshUtilities_helpers
 		{
 			const int32 VertexIndex = Indices[I];
 			const FVertexID VertexID = VertexIDMap[VertexIndex];
-			const FVertexInstanceID VertexInstanceID = MeshDescription.CreateVertexInstance(VertexID);
+			const FVertexInstanceID VertexInstanceID =
+				MeshDescription.CreateVertexInstance(VertexID);
 			AGX_CHECK(VertexInstanceID == I);
 		}
 
@@ -2240,7 +2260,7 @@ namespace AGX_MeshUtilities_helpers
 		if (   NormalsUnreal.Num()  != NumInstanceVertices
 			|| UVsUnreal.Num()      != NumInstanceVertices
 			|| TangentsUnreal.Num() != NumInstanceVertices)
-			// clang-format on
+		// clang-format on
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -2252,7 +2272,6 @@ namespace AGX_MeshUtilities_helpers
 			UE_LOG(LogAGX, Warning, TEXT("- Num tangents: %d"), TangentsUnreal.Num());
 			return false;
 		}
-
 
 		// Create the triangles, copying attribute data from the Render Data arrays into the Mesh
 		// Description's arrays.
@@ -2279,9 +2298,73 @@ namespace AGX_MeshUtilities_helpers
 				// Assign per-vertex-instance data that comes per-vertex in the Render Data.
 				TangentsUnreal[VertexInstanceID] = Tangents[VertexIndex];
 
-				// Assing default values for per-vertex-instance data that isn't available in the
+				// Assign default values for per-vertex-instance data that isn't available in the
 				// Render Data.
 				UVsUnreal[VertexInstanceID] = FVector2f(0.0f, 0.0f);
+			}
+
+			MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Populate the attributes of a Mesh Description from data that has:
+	 * - Normals: Per vertex index, i.e. three per triangle.
+	 * - UVs: Per vertex.
+	 * - Tangents: Per vertex.
+	 */
+	template <>
+	bool CopyAttributes<ERenderDataLayout::Vertex_U_T__Triangle__Index_N>(
+		FMeshDescription& MeshDescription, FStaticMeshAttributes& Attributes,
+		TMap<int32, FVertexID>& VertexIDMap, const TArray<FVector3f>& Positions,
+		const TArray<uint32>& Indices, const TArray<FVector3f>& Normals,
+		const TArray<FVector2D>& UVs, const TArray<FVector3f>& Tangents,
+		FPolygonGroupID PolygonGroupID)
+	{
+		const int32 NumVertices = Positions.Num();
+		const int32 NumInstanceVertices = Indices.Num();
+		const int32 NumTriangles = Indices.Num() / 3;
+
+		if (!VerifyAttributeNums(
+				Normals, NumInstanceVertices, UVs, NumVertices, Tangents, NumVertices))
+		{
+			return false;
+		}
+
+		CopyPositions(MeshDescription, Attributes, VertexIDMap, Positions);
+
+		for (int32 I = 0; I < Indices.Num(); ++I)
+		{
+			const int32 VertexIndex = Indices[I];
+			const FVertexID VertexID = VertexIDMap[VertexIndex];
+			AGX_CHECK(VertexIndex == VertexID);
+			const FVertexInstanceID VertexInstanceID =
+				MeshDescription.CreateVertexInstance(VertexID);
+			AGX_CHECK(VertexInstanceID == I);
+		}
+
+		TArrayView<FVector3f> NormalsUnreal = Attributes.GetVertexInstanceNormals().GetRawArray();
+		TArrayView<FVector2f> UVsUnreal = Attributes.GetVertexInstanceUVs().GetRawArray();
+		TArrayView<FVector3f> TangentsUnreal = Attributes.GetVertexInstanceTangents().GetRawArray();
+
+		TArray<FVertexInstanceID, TInlineAllocator<3>> VertexInstanceIDs;
+		VertexInstanceIDs.SetNum(3);
+		for (int32 TriangleIndex = 0; TriangleIndex < Indices.Num() / 3; ++TriangleIndex)
+		{
+			for (int32 V = 0; V < 3; ++V)
+			{
+				const FVertexInstanceID VertexInstanceID = 3 * TriangleIndex + V;
+				const int32 VertexIndex = Indices[VertexInstanceID];
+				VertexInstanceIDs[V] = VertexInstanceID;
+
+				// Assign per-vertex instance data that is given per vertex index.
+				NormalsUnreal[VertexInstanceID] = Normals[VertexInstanceID];
+
+				// Assign per-vertex instance data that is given per vertex.
+				UVsUnreal[VertexInstanceID] = FVector2f(UVs[VertexIndex]);
+				TangentsUnreal[VertexInstanceID] = Tangents[VertexIndex];
 			}
 
 			MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
@@ -2297,23 +2380,15 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
 	UMaterialInterface* Material)
 {
+	// I've been looking at
+	// https://forums.unrealengine.com/t/dynamically-created-ustaticmesh-buildfrommeshdescriptions-does-not-cast-dynamic-shadow/1145254
+
 	using namespace AGX_MeshUtilities_helpers;
 
 	ERenderDataLayout Layout =
 		DetermineRenderDataLayout(Positions, Indices, Normals, UVs, Tangents);
 	if (Layout == ERenderDataLayout::Unknown)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Cannot create static mesh because the given mesh data doesn't match any "
-				 "recognized layout."));
-		UE_LOG(LogAGX, Warning, TEXT("- Num positions: %d"), Positions.Num());
-		UE_LOG(LogAGX, Warning, TEXT("- Num indices: %d"), Indices.Num());
-		UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), Normals.Num());
-		UE_LOG(LogAGX, Warning, TEXT("- Num UVs: %d"), UVs.Num());
-		UE_LOG(LogAGX, Warning, TEXT("- Num tangents: %d"), Tangents.Num());
 		return nullptr;
-	}
 
 	/*
 	Create a Mesh Description. This is how we communicate the mesh data, i.e. the vertices and
@@ -2340,6 +2415,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
 
 	const int32 NumTriangles = Positions.Num() / 3;
+	// Do we need both of these, or is the triangle one enough?
 	MeshDescription.ReserveNewPolygons(NumTriangles);
 	MeshDescription.ReserveNewTriangles(NumTriangles);
 
@@ -2355,15 +2431,22 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	{
 		switch (Layout)
 		{
-			case ERenderDataLayout::Vertex_N_U_T__Triangle:
-				return CopyAttributes<ERenderDataLayout::Vertex_N_U_T__Triangle>(
+			case ERenderDataLayout::Vertex_N_U_T__Triangle__Index:
+				return CopyAttributes<ERenderDataLayout::Vertex_N_U_T__Triangle__Index>(
 					MeshDescription, Attributes, VertexIDMap, Positions, Indices, Normals, UVs,
 					Tangents, PolygonGroupID);
-			case ERenderDataLayout::Vertex_T_Triangle_N:
-				return CopyAttributes<ERenderDataLayout::Vertex_T_Triangle_N>(
+			case ERenderDataLayout::Vertex_T_Triangle_N__Index:
+				return CopyAttributes<ERenderDataLayout::Vertex_T_Triangle_N__Index>(
+					MeshDescription, Attributes, VertexIDMap, Positions, Indices, Normals, UVs,
+					Tangents, PolygonGroupID);
+			case ERenderDataLayout::Vertex_U_T__Triangle__Index_N:
+				return CopyAttributes<ERenderDataLayout::Vertex_U_T__Triangle__Index_N>(
 					MeshDescription, Attributes, VertexIDMap, Positions, Indices, Normals, UVs,
 					Tangents, PolygonGroupID);
 		}
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("CreateStaticMesh: Attribute copy does not handle layout %d yet."), (int) Layout);
 		return false;
 	}();
 
@@ -2384,6 +2467,10 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	if (Material != nullptr)
 		StaticMesh->AddMaterial(Material);
+	else
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("CreateStatisMesh: No Material provided, mesh will not have a Material slot."));
 
 	// Assign the MeshDescription to the UStaticMesh.
 	UStaticMesh::FBuildMeshDescriptionsParams Params;
