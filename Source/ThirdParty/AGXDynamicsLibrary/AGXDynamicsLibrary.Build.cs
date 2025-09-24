@@ -84,6 +84,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
 
+		/// Points to AGX Dynamics OpenPLX bundles.
+		AGXOpenPLXBundle,
+
 		/// Points to AGX Dynamics external resources.
 		External
 	};
@@ -256,7 +259,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
-    }
+		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
 		// that we need. These will be added to the Unreal Engine
@@ -404,6 +407,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "lib", "*"));
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "openplxbundles", "*"));
 		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXModels", "*"));
+		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXUserBundles", "*"));
 		SetLicenseForCopySafe(Target);
 
 		// This is a work-around for Linux which ensures that the .so files are
@@ -675,6 +679,18 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy AGX Dynamics OpenPLX bundles.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
 
 			if (!CopyDirectoryRecursively(Source, Dest))
 			{
@@ -1389,6 +1405,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BuildDir, "include", "external"),
 				null, null
@@ -1440,6 +1460,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1489,6 +1513,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 
 			LibSources.Add(LibSource.External, new LibSourceInfo(
@@ -1591,6 +1619,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1637,6 +1669,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),

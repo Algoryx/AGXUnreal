@@ -359,7 +359,9 @@ namespace AGX_ShapeComponent_helpers
 		const FTransform RelTransform = Shape.GetGeometryToShapeTransform().Inverse();
 
 		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			&Owner, FString::Printf(TEXT("RenderMesh_%s"), *Shape.GetShapeGuid().ToString()),
+			&Owner,
+			FString::Printf(
+				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(), *Shape.GetShapeGuid().ToString()),
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
@@ -787,4 +789,9 @@ void UAGX_ShapeComponent::AddShapeBodySetupGeometry()
 bool UAGX_ShapeComponent::SupportsShapeBodySetup()
 {
 	return false; // Default behavior.
+}
+
+FString UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix()
+{
+	return FString("RenderMesh_");
 }
