@@ -95,12 +95,12 @@ namespace TrimshShapeComponent_helpers
 		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
 			return Existing;
 
-		TArray<FVector3f> Vertices;
+		TArray<FVector3f> Positions;
 		const auto VerticesAGX = Barrier.GetVertexPositions();
-		Vertices.Reserve(VerticesAGX.Num());
+		Positions.Reserve(VerticesAGX.Num());
 		for (const FVector& Position : VerticesAGX)
 		{
-			Vertices.Add(FVector3f(Position));
+			Positions.Add(FVector3f(Position));
 		}
 
 		const TArray<uint32> Indices = Barrier.GetVertexIndices();
@@ -124,7 +124,7 @@ namespace TrimshShapeComponent_helpers
 
 		// Trimeshes have no tangents information, so we set them to zero.
 		TArray<FVector3f> Tangents;
-		Tangents.SetNumZeroed(Vertices.Num());
+		Tangents.SetNumZeroed(Positions.Num());
 
 		const FString SourceName = Barrier.GetSourceName();
 		const FString WantedName =
@@ -137,10 +137,10 @@ namespace TrimshShapeComponent_helpers
 
 #if WITH_EDITOR
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMeshNoBuild(
-			Vertices, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
+			Positions, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
 #else
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			Vertices, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
+			Positions, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
 #endif // WITH_EDITOR
 
 		if (Mesh != nullptr)
