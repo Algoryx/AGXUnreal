@@ -100,7 +100,7 @@ void FOpenPLXSignalHandler::Init(
 		InputQueueRef =
 			std::make_shared<FInputSignalQueueRef>(agxopenplx::InputSignalQueue::create());
 		InputSignalListenerRef =
-			std::make_shared<FInputSignalListenerRef>(AssemblyRef->Native, InputQueueRef->Native, SignalSourceMapper->Native);
+			std::make_shared<FInputSignalListenerRef>(InputQueueRef->Native, SignalSourceMapper->Native);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
