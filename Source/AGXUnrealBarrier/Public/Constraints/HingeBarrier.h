@@ -4,7 +4,7 @@
 
 #include "Constraints/Constraint1DOFBarrier.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 class AGXUNREALBARRIER_API FHingeBarrier : public FConstraint1DOFBarrier
 {

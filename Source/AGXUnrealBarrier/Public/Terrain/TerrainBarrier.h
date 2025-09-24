@@ -16,7 +16,7 @@
 
 struct FTerrainRef;
 
-class FHeightFieldShapeBarrier;
+struct FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
@@ -58,9 +58,6 @@ public:
 
 	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
 	double GetMaximumParticleActivationVolume() const;
-
-	/// Deprecated, Shovels should be added to the Simulation instead.
-	bool AddShovel(FShovelBarrier& Shovel);
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);

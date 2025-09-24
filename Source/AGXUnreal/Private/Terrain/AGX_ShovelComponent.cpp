@@ -19,7 +19,7 @@
 #include "CoreGlobals.h"
 #include "UObject/Package.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 #define LOCTEXT_NAMESPACE "AGX_ShovelComponent"
 

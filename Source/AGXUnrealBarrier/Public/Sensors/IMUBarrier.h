@@ -9,7 +9,7 @@
 // Standard library includes.
 #include <memory>
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 struct FAGX_RealInterval;
 struct FIMURef;

@@ -613,6 +613,12 @@ FVector UAGX_ShapeComponent::GetSurfaceVelocity() const
 	return SurfaceVelocity;
 }
 
+UAGX_RigidBodyComponent* UAGX_ShapeComponent::GetRigidBody() const
+{
+	return FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+}
+
+
 TArray<FAGX_ShapeContact> UAGX_ShapeComponent::GetShapeContacts() const
 {
 	if (!HasNative())
