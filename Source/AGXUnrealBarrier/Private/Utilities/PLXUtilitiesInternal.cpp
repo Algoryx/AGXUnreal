@@ -40,6 +40,7 @@
 #include "openplx/Physics/Signals/LinearVelocity1DInput.h"
 #include "openplx/Physics/Signals/Position1DInput.h"
 #include "openplx/Physics/Signals/Position1DOutput.h"
+#include "openplx/Physics/Signals/RatioOutput.h"
 #include "openplx/Physics/Signals/SignalInterface.h"
 #include "openplx/Physics/Signals/Torque1DInput.h"
 #include "openplx/Physics/Signals/Torque3DOutput.h"
@@ -417,6 +418,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const Position3DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Position3DOutput;
+	}
+	if (dynamic_cast<const RatioOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RatioOutput;
 	}
 	if (dynamic_cast<const RelativeVelocity1DOutput*>(&Output))
 	{
