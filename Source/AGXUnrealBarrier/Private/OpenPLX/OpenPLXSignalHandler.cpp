@@ -100,7 +100,7 @@ void FOpenPLXSignalHandler::Init(
 		InputQueueRef =
 			std::make_shared<FInputSignalQueueRef>(agxopenplx::InputSignalQueue::create());
 		InputSignalListenerRef =
-			std::make_shared<FInputSignalListenerRef>(AssemblyRef->Native, InputQueueRef->Native, SignalSourceMapper->Native);
+			std::make_shared<FInputSignalListenerRef>(InputQueueRef->Native, SignalSourceMapper->Native);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -305,6 +305,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
 			case EOpenPLX_OutputType::FractionOutput:
 			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::RatioOutput:
 			case EOpenPLX_OutputType::Torque1DOutput:
 			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
 			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:

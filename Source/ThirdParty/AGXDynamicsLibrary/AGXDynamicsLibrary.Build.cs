@@ -226,6 +226,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
@@ -288,6 +289,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX libs, located in the same dir as AGX libs.
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-analysis", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-bundle", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-core.api", LibSource.Dependencies);
@@ -380,6 +382,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			// OpenPLX:
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
+			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.Dependencies);
