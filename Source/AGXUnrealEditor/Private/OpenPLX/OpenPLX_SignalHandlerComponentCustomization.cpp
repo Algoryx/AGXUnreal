@@ -85,7 +85,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		.WholeRowContent()
 		[
 			SNew(SExpandableArea)
-			.InitiallyCollapsed(false)
+			.InitiallyCollapsed(true)
 			.HeaderContent()
 			[
 				SNew(SEditableTextBox)
