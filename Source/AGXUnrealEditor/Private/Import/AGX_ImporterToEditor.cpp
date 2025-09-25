@@ -48,6 +48,7 @@
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "PackageTools.h"
 #include "Subsystems/AssetEditorSubsystem.h"
@@ -463,9 +464,8 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		auto IsReimportSupported = [&]()
 		{
-			return Settings.ImportType == EAGX_ImportType::Agx
-				|| Settings.ImportType == EAGX_ImportType::Plx
-			;
+			return Settings.ImportType == EAGX_ImportType::Agx ||
+				   Settings.ImportType == EAGX_ImportType::Plx;
 		};
 
 		if (!IsReimportSupported())
@@ -844,8 +844,12 @@ namespace AGX_ImporterToEditor_helpers
 
 		// Resolve name collisions.
 		USCS_Node* NameCollNode = OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
-		if (Node != nullptr && NameCollNode != nullptr && NameCollNode != Node)
-			NameCollNode->SetVariableName(*FAGX_ImportUtilities::GetUnsetUniqueImportName());
+		if (NameCollNode != nullptr && NameCollNode != Node)
+		{
+			const FString NewName = Name.ToString() + FAGX_ImportUtilities::GetUnsetUniqueImportName();
+			FBlueprintEditorUtils::RenameComponentMemberVariable(
+				&OutBlueprint, NameCollNode, FName(*NewName));
+		}
 
 		return Node;
 	}
