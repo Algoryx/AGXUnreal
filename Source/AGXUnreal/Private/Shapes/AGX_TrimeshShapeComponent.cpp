@@ -95,6 +95,27 @@ namespace TrimshShapeComponent_helpers
 		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
 			return Existing;
 
+
+		const bool bBuild =
+#if WITH_EDITOR
+			// In editor builds we can delay the build and do it in a batch.
+			false;
+#else
+			// Unreal does not support batch builds in non-editor packaged builds so we are forced
+			// to build each mesh individually.
+			true;
+#endif
+
+		// TODO The normal source could be an import setting. If we add such a setting we should
+		// separate Render Data from Trimesh since Render Data can have good normals already while
+		// Trimesh always have only per-triangle normals
+		AGX_MeshUtilities::EAGX_NormalsSource NormalSource =
+			AGX_MeshUtilities::EAGX_NormalsSource::Generated;
+
+		return AGX_MeshUtilities::CreateStaticMesh(
+			Barrier, *Context.Outer, Material, bBuild, NormalSource);
+
+#if 0
 		TArray<FVector3f> Positions;
 		const auto VerticesAGX = Barrier.GetVertexPositions();
 		Positions.Reserve(VerticesAGX.Num());
@@ -136,7 +157,7 @@ namespace TrimshShapeComponent_helpers
 			Context.Outer, WantedName, UStaticMesh::StaticClass());
 
 #if WITH_EDITOR
-		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMeshNoBuild(
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(
 			Positions, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
 #else
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
@@ -147,6 +168,7 @@ namespace TrimshShapeComponent_helpers
 			Context.CollisionStaticMeshes->Add(Barrier.GetGuid(), Mesh);
 
 		return Mesh;
+#endif
 	}
 
 	UStaticMeshComponent* CreateStaticMeshComponent(

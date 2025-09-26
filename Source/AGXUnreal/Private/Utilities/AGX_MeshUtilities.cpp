@@ -2064,6 +2064,598 @@ TArray<FAGX_MeshWithTransform> AGX_MeshUtilities::ToMeshWithTransformArray(
 namespace AGX_MeshUtilities_helpers
 {
 	/**
+	 * Verify vertex instance attributes. Should be one per vertex instance or none for optional
+	 * attributes.
+	 */
+	bool VerifyVertexInstanceAttributes(
+		int32 NumVertexInstances, const TArray<FVector3f>& Normals, const TArray<FVector2f>& UVs,
+		const TArray<FVector3f>& Tangents)
+	{
+		const bool bAllOK =
+			// clang-format off
+			   ( Normals.Num() == NumVertexInstances || Normals.IsEmpty())
+			&& (     UVs.Num() == NumVertexInstances || UVs.IsEmpty())
+			&& (Tangents.Num() == NumVertexInstances || Tangents.IsEmpty());
+		// clang-format on
+		if (!bAllOK)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Invalid vertex instance attributes passed to CreateStaticMesh. Expected to "
+					 "get either %d elements or an empty array. Got:"),
+				NumVertexInstances);
+			UE_LOG(LogAGX, Error, TEXT("- Normals:  %d"), Normals.Num());
+			UE_LOG(LogAGX, Error, TEXT("- UVs:      %d"), UVs.Num());
+			UE_LOG(LogAGX, Error, TEXT("- Tangents: %d"), Tangents.Num());
+		}
+		AGX_CHECK(bAllOK);
+		return bAllOK;
+	}
+}
+
+UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
+	const TArray<FVector3f>& InPositions, const TArray<uint32>& InIndices,
+	const TArray<FVector3f>& InNormals, const TArray<FVector2f>& InUVs,
+	const TArray<FVector3f>& InTangents, const FString& InName, UObject& InOuter,
+	UMaterialInterface* InMaterial, bool bInBuild)
+{
+	using namespace AGX_MeshUtilities_helpers;
+
+#if !WITH_EDITOR
+	AGX_CHECKF(
+		bInBuild,
+		TEXT("AGX_MeshUtilities::CreateStaticMesh for %s: This is a non-editor build which means "
+			 "that bInBuild must be true."),
+		*InName);
+	if (!bInBuild)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX_MeshUtilities::CreateStaticMesh: This is a non-editor build which means "
+				 "that bInBuild must be true."),
+			*InName);
+		return nullptr;
+	}
+#endif
+
+	/*
+	Create a Mesh Description. This is how we communicate the mesh data, i.e. the vertices and
+	triangles, to Unreal's Static Mesh.
+
+	Unreal uses a system dual-vertex system with base vertices and vertex instances. Base vertices
+	carry the vertex position while vertex instances carry normals, UVs, and tangents. The vertex
+	indices that describe triangles index into the vertex instances.
+
+	Positions: [P0, P1, P2, ..., Pn] where n is the number of vertex positions.
+	Instances: [I0, I1, I2, ..., I3*t] where t is the number of triangles.
+	Normals:   [N0, N1, N2, ..., N3*t] ------------||---------------------
+	UVs and tangents follow the same pattern as the normals.
+	*/
+
+	const int32 NumVertices = InPositions.Num();
+	const int32 NumVertexInstances = InIndices.Num();
+	const int32 NumTriangles = InIndices.Num() / 3;
+
+	// Create Mesh Description that will hold all attribute data. We only create a single LOD so
+	// we only need one  Mesh Description.
+	const int32 LODLevel = 0;
+	FMeshDescription MeshDescription;
+	FStaticMeshAttributes Attributes(MeshDescription);
+	Attributes.Register();
+
+	// Reserve room for all the data we are about to put into the Mesh Description. Not reserving
+	// for edges because I don't know how many edges there will be. I think that depends on the
+	// topology of the mesh, but it could also be just 3 * NumTriangles since each triangle has
+	// three edges. That is, I'm not sure if edges are shared between vertices or not.
+	MeshDescription.ReserveNewVertices(NumVertices);
+	MeshDescription.ReserveNewVertexInstances(NumVertexInstances);
+	MeshDescription.ReserveNewTriangles(NumTriangles);
+	MeshDescription.ReserveNewPolygons(NumTriangles); // Triangles are also polygons.
+
+	// A Polygon Group defines which polygons, i.e. triangles, use the same InMaterial. We only
+	// support a single InMaterial per Static Mesh.
+	FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
+
+	// Create vertex and vertex instances up-front so that attribute buffers are fully allocated.
+	for (int32 I = 0; I < NumVertices; ++I)
+	{
+		MeshDescription.CreateVertex();
+	}
+	for (int32 I = 0; I < NumVertexInstances; ++I)
+	{
+		MeshDescription.CreateVertexInstance(InIndices[I]);
+	}
+
+	const size_t v3Size = sizeof(FVector3f);
+	const size_t v2Size = sizeof(FVector2f);
+
+	// Write per-vertex attribute buffers.
+	TArrayView<FVector3f> OutPositions = Attributes.GetVertexPositions().GetRawArray();
+	AGX_CHECK(OutPositions.Num() == InPositions.Num());
+	memcpy(OutPositions.GetData(), InPositions.GetData(), NumVertexInstances * v3Size);
+
+	// Write per-vertex-instance attribute buffers that actually have data.
+	if (!InNormals.IsEmpty())
+	{
+		TArrayView<FVector3f> OutNormals = Attributes.GetVertexInstanceNormals().GetRawArray();
+		memcpy(OutNormals.GetData(), InNormals.GetData(), NumVertexInstances * v3Size);
+	}
+	if (!InUVs.IsEmpty())
+	{
+		TArrayView<FVector2f> OutUVs = Attributes.GetVertexInstanceUVs().GetRawArray();
+		memcpy(OutUVs.GetData(), InUVs.GetData(), NumVertexInstances * v2Size);
+	}
+	if (!InTangents.IsEmpty())
+	{
+		TArrayView<FVector3f> OutTangents = Attributes.GetVertexInstanceTangents().GetRawArray();
+		memcpy(OutTangents.GetData(), InTangents.GetData(), NumVertexInstances * v3Size);
+	}
+
+	// Assemble triangles.
+	TArray<FVertexInstanceID, TInlineAllocator<3>> VertexInstanceIDs;
+	VertexInstanceIDs.SetNum(3);
+	for (int32 I = 0; I < NumTriangles; ++I)
+	{
+		for (int32 V = 0; V < 3; ++V)
+		{
+			VertexInstanceIDs[V] = 3 * I + V;
+		}
+		MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
+	}
+
+	UStaticMesh* StaticMesh =
+		NewObject<UStaticMesh>(&InOuter, NAME_None, RF_Public | RF_Standalone);
+
+#if !WITH_EDITOR
+	// Needed for render materials to show up for runtime imported meshes.
+	StaticMesh->GetStaticMaterials().Add(FStaticMaterial());
+#endif
+
+	StaticMesh->Rename(*InName);
+
+	if (InMaterial != nullptr)
+	{
+		StaticMesh->AddMaterial(InMaterial);
+	}
+	else
+	{
+		// TODO Instead of having no Material slot, should we add nullptr and let it default to
+		// World Grid Material?
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("CreateStaticMesh: No Material provided, mesh '%s' will have no Material slot."),
+			*InName);
+	}
+
+	StaticMesh->SetNumSourceModels(1);
+	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(LODLevel);
+	FMeshBuildSettings& BuildSettings = SourceModel.BuildSettings;
+	BuildSettings.bRecomputeNormals = InNormals.IsEmpty();
+	BuildSettings.bRecomputeTangents = InTangents.IsEmpty();
+
+#if !WITH_EDITOR
+	checkf(bInBuild, TEXT("Non-editor builds must always pass 'true' for 'bInBuild'."));
+#endif
+
+	if (bInBuild)
+	{
+		// The Mesh should be built immediately. In addition to the mesh itself, we also build a
+		// Box Simple Collision.
+		UStaticMesh::FBuildMeshDescriptionsParams Params;
+#if !WITH_EDITOR
+		Params.bFastBuild = true;
+#endif
+		Params.bBuildSimpleCollision = false; // Doesn't work for some reason, done manually below.
+		Params.bAllowCpuAccess = true;
+		StaticMesh->BuildFromMeshDescriptions({&MeshDescription}, Params);
+		AddBoxSimpleCollision(*StaticMesh);
+	}
+	else
+	{
+		// The mesh building should be delayed so for now we only store the attribute data in the
+		// mesh. Box Simple Collision building is also delayed. For imports the building is done
+		// by AGX_Importer_helpers::BatchBuildStaticMeshes in AGX_Importer.cpp.
+		StaticMesh->CreateMeshDescription(LODLevel, MoveTemp(MeshDescription));
+		StaticMesh->CommitMeshDescription(LODLevel);
+	}
+
+	return StaticMesh;
+}
+
+namespace AGX_MeshUtilities_helpers
+{
+	/**
+	 * List of places where mesh attribute data can be stored.
+	 */
+	enum class EAGX_AttributeLocation
+	{
+		Vertex,
+		VertexInstance,
+		Triangle,
+		None,
+		Unknown
+	};
+
+	/**
+	 * Render Data can come in different layouts which must be processed differently in order to
+	 * convert to the mesh layout used by Unreal Engine's Static Mesh.
+	 *
+	 * The following attributes can vary:
+	 * - N: Normals.
+	 * - U: UVs.
+	 *
+	 * For each attribute the data can either be stored per-vertex, per-vertex-instance, i.e.
+	 * per-index, per-triangle, or not at all.
+	 */
+	struct FAGX_AttributeLocations
+	{
+		EAGX_AttributeLocation Normals;
+		EAGX_AttributeLocation UVs;
+
+		bool IsValid() const
+		{
+			return Normals != EAGX_AttributeLocation::Unknown &&
+				   UVs != EAGX_AttributeLocation::Unknown;
+		}
+	};
+
+	EAGX_AttributeLocation GetAttributeLocation(int32 N, int32 V, int32 I, int32 T)
+	{
+		if (N == V)
+			return EAGX_AttributeLocation::Vertex;
+		if (N == I)
+			return EAGX_AttributeLocation::VertexInstance;
+		if (N == T)
+			return EAGX_AttributeLocation::Triangle;
+		if (N == 0)
+			return EAGX_AttributeLocation::None;
+		return EAGX_AttributeLocation::Unknown;
+	}
+
+	FAGX_AttributeLocations GetRenderDataAttributeLocations(
+		int32 NumPositions, int32 NumIndices, int32 NumNormals, int32 NumUVs)
+	{
+		const int32 NumTriangles = NumIndices / 3;
+		FAGX_AttributeLocations Result;
+		Result.Normals = GetAttributeLocation(NumNormals, NumPositions, NumIndices, NumTriangles);
+		Result.UVs = GetAttributeLocation(NumUVs, NumPositions, NumIndices, NumTriangles);
+
+		if (!Result.IsValid())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Cannot create static mesh because the given mesh data doesn't match any "
+					 "recognized layout."));
+			UE_LOG(LogAGX, Warning, TEXT("- Num positions: %d"), NumPositions);
+			UE_LOG(LogAGX, Warning, TEXT("- Num indices: %d"), NumIndices);
+			UE_LOG(LogAGX, Warning, TEXT("- Num triangles: %d"), NumTriangles);
+			UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), NumNormals);
+			UE_LOG(LogAGX, Warning, TEXT("- Num UVs: %d"), NumUVs);
+		}
+
+		return Result;
+	}
+
+	// It feels like we already have this function somewhere, but I can't find it.
+	template <typename DestinationT, typename SourceT>
+	void CopyArray(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
+	{
+		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
+		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+
+		const int32 Num = Source.Num();
+		if (Destination.IsEmpty())
+		{
+			Destination.SetNumUninitialized(Num);
+		}
+
+		check(Destination.Num() == Num);
+		for (int32 I = 0; I < Num; ++I)
+		{
+			Destination[I] = DestinationT(Source[I]);
+		}
+	}
+
+	template <typename DestinationT, typename SourceT>
+	void CopyArrayWithIndirection(
+		TArray<DestinationT>& Destination, const TArray<SourceT>& Source,
+		const TArray<uint32>& Indices)
+	{
+		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
+		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+
+		const int32 SourceNum = Source.Num();
+		const int32 IndicesNum = Indices.Num();
+		if (Destination.IsEmpty())
+		{
+			Destination.SetNumUninitialized(IndicesNum);
+		}
+
+		check(Destination.Num() == IndicesNum);
+		for (int32 I = 0; I < IndicesNum; ++I)
+		{
+			Destination[I] = DestinationT(Source[Indices[I]]);
+		}
+	}
+
+	template <typename DestinationT, typename SourceT>
+	void CopyArrayTriplication(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
+	{
+		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
+		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+
+		const int32 SourceNum = Source.Num();
+		const int32 DestinationNum = 3 * SourceNum;
+		if (Destination.IsEmpty())
+		{
+			Destination.SetNumUninitialized(DestinationNum);
+		}
+
+		check(Destination.Num() == DestinationNum);
+		for (int32 I = 0; I < SourceNum; ++I)
+		{
+			const DestinationT Attribute(Source[I]);
+			Destination[3 * I + 0] = Attribute;
+			Destination[3 * I + 1] = Attribute;
+			Destination[3 * I + 2] = Attribute;
+		}
+	}
+
+	template <typename DestinationT, typename SourceT>
+	void CopyAttributes(
+		EAGX_AttributeLocation AttributeLocation, TArray<DestinationT>& Destination,
+		const TArray<SourceT>& Source, const TArray<uint32>& Indices)
+	{
+		switch (AttributeLocation)
+		{
+			case EAGX_AttributeLocation::VertexInstance:
+			{
+				// The attribute is already per-vertex-instance, we just need to convert to float.
+				CopyArray(Destination, Source);
+				break;
+			}
+
+			case EAGX_AttributeLocation::Vertex:
+			{
+				// The attribute is per-vertex, meaning that a look-up is needed for each vertex
+				// instance.
+				CopyArrayWithIndirection(Destination, Source, Indices);
+				break;
+			}
+
+			case EAGX_AttributeLocation::Triangle:
+			{
+				// The attributes are per-triangle, meaning that they must be tripled to become
+				// per-vertex-instance.
+				CopyArrayTriplication(Destination, Source);
+				break;
+			}
+
+			case EAGX_AttributeLocation::None:
+				// Nothing to do, the attribute array should remain empty.
+				break;
+			case EAGX_AttributeLocation::Unknown:
+				// Should never get here, is an invalid Attribute Locations.
+				checkNoEntry();
+		}
+	}
+}
+
+UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
+	const FTrimeshShapeBarrier& InTrimeshBarrier, UObject& InOuter, UMaterialInterface* InMaterial,
+	bool bInBuild, EAGX_NormalsSource InFaceType, const FString& InName)
+{
+	using namespace AGX_MeshUtilities_helpers;
+
+	if (!InTrimeshBarrier.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX_MeshUtilities::CreateStaticMesh given FTrimeshShapeBarrier with no native, "
+				 "cannot create Static Mesh"));
+		return nullptr;
+	}
+
+	// Make sure we have a valid and unique name, generate one if necessary.
+	const FString& Name = [&]()
+	{
+		if (!InName.IsEmpty())
+		{
+			return InName;
+		}
+		const FString SourceName = InTrimeshBarrier.GetSourceName();
+		if (!SourceName.IsEmpty())
+		{
+			return FString::Printf(TEXT("SM_%s"), *SourceName);
+		}
+		return FString::Printf(TEXT("SM_CollisionMesh_%s"), *InTrimeshBarrier.GetGuid().ToString());
+	}();
+	const FString UniqueName =
+		FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(&InOuter, Name, UStaticMesh::StaticClass());
+
+	// Copy positions, with conversion from double to float.
+	TArray<FVector3f> Positions;
+	CopyArray(Positions, InTrimeshBarrier.GetVertexPositions());
+
+	// Indices can be used as-is. We assume no overflow in the conversion from unsigned to signed.
+	TArray<uint32> Indices = InTrimeshBarrier.GetVertexIndices();
+
+	// What to do with normals depend on the requested normals source. For Generated we keep the
+	// array empty. For From Source we triplicate the per-triangle normals over the vertex
+	// instances making up that triangle. Since the order of the vertex index triplets in the
+	// indices array match the order of the normals array (indices 3*I+0, 3*I+1, and 3*I+2 belong
+	// to the same triangle as normal I) we can loop over the normals and record each one three
+	// times to produce the vertex instance normals.
+	TArray<FVector3f> Normals;
+	if (InFaceType == EAGX_NormalsSource::FromImport)
+	{
+		CopyArrayTriplication(Normals, InTrimeshBarrier.GetTriangleNormals());
+	}
+
+	// Trimesh doesn't store texture coordinates or tangents, so leave these empty.
+	TArray<FVector2f> UVs;
+	TArray<FVector3f> Tangents;
+
+	return CreateStaticMesh(
+		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild);
+}
+
+namespace AGX_MeshUtilities_helpers
+{
+
+#if 0
+	/**
+	 * Render Data can come in multiple layouts which must be processed differently in order to
+	 * convert to the mesh layout used by Unreal Engine's Static Mesh.
+	 *
+	 * The following attributes can vary:
+	 * - N: Normals.
+	 * - U: UVs.
+	 *
+	 * For each attribute the data can either be stored per-vertex, per-vertex-instance, i.e.
+	 * per-index, or per-triangle.
+	 *
+	 * There are very many possible layouts. So far only a handful has appeared in practice. If
+	 * the goal is to support all permutations then something more flexible than an enum will be
+	 * required.
+	 */
+	enum class EAGX_RenderDataLayout
+	{
+		/* Layout that have both. */
+
+		// Normals and UVs are both per-vertex.
+		Vertex_N_U__Index__Triangle,
+
+		// Normals are per-index, UVs are per-vertex.
+		Vertex_U__Index_N__Triangle,
+
+		/* Layouts that only have normals. */
+
+		// Normals are per-triangle, no UVs.
+		Vertex__Index__Triangle_N,
+
+		/* Layouts that only have UVs. */
+
+		// No normals, UVs are per-vertex.
+		Vertex_U__Index__Triangle,
+
+		/* Layouts that have neither. */
+
+		// No normals and no UVs.
+		Vertex__Index__Triangle,
+
+		// A non-supported mesh attributes layout was detected.
+		Unknown
+	};
+
+	EAGX_RenderDataLayout DetermineRenderDataLayout(
+		const TArray<FVector>& Positions, const TArray<uint32>& Indices,
+		const TArray<FVector>& Normals, const TArray<FVector2D>& UVs)
+	{
+		// Possible locations
+		const int32 V = Positions.Num();
+		const int32 I = Indices.Num();
+		const int32 T = I / 3;
+		// Number of elements.
+		const int32 N = Normals.Num();
+		const int32 U = UVs.Num();
+
+		// Layouts that have both.
+		if (N == V && U == V)
+			return EAGX_RenderDataLayout::Vertex_N_U__Index__Triangle;
+		if (N == I && U == V)
+			return EAGX_RenderDataLayout::Vertex_U__Index_N__Triangle;
+		// Layouts that only have normals.
+		if (N == T && U == 0)
+			return EAGX_RenderDataLayout::Vertex__Index__Triangle_N;
+		// Layouts that only have UVs.
+		if (N == 0 && U == V)
+			return EAGX_RenderDataLayout::Vertex_U__Index__Triangle;
+		// Layouts that have neither.
+		if (N == 0 && U == 0)
+			return EAGX_RenderDataLayout::Vertex__Index__Triangle;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot create static mesh because the given mesh data doesn't match any "
+				 "recognized layout."));
+		UE_LOG(LogAGX, Warning, TEXT("- Num positions: %d"), Positions.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num indices: %d"), Indices.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num triangles: %d"), T);
+		UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), Normals.Num());
+		UE_LOG(LogAGX, Warning, TEXT("- Num UVs: %d"), UVs.Num());
+
+		return EAGX_RenderDataLayout::Unknown;
+	}
+#endif
+}
+
+UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
+	const FRenderDataBarrier& InRenderData, UObject& InOuter, UMaterialInterface* InMaterial,
+	bool bInBuild, EAGX_NormalsSource InNormalsSource, const FString& InName)
+{
+	using namespace AGX_MeshUtilities_helpers;
+
+	if (!InRenderData.HasMesh() || !InRenderData.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("AGX_MeshUtilities::CreateStaticMesh given FRenderDataBarrier with no mesh or "
+				 "no native, cannot create Static Mesh."));
+		return nullptr;
+	}
+
+	// Make sure we have a valid and unique name, generate one if necessary.
+	const FString& Name =
+		InName.IsEmpty()
+			? FString::Printf(TEXT("SM_RenderMesh_%s"), *InRenderData.GetGuid().ToString())
+			: InName;
+	FString UniqueName =
+		FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(&InOuter, Name, UStaticMesh::StaticClass());
+
+	// Copy positions, with conversion from double to float.
+	TArray<FVector3f> Positions;
+	CopyArray(Positions, InRenderData.GetPositions());
+
+	// Indices can be used as-is. We assume we won't overflow in the conversion from signed to
+	// unsigned.
+	TArray<uint32> Indices = InRenderData.GetIndices();
+
+	// We only consider the normals if the face type is set to From Source since for generated
+	// normals we let the Static Mesh build process handle normal generation. In this case the rest
+	// of this function will act as-if the normals didn't even exist in the first place.
+	const TArray<FVector> InNormals = InNormalsSource == EAGX_NormalsSource::FromImport
+										  ? InRenderData.GetNormals()
+										  : TArray<FVector>();
+	const TArray<FVector2D> InUVs = InRenderData.GetTextureCoordinates();
+
+	// Determine what type of attributes layout we have been given.
+	const FAGX_AttributeLocations AttributeLocations = GetRenderDataAttributeLocations(
+		Positions.Num(), Indices.Num(), InNormals.Num(), InUVs.Num());
+	if (!AttributeLocations.IsValid())
+	{
+		// Logging done by GetRenderDataAttributeLocations.
+		return nullptr;
+	}
+
+	// These are the attributes that can vary in number in the Render Data. In the Static Mesh
+	// data they should always be either empty or have one element per vertex instance.
+	TArray<FVector3f> Normals;
+	CopyAttributes(AttributeLocations.Normals, Normals, InNormals, Indices);
+	TArray<FVector2f> UVs;
+	CopyAttributes(AttributeLocations.UVs, UVs, InUVs, Indices);
+
+	// Render Data never carries tangents, so leave it empty.
+	TArray<FVector3f> Tangents;
+
+	return CreateStaticMesh(
+		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild);
+}
+
+namespace AGX_MeshUtilities_helpers
+{
+#if 0
+	/**
 	 * Render Data can come in multiple layouts which must be processed differently in order to
 	 * convert to the mesh layout used by Unreal Engine's Static Mesh.
 	 *
@@ -2071,8 +2663,8 @@ namespace AGX_MeshUtilities_helpers
 	 * - U: UVs.
 	 * - T: Tangents.
 	 *
-	 * There are very many possible layouts. So far only a handful has appeared in practice. If the
-	 * goal is to support all permutations then something more flexible than an enum will be
+	 * There are very many possible layouts. So far only a handful has appeared in practice. If
+	 * the goal is to support all permutations then something more flexible than an enum will be
 	 * required.
 	 */
 	enum class ERenderDataLayout
@@ -2162,8 +2754,8 @@ namespace AGX_MeshUtilities_helpers
 
 	/**
 	 * Declaration of function template to copy attributes data from a Render Data to a Mesh
-	 * Description. There is one template specialization for each supported Render Data vertex data
-	 * layout.
+	 * Description. There is one template specialization for each supported Render Data vertex
+	 * data layout.
 	 */
 	template <ERenderDataLayout>
 	bool CopyAttributes(
@@ -2189,8 +2781,8 @@ namespace AGX_MeshUtilities_helpers
 	{
 		CopyPositions(MeshDescription, Attributes, VertexIDMap, Positions);
 
-		// Create the triangles, copying attribute data from the Render Data arrays into the Mesh
-		// Description's arrays.
+		// Create the triangles, copying attribute data from the Render Data arrays into the
+		// Mesh Description's arrays.
 		TArray<FVertexInstanceID, TInlineAllocator<3>> VertexInstanceIDs;
 		for (int32 I = 0; I < Indices.Num(); I += 3)
 		{
@@ -2264,7 +2856,8 @@ namespace AGX_MeshUtilities_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Trying to create a Static Mesh from Render Data but the Attributes does not "
+				TEXT("Trying to create a Static Mesh from Render Data but the Attributes does "
+					 "not "
 					 "contain enough per-vertex-instance data in the Mesh Description."));
 			UE_LOG(LogAGX, Warning, TEXT("- Num instance vertices: %d"), NumInstanceVertices);
 			UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), NormalsUnreal.Num());
@@ -2273,8 +2866,8 @@ namespace AGX_MeshUtilities_helpers
 			return false;
 		}
 
-		// Create the triangles, copying attribute data from the Render Data arrays into the Mesh
-		// Description's arrays.
+		// Create the triangles, copying attribute data from the Render Data arrays into the
+		// Mesh Description's arrays.
 		TArray<FVertexInstanceID, TInlineAllocator<3>> VertexInstanceIDs;
 		VertexInstanceIDs.SetNum(3);
 		for (int32 TriangleIndex = 0; TriangleIndex < NumTriangles; ++TriangleIndex)
@@ -2298,8 +2891,8 @@ namespace AGX_MeshUtilities_helpers
 				// Assign per-vertex-instance data that comes per-vertex in the Render Data.
 				TangentsUnreal[VertexInstanceID] = Tangents[VertexIndex];
 
-				// Assign default values for per-vertex-instance data that isn't available in the
-				// Render Data.
+				// Assign default values for per-vertex-instance data that isn't available in
+				// the Render Data.
 				UVsUnreal[VertexInstanceID] = FVector2f(0.0f, 0.0f);
 			}
 
@@ -2372,9 +2965,11 @@ namespace AGX_MeshUtilities_helpers
 
 		return true;
 	}
+#endif
 }
 
-UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
+#if 0
+UStaticMesh* AGX_MeshUtilities::CreateStaticMesh_REMOVE(
 	const TArray<FVector3f>& Positions, const TArray<uint32>& Indices,
 	const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
 	const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
@@ -2394,9 +2989,9 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	Create a Mesh Description. This is how we communicate the mesh data, i.e. the vertices and
 	triangles, to Unreal's Static Mesh.
 
-	Unreal uses a system dual-vertex system with base vertices and vertex instances. Base vertices
-	carry the vertex position while vertex instances carry UVs, normals, and tangents. The vertex
-	indices that describe triangles index into the vertex instances.
+	Unreal uses a system dual-vertex system with base vertices and vertex instances. Base
+	vertices carry the vertex position while vertex instances carry UVs, normals, and tangents.
+	The vertex indices that describe triangles index into the vertex instances.
 
 	Positions: [P0, P1, P2, ..., Pn] where n is the number of vertex positions.
 	Instances: [I0, I1, I2, ..., I3*t] where t is the number of triangles.
@@ -2423,7 +3018,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// Description
 	//
 	// TODO Are these always I:I, i.e. will CreateVertex create monotonically incrementing IDs
-	// starting from 0? If so then this map isn't necessary and we can use 'Indices[I]' directly.
+	// starting from 0? If so then this map isn't necessary and we can use 'Indices[I]'
+	// directly.
 	TMap<int32, FVertexID> VertexIDMap;
 	VertexIDMap.Reserve(Positions.Num());
 
@@ -2445,8 +3041,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 					Tangents, PolygonGroupID);
 		}
 		UE_LOG(
-			LogAGX, Error,
-			TEXT("CreateStaticMesh: Attribute copy does not handle layout %d yet."), (int) Layout);
+			LogAGX, Error, TEXT("CreateStaticMesh: Attribute copy does not handle layout %d yet."),
+			(int) Layout);
 		return false;
 	}();
 
@@ -2472,6 +3068,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 			LogAGX, Warning,
 			TEXT("CreateStatisMesh: No Material provided, mesh will not have a Material slot."));
 
+	StaticMesh->SetNumSourceModels(1);
+	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(0);
+	FMeshBuildSettings& BuildSettings = SourceModel.BuildSettings;
+	BuildSettings.bRecomputeNormals = false;
+
 	// Assign the MeshDescription to the UStaticMesh.
 	UStaticMesh::FBuildMeshDescriptionsParams Params;
 #if WITH_EDITOR
@@ -2485,9 +3086,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	AddBoxSimpleCollision(*StaticMesh);
 	return StaticMesh;
 }
+#endif
 
+#if 0
 #if WITH_EDITOR
-UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild(
+UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(
 	const TArray<FVector3f>& Vertices, const TArray<uint32>& Indices,
 	const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
 	const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
@@ -2526,6 +3129,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild(
 	return CreateStaticMeshFromRawMesh(MoveTemp(RawMesh), Name, Outer, Material);
 }
 #endif // WITH_EDITOR
+#endif
 
 bool AGX_MeshUtilities::CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destination)
 {
@@ -2605,7 +3209,8 @@ bool AGX_MeshUtilities::CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destina
 	return true;
 }
 
-UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
+#if 0
+UStaticMesh* AGX_MeshUtilities::CreateStaticMesh_REMOVE(
 	const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material)
 {
 	if (!RenderData.HasMesh() || !RenderData.HasNative())
@@ -2644,11 +3249,14 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		&Outer, FString::Printf(TEXT("SM_RenderMesh_%s"), *RenderData.GetGuid().ToString()),
 		UStaticMesh::StaticClass());
-	return CreateStaticMesh(Vertices, Indices, Normals, UVs, Tangents, Name, Outer, Material);
+	return CreateStaticMesh_REMOVE(
+		Vertices, Indices, Normals, UVs, Tangents, Name, Outer, Material);
 }
+#endif
 
+#if 0
 #if WITH_EDITOR
-UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild(
+UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(
 	const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material)
 {
 	using namespace AGX_MeshUtilities_helpers;
@@ -2704,6 +3312,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMeshNoBuild(
 	return CreateStaticMeshFromRawMesh(MoveTemp(RawMesh), UniqueName, Outer, Material);
 }
 #endif // WITH_EDITOR
+#endif
 
 bool AGX_MeshUtilities::HasRenderDataMesh(const FShapeBarrier& Shape)
 {
@@ -2880,7 +3489,8 @@ bool AGX_MeshUtilities::AreImportedRenderMaterialsEqual(
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Unable to read scalar parameter '%s' in AreImportedRenderMaterialsEqual for "
+				TEXT("Unable to read scalar parameter '%s' in AreImportedRenderMaterialsEqual "
+					 "for "
 					 "one of the Render Materials '%s' or '%s'."),
 				*ScalarParamsA[i].ToString(), *MatA->GetName(), *MatB->GetName());
 			return false;
@@ -2906,7 +3516,8 @@ bool AGX_MeshUtilities::AreImportedRenderMaterialsEqual(
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Unable to read Vector parameter '%s' in AreImportedRenderMaterialsEqual for "
+				TEXT("Unable to read Vector parameter '%s' in AreImportedRenderMaterialsEqual "
+					 "for "
 					 "one of the Render Materials '%s' or '%s'."),
 				*VectorParamsA[i].ToString(), *MatA->GetName(), *MatB->GetName());
 			return false; // Could not retrieve vector value.

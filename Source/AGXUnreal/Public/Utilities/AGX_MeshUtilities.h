@@ -43,6 +43,8 @@ class UStaticMeshComponent;
 
 struct FAGX_RenderMaterial;
 struct FAGX_SimpleMeshTriangle;
+struct FTrimeshShapeBarrier;
+
 struct FStaticMeshVertexBuffers;
 
 /// \todo Each nested ***ConstructionData classes below could contain the respective Make-function
@@ -345,16 +347,120 @@ public:
 		const TArray<AStaticMeshActor*> Actors);
 
 	/**
+	 * Low-level mesh creation function that operates on raw mesh vertex attribute arrays. Called by
+	 * the higher-level mesh creation functions that take a Trimesh or a Render Data and builds the
+	 * vertex attribute arrays from that.
+	 *
+	 * Create a UStaticMesh from attribute data. The attribute data must conform to Unreal's
+	 * attribute layout. Unreal splits the attributes into per-vertex data and per-vertex-instance
+	 * data. There are three vertex instances per triangle and each vertex instance references one
+	 * of the per-vertex datum.
+	 *
+	 * - Positions: One per vertex.
+	 * - Indices: Three per triangle, one per vertex instance.
+	 * - Normals: One per vertex instance. Optional.
+	 * - UVs: One per vertex instance. OPtional.
+	 * - Tangents: One per vertex instance. Optional.
+	 *
+	 * Optional attributes means that the array may be empty.
+	 *
+	 * InNormals are optional, in which case Unreal will compute smooth normals for each vertex
+	 * instance. Or share the same smoothed normal among multiple vertex instances by storing it
+	 * per-vertex, I'm not sure how that works behind the scenes.
+	 *
+	 * UVs, a.k.a. texture coordinates, are optional but are not computed by Unreal. Expect
+	 * rendering artifacts if the mesh has no or poor UVs.
+	 *
+	 * Tangents are optional and computed by Unreal if not provided.
+	 *
+	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
+	 *
+	 * @param InPositions The position of the vertices.
+	 * @param InIndices Indices into 'Positions', each three of which define a triangle.
+	 * @param InNormals One normal per index, or empty to let Unreal compute the normals.
+	 * @param InUVs One per index, or empty.
+	 * @param InTangents One per index, or empty.
+	 * @param InName The name to give to the Static Mesh.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @return The UStaticMesh created from the given mesh data.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const TArray<FVector3f>& InPositions, const TArray<uint32>& InIndices,
+		const TArray<FVector3f>& InNormals, const TArray<FVector2f>& InUVs,
+		const TArray<FVector3f>& InTangents, const FString& InName, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild);
+
+	/**
+	 * Control how normals are created for a mesh.
+	 */
+	enum class EAGX_NormalsSource
+	{
+		/// Let Unreal recompute smooth averaged per-vertex normals. The normals provided with the
+		/// source data, if any, are ignored.
+		Generated,
+
+		/// Use normals provided with the source data. The source data must contain normals either
+		/// per-vertex, per-vertex-instance, or per-triangle.
+		FromImport
+	};
+
+	/**
+	 * Create a Static Mesh from the triangle held by the given Trimesh.
+	 *
+	 * AGX Dynamics store one normal per triangle, not per vertex instance as Unreal does. There is
+	 * an option whether the per-triangle normals should be used, which causes flat-shaded faceted
+	 * triangles, or if we should disregard the per-triangle normals and let Unreal compute smoothed
+	 * normals based on the triangle definition. The selection is controlled with the InFaceType
+	 * parameter.
+	 *
+	 * @param InTrimeshBarrier The Trimesh to create a Static Mesh from.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param InName The name of the Static Mesh.
+	 * @return The UStaticMesh created from the Trimesh.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const FTrimeshShapeBarrier& InTrimeshBarrier, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild, EAGX_NormalsSource InFaceType,
+		const FString& InName = TEXT(""));
+
+	/**
+	 * Create a Static Mesh from the triangle held by the given Render Data.
+	 *
+	 * AGX Dynamics does not enforce a particular mesh attributes layout so it is not well-defined
+	 * how the data we find in the Render Data should be mapped to the attributes of the Static
+	 * Mesh. This function employs a count based heuristic where attribute elements are mapped
+	 * depending on how may elements there is for each attribute.
+	 *
+	 * @param InRenderDataBarrier The Render Data to create a Static Mesh from.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
+	 * @return The UStaticMesh created from the Render Data.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const FRenderDataBarrier& InRenderDataBarrier, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild, EAGX_NormalsSource InNormalsSource,
+		const FString& InName = TEXT(""));
+
+#if 0
+	/**
 	 * Creates and builds a new Static Mesh.
 	 * This function supports runtime usage.
 	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
 	 */
-	static UStaticMesh* CreateStaticMesh(
+	static UStaticMesh* CreateStaticMesh_REMOVE(
 		const TArray<FVector3f>& Positions, const TArray<uint32>& Triangles,
 		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
 		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
 		UMaterialInterface* Material);
+#endif
 
+#if 0
 #if WITH_EDITOR
 	/**
 	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
@@ -362,11 +468,12 @@ public:
 	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
 	 * built before it is used.
 	 */
-	static UStaticMesh* CreateStaticMeshNoBuild(
+	static UStaticMesh* CreateStaticMeshNoBuild_REMOVE(
 		const TArray<FVector3f>& Vertices, const TArray<uint32>& Triangles,
 		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
 		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
 		UMaterialInterface* Material);
+#endif
 #endif
 
 	/**
@@ -376,14 +483,18 @@ public:
 	 */
 	static bool CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destination);
 
+#if 0
 	/**
 	 * Creates and builds a new Static Mesh.
 	 * This function supports runtime usage.
 	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
 	 */
-	static UStaticMesh* CreateStaticMesh(
+	static UStaticMesh* CreateStaticMesh_REMOVE(
 		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
+#endif
 
+
+#if 0
 #if WITH_EDITOR
 	/**
 	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
@@ -391,8 +502,9 @@ public:
 	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
 	 * built before it is used.
 	 */
-	static UStaticMesh* CreateStaticMeshNoBuild(
+	static UStaticMesh* CreateStaticMeshNoBuild_REMOVE(
 		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
+#endif
 #endif
 
 	static bool HasRenderDataMesh(const FShapeBarrier& Shape);

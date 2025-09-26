@@ -325,12 +325,32 @@ namespace AGX_ShapeComponent_helpers
 		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
 			return Existing;
 
+		const bool bBuild =
+#if WITH_EDITOR
+			// In editor builds we can delay the build and batch build multiple meshes later.
+			false;
+#else
+			// Unreal does not support batch builds in non-editor packaged builds so we are forced
+			// to build each mesh individually.
+			true;
+#endif
+
+		// TODO The normal source could be an import setting. If we add such a setting we should
+		// separate Render Data from Trimesh since Render Data can have good normals already while
+		// Trimesh always have only per-triangle normals
+		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
+			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
+
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
+			RenderData, *Context.Outer, Material, bBuild, NormalsSource);
+#if 0
 		UStaticMesh* Mesh =
 #if WITH_EDITOR
-			AGX_MeshUtilities::CreateStaticMeshNoBuild(RenderData, *Context.Outer, Material);
+			AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(RenderData, *Context.Outer, Material);
 #else
-			AGX_MeshUtilities::CreateStaticMesh(RenderData, *Context.Outer, Material);
+			AGX_MeshUtilities::CreateStaticMesh_REMOVE(RenderData, *Context.Outer, Material);
 #endif // WITH_EDITOR
+#endif
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
 
@@ -361,7 +381,8 @@ namespace AGX_ShapeComponent_helpers
 		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			&Owner,
 			FString::Printf(
-				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(), *Shape.GetShapeGuid().ToString()),
+				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(),
+				*Shape.GetShapeGuid().ToString()),
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
@@ -617,7 +638,6 @@ UAGX_RigidBodyComponent* UAGX_ShapeComponent::GetRigidBody() const
 {
 	return FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
 }
-
 
 TArray<FAGX_ShapeContact> UAGX_ShapeComponent::GetShapeContacts() const
 {
