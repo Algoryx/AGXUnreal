@@ -10,6 +10,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "OpenPLX/OpenPLX_ModelRegistry.h"
+#include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -229,7 +230,8 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVe
 	return SendRangeReal(Input, Value);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
 {
 	if (!SignalHandler.IsInitialized())
 		return false;
@@ -237,8 +239,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(const FOpenPLX_Output& Ou
 	return SignalHandler.Receive(Output, OutValue);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(
-	FName NameOrAlias, FVector2D& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue)
 {
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
@@ -278,7 +279,8 @@ bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVecto
 	return SendVector(Input, Value);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector(
+	const FOpenPLX_Output& Output, FVector& OutValue)
 {
 	if (!SignalHandler.IsInitialized())
 		return false;
@@ -403,6 +405,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	Super::BeginPlay();
 
+	if (SignalHandler.IsInitialized() || GIsReconstructingBlueprintInstances)
+		return;
+
 	auto PLXFile = GetOpenPLXFilePath(GetOwner());
 	if (!PLXFile.IsSet())
 	{
@@ -420,7 +425,8 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX Simulation. "
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
+				 "Simulation. "
 				 "Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
@@ -433,7 +439,8 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry barrier "
+			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
+				 "barrier "
 				 "object. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
@@ -451,8 +458,16 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		ConstraintBarriers);
 }
 
+TStructOnScope<FActorComponentInstanceData>
+UOpenPLX_SignalHandlerComponent::GetComponentInstanceData() const
+{
+	return MakeStructOnScope<FActorComponentInstanceData, FOpenPLX_SignalHandlerInstanceData>(
+		*this);
+}
+
 void UOpenPLX_SignalHandlerComponent::CopyFrom(
-	const TArray<FOpenPLX_Input>& InInputs, TArray<FOpenPLX_Output> InOutputs, FAGX_ImportContext* Context)
+	const TArray<FOpenPLX_Input>& InInputs, TArray<FOpenPLX_Output> InOutputs,
+	FAGX_ImportContext* Context)
 {
 	for (const auto& Input : InInputs)
 	{
@@ -485,4 +500,3 @@ FOpenPLX_SignalHandlerNativeAddresses UOpenPLX_SignalHandlerComponent::GetNative
 {
 	return SignalHandler.GetNativeAddresses();
 }
-

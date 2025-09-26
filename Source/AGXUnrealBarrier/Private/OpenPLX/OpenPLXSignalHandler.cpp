@@ -32,6 +32,12 @@
 #include <cstdint>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
+	: AssemblyRef {new FAssemblyRef()}
+	, InputSignalListenerRef {new FInputSignalListenerRef()}
+	, OutputSignalListenerRef {new FOutputSignalListenerRef()}
+	, SignalSourceMapper {new FSignalSourceMapperRef()}
+	, InputQueueRef {new FInputSignalQueueRef()}
+	, OutputQueueRef {new FOutputSignalQueueRef()}
 {
 }
 
@@ -576,9 +582,51 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 void FOpenPLXSignalHandler::SetNativeAddresses(
 	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
 {
+
+	AssemblyRef->Native = reinterpret_cast<agxSDK::Assembly*>(Addresses.AssemblyAddress);
+	InputSignalListenerRef->Native =
+		reinterpret_cast<agxopenplx::InputSignalListener*>(Addresses.InputSignalListenerAddress);
+	OutputSignalListenerRef->Native =
+		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
+	SignalSourceMapper->Native.reset(
+		reinterpret_cast<agxopenplx::SignalSourceMapper*>(Addresses.SignalSourceMapperAddress));
+	InputQueueRef->Native.reset(
+		reinterpret_cast<agxopenplx::InputSignalQueue*>(Addresses.InputQueueAddress));
+	OutputQueueRef->Native.reset(
+		reinterpret_cast<agxopenplx::OutputSignalQueue*>(Addresses.OutputQueueAddress));
+	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
+	ModelHandle = Addresses.ModelHandle;
+	bIsInitialized = true;
 }
 
 FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses() const
 {
-	return FOpenPLX_SignalHandlerNativeAddresses {};
+	FOpenPLX_SignalHandlerNativeAddresses Addresses;
+	if (AssemblyRef->Native != nullptr)
+		Addresses.AssemblyAddress = reinterpret_cast<uint64>(AssemblyRef->Native.get());
+
+	if (InputSignalListenerRef && InputSignalListenerRef->Native != nullptr)
+		Addresses.InputSignalListenerAddress =
+			reinterpret_cast<uint64>(InputSignalListenerRef->Native.get());
+
+	if (OutputSignalListenerRef->Native != nullptr)
+		Addresses.OutputSignalListenerAddress =
+			reinterpret_cast<uint64>(OutputSignalListenerRef->Native.get());
+
+	if (SignalSourceMapper->Native != nullptr)
+		Addresses.SignalSourceMapperAddress =
+			reinterpret_cast<uint64>(SignalSourceMapper->Native.get());
+
+	if (InputQueueRef->Native != nullptr)
+		Addresses.InputQueueAddress = reinterpret_cast<uint64>(InputQueueRef->Native.get());
+
+	if (OutputQueueRef->Native != nullptr)
+		Addresses.OutputQueueAddress = reinterpret_cast<uint64>(OutputQueueRef->Native.get());
+
+	if (ModelRegistry != nullptr)
+		Addresses.ModelRegistryAddress = reinterpret_cast<uint64>(ModelRegistry);
+
+	Addresses.ModelHandle = ModelHandle;
+
+	return Addresses;
 }

@@ -5,9 +5,17 @@
 // AGX Dynamics for Unreal includes.
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 
+FOpenPLX_SignalHandlerInstanceData::FOpenPLX_SignalHandlerInstanceData(
+	const UOpenPLX_SignalHandlerComponent& Component)
+	: FActorComponentInstanceData(&Component)
+{
+	NativeAddresses = Component.GetNativeAddresses();
+}
+
 void FOpenPLX_SignalHandlerInstanceData::ApplyToComponent(
 	UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
+	FActorComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
 	auto SignalHandlerComp = Cast<UOpenPLX_SignalHandlerComponent>(Component);
 	if (SignalHandlerComp == nullptr)
 		return;
@@ -25,19 +33,12 @@ void FOpenPLX_SignalHandlerInstanceData::ApplyToComponent(
 
 bool FOpenPLX_SignalHandlerInstanceData::ContainsData() const
 {
-	return false;
-}
-
-void FOpenPLX_SignalHandlerInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
-{
-}
-
-void FOpenPLX_SignalHandlerInstanceData::FindAndReplaceInstances(
-	const TMap<UObject*, UObject*>& OldToNewInstanceMap)
-{
+	return Super::ContainsData() || HasAddresses();
 }
 
 bool FOpenPLX_SignalHandlerInstanceData::HasAddresses() const
 {
-	return false;
+	// Simple check, we don't go through all addresses here. They should either all be set
+	// or all be unset.
+	return NativeAddresses.AssemblyAddress != 0 || NativeAddresses.ModelRegistryAddress != 0;
 }
