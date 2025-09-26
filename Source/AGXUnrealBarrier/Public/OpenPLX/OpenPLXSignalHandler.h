@@ -19,8 +19,8 @@ struct FOutputSignalListenerRef;
 struct FOutputSignalQueueRef;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
+struct FOpenPLX_SignalHandlerNativeAddresses;
 struct FSignalSourceMapperRef;
-
 
 class AGXUNREALBARRIER_API FOpenPLXSignalHandler
 {
@@ -52,6 +52,9 @@ public:
 	/// Booleans.
 	bool Send(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
+
+	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
+	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
 private:
 	bool bIsInitialized {false};

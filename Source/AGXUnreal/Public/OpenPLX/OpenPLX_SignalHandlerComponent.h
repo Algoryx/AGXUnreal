@@ -14,6 +14,7 @@
 #include "OpenPLX_SignalHandlerComponent.generated.h"
 
 struct FAGX_ImportContext;
+struct FOpenPLX_SignalHandlerNativeAddresses;
 
 /**
  * EXPERIMENTAL
@@ -227,6 +228,9 @@ public:
 
 	void CopyFrom(
 		const TArray<FOpenPLX_Input>& Inputs, TArray<FOpenPLX_Output> Outputs, FAGX_ImportContext* Context);
+
+	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
+	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
 private:
 	FOpenPLXSignalHandler SignalHandler;

@@ -10,6 +10,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "OpenPLX/OpenPLX_ModelRegistry.h"
+#include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -472,5 +473,16 @@ void UOpenPLX_SignalHandlerComponent::CopyFrom(
 		AGX_CHECK(Context->SignalHandler == nullptr);
 		Context->SignalHandler = this;
 	}
+}
+
+void UOpenPLX_SignalHandlerComponent::SetNativeAddresses(
+	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
+{
+	SignalHandler.SetNativeAddresses(Addresses);
+}
+
+FOpenPLX_SignalHandlerNativeAddresses UOpenPLX_SignalHandlerComponent::GetNativeAddresses() const
+{
+	return SignalHandler.GetNativeAddresses();
 }
 

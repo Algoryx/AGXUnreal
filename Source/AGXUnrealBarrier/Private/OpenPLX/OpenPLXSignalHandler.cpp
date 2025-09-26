@@ -10,6 +10,7 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
@@ -570,4 +571,14 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
 		OpenPLXSignalHandler_helpers::GetBooleanValueFrom);
+}
+
+void FOpenPLXSignalHandler::SetNativeAddresses(
+	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
+{
+}
+
+FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses() const
+{
+	return FOpenPLX_SignalHandlerNativeAddresses {};
 }
