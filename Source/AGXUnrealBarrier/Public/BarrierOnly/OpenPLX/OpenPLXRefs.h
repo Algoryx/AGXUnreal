@@ -47,26 +47,6 @@ struct FOutputSignalListenerRef
 	}
 };
 
-struct FInputSignalQueuePtr
-{
-	agxopenplx::InputSignalQueue* Native;
-	FInputSignalQueuePtr() = default;
-	FInputSignalQueuePtr(agxopenplx::InputSignalQueue* InNative)
-		: Native(InNative)
-	{
-	}
-};
-
-struct FOutputSignalQueuePtr
-{
-	agxopenplx::OutputSignalQueue* Native;
-	FOutputSignalQueuePtr() = default;
-	FOutputSignalQueuePtr(agxopenplx::OutputSignalQueue* InNative)
-		: Native(InNative)
-	{
-	}
-};
-
 struct FOpenPLXModelData
 {
 	openplx::Core::ObjectPtr OpenPLXModel;
