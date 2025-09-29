@@ -26,7 +26,8 @@ struct FInputSignalListenerRef
 
 	FInputSignalListenerRef() = default;
 	FInputSignalListenerRef(
-		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
+		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
+		std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
 		: Native(new agxopenplx::InputSignalListener(Assembly, InputQueue, Mapper))
 	{
 	}
@@ -46,39 +47,22 @@ struct FOutputSignalListenerRef
 	}
 };
 
-struct FInputSignalQueueRef
+struct FInputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::InputSignalQueue> Native;
-	FInputSignalQueueRef() = default;
-	FInputSignalQueueRef(std::shared_ptr<agxopenplx::InputSignalQueue> InNative)
+	agxopenplx::InputSignalQueue* Native;
+	FInputSignalQueuePtr() = default;
+	FInputSignalQueuePtr(agxopenplx::InputSignalQueue* InNative)
 		: Native(InNative)
 	{
 	}
 };
 
-struct FOutputSignalQueueRef
+struct FOutputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::OutputSignalQueue> Native;
-	FOutputSignalQueueRef() = default;
-	FOutputSignalQueueRef(std::shared_ptr<agxopenplx::OutputSignalQueue> InNative)
+	agxopenplx::OutputSignalQueue* Native;
+	FOutputSignalQueuePtr() = default;
+	FOutputSignalQueuePtr(agxopenplx::OutputSignalQueue* InNative)
 		: Native(InNative)
-	{
-	}
-};
-
-struct FSignalSourceMapperRef
-{
-	std::shared_ptr<agxopenplx::SignalSourceMapper> Native;
-
-	FSignalSourceMapperRef() = default;
-
-	FSignalSourceMapperRef(std::shared_ptr<agxopenplx::SignalSourceMapper> InNative)
-		: Native(InNative)
-	{
-	}
-
-	FSignalSourceMapperRef(agxSDK::Assembly* Assembly)
-		: Native(agxopenplx::SignalSourceMapper::create(Assembly))
 	{
 	}
 };

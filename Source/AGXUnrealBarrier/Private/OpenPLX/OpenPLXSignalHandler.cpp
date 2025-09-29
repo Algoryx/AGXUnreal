@@ -10,6 +10,7 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
@@ -31,12 +32,18 @@
 #include <cstdint>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
+	: AssemblyRef {new FAssemblyRef()}
+	, InputSignalListenerRef {new FInputSignalListenerRef()}
+	, OutputSignalListenerRef {new FOutputSignalListenerRef()}
+	, InputQueuePtr {new FInputSignalQueuePtr()}
+	, OutputQueuePtr {new FOutputSignalQueuePtr()}
 {
 }
 
 void FOpenPLXSignalHandler::Init(
-	const FString& OpenPLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
-	TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints)
+	const FString& OpenPLXFile, FSimulationBarrier& Simulation,
+	FOpenPLXModelRegistry& InModelRegistry, TArray<FRigidBodyBarrier*>& Bodies,
+	TArray<FConstraintBarrier*>& Constraints)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
@@ -74,8 +81,8 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	AssemblyRef =
-		std::make_shared<FAssemblyRef>(FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Bodies, Constraints));
+	AssemblyRef->Native =
+		FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Bodies, Constraints);
 	if (AssemblyRef->Native == nullptr)
 	{
 		UE_LOG(
@@ -86,30 +93,41 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	if (FPLXUtilitiesInternal::HasInputs(System.get()) || FPLXUtilitiesInternal::HasOutputs(System.get()))
+	std::shared_ptr<agxopenplx::SignalSourceMapper> SignalSourceMapper;
+	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
+		FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto PlxPowerLine = dynamic_cast<agxPowerLine::PowerLine*>(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
-		SignalSourceMapper = std::make_shared<FSignalSourceMapperRef>(agxopenplx::SignalSourceMapper::create(
-				AssemblyRef->Native, PlxPowerLine, agxopenplx::SignalSourceMapMode::Name));
+		SignalSourceMapper = agxopenplx::SignalSourceMapper::create(
+			AssemblyRef->Native, PlxPowerLine, agxopenplx::SignalSourceMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
 	{
-		InputQueueRef =
-			std::make_shared<FInputSignalQueueRef>(agxopenplx::InputSignalQueue::create());
-		InputSignalListenerRef =
-			std::make_shared<FInputSignalListenerRef>(AssemblyRef->Native, InputQueueRef->Native, SignalSourceMapper->Native);
+		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
+
+		// Lifetime is bound to the InputSignalListener below.
+		// Todo: use the InputQueue getter in InputSignalListener once available and avoid storing
+		// the InputQue.
+		InputQueuePtr->Native = InputSignalQue.get();
+		InputSignalListenerRef->Native = new agxopenplx::InputSignalListener(
+			AssemblyRef->Native, InputSignalQue, SignalSourceMapper);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
 	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
-		OutputQueueRef =
-			std::make_shared<FOutputSignalQueueRef>(agxopenplx::OutputSignalQueue::create());
-		OutputSignalListenerRef = std::make_shared<FOutputSignalListenerRef>(
-			ModelData->OpenPLXModel, OutputQueueRef->Native, SignalSourceMapper->Native);
+		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
+
+		// Lifetime is bound to the OutputSignalListener below.
+		// Todo: use the OutputQueue getter in OutputSignalListener once available and avoid storing
+		// the OutputQueue.
+		OutputQueuePtr->Native = OutputSignalQueue.get();
+
+		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
+			ModelData->OpenPLXModel, OutputSignalQueue, SignalSourceMapper);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -235,7 +253,7 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValueT, typename SignalT, typename ConversionFuncT>
 	bool Send(
 		const FOpenPLX_Input& Input, ValueT Value, FOpenPLXModelRegistry* ModelRegistry,
-		FOpenPLXModelRegistry::Handle ModelHandle, FInputSignalQueueRef* InputQueue,
+		FOpenPLXModelRegistry::Handle ModelHandle, FInputSignalQueuePtr* InputQueue,
 		ConversionFuncT Func)
 	{
 		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
@@ -460,7 +478,7 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValueT, typename ValueGetterFuncT>
 	bool Receive(
 		const FOpenPLX_Output& Output, ValueT& OutValue, FOpenPLXModelRegistry* ModelRegistry,
-		FOpenPLXModelRegistry::Handle ModelHandle, FOutputSignalQueueRef* OutputQueue,
+		FOpenPLXModelRegistry::Handle ModelHandle, FOutputSignalQueuePtr* OutputQueue,
 		ValueGetterFuncT Func)
 	{
 		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
@@ -495,7 +513,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Send<double, openplx::Physics::Signals::RealInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
+		Input, Value, ModelRegistry, ModelHandle, InputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::ConvertReal);
 }
 
@@ -503,7 +521,7 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutVa
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
+		Output, OutValue, ModelRegistry, ModelHandle, OutputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::GetRealValueFrom);
 }
 
@@ -512,7 +530,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& V
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Send<
 		FVector2D, openplx::Physics::Signals::RealRangeInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
+		Input, Value, ModelRegistry, ModelHandle, InputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::ConvertVector2D);
 }
 
@@ -520,7 +538,7 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& Ou
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
+		Output, OutValue, ModelRegistry, ModelHandle, OutputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::GetVector2DValueFrom);
 }
 
@@ -528,7 +546,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Val
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Send<FVector, openplx::Physics::Signals::Vec3InputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
+		Input, Value, ModelRegistry, ModelHandle, InputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::ConvertVector3D);
 }
 
@@ -536,7 +554,7 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutV
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
+		Output, OutValue, ModelRegistry, ModelHandle, OutputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::GetVectorValueFrom);
 }
 
@@ -544,7 +562,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Send<int64, openplx::Physics::Signals::IntInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
+		Input, Value, ModelRegistry, ModelHandle, InputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::ConvertInteger);
 }
 
@@ -552,7 +570,7 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutVal
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
+		Output, OutValue, ModelRegistry, ModelHandle, OutputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::GetIntegerValueFrom);
 }
 
@@ -560,7 +578,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Send<bool, openplx::Physics::Signals::BoolInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputQueueRef.get(),
+		Input, Value, ModelRegistry, ModelHandle, InputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::ConvertBoolean);
 }
 
@@ -568,6 +586,61 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputQueueRef.get(),
+		Output, OutValue, ModelRegistry, ModelHandle, OutputQueuePtr.get(),
 		OpenPLXSignalHandler_helpers::GetBooleanValueFrom);
+}
+
+void FOpenPLXSignalHandler::ReleaseNatives()
+{
+	ModelRegistry = nullptr;
+	AssemblyRef = nullptr;
+	InputSignalListenerRef = nullptr;
+	OutputSignalListenerRef = nullptr;
+	InputQueuePtr = nullptr;
+	OutputQueuePtr = nullptr;
+}
+
+void FOpenPLXSignalHandler::SetNativeAddresses(
+	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
+{
+	AssemblyRef->Native = reinterpret_cast<agxSDK::Assembly*>(Addresses.AssemblyAddress);
+	InputSignalListenerRef->Native =
+		reinterpret_cast<agxopenplx::InputSignalListener*>(Addresses.InputSignalListenerAddress);
+	OutputSignalListenerRef->Native =
+		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
+	InputQueuePtr->Native =
+		reinterpret_cast<agxopenplx::InputSignalQueue*>(Addresses.InputQueueAddress);
+	OutputQueuePtr->Native =
+		reinterpret_cast<agxopenplx::OutputSignalQueue*>(Addresses.OutputQueueAddress);
+	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
+	ModelHandle = Addresses.ModelHandle;
+	bIsInitialized = true;
+}
+
+FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses() const
+{
+	FOpenPLX_SignalHandlerNativeAddresses Addresses;
+	if (AssemblyRef->Native != nullptr)
+		Addresses.AssemblyAddress = reinterpret_cast<uint64>(AssemblyRef->Native.get());
+
+	if (InputSignalListenerRef->Native != nullptr)
+		Addresses.InputSignalListenerAddress =
+			reinterpret_cast<uint64>(InputSignalListenerRef->Native.get());
+
+	if (OutputSignalListenerRef->Native != nullptr)
+		Addresses.OutputSignalListenerAddress =
+			reinterpret_cast<uint64>(OutputSignalListenerRef->Native.get());
+
+	if (InputQueuePtr->Native != nullptr)
+		Addresses.InputQueueAddress = reinterpret_cast<uint64>(InputQueuePtr->Native);
+
+	if (OutputQueuePtr->Native != nullptr)
+		Addresses.OutputQueueAddress = reinterpret_cast<uint64>(OutputQueuePtr->Native);
+
+	if (ModelRegistry != nullptr)
+		Addresses.ModelRegistryAddress = reinterpret_cast<uint64>(ModelRegistry);
+
+	Addresses.ModelHandle = ModelHandle;
+
+	return Addresses;
 }
