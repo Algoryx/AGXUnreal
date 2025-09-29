@@ -174,10 +174,22 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		if (!IsAGXResourcesBundled() && !IsAGXSetupEnvCalled())
 		{
-			Console.Error.WriteLine(
-				"\n\nError: No AGX Dynamics bundled with the plugin and no AGX Dynamics environment " +
-				"has been setup. Please ensure that setup_env has been run.\n\n");
-			return;
+			Console.WriteLine("AGX Dynamics is not bundled in the plugin and AGX Dynamics setup_env " +
+				"has not been called.");
+
+			string AgxBundleVersion = GetAGXDynamicsVersionFromVersionHistory();
+
+			if (!UnzipLocalAGXBundle(AgxBundleVersion))
+			{
+				if (!DownloadAndUnzipAGXBundle(AgxBundleVersion))
+				{
+					Console.WriteLine(
+					"\n\nError: No AGX Dynamics bundled with the plugin, no AGX Dynamics environment " +
+					"has been setup, no bundle was found locally and downloading an AGX bundle failed." +
+					" Unable to continue.\n\n");
+					return;
+				}
+			}
 		}
 
 		string BundledAGXResourcesPath = GetBundledAGXResourcesPath();
@@ -256,7 +268,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
-    }
+		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
 		// that we need. These will be added to the Unreal Engine
@@ -334,7 +346,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		string MisplacedLicensePath;
 		if (MisplacedLicenseFileExists(out MisplacedLicensePath))
 		{
-			Console.Error.WriteLine("Error: Found misplaced AGX Dynamics license file at: {0} Please "
+			Console.WriteLine("Error: Found misplaced AGX Dynamics license file at: {0} Please "
 				+ "remove the license file and start the build process again.", MisplacedLicensePath);
 			return;
 		}
@@ -449,7 +461,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		if (FilesToAdd.Length == 0)
 		{
-			Console.Error.WriteLine(
+			Console.WriteLine(
 				"Error: AddLinkLibrary: File {0} did not match any file in {1}. The library will not be added in the build.",
 				FileName, Dir);
 			return;
@@ -464,6 +476,207 @@ public class AGXDynamicsLibrary : ModuleRules
 	private void AddIncludePath(LibSource Src)
 	{
 		PublicIncludePaths.Add(BundledAGXResources.IncludePath(Src));
+	}
+
+	private string GetBundleZipFileName(string AgxVersion)
+	{
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			string ZipFileName = $"agxbundle-{AgxVersion}.zip";
+			return ZipFileName;
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			string UeVersion = $"5.{Target.Version.MinorVersion}";
+			string ZipFileName = $"agxbundle-{AgxVersion}-amd64-ubuntu_22.04_unreal-{UeVersion}.zip";
+			return ZipFileName;
+		}
+		else
+		{
+			Console.WriteLine($"Unsupported platform: {Target.Platform}");
+			return null;
+		}
+	}
+
+
+	private bool DownloadAndUnzipAGXBundle(string AgxVersion)
+	{
+		Console.WriteLine("Attempting to download AGX Dynamics bundle.");
+		try
+		{
+			string ThirdPartyDir = Path.Combine(GetPluginSourcePath(), "ThirdParty");
+			if (Directory.Exists(Path.Combine(ThirdPartyDir, "agx")))
+			{
+				// Already unpacked
+				return true;
+			}
+
+			string BaseUrl = "https://us.download.algoryx.se/AGXUnreal/agx_bundles";
+			string ZipFileName = GetBundleZipFileName(AgxVersion);
+			if (ZipFileName == null)
+			{
+				return false;
+			}
+			string Url;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				Url = $"{BaseUrl}/Windows/{ZipFileName}";
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string UeVersion = $"5.{Target.Version.MinorVersion}";
+				Url = $"{BaseUrl}/Linux/UE-{UeVersion}/{ZipFileName}";
+			}
+			else
+			{
+				Console.WriteLine($"Unsupported platform: {Target.Platform}");
+				return false;
+			}
+
+			string TempZipPath = Path.Combine(Path.GetTempPath(), ZipFileName);
+			Console.WriteLine($"Downloading AGX bundle from {Url} to {TempZipPath}...");
+
+			if (!DownloadFile(Url, TempZipPath))
+				return false;
+
+			// On Linux, we might get an almost empty zip file even if the url is broken, so we check
+			// the file size as well.
+			if (!File.Exists(TempZipPath) || new FileInfo(TempZipPath).Length < 1e6)
+			{
+				Console.WriteLine($"Could not find zip file given URL: {Url}");
+				return false;
+			}
+
+			Console.WriteLine($"Extracting {TempZipPath} to {ThirdPartyDir}...");
+
+			if (!UnzipFile(TempZipPath, ThirdPartyDir))
+				return false;
+
+			File.Delete(TempZipPath);
+			return true;
+		}
+		catch (Exception Ex)
+		{
+			Console.WriteLine($"Exception in DownloadAndUnzipAGXBundle: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private string GetAGXDynamicsVersionFromVersionHistory()
+	{
+		string VersionHistoryPath = Path.Combine(GetPluginRootPath(), "VersionHistory", "VersionHistory.md");
+		if (!File.Exists(VersionHistoryPath))
+		{
+			Console.WriteLine($"Unable to find VersionHistory file: {VersionHistoryPath}");
+			return null;
+		}
+
+		string firstLine = File.ReadLines(VersionHistoryPath).FirstOrDefault();
+		if (string.IsNullOrWhiteSpace(firstLine))
+			return null;
+
+		// Match "AGX Dynamics <version>".
+		var Match = Regex.Match(firstLine, @"AGX Dynamics\s+([\d\.]+)");
+		if (Match.Success)
+		{
+			return Match.Groups[1].Value;
+		}
+
+		return null;
+	}
+
+
+	private bool UnzipLocalAGXBundle(string AgxVersion)
+	{
+		try
+		{
+			Console.WriteLine("Attempting to use local AGX Dynamics bundle.");
+
+			string ZipFileName = GetBundleZipFileName(AgxVersion);
+			string PluginRoot = GetPluginRootPath();
+			string ZipFilePath = Path.Join(PluginRoot, ZipFileName);
+			if (!File.Exists(ZipFilePath))
+			{
+				Console.WriteLine($"Local AGX Dynamics bundle does not exist at '{ZipFilePath}'.");
+				return false;
+			}
+
+			string DestinationDir = Path.Combine(GetPluginSourcePath(), "ThirdParty");
+
+			Console.WriteLine($"Found local AGX bundle at {ZipFilePath}. Extracting to {DestinationDir}...");
+
+			if (!UnzipFile(ZipFilePath, DestinationDir))
+			{
+				Console.WriteLine("Failed to extract local AGX bundle.");
+				return false;
+			}
+
+			return true;
+		}
+		catch (Exception Ex)
+		{
+			Console.WriteLine($"UnzipLocalAGXBundle exception: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private bool DownloadFile(string Url, string DestinationPath)
+	{
+		try
+		{
+			bool Success = false;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				string Args = $"-Command \"Invoke-WebRequest -Uri '{Url}' -OutFile '{DestinationPath}'\"";
+				Success = RunProcess("powershell", Args);
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string Args = $"\"{Url}\" -O \"{DestinationPath}\"";
+				Success = RunProcess("wget", Args);
+			}
+
+			if (!Success)
+				Console.WriteLine("Error: Failed to download file.");
+
+			return Success;
+		}
+		catch (Exception Ex)
+		{
+			Console.WriteLine($"DownloadFile exception: {Ex.Message}");
+			return false;
+		}
+	}
+
+	private bool UnzipFile(string ZipPath, string DestinationDir)
+	{
+		try
+		{
+			bool Success = false;
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				string Args = $"-Command \"Expand-Archive -Path '{ZipPath}' -DestinationPath '{DestinationDir}' -Force\"";
+				Success = RunProcess("powershell", Args);
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				string Args = $"-q \"{ZipPath}\" -d \"{DestinationDir}\"";
+				Success = RunProcess("unzip", Args);
+			}
+
+			if (!Success)
+				Console.WriteLine("Error: Failed to unzip file.");
+
+			return Success;
+		}
+		catch (Exception Ex)
+		{
+			Console.WriteLine($"UnzipFile exception: {Ex.Message}");
+			return false;
+		}
 	}
 
 	private void CopyLinuxSoFromBundleToPluginBinaries()
@@ -502,7 +715,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		string[] FilesToAdd = Directory.GetFiles(Dir, FileName);
 		if (FilesToAdd.Length == 0)
 		{
-			Console.Error.WriteLine("Error: File {0} did not match any file in {1}. The dependency " +
+			Console.WriteLine("Error: File {0} did not match any file in {1}. The dependency " +
 				"will not be added in the build.", FileName, Dir);
 			return;
 		}
@@ -581,7 +794,7 @@ public class AGXDynamicsLibrary : ModuleRules
 	{
 		if (!IsAGXSetupEnvCalled())
 		{
-			Console.Error.WriteLine("\n\nError: Could not bundle AGX Dynamics resources because no AGX Dynamics "
+			Console.WriteLine("\n\nError: Could not bundle AGX Dynamics resources because no AGX Dynamics "
 				+ "installation was found. Please ensure that setup_env has been called.\n\n");
 			return;
 		}
@@ -598,7 +811,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			string[] FilesToCopy = Directory.GetFiles(Dir, FileName);
 			if (FilesToCopy.Length == 0)
 			{
-				Console.Error.WriteLine("Error: File {0} did not match any file in {1}. Packaging " +
+				Console.WriteLine("Error: File {0} did not match any file in {1}. Packaging " +
 					"of AGX Dynamics resources failed.", FileName, Dir);
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -628,7 +841,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			string[] FilesToCopy = Directory.GetFiles(Dir, FileName);
 			if (FilesToCopy.Length == 0)
 			{
-				Console.Error.WriteLine("Error: File {0} did not match any file in {1}. Packaging " +
+				Console.WriteLine("Error: File {0} did not match any file in {1}. Packaging " +
 					"of AGX Dynamics resources failed.", FileName, Dir);
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -877,7 +1090,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		}
 		catch (Exception e)
 		{
-			Console.Error.WriteLine("Error: Unable to copy file {0} to {1}. Exception: {2}",
+			Console.WriteLine("Error: Unable to copy file {0} to {1}. Exception: {2}",
 				Source, Dest, e.Message);
 			return false;
 		}
@@ -890,7 +1103,7 @@ public class AGXDynamicsLibrary : ModuleRules
 	{
 		if (!Directory.Exists(SourceDir))
 		{
-			Console.Error.WriteLine("Unable to copy source directory '{0}' recursively," +
+			Console.WriteLine("Unable to copy source directory '{0}' recursively," +
 				" the directory does not exist.", SourceDir);
 			return false;
 		}
@@ -1102,7 +1315,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		}
 		catch (Exception e)
 		{
-			Console.Error.WriteLine("Error: Unable to delete directory {0}. Exception: {1}",
+			Console.WriteLine("Error: Unable to delete directory {0}. Exception: {1}",
 				BundledAGXResourcesPath, e.Message);
 			return;
 		}
@@ -1187,7 +1400,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			if (!IsInitialized || !Other.IsInitialized)
 			{
-				Console.Error.WriteLine("Error: IsOlderThan called on or with uninitialized AGXVersion object.");
+				Console.WriteLine("Error: IsOlderThan called on or with uninitialized AGXVersion object.");
 				return false;
 			}
 
@@ -1215,7 +1428,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			if (!IsInitialized)
 			{
-				Console.Error.WriteLine("Error: IsNewerOrEqualTo called on uninitialized AGXVersion object.");
+				Console.WriteLine("Error: IsNewerOrEqualTo called on uninitialized AGXVersion object.");
 				return false;
 			}
 
@@ -1287,7 +1500,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSourceInfo Info = LibSources[Src];
 			if (Info.IncludePath == null)
 			{
-				Console.Error.WriteLine("Error: No include path for '{0}'.", Src);
+				Console.WriteLine("Error: No include path for '{0}'.", Src);
 				return null;
 			}
 			return Info.IncludePath;
@@ -1298,7 +1511,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSourceInfo Info = LibSources[Src];
 			if (Info.LinkLibrariesPath == null)
 			{
-				Console.Error.WriteLine("Error: No LinkLibraryPath for '{0}', '{1}' cannot be found.", Src, LibraryName);
+				Console.WriteLine("Error: No LinkLibraryPath for '{0}', '{1}' cannot be found.", Src, LibraryName);
 				return LibraryName;
 			}
 			return Path.Combine(Info.LinkLibrariesPath, LinkLibraryFileName(LibraryName));
@@ -1309,7 +1522,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSourceInfo Info = LibSources[Src];
 			if (Info.LinkLibrariesPath == null)
 			{
-				Console.Error.WriteLine("Error: No LinkLibraryPath for '{0}'.", Src);
+				Console.WriteLine("Error: No LinkLibraryPath for '{0}'.", Src);
 				return string.Empty;
 			}
 			return Info.LinkLibrariesPath;
@@ -1321,7 +1534,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSourceInfo Info = LibSources[Src];
 			if (Info.RuntimeLibrariesPath == null)
 			{
-				Console.Error.WriteLine("Error: No RuntimeLibraryPath for '{0}', '{1}' cannot be found.", Src,
+				Console.WriteLine("Error: No RuntimeLibraryPath for '{0}', '{1}' cannot be found.", Src,
 					LibraryName);
 				return LibraryName;
 			}
@@ -1340,7 +1553,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSourceInfo Info = LibSources[Src];
 			if (Info.RuntimeLibrariesPath == null)
 			{
-				Console.Error.WriteLine("Error: No RuntimeLibraryDirectory for '{0}'.", Src);
+				Console.WriteLine("Error: No RuntimeLibraryDirectory for '{0}'.", Src);
 				return string.Empty;
 			}
 			return Info.RuntimeLibrariesPath;
@@ -1679,7 +1892,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 			catch (Exception e)
 			{
-				Console.Error.WriteLine("Error: ParseAGXVersion failed. " +
+				Console.WriteLine("Error: ParseAGXVersion failed. " +
 					"Unable to read file {0}. Exception: {1}", VersionHeaderPath, e.Message);
 				return;
 			}
@@ -1691,7 +1904,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			if (!GenerationVer.HasValue || !MajorVer.HasValue || !MinorVer.HasValue || !PatchVer.HasValue)
 			{
-				Console.Error.WriteLine("Error: GetAGXVersion failed. " +
+				Console.WriteLine("Error: GetAGXVersion failed. " +
 					"Unable to parse define directives in {0}", VersionHeaderPath);
 				return;
 			}
