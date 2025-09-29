@@ -109,6 +109,8 @@ void FOpenPLXSignalHandler::Init(
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 
 		// Lifetime is bound to the InputSignalListener below.
+		// Todo: use the InputQueue getter in InputSignalListener once available and avoid storing
+		// the InputQue.
 		InputQueuePtr->Native = InputSignalQue.get();
 		InputSignalListenerRef->Native = new agxopenplx::InputSignalListener(
 			AssemblyRef->Native, InputSignalQue, SignalSourceMapper);
@@ -120,6 +122,8 @@ void FOpenPLXSignalHandler::Init(
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
 
 		// Lifetime is bound to the OutputSignalListener below.
+		// Todo: use the OutputQueue getter in OutputSignalListener once available and avoid storing
+		// the OutputQueue.
 		OutputQueuePtr->Native = OutputSignalQueue.get();
 
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
