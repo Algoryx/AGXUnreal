@@ -14,13 +14,12 @@ class FSimulationBarrier;
 
 struct FAssemblyRef;
 struct FInputSignalListenerRef;
-struct FInputSignalQueueRef;
+struct FInputSignalQueuePtr;
 struct FOutputSignalListenerRef;
-struct FOutputSignalQueueRef;
+struct FOutputSignalQueuePtr;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
-struct FSignalSourceMapperRef;
 
 class AGXUNREALBARRIER_API FOpenPLXSignalHandler
 {
@@ -28,8 +27,9 @@ public:
 	FOpenPLXSignalHandler();
 
 	void Init(
-		const FString& OpenPLXFile, FSimulationBarrier& Simulation, FOpenPLXModelRegistry& InModelRegistry,
-		TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints);
+		const FString& OpenPLXFile, FSimulationBarrier& Simulation,
+		FOpenPLXModelRegistry& InModelRegistry, TArray<FRigidBodyBarrier*>& Bodies,
+		TArray<FConstraintBarrier*>& Constraints);
 
 	bool IsInitialized() const;
 
@@ -53,6 +53,8 @@ public:
 	bool Send(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
 
+	void ReleaseNatives();
+
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
@@ -64,7 +66,6 @@ private:
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
 	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
 	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
-	std::shared_ptr<FSignalSourceMapperRef> SignalSourceMapper;
-	std::shared_ptr<FInputSignalQueueRef> InputQueueRef;
-	std::shared_ptr<FOutputSignalQueueRef> OutputQueueRef;
+	std::shared_ptr<FInputSignalQueuePtr> InputQueuePtr;
+	std::shared_ptr<FOutputSignalQueuePtr> OutputQueuePtr;
 };

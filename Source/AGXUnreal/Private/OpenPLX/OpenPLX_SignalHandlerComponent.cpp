@@ -458,6 +458,13 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		ConstraintBarriers);
 }
 
+void UOpenPLX_SignalHandlerComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	if (!GIsReconstructingBlueprintInstances)
+		SignalHandler.ReleaseNatives();
+}
+
 TStructOnScope<FActorComponentInstanceData>
 UOpenPLX_SignalHandlerComponent::GetComponentInstanceData() const
 {
