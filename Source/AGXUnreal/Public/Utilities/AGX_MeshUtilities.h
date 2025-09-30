@@ -404,7 +404,12 @@ public:
 
 		/// Use normals provided with the source data. The source data must contain normals either
 		/// per-vertex, per-vertex-instance, or per-triangle.
-		FromImport
+		FromImport,
+
+		/// Use imported normals if the number of imported normals match either the number of
+		/// vertices, vertex instances, or triangles. Otherwise, fall back to letting Unreal
+		/// generate the normals without warning.
+		Auto
 	};
 
 	/**

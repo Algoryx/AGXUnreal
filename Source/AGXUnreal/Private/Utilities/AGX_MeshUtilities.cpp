@@ -2499,7 +2499,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// to the same triangle as normal I) we can loop over the normals and record each one three
 	// times to produce the vertex instance normals.
 	TArray<FVector3f> Normals;
-	if (InFaceType == EAGX_NormalsSource::FromImport)
+	if (InNormalsSource == EAGX_NormalsSource::FromImport ||
+		InNormalsSource == EAGX_NormalsSource::Auto)
 	{
 		CopyArrayTriplication(Normals, InTrimeshBarrier.GetTriangleNormals());
 	}
@@ -2635,9 +2636,26 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// unsigned.
 	TArray<uint32> Indices = InRenderData.GetIndices();
 
-	// We only consider the normals if the face type is set to From Source since for generated
+	// We only consider the normals if the Normals Source is set to From Import since for generated
 	// normals we let the Static Mesh build process handle normal generation. In this case the rest
 	// of this function will act as-if the normals didn't even exist in the first place.
+	//
+	// If Normals Source is Auto then we replace Auto with From Import of we have a valid number of
+	// normals and switch to Generated otherwise.
+	if (InNormalsSource == EAGX_NormalsSource::Auto)
+	{
+		const int32 NumNormals = InRenderData.GetNumNormals();
+		const int32 NumVertices = InRenderData.GetNumPositions();
+		const int32 NumVertexInstances = InRenderData.GetNumIndices();
+		const int32 NumTriangles = InRenderData.GetNumTriangles();
+		if (NumNormals == NumVertices || NumNormals == NumVertexInstances ||
+			NumNormals == NumTriangles)
+		{
+			InNormalsSource = EAGX_NormalsSource::FromImport;
+		}
+		else
+			InNormalsSource = EAGX_NormalsSource::Generated;
+	}
 	const TArray<FVector> InNormals = InNormalsSource == EAGX_NormalsSource::FromImport
 										  ? InRenderData.GetNormals()
 										  : TArray<FVector>();
