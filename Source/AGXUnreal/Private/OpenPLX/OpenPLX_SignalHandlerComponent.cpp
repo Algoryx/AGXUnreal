@@ -426,8 +426,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
-				 "Simulation. "
-				 "Signal handling may not work."),
+				 "Simulation. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -440,8 +439,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
-				 "barrier "
-				 "object. Signal handling may not work."),
+				 "barrier object. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
