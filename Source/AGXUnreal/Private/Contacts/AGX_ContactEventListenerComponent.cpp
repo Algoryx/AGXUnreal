@@ -18,8 +18,8 @@ void UAGX_ContactEventListenerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Create an AGX Dynamics Contact Event Listener that calls our OnImpact, OnContact, and
-	// OnSeparation member functions via lambda functions.
+	// Create an AGX Dynamics Contact Event Listener that calls our ImpactCallback, ContactCallback,
+	// and SeparationCallback member functions via lambda functions.
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	FSimulationBarrier* SimulationBarrier = Simulation->GetNative();
 	CreateContactEventListener(
@@ -92,6 +92,9 @@ void UAGX_ContactEventListenerComponent::SeparationCallback(
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
+
+	OnSeparationBarrier.Broadcast(TimeStamp, FirstShapeBarrier, SecondShapeBarrier);
+
 	UAGX_ShapeComponent* FirstShape =
 		FindComponentByGuid<UAGX_ShapeComponent>(FirstShapeBarrier.GetGeometryGuid(), *World);
 	UAGX_ShapeComponent* SecondShape =
@@ -115,6 +118,12 @@ EAGX_KeepContactPolicy UAGX_ContactEventListenerComponent::Contact_Implementatio
 
 void UAGX_ContactEventListenerComponent::Separation_Implementation(
 	double TimeStamp, const UAGX_ShapeComponent* FirstShape, UAGX_ShapeComponent* SecondShape)
+{
+	// Nothing to do.
+}
+
+void UAGX_ContactEventListenerComponent::SeparationBarrier_Implementation(
+	double TimeStamp, const FAnyShapeBarrier& FirstShape, const FAnyShapeBarrier& SecondShape)
 {
 	// Nothing to do.
 }

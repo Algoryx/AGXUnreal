@@ -75,13 +75,13 @@ class FLockJointBarrier;
 class FSingleControllerConstraint1DOFBarrier;
 class FMassPropertiesBarrier;
 class FPrismaticBarrier;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 
 // Namespace agxCollide.
 class FContactPointBarrier;
 class FRenderDataBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class FShapeContactBarrier;
 
 // Namespace agxModel.
@@ -89,7 +89,7 @@ class FTireBarrier;
 class FTwoBodyTireBarrier;
 
 // Namespace agxSDK.
-class FMergeSplitPropertiesBarrier;
+struct FMergeSplitPropertiesBarrier;
 class FMergeSplitThresholdsBarrier;
 class FSimulationBarrier;
 

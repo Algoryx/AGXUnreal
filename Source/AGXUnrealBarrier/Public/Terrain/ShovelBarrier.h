@@ -13,7 +13,7 @@
 // Standard library includes.
 #include <memory>
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 struct FShovelRef;
 

@@ -8,7 +8,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_HingeConstraintComponent::UAGX_HingeConstraintComponent()
 	: UAGX_Constraint1DofComponent(

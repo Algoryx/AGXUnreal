@@ -34,7 +34,7 @@ class UAGX_WireComponent;
 class AActor;
 class UActorComponent;
 class UWorld;
-class FShapeBarrier;
+struct FShapeBarrier;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreStepForward, double, Time);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPostStepForward, double, Time);

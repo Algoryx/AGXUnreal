@@ -49,6 +49,9 @@ public:
 
 	int32 GetNumTriangles() const;
 	int32 GetNumIndices() const;
+	int32 GetNumPositions() const;
+	int32 GetNumNormals() const;
+	int32 GetNumTextureCoordinates() const;
 
 	TArray<uint32> GetIndices() const;
 	TArray<FVector> GetPositions() const;

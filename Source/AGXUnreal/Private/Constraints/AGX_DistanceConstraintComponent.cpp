@@ -7,7 +7,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_DistanceConstraintComponent::UAGX_DistanceConstraintComponent()
 	: UAGX_Constraint1DofComponent(

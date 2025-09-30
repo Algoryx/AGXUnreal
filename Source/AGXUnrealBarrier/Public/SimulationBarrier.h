@@ -17,10 +17,10 @@
 
 struct FSimulationRef;
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class FShapeMaterialBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;

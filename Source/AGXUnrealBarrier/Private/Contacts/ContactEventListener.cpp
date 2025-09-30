@@ -33,7 +33,7 @@ ContactEventListener::ContactEventListener(
 		return;
 	}
 
-	agxSDK::Simulation* SimulationAGX = FAGX_AgxDynamicsObjectsAccess::GetFrom(&Simulation);
+	agxSDK::Simulation* SimulationAGX = Simulation.GetNative()->Native;
 	if (SimulationAGX == nullptr)
 	{
 		UE_LOG(LogAGX, Warning, TEXT("ContactEventListener got nullptr AGX Dynamics Simulation."));

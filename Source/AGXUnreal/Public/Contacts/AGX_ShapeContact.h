@@ -97,11 +97,17 @@ class AGXUNREAL_API UAGX_ShapeContact_FL : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact")
 	static UAGX_ShapeComponent* GetFirstShape(UPARAM(Ref) FAGX_ShapeContact& ShapeContact);
 
+	UFUNCTION(BlueprintPure, Category = "AGX Shape Contact")
+	static FShapeBarrier GetFirstShapeBarrier(const FAGX_ShapeContact& ShapeContact);
+
 	/**
 	 * Get the second, of two, Shape that collided.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact")
 	static UAGX_ShapeComponent* GetSecondShape(UPARAM(Ref) FAGX_ShapeContact& ShapeContact);
+
+	UFUNCTION(BlueprintPure, Category = "AGX Shape Contact")
+	static FShapeBarrier GetSecondShapeBarrier(const FAGX_ShapeContact& ShapeContact);
 
 	/**
 	 * Get the first, of two, Rigid Body that collided.
@@ -112,6 +118,9 @@ class AGXUNREAL_API UAGX_ShapeContact_FL : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact")
 	static UAGX_RigidBodyComponent* GetFirstBody(UPARAM(Ref) FAGX_ShapeContact& ShapeContact);
 
+	UFUNCTION(BlueprintPure, Category = "AGX Shape Contact")
+	static FRigidBodyBarrier GetFirstBodyBarrier(const FAGX_ShapeContact& ShapeContact);
+
 	/**
 	 * Get the second, of two, Rigid Body that collided.
 	 *
@@ -120,6 +129,9 @@ class AGXUNREAL_API UAGX_ShapeContact_FL : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shape Contact")
 	static UAGX_RigidBodyComponent* GetSecondBody(UPARAM(Ref) FAGX_ShapeContact& ShapeContact);
+
+	UFUNCTION(BlueprintPure, Category = "AGX Shape Contact")
+	static FRigidBodyBarrier GetSecondBodyBarrier(const FAGX_ShapeContact& ShapeContact);
 
 	/**
 	 * Determine if the Shape Contact includes the given Rigid Body.

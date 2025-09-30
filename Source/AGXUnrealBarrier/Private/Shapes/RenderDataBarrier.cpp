@@ -3,7 +3,7 @@
 #include "Shapes/RenderDataBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 #include "Shapes/RenderMaterial.h"
 #include "TypeConversions.h"
 
@@ -156,6 +156,24 @@ int32 FRenderDataBarrier::GetNumIndices() const
 	check(HasNative());
 	const size_t NumIndicesAGX = NativeRef->Native->getIndexArray().size();
 	return CastWithSaturate(NumIndicesAGX, TEXT("indices"), GetGuid());
+}
+
+int32 FRenderDataBarrier::GetNumPositions() const
+{
+	const size_t Size = NativeRef->Native->getVertexArray().size();
+	return Convert(Size, TEXT("Render Data positions array."));
+}
+
+int32 FRenderDataBarrier::GetNumNormals() const
+{
+	const size_t Size = NativeRef->Native->getNormalArray().size();
+	return Convert(Size, TEXT("Render Data normals array."));
+}
+
+int32 FRenderDataBarrier::GetNumTextureCoordinates() const
+{
+	const size_t Size = NativeRef->Native->getTexCoordArray().size();
+	return Convert(Size, TEXT("Render Data texture coordinates array."));
 }
 
 TArray<FVector> FRenderDataBarrier::GetPositions() const
