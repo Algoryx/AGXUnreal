@@ -325,14 +325,16 @@ namespace AGX_ShapeComponent_helpers
 		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
 			return Existing;
 
-		const bool bBuild =
 #if WITH_EDITOR
-			// In editor builds we can delay the build and batch build multiple meshes later.
-			false;
+		// In editor builds we can delay the build and do it in batch mode later. During import this
+		// is done at the end of `FAGX_Importer::Import.
+		const bool bBuild = false;
+		const bool bWithBoxCollision = false;
 #else
-			// Unreal does not support batch builds in non-editor packaged builds so we are forced
-			// to build each mesh individually.
-			true;
+		// Unreal does not support batch builds in non-editor packaged builds so we are forced
+		// to build each mesh individually.
+		const bool bWithBoxCollision = true;
+		const bool bBuild = true;
 #endif
 
 		// TODO The normal source could be an import setting. If we add such a setting we should
@@ -341,7 +343,6 @@ namespace AGX_ShapeComponent_helpers
 		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
 			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
 
-		const bool bWithBoxCollision = true;
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
 			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
 

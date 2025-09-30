@@ -95,14 +95,15 @@ namespace TrimshShapeComponent_helpers
 		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
 			return Existing;
 
-		const bool bBuild =
 #if WITH_EDITOR
-			// In editor builds we can delay the build and do it in a batch.
-			false;
+		// In editor builds we can delay the build and do it in batch mode later.
+		const bool bBuild = false;
+		const bool bWithBoxCollision = false;
 #else
-			// Unreal does not support batch builds in non-editor packaged builds so we are forced
-			// to build each mesh individually.
-			true;
+		// Unreal does not support batch builds in non-editor packaged builds so we are forced
+		// to build each mesh individually.
+		const bool bWithBoxCollision = true;
+		const bool bBuild = true;
 #endif
 
 		// TODO The normal source could be an import setting. If we add such a setting we should
@@ -110,8 +111,6 @@ namespace TrimshShapeComponent_helpers
 		// Trimesh always have only per-triangle normals
 		AGX_MeshUtilities::EAGX_NormalsSource NormalSource =
 			AGX_MeshUtilities::EAGX_NormalsSource::Generated;
-
-		const bool bWithBoxCollision = true;
 
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
 			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
