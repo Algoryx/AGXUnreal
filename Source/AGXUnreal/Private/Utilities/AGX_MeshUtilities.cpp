@@ -2180,7 +2180,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// Write per-vertex attribute buffers.
 	TArrayView<FVector3f> OutPositions = Attributes.GetVertexPositions().GetRawArray();
 	AGX_CHECK(OutPositions.Num() == InPositions.Num());
-	memcpy(OutPositions.GetData(), InPositions.GetData(), NumVertexInstances * v3Size);
+	memcpy(OutPositions.GetData(), InPositions.GetData(), NumVertices * v3Size);
 
 	// Write per-vertex-instance attribute buffers that actually have data.
 	if (!InNormals.IsEmpty())
