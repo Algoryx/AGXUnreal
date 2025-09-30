@@ -2104,6 +2104,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	using namespace AGX_MeshUtilities_helpers;
 
+	// Require that bInBuild is true if we are in a packaged (non-editor) build.
 #if !WITH_EDITOR
 	AGX_CHECKF(
 		bInBuild,
@@ -2135,10 +2136,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	Unreal uses a dual-vertex system with base vertices and vertex instances. Base vertices carry
 	the vertex position while vertex instances carry normals, UVs, and tangents. The vertex indices
-	that describe triangles index into the vertex instances.
+	that describe triangles index into the vertex instances. There is one vertex instance per
+	element in the InIndices array and each three consecutive instances form a triangle.
 
 	Positions: [P0, P1, P2, ..., Pn] where n is the number of vertex positions.
-	Instances: [I0, I1, I2, ..., I3*t] where t is the number of triangles.
+	Indices:   [I0, I1, I2, ..., I3*t] where t is the number of triangles.
 	Normals:   [N0, N1, N2, ..., N3*t] ------------||---------------------
 	UVs and tangents follow the same pattern as the normals.
 	*/
@@ -2168,12 +2170,19 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
 
 	// Create vertex and vertex instances up-front so that attribute buffers are fully allocated.
+	// We assume that both vertices and vertex instances are created with monotonically increasing
+	// IDs starting from 0, which means that the InIndices array elements can be used as-is.
 	for (int32 I = 0; I < NumVertices; ++I)
 	{
 		MeshDescription.CreateVertex();
 	}
 	for (int32 I = 0; I < NumVertexInstances; ++I)
 	{
+		checkf(
+			InIndices[I] < NumVertices,
+			TEXT(
+				"When creating Static Mesh, found a vertex index that is out of range of the vertex"
+				" data."));
 		MeshDescription.CreateVertexInstance(InIndices[I]);
 	}
 
@@ -2185,7 +2194,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	AGX_CHECK(OutPositions.Num() == InPositions.Num());
 	memcpy(OutPositions.GetData(), InPositions.GetData(), NumVertices * v3Size);
 
-	// Write per-vertex-instance attribute buffers that actually have data.
+	// Write per-vertex-instance attribute buffers that we were given data for.
 	if (!InNormals.IsEmpty())
 	{
 		TArrayView<FVector3f> OutNormals = Attributes.GetVertexInstanceNormals().GetRawArray();
@@ -2202,7 +2211,9 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		memcpy(OutTangents.GetData(), InTangents.GetData(), NumVertexInstances * v3Size);
 	}
 
-	// Assemble triangles.
+	// Assemble triangles. The vertex indices are stored in a straight-line set of triplets matching
+	// the order of the indices array so this step is a simple iota operation. In other words, we
+	// don't reuse vertex instances at all, each vertex instance belong to exactly one triangle.
 	TArray<FVertexInstanceID, TInlineAllocator<3>> VertexInstanceIDs;
 	VertexInstanceIDs.SetNum(3);
 	for (int32 I = 0; I < NumTriangles; ++I)
@@ -2214,8 +2225,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
 	}
 
-	/// TODO Should we use RF_Standalone here? This code path is used for both meshes that will be
-	/// written to disk and for meshes that are created and used for a single Play session.
+	/// TODO Should we always use RF_Standalone here? This code path is used for both meshes that
+	/// will be written to disk and for meshes that are created and used for a single Play session.
 	UStaticMesh* StaticMesh =
 		NewObject<UStaticMesh>(&InOuter, NAME_None, RF_Public | RF_Standalone);
 
@@ -2233,7 +2244,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	else
 	{
 		// TODO Instead of having no Material slot, should we add nullptr and let it default to
-		// World Grid Material?
+		// World Grid Material? There is also UMaterial::GetDefaultMaterial(MD_Surface) if we want
+		// to be more explicit.
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("CreateStaticMesh: No Material provided, mesh '%s' will have no Material slot."),
