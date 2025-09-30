@@ -2130,9 +2130,9 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	Create a Mesh Description. This is how we communicate the mesh data, i.e. the vertices and
 	triangles, to Unreal's Static Mesh.
 
-	Unreal uses a system dual-vertex system with base vertices and vertex instances. Base vertices
-	carry the vertex position while vertex instances carry normals, UVs, and tangents. The vertex
-	indices that describe triangles index into the vertex instances.
+	Unreal uses a dual-vertex system with base vertices and vertex instances. Base vertices carry
+	the vertex position while vertex instances carry normals, UVs, and tangents. The vertex indices
+	that describe triangles index into the vertex instances.
 
 	Positions: [P0, P1, P2, ..., Pn] where n is the number of vertex positions.
 	Instances: [I0, I1, I2, ..., I3*t] where t is the number of triangles.
@@ -2145,7 +2145,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const int32 NumTriangles = InIndices.Num() / 3;
 
 	// Create Mesh Description that will hold all attribute data. We only create a single LOD so
-	// we only need one  Mesh Description.
+	// we only need one Mesh Description.
 	const int32 LODLevel = 0;
 	FMeshDescription MeshDescription;
 	FStaticMeshAttributes Attributes(MeshDescription);
@@ -2160,8 +2160,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	MeshDescription.ReserveNewTriangles(NumTriangles);
 	MeshDescription.ReserveNewPolygons(NumTriangles); // Triangles are also polygons.
 
-	// A Polygon Group defines which polygons, i.e. triangles, use the same InMaterial. We only
-	// support a single InMaterial per Static Mesh.
+	// A Polygon Group defines which polygons, i.e. triangles, use the same Material. We only
+	// support a single Material per Static Mesh so we only need one Polygon Group.
 	FPolygonGroupID PolygonGroupID = MeshDescription.CreatePolygonGroup();
 
 	// Create vertex and vertex instances up-front so that attribute buffers are fully allocated.
@@ -2211,6 +2211,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
 	}
 
+	/// TODO Should we use RF_Standalone here? This code path is used for both meshes that will be
+	/// written to disk and for meshes that are created and used for a single Play session.
 	UStaticMesh* StaticMesh =
 		NewObject<UStaticMesh>(&InOuter, NAME_None, RF_Public | RF_Standalone);
 
@@ -2489,7 +2491,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	TArray<FVector3f> Positions;
 	CopyArray(Positions, InTrimeshBarrier.GetVertexPositions());
 
-	// Indices can be used as-is. We assume no overflow in the conversion from unsigned to signed.
+	// Indices can be used as-is. We assume no overflow in the conversion from unsigned to signed
+	// later when giving these indices to Static Mesh.
 	TArray<uint32> Indices = InTrimeshBarrier.GetVertexIndices();
 
 	// What to do with normals depend on the requested normals source. For Generated we keep the
