@@ -341,8 +341,9 @@ namespace AGX_ShapeComponent_helpers
 		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
 			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
 
+		const bool bWithBoxCollision = true;
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			RenderData, *Context.Outer, Material, bBuild, NormalsSource);
+			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
 #if 0
 		UStaticMesh* Mesh =
 #if WITH_EDITOR

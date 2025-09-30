@@ -384,13 +384,14 @@ public:
 	 * @param InOuter The UObject that will own the Static Mesh.
 	 * @param InMaterial Render material to assign to all triangles.
 	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
 	 * @return The UStaticMesh created from the given mesh data.
 	 */
 	static UStaticMesh* CreateStaticMesh(
 		const TArray<FVector3f>& InPositions, const TArray<uint32>& InIndices,
 		const TArray<FVector3f>& InNormals, const TArray<FVector2f>& InUVs,
 		const TArray<FVector3f>& InTangents, const FString& InName, UObject& InOuter,
-		UMaterialInterface* InMaterial, bool bInBuild);
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision);
 
 	/**
 	 * Control how normals are created for a mesh.
@@ -412,20 +413,22 @@ public:
 	 * AGX Dynamics store one normal per triangle, not per vertex instance as Unreal does. There is
 	 * an option whether the per-triangle normals should be used, which causes flat-shaded faceted
 	 * triangles, or if we should disregard the per-triangle normals and let Unreal compute smoothed
-	 * normals based on the triangle definition. The selection is controlled with the InFaceType
-	 * parameter.
+	 * normals based on the triangle definition. The selection is controlled with the
+	 * InNormalsSource parameter.
 	 *
 	 * @param InTrimeshBarrier The Trimesh to create a Static Mesh from.
 	 * @param InOuter The UObject that will own the Static Mesh.
 	 * @param InMaterial Render material to assign to all triangles.
 	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
+	 * @param InNormalsSource Where to get normals from, either triangles or let Unreal generate.
 	 * @param InName The name of the Static Mesh.
 	 * @return The UStaticMesh created from the Trimesh.
 	 */
 	static UStaticMesh* CreateStaticMesh(
 		const FTrimeshShapeBarrier& InTrimeshBarrier, UObject& InOuter,
-		UMaterialInterface* InMaterial, bool bInBuild, EAGX_NormalsSource InFaceType,
-		const FString& InName = TEXT(""));
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
 
 	/**
 	 * Create a Static Mesh from the triangle held by the given Render Data.
@@ -439,13 +442,15 @@ public:
 	 * @param InOuter The UObject that will own the Static Mesh.
 	 * @param InMaterial Render material to assign to all triangles.
 	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
+	 * @param InNormalsSource Where to get normals from, either input array or let Unreal generate.
 	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
 	 * @return The UStaticMesh created from the Render Data.
 	 */
 	static UStaticMesh* CreateStaticMesh(
 		const FRenderDataBarrier& InRenderDataBarrier, UObject& InOuter,
-		UMaterialInterface* InMaterial, bool bInBuild, EAGX_NormalsSource InNormalsSource,
-		const FString& InName = TEXT(""));
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
 
 #if 0
 	/**

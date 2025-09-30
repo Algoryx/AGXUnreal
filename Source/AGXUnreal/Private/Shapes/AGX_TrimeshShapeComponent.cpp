@@ -95,7 +95,6 @@ namespace TrimshShapeComponent_helpers
 		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
 			return Existing;
 
-
 		const bool bBuild =
 #if WITH_EDITOR
 			// In editor builds we can delay the build and do it in a batch.
@@ -112,8 +111,10 @@ namespace TrimshShapeComponent_helpers
 		AGX_MeshUtilities::EAGX_NormalsSource NormalSource =
 			AGX_MeshUtilities::EAGX_NormalsSource::Generated;
 
+		const bool bWithBoxCollision = true;
+
 		return AGX_MeshUtilities::CreateStaticMesh(
-			Barrier, *Context.Outer, Material, bBuild, NormalSource);
+			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
 
 #if 0
 		TArray<FVector3f> Positions;

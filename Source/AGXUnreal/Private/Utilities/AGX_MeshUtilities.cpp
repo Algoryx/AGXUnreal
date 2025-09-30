@@ -2097,7 +2097,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const TArray<FVector3f>& InPositions, const TArray<uint32>& InIndices,
 	const TArray<FVector3f>& InNormals, const TArray<FVector2f>& InUVs,
 	const TArray<FVector3f>& InTangents, const FString& InName, UObject& InOuter,
-	UMaterialInterface* InMaterial, bool bInBuild)
+	UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision)
 {
 	using namespace AGX_MeshUtilities_helpers;
 
@@ -2117,6 +2117,14 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		return nullptr;
 	}
 #endif
+
+	if (bInWithBoxCollision && !bInBuild)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("CreateStaticMesh: bInWithBoxCollision=true is only valid if bInBuild is also "
+				 "true. No box collision will be created."));
+	}
 
 	/*
 	Create a Mesh Description. This is how we communicate the mesh data, i.e. the vertices and
@@ -2248,7 +2256,10 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		Params.bBuildSimpleCollision = false; // Doesn't work for some reason, done manually below.
 		Params.bAllowCpuAccess = true;
 		StaticMesh->BuildFromMeshDescriptions({&MeshDescription}, Params);
-		AddBoxSimpleCollision(*StaticMesh);
+		if (bInWithBoxCollision)
+		{
+			AddBoxSimpleCollision(*StaticMesh);
+		}
 	}
 	else
 	{
@@ -2443,7 +2454,8 @@ namespace AGX_MeshUtilities_helpers
 
 UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const FTrimeshShapeBarrier& InTrimeshBarrier, UObject& InOuter, UMaterialInterface* InMaterial,
-	bool bInBuild, EAGX_NormalsSource InFaceType, const FString& InName)
+	bool bInBuild, bool bInWithBoxCollision, EAGX_NormalsSource InNormalsSource,
+	const FString& InName)
 {
 	using namespace AGX_MeshUtilities_helpers;
 
@@ -2497,7 +2509,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	TArray<FVector3f> Tangents;
 
 	return CreateStaticMesh(
-		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild);
+		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild,
+		bInWithBoxCollision);
 }
 
 namespace AGX_MeshUtilities_helpers
@@ -2592,7 +2605,8 @@ namespace AGX_MeshUtilities_helpers
 
 UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const FRenderDataBarrier& InRenderData, UObject& InOuter, UMaterialInterface* InMaterial,
-	bool bInBuild, EAGX_NormalsSource InNormalsSource, const FString& InName)
+	bool bInBuild, bool bInWithBoxCollision, EAGX_NormalsSource InNormalsSource,
+	const FString& InName)
 {
 	using namespace AGX_MeshUtilities_helpers;
 
@@ -2649,7 +2663,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	TArray<FVector3f> Tangents;
 
 	return CreateStaticMesh(
-		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild);
+		Positions, Indices, Normals, UVs, Tangents, UniqueName, InOuter, InMaterial, bInBuild,
+		bInWithBoxCollision);
 }
 
 namespace AGX_MeshUtilities_helpers
