@@ -344,14 +344,7 @@ namespace AGX_ShapeComponent_helpers
 		const bool bWithBoxCollision = true;
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
 			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
-#if 0
-		UStaticMesh* Mesh =
-#if WITH_EDITOR
-			AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(RenderData, *Context.Outer, Material);
-#else
-			AGX_MeshUtilities::CreateStaticMesh_REMOVE(RenderData, *Context.Outer, Material);
-#endif // WITH_EDITOR
-#endif
+
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
 

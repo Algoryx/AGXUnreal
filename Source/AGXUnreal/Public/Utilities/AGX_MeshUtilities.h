@@ -457,65 +457,12 @@ public:
 		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
 		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
 
-#if 0
-	/**
-	 * Creates and builds a new Static Mesh.
-	 * This function supports runtime usage.
-	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
-	 */
-	static UStaticMesh* CreateStaticMesh_REMOVE(
-		const TArray<FVector3f>& Positions, const TArray<uint32>& Triangles,
-		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
-		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
-		UMaterialInterface* Material);
-#endif
-
-#if 0
-#if WITH_EDITOR
-	/**
-	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
-	 * Using this function makes it possible to run UStaticMesh::BatchBuild at a later stage on
-	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
-	 * built before it is used.
-	 */
-	static UStaticMesh* CreateStaticMeshNoBuild_REMOVE(
-		const TArray<FVector3f>& Vertices, const TArray<uint32>& Triangles,
-		const TArray<FVector3f>& Normals, const TArray<FVector2D>& UVs,
-		const TArray<FVector3f>& Tangents, const FString& Name, UObject& Outer,
-		UMaterialInterface* Material);
-#endif
-#endif
-
 	/**
 	 * Copies triangle information and render material from one Static Mesh to another.
 	 * Does not copy other properties.
 	 * Always generates a new SimpleCollision (Box primitive) to the Destination Static Mesh.
 	 */
 	static bool CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destination);
-
-#if 0
-	/**
-	 * Creates and builds a new Static Mesh.
-	 * This function supports runtime usage.
-	 * Also adds a SimpleCollision (Box primitive) to the created Static Mesh.
-	 */
-	static UStaticMesh* CreateStaticMesh_REMOVE(
-		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
-#endif
-
-
-#if 0
-#if WITH_EDITOR
-	/**
-	 * Similar to CreateStaticMesh but does no Mesh building and can only be used WITH_EDITOR.
-	 * Using this function makes it possible to run UStaticMesh::BatchBuild at a later stage on
-	 * several Meshes as an optimization. Note that the Static Mesh created by this function must be
-	 * built before it is used.
-	 */
-	static UStaticMesh* CreateStaticMeshNoBuild_REMOVE(
-		const FRenderDataBarrier& RenderData, UObject& Outer, UMaterialInterface* Material);
-#endif
-#endif
 
 	static bool HasRenderDataMesh(const FShapeBarrier& Shape);
 

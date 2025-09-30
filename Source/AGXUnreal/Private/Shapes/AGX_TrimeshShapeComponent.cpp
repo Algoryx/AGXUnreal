@@ -113,63 +113,13 @@ namespace TrimshShapeComponent_helpers
 
 		const bool bWithBoxCollision = true;
 
-		return AGX_MeshUtilities::CreateStaticMesh(
-			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
-
-#if 0
-		TArray<FVector3f> Positions;
-		const auto VerticesAGX = Barrier.GetVertexPositions();
-		Positions.Reserve(VerticesAGX.Num());
-		for (const FVector& Position : VerticesAGX)
-		{
-			Positions.Add(FVector3f(Position));
-		}
-
-		const TArray<uint32> Indices = Barrier.GetVertexIndices();
-
-		// One for each triangle, so we need to generate 3 unreal normals per agx normal.
-		const auto NormalsAGX = Barrier.GetTriangleNormals();
-		TArray<FVector3f> Normals;
-		Normals.Reserve(NormalsAGX.Num() * 3);
-		for (const FVector& Normal : NormalsAGX)
-		{
-			const auto N = FVector3f(Normal);
-			for (int i = 0; i < 3; i++)
-				Normals.Add(N);
-		}
-
-		const int32 NumVertices = Barrier.GetNumPositions();
-
-		// Trimeshes have no UV information, so we set them to zero.
-		TArray<FVector2D> UVs;
-		UVs.SetNumZeroed(NumVertices);
-
-		// Trimeshes have no tangents information, so we set them to zero.
-		TArray<FVector3f> Tangents;
-		Tangents.SetNumZeroed(Positions.Num());
-
-		const FString SourceName = Barrier.GetSourceName();
-		const FString WantedName =
-			SourceName.IsEmpty()
-				? FString::Printf(TEXT("SM_CollisionMesh_%s"), *Barrier.GetGuid().ToString())
-				: FString::Printf(TEXT("SM_%s"), *SourceName);
-
-		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Context.Outer, WantedName, UStaticMesh::StaticClass());
-
-#if WITH_EDITOR
-		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMeshNoBuild_REMOVE(
-			Positions, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
-#else
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			Positions, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
-#endif // WITH_EDITOR
+			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
 
 		if (Mesh != nullptr)
 			Context.CollisionStaticMeshes->Add(Barrier.GetGuid(), Mesh);
 
 		return Mesh;
-#endif
 	}
 
 	UStaticMeshComponent* CreateStaticMeshComponent(
