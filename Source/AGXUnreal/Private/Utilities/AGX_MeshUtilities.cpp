@@ -2179,7 +2179,9 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	for (int32 I = 0; I < NumVertexInstances; ++I)
 	{
 		checkf(
-			InIndices[I] < NumVertices,
+			// Important to cast signed-to-unsigned and not the other way around since the unsigned
+			// value might be too large for the signed type.
+			InIndices[I] < static_cast<uint32>(NumVertices),
 			TEXT(
 				"When creating Static Mesh, found a vertex index that is out of range of the vertex"
 				" data."));
