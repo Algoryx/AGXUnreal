@@ -467,12 +467,20 @@ public:
 	/// Return the native AGX Dynamics representation of this rigid body. May return nullptr.
 	FRigidBodyBarrier* GetNative();
 
+	const FRigidBodyBarrier* GetNative() const;
+
+	/**
+	 * Get access to the underlying native AGX Dynamics object that this Rigid Body Component
+	 * represents. If there is no underlying AGX Dynamics object then the returned Barrier object
+	 * will be invalid and Has Native will return false. Do not call any other function on a Barrier
+	 * object for which Has Native returns false.
+	 *
+	 * @return Barrier for the native AGX Dynamics object this Rigid Body Component represents.
+	 */
 	UFUNCTION(
 		BlueprintCallable, BlueprintPure, Category = "AGX Rigid Body",
 		Meta = (DisplayName = "Get Native"))
 	FRigidBodyBarrier& GetNativeByRef();
-
-	const FRigidBodyBarrier* GetNative() const;
 
 	// ~Begin IAGX_NativeOwner interface.
 	virtual bool HasNative() const override;
