@@ -2254,11 +2254,16 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 			*InName);
 	}
 
+// Source Models are only available in editor builds and I have not found a way to access Mesh Build
+// Settings any other way. Does this mean that generating normals and tangents is only available in
+// editor builds?
+#if WITH_EDITOR
 	StaticMesh->SetNumSourceModels(1);
 	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(LODLevel);
 	FMeshBuildSettings& BuildSettings = SourceModel.BuildSettings;
 	BuildSettings.bRecomputeNormals = InNormals.IsEmpty();
 	BuildSettings.bRecomputeTangents = InTangents.IsEmpty();
+#endif
 
 #if !WITH_EDITOR
 	checkf(bInBuild, TEXT("Non-editor builds must always pass 'true' for 'bInBuild'."));
@@ -2273,7 +2278,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		Params.bFastBuild = true;
 #endif
 		Params.bBuildSimpleCollision = false; // Doesn't work for some reason, done manually below.
-		Params.bAllowCpuAccess = true;
+		Params.bAllowCpuAccess = true; // This isn't always true.
 		StaticMesh->BuildFromMeshDescriptions({&MeshDescription}, Params);
 		if (bInWithBoxCollision)
 		{
