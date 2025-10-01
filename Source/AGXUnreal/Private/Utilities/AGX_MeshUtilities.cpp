@@ -27,6 +27,7 @@
 #include "RenderingThread.h"
 #include "RHIGPUReadback.h"
 #include "StaticMeshAttributes.h"
+#include "StaticMeshOperations.h"
 #include "StaticMeshResources.h"
 #include "UObject/Package.h"
 
