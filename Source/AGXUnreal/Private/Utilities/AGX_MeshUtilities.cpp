@@ -2254,19 +2254,22 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 			*InName);
 	}
 
-// Source Models are only available in editor builds and I have not found a way to access Mesh Build
-// Settings any other way. Does this mean that generating normals and tangents is only available in
-// editor builds?
 #if WITH_EDITOR
+	// Source Models are only available in editor builds and I have not found a way to access Mesh
+	// Build Settings any other way.
 	StaticMesh->SetNumSourceModels(1);
 	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(LODLevel);
 	FMeshBuildSettings& BuildSettings = SourceModel.BuildSettings;
 	BuildSettings.bRecomputeNormals = InNormals.IsEmpty();
 	BuildSettings.bRecomputeTangents = InTangents.IsEmpty();
-#endif
-
-#if !WITH_EDITOR
-	checkf(bInBuild, TEXT("Non-editor builds must always pass 'true' for 'bInBuild'."));
+#else
+	// We are in a packaged build so cannot depend on Unreal for normals and tangents computation.
+	// Not sure what we should really do here. For now use engine facilities to compute what we can
+	// for missing data.
+	if (InNormals.IsEmpty())
+	{
+		FStaticMeshOperations::ComputeTriangleTangentsAndNormals(MeshDescription);
+	}
 #endif
 
 	if (bInBuild)
