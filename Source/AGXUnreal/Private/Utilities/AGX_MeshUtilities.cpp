@@ -2290,11 +2290,15 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	}
 	else
 	{
+#if WITH_EDITOR
 		// The mesh building should be delayed so for now we only store the attribute data in the
 		// mesh. Box Simple Collision building is also delayed. For imports the building is done
 		// by AGX_Importer_helpers::BatchBuildStaticMeshes in AGX_Importer.cpp.
 		StaticMesh->CreateMeshDescription(LODLevel, MoveTemp(MeshDescription));
 		StaticMesh->CommitMeshDescription(LODLevel);
+#else
+		checkNoEntry();
+#endif
 	}
 
 	return StaticMesh;
