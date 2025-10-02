@@ -19,13 +19,6 @@ public class AGXUnreal : ModuleRules
 		// IDEs and compilers. Setting it to false reduces the list but makes
 		// it necessary to specify subdirectories in #include statements.
 		// PCHUsage has to do with Pre-Compiled Headers and include-what-you-use.
-		// See
-		// https://docs.unrealengine.com/4.26/en-US/ProductionPipelines/BuildTools/UnrealBuildTool/IWYU/
-		bLegacyPublicIncludePaths = false;
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-
-		PrecompileForTargets = PrecompileTargetsType.Any;
-
 		// TODO: Determine which of these are really need and why.
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"AGXCommon", "AGXUnrealBarrier", "RHI", "RenderCore", "Core", "CoreUObject", "Engine",
