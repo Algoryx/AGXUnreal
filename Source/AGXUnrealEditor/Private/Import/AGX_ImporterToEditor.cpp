@@ -1510,9 +1510,6 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		{
 			TMap<FGuid, USCS_Node*> Unused;
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Unused, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
 			{
 				CopyProperties(
 					*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
