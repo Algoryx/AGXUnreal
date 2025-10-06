@@ -1005,8 +1005,7 @@ namespace AGX_Simulation_helpers
 		Unaccounted -= Statistics.Sim_PreCollideEventTime;
 		INC_FLOAT_STAT_BY(STAT_AGXD_SimCollisionDetection_FRAME,            Statistics.Sim_CollisionDetectionTime);
 		Unaccounted -= Statistics.Sim_CollisionDetectionTime;
-		INC_FLOAT_STAT_BY(
-			STAT_AGXD_SimContactSeparationEvents_FRAME,                     Statistics.Sim_TriggeringContactSeparationEventsTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactSeparationEvents_FRAME,       Statistics.Sim_TriggeringContactSeparationEventsTime);
 		Unaccounted -= Statistics.Sim_TriggeringContactSeparationEventsTime;
 		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactEvents_FRAME,                 Statistics.Sim_TriggeringContactEventsTime);
 		Unaccounted -= Statistics.Sim_TriggeringContactEventsTime;
@@ -1014,8 +1013,7 @@ namespace AGX_Simulation_helpers
 		Unaccounted -= Statistics.Sim_ContactReductionTime;
 		INC_FLOAT_STAT_BY(STAT_AGXD_SimCullingContacts_FRAME,               Statistics.Sim_CullingContactsTime);
 		Unaccounted -= Statistics.Sim_CullingContactsTime;
-		INC_FLOAT_STAT_BY(
-			STAT_AGXD_SimCommittingRemovedContacts_FRAME,                   Statistics.Sim_CommittingRemovedContactsTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCommittingRemovedContacts_FRAME,     Statistics.Sim_CommittingRemovedContactsTime);
 		Unaccounted -= Statistics.Sim_CommittingRemovedContactsTime;
 		INC_FLOAT_STAT_BY(STAT_AGXD_SimPreStep_FRAME,                       Statistics.Sim_PreStepEventTime);
 		Unaccounted -= Statistics.Sim_PreStepEventTime;
