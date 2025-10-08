@@ -245,20 +245,22 @@ TArray<FOpenPLX_Output> FPLXUtilitiesInternal::GetOutputs(openplx::Physics3D::Sy
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfOutputs, Output);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
 		EOpenPLX_OutputType Type = GetOutputType(*Output);
-		Outputs.Add(
-			FOpenPLX_Output(ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
+		Outputs.Add(FOpenPLX_Output(
+			ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
 		if (Type == EOpenPLX_OutputType::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Imported unsupported OpenPLX Output: %s. The Output may not work as expected."),
+				TEXT("Imported unsupported OpenPLX Output: %s. The Output may not work as "
+					 "expected."),
 				*Convert(Output->getName()));
 		}
 	}
 	return Outputs;
 }
 
-EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(const openplx::Physics::Signals::Input& Input)
+EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
+	const openplx::Physics::Signals::Input& Input)
 {
 	using namespace openplx::Physics::Signals;
 	using namespace openplx::Physics3D::Signals;
@@ -659,15 +661,6 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
-	agx::RigidBodyRefSetVector OldBodiesAGX;
-	for (FRigidBodyBarrier* Body : Bodies)
-	{
-		AGX_CHECK(Body->HasNative());
-		auto BodyAGX = Body->GetNative()->Native;
-		Assembly->add(BodyAGX);
-		OldBodiesAGX.push_back(BodyAGX);
-	}
-
 	agx::ConstraintRefSetVector OldConstraintsAGX;
 	for (FConstraintBarrier* Constraint : Constraints)
 	{
@@ -685,9 +678,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
-	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(
-		ErrorReporter, agxopenplx::DriveTrainConstraintMapMode::Name);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine, Assembly);
+
+	auto AgxObjectMap =
+		agxopenplx::AgxObjectMap::create(Assembly, nullptr, agxopenplx::AgxObjectMapMode::Name);
+
+	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
+	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -700,16 +696,10 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	// All objects created within this function must be added to the Simulation.
 	Simulation.GetNative()->Native->add(RequiredPowerLine);
 
-	for (auto B : Assembly->getRigidBodies())
+	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{
-		if (!OldBodiesAGX.contains(B))
-			Simulation.GetNative()->Native->add(B);
-	}
-
-	for (auto C : Assembly->getConstraints())
-	{
-		if (!OldConstraintsAGX.contains(C))
-			Simulation.GetNative()->Native->add(C);
+		if (!OldConstraintsAGX.contains(Constraint))
+			Simulation.GetNative()->Native->add(Constraint);
 	}
 
 	return Assembly;
@@ -719,4 +709,3 @@ std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()
 {
 	return "OpenPlxPowerLine";
 }
-
