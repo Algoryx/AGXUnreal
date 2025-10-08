@@ -699,7 +699,10 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{
 		if (!OldConstraintsAGX.contains(Constraint))
+		{
 			Simulation.GetNative()->Native->add(Constraint);
+			Assembly->add(Constraint);
+		}
 	}
 
 	return Assembly;
