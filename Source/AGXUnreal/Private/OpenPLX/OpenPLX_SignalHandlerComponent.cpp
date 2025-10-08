@@ -420,7 +420,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(const FOpenPLX_Output& Outp
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsVectorType(Output.Type))
+	if (!FOpenPLX_Utilities::IsIntegerType(Output.Type))
 	{
 		LogTypeMismatchWarning("ReceiveInteger", Output.Name.ToString(), "Output");
 		return false;
