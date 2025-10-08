@@ -695,15 +695,6 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
-	agx::RigidBodyRefSetVector OldBodiesAGX;
-	for (FRigidBodyBarrier* Body : Bodies)
-	{
-		AGX_CHECK(Body->HasNative());
-		auto BodyAGX = Body->GetNative()->Native;
-		Assembly->add(BodyAGX);
-		OldBodiesAGX.push_back(BodyAGX);
-	}
-
 	agx::ConstraintRefSetVector OldConstraintsAGX;
 	for (FConstraintBarrier* Constraint : Constraints)
 	{
@@ -721,9 +712,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
-	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(
-		ErrorReporter, agxopenplx::DriveTrainConstraintMapMode::Name);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine, Assembly);
+
+	auto AgxObjectMap =
+		agxopenplx::AgxObjectMap::create(Assembly, nullptr, agxopenplx::AgxObjectMapMode::Name);
+
+	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
+	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -736,16 +730,13 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	// All objects created within this function must be added to the Simulation.
 	Simulation.GetNative()->Native->add(RequiredPowerLine);
 
-	for (auto B : Assembly->getRigidBodies())
+	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{
-		if (!OldBodiesAGX.contains(B))
-			Simulation.GetNative()->Native->add(B);
-	}
-
-	for (auto C : Assembly->getConstraints())
-	{
-		if (!OldConstraintsAGX.contains(C))
-			Simulation.GetNative()->Native->add(C);
+		if (!OldConstraintsAGX.contains(Constraint))
+		{
+			Simulation.GetNative()->Native->add(Constraint);
+			Assembly->add(Constraint);
+		}
 	}
 
 	return Assembly;
