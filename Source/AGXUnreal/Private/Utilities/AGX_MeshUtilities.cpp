@@ -2107,18 +2107,13 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	// Require that bInBuild is true if we are in a packaged (non-editor) build.
 #if !WITH_EDITOR
-	AGX_CHECKF(
-		bInBuild,
+	constexpr static TCHAR Message[] {
 		TEXT("AGX_MeshUtilities::CreateStaticMesh for %s: This is a non-editor build which means "
-			 "that bInBuild must be true."),
-		*InName);
+			 "that bInBuild must be true.")};
+	AGX_CHECKF(bInBuild, Message, *InName);
 	if (!bInBuild)
 	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("AGX_MeshUtilities::CreateStaticMesh: This is a non-editor build which means "
-				 "that bInBuild must be true."),
-			*InName);
+		UE_LOG(LogAGX, Error, Message, *InName);
 		return nullptr;
 	}
 #endif
