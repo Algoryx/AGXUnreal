@@ -12,7 +12,7 @@
 #include <memory>
 
 struct FWireNodeRef;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 class AGXUNREALBARRIER_API FWireNodeBarrier
 {

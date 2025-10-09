@@ -275,6 +275,11 @@ FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative()
 	return &NativeBarrier;
 }
 
+FRigidBodyBarrier& UAGX_RigidBodyComponent::GetNativeByRef()
+{
+	return NativeBarrier;
+}
+
 const FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative() const
 {
 	if (!HasNative())

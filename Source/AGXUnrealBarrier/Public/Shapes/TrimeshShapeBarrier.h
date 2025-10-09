@@ -2,11 +2,14 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
 
+// Unreal Engine includes.
+#include "Containers/Array.h"
 #include "Math/Vector.h"
 
-#include <memory>
+#include "TrimeshShapeBarrier.generated.h"
 
 struct FTriIndices;
 
@@ -23,7 +26,7 @@ struct FTriIndices;
  * TriangleNormals: TArray<FVector> - One FVector per triangle.
  *
  * Data shared among triangles:
- *   positions: [Vec3, Vec3, Vec3 Vec3, Vec3, ... ]
+ *   positions: [Vec3, Vec3, Vec3, Vec3, Vec3, ... ]
  *
  * Data owned by each triangle:
  *               |  Triangle 0   |  Triangle 1   | ... |
@@ -36,13 +39,13 @@ struct FTriIndices;
  * As with any shape, a trimesh may contain render data. The render mesh, if any, is separate from
  * the collision mesh and uses a different storage format.
  */
-class AGXUNREALBARRIER_API FTrimeshShapeBarrier : public FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FTrimeshShapeBarrier : public FShapeBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FTrimeshShapeBarrier();
-	FTrimeshShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	FTrimeshShapeBarrier(FTrimeshShapeBarrier&& Other);
-	virtual ~FTrimeshShapeBarrier() override;
+	FTrimeshShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 	int32 GetNumPositions() const;
 
@@ -94,9 +97,6 @@ private:
 	virtual void ReleaseNativeShape() override;
 
 private:
-	FTrimeshShapeBarrier(const FTrimeshShapeBarrier&) = delete;
-	void operator=(const FTrimeshShapeBarrier&) = delete;
-
 	struct AllocationParameters
 	{
 		const TArray<FVector>* Vertices;

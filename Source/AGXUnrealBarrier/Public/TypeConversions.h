@@ -194,7 +194,14 @@ inline int32 Convert(agx::Int I)
 	return static_cast<int32>(I);
 }
 
-inline int32 Convert(std::size_t S)
+inline bool CanConvert(std::size_t S)
+{
+	static constexpr std::size_t MaxAllowed =
+		static_cast<std::size_t>(std::numeric_limits<int32>::max());
+	return S <= MaxAllowed;
+}
+
+inline int32 Convert(std::size_t S, const TCHAR* const Message = TEXT(""))
 {
 	static constexpr std::size_t MaxAllowed =
 		static_cast<std::size_t>(std::numeric_limits<int32>::max());
@@ -202,7 +209,7 @@ inline int32 Convert(std::size_t S)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Too large size_t being converted to int32, value is truncated."));
+			TEXT("%s: Too large size_t being converted to int32, value is truncated."), Message);
 		S = MaxAllowed;
 	}
 	return static_cast<int32>(S);

@@ -133,7 +133,7 @@ FTrimeshShapeBarrier::FTrimeshShapeBarrier()
 {
 }
 
-FTrimeshShapeBarrier::FTrimeshShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FTrimeshShapeBarrier::FTrimeshShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
 	/// \todo It seems Shape::is<T>() broken with Unreal Engine 2.24. Now we trip
@@ -145,18 +145,6 @@ FTrimeshShapeBarrier::FTrimeshShapeBarrier(std::unique_ptr<FGeometryAndShapeRef>
 	check(
 		NativeRef->NativeShape->getType() == agxCollide::Shape::TRIMESH ||
 		NativeRef->NativeShape->getType() == agxCollide::Shape::CONVEX);
-}
-
-FTrimeshShapeBarrier::FTrimeshShapeBarrier(FTrimeshShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FTrimeshShapeBarrier::~FTrimeshShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FTrimeshShapeRef.
 }
 
 int32 FTrimeshShapeBarrier::GetNumPositions() const

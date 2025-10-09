@@ -32,7 +32,7 @@ class FLockJointBarrier;
 class FSingleControllerConstraint1DOFBarrier;
 
 // Others.
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
 class FShapeMaterialBarrier;

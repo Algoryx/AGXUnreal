@@ -11,6 +11,7 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "UObject/Package.h"
@@ -148,7 +149,7 @@ void FAGX_ShapeContactMergeSplitProperties::CreateNativeThresholds(UWorld* Playi
 	if (Thresholds->IsInstance())
 	{
 		if (!Thresholds->HasNative())
-			Thresholds->CreateNative();		
+			Thresholds->CreateNative();
 		return;
 	}
 

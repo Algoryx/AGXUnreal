@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 class AGXUNREALBARRIER_API FAGXUtilities
 {

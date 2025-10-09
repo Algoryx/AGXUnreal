@@ -17,7 +17,7 @@
 class UAGX_ConstraintComponent;
 class UAGX_RigidBodyComponent;
 class AAGX_ConstraintFrameActor;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 /**
  * Defines the Rigid Body to be bound by a Constraint and an attachment frame that is

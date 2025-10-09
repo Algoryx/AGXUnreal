@@ -14,8 +14,10 @@
 #include <memory>
 #include <tuple>
 
+#include "ShapeBarrier.generated.h"
+
 struct FGeometryAndShapeRef;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 
 class FRenderDataBarrier;
@@ -27,15 +29,14 @@ class FRenderDataBarrier;
  *
  * A Shape may come with Render Data, which may contain a Render Mesh and/or a Render Material.
  */
-class AGXUNREALBARRIER_API FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FShapeBarrier
 {
-public:
-	FShapeBarrier();
-	FShapeBarrier(FShapeBarrier&& Other) noexcept;
-	FShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	virtual ~FShapeBarrier();
+	GENERATED_BODY()
 
-	FShapeBarrier& operator=(FShapeBarrier&& Other) noexcept;
+	FShapeBarrier();
+	FShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
+	virtual ~FShapeBarrier() = default;
 
 	bool HasNativeGeometry() const;
 	bool HasNativeShape() const;
@@ -155,10 +156,6 @@ protected:
 	void AllocateNative(TFunc Factory, TPack... Params);
 
 private:
-	FShapeBarrier(const FShapeBarrier&) = delete;
-	void operator=(const FShapeBarrier&) = delete;
-
-private:
 	/// \todo Are we allowed to have pure virtual classes in an Unreal plugin.
 	///       Not allowed when inheriting from U/A classes, but we don't do that
 	///       here.
@@ -173,5 +170,5 @@ private:
 	virtual void ReleaseNativeShape() {};
 
 protected:
-	std::unique_ptr<FGeometryAndShapeRef> NativeRef;
+	std::shared_ptr<FGeometryAndShapeRef> NativeRef;
 };

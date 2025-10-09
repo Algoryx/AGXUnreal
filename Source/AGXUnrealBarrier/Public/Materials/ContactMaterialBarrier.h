@@ -10,7 +10,7 @@
 
 struct FContactMaterialRef;
 class FShapeMaterialBarrier;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 /**
  * Acts as an interface to a native AGX Contact Material, and encapsulates it so that it is

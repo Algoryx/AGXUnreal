@@ -10,7 +10,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_SingleControllerConstraint1DofComponent::UAGX_SingleControllerConstraint1DofComponent()
 	: UAGX_Constraint1DofComponent(TArray<EDofFlag>())

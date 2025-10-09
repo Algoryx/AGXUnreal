@@ -9,7 +9,7 @@
 #include <memory>
 
 class FConstraintBarrier;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FSimulationBarrier;
 
 struct FAssemblyRef;

@@ -914,54 +914,139 @@ namespace AGX_Simulation_helpers
 
 	void ReportStepStatistics(const FAGX_Statistics& Statistics)
 	{
-		// Last step only timers.
-		SET_FLOAT_STAT(STAT_AGXD_StepForward_STEP, Statistics.StepForwardTime);
-		double Unaccounted = Statistics.StepForwardTime;
-		SET_FLOAT_STAT(STAT_AGXD_SpaceUpdate_STEP, Statistics.SpaceTime);
-		Unaccounted -= Statistics.SpaceTime;
-		SET_FLOAT_STAT(STAT_AGXD_DynamicsUpdate_STEP, Statistics.DynamicsSystemTime);
-		Unaccounted -= Statistics.DynamicsSystemTime;
-		SET_FLOAT_STAT(STAT_AGXD_PreCollide_STEP, Statistics.PreCollideTime);
-		Unaccounted -= Statistics.PreCollideTime;
-		SET_FLOAT_STAT(STAT_AGXD_ContactEvents_STEP, Statistics.ContactEventsTime);
-		Unaccounted -= Statistics.ContactEventsTime;
-		SET_FLOAT_STAT(STAT_AGXD_PreStep_STEP, Statistics.PreStepTime);
-		Unaccounted -= Statistics.PreStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_PostStep_STEP, Statistics.PostStepTime);
-		Unaccounted -= Statistics.PostStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_LastStep_STEP, Statistics.LastStepTime);
-		Unaccounted -= Statistics.LastStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_Unaccounted_STEP, Unaccounted);
+		// These are the same lines repeated over and over with some rather long
+		// names here and there. I find such lines easier to read when colun
+		// aligned even when the lines get long.
+		//
+		// clang-format off
+
+		// Statistics reported by Simulation. The 'Unaccounted' one is 'StepForwardTime' minus all
+		// other times reported by Simulation. So it is basically 'Simulation.self', all the little
+		// things Simulation does that doesn't have a timer around it.
+		SET_FLOAT_STAT(STAT_AGXD_SimStepForward_STEP,                       Statistics.Sim_StepForwardTime);
+		float Unaccounted = Statistics.Sim_StepForwardTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPreCollide_STEP,                        Statistics.Sim_PreCollideEventTime);
+		Unaccounted -= Statistics.Sim_PreCollideEventTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCollisionDetection_STEP,                Statistics.Sim_CollisionDetectionTime);
+		Unaccounted -= Statistics.Sim_CollisionDetectionTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactSeparationEvents_STEP,           Statistics.Sim_TriggeringContactSeparationEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactSeparationEventsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactEvents_STEP,                     Statistics.Sim_TriggeringContactEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactEventsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactReduction_STEP,                  Statistics.Sim_ContactReductionTime);
+		Unaccounted -= Statistics.Sim_ContactReductionTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCullingContacts_STEP,                   Statistics.Sim_CullingContactsTime);
+		Unaccounted -= Statistics.Sim_CullingContactsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCommittingRemovedContacts_STEP,         Statistics.Sim_CommittingRemovedContactsTime);
+		Unaccounted -= Statistics.Sim_CommittingRemovedContactsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPreStep_STEP,                           Statistics.Sim_PreStepEventTime);
+		Unaccounted -= Statistics.Sim_PreStepEventTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimDynamicsSystem_STEP,                    Statistics.Sim_DynamicsSystemTime);
+		Unaccounted -= Statistics.Sim_DynamicsSystemTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPostStep_STEP,                          Statistics.Sim_PostStepTime);
+		Unaccounted -= Statistics.Sim_PostStepTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimLastStep_STEP,                          Statistics.Sim_LastStepTime);
+		Unaccounted -= Statistics.Sim_LastStepTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimUnaccounted_STEP,                       Unaccounted);
+
+		// Update Render Manager and Inter-Step are special in the sense that they are reported by
+		// Simulation but they are not between the start and stop of the main step timer, so they
+		// should not be included in 'Unaccounted'.
+		SET_FLOAT_STAT(STAT_AGXD_SimUpdateRenderManager_STEP,               Statistics.Sim_UpdateRenderManagerTime);
+		SET_FLOAT_STAT(STAT_AGXD_SimInterStep_STEP,                         Statistics.Sim_InterStepTime);
+
+		// Statistics reported by Space.
+		SET_FLOAT_STAT(STAT_AGXD_SpaceUpdate_STEP,                          Statistics.Space_UpdateTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceBroadPhase_STEP,                      Statistics.Space_BroadPhaseTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceNarrowPhase_STEP,                     Statistics.Space_NarrowPhaseTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceSyncBounds_STEP,                      Statistics.Space_SyncBoundsTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceSyncTransforms_STEP,                  Statistics.Space_SyncTransformsTime);
+
+		// Statistics reported by Dynamics System.
+		SET_FLOAT_STAT(STAT_AGXD_DynSysUpdate_STEP,                         Statistics.DynSys_UpdateTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSolver_STEP,                         Statistics.DynSys_SolverTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSabreFactoring_STEP,                 Statistics.DynSys_SabreFactoringTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSabreSolve_STEP,                     Statistics.DynSys_SabreSolveTime);
 
 		// Counters.
-		SET_DWORD_STAT(STAT_AGXD_NumBodies, Statistics.NumBodies);
-		SET_DWORD_STAT(STAT_AGXD_NumConstraints, Statistics.NumConstraints);
-		SET_DWORD_STAT(STAT_AGXD_NumContactConstraints, Statistics.NumContacts);
-		SET_DWORD_STAT(STAT_AGXD_NumParticles, Statistics.NumParticles);
+		SET_DWORD_STAT(STAT_AGXD_SimNumParticles,                           Statistics.Sim_NumParticles);
+		SET_DWORD_STAT(STAT_AGXD_SimNumContactsRemoved,                     Statistics.Sim_NumContactsRemoved);
+		SET_DWORD_STAT(STAT_AGXD_SimNumWarmStartedParticleParticleContacts, Statistics.Sim_NumWarmStartedParticleParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SimNumWarmStartedShapeParticleContacts,    Statistics.Sim_NumWarmStartedParticleShapeContacts);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumEnabledRigidBodies,               Statistics.DynSys_NumEnabledRigidBodies);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumBinaryConstraints,                Statistics.DynSys_NumBinaryConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumMultiBodyConstraints,             Statistics.DynSys_NumMultiBodyConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumContactConstraints,               Statistics.DynSys_NumContactConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumSolveIslands,                     Statistics.DynSys_NumSolveIslands);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapes,                            Statistics.Space_NumShapes);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeShapeContactPoints,           Statistics.Space_NumShapeShapeContactPoints);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeShapeContacts,                Statistics.Space_NumShapeShapeContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumParticleParticleContacts,          Statistics.Space_NumParticleParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeParticleContacts,             Statistics.Space_NumShapeParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumNarrowPhaseTests,                  Statistics.Space_NumNarrowPhaseTests);
+
+		// clang-format on
 	}
 
 	void AccumulateFrameStatistics(const FAGX_Statistics& Statistics)
 	{
-		// Entire frame timers.
-		INC_FLOAT_STAT_BY(STAT_AGXD_StepForward_FRAME, Statistics.StepForwardTime);
-		double Unaccounted = Statistics.StepForwardTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceUpdate_FRAME, Statistics.SpaceTime);
-		Unaccounted -= Statistics.SpaceTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_DynamicsUpdate_FRAME, Statistics.DynamicsSystemTime);
-		Unaccounted -= Statistics.DynamicsSystemTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PreCollide_FRAME, Statistics.PreCollideTime);
-		Unaccounted -= Statistics.PreCollideTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_ContactEvents_FRAME, Statistics.ContactEventsTime);
-		Unaccounted -= Statistics.ContactEventsTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PreStep_FRAME, Statistics.PreStepTime);
-		Unaccounted -= Statistics.PreStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PostStep_FRAME, Statistics.PostStepTime);
-		Unaccounted -= Statistics.PostStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_LastStep_FRAME, Statistics.LastStepTime);
-		Unaccounted -= Statistics.LastStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_Unaccounted_FRAME, Unaccounted);
+		// These are the same lines repeated over and over with some rather long
+		// names here and there. I find such lines easier to read when colun
+		// aligned even when the lines get long.
+		//
+		// clang-format off
+
+		// Statistics reported by Simulation. The 'Unaccounted' one is 'StepForwardTime' minus all
+		// other times reported by Simulation. So it is basically 'Simulation.self', all the little
+		// things Simulation does that doesn't have a timer around it.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimStepForward_FRAME,                   Statistics.Sim_StepForwardTime);
+		float Unaccounted = Statistics.Sim_StepForwardTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPreCollide_FRAME,                    Statistics.Sim_PreCollideEventTime);
+		Unaccounted -= Statistics.Sim_PreCollideEventTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCollisionDetection_FRAME,            Statistics.Sim_CollisionDetectionTime);
+		Unaccounted -= Statistics.Sim_CollisionDetectionTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactSeparationEvents_FRAME,       Statistics.Sim_TriggeringContactSeparationEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactSeparationEventsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactEvents_FRAME,                 Statistics.Sim_TriggeringContactEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactEventsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactReduction_FRAME,              Statistics.Sim_ContactReductionTime);
+		Unaccounted -= Statistics.Sim_ContactReductionTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCullingContacts_FRAME,               Statistics.Sim_CullingContactsTime);
+		Unaccounted -= Statistics.Sim_CullingContactsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCommittingRemovedContacts_FRAME,     Statistics.Sim_CommittingRemovedContactsTime);
+		Unaccounted -= Statistics.Sim_CommittingRemovedContactsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPreStep_FRAME,                       Statistics.Sim_PreStepEventTime);
+		Unaccounted -= Statistics.Sim_PreStepEventTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimDynamicsSystem_FRAME,                Statistics.Sim_DynamicsSystemTime);
+		Unaccounted -= Statistics.Sim_DynamicsSystemTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPostStep_FRAME,                      Statistics.Sim_PostStepTime);
+		Unaccounted -= Statistics.Sim_PostStepTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimLastStep_FRAME,                      Statistics.Sim_LastStepTime);
+		Unaccounted -= Statistics.Sim_LastStepTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimUnaccounted_FRAME, Unaccounted);
+
+		// Update Render Manager and Inter-Step are special in the sense that they are reported by
+		// Simulation but they are not between the start and stop of the main step timer, so they
+		// should not be included in 'Unaccounted'.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimUpdateRenderManager_FRAME,           Statistics.Sim_UpdateRenderManagerTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimInterStep_FRAME,                     Statistics.Sim_InterStepTime);
+
+		// Statistics reported by Space.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceUpdate_FRAME,                      Statistics.Space_UpdateTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceBroadPhase_FRAME,                  Statistics.Space_BroadPhaseTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceNarrowPhase_FRAME,                 Statistics.Space_NarrowPhaseTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceSyncBounds_FRAME,                  Statistics.Space_SyncBoundsTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceSyncTransforms_FRAME,              Statistics.Space_SyncTransformsTime);
+
+		// Statistics reported by Dynamics System.
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysUpdate_FRAME,                     Statistics.DynSys_UpdateTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSolver_FRAME,                     Statistics.DynSys_SolverTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSabreFactoring_FRAME,             Statistics.DynSys_SabreFactoringTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSabreSolve_FRAME,                 Statistics.DynSys_SabreSolveTime);
 
 		// Counters should not be incremented every step, only once per frame.
+
+		// clang-format on
 	}
 }
 

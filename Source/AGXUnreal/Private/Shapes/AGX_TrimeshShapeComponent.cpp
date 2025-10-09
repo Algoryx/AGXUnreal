@@ -95,53 +95,25 @@ namespace TrimshShapeComponent_helpers
 		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
 			return Existing;
 
-		TArray<FVector3f> Vertices;
-		const auto VerticesAGX = Barrier.GetVertexPositions();
-		Vertices.Reserve(VerticesAGX.Num());
-		for (const FVector& Position : VerticesAGX)
-		{
-			Vertices.Add(FVector3f(Position));
-		}
-
-		const TArray<uint32> Indices = Barrier.GetVertexIndices();
-
-		// One for each triangle, so we need to generate 3 unreal normals per agx normal.
-		const auto NormalsAGX = Barrier.GetTriangleNormals();
-		TArray<FVector3f> Normals;
-		Normals.Reserve(NormalsAGX.Num() * 3);
-		for (const FVector& Normal : NormalsAGX)
-		{
-			const auto N = FVector3f(Normal);
-			for (int i = 0; i < 3; i++)
-				Normals.Add(N);
-		}
-
-		const int32 NumVertices = Barrier.GetNumPositions();
-
-		// Trimeshes have no UV information, so we set them to zero.
-		TArray<FVector2D> UVs;
-		UVs.SetNumZeroed(NumVertices);
-
-		// Trimeshes have no tangents information, so we set them to zero.
-		TArray<FVector3f> Tangents;
-		Tangents.SetNumZeroed(Vertices.Num());
-
-		const FString SourceName = Barrier.GetSourceName();
-		const FString WantedName =
-			SourceName.IsEmpty()
-				? FString::Printf(TEXT("SM_CollisionMesh_%s"), *Barrier.GetGuid().ToString())
-				: FString::Printf(TEXT("SM_%s"), *SourceName);
-
-		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			Context.Outer, WantedName, UStaticMesh::StaticClass());
-
 #if WITH_EDITOR
-		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMeshNoBuild(
-			Vertices, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
+		// In editor builds we can delay the build and do it in batch mode later.
+		const bool bBuild = false;
+		const bool bWithBoxCollision = false;
 #else
+		// Unreal does not support batch builds in non-editor packaged builds so we are forced
+		// to build each mesh individually.
+		const bool bBuild = true;
+		const bool bWithBoxCollision = true;
+#endif
+
+		// TODO The normal source could be an import setting. If we add such a setting we should
+		// have separate checkboxes for Render Data and Trimesh since Render Data may have good
+		// normals in the imported data while Trimesh will only ever have per-triangle normals.
+		AGX_MeshUtilities::EAGX_NormalsSource NormalSource =
+			AGX_MeshUtilities::EAGX_NormalsSource::Generated;
+
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			Vertices, Indices, Normals, UVs, Tangents, Name, *Context.Outer, Material);
-#endif // WITH_EDITOR
+			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
 
 		if (Mesh != nullptr)
 			Context.CollisionStaticMeshes->Add(Barrier.GetGuid(), Mesh);
