@@ -351,7 +351,7 @@ public:
 	 * the higher-level mesh creation functions that take a Trimesh or a Render Data and builds the
 	 * vertex attribute arrays from that.
 	 *
-	 * Create a UStaticMesh from attribute data. The attribute data must conform to Unreal's
+	 * Creates a UStaticMesh from attribute data. The attribute data must conform to Unreal's
 	 * attribute layout. Unreal splits the attributes into per-vertex data and per-vertex-instance
 	 * data. There are three vertex instances per triangle and each vertex instance references one
 	 * of the per-vertex datum.
@@ -375,7 +375,7 @@ public:
 	 * Tangents are optional and computed by Unreal if not provided.
 	 *
 	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
-	 * Static Meshes created this way must be built before they can be used.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
 	 *
 	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
 	 * only when bInBuild is true.
@@ -383,10 +383,10 @@ public:
 	 * This function only creates the in-memory representation. The created Static Mesh will not be
 	 * written to drive.
 	 *
-	 * @param InPositions The position of the vertices.
+	 * @param InPositions The positions of the vertices.
 	 * @param InIndices Indices into 'Positions', each three of which define a triangle.
-	 * @param InNormals Onenormal per index, or empty to let Unreal compute the normals.
-	 * @param InUVs One UV per index, or empty. Will not be generated.
+	 * @param InNormals One normal per index, or empty to let Unreal compute the normals.
+	 * @param InUVs One UV per index, or empty. Will not be computed by Unreal.
 	 * @param InTangents One tangent per index, or empty to let Unreal compute the tangents.
 	 * @param InName The name to give to the Static Mesh.
 	 * @param InOuter The UObject that will own the Static Mesh.
@@ -423,17 +423,17 @@ public:
 	/**
 	 * Create a Static Mesh from the triangle held by the given Trimesh.
 	 *
-	 * Extract the mesh data from the Trimesh and then calls the CreateStaticMesh overload that
+	 * Extracts the mesh data from the Trimesh and then calls the CreateStaticMesh overload that
 	 * takes a bunch of TArrays.
 	 *
 	 * AGX Dynamics store one normal per triangle, not per vertex instance as Unreal does. There is
-	 * an option whether the per-triangle normals should be used, which causes flat-shaded faceted
-	 * triangles, or if we should disregard the per-triangle normals and let Unreal compute smoothed
-	 * normals based on the triangle definition. The selection is controlled with the
+	 * an option whether the per-triangle normals should be used, which results in flat-shaded
+	 * faceted triangles, or if we should disregard the per-triangle normals and let Unreal compute
+	 * smoothed normals based on the triangle definition. The selection is controlled with the
 	 * InNormalsSource parameter.
 	 *
 	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
-	 * Static Meshes created this way must be built before they can be used.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
 	 *
 	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
 	 * only when bInBuild is true.
@@ -462,18 +462,18 @@ public:
 	/**
 	 * Create a Static Mesh from the triangles held by the given Render Data.
 	 *
-	 * Extract the mesh data from the Render Data and then calls the CreateStaticMesh overload that
+	 * Extracts the mesh data from the Render Data and then calls the CreateStaticMesh overload that
 	 * takes a bunch of TArrays.
 	 *
 	 * AGX Dynamics does not enforce a particular mesh attributes layout so it is not well-defined
 	 * how the data we find in the Render Data should be mapped to the attributes of the Static
 	 * Mesh. This function employs a count based heuristic where attribute elements are mapped
-	 * depending on how may elements there is for each attribute. There is not always a valid
+	 * depending on how may elements there are for each attribute. There is not always a valid
 	 * mapping, in which case a warning is printed and no Static Mesh is created. There may be valid
 	 * layouts that are not yet detected and handled by this function.
 	 *
 	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
-	 * Static Meshes created this way must be built before they can be used.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
 	 *
 	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
 	 * only when bInBuild is true.
@@ -488,7 +488,7 @@ public:
 	 * @param InMaterial Render material to assign to all triangles.
 	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
 	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
-	 * @param InNormalsSource Where to get normals from, either input array or let Unreal generate.
+	 * @param InNormalsSource Where to get normals from, either Render Data or let Unreal compute.
 	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
 	 * @return The UStaticMesh created from the Render Data.
 	 */

@@ -333,13 +333,13 @@ namespace AGX_ShapeComponent_helpers
 #else
 		// Unreal does not support batch builds in non-editor packaged builds so we are forced
 		// to build each mesh individually.
-		const bool bWithBoxCollision = true;
 		const bool bBuild = true;
+		const bool bWithBoxCollision = true;
 #endif
 
 		// TODO The normal source could be an import setting. If we add such a setting we should
-		// separate Render Data from Trimesh since Render Data can have good normals already while
-		// Trimesh always have only per-triangle normals
+		// have separate checkboxes for Render Data and Trimesh since Render Data may have good
+		// normals in the imported data while Trimesh will only ever have per-triangle normals.
 		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
 			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
 
