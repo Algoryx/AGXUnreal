@@ -58,6 +58,19 @@ public:
 	void SetRadius(float InRadius);
 
 	/**
+	 * Scale to apply to the radius when rendering the wire.
+	 *
+	 * Wires are often very thin compared to other objects in the scene, making them difficult to
+	 * see. By increasing the Rander Radius Scale it is possible to make the wire larger on-screen
+	 * without affecting the simulation behavior.
+	 *
+	 * This setting affects rendering only, it does not change the simulation behavior or collision
+	 * shape of the wire.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
+	float RenderRadiusScale {1.0f};
+
+	/**
 	 * The shortest a lumped segment is allowed to become [cm].
 	 *
 	 * Sets an upper bound on the number of simulation nodes a certain length of
