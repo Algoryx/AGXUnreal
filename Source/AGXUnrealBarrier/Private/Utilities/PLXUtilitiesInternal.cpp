@@ -695,6 +695,13 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
+	for (FRigidBodyBarrier* Body : Bodies)
+	{
+		AGX_CHECK(Body->HasNative());
+		auto BodyAGX = Body->GetNative()->Native;
+		Assembly->add(BodyAGX);
+	}
+
 	agx::ConstraintRefSetVector OldConstraintsAGX;
 	for (FConstraintBarrier* Constraint : Constraints)
 	{
