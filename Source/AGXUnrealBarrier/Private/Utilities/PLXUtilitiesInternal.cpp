@@ -39,6 +39,7 @@
 #include "openplx/Physics/Signals/ForceRangeOutput.h"
 #include "openplx/Physics/Signals/IntInput.h"
 #include "openplx/Physics/Signals/LinearVelocity1DInput.h"
+#include "openplx/Physics/Signals/MassOutput.h"
 #include "openplx/Physics/Signals/Position1DInput.h"
 #include "openplx/Physics/Signals/Position1DOutput.h"
 #include "openplx/Physics/Signals/RatioOutput.h"
@@ -412,6 +413,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const LinearVelocity1DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::LinearVelocity1DOutput;
+	}
+	if (dynamic_cast<const MassOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::MassOutput;
 	}
 	if (dynamic_cast<const Position1DOutput*>(&Output))
 	{

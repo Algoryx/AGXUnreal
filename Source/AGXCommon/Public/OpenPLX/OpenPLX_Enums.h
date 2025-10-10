@@ -66,6 +66,7 @@ enum class EOpenPLX_OutputType : uint8
 	FractionOutput UMETA(DisplayName = "Fraction Output [Real]"),
 	Force1DOutput UMETA(DisplayName = "Force 1D Output [Real]"),
 	LinearVelocity1DOutput UMETA(DisplayName = "Linear Velocity 1D Output [Real]"),
+	MassOutput UMETA(DisplayName = "Mass Output [Real]"),
 	Position1DOutput UMETA(DisplayName = "Position 1D Output [Real]"),
 	RatioOutput UMETA(DisplayName = "Ratio Output [Real]"),
 	RelativeVelocity1DOutput UMETA(DisplayName = "Relative Velocity 1D Output [Real]"),

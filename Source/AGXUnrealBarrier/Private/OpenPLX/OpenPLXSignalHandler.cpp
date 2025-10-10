@@ -322,6 +322,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
 			case EOpenPLX_OutputType::FractionOutput:
 			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::MassOutput:
 			case EOpenPLX_OutputType::RatioOutput:
 			case EOpenPLX_OutputType::RpmOutput:
 			case EOpenPLX_OutputType::Torque1DOutput:
