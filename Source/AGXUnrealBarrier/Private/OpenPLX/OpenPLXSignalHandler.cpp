@@ -323,6 +323,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_OutputType::FractionOutput:
 			case EOpenPLX_OutputType::Force1DOutput:
 			case EOpenPLX_OutputType::MassOutput:
+			case EOpenPLX_OutputType::RpmOutput:
 			case EOpenPLX_OutputType::Torque1DOutput:
 			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
 			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:
