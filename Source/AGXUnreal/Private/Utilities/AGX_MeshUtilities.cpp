@@ -2145,6 +2145,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const int32 NumVertexInstances = InIndices.Num();
 	const int32 NumTriangles = InIndices.Num() / 3;
 
+	if (!VerifyVertexInstanceAttributes(NumVertexInstances, InNormals, InUVs, InTangents))
+	{
+		return nullptr;
+	}
+
 	// Create Mesh Description that will hold all attribute data. We only create a single LOD so
 	// we only need one Mesh Description.
 	const int32 LODLevel = 0;
