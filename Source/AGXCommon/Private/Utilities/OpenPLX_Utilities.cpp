@@ -36,7 +36,9 @@ bool FOpenPLX_Utilities::IsRealType(EOpenPLX_OutputType Type)
 		case EOpenPLX_OutputType::LinearVelocity1DOutput:
 		case EOpenPLX_OutputType::MassOutput:
 		case EOpenPLX_OutputType::Position1DOutput:
+		case EOpenPLX_OutputType::RatioOutput:
 		case EOpenPLX_OutputType::RelativeVelocity1DOutput:
+		case EOpenPLX_OutputType::RpmOutput:
 		case EOpenPLX_OutputType::Torque1DOutput:
 		case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
 		case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:
