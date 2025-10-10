@@ -839,14 +839,15 @@ namespace AGX_ImporterToEditor_helpers
 		const FGuid& Guid, const TComponent& ReimportedComponent,
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		USCS_Node* Node = OutGuidToNode.FindRef(Guid);
 
 		// Resolve name collisions.
 		USCS_Node* NameCollNode = OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 		if (NameCollNode != nullptr && NameCollNode != Node)
 		{
-			const FString NewName = Name.ToString() + FAGX_ImportUtilities::GetUnsetUniqueImportName();
+			const FString NewName =
+				Name.ToString() + FAGX_ImportUtilities::GetUnsetUniqueImportName();
 			FBlueprintEditorUtils::RenameComponentMemberVariable(
 				&OutBlueprint, NameCollNode, FName(*NewName));
 		}
@@ -861,7 +862,7 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		// StaticMeshComponents we look up by using the name which includes the guid.
 		// We expect no conflicts.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -871,7 +872,7 @@ namespace AGX_ImporterToEditor_helpers
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
 		// UAGX_ContactMaterialRegistrarComponent we look up by using the name.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -881,7 +882,17 @@ namespace AGX_ImporterToEditor_helpers
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
 		// UAGX_CollisionGroupDisablerComponent we look up by using the name.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
+		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
+	}
+
+	template <>
+	USCS_Node* FindNodeAndResolveConflicts<UOpenPLX_SignalHandlerComponent>(
+		const FGuid& Guid, const UOpenPLX_SignalHandlerComponent& ReimportedComponent,
+		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
+	{
+		// UOpenPLX_SignalHandlerComponent we look up by using the name.
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -940,7 +951,7 @@ namespace AGX_ImporterToEditor_helpers
 				FAGX_BlueprintUtilities::ReParentNode(OutBlueprint, *Node, *Parent, false);
 
 			if (!Node->GetVariableName().IsEqual(Name))
-				Node->SetVariableName(Name);
+				FBlueprintEditorUtils::RenameComponentMemberVariable(&OutBlueprint, Node, Name);
 		}
 
 		return Node;
