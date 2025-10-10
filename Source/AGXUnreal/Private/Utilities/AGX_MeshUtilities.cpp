@@ -2406,7 +2406,7 @@ namespace AGX_MeshUtilities_helpers
 	void CopyArray(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
 	{
 		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
-		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+		static_assert(std::is_constructible_v<DestinationT, SourceT>);
 
 		const int32 Num = Source.Num();
 		if (Destination.IsEmpty())
@@ -2433,7 +2433,7 @@ namespace AGX_MeshUtilities_helpers
 		const TArray<uint32>& Indices)
 	{
 		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
-		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+		static_assert(std::is_constructible_v<DestinationT, SourceT>);
 
 		const int32 SourceNum = Source.Num();
 		const int32 IndicesNum = Indices.Num();
@@ -2458,7 +2458,7 @@ namespace AGX_MeshUtilities_helpers
 	void CopyArrayTriplication(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
 	{
 		static_assert(std::is_trivially_copy_assignable_v<DestinationT>);
-		static_assert(std::is_constructible_v<SourceT, DestinationT>);
+		static_assert(std::is_constructible_v<DestinationT, SourceT>);
 
 		const int32 SourceNum = Source.Num();
 		const int32 DestinationNum = 3 * SourceNum;
