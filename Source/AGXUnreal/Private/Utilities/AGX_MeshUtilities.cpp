@@ -15,6 +15,7 @@
 // Unreal Engine includes.
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
+#include "MaterialDomain.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Math/UnrealMathUtility.h"
@@ -2248,20 +2249,10 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// this rename won't fail due to a name conflict.
 	StaticMesh->Rename(*InName);
 
-	if (InMaterial != nullptr)
-	{
-		StaticMesh->AddMaterial(InMaterial);
-	}
-	else
-	{
-		// TODO Instead of having no Material slot, should we add nullptr and let it default to
-		// World Grid Material? There is also UMaterial::GetDefaultMaterial(MD_Surface) if we want
-		// to be more explicit.
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("CreateStaticMesh: No Material provided, mesh '%s' will have no Material slot."),
-			*InName);
-	}
+	// Fall back to the default Material if none were provided.
+	UMaterialInterface* Material =
+		InMaterial != nullptr ? InMaterial : UMaterial::GetDefaultMaterial(MD_Surface);
+	StaticMesh->AddMaterial(Material);
 
 #if WITH_EDITOR
 	// Source Models are only available in editor builds and I have not found a way to access Mesh
