@@ -2072,8 +2072,8 @@ namespace AGX_MeshUtilities_helpers
 		int32 NumVertexInstances, const TArray<FVector3f>& Normals, const TArray<FVector2f>& UVs,
 		const TArray<FVector3f>& Tangents)
 	{
+		// clang-format off
 		const bool bAllOK =
-			// clang-format off
 			   ( Normals.Num() == NumVertexInstances || Normals.IsEmpty())
 			&& (     UVs.Num() == NumVertexInstances || UVs.IsEmpty())
 			&& (Tangents.Num() == NumVertexInstances || Tangents.IsEmpty());
@@ -2155,7 +2155,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// Reserve room for all the data we are about to put into the Mesh Description. Not reserving
 	// for edges because I don't know how many edges there will be. I think that depends on the
 	// topology of the mesh, but it could also be just 3 * NumTriangles since each triangle has
-	// three edges. That is, I'm not sure if edges are shared between vertices or not.
+	// three edges. That is, I'm not sure if edges are shared between triangles or not.
 	MeshDescription.ReserveNewVertices(NumVertices);
 	MeshDescription.ReserveNewVertexInstances(NumVertexInstances);
 	MeshDescription.ReserveNewTriangles(NumTriangles);
@@ -2167,7 +2167,10 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	// Create vertex and vertex instances up-front so that attribute buffers are fully allocated.
 	// We assume that both vertices and vertex instances are created with monotonically increasing
-	// IDs starting from 0, which means that the InIndices array elements can be used as-is.
+	// IDs starting from 0, which means that the InIndices array elements can be used as-is. This is
+	// true as long as we create each Static Mesh from scratch and the entire mesh is known
+	// up-front. If this is ever not the case then we need to store the IDs returned by the two
+	// Create functions and do an extra look-up to find that ID again for each read and write.
 	for (int32 I = 0; I < NumVertices; ++I)
 	{
 		MeshDescription.CreateVertex();
@@ -2176,11 +2179,12 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	{
 		checkf(
 			// Important to cast signed-to-unsigned and not the other way around since the unsigned
-			// value might be too large for the signed type.
+			// value might be too large for the signed type. We assume NumVertices is never
+			// negative.
 			InIndices[I] < static_cast<uint32>(NumVertices),
-			TEXT(
-				"When creating Static Mesh, found a vertex index that is out of range of the vertex"
-				" data."));
+			TEXT("When creating Static Mesh %s, found a vertex index that is out of range of the "
+				 "vertex data."),
+			*InName);
 		MeshDescription.CreateVertexInstance(InIndices[I]);
 	}
 
@@ -2223,8 +2227,10 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		MeshDescription.CreateTriangle(PolygonGroupID, VertexInstanceIDs);
 	}
 
-	/// TODO Should we always use RF_Standalone here? This code path is used for both meshes that
-	/// will be written to disk and for meshes that are created and used for a single Play session.
+	// TODO Should we always use RF_Standalone here? This code path is used for both meshes that
+	// will be written to disk and for meshes that are created and used for a single Play session.
+	// I worry that by using RF_Standalone in the non-asset runtime case we create objects that are
+	// hidden from the garbage collector and will never be removed.
 	UStaticMesh* StaticMesh =
 		NewObject<UStaticMesh>(&InOuter, NAME_None, RF_Public | RF_Standalone);
 
@@ -2233,6 +2239,8 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	StaticMesh->GetStaticMaterials().Add(FStaticMaterial());
 #endif
 
+	// It is the responsibility of the caller to check that the new name is available, i.e. that
+	// this rename won't fail due to a name conflict.
 	StaticMesh->Rename(*InName);
 
 	if (InMaterial != nullptr)
@@ -2259,9 +2267,13 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	BuildSettings.bRecomputeNormals = InNormals.IsEmpty();
 	BuildSettings.bRecomputeTangents = InTangents.IsEmpty();
 #else
-	// We are in a packaged build so cannot depend on Unreal for normals and tangents computation.
-	// Not sure what we should really do here. For now use engine facilities to compute what we can
-	// for missing data.
+	// We are in a packaged build so cannot depend on Static Mesh for normals and tangents
+	// computation. Not sure what we should really do here. For now use engine facilities to compute
+	// what we can for missing data.
+	//
+	// I have not found a way to compute only one of the tangents or normals and since the normal
+	// case is to provide normals but not tangents we will not let the absence of tangents cause
+	// the given normals to be lost.
 	if (InNormals.IsEmpty())
 	{
 		FStaticMeshOperations::ComputeTriangleTangentsAndNormals(MeshDescription);
@@ -2270,14 +2282,14 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 
 	if (bInBuild)
 	{
-		// The Mesh should be built immediately. In addition to the mesh itself, we also build a
-		// Box Simple Collision.
+		// The Mesh should be built immediately. In addition to the mesh itself we also,
+		// optionally, build a Box Simple Collision.
 		UStaticMesh::FBuildMeshDescriptionsParams Params;
 #if !WITH_EDITOR
 		Params.bFastBuild = true;
 #endif
 		Params.bBuildSimpleCollision = false; // Doesn't work for some reason, done manually below.
-		Params.bAllowCpuAccess = true; // This isn't always true.
+		Params.bAllowCpuAccess = true; // This doesn't always have to be true.
 		StaticMesh->BuildFromMeshDescriptions({&MeshDescription}, Params);
 		if (bInWithBoxCollision)
 		{
@@ -2293,6 +2305,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		StaticMesh->CreateMeshDescription(LODLevel, MoveTemp(MeshDescription));
 		StaticMesh->CommitMeshDescription(LODLevel);
 #else
+		// In non-editor builds delayed build is not allowed by Unreal, so we should never get here.
 		checkNoEntry();
 #endif
 	}
@@ -2322,8 +2335,8 @@ namespace AGX_MeshUtilities_helpers
 	 * - N: Normals.
 	 * - U: UVs.
 	 *
-	 * For each attribute the data can either be stored per-vertex, per-vertex-instance, i.e.
-	 * per-index, per-triangle, or not at all.
+	 * For each attribute the data can either be stored per-vertex, per-vertex-instance (i.e.
+	 * per-index), per-triangle, or not at all.
 	 */
 	struct FAGX_AttributeLocations
 	{
@@ -2337,6 +2350,16 @@ namespace AGX_MeshUtilities_helpers
 		}
 	};
 
+	/**
+	 * Determine if the given attribute data is stored per-vertex, per-vertex-instance, or
+	 * per-triangle.
+	 *
+	 * @param N Number of elements we were given.
+	 * @param V Number of vertices in the mesh.
+	 * @param I Number of vertex instances in the mesh.
+	 * @param T Number of triangles in the mesh.
+	 * @return Which attribute location the given data is associated with.
+	 */
 	EAGX_AttributeLocation GetAttributeLocation(int32 N, int32 V, int32 I, int32 T)
 	{
 		if (N == V)
@@ -2350,13 +2373,18 @@ namespace AGX_MeshUtilities_helpers
 		return EAGX_AttributeLocation::Unknown;
 	}
 
+	/**
+	 * Determine the storage location, i.e. per-vertex, per-vertex-instance, or per-triangle for
+	 * the attribute data provided by AGX Dynamics' Render Data: normals and texture coordinates.
+	 */
 	FAGX_AttributeLocations GetRenderDataAttributeLocations(
-		int32 NumPositions, int32 NumIndices, int32 NumNormals, int32 NumUVs)
+		int32 NumVertices, int32 NumVertexInstances, int32 NumNormals, int32 NumUVs)
 	{
-		const int32 NumTriangles = NumIndices / 3;
+		const int32 NumTriangles = NumVertexInstances / 3;
 		FAGX_AttributeLocations Result;
-		Result.Normals = GetAttributeLocation(NumNormals, NumPositions, NumIndices, NumTriangles);
-		Result.UVs = GetAttributeLocation(NumUVs, NumPositions, NumIndices, NumTriangles);
+		Result.Normals =
+			GetAttributeLocation(NumNormals, NumVertices, NumVertexInstances, NumTriangles);
+		Result.UVs = GetAttributeLocation(NumUVs, NumVertices, NumVertexInstances, NumTriangles);
 
 		if (!Result.IsValid())
 		{
@@ -2364,8 +2392,8 @@ namespace AGX_MeshUtilities_helpers
 				LogAGX, Warning,
 				TEXT("Cannot create static mesh because the given mesh data doesn't match any "
 					 "recognized layout."));
-			UE_LOG(LogAGX, Warning, TEXT("- Num positions: %d"), NumPositions);
-			UE_LOG(LogAGX, Warning, TEXT("- Num indices: %d"), NumIndices);
+			UE_LOG(LogAGX, Warning, TEXT("- Num vertices: %d"), NumVertices);
+			UE_LOG(LogAGX, Warning, TEXT("- Num vertex instances: %d"), NumVertexInstances);
 			UE_LOG(LogAGX, Warning, TEXT("- Num triangles: %d"), NumTriangles);
 			UE_LOG(LogAGX, Warning, TEXT("- Num normals: %d"), NumNormals);
 			UE_LOG(LogAGX, Warning, TEXT("- Num UVs: %d"), NumUVs);
@@ -2375,6 +2403,9 @@ namespace AGX_MeshUtilities_helpers
 	}
 
 	// It feels like we already have this function somewhere, but I can't find it.
+	/**
+	 * Copy the elements from one TArray to another, possibly with type conversion.
+	 */
 	template <typename DestinationT, typename SourceT>
 	void CopyArray(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
 	{
@@ -2394,6 +2425,12 @@ namespace AGX_MeshUtilities_helpers
 		}
 	}
 
+	/**
+	 * Copy the elements from one TArray to another with indirection, possibly with type conversion.
+	 *
+	 * The "indirection" part means that instead of copying the source elements straight over we
+	 * have a list of indices into the source array that forms the basis of the copying.
+	 */
 	template <typename DestinationT, typename SourceT>
 	void CopyArrayWithIndirection(
 		TArray<DestinationT>& Destination, const TArray<SourceT>& Source,
@@ -2416,6 +2453,11 @@ namespace AGX_MeshUtilities_helpers
 		}
 	}
 
+	/**
+	 * Copy the elements from one TArray to another where each element is added three times,
+	 * possibly with type conversion. Used when we have data per-triangle but need
+	 * per-vertex-instance. Most commonly normals.
+	 */
 	template <typename DestinationT, typename SourceT>
 	void CopyArrayTriplication(TArray<DestinationT>& Destination, const TArray<SourceT>& Source)
 	{
@@ -2439,6 +2481,11 @@ namespace AGX_MeshUtilities_helpers
 		}
 	}
 
+	/**
+	 * Copy the elements from one TArray to another where the way the copying is done depends on how
+	 * the source data is stored: per-vertex, per-vertex-instance, or per-triangle. The destination
+	 * array is always per-vertex-instance.
+	 */
 	template <typename DestinationT, typename SourceT>
 	void CopyAttributes(
 		EAGX_AttributeLocation AttributeLocation, TArray<DestinationT>& Destination,
@@ -2521,11 +2568,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	TArray<uint32> Indices = InTrimeshBarrier.GetVertexIndices();
 
 	// What to do with normals depend on the requested normals source. For Generated we keep the
-	// array empty. For From Source we triplicate the per-triangle normals over the vertex
+	// array empty. For From Import we triplicate the per-triangle normals over the vertex
 	// instances making up that triangle. Since the order of the vertex index triplets in the
 	// indices array match the order of the normals array (indices 3*I+0, 3*I+1, and 3*I+2 belong
-	// to the same triangle as normal I) we can loop over the normals and record each one three
-	// times to produce the vertex instance normals.
+	// to the same triangle as normal I) we can copy each one three times to produce the vertex
+	// instance normals.
 	TArray<FVector3f> Normals;
 	if (InNormalsSource == EAGX_NormalsSource::FromImport ||
 		InNormalsSource == EAGX_NormalsSource::Auto)
@@ -2578,7 +2625,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	// normals we let the Static Mesh build process handle normal generation. In this case the rest
 	// of this function will act as-if the normals didn't even exist in the first place.
 	//
-	// If Normals Source is Auto then we replace Auto with From Import of we have a valid number of
+	// If Normals Source is Auto then we replace Auto with From Import if we have a valid number of
 	// normals and switch to Generated otherwise.
 	if (InNormalsSource == EAGX_NormalsSource::Auto)
 	{
@@ -2592,7 +2639,9 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 			InNormalsSource = EAGX_NormalsSource::FromImport;
 		}
 		else
+		{
 			InNormalsSource = EAGX_NormalsSource::Generated;
+		}
 	}
 	const TArray<FVector> InNormals = InNormalsSource == EAGX_NormalsSource::FromImport
 										  ? InRenderData.GetNormals()
@@ -2604,7 +2653,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 		Positions.Num(), Indices.Num(), InNormals.Num(), InUVs.Num());
 	if (!AttributeLocations.IsValid())
 	{
-		// Logging done by GetRenderDataAttributeLocations.
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Cannot create Static Mesh from Render Data '%s' because the attribute data "
+				 "doesn't match a know layout."),
+			*UniqueName);
 		return nullptr;
 	}
 
@@ -2877,8 +2930,7 @@ bool AGX_MeshUtilities::AreImportedRenderMaterialsEqual(
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("Unable to read scalar parameter '%s' in AreImportedRenderMaterialsEqual "
-					 "for "
-					 "one of the Render Materials '%s' or '%s'."),
+					 "for one of the Render Materials '%s' or '%s'."),
 				*ScalarParamsA[i].ToString(), *MatA->GetName(), *MatB->GetName());
 			return false;
 		}
@@ -2904,8 +2956,7 @@ bool AGX_MeshUtilities::AreImportedRenderMaterialsEqual(
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("Unable to read Vector parameter '%s' in AreImportedRenderMaterialsEqual "
-					 "for "
-					 "one of the Render Materials '%s' or '%s'."),
+					 "for one of the Render Materials '%s' or '%s'."),
 				*VectorParamsA[i].ToString(), *MatA->GetName(), *MatB->GetName());
 			return false; // Could not retrieve vector value.
 		}

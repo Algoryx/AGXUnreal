@@ -374,6 +374,9 @@ public:
 	 *
 	 * Tangents are optional and computed by Unreal if not provided.
 	 *
+	 * It is the responsibility of the caller to ensure that the name is valid and does not conflict
+	 * with anything in the same outer.
+	 *
 	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
 	 * Static Meshes created this way must be built elsewhere before they can be used.
 	 *
