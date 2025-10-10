@@ -17,6 +17,7 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
+#include "openplx/AGX/AGX_all.h"
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
@@ -94,6 +95,7 @@ namespace PLXUtilities_helpers
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
+		AGX_register_factories(EvalCtx);
 
 		agxopenplx::register_plugins(*PLXCtx, AGXCache);
 		return PLXCtx;
