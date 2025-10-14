@@ -68,7 +68,7 @@ public:
 	 * shape of the wire.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
-	double RenderRadiusScale {1.0f};
+	double RenderRadiusScale {1.0};
 
 	/**
 	 * The shortest a lumped segment is allowed to become [cm].
