@@ -173,6 +173,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
 
+	/**
+	 * Get the Rigid Body that owns this Shape. Will return None / nullptr if this Shape is not
+	 * part of a Rigid Body.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	UAGX_RigidBodyComponent* GetRigidBody() const;
 
