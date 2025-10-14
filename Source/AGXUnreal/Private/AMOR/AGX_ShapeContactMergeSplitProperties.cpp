@@ -149,7 +149,9 @@ void FAGX_ShapeContactMergeSplitProperties::CreateNativeThresholds(UWorld* Playi
 	if (Thresholds->IsInstance())
 	{
 		if (!Thresholds->HasNative())
+		{
 			Thresholds->CreateNative();
+		}
 		return;
 	}
 
