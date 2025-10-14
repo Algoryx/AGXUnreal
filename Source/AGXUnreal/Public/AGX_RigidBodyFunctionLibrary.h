@@ -3,10 +3,10 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Utilities/AGX_BarrierUtilities.h"
-#include "AGX_LogCategory.h"
 
 // Unreal Engine includes.
 #include "Kismet/BlueprintFunctionLibrary.h"
