@@ -11,7 +11,7 @@
 
 class FSimulationBarrier;
 class FShapeContactBarrier;
-class FAnyShapeBarrier;
+struct FAnyShapeBarrier;
 
 // TODO Create A Contact Event Listener Barrier class, return that from Create Contact Event
 // Listener, and let AGX Simulation hold it.

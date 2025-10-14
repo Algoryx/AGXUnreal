@@ -10,8 +10,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-class FRigidBodyBarrier;
-class FShapeBarrier;
+struct FRigidBodyBarrier;
+struct FShapeBarrier;
 class FShovelBarrier;
 class UAGX_ModelSourceComponent;
 class UAGX_RigidBodyComponent;

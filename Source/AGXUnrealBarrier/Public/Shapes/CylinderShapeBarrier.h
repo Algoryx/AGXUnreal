@@ -2,19 +2,18 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
 
-#include <Math/Vector.h>
+#include "CylinderShapeBarrier.generated.h"
 
-#include <memory>
-
-class AGXUNREALBARRIER_API FCylinderShapeBarrier : public FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FCylinderShapeBarrier : public FShapeBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FCylinderShapeBarrier();
-	FCylinderShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	FCylinderShapeBarrier(FCylinderShapeBarrier&& Other);
-	virtual ~FCylinderShapeBarrier() override;
+	FCylinderShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 	void SetHeight(double Height);
 	double GetHeight() const;
@@ -33,8 +32,4 @@ public:
 private:
 	virtual void AllocateNativeShape() override;
 	virtual void ReleaseNativeShape() override;
-
-private:
-	FCylinderShapeBarrier(const FCylinderShapeBarrier&) = delete;
-	void operator=(const FCylinderShapeBarrier&) = delete;
 };
