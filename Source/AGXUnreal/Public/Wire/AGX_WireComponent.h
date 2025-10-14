@@ -52,10 +52,10 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire",
 		Meta = (ClampMin = "0", UIMin = "0"))
-	float Radius = 1.5f;
+	double Radius = 1.5f;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
-	void SetRadius(float InRadius);
+	void SetRadius(double InRadius);
 
 	/**
 	 * Scale to apply to the radius when rendering the wire.
@@ -68,7 +68,7 @@ public:
 	 * shape of the wire.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
-	float RenderRadiusScale {1.0f};
+	double RenderRadiusScale {1.0f};
 
 	/**
 	 * The shortest a lumped segment is allowed to become [cm].
