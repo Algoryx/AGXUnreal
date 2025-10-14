@@ -52,7 +52,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire",
 		Meta = (ClampMin = "0", UIMin = "0"))
-	double Radius = 1.5f;
+	double Radius {1.5};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	void SetRadius(double InRadius);
