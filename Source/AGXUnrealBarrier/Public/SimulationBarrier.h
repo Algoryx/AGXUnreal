@@ -26,6 +26,7 @@ class FShovelBarrier;
 class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FTireBarrier;
+class FTrackBarrier;
 class FWireBarrier;
 
 class AGXUNREALBARRIER_API FSimulationBarrier
@@ -52,6 +53,7 @@ public:
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Terrain);
 	bool Add(FTireBarrier& Tire);
+	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
 
 	bool Remove(FConstraintBarrier& Constraint);
@@ -68,6 +70,7 @@ public:
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Terrain);
 	bool Remove(FTireBarrier& Tire);
+	bool Remove(FTrackBarrier& Track);
 	bool Remove(FWireBarrier& Wire);
 
 	void SetEnableCollisionGroupPair(const FName& Group1, const FName& Group2, bool CanCollide);
