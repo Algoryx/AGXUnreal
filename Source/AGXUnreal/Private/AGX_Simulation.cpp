@@ -129,7 +129,7 @@ namespace AGX_Simulation_helpers
 		if (!Sim.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to add '%s' in '%s' to Simulation that does not have a native."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return;
@@ -138,7 +138,7 @@ namespace AGX_Simulation_helpers
 		if (!ActorOrComponent.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to add '%s' in '%s' that does not have a native to Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return;
@@ -148,7 +148,7 @@ namespace AGX_Simulation_helpers
 		if (!Result)
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Failed to add '%s' in '%s' to Simulation. FSimulationBarrier::Add returned "
 					 "false. The Log category AGXDynamicsLog may contain more information about "
 					 "the failure."),
@@ -162,7 +162,7 @@ namespace AGX_Simulation_helpers
 		if (!Sim.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to remove '%s' in '%s' from Simulation that does not have a native."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return;
@@ -171,7 +171,7 @@ namespace AGX_Simulation_helpers
 		if (!ActorOrComponent.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to remove '%s' in '%s' that does not have a native from Simulation "),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return;
@@ -181,7 +181,7 @@ namespace AGX_Simulation_helpers
 		if (!Result)
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Failed to remove '%s' in '%s' from Simulation. FSimulationBarrier::Remove "
 					 "returned false. The Log category AGXDynamicsLog may contain more information "
 					 "about the failure."),
@@ -248,7 +248,7 @@ void UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Shape Material '%s' to Simulation that does not have a native."),
 			*Shape.GetName());
 		return;
@@ -257,7 +257,7 @@ void UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
 	if (!Shape.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Shape Material '%s' to Simulation but the Shape Material does not "
 				 "have a native."),
 			*Shape.GetName());
@@ -267,7 +267,7 @@ void UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
 	if (!GetNative()->Add(*Shape.GetNative()))
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Shape Material '%s' to Simulation but FSimulationBarrier::Add "
 				 "returned false. The Log category AGXDynamicsLog may contain more information "
 				 "about the failure."),
@@ -294,7 +294,7 @@ void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Terrain '%s' to Simulation that does not have a native."),
 			*Terrain.GetName());
 		return;
@@ -303,7 +303,7 @@ void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	if (!Terrain.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Terrain '%s' that does not have a native to Simulation."),
 			*Terrain.GetName());
 		return;
@@ -320,7 +320,7 @@ void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	if (!Result)
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Failed to add '%s' to Simulation. FSimulationBarrier::Add returned "
 				 "false. The Log category AGXDynamicsLog may contain more information about "
 				 "the failure."),
@@ -360,7 +360,7 @@ void UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Shape Material '%s' from a Simulation that does not have a "
 				 "native."),
 			*Shape.GetName());
@@ -370,7 +370,7 @@ void UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
 	if (!Shape.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Shape Material '%s' from Simulation but the Shape Material does "
 				 "not have a native."),
 			*Shape.GetName());
@@ -380,7 +380,7 @@ void UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
 	if (!GetNative()->Remove(*Shape.GetNative()))
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Shape Material '%s' from Simulation but "
 				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
 				 "contain more information about the failure."),
@@ -403,7 +403,7 @@ void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Terrain '%s' from a Simulation that does not have a "
 				 "native."),
 			*Terrain.GetName());
@@ -413,7 +413,7 @@ void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	if (!Terrain.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Terrain '%s' from Simulation but the Terrain does "
 				 "not have a native."),
 			*Terrain.GetName());
@@ -431,7 +431,7 @@ void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	if (!Result)
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Terrain '%s' from Simulation but "
 				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
 				 "contain more information about the failure."),
@@ -456,7 +456,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to register Contact Material '%s' to Simulation that does not have a "
 				 "native."),
 			*Material.GetName());
@@ -466,7 +466,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 	if (!Material.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to register Contact Material '%s' to Simulation but the Contact Material "
 				 "does not have a native."),
 			*Material.GetName());
@@ -482,7 +482,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 		if (!GetNative()->Add(*Material.GetNative()))
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to add Contact Material '%s' to Simulation but FSimulationBarrier::Add "
 					 "returned false. The Log category AGXDynamicsLog may contain more information "
 					 "about the failure."),
@@ -496,7 +496,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation that does not have a "
 				 "native."),
 			*Material.GetName());
@@ -506,7 +506,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!Material.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation but the Contact "
 				 "Material does not have a native."),
 			*Material.GetName());
@@ -516,7 +516,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!ContactMaterials.Contains(&Material) || ContactMaterials[&Material] <= 0)
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation but the Contact "
 				 "Material has not been registered."),
 			*Material.GetName());
@@ -532,7 +532,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 		if (!GetNative()->Remove(*Material.GetNative()))
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to remove Contact Material '%s' from Simulation but "
 					 "FSimulationBarrier::Remove "
 					 "returned false. The Log category AGXDynamicsLog may contain more information "
@@ -831,7 +831,7 @@ bool UAGX_Simulation::WriteAGXArchive(const FString& Filename) const
 	{
 		/// \todo Can we create a temporary Simulation, instantiate all the AGX
 		/// Dynamics objects there, store, and then throw everything away?
-		UE_LOG(LogAGX, Error, TEXT("No simulation available, cannot store AGX Dynamics archive."));
+		UE_LOG(LogAGX, Warning, TEXT("No simulation available, cannot store AGX Dynamics archive."));
 		return false;
 	}
 
@@ -1427,7 +1427,7 @@ void UAGX_Simulation::SetGravity()
 {
 	if (!HasNative())
 	{
-		UE_LOG(LogAGX, Error, TEXT("SetGravity failed, native object has not been allocated."));
+		UE_LOG(LogAGX, Warning, TEXT("SetGravity failed, native object has not been allocated."));
 		return;
 	}
 
