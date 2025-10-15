@@ -4,7 +4,7 @@
 
 #include "Constraints/ConstraintBarrier.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 class AGXUNREALBARRIER_API FLockJointBarrier : public FConstraintBarrier
 {

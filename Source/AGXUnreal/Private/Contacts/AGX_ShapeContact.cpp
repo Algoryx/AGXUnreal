@@ -304,6 +304,16 @@ UAGX_ShapeComponent* UAGX_ShapeContact_FL::GetFirstShape(FAGX_ShapeContact& Shap
 	return GetFromGuid<UAGX_ShapeComponent>(ShapeContact.GetShape1().GetGeometryGuid());
 }
 
+FShapeBarrier UAGX_ShapeContact_FL::GetFirstShapeBarrier(const FAGX_ShapeContact& ShapeContact)
+{
+	using namespace AGX_ShapeContact_helpers;
+	if (!TestHasNative(ShapeContact, TEXT("First Shape Barrier")))
+	{
+		return FShapeBarrier();
+	}
+	return ShapeContact.GetShape1();
+}
+
 UAGX_ShapeComponent* UAGX_ShapeContact_FL::GetSecondShape(FAGX_ShapeContact& ShapeContact)
 {
 	using namespace AGX_ShapeContact_helpers;
@@ -316,6 +326,16 @@ UAGX_ShapeComponent* UAGX_ShapeContact_FL::GetSecondShape(FAGX_ShapeContact& Sha
 		return nullptr;
 	}
 	return GetFromGuid<UAGX_ShapeComponent>(ShapeContact.GetShape2().GetGeometryGuid());
+}
+
+FShapeBarrier UAGX_ShapeContact_FL::GetSecondShapeBarrier(const FAGX_ShapeContact& ShapeContact)
+{
+	using namespace AGX_ShapeContact_helpers;
+	if (!TestHasNative(ShapeContact, TEXT("Second Shape Barrier")))
+	{
+		return FShapeBarrier();
+	}
+	return ShapeContact.GetShape2();
 }
 
 UAGX_RigidBodyComponent* UAGX_ShapeContact_FL::GetFirstBody(FAGX_ShapeContact& ShapeContact)
@@ -332,6 +352,16 @@ UAGX_RigidBodyComponent* UAGX_ShapeContact_FL::GetFirstBody(FAGX_ShapeContact& S
 	return GetFromGuid<UAGX_RigidBodyComponent>(ShapeContact.GetBody1().GetGuid());
 }
 
+FRigidBodyBarrier UAGX_ShapeContact_FL::GetFirstBodyBarrier(const FAGX_ShapeContact& ShapeContact)
+{
+	using namespace AGX_ShapeContact_helpers;
+	if (!TestHasNative(ShapeContact, TEXT("First Body Barrier")))
+	{
+		return FRigidBodyBarrier();
+	}
+	return ShapeContact.GetBody1();
+}
+
 UAGX_RigidBodyComponent* UAGX_ShapeContact_FL::GetSecondBody(FAGX_ShapeContact& ShapeContact)
 {
 	using namespace AGX_ShapeContact_helpers;
@@ -344,6 +374,16 @@ UAGX_RigidBodyComponent* UAGX_ShapeContact_FL::GetSecondBody(FAGX_ShapeContact& 
 		return nullptr;
 	}
 	return GetFromGuid<UAGX_RigidBodyComponent>(ShapeContact.GetBody2().GetGuid());
+}
+
+FRigidBodyBarrier UAGX_ShapeContact_FL::GetSecondBodyBarrier(const FAGX_ShapeContact& ShapeContact)
+{
+	using namespace AGX_ShapeContact_helpers;
+	if (!TestHasNative(ShapeContact, TEXT("Second Body Barrier")))
+	{
+		return FRigidBodyBarrier();
+	}
+	return ShapeContact.GetBody2();
 }
 
 bool UAGX_ShapeContact_FL::ContainsRigidBody(
