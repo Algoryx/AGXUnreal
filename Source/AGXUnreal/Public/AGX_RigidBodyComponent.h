@@ -102,9 +102,7 @@ public:
 
 	UFUNCTION(
 		BlueprintCallable, BlueprintPure, Category = "AGX Dynamics",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage = "Use IsEnabled instead."))
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	/**
@@ -190,7 +188,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
 	double CalculateMass() const;
-
 
 	/**
 	 * The three-component diagonal of the inertia tensor [kgm^2].
@@ -472,6 +469,19 @@ public:
 
 	const FRigidBodyBarrier* GetNative() const;
 
+	/**
+	 * Get access to the underlying native AGX Dynamics object that this Rigid Body Component
+	 * represents. If there is no underlying AGX Dynamics object then the returned Barrier object
+	 * will be invalid and Has Native will return false. Do not call any other function on a Barrier
+	 * object for which Has Native returns false.
+	 *
+	 * @return Barrier for the native AGX Dynamics object this Rigid Body Component represents.
+	 */
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Rigid Body",
+		Meta = (DisplayName = "Get Native"))
+	FRigidBodyBarrier& GetNativeByRef();
+
 	// ~Begin IAGX_NativeOwner interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
@@ -527,7 +537,6 @@ public:
 	FString ImportName;
 
 private: // Deprecated functions.
-
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Dynamics",
 		Meta =
@@ -536,7 +545,6 @@ private: // Deprecated functions.
 	float CalculateMass_BP() const;
 
 private:
-
 #if WITH_EDITOR
 	// Fill in a bunch of callbacks in PropertyDispatcher so we don't have to manually check each
 	// and every UPROPERTY in PostEditChangeProperty and PostEditChangeChainProperty.

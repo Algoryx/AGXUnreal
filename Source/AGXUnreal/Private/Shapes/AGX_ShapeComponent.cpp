@@ -325,12 +325,27 @@ namespace AGX_ShapeComponent_helpers
 		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
 			return Existing;
 
-		UStaticMesh* Mesh =
 #if WITH_EDITOR
-			AGX_MeshUtilities::CreateStaticMeshNoBuild(RenderData, *Context.Outer, Material);
+		// In editor builds we can delay the build and do it in batch mode later. During import this
+		// is done at the end of `FAGX_Importer::Import.
+		const bool bBuild = false;
+		const bool bWithBoxCollision = false;
 #else
-			AGX_MeshUtilities::CreateStaticMesh(RenderData, *Context.Outer, Material);
-#endif // WITH_EDITOR
+		// Unreal does not support batch builds in non-editor packaged builds so we are forced
+		// to build each mesh individually.
+		const bool bBuild = true;
+		const bool bWithBoxCollision = true;
+#endif
+
+		// TODO The normal source could be an import setting. If we add such a setting we should
+		// have separate checkboxes for Render Data and Trimesh since Render Data may have good
+		// normals in the imported data while Trimesh will only ever have per-triangle normals.
+		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
+			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
+
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
+			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
+
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
 
@@ -361,7 +376,8 @@ namespace AGX_ShapeComponent_helpers
 		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			&Owner,
 			FString::Printf(
-				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(), *Shape.GetShapeGuid().ToString()),
+				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(),
+				*Shape.GetShapeGuid().ToString()),
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
@@ -611,6 +627,11 @@ FVector UAGX_ShapeComponent::GetSurfaceVelocity() const
 		return GetNative()->GetSurfaceVelocity();
 	}
 	return SurfaceVelocity;
+}
+
+UAGX_RigidBodyComponent* UAGX_ShapeComponent::GetRigidBody() const
+{
+	return FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
 }
 
 TArray<FAGX_ShapeContact> UAGX_ShapeComponent::GetShapeContacts() const
