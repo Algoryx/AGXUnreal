@@ -34,7 +34,6 @@
 #include "openplx/Physics/Signals/EnableInteractionInput.h"
 #include "openplx/Physics/Signals/Force1DInput.h"
 #include "openplx/Physics/Signals/Force1DOutput.h"
-#include "openplx/Physics/Signals/Force3DOutput.h"
 #include "openplx/Physics/Signals/ForceRangeInput.h"
 #include "openplx/Physics/Signals/ForceRangeOutput.h"
 #include "openplx/Physics/Signals/IntInput.h"
@@ -45,16 +44,17 @@
 #include "openplx/Physics/Signals/RatioOutput.h"
 #include "openplx/Physics/Signals/SignalInterface.h"
 #include "openplx/Physics/Signals/Torque1DInput.h"
-#include "openplx/Physics/Signals/Torque3DOutput.h"
 #include "openplx/Physics/Signals/TorqueRangeInput.h"
 #include "openplx/Physics/Signals/TorqueRangeOutput.h"
 #include "openplx/Physics1D/Physics1D_all.h"
 #include "openplx/Physics3D/Physics3D_all.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DInput.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DOutput.h"
+#include "openplx/Physics3D/Signals/Force3DOutput.h"
 #include "openplx/Physics3D/Signals/LinearVelocity3DOutput.h"
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
+#include "openplx/Physics3D/Signals/Torque3DOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
 #include "openplx/Robotics/Robotics_all.h"
@@ -442,7 +442,7 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::RPYOutput;
 	}
-	if (dynamic_cast<const openplx::Physics::Signals::Torque3DOutput*>(&Output))
+	if (dynamic_cast<const openplx::Physics3D::Signals::Torque3DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Torque3DOutput;
 	}
