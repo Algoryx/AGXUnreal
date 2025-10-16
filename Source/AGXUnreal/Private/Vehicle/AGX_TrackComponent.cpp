@@ -1113,7 +1113,7 @@ void UAGX_TrackComponent::UpdateVisuals()
 		VisualMeshes->PerInstancePrevTransform.SetNum(NumNodes);
 
 	if (NodeTransformsCachePrev.Num() != NumNodes)
-		NodeTransformsCachePrev.SetNum(NumNodes);
+		NodeTransformsCachePrev = NodeTransformsCache;
 
 	// Because UInstancedStaticMeshComponent::UpdateInstanceTransform() converts instance transforms
 	// from World to Local Transform Space, make sure our local transform space is up-to-date.
@@ -1121,8 +1121,7 @@ void UAGX_TrackComponent::UpdateVisuals()
 
 	// Update transforms of the track node mesh instances.
 	VisualMeshes->BatchUpdateInstancesTransforms(
-		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true,
-		/*bMarkRenderStateDirty*/ true);
+		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true);
 
 	NodeTransformsCachePrev = NodeTransformsCache;
 }
