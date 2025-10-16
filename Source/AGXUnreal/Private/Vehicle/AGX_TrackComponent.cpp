@@ -1113,16 +1113,22 @@ void UAGX_TrackComponent::UpdateVisuals()
 		VisualMeshes->PerInstancePrevTransform.SetNum(NumNodes);
 
 	if (NodeTransformsCachePrev.Num() != NumNodes)
-		NodeTransformsCachePrev.SetNum(NumNodes);
+		NodeTransformsCachePrev = NodeTransformsCache;
 
 	// Because UInstancedStaticMeshComponent::UpdateInstanceTransform() converts instance transforms
 	// from World to Local Transform Space, make sure our local transform space is up-to-date.
 	VisualMeshes->UpdateComponentToWorld();
 
 	// Update transforms of the track node mesh instances.
+	//
+	// Since we only do one, at most, transforms update per frame we would
+	// normally pass 'true' to 'bMarkRenderStateDirty' to let Unreal Engine know
+	// that we don't intend to do any more changes. However, doing this leads
+	// to severe ghosting / trailing artifacts starting with Unreal Engine
+	// somewhere between 5.4 and 5.6. 5.3 does not have the problem. Because
+	// of this we leave it at its default, which is 'false'.
 	VisualMeshes->BatchUpdateInstancesTransforms(
-		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true,
-		/*bMarkRenderStateDirty*/ true);
+		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true);
 
 	NodeTransformsCachePrev = NodeTransformsCache;
 }
