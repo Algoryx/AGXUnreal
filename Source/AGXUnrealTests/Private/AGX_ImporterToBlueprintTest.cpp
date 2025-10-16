@@ -3957,6 +3957,10 @@ bool FClearShovelImportedCommand::Update()
 // Nested Assemblies test starts here.
 //
 
+
+#pragma message("Nested Assemblies import to Blueprint test disabled until the AGX Dynamics 2.40 / OpenPLX integration branch has been merged to master in AGXUnrealDev.")
+
+#if 0
 class FImporterToBlueprint_NestedAssembliesTest;
 
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
@@ -4065,6 +4069,9 @@ bool FClearNestedAssembliesImportedCommand::Update()
 
 	return true;
 }
+
+// End disable Nested Assemblies import test.
+#endif
 
 // WITH_DEV_AUTOMATION_TESTS
 #endif
