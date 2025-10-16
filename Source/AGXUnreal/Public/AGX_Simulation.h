@@ -485,7 +485,7 @@ public: // Member functions.
 	 */
 	bool Add(UAGX_RigidBodyComponent& Body);
 	bool Add(UAGX_ShapeComponent& Shape);
-	bool Add(UAGX_ShapeMaterial& Shape);
+	bool Add(UAGX_ShapeMaterial& Material);
 	bool Add(UAGX_ShovelComponent& Shovel);
 	bool Add(UAGX_StaticMeshComponent& Body);
 	bool Add(AAGX_Terrain& Terrain);
@@ -496,7 +496,7 @@ public: // Member functions.
 	bool Remove(UAGX_ConstraintComponent& Constraint);
 	bool Remove(UAGX_RigidBodyComponent& Body);
 	bool Remove(UAGX_ShapeComponent& Shape);
-	bool Remove(UAGX_ShapeMaterial& Shape);
+	bool Remove(UAGX_ShapeMaterial& Material);
 	bool Remove(UAGX_ShovelComponent& Shovel);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
