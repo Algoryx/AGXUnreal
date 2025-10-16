@@ -29,6 +29,7 @@ class UAGX_ShovelComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
 class UAGX_TireComponent;
+class UAGX_TrackComponent;
 class UAGX_WireComponent;
 
 class AActor;
@@ -476,30 +477,32 @@ public: // Member functions.
 	UPROPERTY(BlueprintAssignable, Category = "Simulation")
 	FOnSeparation OnSeparation;
 
-	void Add(UAGX_ConstraintComponent& Constraint);
+	bool Add(UAGX_ConstraintComponent& Constraint);
 
 	/**
 	 * Note that Shapes that are child of the passed Rigid Body are NOT added to the simulation
 	 * when calling this function.
 	 */
-	void Add(UAGX_RigidBodyComponent& Body);
-	void Add(UAGX_ShapeComponent& Shape);
-	void Add(UAGX_ShapeMaterial& Shape);
-	void Add(UAGX_ShovelComponent& Shovel);
-	void Add(UAGX_StaticMeshComponent& Body);
-	void Add(AAGX_Terrain& Terrain);
-	void Add(UAGX_TireComponent& Tire);
-	void Add(UAGX_WireComponent& Wire);
+	bool Add(UAGX_RigidBodyComponent& Body);
+	bool Add(UAGX_ShapeComponent& Shape);
+	bool Add(UAGX_ShapeMaterial& Material);
+	bool Add(UAGX_ShovelComponent& Shovel);
+	bool Add(UAGX_StaticMeshComponent& Body);
+	bool Add(AAGX_Terrain& Terrain);
+	bool Add(UAGX_TireComponent& Tire);
+	bool Add(UAGX_TrackComponent& Track);
+	bool Add(UAGX_WireComponent& Wire);
 
-	void Remove(UAGX_ConstraintComponent& Constraint);
-	void Remove(UAGX_RigidBodyComponent& Body);
-	void Remove(UAGX_ShapeComponent& Shape);
-	void Remove(UAGX_ShapeMaterial& Shape);
-	void Remove(UAGX_ShovelComponent& Shovel);
-	void Remove(UAGX_StaticMeshComponent& Body);
-	void Remove(AAGX_Terrain& Terrain);
-	void Remove(UAGX_TireComponent& Tire);
-	void Remove(UAGX_WireComponent& Wire);
+	bool Remove(UAGX_ConstraintComponent& Constraint);
+	bool Remove(UAGX_RigidBodyComponent& Body);
+	bool Remove(UAGX_ShapeComponent& Shape);
+	bool Remove(UAGX_ShapeMaterial& Material);
+	bool Remove(UAGX_ShovelComponent& Shovel);
+	bool Remove(UAGX_StaticMeshComponent& Body);
+	bool Remove(AAGX_Terrain& Terrain);
+	bool Remove(UAGX_TireComponent& Tire);
+	bool Remove(UAGX_TrackComponent& Track);
+	bool Remove(UAGX_WireComponent& Wire);
 
 	void Register(UAGX_ContactMaterial& Material);
 	void Unregister(UAGX_ContactMaterial& Material);

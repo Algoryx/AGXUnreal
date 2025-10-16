@@ -617,10 +617,7 @@ void UAGX_TrackComponent::EndPlay(const EEndPlayReason::Type Reason)
 				return;
 			}
 
-			// \todo Want to use AAGX_Simulation::Remove, but there's no overload taking a
-			// TrackComponent
-			//       (or LinkedStructure or Assembly), so we use a work-around in the TrackBarrier.
-			const bool Result = GetNative()->RemoveFromSimulation(*Sim->GetNative());
+			Sim->Remove(*this);
 		}
 	}
 
@@ -879,17 +876,7 @@ void UAGX_TrackComponent::CreateNative()
 	// because some properties in TrackProperties affects the track initialization algorithm.
 	WriteTrackPropertiesToNative();
 
-	// \todo Want to use AAGX_Simulation::Add, but there's no overload taking a Track Component
-	//       (or LinkedStructure or Assembly), so we use a work-around in the TrackBarrier.
-	const bool Result = GetNative()->AddToSimulation(*Sim->GetNative());
-	if (!Result)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Failed to add '%s' in '%s' to Simulation. Add() returned false. "
-				 "The Log category AGXDynamicsLog may contain more information about the failure."),
-			*GetName(), *GetNameSafe(GetOwner()));
-	}
+	Sim->Add(*this);
 
 	UpdateNativeProperties();
 }
