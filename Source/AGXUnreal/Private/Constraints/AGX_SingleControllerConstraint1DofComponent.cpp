@@ -10,7 +10,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_SingleControllerConstraint1DofComponent::UAGX_SingleControllerConstraint1DofComponent()
 	: UAGX_Constraint1DofComponent(TArray<EDofFlag>())
@@ -43,6 +43,9 @@ void UAGX_SingleControllerConstraint1DofComponent::CopyFrom(
 
 	ControllerType = BarrierSCC1DOF->GetControllerType();
 	ControllerAngleType = BarrierSCC1DOF->GetControllerAngleType();
+
+	// This is a workaround for this constraint type only. See internal issue 1686 in the AGX repo.
+	ImportName = "";
 }
 
 bool UAGX_SingleControllerConstraint1DofComponent::GetValid() const
@@ -125,8 +128,15 @@ void UAGX_SingleControllerConstraint1DofComponent::CreateNativeImpl()
 	FTransform Transform2 =
 		FAGX_ConstraintUtilities::GetFrameTransform(BodyAttachment2, GetFName(), OwnerName);
 
+	// agxOpenPLX require that both a Single Controller Constraint and its Secondary Constraint,
+	// e.g. a Target Speed Controller, have the same name as in the OpenPLX model. This is required
+	// for input signal routing to work. So this name must match the name set on the Native in
+	// UAGX_ConstraintComponent::UpdateNativeProperties.
+	const FString ConstraintName = !ImportName.IsEmpty() ? ImportName : GetName();
+
 	auto BarrierSCC1DOF = static_cast<FSingleControllerConstraint1DOFBarrier*>(NativeBarrier.Get());
 	BarrierSCC1DOF->AllocateNative(
 		*Body1, Transform1.GetLocation(), Transform1.GetRotation(), Body2, Transform2.GetLocation(),
-		Transform2.GetRotation(), Controller->GetNative(), ControllerType, ControllerAngleType);
+		Transform2.GetRotation(), Controller->GetNative(), ControllerType, ControllerAngleType,
+		ConstraintName);
 }

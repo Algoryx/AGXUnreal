@@ -329,22 +329,32 @@ const std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimul
 	return Simulation;
 }
 
-TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs()
+TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetOpenPLXInputs()
 {
 	return PLXInputs;
 }
 
-const TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs() const
+const TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetOpenPLXInputs() const
 {
 	return PLXInputs;
 }
 
-TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs()
+TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs()
 {
 	return PLXOutputs;
 }
 
-const TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs() const
+const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() const
 {
 	return PLXOutputs;
+}
+
+void FSimulationObjectCollection::SetModelName(const FString& Name)
+{
+	ModelName = Name;
+}
+
+FString FSimulationObjectCollection::GetModelName() const
+{
+	return ModelName;
 }

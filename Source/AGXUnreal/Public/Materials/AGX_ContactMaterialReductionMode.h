@@ -20,6 +20,9 @@ struct AGXUNREAL_API FAGX_ContactMaterialReductionMode
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ContactMaterialReductionMode& Other) const = default;
+
 	/**
 	 * Whether contact reduction should be enabled and to what extent.
 	 *

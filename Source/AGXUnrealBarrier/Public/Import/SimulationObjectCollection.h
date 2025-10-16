@@ -4,8 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 // For some reason, these could not be forward declared without compiler error.
-#include "OpenPLX/PLX_Inputs.h"
-#include "OpenPLX/PLX_Outputs.h"
+#include "OpenPLX/OpenPLX_Inputs.h"
+#include "OpenPLX/OpenPLX_Outputs.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -32,7 +32,7 @@ class FLockJointBarrier;
 class FSingleControllerConstraint1DOFBarrier;
 
 // Others.
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
 class FShapeMaterialBarrier;
@@ -127,11 +127,14 @@ public:
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
 
-	TArray<FPLX_Input>& GetPLXInputs();
-	const TArray<FPLX_Input>& GetPLXInputs() const;
+	TArray<FOpenPLX_Input>& GetOpenPLXInputs();
+	const TArray<FOpenPLX_Input>& GetOpenPLXInputs() const;
 
-	TArray<FPLX_Output>& GetPLXOutputs();
-	const TArray<FPLX_Output>& GetPLXOutputs() const;
+	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
+	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
+
+	void SetModelName(const FString& Name);
+	FString GetModelName() const;
 
 private:
 	FSimulationObjectCollection(const FSimulationObjectCollection&) = delete;
@@ -166,6 +169,8 @@ private:
 	TArray<FShovelBarrier> Shovels;
 	TArray<FTrackBarrier> Tracks;
 
-	TArray<FPLX_Input> PLXInputs;
-	TArray<FPLX_Output> PLXOutputs;
+	TArray<FOpenPLX_Input> PLXInputs;
+	TArray<FOpenPLX_Output> PLXOutputs;
+
+	FString ModelName;
 };

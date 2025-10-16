@@ -14,7 +14,7 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // OpenPLX includes.
@@ -641,7 +641,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FPLXUtilities::GetBundlePath();
+	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
@@ -676,10 +676,11 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, Filename, OutSimObjects);
 
-	// Read PLX inputs.
+	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
-	OutSimObjects.GetPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
-	OutSimObjects.GetPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
+	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
+	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
+	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getName()));
 	return true;
 }

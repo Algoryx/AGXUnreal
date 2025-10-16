@@ -99,6 +99,25 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Class, TEXT("AGX_MaterialBase"), TEXT("AGX_ShapeMaterial"));
 
+	// Redirects created during the change of OpenPLX name prefixes from 'PLX_' to 'OpenPLX_'. The
+	// old names were never seen by users so once all examples, tests, and experiment scenes have
+	// been opened and resaved we can remove these.
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("PLX_ModelRegistry"), TEXT("OpenPLX_ModelRegistry"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("PLX_SignalHandlerComponent"),
+		TEXT("OpenPLX_SignalHandlerComponent"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Input"), TEXT("OpenPLX_Input"));
+	Redirects.Emplace(ECoreRedirectFlags::Type_Struct, TEXT("PLX_Output"), TEXT("OpenPLX_Output"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_InputType"), TEXT("EOpenPLX_InputType"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_OutputType"), TEXT("EOpenPLX_OutputType"));
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Property,
+		TEXT("/Script/AGXUnreal.AGX_Simulation.bDeletePLXFileCopyOnBlueprintDeletion"),
+		TEXT("bDeleteOpenPLXFileCopyOnBlueprintDeletion"));
+
 	// The Shovel Refactor effort, the addition of Shovel Component, also introduced
 	// FAGX_ComponentReference and replaced the FAGX_RigidBodyComponentReference and
 	// FAGX_SceneComponentReference implementations with ones based on the new reference class. For

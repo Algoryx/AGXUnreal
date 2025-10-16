@@ -36,6 +36,9 @@ class AGXUNREAL_API UAGX_ShapeMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_ShapeMaterial& Other) const;
+
 	// Bulk properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Material")
@@ -139,7 +142,7 @@ public:
 	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	void CommitToAsset();

@@ -54,7 +54,7 @@ public:
 	 * is in [deg].
 	 * @return The angle [deg] or position [cm] of the free degree of freedom.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint")
 	double GetAngle() const;
 
 	/**

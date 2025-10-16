@@ -170,6 +170,7 @@ FString FAGX_ObjectUtilities::SanitizeObjectName(FString Name, UClass* Class)
 			Name = RemoveFromString(Name, FString(INVALID_LONGPACKAGE_CHARACTERS));
 	}
 
+	Name = Name.Replace(TEXT("."), TEXT("__"));
 	return MakeObjectNameFromDisplayLabel(Name, FName(*Name)).ToString();
 }
 

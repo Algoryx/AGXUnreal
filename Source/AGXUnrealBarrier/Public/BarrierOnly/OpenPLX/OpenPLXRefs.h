@@ -6,7 +6,7 @@
 #include "agxOpenPLX/InputSignalListener.h"
 #include "agxOpenPLX/OutputSignalListener.h"
 #include "agxOpenPLX/SignalSourceMapper.h"
-#include "Physics3D/System.h"
+#include "openplx/Physics3D/System.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -20,24 +20,25 @@
 #include <vector>
 #include <unordered_map>
 
-struct FInputSignalHandlerRef
+struct FInputSignalListenerRef
 {
 	agx::ref_ptr<agxopenplx::InputSignalListener> Native;
 
-	FInputSignalHandlerRef() = default;
-	FInputSignalHandlerRef(
-		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
+	FInputSignalListenerRef() = default;
+	FInputSignalListenerRef(
+		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
+		std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
 		: Native(new agxopenplx::InputSignalListener(Assembly, InputQueue, Mapper))
 	{
 	}
 };
 
-struct FOutputSignalHandlerRef
+struct FOutputSignalListenerRef
 {
 	agx::ref_ptr<agxopenplx::OutputSignalListener> Native;
 
-	FOutputSignalHandlerRef() = default;
-	FOutputSignalHandlerRef(
+	FOutputSignalListenerRef() = default;
+	FOutputSignalListenerRef(
 		const std::shared_ptr<openplx::Core::Object>& PlxModel,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
 		std::shared_ptr<agxopenplx::SignalSourceMapper> Mapper)
@@ -46,50 +47,33 @@ struct FOutputSignalHandlerRef
 	}
 };
 
-struct FInputSignalQueueRef
+struct FInputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::InputSignalQueue> Native;
-	FInputSignalQueueRef() = default;
-	FInputSignalQueueRef(std::shared_ptr<agxopenplx::InputSignalQueue> InNative)
+	agxopenplx::InputSignalQueue* Native;
+	FInputSignalQueuePtr() = default;
+	FInputSignalQueuePtr(agxopenplx::InputSignalQueue* InNative)
 		: Native(InNative)
 	{
 	}
 };
 
-struct FOutputSignalQueueRef
+struct FOutputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::OutputSignalQueue> Native;
-	FOutputSignalQueueRef() = default;
-	FOutputSignalQueueRef(std::shared_ptr<agxopenplx::OutputSignalQueue> InNative)
+	agxopenplx::OutputSignalQueue* Native;
+	FOutputSignalQueuePtr() = default;
+	FOutputSignalQueuePtr(agxopenplx::OutputSignalQueue* InNative)
 		: Native(InNative)
 	{
 	}
 };
 
-struct FSignalSourceMapperRef
+struct FOpenPLXModelData
 {
-	std::shared_ptr<agxopenplx::SignalSourceMapper> Native;
-
-	FSignalSourceMapperRef() = default;
-
-	FSignalSourceMapperRef(std::shared_ptr<agxopenplx::SignalSourceMapper> InNative)
-		: Native(InNative)
-	{
-	}
-
-	FSignalSourceMapperRef(agxSDK::Assembly* Assembly)
-		: Native(agxopenplx::SignalSourceMapper::create(Assembly))
-	{
-	}
-};
-
-struct FPLXModelData
-{
-	openplx::Core::ObjectPtr PLXModel;
+	openplx::Core::ObjectPtr OpenPLXModel;
 	std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>> Inputs;
 };
 
-struct FPLXModelDataArray
+struct FOpenPLXModelDataArray
 {
-	std::vector<FPLXModelData> ModelData;
+	std::vector<FOpenPLXModelData> ModelData;
 };

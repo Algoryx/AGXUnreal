@@ -16,7 +16,7 @@ enum class EAGX_ImportType : uint8
 	/** Imported type is an AGX Dynamics Archive. */
 	Agx,
 
-	/** Imported type is a OpenPLX model. */
+	/** Imported type is an OpenPLX model. */
 	Plx,
 
 	/** Imported type is a URDF (Unified Robotic Description Format) model. */

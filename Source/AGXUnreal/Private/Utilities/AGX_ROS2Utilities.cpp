@@ -422,6 +422,44 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
 	return Msg;
 }
 
+FAGX_SensorMsgsImu UAGX_ROS2Utilities::ConvertIMUData(
+	const FVector& AccelerometerOutput, const FVector& GyroscopeOutput, const FQuat& IMURotation,
+	double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsImu Msg;
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+
+	const FQuat QuatROS = ConvertRotationToROS(IMURotation);
+	Msg.Orientation.W = QuatROS.W;
+	Msg.Orientation.X = QuatROS.X;
+	Msg.Orientation.Y = QuatROS.Y;
+	Msg.Orientation.Z = QuatROS.Z;
+
+	for (int i = 0; i < 9; i++)
+		Msg.OrientationCovariance.Add(0.0);
+
+	const FVector AngularVelROS = ConvertAngularVelocityToROS(GyroscopeOutput);
+	Msg.AngularVelocity.X = AngularVelROS.X;
+	Msg.AngularVelocity.Y = AngularVelROS.Y;
+	Msg.AngularVelocity.Z = AngularVelROS.Z;
+
+	for (int i = 0; i < 9; i++)
+		Msg.AngularVelocityCovariance.Add(0.0);
+
+	const FVector LinearAccelROS = ConvertPositionToROS(AccelerometerOutput);
+	Msg.LinearAcceleration.X = LinearAccelROS.X;
+	Msg.LinearAcceleration.Y = LinearAccelROS.Y;
+	Msg.LinearAcceleration.Z = LinearAccelROS.Z;
+
+	for (int i = 0; i < 9; i++)
+		Msg.LinearAccelerationCovariance.Add(0.0);
+
+	return Msg;
+}
+
 double UAGX_ROS2Utilities::ConvertDistanceToROS(double DistanceUnreal)
 {
 	using namespace AGX_ROS2Utilities_helpers;

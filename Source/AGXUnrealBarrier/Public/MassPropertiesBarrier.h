@@ -23,9 +23,7 @@ class AGXUNREALBARRIER_API FMassPropertiesBarrier
 {
 public:
 	FMassPropertiesBarrier();
-	FMassPropertiesBarrier(std::unique_ptr<FMassPropertiesPtr> Native);
-	FMassPropertiesBarrier(FMassPropertiesBarrier&& Other);
-	~FMassPropertiesBarrier();
+	FMassPropertiesBarrier(std::shared_ptr<FMassPropertiesPtr> Native);
 
 	/**
 	 * @param NewMass Mass of the rigid body, in kg.
@@ -76,5 +74,5 @@ public:
 	void BindTo(FRigidBodyRef& RigidBody);
 
 private:
-	std::unique_ptr<FMassPropertiesPtr> NativePtr;
+	std::shared_ptr<FMassPropertiesPtr> NativePtr;
 };

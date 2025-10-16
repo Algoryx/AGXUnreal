@@ -10,10 +10,8 @@
 #include "Contacts/AGX_ShapeContact.h"
 #include "Shapes/AGX_ShapeEnums.h"
 #include "Shapes/ShapeBarrier.h"
-#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
-#include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
 
@@ -95,10 +93,24 @@ public:
 	bool GetIsSensor() const;
 
 	/**
-	 * Determines the sensor type. Only relevant if the Is Sensor property is checked.
+	 * Determines the sensor type. Only relevant if the Is Sensor property is set to true.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Shape Contacts", Meta = (EditCondition = "bIsSensor"))
 	EAGX_ShapeSensorType SensorType {EAGX_ShapeSensorType::ContactsSensor};
+
+	/**
+	 * Sets the Sensor Type of this Shape Component.
+	 * This will only have an effect on the underlying AGX Dynamics Native object if the Is Sensor
+	 * property is set to true.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape Contacts")
+	void SetSensorType(EAGX_ShapeSensorType Type);
+
+	/**
+	 * Returns the Sensor Type of this Shape Component.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape Contacts")
+	EAGX_ShapeSensorType GetSensorType() const;
 
 	/**
 	 * Set the velocity of this Shape's surface in the Shape's local coordinate frame [cm/s].
@@ -151,7 +163,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/*
@@ -160,6 +172,13 @@ public:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
+
+	/**
+	 * Get the Rigid Body that owns this Shape. Will return None / nullptr if this Shape is not
+	 * part of a Rigid Body.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	UAGX_RigidBodyComponent* GetRigidBody() const;
 
 	/**
 	 * Get all shape contacts for this shape.
@@ -216,6 +235,8 @@ public:
 	 */
 	virtual FShapeBarrier* GetOrCreateNative()
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetOrCreateNative, return nullptr;);
+
+	static FString GetRenderMeshComponentNamePrefix();
 
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
@@ -355,8 +376,7 @@ void UAGX_ShapeComponent::UpdateNativeLocalTransform(TNative& Native)
 	// Component then the Shape is free-floating and the native's frame hierarchy does not have any
 	// parent, i.e. the local transform is the same as the global transform. This assumption will
 	// not hold once we start supporting AGX Dynamics' Assembly.
-	UAGX_RigidBodyComponent* Body =
-		FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
+	UAGX_RigidBodyComponent* Body = GetRigidBody();
 	if (Body != nullptr)
 	{
 		const FTransform& BodyTransform = Body->GetComponentTransform();

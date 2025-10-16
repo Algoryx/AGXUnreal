@@ -34,7 +34,7 @@ class UAGX_WireComponent;
 class AActor;
 class UActorComponent;
 class UWorld;
-class FShapeBarrier;
+struct FShapeBarrier;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreStepForward, double, Time);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPostStepForward, double, Time);
@@ -216,7 +216,7 @@ public: // Properties.
 	UPROPERTY(
 		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
 		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
-	bool bDeletePLXFileCopyOnBlueprintDeletion {true};
+	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
 
 	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.

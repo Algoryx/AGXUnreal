@@ -107,7 +107,7 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 						[
 							SNew(STextBlock)
 							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
-							.Text(LOCTEXT("PLXExperimentalTesxt", "Note: OpenPLX support is currently Experimental, "
+							.Text(LOCTEXT("PLXExperimentalText", "Note: OpenPLX support is currently Experimental, "
 								"meaning the supported features \nare limited and backwards compatibility in "
 								"future releases is not guaranteed."))
 							.Font(FAGX_SlateUtilities::CreateFont(10))

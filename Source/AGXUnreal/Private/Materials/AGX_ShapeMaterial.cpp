@@ -9,10 +9,16 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+
+bool UAGX_ShapeMaterial::operator==(const UAGX_ShapeMaterial& Other) const
+{
+	return Bulk == Other.Bulk && Surface == Other.Surface && Wire == Other.Wire;
+}
 
 #if WITH_EDITOR
 void UAGX_ShapeMaterial::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
@@ -356,8 +362,10 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 
 	ImportGuid = Source.GetGuid();
 
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Source.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
+		GetOuter(), CleanBarrierName, UAGX_ShapeMaterial::StaticClass());
 	Rename(*Name);
 
 	if (Context != nullptr && Context->ShapeMaterials != nullptr &&

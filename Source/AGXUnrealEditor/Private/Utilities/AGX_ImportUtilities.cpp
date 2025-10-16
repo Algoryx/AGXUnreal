@@ -18,7 +18,7 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackBarrier.h"
@@ -34,6 +34,7 @@
 #include "RawMesh.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/ComponentEditorUtils.h"
+#include "UObject/Package.h"
 #if !UE_VERSION_OLDER_THAN(5, 0, 0)
 #include "UObject/SavePackage.h"
 #endif
@@ -323,6 +324,19 @@ FString FAGX_ImportUtilities::GetDefaultModelImportDirectory(const FString& Mode
 
 void FAGX_ImportUtilities::OnImportedBlueprintDeleted(const UBlueprint& Bp)
 {
+	// When an Asset migration is performed that includes a Base Blueprint, OnAssetRemoved() will be
+	// triggered for that Asset (which is unexpected), and we end up here. In that case, we do not
+	// want to remove any OpenPLX files that "belong" to the passed in Blueprint since the Blueprint
+	// will be restored at the end of the Asset migration process.
+	// When an asset is actually deleted, its outer package will be marked dirty before
+	// OnAssetRemoved() is called. We use that fact to differentiate between these two cases, to
+	// ensure we do not remove OpenPLX files during an Asset migration (where the Package will not
+	// be marked dirty). So this is clearly a work-around, but no other way of differentiating
+	// between the two cases has yet been found.
+	UPackage* Package = Bp.GetPackage();
+	if (Package != nullptr && !Package->IsDirty())
+		return;
+
 	auto ModelSource =
 		FAGX_BlueprintUtilities::GetFirstComponentOfType<UAGX_ModelSourceComponent>(&Bp, true);
 	if (ModelSource == nullptr)

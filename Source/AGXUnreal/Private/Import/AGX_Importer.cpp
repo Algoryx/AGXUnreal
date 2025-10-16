@@ -28,7 +28,7 @@
 #include "Import/SimulationObjectCollection.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -45,13 +45,14 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/TrackBarrier.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/WireBarrier.h"
 
 // Unreal Engine includes.
+#include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
@@ -205,21 +206,21 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
-					*FPLXUtilities::GetModelsDirectory());
+					*FOpenPLXUtilities::GetModelsDirectory());
 				return false;
 			}
 
-			if (Settings.SourceFilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+			if (Settings.SourceFilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Original OpenPLX Source File must NOT reside in '%s'. Do not store your original "
-						 "OpenPLX models in this directory."),
-					*FPLXUtilities::GetModelsDirectory());
+					TEXT("Original OpenPLX Source File must NOT reside in '%s'. Do not store your "
+						 "original OpenPLX models in this directory."),
+					*FOpenPLXUtilities::GetModelsDirectory());
 				return false;
 			}
 		}
@@ -243,8 +244,25 @@ namespace AGX_Importer_helpers
 
 		for (const auto& [Guid, Shape] : *Context.Shapes)
 		{
-			if (Shape != nullptr)
-				Shape->SetVisibility(false, /*bPropagateToChildren*/ false);
+			if (Shape == nullptr)
+				continue;
+
+			Shape->SetVisibility(false, /*bPropagateToChildren*/ false);
+			if (auto Trimesh = Cast<UAGX_TrimeshShapeComponent>(Shape))
+			{
+				// We also must update the visibility of any Collision Static Mesh Component
+				// owned by a Trimesh. The Render Static Mesh should not be touched.
+				auto SMs = FAGX_ObjectUtilities::GetChildrenOfType<UStaticMeshComponent>(
+					*Trimesh, /*recursive*/ false);
+				for (auto SM : SMs)
+				{
+					if (SM->GetName().StartsWith(
+							UAGX_TrimeshShapeComponent::GetCollisionMeshComponentNamePrefix()))
+					{
+						SM->SetVisibility(false, /*bPropagateToChildren*/ false);
+					}
+				}
+			}
 		}
 	}
 }
@@ -294,6 +312,8 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	FSimulationObjectCollection SimObjects;
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
+
+	Context.RootModelName = SimObjects.GetModelName();
 
 	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *Actor);
 	if (IsUnrecoverableError(Result))
@@ -718,19 +738,19 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
-	const FString Name = "PLX_SignalHandler";
+	const FString Name = "OpenPLX_SignalHandler";
 	if (Context.SignalHandler != nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("FAGX_Importer::AddSignalHandlerComponent called, but a "
-				 "PLX_SignalHandler has already been added."));
+			TEXT("FAGX_Importer::AddSignalHandlerComponent called, but an "
+				 "OpenPLX_SignalHandler has already been added."));
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	auto Component = NewObject<UPLX_SignalHandlerComponent>(&OutActor);
+	auto Component = NewObject<UOpenPLX_SignalHandlerComponent>(&OutActor);
 	Component->Rename(*Name);
-	Component->CopyFrom(SimObjects.GetPLXInputs(), SimObjects.GetPLXOutputs(), &Context);
+	Component->CopyFrom(SimObjects.GetOpenPLXInputs(), SimObjects.GetOpenPLXOutputs(), &Context);
 	FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, OutActor, Context.SessionGuid);
 	return EAGX_ImportResult::Success;
 }

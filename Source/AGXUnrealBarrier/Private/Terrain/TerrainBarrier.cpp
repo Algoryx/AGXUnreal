@@ -172,13 +172,6 @@ double FTerrainBarrier::GetMaximumParticleActivationVolume() const
 		NativeRef->Native->getProperties()->getMaximumParticleActivationVolume());
 }
 
-bool FTerrainBarrier::AddShovel(FShovelBarrier& Shovel)
-{
-	check(HasNative());
-	check(Shovel.HasNative());
-	return NativeRef->Native->add(Shovel.GetNative()->Native);
-}
-
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());
