@@ -6,6 +6,7 @@
 #include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDIProxy.h"
 
 // Unreal Engine includes.
+#include "NiagaraCompileHashVisitor.h"
 #include "NiagaraShaderParametersBuilder.h"
 #include "NiagaraSystemInstance.h"
 #include "SphereTypes.h"
