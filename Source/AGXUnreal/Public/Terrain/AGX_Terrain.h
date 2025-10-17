@@ -181,6 +181,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	double GetMaximumParticleActivationVolume() const;
 
+	/**
+	 * The soil particle size scaling factor scales the nominal radius that the algorithm will aim
+	 * for during the dynamic resizing of particles that occur during terrain interaction. This is
+	 * used to alter the desired number of soil particles in the Terrain. Default value: 1.0.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	float SoilParticleSizeScaling {1.f};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetSoilParticleSizeScaling(float InScaling);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	float GetSoilParticleSizeScaling() const;
+
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
 	UAGX_TerrainMaterial* TerrainMaterial;
@@ -384,7 +398,6 @@ private:
 	friend class FAGX_TerrainHeightFetcher;
 
 private: // Deprecated functions.
-
 	// clang-format off
 
 	UFUNCTION(
@@ -420,7 +433,6 @@ private: // Deprecated functions.
 	// clang-format on
 
 private:
-
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
 

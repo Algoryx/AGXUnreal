@@ -172,6 +172,18 @@ double FTerrainBarrier::GetMaximumParticleActivationVolume() const
 		NativeRef->Native->getProperties()->getMaximumParticleActivationVolume());
 }
 
+void FTerrainBarrier::SetSoilParticleSizeScaling(float Scaling)
+{
+	check(HasNative());
+	NativeRef->Native->getProperties()->setSoilParticleSizeScaling(Scaling);
+}
+
+float FTerrainBarrier::GetSoilParticleSizeScaling() const
+{
+	check(HasNative());
+	return NativeRef->Native->getProperties()->getSoilParticleSizeScaling();
+}
+
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());
