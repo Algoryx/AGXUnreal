@@ -430,6 +430,30 @@ float AAGX_Terrain::GetMaximumParticleActivationVolume_BP() const
 	return static_cast<float>(GetMaximumParticleActivationVolume());
 }
 
+void AAGX_Terrain::SetSoilParticleSizeScaling(float InScaling)
+{
+	if (HasNative())
+	{
+		NativeBarrier.SetSoilParticleSizeScaling(InScaling);
+		if (HasNativeTerrainPager())
+		{
+			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
+		}
+	}
+
+	SoilParticleSizeScaling = InScaling;
+}
+
+float AAGX_Terrain::GetSoilParticleSizeScaling() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier.GetSoilParticleSizeScaling();
+	}
+
+	return SoilParticleSizeScaling;
+}
+
 bool AAGX_Terrain::HasNative() const
 {
 	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
@@ -659,6 +683,10 @@ void AAGX_Terrain::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, MaximumParticleActivationVolume), [](ThisClass* This)
 		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SoilParticleSizeScaling),
+		[](ThisClass* This) { This->SetSoilParticleSizeScaling(This->SoilParticleSizeScaling); });
 
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(ParticleSystemAsset),
@@ -1157,6 +1185,7 @@ bool AAGX_Terrain::CreateNative()
 	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
 
 	// Create the AGX Dynamics instance for the terrain.
 	// Note that the AGX Dynamics Terrain messes with the solver parameters on add, parameters that
