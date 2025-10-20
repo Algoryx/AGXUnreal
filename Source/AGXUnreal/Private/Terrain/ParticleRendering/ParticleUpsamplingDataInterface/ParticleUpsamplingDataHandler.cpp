@@ -2,19 +2,22 @@
 
 #include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDataHandler.h"
 
+// Unreal Engine includes.
+#include "Misc/EngineVersionComparison.h"
+
 void FParticleUpsamplingBuffers::InitRHI(FRHICommandListBase& RHICmdList)
 {
 	// Init SRV Buffers
 	CoarseParticles = InitSRVBuffer<FCoarseParticle>(
 		RHICmdList, TEXT("CoarseParticles"), CoarseParticlesCapacity);
-	ActiveVoxelIndices = InitSRVBuffer<FIntVector4>(
-		RHICmdList, TEXT("ActiveVoxelIndices"), ActiveVoxelsCapacity);
-	
+	ActiveVoxelIndices =
+		InitSRVBuffer<FIntVector4>(RHICmdList, TEXT("ActiveVoxelIndices"), ActiveVoxelsCapacity);
+
 	// Init UAV Buffers
-	ActiveVoxelsTable = InitUAVBuffer<FVoxelEntry>(
-		RHICmdList, TEXT("ActiveVoxelsTable"), ActiveVoxelsCapacity);
-	ActiveVoxelsTableOccupancy = InitUAVBuffer<int>(
-		RHICmdList, TEXT("ActiveVoxelsTableOccupancy"), ActiveVoxelsCapacity);
+	ActiveVoxelsTable =
+		InitUAVBuffer<FVoxelEntry>(RHICmdList, TEXT("ActiveVoxelsTable"), ActiveVoxelsCapacity);
+	ActiveVoxelsTableOccupancy =
+		InitUAVBuffer<int>(RHICmdList, TEXT("ActiveVoxelsTableOccupancy"), ActiveVoxelsCapacity);
 }
 
 void FParticleUpsamplingBuffers::ReleaseRHI()
@@ -29,30 +32,57 @@ template <typename T>
 FShaderResourceViewRHIRef FParticleUpsamplingBuffers::InitSRVBuffer(
 	FRHICommandListBase& RHICmdList, const TCHAR* InDebugName, uint32 ElementCount)
 {
+	const uint32 Stride = sizeof(T);
+	const uint32 Size = Stride * ElementCount;
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
 	FRHIResourceCreateInfo CreateInfo(InDebugName);
-	FBufferRHIRef BufferRef = RHICmdList.CreateStructuredBuffer(
-		sizeof(T), sizeof(T) * ElementCount, BUF_ShaderResource, CreateInfo);
+	FBufferRHIRef BufferRef =
+		RHICmdList.CreateStructuredBuffer(Stride, Size, BUF_ShaderResource, CreateInfo);
 	return RHICmdList.CreateShaderResourceView(
 		BufferRef, FRHIViewDesc::CreateBufferSRV().SetType(FRHIViewDesc::EBufferType::Structured));
+#else
+	FRHIBufferCreateDesc BufferDesc =
+		FRHIBufferCreateDesc::Create(
+			InDebugName, Size, Stride, BUF_ShaderResource | BUF_StructuredBuffer)
+			.SetInitialState(RHIGetDefaultResourceState(
+				EBufferUsageFlags(BUF_ShaderResource | BUF_StructuredBuffer), false));
+
+	FBufferRHIRef BufferRef = RHICmdList.CreateBuffer(BufferDesc);
+	return RHICmdList.CreateShaderResourceView(
+		BufferRef, FRHIViewDesc::CreateBufferSRV().SetType(FRHIViewDesc::EBufferType::Structured));
+#endif
 }
 
 template <typename T>
 FUnorderedAccessViewRHIRef FParticleUpsamplingBuffers::InitUAVBuffer(
 	FRHICommandListBase& RHICmdList, const TCHAR* InDebugName, uint32 ElementCount)
 {
+	const uint32 Stride = sizeof(T);
+	const uint32 Size = Stride * ElementCount;
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
 	FRHIResourceCreateInfo CreateInfo(InDebugName);
-	FBufferRHIRef BufferRef = RHICmdList.CreateStructuredBuffer(
-		sizeof(T), sizeof(T) * ElementCount, BUF_UnorderedAccess, CreateInfo);
+	FBufferRHIRef BufferRef =
+		RHICmdList.CreateStructuredBuffer(Stride, Size, BUF_UnorderedAccess, CreateInfo);
 	return RHICmdList.CreateUnorderedAccessView(
 		BufferRef, FRHIViewDesc::CreateBufferUAV().SetType(FRHIViewDesc::EBufferType::Structured));
+#else
+	FRHIBufferCreateDesc BufferDesc =
+		FRHIBufferCreateDesc::Create(
+			InDebugName, Size, Stride, BUF_UnorderedAccess | BUF_StructuredBuffer)
+			.SetInitialState(RHIGetDefaultResourceState(
+				EBufferUsageFlags(BUF_UnorderedAccess | BUF_StructuredBuffer), false));
+
+	FBufferRHIRef BufferRef = RHICmdList.CreateBuffer(BufferDesc);
+	return RHICmdList.CreateUnorderedAccessView(
+		BufferRef, FRHIViewDesc::CreateBufferUAV().SetType(FRHIViewDesc::EBufferType::Structured));
+#endif
 }
 
 void FParticleUpsamplingBuffers::UpdateCoarseParticleBuffer(
 	FRHICommandListBase& RHICmdList, const TArray<FCoarseParticle> CoarseParticleData)
 {
 	uint32 ElementCount = CoarseParticleData.Num();
-	if (ElementCount == 0 || !CoarseParticles.IsValid() ||
-		!CoarseParticles->GetBuffer()->IsValid())
+	if (ElementCount == 0 || !CoarseParticles.IsValid() || !CoarseParticles->GetBuffer()->IsValid())
 	{
 		return;
 	}
@@ -65,13 +95,12 @@ void FParticleUpsamplingBuffers::UpdateCoarseParticleBuffer(
 		// Create new, larger buffer.
 		CoarseParticlesCapacity *= 2;
 		CoarseParticles = InitSRVBuffer<FCoarseParticle>(
-			RHICmdList, TEXT("CoarseParticles"),
-			CoarseParticlesCapacity);
+			RHICmdList, TEXT("CoarseParticles"), CoarseParticlesCapacity);
 	}
 
 	const uint32 BufferBytes = sizeof(FCoarseParticle) * ElementCount;
-	void* OutputData = RHICmdList.LockBuffer(
-		CoarseParticles->GetBuffer(), 0, BufferBytes, RLM_WriteOnly);
+	void* OutputData =
+		RHICmdList.LockBuffer(CoarseParticles->GetBuffer(), 0, BufferBytes, RLM_WriteOnly);
 
 	FMemory::Memcpy(OutputData, CoarseParticleData.GetData(), BufferBytes);
 	RHICmdList.UnlockBuffer(CoarseParticles->GetBuffer());
@@ -99,15 +128,15 @@ void FParticleUpsamplingBuffers::UpdateHashTableBuffers(
 
 		ActiveVoxelIndices = InitSRVBuffer<FIntVector4>(
 			RHICmdList, TEXT("ActiveVoxelIndices"), ActiveVoxelsCapacity);
-		ActiveVoxelsTable = InitUAVBuffer<FVoxelEntry>(
-			RHICmdList, TEXT("ActiveVoxelsTable"), ActiveVoxelsCapacity );
+		ActiveVoxelsTable =
+			InitUAVBuffer<FVoxelEntry>(RHICmdList, TEXT("ActiveVoxelsTable"), ActiveVoxelsCapacity);
 		ActiveVoxelsTableOccupancy = InitUAVBuffer<int>(
 			RHICmdList, TEXT("ActiveVoxelsTableOccupancy"), ActiveVoxelsCapacity);
 	}
 
 	const uint32 BufferBytes = sizeof(FIntVector4) * ElementCount;
-	void* OutputData = RHICmdList.LockBuffer(
-		ActiveVoxelIndices->GetBuffer(), 0, BufferBytes, RLM_WriteOnly);
+	void* OutputData =
+		RHICmdList.LockBuffer(ActiveVoxelIndices->GetBuffer(), 0, BufferBytes, RLM_WriteOnly);
 
 	FMemory::Memcpy(OutputData, ActiveVoxelIndicesArray.GetData(), BufferBytes);
 	RHICmdList.UnlockBuffer(ActiveVoxelIndices->GetBuffer());
