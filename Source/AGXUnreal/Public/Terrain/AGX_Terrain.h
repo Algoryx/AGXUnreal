@@ -434,6 +434,15 @@ private:
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
 
+
+	/// Deprecated, see UAGX_SoilParticleRendererComponent.
+	UPROPERTY()
+	bool bEnableParticleRendering_DEPRECATED {true};
+
+	/// Deprecated, see UAGX_SoilParticleRendererComponent.
+	UPROPERTY()
+	UNiagaraSystem* ParticleSystemAsset_DEPRECATED;
+
 #if WITH_EDITOR
 	void ShowShapeMaterialWarning() const;
 #endif

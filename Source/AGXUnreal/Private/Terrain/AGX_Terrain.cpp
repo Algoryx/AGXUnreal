@@ -1792,6 +1792,15 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 	{
 		bNeedsShapeMaterialWarning = true;
 	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ParticleRenderingByRenderingComponents))
+	{
+		if (DefaultParticleRenderer != nullptr)
+		{
+			DefaultParticleRenderer->bEnableParticleRendering = bEnableParticleRendering_DEPRECATED;
+			DefaultParticleRenderer->ParticleSystemAsset = ParticleSystemAsset_DEPRECATED;
+		}
+	}
 }
 
 #if WITH_EDITOR
