@@ -101,7 +101,7 @@ struct AGXUNREAL_API FDelegateParticleData
 	TArray<bool> Exists;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	int32 ParticleCount;
+	int32 ParticleCount {0};
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
