@@ -12,7 +12,8 @@
 #include "OpenPLX_Outputs.generated.h"
 
 /**
- * EXPERIMENTAL
+ * Struct representing an OpenPLX output, which may (if enabled) generate an OpenPLX
+ * Output Signal that connects to it.
  */
 USTRUCT(BlueprintType)
 struct AGXCOMMON_API FOpenPLX_Output
@@ -20,7 +21,8 @@ struct AGXCOMMON_API FOpenPLX_Output
 	GENERATED_BODY()
 
 	FOpenPLX_Output() = default;
-	FOpenPLX_Output(const FName& InName, const FName& InAlias, EOpenPLX_OutputType InType, bool InEnabled)
+	FOpenPLX_Output(
+		const FName& InName, const FName& InAlias, EOpenPLX_OutputType InType, bool InEnabled)
 		: Name(InName)
 		, Alias(InAlias)
 		, Type(InType)

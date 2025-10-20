@@ -17,14 +17,11 @@ struct FAGX_ImportContext;
 struct FOpenPLX_SignalHandlerNativeAddresses;
 
 /**
- * EXPERIMENTAL
- *
  * The signal handler Component is used send and receive OpenPLX Signals. It keeps track of all
  * Inputs and Outputs available in the model.
  */
 UCLASS(
-	ClassGroup = "OpenPLX", Category = "OpenPLX", Experimental,
-	Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "OpenPLX", Category = "OpenPLX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UOpenPLX_SignalHandlerComponent : public UActorComponent
 {
@@ -80,8 +77,8 @@ public:
 	bool GetOutputFromType(EOpenPLX_OutputType Type, FName NameOrAlias, FOpenPLX_Output& OutOutput);
 
 	/**
-	* Uses the given Input to send a Signal of Real type with the given Value.
-	*/
+	 * Uses the given Input to send a Signal of Real type with the given Value.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendReal(const FOpenPLX_Input& Input, double Value);
 
@@ -229,7 +226,8 @@ public:
 	//~ End UActorComponent Interface
 
 	void CopyFrom(
-		const TArray<FOpenPLX_Input>& Inputs, TArray<FOpenPLX_Output> Outputs, FAGX_ImportContext* Context);
+		const TArray<FOpenPLX_Input>& Inputs, TArray<FOpenPLX_Output> Outputs,
+		FAGX_ImportContext* Context);
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
