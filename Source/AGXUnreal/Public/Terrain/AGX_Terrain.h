@@ -184,7 +184,9 @@ public:
 	/**
 	 * The soil particle size scaling factor scales the nominal radius that the algorithm will aim
 	 * for during the dynamic resizing of particles that occur during terrain interaction. This is
-	 * used to alter the desired number of soil particles in the Terrain. Default value: 1.0.
+	 * used to alter the desired number of soil particles in the Terrain.
+	 * Default value is 1.0, where the nominal particle size matches the Terrain grid size, which in
+	 * turn matches the Landscape quad size.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	float SoilParticleSizeScaling {1.f};
