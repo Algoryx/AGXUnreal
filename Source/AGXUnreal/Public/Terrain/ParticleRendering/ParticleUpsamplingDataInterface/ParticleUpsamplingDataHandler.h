@@ -5,6 +5,9 @@
 // Unreal Engine includes.
 #include "NiagaraCommon.h"
 
+// Standard library includes.
+#include <memory>
+
 /**
  * Struct to store data from a single coarse particle.
  */ 
