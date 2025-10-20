@@ -7,13 +7,13 @@
 
 void FParticleUpsamplingBuffers::InitRHI(FRHICommandListBase& RHICmdList)
 {
-	// Init SRV Buffers
+	// Init SRV Buffers (Shader Resource View - read only).
 	CoarseParticles = InitSRVBuffer<FCoarseParticle>(
 		RHICmdList, TEXT("CoarseParticles"), CoarseParticlesCapacity);
 	ActiveVoxelIndices =
 		InitSRVBuffer<FIntVector4>(RHICmdList, TEXT("ActiveVoxelIndices"), ActiveVoxelsCapacity);
 
-	// Init UAV Buffers
+	// Init UAV Buffers (Unordered Access View - read/write).
 	ActiveVoxelsTable =
 		InitUAVBuffer<FVoxelEntry>(RHICmdList, TEXT("ActiveVoxelsTable"), ActiveVoxelsCapacity);
 	ActiveVoxelsTableOccupancy =
