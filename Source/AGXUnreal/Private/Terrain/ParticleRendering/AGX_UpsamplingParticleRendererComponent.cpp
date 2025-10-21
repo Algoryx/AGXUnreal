@@ -22,13 +22,8 @@ UAGX_UpsamplingParticleRendererComponent::UAGX_UpsamplingParticleRendererCompone
 {
 	AGX_ParticleRenderingUtilities::AssignDefaultNiagaraAsset(
 		ParticleSystemAsset,
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
-		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/UpsamplingParticleSystem"
-			 "/PS_UpsamplingParticleSystem_UE_53_54.PS_UpsamplingParticleSystem_UE_53_54'"));
-#else
 		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/UpsamplingParticleSystem"
 			 "/PS_UpsamplingParticleSystem.PS_UpsamplingParticleSystem'"));
-#endif
 }
 
 void UAGX_UpsamplingParticleRendererComponent::BeginPlay()

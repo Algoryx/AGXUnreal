@@ -1798,7 +1798,8 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 		if (DefaultParticleRenderer != nullptr)
 		{
 			DefaultParticleRenderer->bEnableParticleRendering = bEnableParticleRendering_DEPRECATED;
-			DefaultParticleRenderer->ParticleSystemAsset = ParticleSystemAsset_DEPRECATED;
+			if (ParticleSystemAsset_DEPRECATED != nullptr)
+				DefaultParticleRenderer->ParticleSystemAsset = ParticleSystemAsset_DEPRECATED;
 		}
 	}
 }
