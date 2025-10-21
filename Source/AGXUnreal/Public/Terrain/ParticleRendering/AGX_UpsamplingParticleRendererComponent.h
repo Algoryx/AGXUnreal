@@ -53,19 +53,19 @@ public:
 	int32 Upsampling = 100;
 
 	/**
-	 * Toggle between using the default voxel size or use user defined size.
+	 * Toggle between using the default voxel size, determined by the Terrain,
+	 * or use a user defined size.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Upsampling Particle Rendering")
 	bool bOverrideVoxelSize = false;
 
 	/**
-	 * The size of how large a singe voxel will be when setting up the data grids [cm].
-	 *
-	 * Really small voxel size will decrease performance singificantly.
+	 * The size of a singe voxel when setting up the data grids [cm].
+	 * Smaller voxel sizes will decrease performance.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Upsampling Particle Rendering",
-		Meta = (EditCondition = "bOverrideVoxelSize", UIMin = "10", UIMax = "1000"))
+		Meta = (EditCondition = "bOverrideVoxelSize", UIMin = "1")
 	float VoxelSize = 10.0;
 
 	/**
