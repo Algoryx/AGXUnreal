@@ -40,7 +40,7 @@ void UAGX_UpsamplingParticleRendererComponent::BeginPlay()
 	{
 		return;
 	}
-	
+
 	ParticleSystemComponent =
 		AGX_ParticleRenderingUtilities::InitializeNiagaraParticleSystemComponent(
 			ParticleSystemAsset, this);
@@ -54,21 +54,21 @@ void UAGX_UpsamplingParticleRendererComponent::BeginPlay()
 	// Try to get the correct data interface.
 	UpsamplingDataInterface =
 		static_cast<UAGX_ParticleUpsamplingDI*>(UNiagaraFunctionLibrary::GetDataInterface(
-			UAGX_ParticleUpsamplingDI::StaticClass(), ParticleSystemComponent,
-			"PUDI"));
+			UAGX_ParticleUpsamplingDI::StaticClass(), ParticleSystemComponent, "PUDI"));
 
 	if (!UpsamplingDataInterface)
 	{
 		UE_LOG(
 			LogTemp, Warning,
-			TEXT("Particle renderer '%s' in Actor '%s', unable to to find Niagara Data Interface with name 'PUDI' "
-				"in loaded Niagara system with name '%s'. No particles will be rendered."),
+			TEXT("Particle renderer '%s' in Actor '%s', unable to to find Niagara Data Interface "
+				 "with name 'PUDI' "
+				 "in loaded Niagara system with name '%s'. No particles will be rendered."),
 			*GetName(), *GetLabelSafe(ParentTerrainActor), *ParticleSystemComponent->GetName());
 		return;
 	}
 
 	ElementSize = ParentTerrainActor->SourceLandscape->GetActorScale().X;
-	
+
 	// Bind function to terrain delegate to handle particle data.
 	ParentTerrainActor->OnParticleData.AddDynamic(
 		this, &UAGX_UpsamplingParticleRendererComponent::HandleParticleData);
@@ -81,8 +81,8 @@ void UAGX_UpsamplingParticleRendererComponent::SetEnableParticleRendering(bool b
 		ParticleSystemComponent->DeactivateImmediate();
 		ParticleSystemComponent->SetActive(bEnabled);
 	}
-	
-	bEnableParticleRendering = bEnabled; 
+
+	bEnableParticleRendering = bEnabled;
 }
 
 bool UAGX_UpsamplingParticleRendererComponent::GetEnableParticleRendering() const
@@ -185,10 +185,7 @@ void UAGX_UpsamplingParticleRendererComponent::HandleParticleData(FDelegateParti
 	}
 
 	if (ParticleDensity == 0.0f)
-	{
 		return;
-	}
-
 
 	TArray<FIntVector4> ActiveVoxelIndices = GetActiveVoxelsFromSet(ActiveVoxelSet);
 	UpsamplingDataInterface->SetCoarseParticles(NewCoarseParticles);
@@ -198,24 +195,15 @@ void UAGX_UpsamplingParticleRendererComponent::HandleParticleData(FDelegateParti
 	UpsamplingDataInterface->SetStaticVariables(UsedVoxelSize, EaseStepSize);
 	int HashTableSize = UpsamplingDataInterface->GetHashTableCapacity();
 
-
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
-	ParticleSystemComponent->SetNiagaraVariableInt(
-		"User.Active Voxels Count", ActiveVoxelIndices.Num());
-	ParticleSystemComponent->SetNiagaraVariableInt("User.HashTable Size", HashTableSize);
-	ParticleSystemComponent->SetNiagaraVariableFloat("User.Voxel Size", UsedVoxelSize);
-#else
 	ParticleSystemComponent->SetVariableInt(
 		FName("User.Active Voxels Count"), ActiveVoxelIndices.Num());
 	ParticleSystemComponent->SetVariableInt(FName("User.HashTable Size"), HashTableSize);
 	ParticleSystemComponent->SetVariableFloat(FName("User.Voxel Size"), UsedVoxelSize);
-#endif
 }
 
 void UAGX_UpsamplingParticleRendererComponent::AppendIfActiveVoxel(
 	TSet<FIntVector>& ActiveVoxelIndices, FVector Position, float Radius, float SizeOfVoxel)
 {
-
 	float AABBRadius = VOLUME_MOD * Radius / 2;
 	FVector VSPosition = Position / SizeOfVoxel;
 

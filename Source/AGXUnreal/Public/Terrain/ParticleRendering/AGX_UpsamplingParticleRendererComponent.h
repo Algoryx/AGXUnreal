@@ -65,7 +65,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Upsampling Particle Rendering",
-		Meta = (EditCondition = "bOverrideVoxelSize", UIMin = "1")
+		Meta = (EditCondition = "bOverrideVoxelSize", UIMin = "1"))
 	float VoxelSize = 10.0;
 
 	/**

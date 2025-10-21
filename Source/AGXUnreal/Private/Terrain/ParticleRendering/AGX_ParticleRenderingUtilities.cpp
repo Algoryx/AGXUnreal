@@ -4,11 +4,14 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
+#include "Components/ActorComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "UObject/ConstructorHelpers.h"
 
 void AGX_ParticleRenderingUtilities::AssignDefaultNiagaraAsset(
 	UNiagaraSystem*& AssetRefProperty, const TCHAR* AssetPath)
@@ -28,8 +31,7 @@ void AGX_ParticleRenderingUtilities::AssignDefaultNiagaraAsset(
 	AssetRefProperty = AssetFinder.Object;
 }
 
-AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(
-	UActorComponent* ActorComponent)
+AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(UActorComponent* ActorComponent)
 {
 	// First get parent actor.
 	AActor* Owner = ActorComponent->GetOwner();
@@ -38,7 +40,7 @@ AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Particle Renderer '%s', unable to fetch the parent actor. "
-				"No particles will be rendered."),
+				 "No particles will be rendered."),
 			*ActorComponent->GetName());
 		return nullptr;
 	}
@@ -50,7 +52,7 @@ AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Particle Renderer '%s', unable to cast its parent '%s' to a 'AGX Terrain' actor. "
-				"No particles will be rendered."),
+				 "No particles will be rendered."),
 			*ActorComponent->GetName(), *GetLabelSafe(ActorComponent->GetOwner()));
 		return nullptr;
 	}
@@ -65,7 +67,8 @@ UNiagaraComponent* AGX_ParticleRenderingUtilities::InitializeNiagaraParticleSyst
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Particle renderer '%s' in Actor '%s', no particle system assigned in the details panel. "
+			TEXT("Particle renderer '%s' in Actor '%s', no particle system assigned in the details "
+				 "panel. "
 				 "No particles will be rendered."),
 			*ActorComponent->GetName(), *GetLabelSafe(ActorComponent->GetOwner()));
 		return nullptr;

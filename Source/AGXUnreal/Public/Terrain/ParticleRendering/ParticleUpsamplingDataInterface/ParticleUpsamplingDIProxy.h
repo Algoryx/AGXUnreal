@@ -2,13 +2,14 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDataHandler.h"
+
 // Unreal Engine includes.
 #include "NiagaraDataInterface.h"
 
-struct FParticleUpsamplingDataHandler;
-
 /** This proxy is used to safely copy data between game thread and render thread*/
-struct FParticleUpsamplingDIProxy : FNiagaraDataInterfaceProxy
+struct AGXUNREAL_API FParticleUpsamplingDIProxy : FNiagaraDataInterfaceProxy
 {
 	// ~Begin FNiagaraDataInterfaceProxy interface.
 

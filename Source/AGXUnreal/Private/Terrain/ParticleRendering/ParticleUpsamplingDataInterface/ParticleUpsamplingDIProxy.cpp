@@ -2,8 +2,6 @@
 
 #include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDIProxy.h"
 
-// AGX Dynamics for Unreal includes.
-#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDataHandler.h"
 
 /** 
  * Get the size of the data that will be passed to render.

@@ -4,6 +4,8 @@
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
+#include "RHICommandList.h"
+#include "RHIResources.h"
 
 void FParticleUpsamplingBuffers::InitRHI(FRHICommandListBase& RHICmdList)
 {

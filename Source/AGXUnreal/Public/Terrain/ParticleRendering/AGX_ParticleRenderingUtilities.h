@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 
 class AAGX_Terrain;
+class UActorComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
