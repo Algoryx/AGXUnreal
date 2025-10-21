@@ -158,32 +158,29 @@ void UAGX_UpsamplingParticleRendererComponent::HandleParticleData(FDelegateParti
 		if (!Data.Exists[I])
 			continue;
 
-
-
 		float Radius = Data.PositionsAndRadii[I].W;
-		
+
 		/**
-		 * TODO: The density of the particles should be fetched by the terrain and not 
-		 * computed here. Maybe particles have seperate densities that could be used 
+		 * TODO: The density of the particles should be fetched by the terrain and not
+		 * computed here. Maybe particles have seperate densities that could be used
 		 * for improved motion of the upsampling simulations, maybe worth investigating.
 		 */
-		ParticleDensity =
-			Data.VelocitiesAndMasses[I].W / UE::Geometry::TSphere3<float>::Volume(Radius);
+		if (Radius > KINDA_SMALL_NUMBER)
+		{
+			ParticleDensity =
+				Data.VelocitiesAndMasses[I].W / UE::Geometry::TSphere3<float>::Volume(Radius);
+		}
 
 		FVector Position = FVector(
-			Data.PositionsAndRadii[I].X, 
-			Data.PositionsAndRadii[I].Y, 
-			Data.PositionsAndRadii[I].Z);
+			Data.PositionsAndRadii[I].X, Data.PositionsAndRadii[I].Y, Data.PositionsAndRadii[I].Z);
 
 		AppendIfActiveVoxel(ActiveVoxelSet, Position, Radius, UsedVoxelSize);
 
 		FCoarseParticle CP;
 		CP.PositionAndRadius = FVector4f(Position.X, Position.Y, Position.Z, Radius);
 		CP.VelocityAndMass = FVector4f(
-			Data.VelocitiesAndMasses[I].X, 
-			Data.VelocitiesAndMasses[I].Y, 
-			Data.VelocitiesAndMasses[I].Z, 
-			Data.VelocitiesAndMasses[I].W);
+			Data.VelocitiesAndMasses[I].X, Data.VelocitiesAndMasses[I].Y,
+			Data.VelocitiesAndMasses[I].Z, Data.VelocitiesAndMasses[I].W);
 		NewCoarseParticles.Add(CP);
 	}
 
