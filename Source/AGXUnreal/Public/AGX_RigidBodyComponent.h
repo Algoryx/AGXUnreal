@@ -567,11 +567,7 @@ private:
 	void TryWriteTransformToNative();
 
 #if WITH_EDITOR
-#if UE_VERSION_OLDER_THAN(4, 25, 0)
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
-#else
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
-#endif
 	void DisableTransformRootCompIfMultiple();
 #endif
 

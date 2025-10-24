@@ -20,6 +20,7 @@ struct FSimulationRef;
 struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
+struct FObserverFrameBarrier;
 struct FShapeBarrier;
 class FShapeMaterialBarrier;
 class FShovelBarrier;
@@ -39,6 +40,7 @@ public:
 
 	bool Add(FConstraintBarrier& Constraint);
 	bool Add(FContactMaterialBarrier& ContactMaterial);
+	bool Add(FObserverFrameBarrier& Frame);
 
 	/**
 	 * Note that Shapes that are child of the passed Rigid Body are NOT added to the simulation
@@ -58,6 +60,7 @@ public:
 
 	bool Remove(FConstraintBarrier& Constraint);
 	bool Remove(FContactMaterialBarrier& ContactMaterial);
+	bool Remove(FObserverFrameBarrier& Frame);
 
 	/**
 	 * Note that agx::Simulation::remove(agx::RigidBody*, bool) is called with RemoveGeometries =

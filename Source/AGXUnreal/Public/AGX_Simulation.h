@@ -23,6 +23,7 @@ class AAGX_Stepper;
 class AAGX_Terrain;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
+class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
@@ -478,6 +479,7 @@ public: // Member functions.
 	FOnSeparation OnSeparation;
 
 	bool Add(UAGX_ConstraintComponent& Constraint);
+	bool Add(UAGX_ObserverFrameComponent& Frame);
 
 	/**
 	 * Note that Shapes that are child of the passed Rigid Body are NOT added to the simulation
@@ -494,6 +496,7 @@ public: // Member functions.
 	bool Add(UAGX_WireComponent& Wire);
 
 	bool Remove(UAGX_ConstraintComponent& Constraint);
+	bool Remove(UAGX_ObserverFrameComponent& Frame);
 	bool Remove(UAGX_RigidBodyComponent& Body);
 	bool Remove(UAGX_ShapeComponent& Shape);
 	bool Remove(UAGX_ShapeMaterial& Material);

@@ -9,6 +9,7 @@
 #include <agx/FrictionModel.h>
 #include <agx/Material.h>
 #include <agx/MassProperties.h>
+#include <agx/ObserverFrame.h>
 #include <agx/ref_ptr.h>
 #include <agx/RigidBody.h>
 #include <agxCollide/Geometry.h>
@@ -142,6 +143,17 @@ struct FMergeSplitThresholdsRef
 
 	FMergeSplitThresholdsRef() = default;
 	FMergeSplitThresholdsRef(agxSDK::MergeSplitThresholds* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FObserverFrameRef
+{
+	agx::ObserverFrameRef Native;
+
+	FObserverFrameRef() = default;
+	FObserverFrameRef(agx::ObserverFrame* InNative)
 		: Native(InNative)
 	{
 	}

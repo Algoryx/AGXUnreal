@@ -260,11 +260,12 @@ const TArray<std::pair<FString, FString>>& FSimulationObjectCollection::GetDisab
 	return DisabledCollisionGroups;
 }
 
-TArray<FObserverFrameData>& FSimulationObjectCollection::GetObserverFrames()
+TArray<FObserverFrameBarrier>& FSimulationObjectCollection::GetObserverFrames()
 {
 	return ObserverFrames;
 }
-const TArray<FObserverFrameData>& FSimulationObjectCollection::GetObserverFrames() const
+
+const TArray<FObserverFrameBarrier>& FSimulationObjectCollection::GetObserverFrames() const
 {
 	return ObserverFrames;
 }
