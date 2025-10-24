@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "RigidBodyBarrier.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
@@ -34,6 +35,123 @@ bool FObserverFrameBarrier::GetEnabled() const
 	return NativeRef->Native->getEnable();
 }
 
+void FObserverFrameBarrier::SetPosition(const FVector& PositionUnreal)
+{
+	check(HasNative());
+	agx::Vec3 PositionAGX = ConvertDisplacement(PositionUnreal);
+	NativeRef->Native->setPosition(PositionAGX);
+}
+
+FVector FObserverFrameBarrier::GetPosition() const
+{
+	check(HasNative());
+	agx::Vec3 PositionAGX = NativeRef->Native->getPosition();
+	return ConvertDisplacement(PositionAGX);
+}
+
+void FObserverFrameBarrier::SetLocalPosition(const FVector& PositionUnreal)
+{
+	check(HasNative());
+	agx::Vec3 PositionAGX = ConvertDisplacement(PositionUnreal);
+	NativeRef->Native->setLocalPosition(PositionAGX);
+}
+
+FVector FObserverFrameBarrier::GetLocalPosition() const
+{
+	check(HasNative());
+	agx::Vec3 PositionAGX =
+		NativeRef->Native->getRelativePosition(NativeRef->Native->getRigidBody());
+	return ConvertDisplacement(PositionAGX);
+}
+
+void FObserverFrameBarrier::SetRotation(const FQuat& RotationUnreal)
+{
+	check(HasNative());
+	agx::Quat RotationAGX = Convert(RotationUnreal);
+	NativeRef->Native->setRotation(RotationAGX);
+}
+
+FQuat FObserverFrameBarrier::GetRotation() const
+{
+	check(HasNative());
+	agx::Quat RotationAGX = NativeRef->Native->getRotation();
+	return Convert(RotationAGX);
+}
+
+void FObserverFrameBarrier::SetLocalRotation(const FQuat& RotationUnreal)
+{
+	check(HasNative());
+	agx::Quat RotationAGX = Convert(RotationUnreal);
+	NativeRef->Native->setLocalRotation(RotationAGX);
+}
+
+FQuat FObserverFrameBarrier::GetLocalRotation() const
+{
+	check(HasNative());
+	agx::Quat RotationAGX = NativeRef->Native->getLocalRotation();
+	return Convert(RotationAGX);
+}
+
+FVector FObserverFrameBarrier::GetVelocity() const
+{
+	check(HasNative());
+	agx::Vec3 VelocityAGX = NativeRef->Native->getVelocity();
+	return ConvertDisplacement(VelocityAGX);
+}
+
+FVector FObserverFrameBarrier::GetLocalVelocity() const
+{
+	check(HasNative());
+	agx::Vec3 VelocityAGX =
+		NativeRef->Native->getRelativeVelocity(NativeRef->Native->getRigidBody());
+	return ConvertDisplacement(VelocityAGX);
+}
+
+FVector FObserverFrameBarrier::GetAngularVelocity() const
+{
+	check(HasNative());
+	agx::Vec3 AngularVelocityAGX = NativeRef->Native->getAngularVelocity();
+	return ConvertAngularVelocity(AngularVelocityAGX);
+}
+
+FVector FObserverFrameBarrier::GetLocalAngularVelocity() const
+{
+	check(HasNative());
+	agx::Vec3 AngularVelocityAGX =
+		NativeRef->Native->getRelativeAngularVelocity(NativeRef->Native->getRigidBody());
+	return ConvertAngularVelocity(AngularVelocityAGX);
+}
+
+FVector FObserverFrameBarrier::GetAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AccelerationAGX = NativeRef->Native->getAcceleration();
+	return ConvertDisplacement(AccelerationAGX);
+}
+
+FVector FObserverFrameBarrier::GetLocalAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AccelerationAGX =
+		NativeRef->Native->getRelativeAcceleration(NativeRef->Native->getRigidBody());
+	return ConvertDisplacement(AccelerationAGX);
+}
+
+FVector FObserverFrameBarrier::GetAngularAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AngularAccelerationAGX = NativeRef->Native->getAngularAcceleration();
+	return ConvertAngularAcceleration(AngularAccelerationAGX);
+}
+
+FVector FObserverFrameBarrier::GetLocalAngularAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AngularAccelerationAGX =
+		NativeRef->Native->getRelativeAngularAcceleration(NativeRef->Native->getRigidBody());
+	return ConvertAngularAcceleration(AngularAccelerationAGX);
+}
+
 void FObserverFrameBarrier::SetName(const FString& NameUnreal)
 {
 	check(HasNative());
@@ -60,10 +178,11 @@ bool FObserverFrameBarrier::HasNative() const
 	return NativeRef->Native != nullptr;
 }
 
-void FObserverFrameBarrier::AllocateNative()
+void FObserverFrameBarrier::AllocateNative(FRigidBodyBarrier& Body)
 {
 	check(!HasNative());
-	NativeRef->Native = new agx::ObserverFrame();
+	check(Body.HasNative());
+	NativeRef->Native = new agx::ObserverFrame(Body.GetNative()->Native);
 }
 
 FObserverFrameRef* FObserverFrameBarrier::GetNative()

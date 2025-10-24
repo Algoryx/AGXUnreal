@@ -34,6 +34,153 @@ bool UAGX_ObserverFrameComponent::IsEnabled() const
 
 	return bEnabled;
 }
+void UAGX_ObserverFrameComponent::SetPosition(FVector Position)
+{
+	if (HasNative())
+		NativeBarrier.SetPosition(Position);
+
+	SetWorldLocation(Position);
+}
+
+FVector UAGX_ObserverFrameComponent::GetPosition() const
+{
+	if (HasNative())
+		return NativeBarrier.GetPosition();
+
+	return GetComponentLocation();
+}
+
+void UAGX_ObserverFrameComponent::SetLocalPosition(FVector Position)
+{
+	if (HasNative())
+		NativeBarrier.SetLocalPosition(Position);
+
+	SetRelativeLocation(Position);
+}
+
+FVector UAGX_ObserverFrameComponent::GetLocalPosition() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalPosition();
+
+	return GetRelativeLocation();
+}
+
+void UAGX_ObserverFrameComponent::SetRotation(FQuat Rotation)
+{
+	if (HasNative())
+		NativeBarrier.SetRotation(Rotation);
+
+	SetWorldRotation(Rotation);
+}
+
+FQuat UAGX_ObserverFrameComponent::GetRotation() const
+{
+	if (HasNative())
+		return NativeBarrier.GetRotation();
+
+	return GetComponentQuat();
+}
+
+void UAGX_ObserverFrameComponent::SetLocalRotation(FQuat Rotation)
+{
+	if (HasNative())
+		NativeBarrier.SetLocalRotation(Rotation);
+
+	SetRelativeRotation(Rotation);
+}
+
+FQuat UAGX_ObserverFrameComponent::GetLocalRotation() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalRotation();
+
+	return GetRelativeRotation().Quaternion();
+}
+
+void UAGX_ObserverFrameComponent::SetRotator(FRotator Rotator)
+{
+	SetRotation(Rotator.Quaternion());
+}
+
+FRotator UAGX_ObserverFrameComponent::GetRotator() const
+{
+	return GetRotation().Rotator();
+}
+
+void UAGX_ObserverFrameComponent::SetLocalRotator(FRotator Rotator)
+{
+	SetLocalRotation(Rotator.Quaternion());
+}
+
+FRotator UAGX_ObserverFrameComponent::GetLocalRotator() const
+{
+	return GetLocalRotation().Rotator();
+}
+
+FVector UAGX_ObserverFrameComponent::GetVelocity() const
+{
+	if (HasNative())
+		return NativeBarrier.GetVelocity();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetLocalVelocity() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalVelocity();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetAngularVelocity() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAngularVelocity();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetLocalAngularVelocity() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalAngularVelocity();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAcceleration();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetLocalAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalAcceleration();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetAngularAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAngularAcceleration();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_ObserverFrameComponent::GetLocalAngularAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetLocalAngularAcceleration();
+
+	return FVector::ZeroVector;
+}
 
 bool UAGX_ObserverFrameComponent::GetEnabled() const
 {
@@ -142,9 +289,17 @@ void UAGX_ObserverFrameComponent::CreateNative()
 		return;
 
 	check(!GIsReconstructingBlueprintInstances);
-	NativeBarrier.AllocateNative();
-	check(HasNative());
 
+	UAGX_RigidBodyComponent* Body = GetRigidBody();
+	if (Body == nullptr)
+		return;
+
+	FRigidBodyBarrier* BodyBarrier = Body->GetOrCreateNative();
+	if (BodyBarrier == nullptr || !BodyBarrier->HasNative())
+		return;
+
+	NativeBarrier.AllocateNative(*BodyBarrier);
+	check(HasNative());
 	UpdateNativeProperties();
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
@@ -179,6 +334,8 @@ void UAGX_ObserverFrameComponent::UpdateNativeProperties()
 	if (!HasNative())
 		return;
 
+	NativeBarrier.SetLocalPosition(GetRelativeLocation());
+	NativeBarrier.SetLocalRotation(GetRelativeRotation().Quaternion());
 	NativeBarrier.SetEnabled(bEnabled);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 }

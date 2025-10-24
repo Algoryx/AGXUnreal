@@ -12,6 +12,7 @@
 #include "ObserverFrameBarrier.generated.h"
 
 struct FObserverFrameRef;
+struct FRigidBodyBarrier;
 
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FObserverFrameBarrier
@@ -24,13 +25,38 @@ struct AGXUNREALBARRIER_API FObserverFrameBarrier
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
 
+	void SetPosition(const FVector& Position);
+	FVector GetPosition() const;
+
+	void SetLocalPosition(const FVector& Position);
+	FVector GetLocalPosition() const;
+
+	void SetRotation(const FQuat& Rotation);
+	FQuat GetRotation() const;
+
+	void SetLocalRotation(const FQuat& Rotation);
+	FQuat GetLocalRotation() const;
+
+	FVector GetVelocity() const;
+	FVector GetLocalVelocity() const;
+
+	FVector GetAngularVelocity() const;
+	FVector GetLocalAngularVelocity() const;
+
+	FVector GetAcceleration() const;
+	FVector GetLocalAcceleration() const;
+
+	FVector GetAngularAcceleration() const;
+	FVector GetLocalAngularAcceleration() const;
+
+
 	void SetName(const FString& NewName);
 	FString GetName() const;
 
 	FGuid GetGuid() const;
 
 	bool HasNative() const;
-	void AllocateNative();
+	void AllocateNative(FRigidBodyBarrier& Body);
 	FObserverFrameRef* GetNative();
 	const FObserverFrameRef* GetNative() const;
 
