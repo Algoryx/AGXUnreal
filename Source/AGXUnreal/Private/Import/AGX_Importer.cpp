@@ -459,7 +459,7 @@ EAGX_ImportResult FAGX_Importer::AddObserverFrame(
 			LogAGX, Warning,
 			TEXT("FAGX_Importer::AddObserverFrame called for Observer Frame '%s', but the "
 				 "owning Rigid Body could not be found. The Observer Frame will not be imported."),
-			*Frame.Name);
+			*Frame.GetName());
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
@@ -688,7 +688,7 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		for (const auto& Frame : SimObjects.GetObserverFrames())
 		{
 			T.EnterProgressFrame(
-				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Frame.Name)));
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Frame.GetName())));
 			Res |= AddObserverFrame(Frame, SimObjects, OutActor);
 		}
 	}
