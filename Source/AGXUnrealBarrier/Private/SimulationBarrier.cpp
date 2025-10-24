@@ -11,6 +11,7 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/ShapeBarrier.h"
 #include "Terrain/ShovelBarrier.h"
@@ -70,6 +71,13 @@ bool FSimulationBarrier::Add(FContactMaterialBarrier& ContactMaterial)
 	check(HasNative());
 	check(ContactMaterial.HasNative());
 	return NativeRef->Native->add(ContactMaterial.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->add(Frame.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Add(FRigidBodyBarrier& Body)
@@ -147,6 +155,13 @@ bool FSimulationBarrier::Remove(FContactMaterialBarrier& ContactMaterial)
 	check(HasNative());
 	check(ContactMaterial.HasNative());
 	return NativeRef->Native->remove(ContactMaterial.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->remove(Frame.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FRigidBodyBarrier& Body)

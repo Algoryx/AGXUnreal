@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
+#include "AGX_ObserverFrameComponent.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_StaticMeshComponent.h"
@@ -140,12 +141,36 @@ namespace AGX_Simulation_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to add '%s' in '%s' that does not have a native to Simulation."),
+				TEXT("Tried to add '%s' in '%s' that does not have a native, to the Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return false;
 		}
 
 		return Sim.GetNative()->Add(*ActorOrComponent.GetNative());
+	}
+
+	template <typename T>
+	bool AddAssetType(UAGX_Simulation& Sim, T& Asset)
+	{
+		if (!Sim.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to add '%s' to Simulation that does not have a native."),
+				*Asset.GetName());
+			return false;
+		}
+
+		if (!Asset.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to add '%s' that does not have a native, to the Simulation."),
+				*Asset.GetName());
+			return false;
+		}
+
+		return Sim.GetNative()->Add(*Asset.GetNative());
 	}
 
 	template <typename T>
@@ -164,12 +189,36 @@ namespace AGX_Simulation_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to remove '%s' in '%s' that does not have a native from Simulation "),
+				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return false;
 		}
 
 		return Sim.GetNative()->Remove(*ActorOrComponent.GetNative());
+	}
+
+	template <typename T>
+	bool RemoveAssetType(UAGX_Simulation& Sim, T& Asset)
+	{
+		if (!Sim.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to remove '%s' from Simulation that does not have a native."),
+				*Asset.GetName());
+			return false;
+		}
+
+		if (!Asset.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to remove '%s' that does not have a native, from the Simulation."),
+				*Asset.GetName());
+			return false;
+		}
+
+		return Sim.GetNative()->Remove(*Asset.GetNative());
 	}
 
 	template <typename T>
@@ -212,6 +261,12 @@ bool UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
 	return AGX_Simulation_helpers::Add(*this, Constraint);
 }
 
+bool UAGX_Simulation::Add(UAGX_ObserverFrameComponent& Frame)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Frame);
+}
+
 bool UAGX_Simulation::Add(UAGX_RigidBodyComponent& Body)
 {
 	EnsureStepperCreated();
@@ -224,30 +279,10 @@ bool UAGX_Simulation::Add(UAGX_ShapeComponent& Shape)
 	return AGX_Simulation_helpers::Add(*this, Shape);
 }
 
-bool UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
+bool UAGX_Simulation::Add(UAGX_ShapeMaterial& Material)
 {
 	EnsureStepperCreated();
-
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to add Shape Material '%s' to Simulation that does not have a native."),
-			*Shape.GetName());
-		return false;
-	}
-
-	if (!Shape.HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to add Shape Material '%s' to Simulation but the Shape Material does not "
-				 "have a native."),
-			*Shape.GetName());
-		return false;
-	}
-
-	return GetNative()->Add(*Shape.GetNative());
+	return AGX_Simulation_helpers::AddAssetType(*this, Material);
 }
 
 bool UAGX_Simulation::Add(UAGX_ShovelComponent& Shovel)
@@ -318,6 +353,11 @@ bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
 	return AGX_Simulation_helpers::Remove(*this, Constraint);
 }
 
+bool UAGX_Simulation::Remove(UAGX_ObserverFrameComponent& Frame)
+{
+	return AGX_Simulation_helpers::Remove(*this, Frame);
+}
+
 bool UAGX_Simulation::Remove(UAGX_RigidBodyComponent& Body)
 {
 	return AGX_Simulation_helpers::Remove(*this, Body);
@@ -328,29 +368,9 @@ bool UAGX_Simulation::Remove(UAGX_ShapeComponent& Shape)
 	return AGX_Simulation_helpers::Remove(*this, Shape);
 }
 
-bool UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
+bool UAGX_Simulation::Remove(UAGX_ShapeMaterial& Material)
 {
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to remove Shape Material '%s' from a Simulation that does not have a "
-				 "native."),
-			*Shape.GetName());
-		return false;
-	}
-
-	if (!Shape.HasNative())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to remove Shape Material '%s' from Simulation but the Shape Material does "
-				 "not have a native."),
-			*Shape.GetName());
-		return false;
-	}
-
-	return GetNative()->Remove(*Shape.GetNative());
+	return AGX_Simulation_helpers::RemoveAssetType(*this, Material);
 }
 
 bool UAGX_Simulation::Remove(UAGX_ShovelComponent& Shovel)
