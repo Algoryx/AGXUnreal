@@ -49,6 +49,7 @@ struct AGXUNREALBARRIER_API FObserverFrameBarrier
 	FVector GetAngularAcceleration() const;
 	FVector GetLocalAngularAcceleration() const;
 
+	FRigidBodyBarrier GetRigidBody() const;
 
 	void SetName(const FString& NewName);
 	FString GetName() const;
@@ -68,7 +69,6 @@ struct AGXUNREALBARRIER_API FObserverFrameBarrier
 	void SetNativeAddress(uintptr_t NativeAddress);
 
 	void ReleaseNative();
-
 
 private:
 	std::shared_ptr<FObserverFrameRef> NativeRef;

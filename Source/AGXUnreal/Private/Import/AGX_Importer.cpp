@@ -28,6 +28,7 @@
 #include "Import/SimulationObjectCollection.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
@@ -438,10 +439,20 @@ EAGX_ImportResult FAGX_Importer::AddCollisionGroupDisablerComponent(
 }
 
 EAGX_ImportResult FAGX_Importer::AddObserverFrame(
-	const FObserverFrameData& Frame, const FSimulationObjectCollection& SimObjects,
+	const FObserverFrameBarrier& Frame, const FSimulationObjectCollection& SimObjects,
 	AActor& OutActor)
 {
-	auto Parent = Context.RigidBodies->FindRef(Frame.BodyGuid);
+	auto BodyBarrier = Frame.GetRigidBody();
+	if (!BodyBarrier.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FAGX_Importer::AddObserverFrame called for Observer Frame '%s' which does not "
+				 "belong to a Rigid Body. The Observer Frame will not be imported."), *Frame.GetName());
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	auto Parent = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
 	if (Parent == nullptr)
 	{
 		UE_LOG(

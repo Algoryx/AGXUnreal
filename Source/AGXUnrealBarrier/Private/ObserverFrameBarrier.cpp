@@ -3,6 +3,7 @@
 #include "ObserverFrameBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "RigidBodyBarrier.h"
 #include "TypeConversions.h"
@@ -150,6 +151,12 @@ FVector FObserverFrameBarrier::GetLocalAngularAcceleration() const
 	agx::Vec3 AngularAccelerationAGX =
 		NativeRef->Native->getRelativeAngularAcceleration(NativeRef->Native->getRigidBody());
 	return ConvertAngularAcceleration(AngularAccelerationAGX);
+}
+
+FRigidBodyBarrier FObserverFrameBarrier::GetRigidBody() const
+{
+	check(HasNative());
+	return AGXBarrierFactories::CreateRigidBodyBarrier(NativeRef->Native->getRigidBody());
 }
 
 void FObserverFrameBarrier::SetName(const FString& NameUnreal)

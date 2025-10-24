@@ -15,7 +15,6 @@
 class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportContext;
-struct FObserverFrameData;
 
 UCLASS(ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_ObserverFrameComponent : public USceneComponent, public IAGX_NativeOwner
@@ -189,7 +188,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
 
-	void CopyFrom(const FObserverFrameData& Data, FAGX_ImportContext* Context);
+	void CopyFrom(const FObserverFrameBarrier& Barrier, FAGX_ImportContext* Context);
 
 	FObserverFrameBarrier* GetNative();
 	const FObserverFrameBarrier* GetNative() const;

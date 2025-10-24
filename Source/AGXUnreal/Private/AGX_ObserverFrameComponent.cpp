@@ -193,16 +193,18 @@ UAGX_RigidBodyComponent* UAGX_ObserverFrameComponent::GetRigidBody() const
 }
 
 void UAGX_ObserverFrameComponent::CopyFrom(
-	const FObserverFrameData& Data, FAGX_ImportContext* Context)
+	const FObserverFrameBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Data.Name, Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_ObserverFrameComponent::StaticClass());
 	Rename(*Name);
 
-	SetRelativeTransform(Data.Transform);
-	ImportGuid = Data.ObserverGuid;
+	SetRelativeLocation(Barrier.GetLocalPosition());
+	SetRelativeRotation(Barrier.GetLocalRotation());
+	ImportGuid = Barrier.GetGuid();
+	ImportName = Barrier.GetName();
 
 	if (Context != nullptr && Context->ObserverFrames != nullptr)
 	{
