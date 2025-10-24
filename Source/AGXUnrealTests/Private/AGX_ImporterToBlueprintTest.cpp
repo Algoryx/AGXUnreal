@@ -1882,7 +1882,7 @@ bool FCheckWireImportedCommand::Update()
 		return true;
 	}
 
-	const float Radius = CentimeterToMeter(Wire->Radius);
+	const double Radius = CentimeterToMeter(Wire->Radius);
 	const float Resolution = 1.0f / CentimeterToMeter(Wire->MinSegmentLength);
 	FAGX_WireWinch& Winch = Wire->OwnedBeginWinch;
 	const double PulledInLength = CentimeterToMeter(Winch.GetPulledInLength());
@@ -1895,7 +1895,7 @@ bool FCheckWireImportedCommand::Update()
 	const FVector ExpectedDirection = FVector(0.696526, -0.398015, 0.597022).GetUnsafeNormal();
 	const FRotator ExpectedRotation = ExpectedDirection.Rotation();
 
-	Test.TestEqual(TEXT("Radius"), Radius, 0.05f);
+	Test.TestEqual(TEXT("Radius"), Radius, 0.05);
 	Test.TestEqual(TEXT("Resolution"), Resolution, 3.0f);
 	Test.TestEqual(TEXT("Begin winch type"), Wire->BeginWinchType, EWireWinchOwnerType::Wire);
 	Test.TestEqual(TEXT("Pulled in length"), PulledInLength, 10.0);

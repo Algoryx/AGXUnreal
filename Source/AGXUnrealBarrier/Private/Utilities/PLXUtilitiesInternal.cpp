@@ -17,6 +17,7 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
+#include "openplx/AGX/AGX_all.h"
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
@@ -33,25 +34,27 @@
 #include "openplx/Physics/Signals/EnableInteractionInput.h"
 #include "openplx/Physics/Signals/Force1DInput.h"
 #include "openplx/Physics/Signals/Force1DOutput.h"
-#include "openplx/Physics/Signals/Force3DOutput.h"
 #include "openplx/Physics/Signals/ForceRangeInput.h"
 #include "openplx/Physics/Signals/ForceRangeOutput.h"
 #include "openplx/Physics/Signals/IntInput.h"
 #include "openplx/Physics/Signals/LinearVelocity1DInput.h"
+#include "openplx/Physics/Signals/MassOutput.h"
 #include "openplx/Physics/Signals/Position1DInput.h"
 #include "openplx/Physics/Signals/Position1DOutput.h"
+#include "openplx/Physics/Signals/RatioOutput.h"
 #include "openplx/Physics/Signals/SignalInterface.h"
 #include "openplx/Physics/Signals/Torque1DInput.h"
-#include "openplx/Physics/Signals/Torque3DOutput.h"
 #include "openplx/Physics/Signals/TorqueRangeInput.h"
 #include "openplx/Physics/Signals/TorqueRangeOutput.h"
 #include "openplx/Physics1D/Physics1D_all.h"
 #include "openplx/Physics3D/Physics3D_all.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DInput.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DOutput.h"
+#include "openplx/Physics3D/Signals/Force3DOutput.h"
 #include "openplx/Physics3D/Signals/LinearVelocity3DOutput.h"
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
+#include "openplx/Physics3D/Signals/Torque3DOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
 #include "openplx/Robotics/Robotics_all.h"
@@ -93,6 +96,7 @@ namespace PLXUtilities_helpers
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
+		AGX_register_factories(EvalCtx);
 
 		agxopenplx::register_plugins(*PLXCtx, AGXCache);
 		return PLXCtx;
@@ -410,6 +414,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::LinearVelocity1DOutput;
 	}
+	if (dynamic_cast<const MassOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::MassOutput;
+	}
 	if (dynamic_cast<const Position1DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Position1DOutput;
@@ -418,15 +426,23 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::Position3DOutput;
 	}
+	if (dynamic_cast<const RatioOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RatioOutput;
+	}
 	if (dynamic_cast<const RelativeVelocity1DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::RelativeVelocity1DOutput;
+	}
+	if (dynamic_cast<const RpmOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RpmOutput;
 	}
 	if (dynamic_cast<const RPYOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::RPYOutput;
 	}
-	if (dynamic_cast<const openplx::Physics::Signals::Torque3DOutput*>(&Output))
+	if (dynamic_cast<const openplx::Physics3D::Signals::Torque3DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Torque3DOutput;
 	}
@@ -686,13 +702,11 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
-	agx::RigidBodyRefSetVector OldBodiesAGX;
 	for (FRigidBodyBarrier* Body : Bodies)
 	{
 		AGX_CHECK(Body->HasNative());
 		auto BodyAGX = Body->GetNative()->Native;
 		Assembly->add(BodyAGX);
-		OldBodiesAGX.push_back(BodyAGX);
 	}
 
 	agx::ConstraintRefSetVector OldConstraintsAGX;
@@ -712,9 +726,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
-	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(
-		ErrorReporter, agxopenplx::DriveTrainConstraintMapMode::Name);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine, Assembly);
+
+	auto AgxObjectMap =
+		agxopenplx::AgxObjectMap::create(Assembly, nullptr, agxopenplx::AgxObjectMapMode::Name);
+
+	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
+	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -727,16 +744,13 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	// All objects created within this function must be added to the Simulation.
 	Simulation.GetNative()->Native->add(RequiredPowerLine);
 
-	for (auto B : Assembly->getRigidBodies())
+	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{
-		if (!OldBodiesAGX.contains(B))
-			Simulation.GetNative()->Native->add(B);
-	}
-
-	for (auto C : Assembly->getConstraints())
-	{
-		if (!OldConstraintsAGX.contains(C))
-			Simulation.GetNative()->Native->add(C);
+		if (!OldConstraintsAGX.contains(Constraint))
+		{
+			Simulation.GetNative()->Native->add(Constraint);
+			Assembly->add(Constraint);
+		}
 	}
 
 	return Assembly;

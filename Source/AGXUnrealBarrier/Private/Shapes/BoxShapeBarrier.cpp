@@ -32,23 +32,10 @@ FBoxShapeBarrier::FBoxShapeBarrier()
 {
 }
 
-FBoxShapeBarrier::FBoxShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FBoxShapeBarrier::FBoxShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
-	/// \todo Should we allow nullptr shapes here?
 	check(NativeRef->NativeShape->is<agxCollide::Box>());
-}
-
-FBoxShapeBarrier::FBoxShapeBarrier(FBoxShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FBoxShapeBarrier::~FBoxShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FBoxShapeRef.
 }
 
 void FBoxShapeBarrier::SetHalfExtents(const FVector& HalfExtentsUnreal)

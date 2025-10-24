@@ -5,7 +5,7 @@
 #include "agxOpenPLX/AgxCache.h"
 #include "agxOpenPLX/InputSignalListener.h"
 #include "agxOpenPLX/OutputSignalListener.h"
-#include "agxOpenPLX/SignalSourceMapper.h"
+#include "agxOpenPLX/AgxObjectMap.h"
 #include "openplx/Physics3D/System.h"
 #include "EndAGXIncludes.h"
 
@@ -25,7 +25,9 @@ struct FInputSignalListenerRef
 	agx::ref_ptr<agxopenplx::InputSignalListener> Native;
 
 	FInputSignalListenerRef() = default;
-	FInputSignalListenerRef(std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
+	FInputSignalListenerRef(
+		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
+		std::shared_ptr<agxopenplx::AgxObjectMap>& Mapper)
 		: Native(new agxopenplx::InputSignalListener(InputQueue, Mapper))
 	{
 	}
@@ -39,45 +41,28 @@ struct FOutputSignalListenerRef
 	FOutputSignalListenerRef(
 		const std::shared_ptr<openplx::Core::Object>& PlxModel,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
-		std::shared_ptr<agxopenplx::SignalSourceMapper> Mapper)
+		std::shared_ptr<agxopenplx::AgxObjectMap> Mapper)
 		: Native(new agxopenplx::OutputSignalListener(PlxModel, OutputQueue, Mapper))
 	{
 	}
 };
 
-struct FInputSignalQueueRef
+struct FInputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::InputSignalQueue> Native;
-	FInputSignalQueueRef() = default;
-	FInputSignalQueueRef(std::shared_ptr<agxopenplx::InputSignalQueue> InNative)
+	agxopenplx::InputSignalQueue* Native;
+	FInputSignalQueuePtr() = default;
+	FInputSignalQueuePtr(agxopenplx::InputSignalQueue* InNative)
 		: Native(InNative)
 	{
 	}
 };
 
-struct FOutputSignalQueueRef
+struct FOutputSignalQueuePtr
 {
-	std::shared_ptr<agxopenplx::OutputSignalQueue> Native;
-	FOutputSignalQueueRef() = default;
-	FOutputSignalQueueRef(std::shared_ptr<agxopenplx::OutputSignalQueue> InNative)
+	agxopenplx::OutputSignalQueue* Native;
+	FOutputSignalQueuePtr() = default;
+	FOutputSignalQueuePtr(agxopenplx::OutputSignalQueue* InNative)
 		: Native(InNative)
-	{
-	}
-};
-
-struct FSignalSourceMapperRef
-{
-	std::shared_ptr<agxopenplx::SignalSourceMapper> Native;
-
-	FSignalSourceMapperRef() = default;
-
-	FSignalSourceMapperRef(std::shared_ptr<agxopenplx::SignalSourceMapper> InNative)
-		: Native(InNative)
-	{
-	}
-
-	FSignalSourceMapperRef(agxSDK::Assembly* Assembly)
-		: Native(agxopenplx::SignalSourceMapper::create(Assembly))
 	{
 	}
 };

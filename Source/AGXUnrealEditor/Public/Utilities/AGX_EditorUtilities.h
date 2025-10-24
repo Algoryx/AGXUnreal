@@ -27,7 +27,7 @@
 // Shape classes.
 class FRenderDataBarrier;
 class FShapeMaterialBarrier;
-class FTrimeshShapeBarrier;
+struct FTrimeshShapeBarrier;
 class UAGX_BoxShapeComponent;
 class UAGX_CapsuleShapeComponent;
 class UAGX_CylinderShapeComponent;

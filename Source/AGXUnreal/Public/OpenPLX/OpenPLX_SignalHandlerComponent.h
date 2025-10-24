@@ -14,6 +14,7 @@
 #include "OpenPLX_SignalHandlerComponent.generated.h"
 
 struct FAGX_ImportContext;
+struct FOpenPLX_SignalHandlerNativeAddresses;
 
 /**
  * EXPERIMENTAL
@@ -223,10 +224,15 @@ public:
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	//~ End UActorComponent Interface
 
 	void CopyFrom(
 		const TArray<FOpenPLX_Input>& Inputs, TArray<FOpenPLX_Output> Outputs, FAGX_ImportContext* Context);
+
+	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
+	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
 private:
 	FOpenPLXSignalHandler SignalHandler;

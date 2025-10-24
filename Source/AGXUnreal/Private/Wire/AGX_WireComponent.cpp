@@ -87,7 +87,7 @@ UAGX_WireComponent::UAGX_WireComponent()
 	RenderMaterial = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(WireMatAssetPath);
 }
 
-void UAGX_WireComponent::SetRadius(float InRadius)
+void UAGX_WireComponent::SetRadius(double InRadius)
 {
 	if (HasNative())
 	{
@@ -2521,7 +2521,9 @@ void UAGX_WireComponent::RenderSelf(const TArray<FVector>& Points)
 	VisualCylinders->UpdateComponentToWorld();
 	VisualSpheres->UpdateComponentToWorld();
 
-	const double ScaleXY = static_cast<double>(Radius) * 0.01 * 2.0;
+	// 0.01 because the mesh is 100 units large.
+	// 2.0 to go from radius to diameter.
+	const double ScaleXY = RenderRadiusScale * Radius * 0.01 * 2.0;
 	FTransform SphereTransform {FTransform::Identity};
 	FTransform CylTransform {FTransform::Identity};
 	SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));

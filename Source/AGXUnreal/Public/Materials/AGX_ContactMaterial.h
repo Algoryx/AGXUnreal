@@ -490,7 +490,7 @@ public:
 	 * asset that don't yet have an associated Contact Material instance, then a new
 	 * UAGX_ContactMaterial instance that represents the asset for the lifetime of the GameInstance
 	 * is created and returned. If an instance has already been created for the asset then that
-	 * instance is returned. If called on an instance the the instance itself is returned. Returns
+	 * instance is returned. If called on an instance the instance itself is returned. Returns
 	 * nullptr if the world that the given Registrar is part of isn't a game world.
 	 */
 	UAGX_ContactMaterial* GetOrCreateInstance(
