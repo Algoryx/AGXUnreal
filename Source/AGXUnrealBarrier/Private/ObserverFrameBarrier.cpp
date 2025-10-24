@@ -3,6 +3,7 @@
 #include "ObserverFrameBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXRefs.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
@@ -19,6 +20,18 @@ FObserverFrameBarrier::FObserverFrameBarrier(std::shared_ptr<FObserverFrameRef> 
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
+}
+
+void FObserverFrameBarrier::SetEnabled(bool Enabled)
+{
+	check(HasNative());
+	NativeRef->Native->setEnable(Enabled);
+}
+
+bool FObserverFrameBarrier::GetEnabled() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnable();
 }
 
 void FObserverFrameBarrier::SetName(const FString& NameUnreal)
@@ -78,14 +91,10 @@ uintptr_t FObserverFrameBarrier::GetNativeAddress() const
 void FObserverFrameBarrier::SetNativeAddress(uintptr_t NativeAddress)
 {
 	if (NativeAddress == GetNativeAddress())
-	{
 		return;
-	}
 
 	if (HasNative())
-	{
-		this->ReleaseNative();
-	}
+		ReleaseNative();
 
 	if (NativeAddress == 0)
 	{

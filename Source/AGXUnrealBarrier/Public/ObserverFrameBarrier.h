@@ -21,6 +21,9 @@ struct AGXUNREALBARRIER_API FObserverFrameBarrier
 	FObserverFrameBarrier();
 	FObserverFrameBarrier(std::shared_ptr<FObserverFrameRef> Native);
 
+	void SetEnabled(bool Enabled);
+	bool GetEnabled() const;
+
 	void SetName(const FString& NewName);
 	FString GetName() const;
 

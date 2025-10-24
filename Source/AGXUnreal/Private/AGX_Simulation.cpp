@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
+#include "AGX_ObserverFrameComponent.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_StaticMeshComponent.h"
@@ -260,6 +261,12 @@ bool UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
 	return AGX_Simulation_helpers::Add(*this, Constraint);
 }
 
+bool UAGX_Simulation::Add(UAGX_ObserverFrameComponent& Frame)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Frame);
+}
+
 bool UAGX_Simulation::Add(UAGX_RigidBodyComponent& Body)
 {
 	EnsureStepperCreated();
@@ -344,6 +351,11 @@ bool UAGX_Simulation::Add(UAGX_WireComponent& Wire)
 bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
 {
 	return AGX_Simulation_helpers::Remove(*this, Constraint);
+}
+
+bool UAGX_Simulation::Remove(UAGX_ObserverFrameComponent& Frame)
+{
+	return AGX_Simulation_helpers::Remove(*this, Frame);
 }
 
 bool UAGX_Simulation::Remove(UAGX_RigidBodyComponent& Body)
