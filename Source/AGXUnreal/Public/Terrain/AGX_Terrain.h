@@ -244,7 +244,9 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain",
-		Meta = (DeprecatedProperty, DeprecationMessage = "Use Shovel Components instead."))
+		Meta =
+			(DeprecatedProperty, DeprecationMessage = "Use Shovel Components instead.",
+			 DisplayName = "Shovels [Deprecated]"))
 	TArray<FAGX_Shovel> Shovels;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
