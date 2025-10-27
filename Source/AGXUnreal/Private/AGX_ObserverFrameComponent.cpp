@@ -127,26 +127,10 @@ FVector UAGX_ObserverFrameComponent::GetVelocity() const
 	return FVector::ZeroVector;
 }
 
-FVector UAGX_ObserverFrameComponent::GetLocalVelocity() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalVelocity();
-
-	return FVector::ZeroVector;
-}
-
 FVector UAGX_ObserverFrameComponent::GetAngularVelocity() const
 {
 	if (HasNative())
 		return NativeBarrier.GetAngularVelocity();
-
-	return FVector::ZeroVector;
-}
-
-FVector UAGX_ObserverFrameComponent::GetLocalAngularVelocity() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAngularVelocity();
 
 	return FVector::ZeroVector;
 }
@@ -159,26 +143,10 @@ FVector UAGX_ObserverFrameComponent::GetAcceleration() const
 	return FVector::ZeroVector;
 }
 
-FVector UAGX_ObserverFrameComponent::GetLocalAcceleration() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAcceleration();
-
-	return FVector::ZeroVector;
-}
-
 FVector UAGX_ObserverFrameComponent::GetAngularAcceleration() const
 {
 	if (HasNative())
 		return NativeBarrier.GetAngularAcceleration();
-
-	return FVector::ZeroVector;
-}
-
-FVector UAGX_ObserverFrameComponent::GetLocalAngularAcceleration() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAngularAcceleration();
 
 	return FVector::ZeroVector;
 }
