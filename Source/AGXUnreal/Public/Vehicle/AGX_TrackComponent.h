@@ -34,11 +34,6 @@ public:
 };
 
 /**
- * Experimental
- * This feature is experimental and may change in the next release. We do not guarantee backwards
- * compatibility.
- *
- *
  * Given a set of wheels, automatically generates a continuous track with a given number of shoes,
  * also called Track Nodes. Each generated shoe become a separately simulated Rigid Body within
  * AGX Dynamics, connected together using constraints.

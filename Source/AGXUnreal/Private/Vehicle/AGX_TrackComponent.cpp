@@ -617,10 +617,7 @@ void UAGX_TrackComponent::EndPlay(const EEndPlayReason::Type Reason)
 				return;
 			}
 
-			// \todo Want to use AAGX_Simulation::Remove, but there's no overload taking a
-			// TrackComponent
-			//       (or LinkedStructure or Assembly), so we use a work-around in the TrackBarrier.
-			const bool Result = GetNative()->RemoveFromSimulation(*Sim->GetNative());
+			Sim->Remove(*this);
 		}
 	}
 
@@ -879,17 +876,7 @@ void UAGX_TrackComponent::CreateNative()
 	// because some properties in TrackProperties affects the track initialization algorithm.
 	WriteTrackPropertiesToNative();
 
-	// \todo Want to use AAGX_Simulation::Add, but there's no overload taking a Track Component
-	//       (or LinkedStructure or Assembly), so we use a work-around in the TrackBarrier.
-	const bool Result = GetNative()->AddToSimulation(*Sim->GetNative());
-	if (!Result)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Failed to add '%s' in '%s' to Simulation. Add() returned false. "
-				 "The Log category AGXDynamicsLog may contain more information about the failure."),
-			*GetName(), *GetNameSafe(GetOwner()));
-	}
+	Sim->Add(*this);
 
 	UpdateNativeProperties();
 }
@@ -1113,16 +1100,22 @@ void UAGX_TrackComponent::UpdateVisuals()
 		VisualMeshes->PerInstancePrevTransform.SetNum(NumNodes);
 
 	if (NodeTransformsCachePrev.Num() != NumNodes)
-		NodeTransformsCachePrev.SetNum(NumNodes);
+		NodeTransformsCachePrev = NodeTransformsCache;
 
 	// Because UInstancedStaticMeshComponent::UpdateInstanceTransform() converts instance transforms
 	// from World to Local Transform Space, make sure our local transform space is up-to-date.
 	VisualMeshes->UpdateComponentToWorld();
 
 	// Update transforms of the track node mesh instances.
+	//
+	// Since we only do one, at most, transforms update per frame we would
+	// normally pass 'true' to 'bMarkRenderStateDirty' to let Unreal Engine know
+	// that we don't intend to do any more changes. However, doing this leads
+	// to severe ghosting / trailing artifacts starting with Unreal Engine
+	// somewhere between 5.4 and 5.6. 5.3 does not have the problem. Because
+	// of this we leave it at its default, which is 'false'.
 	VisualMeshes->BatchUpdateInstancesTransforms(
-		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true,
-		/*bMarkRenderStateDirty*/ true);
+		0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true);
 
 	NodeTransformsCachePrev = NodeTransformsCache;
 }
