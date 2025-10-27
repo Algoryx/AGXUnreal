@@ -59,7 +59,7 @@ TSharedRef<SWidget> SAGX_ImportDialogBase::CreateBrowseFileGui()
 			[
 				SNew(SEditableTextBox)
 				.MinDesiredWidth(150.0f)
-				.Text(this, &SAGX_ImportDialogBase::GetFilePathText)
+				.Text(this, &SAGX_ImportDialogBase::GetFilePathTextIfFileExists)
 				.OnTextCommitted(this, &SAGX_ImportDialogBase::OnFilePathTextCommitted)
 			]
 			+ SHorizontalBox::Slot()
@@ -170,6 +170,14 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 FText SAGX_ImportDialogBase::GetFilePathText() const
 {
 	return FText::FromString(FilePath);
+}
+
+FText SAGX_ImportDialogBase::GetFilePathTextIfFileExists() const
+{
+	if (!FPaths::FileExists(FilePath))
+		return FText();
+
+	return GetFilePathText();
 }
 
 void SAGX_ImportDialogBase::OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState)

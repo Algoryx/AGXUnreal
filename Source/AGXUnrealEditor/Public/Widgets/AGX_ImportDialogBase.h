@@ -31,6 +31,7 @@ protected:
 
 	FReply OnBrowseFileButtonClicked();
 	FText GetFilePathText() const;
+	FText GetFilePathTextIfFileExists() const;
 	void OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState);
 	void OnFilePathTextCommitted(const FText& InNewText, ETextCommit::Type InCommitType);
 
