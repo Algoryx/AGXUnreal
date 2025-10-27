@@ -14,6 +14,7 @@
 #include "Import/SimulationObjectCollection.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 void UAGX_ObserverFrameComponent::SetEnabled(bool InEnabled)
 {
