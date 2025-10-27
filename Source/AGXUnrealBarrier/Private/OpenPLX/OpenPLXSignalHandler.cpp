@@ -11,6 +11,7 @@
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
@@ -42,8 +43,7 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 
 void FOpenPLXSignalHandler::Init(
 	const FString& OpenPLXFile, FSimulationBarrier& Simulation,
-	FOpenPLXModelRegistry& InModelRegistry, TArray<FRigidBodyBarrier*>& Bodies,
-	TArray<FConstraintBarrier*>& Constraints)
+	FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
@@ -81,8 +81,7 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	AssemblyRef->Native =
-		FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Bodies, Constraints);
+	AssemblyRef->Native = FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Barriers);
 	if (AssemblyRef->Native == nullptr)
 	{
 		UE_LOG(
