@@ -193,6 +193,8 @@ public:
 	FObserverFrameBarrier* GetNative();
 	const FObserverFrameBarrier* GetNative() const;
 
+	FObserverFrameBarrier* GetOrCreateNative();
+
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
