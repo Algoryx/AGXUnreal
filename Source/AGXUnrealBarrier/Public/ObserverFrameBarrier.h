@@ -38,16 +38,9 @@ struct AGXUNREALBARRIER_API FObserverFrameBarrier
 	FQuat GetLocalRotation() const;
 
 	FVector GetVelocity() const;
-	FVector GetLocalVelocity() const;
-
 	FVector GetAngularVelocity() const;
-	FVector GetLocalAngularVelocity() const;
-
 	FVector GetAcceleration() const;
-	FVector GetLocalAcceleration() const;
-
 	FVector GetAngularAcceleration() const;
-	FVector GetLocalAngularAcceleration() const;
 
 	FRigidBodyBarrier GetRigidBody() const;
 

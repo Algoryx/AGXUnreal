@@ -14,6 +14,7 @@
 #include "Import/SimulationObjectCollection.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 void UAGX_ObserverFrameComponent::SetEnabled(bool InEnabled)
 {
@@ -126,26 +127,10 @@ FVector UAGX_ObserverFrameComponent::GetVelocity() const
 	return FVector::ZeroVector;
 }
 
-FVector UAGX_ObserverFrameComponent::GetLocalVelocity() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalVelocity();
-
-	return FVector::ZeroVector;
-}
-
 FVector UAGX_ObserverFrameComponent::GetAngularVelocity() const
 {
 	if (HasNative())
 		return NativeBarrier.GetAngularVelocity();
-
-	return FVector::ZeroVector;
-}
-
-FVector UAGX_ObserverFrameComponent::GetLocalAngularVelocity() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAngularVelocity();
 
 	return FVector::ZeroVector;
 }
@@ -158,26 +143,10 @@ FVector UAGX_ObserverFrameComponent::GetAcceleration() const
 	return FVector::ZeroVector;
 }
 
-FVector UAGX_ObserverFrameComponent::GetLocalAcceleration() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAcceleration();
-
-	return FVector::ZeroVector;
-}
-
 FVector UAGX_ObserverFrameComponent::GetAngularAcceleration() const
 {
 	if (HasNative())
 		return NativeBarrier.GetAngularAcceleration();
-
-	return FVector::ZeroVector;
-}
-
-FVector UAGX_ObserverFrameComponent::GetLocalAngularAcceleration() const
-{
-	if (HasNative())
-		return NativeBarrier.GetLocalAngularAcceleration();
 
 	return FVector::ZeroVector;
 }
@@ -211,6 +180,40 @@ void UAGX_ObserverFrameComponent::CopyFrom(
 		AGX_CHECK(!Context->ObserverFrames->Contains(ImportGuid));
 		Context->ObserverFrames->Add(ImportGuid, this);
 	}
+}
+
+FObserverFrameBarrier* UAGX_ObserverFrameComponent::GetOrCreateNative()
+{
+	if (!HasNative())
+	{
+		if (GIsReconstructingBlueprintInstances)
+		{
+			// We're in a very bad situation. Someone need this Component's native but if we're in
+			// the middle of a RerunConstructionScripts and this Component haven't been given its
+			// Native yet then there isn't much we can do. We can't create a new one since we will
+			// be given the actual Native soon, but we also can't return the actual Native right now
+			// because it hasn't been restored from the Component Instance Data yet.
+			//
+			// For now we simply die in non-shipping (checkNoEntry is active) so unit tests will
+			// detect this situation, and log error and return nullptr otherwise, so that the
+			// application can at least keep running. It is unlikely that the simulation will behave
+			// as intended.
+			checkNoEntry();
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("A request for the AGX Dynamics instance for Observer Frame '%s' in '%s' was "
+					 "made "
+					 "but we are in the middle of a Blueprint Reconstruction and the requested "
+					 "instance has not yet been restored. The instance cannot be returned, which "
+					 "may lead to incorrect scene configuration."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+			return nullptr;
+		}
+
+		CreateNative();
+	}
+
+	return GetNative();
 }
 
 FObserverFrameBarrier* UAGX_ObserverFrameComponent::GetNative()
@@ -294,7 +297,15 @@ void UAGX_ObserverFrameComponent::CreateNative()
 
 	UAGX_RigidBodyComponent* Body = GetRigidBody();
 	if (Body == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("CreateNative called on Observer Frame '%s' in '%s', but no parent Rigid Body was "
+				 "found. Ensure the Observer Frame is child of a Rigid Body Component. No native "
+				 "AGX Dynamics Observer Frame will be created."),
+			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
+	}
 
 	FRigidBodyBarrier* BodyBarrier = Body->GetOrCreateNative();
 	if (BodyBarrier == nullptr || !BodyBarrier->HasNative())

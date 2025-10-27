@@ -20,6 +20,7 @@ struct FOutputSignalQueuePtr;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
+struct FOpenPLXMappingBarriersCollection;
 
 class AGXUNREALBARRIER_API FOpenPLXSignalHandler
 {
@@ -28,8 +29,7 @@ public:
 
 	void Init(
 		const FString& OpenPLXFile, FSimulationBarrier& Simulation,
-		FOpenPLXModelRegistry& InModelRegistry, TArray<FRigidBodyBarrier*>& Bodies,
-		TArray<FConstraintBarrier*>& Constraints);
+		FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers);
 
 	bool IsInitialized() const;
 
