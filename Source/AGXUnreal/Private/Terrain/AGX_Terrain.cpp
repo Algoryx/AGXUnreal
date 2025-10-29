@@ -688,16 +688,6 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetSoilParticleSizeScaling(This->SoilParticleSizeScaling); });
 
 	PropertyDispatcher.Add(
-		AGX_MEMBER_NAME(ParticleSystemAsset),
-		[](ThisClass* This)
-		{
-			if (This->ParticleSystemAsset != nullptr)
-			{
-				This->ParticleSystemAsset->RequestCompile(true);
-			}
-		});
-
-	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(bEnableTerrainPaging),
 		[](ThisClass* This) { This->SetEnableTerrainPaging(This->bEnableTerrainPaging); });
 }
