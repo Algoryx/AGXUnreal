@@ -740,8 +740,8 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 
-	auto AgxObjectMap =
-		agxopenplx::AgxObjectMap::create(Assembly, nullptr, agxopenplx::AgxObjectMapMode::Name);
+	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
+		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
 	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
