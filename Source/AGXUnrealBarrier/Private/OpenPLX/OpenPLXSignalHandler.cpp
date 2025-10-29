@@ -100,7 +100,7 @@ void FOpenPLXSignalHandler::Init(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
@@ -111,7 +111,8 @@ void FOpenPLXSignalHandler::Init(
 		// Todo: use the InputQueue getter in InputSignalListener once available and avoid storing
 		// the InputQue.
 		InputQueuePtr->Native = InputSignalQue.get();
-		InputSignalListenerRef->Native = new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap);
+		InputSignalListenerRef->Native = new agxopenplx::InputSignalListener(
+			InputSignalQue, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -125,7 +126,8 @@ void FOpenPLXSignalHandler::Init(
 		OutputQueuePtr->Native = OutputSignalQueue.get();
 
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap);
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap,
+			std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 

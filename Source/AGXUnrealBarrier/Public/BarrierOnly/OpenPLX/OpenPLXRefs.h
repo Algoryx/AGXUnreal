@@ -28,7 +28,8 @@ struct FInputSignalListenerRef
 	FInputSignalListenerRef(
 		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
 		std::shared_ptr<agxopenplx::AgxObjectMap>& Mapper)
-		: Native(new agxopenplx::InputSignalListener(InputQueue, Mapper))
+		: Native(new agxopenplx::InputSignalListener(
+			  InputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
 	{
 	}
 };
@@ -42,7 +43,8 @@ struct FOutputSignalListenerRef
 		const std::shared_ptr<openplx::Core::Object>& PlxModel,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
 		std::shared_ptr<agxopenplx::AgxObjectMap> Mapper)
-		: Native(new agxopenplx::OutputSignalListener(PlxModel, OutputQueue, Mapper))
+		: Native(new agxopenplx::OutputSignalListener(
+			  PlxModel, OutputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
 	{
 	}
 };
