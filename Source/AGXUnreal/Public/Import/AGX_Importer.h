@@ -17,8 +17,8 @@ class UAGX_ModelSourceComponent;
 class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportSettings;
+struct FObserverFrameBarrier;
 struct FSimulationObjectCollection;
-struct FObserverFrameData;
 
 struct AGXUNREAL_API FAGX_ImportResult
 {
@@ -58,8 +58,8 @@ public:
 
 private:
 	EAGX_ImportResult AddComponents(
-		const FAGX_ImportSettings& Settings,
-		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
+		const FAGX_ImportSettings& Settings, const FSimulationObjectCollection& SimObjects,
+		AActor& OutActor);
 
 	EAGX_ImportResult AddModelSourceComponent(AActor& OutActor);
 
@@ -70,7 +70,7 @@ private:
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
 
 	EAGX_ImportResult AddObserverFrame(
-		const FObserverFrameData& Frame, const FSimulationObjectCollection& SimObjects,
+		const FObserverFrameBarrier& Frame, const FSimulationObjectCollection& SimObjects,
 		AActor& OutActor);
 
 	template <typename TComponent, typename TBarrier>

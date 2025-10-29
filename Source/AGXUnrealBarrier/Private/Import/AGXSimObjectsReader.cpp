@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Import/SimulationObjectCollection.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -535,15 +536,10 @@ namespace
 		for (const agx::ObserverFrameRef& ObserverFrame : ObserverFrames)
 		{
 			if (ObserverFrame->getRigidBody() == nullptr)
-			{
 				continue;
-			}
 
-			const FString Name = Convert(ObserverFrame->getName());
-			const FGuid BodyGuid = Convert(ObserverFrame->getRigidBody()->getUuid());
-			const FGuid ObserverGuid = Convert(ObserverFrame->getUuid());
-			const FTransform Transform = Convert(ObserverFrame->getLocalTransform());
-			OutSimObjects.GetObserverFrames().Add({Name, BodyGuid, ObserverGuid, Transform});
+			OutSimObjects.GetObserverFrames().Add(
+				FObserverFrameBarrier(std::make_shared<FObserverFrameRef>(ObserverFrame)));
 		}
 	}
 
@@ -641,7 +637,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
+	const TArray<FString> PLXBundlesPaths = FOpenPLXUtilities::GetBundlePaths();
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
@@ -658,7 +654,8 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	try
 	{
 		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filename), Convert(PLXBundlesPath), Params);
+			Simulation, Convert(Filename),
+			FPLXUtilitiesInternal::BuildBundlePathsString(PLXBundlesPaths), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{

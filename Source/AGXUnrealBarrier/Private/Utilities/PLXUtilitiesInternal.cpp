@@ -6,12 +6,20 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Constraints/ConstraintBarrier.h"
+#include "ObserverFrameBarrier.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include <agxUtil/agxUtil.h>
+#include "EndAGXIncludes.h"
+
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
+#include "openplx/AGX/AGX_all.h"
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
@@ -28,25 +36,27 @@
 #include "openplx/Physics/Signals/EnableInteractionInput.h"
 #include "openplx/Physics/Signals/Force1DInput.h"
 #include "openplx/Physics/Signals/Force1DOutput.h"
-#include "openplx/Physics/Signals/Force3DOutput.h"
 #include "openplx/Physics/Signals/ForceRangeInput.h"
 #include "openplx/Physics/Signals/ForceRangeOutput.h"
 #include "openplx/Physics/Signals/IntInput.h"
 #include "openplx/Physics/Signals/LinearVelocity1DInput.h"
+#include "openplx/Physics/Signals/MassOutput.h"
 #include "openplx/Physics/Signals/Position1DInput.h"
 #include "openplx/Physics/Signals/Position1DOutput.h"
+#include "openplx/Physics/Signals/RatioOutput.h"
 #include "openplx/Physics/Signals/SignalInterface.h"
 #include "openplx/Physics/Signals/Torque1DInput.h"
-#include "openplx/Physics/Signals/Torque3DOutput.h"
 #include "openplx/Physics/Signals/TorqueRangeInput.h"
 #include "openplx/Physics/Signals/TorqueRangeOutput.h"
 #include "openplx/Physics1D/Physics1D_all.h"
 #include "openplx/Physics3D/Physics3D_all.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DInput.h"
 #include "openplx/Physics3D/Signals/AngularVelocity3DOutput.h"
+#include "openplx/Physics3D/Signals/Force3DOutput.h"
 #include "openplx/Physics3D/Signals/LinearVelocity3DOutput.h"
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
+#include "openplx/Physics3D/Signals/Torque3DOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
 #include "openplx/Robotics/Robotics_all.h"
@@ -65,9 +75,14 @@ namespace PLXUtilities_helpers
 	std::shared_ptr<openplx::Core::Api::OpenPlxContext> CreatePLXContext(
 		std::shared_ptr<agxopenplx::AgxCache> AGXCache)
 	{
-		const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
+		const TArray<FString> PLXBundlesPaths = FOpenPLXUtilities::GetBundlePaths();
+		std::vector<std::string> BundlePaths;
+		BundlePaths.reserve(PLXBundlesPaths.Num());
+		for (const FString& P : PLXBundlesPaths)
+			BundlePaths.push_back(ToStdString(P));
+
 		auto PLXCtx = std::make_shared<openplx::Core::Api::OpenPlxContext>(
-			std::vector<std::string>({Convert(PLXBundlesPath)}));
+			std::vector<std::string>(BundlePaths));
 
 		auto InternalContext = openplx::Core::Api::OpenPlxContextInternal::fromContext(*PLXCtx);
 		auto EvalCtx = InternalContext->evaluatorContext().get();
@@ -83,6 +98,7 @@ namespace PLXUtilities_helpers
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
+		AGX_register_factories(EvalCtx);
 
 		agxopenplx::register_plugins(*PLXCtx, AGXCache);
 		return PLXCtx;
@@ -240,20 +256,22 @@ TArray<FOpenPLX_Output> FPLXUtilitiesInternal::GetOutputs(openplx::Physics3D::Sy
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfOutputs, Output);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
 		EOpenPLX_OutputType Type = GetOutputType(*Output);
-		Outputs.Add(
-			FOpenPLX_Output(ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
+		Outputs.Add(FOpenPLX_Output(
+			ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
 		if (Type == EOpenPLX_OutputType::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Imported unsupported OpenPLX Output: %s. The Output may not work as expected."),
+				TEXT("Imported unsupported OpenPLX Output: %s. The Output may not work as "
+					 "expected."),
 				*Convert(Output->getName()));
 		}
 	}
 	return Outputs;
 }
 
-EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(const openplx::Physics::Signals::Input& Input)
+EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
+	const openplx::Physics::Signals::Input& Input)
 {
 	using namespace openplx::Physics::Signals;
 	using namespace openplx::Physics3D::Signals;
@@ -398,6 +416,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::LinearVelocity1DOutput;
 	}
+	if (dynamic_cast<const MassOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::MassOutput;
+	}
 	if (dynamic_cast<const Position1DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Position1DOutput;
@@ -406,15 +428,23 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::Position3DOutput;
 	}
+	if (dynamic_cast<const RatioOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RatioOutput;
+	}
 	if (dynamic_cast<const RelativeVelocity1DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::RelativeVelocity1DOutput;
+	}
+	if (dynamic_cast<const RpmOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::RpmOutput;
 	}
 	if (dynamic_cast<const RPYOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::RPYOutput;
 	}
-	if (dynamic_cast<const openplx::Physics::Signals::Torque3DOutput*>(&Output))
+	if (dynamic_cast<const openplx::Physics3D::Signals::Torque3DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::Torque3DOutput;
 	}
@@ -492,7 +522,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 		return Dependencies;
 	}
 
-	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
+	const TArray<FString> PLXBundlePaths = FOpenPLXUtilities::GetBundlePaths();
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 
 	agxopenplx::LoadResult Result;
@@ -504,7 +534,9 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 
 	try
 	{
-		Result = agxopenplx::load_from_file(Simulation, Convert(Filepath), Convert(PLXBundlesPath));
+		Result = agxopenplx::load_from_file(
+			Simulation, Convert(Filepath),
+			FPLXUtilitiesInternal::BuildBundlePathsString(PLXBundlePaths));
 	}
 	catch (const std::runtime_error& Excep)
 	{
@@ -544,26 +576,48 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	// Get the dependencies from the OpenPLX context.
 	auto ContextInternal =
 		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
-	const auto& Docs = ContextInternal->documents();
-	const FString BundlePath = FOpenPLXUtilities::GetBundlePath();
+	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
+	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+	auto IsKnownBundle = [&](const FString& P)
+	{
+		return BundlePaths.ContainsByPredicate([&](const FString& BundlePath)
+											   { return P.StartsWith(BundlePath); });
+	};
+
 	for (auto& D : Docs)
 	{
-		const FString Path = FPaths::ConvertRelativePathToFull(Convert(D->path.string()));
-		if (!Path.StartsWith(BundlePath))
+		std::filesystem::path PathPLX = D->getPath();
+		const FString Path = FPaths::ConvertRelativePathToFull(Convert(PathPLX.string()));
+		agxUtil::freeContainerMemory(PathPLX);
+		if (!IsKnownBundle(Path))
 		{
 			if (FPaths::FileExists(Path))
 				Dependencies.AddUnique(Path);
 
-			const FString BundleConfig =
-				FPaths::ConvertRelativePathToFull(Convert(D->bundle.config_file_path.string()));
-			if (!BundleConfig.StartsWith(BundlePath))
-			{
-				if (FPaths::FileExists(BundleConfig))
-					Dependencies.AddUnique(BundleConfig);
-			}
+			const FString BundleConfig = FPaths::ConvertRelativePathToFull(
+				Convert(D->getBundleConfig().config_file_path.string()));
+			if (!IsKnownBundle(BundleConfig) && FPaths::FileExists(BundleConfig))
+				Dependencies.AddUnique(BundleConfig);
 		}
 	}
+	agxopenplx::freeContainerMemory(Docs);
+
 	return Dependencies;
+}
+
+std::string FPLXUtilitiesInternal::BuildBundlePathsString(const TArray<FString>& Paths)
+{
+	std::string Result;
+	for (int32 i = 0; i < Paths.Num(); ++i)
+	{
+		Result += ToStdString(Paths[i]);
+		if (i < Paths.Num() - 1)
+		{
+			Result += ";";
+		}
+	}
+
+	return Result;
 }
 
 std::unordered_set<openplx::Core::ObjectPtr> FPLXUtilitiesInternal::GetNestedObjectFields(
@@ -638,7 +692,7 @@ bool FPLXUtilitiesInternal::LogErrorsSafe(
 
 agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
-	TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints)
+	const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	AGX_CHECK(System != nullptr);
 	AGX_CHECK(Simulation.HasNative());
@@ -651,7 +705,7 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
 	agx::RigidBodyRefSetVector OldBodiesAGX;
-	for (FRigidBodyBarrier* Body : Bodies)
+	for (FRigidBodyBarrier* Body : Barriers.Bodies)
 	{
 		AGX_CHECK(Body->HasNative());
 		auto BodyAGX = Body->GetNative()->Native;
@@ -660,12 +714,21 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	}
 
 	agx::ConstraintRefSetVector OldConstraintsAGX;
-	for (FConstraintBarrier* Constraint : Constraints)
+	for (FConstraintBarrier* Constraint : Barriers.Constraints)
 	{
 		AGX_CHECK(Constraint->HasNative());
 		auto ConstraintAGX = Constraint->GetNative()->Native;
 		Assembly->add(ConstraintAGX);
 		OldConstraintsAGX.push_back(ConstraintAGX);
+	}
+
+	agx::ObserverFrameRefSetVector OldObserverFrramesAGX;
+	for (FObserverFrameBarrier* Frame : Barriers.ObserverFrames)
+	{
+		AGX_CHECK(Frame->HasNative());
+		auto FrameAGX = Frame->GetNative()->Native;
+		Assembly->add(FrameAGX);
+		OldObserverFrramesAGX.push_back(FrameAGX);
 	}
 
 	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
@@ -676,9 +739,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
-	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(
-		ErrorReporter, agxopenplx::DriveTrainConstraintMapMode::Name);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine, Assembly);
+
+	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
+		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
+
+	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
+	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -703,6 +769,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 			Simulation.GetNative()->Native->add(C);
 	}
 
+	for (auto F : Assembly->getObserverFrames())
+	{
+		if (!OldObserverFrramesAGX.contains(F))
+			Simulation.GetNative()->Native->add(F);
+	}
+
 	return Assembly;
 }
 
@@ -710,4 +782,3 @@ std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()
 {
 	return "OpenPlxPowerLine";
 }
-

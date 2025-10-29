@@ -59,6 +59,9 @@ public:
 	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
 	double GetMaximumParticleActivationVolume() const;
 
+	void SetSoilParticleSizeScaling(float Scaling);
+	float GetSoilParticleSizeScaling() const;
+
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 
