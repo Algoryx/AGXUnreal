@@ -82,17 +82,17 @@ FTwoVectors FShovelBarrier::GetCuttingEdgeWorld() const
 	return CuttingEdgeUnreal;
 }
 
-void FShovelBarrier::SetCuttingDirection(const FVector& CuttingDirection)
+void FShovelBarrier::SetToothDirection(const FVector& ToothDirection)
 {
 	check(HasNative());
-	const agx::Vec3 DirectionAGX = ConvertVector(CuttingDirection);
-	NativeRef->Native->setCuttingDirection(DirectionAGX);
+	const agx::Vec3 DirectionAGX = ConvertVector(ToothDirection);
+	NativeRef->Native->getSettings()->setToothDirection(DirectionAGX);
 }
 
-FVector FShovelBarrier::GetCuttingDirection() const
+FVector FShovelBarrier::GetToothDirection() const
 {
 	check(HasNative());
-	const agx::Vec3 DirectionAGX = NativeRef->Native->getCuttingDirection();
+	const agx::Vec3 DirectionAGX = NativeRef->Native->getSettings()->getToothDirection();
 	const FVector DirectionUnreal = ConvertVector(DirectionAGX);
 	return DirectionUnreal;
 }
@@ -430,22 +430,23 @@ bool FShovelBarrier::HasNative() const
 
 void FShovelBarrier::AllocateNative(
 	FRigidBodyBarrier& Body, const FTwoVectors& TopEdge, const FTwoVectors& CuttingEdge,
-	const FVector& CuttingDirection)
+	const FVector& ToothDirection, double ToothLength)
 {
 	check(!HasNative());
 	check(Body.HasNative());
 	agx::RigidBody* BodyAGX = Body.GetNative()->Native;
 	const agx::Line TopEdgeAGX = ConvertDisplacement(TopEdge);
 	const agx::Line CuttingEdgeAGX = ConvertDisplacement(CuttingEdge);
-	agx::Vec3 CuttingDirectionAGX = ConvertVector(CuttingDirection);
+	const double ToothLengthAGX = ConvertDistanceToAGX(ToothLength);
+	agx::Vec3 ToothDirectionAGX = ConvertVector(ToothDirection);
 
 	// This is a fix for the error printed from AGX Dynamics where the tolerance of the length of
-	// the Cutting Direction is so small that floating point precision is not enough, thus
+	// the Tooth Direction is so small that floating point precision is not enough, thus
 	// triggering the error message even if set to length 100cm in Unreal.
-	CuttingDirectionAGX.normalize();
+	ToothDirectionAGX.normalize();
 
-	NativeRef->Native =
-		new agxTerrain::Shovel(BodyAGX, TopEdgeAGX, CuttingEdgeAGX, CuttingDirectionAGX);
+	NativeRef->Native = new agxTerrain::Shovel(
+		BodyAGX, TopEdgeAGX, CuttingEdgeAGX, ToothDirectionAGX, ToothLengthAGX);
 }
 
 FShovelRef* FShovelBarrier::GetNative()
