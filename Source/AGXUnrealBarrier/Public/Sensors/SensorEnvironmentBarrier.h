@@ -76,6 +76,8 @@ public:
 	 */
 	static bool SetCurrentRaytraceDevice(int32 DeviceIndex);
 
+	static void AGPUCleanup();
+
 private:
 	FSensorEnvironmentBarrier(const FSensorEnvironmentBarrier&) = delete;
 	void operator=(const FSensorEnvironmentBarrier&) = delete;

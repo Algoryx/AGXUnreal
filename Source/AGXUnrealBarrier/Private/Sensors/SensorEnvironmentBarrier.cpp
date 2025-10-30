@@ -20,6 +20,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agpu/api/core.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceSurfaceMaterial.h>
 #include <agxSensor/RaytraceConfig.h>
@@ -280,4 +281,8 @@ int32 FSensorEnvironmentBarrier::GetCurrentRayraceDevice()
 bool FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(int32 DeviceIndex)
 {
 	return agxSensor::RtConfig::setRaytraceDevice(DeviceIndex);
+}
+
+void FSensorEnvironmentBarrier::AGPUCleanup() {
+	agpu_cleanup();
 }

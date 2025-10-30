@@ -384,6 +384,8 @@ bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 		"AGX_LAM_Snowfall_8mm_Per_Hour",
 		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(8.f, 900.f); });
 
+	FSensorEnvironmentBarrier::AGPUCleanup();
+
 	return Result;
 }
 
