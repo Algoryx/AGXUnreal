@@ -138,7 +138,7 @@ double UAGX_UpsamplingParticleRendererComponent::GetEaseStepSize() const
 
 void UAGX_UpsamplingParticleRendererComponent::HandleParticleData(FDelegateParticleData& Data)
 {
-	if (!ParticleSystemComponent || !UpsamplingDataInterface)
+	if (!ParticleSystemComponent || !UpsamplingDataInterface || !bEnableParticleRendering)
 	{
 		return;
 	}
