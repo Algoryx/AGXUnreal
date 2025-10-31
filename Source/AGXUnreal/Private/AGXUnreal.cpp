@@ -35,19 +35,6 @@ namespace AGXUnrealModule_helpers
 	}
 }
 
-static struct FShaderDirectoryMapping
-{
-	// Where to properly do this? Currently ugly hack.
-	FShaderDirectoryMapping()
-	{
-		// Map the existing folder containing particle upsampling shader files to virtual shader directory.
-		FString PluginShaderDir = FPaths::Combine(
-			IPluginManager::Get().FindPlugin(TEXT("AGXUnreal"))->GetBaseDir(),
-			TEXT("Source/AGXUnreal/Private/Terrain/ParticleRendering/Shaders"));
-		AddShaderSourceDirectoryMapping(TEXT("/AGX_ParticleRenderingShaders"), PluginShaderDir);
-	}
-} GAGX_ShaderDirectoryMapping;
-
 void FAGXUnrealModule::StartupModule()
 {
 	using namespace AGXUnrealModule_helpers;

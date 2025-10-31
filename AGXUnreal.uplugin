@@ -52,6 +52,18 @@
 			]
 		},
 		{
+			"Name": "AGXUnrealShaders",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit",
+			"WhitelistPlatforms": [
+				"Linux",
+				"Win64"
+			],
+			"BlacklistPlatforms": [
+				"IOS"
+			]
+		},
+		{
 			"Name": "AGXUnrealEditor",
 			"Type": "Editor",
 			"LoadingPhase": "PostEngineInit",

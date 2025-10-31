@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDataHandler.h"
+#include "ParticleUpsamplingDataHandler.h"
 
 // Unreal Engine includes.
 #include "NiagaraCommon.h"
@@ -13,7 +13,7 @@
 #include "AGX_ParticleUpsamplingDI.generated.h"
 
 UCLASS(EditInlineNew, Category = "Data Interface", CollapseCategories, meta = (DisplayName = "Particle Upsampling Data Interface"))
-class AGXUNREAL_API UAGX_ParticleUpsamplingDI : public UNiagaraDataInterface
+class AGXUNREALSHADERS_API UAGX_ParticleUpsamplingDI : public UNiagaraDataInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -166,7 +166,7 @@ private:
 	const FName GetFineParticleRadiusName = TEXT("GetFineParticleRadius");
 	const FName IsFineParticleAliveName = TEXT("IsFineParticleAlive");
 
-	const TCHAR* PUUnrealShaderHeaderFile = TEXT("/AGX_ParticleRenderingShaders/ParticleUpsampling.ush");
+	const TCHAR* PUUnrealShaderHeaderFile = TEXT("/AGXUnrealShaders/ParticleUpsampling.ush");
 
 	const float PACKING_RATIO = 0.67f;
 };

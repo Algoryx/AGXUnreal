@@ -1,9 +1,9 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/AGX_ParticleUpsamplingDI.h"
+#include "AGX_ParticleUpsamplingDI.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDIProxy.h"
+#include "ParticleUpsamplingDIProxy.h"
 
 // Unreal Engine includes.
 #include "NiagaraCompileHashVisitor.h"

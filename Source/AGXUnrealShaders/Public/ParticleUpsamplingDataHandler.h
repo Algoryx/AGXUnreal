@@ -12,7 +12,7 @@
 /**
  * Struct to store data from a single coarse particle.
  */ 
-struct AGXUNREAL_API FCoarseParticle
+struct AGXUNREALSHADERS_API FCoarseParticle
 {
 	/**
 	 * The position stored at XYZ, the particle radius stored at W.
@@ -28,7 +28,7 @@ struct AGXUNREAL_API FCoarseParticle
 /**
  * Struct to store data contained in a voxel of the voxel grid.
  */
-struct AGXUNREAL_API FVoxelEntry
+struct AGXUNREALSHADERS_API FVoxelEntry
 {
 	/**
 	 * The voxel index stored at XYZ, W represents the voxel's capacity, i.e.,
@@ -68,7 +68,7 @@ struct AGXUNREAL_API FVoxelEntry
  * can read from the buffer in parallel without conflicts, writing is not allowed,
  * as it would result in exceptions being thrown.
  */
-struct AGXUNREAL_API FParticleUpsamplingBuffers : public FRenderResource
+struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 {
 	FParticleUpsamplingBuffers()
 		: CoarseParticlesCapacity(0)
@@ -159,7 +159,7 @@ struct AGXUNREAL_API FParticleUpsamplingBuffers : public FRenderResource
  * Struct containing the data from the simulation that is used to be able to 
  * perform particle upsampling.
  */
-struct AGXUNREAL_API FParticleUpsamplingSimulationData
+struct AGXUNREALSHADERS_API FParticleUpsamplingSimulationData
 {
 	FParticleUpsamplingSimulationData()
 	{
@@ -181,7 +181,7 @@ struct AGXUNREAL_API FParticleUpsamplingSimulationData
  * data interface. This struct will be passed as the instanced data between
  * the game thread and render thread.
  */
-struct AGXUNREAL_API FParticleUpsamplingDataHandler
+struct AGXUNREALSHADERS_API FParticleUpsamplingDataHandler
 {
 	static const uint32 INITIAL_COARSE_PARTICLE_BUFFER_SIZE = 1024;
 	static const uint32 INITIAL_ACTIVE_VOXEL_BUFFER_SIZE = 1024;

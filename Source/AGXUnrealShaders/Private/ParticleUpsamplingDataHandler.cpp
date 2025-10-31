@@ -1,6 +1,6 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "Terrain/ParticleRendering/ParticleUpsamplingDataInterface/ParticleUpsamplingDataHandler.h"
+#include "ParticleUpsamplingDataHandler.h"
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
