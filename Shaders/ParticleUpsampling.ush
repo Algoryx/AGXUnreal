@@ -1,4 +1,4 @@
-#include "/AGX_ParticleRenderingShaders/ParticleUpsamplingUtils.ush"
+#include "/AGXUnrealShaders/ParticleUpsamplingUtils.ush"
 
 /**
  * The defines below aim to make the shader code more readable since we need to use the
