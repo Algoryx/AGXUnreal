@@ -94,3 +94,13 @@ struct FSensorGroupStepStrideRef
 	{
 	}
 };
+
+struct FSensorRef
+{
+	agxSensor::SensorRef Native;
+	FSensorRef() = default;
+	FSensorRef(agxSensor::Sensor* InNative)
+		: Native(InNative)
+	{
+	}
+};
