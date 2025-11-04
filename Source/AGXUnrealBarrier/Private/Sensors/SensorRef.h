@@ -13,9 +13,20 @@
 #include <agxSensor/RaytraceOutput.h>
 #include <agxSensor/RaytraceShapeInstance.h>
 #include <agxSensor/RaytraceLambertianOpaqueMaterial.h>
+#include <agxSensor/SensorGroupStepStride.h>
 #include "EndAGXIncludes.h"
 
 #include <memory>
+
+struct FIMURef
+{
+	agxSensor::IMURef Native;
+	FIMURef() = default;
+	FIMURef(agxSensor::IMU* InNative)
+		: Native(InNative)
+	{
+	}
+};
 
 struct FSensorEnvironmentRef
 {
@@ -74,11 +85,11 @@ struct FRtAmbientMaterial
 	FRtAmbientMaterial() = default;
 };
 
-struct FIMURef
+struct FSensorGroupStepStrideRef
 {
-	agxSensor::IMURef Native;
-	FIMURef() = default;
-	FIMURef(agxSensor::IMU* InNative)
+	agxSensor::SensorGroupStepStrideRef Native;
+	FSensorGroupStepStrideRef() = default;
+	FSensorGroupStepStrideRef(agxSensor::SensorGroupStepStride* InNative)
 		: Native(InNative)
 	{
 	}

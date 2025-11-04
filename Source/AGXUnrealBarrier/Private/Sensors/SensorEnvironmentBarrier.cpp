@@ -84,7 +84,7 @@ bool FSensorEnvironmentBarrier::Add(FLidarBarrier& Lidar)
 {
 	check(HasNative());
 	check(Lidar.HasNative());
-	return NativeRef->Native->add(Lidar.GetNative()->Native);
+	return Lidar.AddToEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Add(FIMUBarrier& IMU)
@@ -119,7 +119,7 @@ bool FSensorEnvironmentBarrier::Remove(FLidarBarrier& Lidar)
 {
 	check(HasNative());
 	check(Lidar.HasNative());
-	return NativeRef->Native->remove(Lidar.GetNative()->Native);
+	return Lidar.RemoveFromEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FIMUBarrier& IMU)
@@ -203,7 +203,8 @@ void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
 void FSensorEnvironmentBarrier::SetMagneticField(const FVector& MagneticField)
 {
 	check(HasNative());
-	agxSensor::UniformMagneticFieldRef Field = dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
+	agxSensor::UniformMagneticFieldRef Field =
+		dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
 	if (Field == nullptr)
 	{
 		Field = new agxSensor::UniformMagneticField();

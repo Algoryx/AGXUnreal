@@ -15,17 +15,20 @@
 
 class FCustomPatternFetcherBase;
 class FLidarOutputBarrier;
+class FSensorEnvironmentBarrier;
 class UAGX_LidarModelParameters;
 
 struct FAGX_RealInterval;
 struct FDistanceGaussianNoiseRef;
 struct FLidarRef;
+struct FSensorGroupStepStrideRef;
 
 class AGXUNREALBARRIER_API FLidarBarrier
 {
 public:
 	FLidarBarrier();
-	FLidarBarrier(std::unique_ptr<FLidarRef> Native);
+	FLidarBarrier(
+		std::unique_ptr<FLidarRef> Native, std::unique_ptr<FSensorGroupStepStrideRef> StepStride);
 	FLidarBarrier(FLidarBarrier&& Other);
 	~FLidarBarrier();
 
@@ -67,6 +70,12 @@ public:
 	void DisableRayAngleGaussianNoise();
 	bool GetEnableRayAngleGaussianNoise() const;
 
+	void SetStepStride(uint32 Stride);
+	uint32 GetStepStride() const;
+
+	bool AddToEnvironment(FSensorEnvironmentBarrier& Environment);
+	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
+
 	void AddOutput(FLidarOutputBarrier& Output);
 
 	/**
@@ -94,4 +103,5 @@ private:
 
 private:
 	std::unique_ptr<FLidarRef> NativeRef;
+	std::unique_ptr<FSensorGroupStepStrideRef> StepStrideRef;
 };

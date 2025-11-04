@@ -127,6 +127,22 @@ double UAGX_LidarSensorComponent::GetBeamExitRadius() const
 	return BeamExitRadius;
 }
 
+void UAGX_LidarSensorComponent::SetStepStride(int32 Stride)
+{
+	StepStride = Stride;
+
+	if (HasNative())
+		NativeBarrier.SetStepStride(static_cast<uint32>(Stride));
+}
+
+int32 UAGX_LidarSensorComponent::GetStepStride() const
+{
+	if (HasNative())
+		return static_cast<int32>(NativeBarrier.GetStepStride());
+
+	return StepStride;
+}
+
 void UAGX_LidarSensorComponent::SetRaytraceDepth(int32 Depth)
 {
 	RaytraceDepth = Depth;
@@ -525,6 +541,10 @@ void UAGX_LidarSensorComponent::UpdateNativeProperties()
 	NativeBarrier.SetEnableRemoveRayMisses(bEnableRemovePointsMisses);
 	SetRaytraceDepth(RaytraceDepth);
 	NativeBarrier.SetEnabled(bEnabled);
+
+	// Default is 1, no need to create a Native SensorGroupStepStride Node in this case.
+	if (StepStride != 1) 
+		NativeBarrier.SetStepStride(static_cast<uint32>(StepStride));
 }
 
 TArray<FTransform> UAGX_LidarSensorComponent::FetchRayTransforms()

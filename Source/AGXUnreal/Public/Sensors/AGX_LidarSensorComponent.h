@@ -129,6 +129,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	double GetBeamExitRadius() const;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar", Meta = (ClampMin = "1"))
+	int32 StepStride {1};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
+	void SetStepStride(int32 Stride);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
+	int32 GetStepStride() const;
+
 	/**
 	 * Model Parameters used when creating this Lidar Sensor from a Lidar Model.
 	 * The type of the Model Parameters asset must match the selected Lidar Model.

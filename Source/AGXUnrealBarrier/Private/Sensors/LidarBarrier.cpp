@@ -14,6 +14,7 @@
 #include "Sensors/CustomPatternGenerator.h"
 #include "Sensors/CustomPatternFetcherBase.h"
 #include "Sensors/LidarOutputBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "TypeConversions.h"
 
@@ -24,6 +25,7 @@
 #include <agxSensor/LidarRayPatternHorizontalSweep.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
 #include <agxSensor/RaytraceOutput.h>
+#include <agxSensor/SensorGroupStepStride.h>
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -31,18 +33,23 @@
 
 FLidarBarrier::FLidarBarrier()
 	: NativeRef {new FLidarRef}
+	, StepStrideRef {new FSensorGroupStepStrideRef}
 {
 }
 
-FLidarBarrier::FLidarBarrier(std::unique_ptr<FLidarRef> Native)
+FLidarBarrier::FLidarBarrier(
+	std::unique_ptr<FLidarRef> Native, std::unique_ptr<FSensorGroupStepStrideRef> StepStride)
 	: NativeRef(std::move(Native))
+	, StepStrideRef(std::move(StepStride))
 {
 }
 
 FLidarBarrier::FLidarBarrier(FLidarBarrier&& Other)
 	: NativeRef {std::move(Other.NativeRef)}
+	, StepStrideRef {std::move(Other.StepStrideRef)}
 {
 	Other.NativeRef.reset(new FLidarRef);
+	Other.StepStrideRef.reset(new FSensorGroupStepStrideRef);
 }
 
 FLidarBarrier::~FLidarBarrier()
@@ -173,12 +180,19 @@ uint64 FLidarBarrier::GetNativeAddress() const
 void FLidarBarrier::SetNativeAddress(uint64 Address)
 {
 	NativeRef->Native = reinterpret_cast<agxSensor::Lidar*>(Address);
+
+	// At this point, we should be able to find any StepStride object, since it will have been
+	// kept alive by the agxSensor::Environment.
+	StepStrideRef->Native = NativeRef->Native->findParent<agxSensor::SensorGroupStepStride>();
 }
 
 void FLidarBarrier::ReleaseNative()
 {
 	if (HasNative())
 		NativeRef->Native = nullptr;
+
+	if (StepStrideRef->Native != nullptr)
+		StepStrideRef->Native = nullptr;
 }
 
 void FLidarBarrier::SetEnabled(bool Enabled)
@@ -385,6 +399,71 @@ bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 	return GetRayAngleNoise(*NativeRef->Native) != nullptr;
+}
+
+void FLidarBarrier::SetStepStride(uint32 Stride)
+{
+	check(HasNative());
+
+	if (StepStrideRef->Native == nullptr)
+	{
+		// This is the first time StepStride is used for this Lidar.
+		// A quirk of AGX is that if using StepStride for a Sensor, the Sensor itself
+		// should not be part of the agxSensor::Environment, but the StepStride should.
+		// Instead, the Lidar should be added to the StepStride object (agxSensor::SystemNode).
+		StepStrideRef->Native = new agxSensor::SensorGroupStepStride();
+		auto LidarAGX = NativeRef->Native;
+		if (auto Env = LidarAGX->getEnvironment())
+		{
+			Env->remove(LidarAGX);
+			Env->add(StepStrideRef->Native);
+		}
+		
+		StepStrideRef->Native->add(LidarAGX);
+	}
+
+	StepStrideRef->Native->setStride(Stride);
+}
+
+uint32 FLidarBarrier::GetStepStride() const
+{
+	check(HasNative());
+
+	if (StepStrideRef->Native == nullptr)
+		return 1; // This is the effective "default" when not using StepStride.
+
+	return StepStrideRef->Native->getStride();
+}
+
+bool FLidarBarrier::AddToEnvironment(FSensorEnvironmentBarrier& Environment)
+{
+	check(HasNative());
+	check(Environment.HasNative());
+
+	if (StepStrideRef->Native != nullptr)
+	{
+		// We add the StepStride instead of the Lidar Native in order to ensure correct stepping.
+		// This is a quirk of AGX. See comment in SetStepStride also.
+		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
+		return Environment.GetNative()->Native->add(StepStrideRef->Native);
+	}
+	
+	return Environment.GetNative()->Native->add(NativeRef->Native);
+}
+
+bool FLidarBarrier::RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment)
+{
+	check(HasNative());
+	check(Environment.HasNative());
+
+	if (StepStrideRef->Native != nullptr)
+	{
+		// See also AddToEnvironment.
+		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
+		return Environment.GetNative()->Native->remove(StepStrideRef->Native);
+	}
+	
+	return Environment.GetNative()->Native->remove(NativeRef->Native);
 }
 
 void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)
