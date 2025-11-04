@@ -16,6 +16,11 @@ class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportContext;
 
+/**
+ * A frame attached to a RigidBody with an optional relative transform.
+ * During runtime, it is possible to get its position, velocity, angular velocity, acceleration
+ * etc.
+ */
 UCLASS(ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_ObserverFrameComponent : public USceneComponent, public IAGX_NativeOwner
 {
