@@ -176,7 +176,7 @@ namespace
 			if (NonFreeContactMaterials.Contains(ContMat))
 				continue;
 			const agx::Material* Material1 = ContMat->getMaterial1();
-			const agx::Material* Material2 = ContMat->getMaterial1();
+			const agx::Material* Material2 = ContMat->getMaterial2();
 			if ((Material1 != nullptr && NonFreeMaterials.Contains(Material1)) ||
 				(Material2 != nullptr && NonFreeMaterials.Contains(Material2)))
 			{

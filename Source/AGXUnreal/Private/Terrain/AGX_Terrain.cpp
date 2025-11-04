@@ -1899,6 +1899,9 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 #if WITH_EDITOR
 void AAGX_Terrain::ShowShapeMaterialWarning() const
 {
+	if (!IsValid(this))
+		return;
+
 	const FString Msg = FString::Printf(
 		TEXT("Important!\n\nIt was detected that the AGX Terrain Actor '%s' references an AGX "
 			 "Terrain Material but no Shape Material. The surface properties of a Terrain is "
