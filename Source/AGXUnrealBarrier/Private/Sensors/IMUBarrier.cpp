@@ -440,6 +440,14 @@ FVector FIMUBarrier::GetAccelerometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
+	if (!GetIMUNative(*this)
+			 ->getOutputHandler()
+			 ->get(IMUBarrier_helpers::AccelerometerID)
+			 ->hasUnreadData(/*markAsRead*/ false))
+	{
+		return Result; // No unread data available.
+	}
+
 	auto OutputAGX = GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(
 		IMUBarrier_helpers::AccelerometerID);
 	if (OutputAGX.empty())
@@ -713,6 +721,14 @@ FVector FIMUBarrier::GetGyroscopeData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
+	if (!GetIMUNative(*this)
+			 ->getOutputHandler()
+			 ->get(IMUBarrier_helpers::GyroscopeID)
+			 ->hasUnreadData(/*markAsRead*/ false))
+	{
+		return Result; // No unread data available.
+	}
+
 	auto OutputAGX =
 		GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::GyroscopeID);
 	if (OutputAGX.empty())
@@ -953,6 +969,14 @@ FVector FIMUBarrier::GetMagnetometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
+	if (!GetIMUNative(*this)
+			 ->getOutputHandler()
+			 ->get(IMUBarrier_helpers::MagnetometerID)
+			 ->hasUnreadData(/*markAsRead*/ false))
+	{
+		return Result; // No unread data available.
+	}
+
 	auto OutputAGX = GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(
 		IMUBarrier_helpers::MagnetometerID);
 	if (OutputAGX.empty())
@@ -961,4 +985,20 @@ FVector FIMUBarrier::GetMagnetometerData() const
 	// In Tesla [T], no unit conversion needed, just axis flip.
 	return ConvertVector(
 		agx::Vec3(OutputAGX[0].Data[0], OutputAGX[0].Data[1], OutputAGX[0].Data[2]));
+}
+
+void FIMUBarrier::MarkOutputAsRead()
+{
+	check(HasNative());
+	using namespace IMUBarrier_helpers;
+
+	const auto IDs = {
+		IMUBarrier_helpers::AccelerometerID, IMUBarrier_helpers::GyroscopeID,
+		IMUBarrier_helpers::MagnetometerID};
+
+	for (auto ID : IDs)
+	{
+		if (auto Output = GetIMUNative(*this)->getOutputHandler()->get(ID))
+			Output->hasUnreadData(/*markAsRead*/ true);
+	}
 }

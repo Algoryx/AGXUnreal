@@ -133,4 +133,6 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.
 	 */
 	FVector GetMagnetometerData() const;
+
+	void MarkOutputAsRead();
 };

@@ -80,15 +80,18 @@ public:
 #endif
 	//~ End UObject interface.
 
-private:
-#if WITH_EDITOR
-	void InitPropertyDispatcher();
-#endif
-
 protected:
 	virtual void UpdateNativeProperties();
 	virtual FSensorBarrier* CreateNativeImpl()
 		PURE_VIRTUAL(UAGX_SensorComponentBase::CreateNativeImpl, return nullptr;);
+	virtual void MarkOutputAsRead()
+		PURE_VIRTUAL(UAGX_SensorComponentBase::MarkOutputAsRead,);
 
 	TUniquePtr<FSensorBarrier> NativeBarrier;
+
+private:
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
+	FDelegateHandle PreStepForwardHandle;
 };

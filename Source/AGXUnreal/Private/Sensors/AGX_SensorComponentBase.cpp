@@ -4,8 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_InternalDelegateAccessor.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
 
 UAGX_SensorComponentBase::UAGX_SensorComponentBase()
 {
@@ -99,11 +101,37 @@ void UAGX_SensorComponentBase::BeginPlay()
 	Super::BeginPlay();
 	if (!HasNative() && !GIsReconstructingBlueprintInstances)
 		CreateNativeImpl();
+
+	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+	{
+		PreStepForwardHandle =
+			FAGX_InternalDelegateAccessor::GetOnPreStepForwardInternal(*Simulation)
+				.AddLambda(
+					[this](double)
+					{
+						// When using StepStride > 1, old Output data is still available in AGX, so
+						// therefore we mark it as read in Pre so that the user gets no output
+						// between strides.
+						if (StepStride != 1)
+							MarkOutputAsRead();
+					});
+	}
 }
 
 void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
+
+	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+		{
+			FAGX_InternalDelegateAccessor::GetOnPreStepForwardInternal(*Simulation)
+				.Remove(PreStepForwardHandle);
+		}
+	}
+
 	if (HasNative())
 		NativeBarrier->ReleaseNative();
 }

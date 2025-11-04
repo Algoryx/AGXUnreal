@@ -8,6 +8,9 @@
 #include "Sensors/AGX_RayAngleGaussianNoiseSettings.h"
 #include "Sensors/SensorBarrier.h"
 
+// Standard Library includes.
+#include <vector>
+
 #include "LidarBarrier.generated.h"
 
 class FCustomPatternFetcherBase;
@@ -53,4 +56,6 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	bool GetEnableRayAngleGaussianNoise() const;
 
 	void AddOutput(FLidarOutputBarrier& Output);
+
+	void MarkOutputAsRead();
 };

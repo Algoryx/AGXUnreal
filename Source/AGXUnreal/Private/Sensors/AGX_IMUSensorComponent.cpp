@@ -144,6 +144,12 @@ const FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU() const
 	return static_cast<FIMUBarrier*>(NativeBarrier.Get());
 }
 
+void UAGX_IMUSensorComponent::MarkOutputAsRead()
+{
+	if (HasNative())
+		GetNativeAsIMU()->MarkOutputAsRead();
+}
+
 void UAGX_IMUSensorComponent::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());

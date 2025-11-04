@@ -348,6 +348,18 @@ void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)
 	check(Output.HasNative());
 	using namespace LidarBarrier_helpers;
 
-	GetLidarNative(*this)->getOutputHandler()->add(
-		GenerateUniqueOutputId(), Output.GetNative()->Native);
+	const size_t Id = GenerateUniqueOutputId();
+	GetLidarNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
+}
+
+void FLidarBarrier::MarkOutputAsRead()
+{
+	check(HasNative());
+	using namespace LidarBarrier_helpers;
+
+	GetLidarNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::RtOutput>(
+		[](agxSensor::RtOutput& Output)
+		{
+			Output.hasUnreadData(/*markAsRead*/ true);
+		});
 }

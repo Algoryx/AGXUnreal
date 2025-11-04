@@ -401,6 +401,12 @@ void UAGX_LidarSensorComponent::PostInitProperties()
 	InitPropertyDispatcher();
 }
 
+void UAGX_LidarSensorComponent::MarkOutputAsRead()
+{
+	if (HasNative())
+		GetNativeAsLidar()->MarkOutputAsRead();
+}
+
 void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =

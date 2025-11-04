@@ -284,12 +284,15 @@ public:
 
 	friend class FAGX_CustomPatternFetcher;
 
+protected:
+	virtual void MarkOutputAsRead() override;
+
 private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
 
-	void UpdateNativeProperties();
+	virtual void UpdateNativeProperties() override;
 
 	TArray<FTransform> FetchRayTransforms();
 	FAGX_CustomPatternInterval FetchNextInterval();

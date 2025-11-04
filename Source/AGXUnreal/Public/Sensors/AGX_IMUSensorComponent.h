@@ -700,8 +700,11 @@ public:
 	FIMUBarrier* GetNativeAsIMU();
 	const FIMUBarrier* GetNativeAsIMU() const;
 
+protected:
+	virtual void MarkOutputAsRead() override;
+
 private:
-	virtual void UpdateNativeProperties() override;;
+	virtual void UpdateNativeProperties() override;
 
 #if WITH_EDITOR
 	void InitPropertyDispatcher();

@@ -44,6 +44,16 @@ void FLidarOutputPositionIntensityBarrier::GetData(
 	check(HasNative());
 	AGX_CHECK(sizeof(LidarPositionIntensityData) == GetNative()->Native->getElementSize());
 
+	if (!GetNative()->Native->hasUnreadData(/*markAsRead*/ false))
+	{
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+		OutData.SetNumUninitialized(0, false);
+#else
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+#endif
+		return;
+	}
+
 	agxSensor::BinaryOutputView<LidarPositionIntensityData> ViewAGX =
 		GetNative()->Native->view<LidarPositionIntensityData>();
 
