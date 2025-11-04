@@ -216,7 +216,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 			"UpdateGridNameFunctionDescription",
 			"Updates the Voxel Grid with sampled values from the Coarse Particles.");
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -234,7 +234,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 
 		Sig.bMemberFunction = true;
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -253,7 +253,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 		Sig.AddOutput(FNiagaraVariable(FNiagaraTypeDefinition::GetVec3Def(), TEXT("MinBounds")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -274,7 +274,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 		Sig.AddOutput(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("IsAlive")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -288,7 +288,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 		Sig.AddInput(FNiagaraVariable(FNiagaraTypeDefinition::GetIntDef(), TEXT("VoxelId")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -304,7 +304,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 			FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("NominalRadius")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -318,7 +318,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 		Sig.AddOutput(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("FineParticleRadius")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
@@ -333,7 +333,7 @@ void UAGX_ParticleUpsamplingDI::GetFunctionsInternal(
 		Sig.AddOutput(FNiagaraVariable(FNiagaraTypeDefinition::GetBoolDef(), TEXT("IsAlive")));
 
 		Sig.ModuleUsageBitmask = ENiagaraScriptUsageMask::Particle;
-		Sig.bExperimental = true;
+		Sig.bExperimental = false;
 		Sig.bSupportsCPU = false;
 		Sig.bSupportsGPU = true;
 		OutFunctions.Add(Sig);
