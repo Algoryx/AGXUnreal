@@ -634,7 +634,7 @@ bool AAGX_SensorEnvironment::RemoveIMU(UAGX_IMUSensorComponent* IMU)
 	if (!HasNative() || !IMU->HasNative())
 		return DidRemove;
 
-	DidRemove |= NativeBarrier.Remove(*IMU->GetNative());
+	DidRemove |= NativeBarrier.Remove(*IMU->GetNativeAsIMU());
 	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
 	{
 		if (It->GetIMUComponent() == IMU)
@@ -907,9 +907,8 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 		return false;
 	}
 
-	Lidar->GetOrCreateNative();
-	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
-	if (Barrier == nullptr)
+	auto SensorBarrier = Lidar->GetOrCreateNative();
+	if (SensorBarrier == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -919,6 +918,7 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 		return false;
 	}
 
+	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
 	NativeBarrier.Add(*Barrier);
 
 	// Associate each Lidar with a USphereComponent used to detect objects in the world to
@@ -979,8 +979,8 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
-	FIMUBarrier* Barrier = IMU->GetOrCreateNative();
-	if (Barrier == nullptr)
+	auto SensorBarrier = IMU->GetOrCreateNative();	
+	if (SensorBarrier == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -990,6 +990,7 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
+	FIMUBarrier* Barrier = IMU->GetNativeAsIMU(); 
 	NativeBarrier.Add(*Barrier);
 	TrackedIMUs.Add(IMURef);
 	return true;

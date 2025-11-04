@@ -3,14 +3,10 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_NativeOwner.h"
 #include "AGX_RealInterval.h"
 #include "AGX_RigidBodyReference.h"
+#include "Sensors/AGX_SensorComponentBase.h"
 #include "Sensors/IMUBarrier.h"
-
-// Unreal Engine includes.
-#include "Components/SceneComponent.h"
-#include "CoreMinimal.h"
 
 #include "AGX_IMUSensorComponent.generated.h"
 
@@ -29,11 +25,12 @@
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
-class AGXUNREAL_API UAGX_IMUSensorComponent : public USceneComponent, public IAGX_NativeOwner
+class AGXUNREAL_API UAGX_IMUSensorComponent : public UAGX_SensorComponentBase
 {
 	GENERATED_BODY()
 
 public:
+
 	UAGX_IMUSensorComponent();
 
 	/**
@@ -43,18 +40,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX IMU")
 	FAGX_RigidBodyReference RigidBody;
-
-	/**
-	 * Enable or disable this IMU Sensor Component.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX IMU")
-	bool bEnabled {true};
-
-	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
-	void SetEnabled(bool InEnabled);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX IMU")
-	bool IsEnabled() const;
 
 	/**
 	 * Enable or disable Accelerometer for this IMU.
@@ -696,20 +681,9 @@ public:
 
 	void UpdateTransformFromNative();
 
-	FIMUBarrier* GetOrCreateNative();
-	FIMUBarrier* GetNative();
-	const FIMUBarrier* GetNative() const;
-
-	// ~Begin AGX NativeOwner interface.
-	virtual bool HasNative() const override;
-	virtual uint64 GetNativeAddress() const override;
-	virtual void SetNativeAddress(uint64 NativeAddress) override;
-	// ~/End IAGX_NativeOwner interface.
+	FSensorBarrier* CreateNativeImpl() override;
 
 	//~ Begin UActorComponent Interface
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
-	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
@@ -723,13 +697,13 @@ public:
 	virtual void OnRegister() override;
 	//~ End UObject interface.
 
+	FIMUBarrier* GetNativeAsIMU();
+	const FIMUBarrier* GetNativeAsIMU() const;
+
 private:
-	void UpdateNativeProperties();
-	void CreateNative();
+	virtual void UpdateNativeProperties() override;;
 
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
-
-	FIMUBarrier NativeBarrier;
 };
