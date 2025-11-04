@@ -10,6 +10,8 @@
 
 #include "SensorBarrier.generated.h"
 
+class FSensorEnvironmentBarrier;
+
 struct FSensorGroupStepStrideRef;
 struct FSensorRef;
 
@@ -55,6 +57,9 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 
 	uint64 GetNativeAddress() const;
 	void SetNativeAddress(uint64 Address);
+
+	bool AddToEnvironment(FSensorEnvironmentBarrier& Environment);
+	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
 
 protected:
 	std::shared_ptr<FSensorRef> NativeRef;

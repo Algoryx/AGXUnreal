@@ -21,21 +21,6 @@
 #include <agxSensor/TriaxialOutputHandler.h>
 #include "EndAGXIncludes.h"
 
-FIMUBarrier::FIMUBarrier()
-	: NativeRef {new FIMURef}
-{
-}
-
-FIMUBarrier::~FIMUBarrier()
-{
-	ReleaseNative();
-}
-
-bool FIMUBarrier::HasNative() const
-{
-	return NativeRef->Native != nullptr;
-}
-
 namespace IMUBarrier_helpers
 {
 	static constexpr size_t AccelerometerID = 1;
@@ -104,6 +89,18 @@ namespace IMUBarrier_helpers
 	{
 		return FVector {M(RowIndex, 0), M(RowIndex, 1), M(RowIndex, 2)};
 	}
+
+	agxSensor::IMU* GetIMUNative(FIMUBarrier& IMU)
+	{
+		AGX_CHECK(IMU.HasNative());
+		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+	}
+
+	agxSensor::IMU* GetIMUNative(const FIMUBarrier& IMU)
+	{
+		AGX_CHECK(IMU.HasNative());
+		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+	}
 }
 
 void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
@@ -143,7 +140,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 	// Add Outputs.
 	if (Params.bUseAccelerometer)
 	{
-		NativeRef->Native->getOutputHandler()->add<
+		GetIMUNative(*this)->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::ACCELEROMETER_X_F64,
 			agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
@@ -152,7 +149,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 
 	if (Params.bUseGyroscope)
 	{
-		NativeRef->Native->getOutputHandler()->add<
+		GetIMUNative(*this)->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::GYROSCOPE_X_F64,
 			agxSensor::IMUOutput::GYROSCOPE_Y_F64,
@@ -161,7 +158,7 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 
 	if (Params.bUseMagnetometer)
 	{
-		NativeRef->Native->getOutputHandler()->add<
+		GetIMUNative(*this)->getOutputHandler()->add<
 			IMUOut3Dof,
 			agxSensor::IMUOutput::MAGNETOMETER_X_F64,
 			agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
@@ -170,80 +167,41 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 	// clang-format on
 }
 
-FIMURef* FIMUBarrier::GetNative()
-{
-	check(HasNative());
-	return NativeRef.get();
-}
-
-const FIMURef* FIMUBarrier::GetNative() const
-{
-	check(HasNative());
-	return NativeRef.get();
-}
-
-uint64 FIMUBarrier::GetNativeAddress() const
-{
-	return HasNative() ? reinterpret_cast<uint64>(NativeRef->Native.get()) : 0;
-}
-
-void FIMUBarrier::SetNativeAddress(uint64 Address)
-{
-	NativeRef->Native = reinterpret_cast<agxSensor::IMU*>(Address);
-}
-
-void FIMUBarrier::ReleaseNative()
-{
-	if (HasNative())
-		NativeRef->Native = nullptr;
-}
-
-void FIMUBarrier::SetEnabled(bool Enabled)
-{
-	check(HasNative());
-	NativeRef->Native->setEnable(Enabled);
-}
-
-bool FIMUBarrier::GetEnabled() const
-{
-	check(HasNative());
-	return NativeRef->Native->getEnable();
-}
-
 void FIMUBarrier::SetTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	NativeRef->Native->getFrame()->setMatrix(Convert(Transform));
+	IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->setMatrix(Convert(Transform));
 }
 
 FTransform FIMUBarrier::GetTransform() const
 {
 	check(HasNative());
-	return Convert(NativeRef->Native->getFrame()->getMatrix());
+	return Convert(IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->getMatrix());
 }
 
 void FIMUBarrier::SetPosition(FVector Position)
 {
 	check(HasNative());
-	NativeRef->Native->getFrame()->setTranslate(ConvertDisplacement(Position));
+	IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->setTranslate(
+		ConvertDisplacement(Position));
 }
 
 FVector FIMUBarrier::GetPosition() const
 {
 	check(HasNative());
-	return ConvertDisplacement(NativeRef->Native->getFrame()->getTranslate());
+	return ConvertDisplacement(IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->getTranslate());
 }
 
 void FIMUBarrier::SetRotation(FQuat Rotation)
 {
 	check(HasNative());
-	NativeRef->Native->getFrame()->setRotate(Convert(Rotation));
+	IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->setRotate(Convert(Rotation));
 }
 
 FQuat FIMUBarrier::GetRotation() const
 {
 	check(HasNative());
-	return Convert(NativeRef->Native->getFrame()->getRotate());
+	return Convert(IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->getRotate());
 }
 
 void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
@@ -251,7 +209,7 @@ void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerRange");
@@ -267,7 +225,7 @@ FAGX_RealInterval FIMUBarrier::GetAccelerometerRange() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerRange");
@@ -282,7 +240,7 @@ void FIMUBarrier::SetAccelerometerCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityX");
@@ -298,7 +256,7 @@ FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityX");
@@ -313,7 +271,7 @@ void FIMUBarrier::SetAccelerometerCrossAxisSensitivityY(FVector Y)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityY");
@@ -329,7 +287,7 @@ FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityY() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityY");
@@ -344,7 +302,7 @@ void FIMUBarrier::SetAccelerometerCrossAxisSensitivityZ(FVector Z)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerCrossAxisSensitivityZ");
@@ -360,7 +318,7 @@ FVector FIMUBarrier::GetAccelerometerCrossAxisSensitivityZ() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerCrossAxisSensitivityZ");
@@ -376,7 +334,7 @@ void FIMUBarrier::SetAccelerometerZeroGBias(FVector Bias)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerZeroGBias");
@@ -391,7 +349,7 @@ FVector FIMUBarrier::GetAccelerometerZeroGBias() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Accel = GetAccelerometer(*NativeRef->Native);
+	auto Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerZeroGBias");
@@ -405,7 +363,7 @@ void FIMUBarrier::SetAccelerometerNoiseRMS(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerNoiseRMS");
@@ -423,7 +381,7 @@ FVector FIMUBarrier::GetAccelerometerNoiseRMS() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerNoiseRMS");
@@ -443,7 +401,7 @@ void FIMUBarrier::SetAccelerometerSpectralNoiseDensity(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::SetAccelerometerSpectralNoiseDensity");
@@ -461,7 +419,7 @@ FVector FIMUBarrier::GetAccelerometerSpectralNoiseDensity() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Accelerometer* Accel = GetAccelerometer(*NativeRef->Native);
+	agxSensor::Accelerometer* Accel = GetAccelerometer(*GetIMUNative(*this));
 	if (Accel == nullptr)
 	{
 		LogMissingObject("Accelerometer", "FIMUBarrier::GetAccelerometerSpectralNoiseDensity");
@@ -482,7 +440,7 @@ FVector FIMUBarrier::GetAccelerometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
-	auto OutputAGX = NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(
+	auto OutputAGX = GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(
 		IMUBarrier_helpers::AccelerometerID);
 	if (OutputAGX.empty())
 		return Result;
@@ -497,7 +455,7 @@ void FIMUBarrier::SetGyroscopeRange(FAGX_RealInterval Range)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope ", "FIMUBarrier::SetGyroscopeRange");
@@ -513,7 +471,7 @@ FAGX_RealInterval FIMUBarrier::GetGyroscopeRange() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeRange");
@@ -528,7 +486,7 @@ void FIMUBarrier::SetGyroscopeCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityX");
@@ -544,7 +502,7 @@ FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityX");
@@ -559,7 +517,7 @@ void FIMUBarrier::SetGyroscopeCrossAxisSensitivityY(FVector Y)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityY");
@@ -575,7 +533,7 @@ FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityY() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityY");
@@ -590,7 +548,7 @@ void FIMUBarrier::SetGyroscopeCrossAxisSensitivityZ(FVector Z)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeCrossAxisSensitivityZ");
@@ -606,7 +564,7 @@ FVector FIMUBarrier::GetGyroscopeCrossAxisSensitivityZ() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeCrossAxisSensitivityZ");
@@ -622,7 +580,7 @@ void FIMUBarrier::SetGyroscopeZeroRateBias(FVector Bias)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeZeroRateBias");
@@ -637,7 +595,7 @@ FVector FIMUBarrier::GetGyroscopeZeroRateBias() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Gyro = GetGyroscope(*NativeRef->Native);
+	auto Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeZeroRateBias");
@@ -651,7 +609,7 @@ void FIMUBarrier::SetGyroscopeNoiseRMS(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
+	agxSensor::Gyroscope* Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeNoiseRMS");
@@ -671,7 +629,7 @@ FVector FIMUBarrier::GetGyroscopeNoiseRMS() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
+	agxSensor::Gyroscope* Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeNoiseRMS");
@@ -694,7 +652,7 @@ void FIMUBarrier::SetGyroscopeSpectralNoiseDensity(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
+	agxSensor::Gyroscope* Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeSpectralNoiseDensity");
@@ -714,7 +672,7 @@ FVector FIMUBarrier::GetGyroscopeSpectralNoiseDensity() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
+	agxSensor::Gyroscope* Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::GetGyroscopeSpectralNoiseDensity");
@@ -737,7 +695,7 @@ void FIMUBarrier::SetGyroscopeLinearAccelerationEffects(const FVector& Effects)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Gyroscope* Gyro = GetGyroscope(*NativeRef->Native);
+	agxSensor::Gyroscope* Gyro = GetGyroscope(*GetIMUNative(*this));
 	if (Gyro == nullptr)
 	{
 		LogMissingObject("Gyroscope", "FIMUBarrier::SetGyroscopeLinearAccelerationEffects");
@@ -756,7 +714,7 @@ FVector FIMUBarrier::GetGyroscopeData() const
 	FVector Result = FVector::ZeroVector;
 
 	auto OutputAGX =
-		NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::GyroscopeID);
+		GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::GyroscopeID);
 	if (OutputAGX.empty())
 		return Result;
 
@@ -769,7 +727,7 @@ void FIMUBarrier::SetMagnetometerRange(FAGX_RealInterval Range)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerRange");
@@ -784,7 +742,7 @@ FAGX_RealInterval FIMUBarrier::GetMagnetometerRange() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerRange");
@@ -799,7 +757,7 @@ void FIMUBarrier::SetMagnetometerCrossAxisSensitivityX(FVector X)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityX");
@@ -815,7 +773,7 @@ FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityX() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityX");
@@ -830,7 +788,7 @@ void FIMUBarrier::SetMagnetometerCrossAxisSensitivityY(FVector Y)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityY");
@@ -846,7 +804,7 @@ FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityY() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityY");
@@ -861,7 +819,7 @@ void FIMUBarrier::SetMagnetometerCrossAxisSensitivityZ(FVector Z)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerCrossAxisSensitivityZ");
@@ -877,7 +835,7 @@ FVector FIMUBarrier::GetMagnetometerCrossAxisSensitivityZ() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerCrossAxisSensitivityZ");
@@ -893,7 +851,7 @@ void FIMUBarrier::SetMagnetometerZeroFluxBias(FVector Bias)
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerZeroFluxBias");
@@ -908,7 +866,7 @@ FVector FIMUBarrier::GetMagnetometerZeroFluxBias() const
 	using namespace IMUBarrier_helpers;
 
 	check(HasNative());
-	auto Magn = GetMagnetometer(*NativeRef->Native);
+	auto Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerZeroFluxBias");
@@ -922,7 +880,7 @@ void FIMUBarrier::SetMagnetometerNoiseRMS(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Magnetometer* Magn = GetMagnetometer(*NativeRef->Native);
+	agxSensor::Magnetometer* Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerNoiseRMS");
@@ -939,7 +897,7 @@ FVector FIMUBarrier::GetMagnetometerNoiseRMS() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Magnetometer* Magn = GetMagnetometer(*NativeRef->Native);
+	agxSensor::Magnetometer* Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerNoiseRMS");
@@ -958,7 +916,7 @@ void FIMUBarrier::SetMagnetometerSpectralNoiseDensity(const FVector& Noise)
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Magnetometer* Magn = GetMagnetometer(*NativeRef->Native);
+	agxSensor::Magnetometer* Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::SetMagnetometerSpectralNoiseDensity");
@@ -975,7 +933,7 @@ FVector FIMUBarrier::GetMagnetometerSpectralNoiseDensity() const
 {
 	using namespace IMUBarrier_helpers;
 	check(HasNative());
-	agxSensor::Magnetometer* Magn = GetMagnetometer(*NativeRef->Native);
+	agxSensor::Magnetometer* Magn = GetMagnetometer(*GetIMUNative(*this));
 	if (Magn == nullptr)
 	{
 		LogMissingObject("Magnetometer", "FIMUBarrier::GetMagnetometerSpectralNoiseDensity");
@@ -995,24 +953,12 @@ FVector FIMUBarrier::GetMagnetometerData() const
 	using namespace IMUBarrier_helpers;
 	FVector Result = FVector::ZeroVector;
 
-	auto OutputAGX =
-		NativeRef->Native->getOutputHandler()->view<IMUOut3Dof>(IMUBarrier_helpers::MagnetometerID);
+	auto OutputAGX = GetIMUNative(*this)->getOutputHandler()->view<IMUOut3Dof>(
+		IMUBarrier_helpers::MagnetometerID);
 	if (OutputAGX.empty())
 		return Result;
 
 	// In Tesla [T], no unit conversion needed, just axis flip.
 	return ConvertVector(
 		agx::Vec3(OutputAGX[0].Data[0], OutputAGX[0].Data[1], OutputAGX[0].Data[2]));
-}
-
-void FIMUBarrier::IncrementRefCount() const
-{
-	check(HasNative());
-	NativeRef->Native->reference();
-}
-
-void FIMUBarrier::DecrementRefCount() const
-{
-	check(HasNative());
-	NativeRef->Native->unreference();
 }

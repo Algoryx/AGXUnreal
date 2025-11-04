@@ -2,17 +2,13 @@
 
 #pragma once
 
-// Unreal Engine includes.
-#include "CoreMinimal.h"
-#include "Misc/Optional.h"
+// AGX Dynamics for Unreal includes.
+#include "Sensors/SensorBarrier.h"
 
-// Standard library includes.
-#include <memory>
-
-struct FRigidBodyBarrier;
+#include "IMUBarrier.generated.h"
 
 struct FAGX_RealInterval;
-struct FIMURef;
+struct FRigidBodyBarrier;
 
 struct FIMUAllocationParameters
 {
@@ -22,22 +18,14 @@ struct FIMUAllocationParameters
 	FTransform LocalTransform;
 };
 
-class AGXUNREALBARRIER_API FIMUBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 {
-public:
-	FIMUBarrier();
-	~FIMUBarrier();
+	GENERATED_BODY()
 
-	bool HasNative() const;
+	virtual ~FIMUBarrier() override = default;
+
 	void AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body);
-	FIMURef* GetNative();
-	const FIMURef* GetNative() const;
-	uint64 GetNativeAddress() const;
-	void SetNativeAddress(uint64 Address);
-	void ReleaseNative();
-
-	void SetEnabled(bool Enabled);
-	bool GetEnabled() const;
 
 	/// Set the transform in world coordinate system.
 	void SetTransform(const FTransform& Transform);
@@ -145,26 +133,4 @@ public:
 	 * Magnetometer field vector in the IMU frame [T]. Valid only if IMU has a Magnetometer.
 	 */
 	FVector GetMagnetometerData() const;
-
-	/**
-	 * Increment the reference count of the AGX Dynamics object. This should always be paired with
-	 * a call to DecrementRefCount, and the count should only be artificially incremented for a
-	 * very well specified duration.
-	 *
-	 * One use-case is during a Blueprint Reconstruction, when the Unreal Engine objects are
-	 * destroyed and then recreated. During this time the AGX Dynamics objects are retained and
-	 * handed between the old and the new Unreal Engine objects through a Component Instance Data.
-	 * This Component Instance Data instance is considered the owner of the AGX Dynamics object
-	 * during this transition period and the reference count is therefore increment during its
-	 * lifetime. We're lending out ownership of the AGX Dynamics object to the Component Instance
-	 * Data instance for the duration of the Blueprint Reconstruction.
-	 *
-	 * These functions can be const even though they have observable side effects because the
-	 * reference count is not a salient part of the AGX Dynamics objects, and they are thread-safe.
-	 */
-	void IncrementRefCount() const;
-	void DecrementRefCount() const;
-
-private:
-	std::shared_ptr<FIMURef> NativeRef;
 };

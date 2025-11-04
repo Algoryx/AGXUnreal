@@ -91,7 +91,7 @@ bool FSensorEnvironmentBarrier::Add(FIMUBarrier& IMU)
 {
 	check(HasNative());
 	check(IMU.HasNative());
-	return NativeRef->Native->add(IMU.GetNative()->Native);
+	return IMU.AddToEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Add(FTerrainBarrier& Terrain)
@@ -126,7 +126,7 @@ bool FSensorEnvironmentBarrier::Remove(FIMUBarrier& IMU)
 {
 	check(HasNative());
 	check(IMU.HasNative());
-	return NativeRef->Native->remove(IMU.GetNative()->Native);
+	return IMU.RemoveFromEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FTerrainBarrier& Terrain)
@@ -282,3 +282,4 @@ bool FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(int32 DeviceIndex)
 {
 	return agxSensor::RtConfig::setRaytraceDevice(DeviceIndex);
 }
+

@@ -3,7 +3,9 @@
 #include "Sensors/SensorBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "Sensors/SensorRef.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -121,4 +123,35 @@ void FSensorBarrier::SetNativeAddress(uint64 Address)
 	// At this point, we should be able to find any StepStride object (if it exists), since it will
 	// have been kept alive by the agxSensor::Environment.
 	StepStrideRef->Native = NativeRef->Native->findParent<agxSensor::SensorGroupStepStride>();
+}
+
+bool FSensorBarrier::AddToEnvironment(FSensorEnvironmentBarrier& Environment)
+{
+	check(HasNative());
+	check(Environment.HasNative());
+
+	if (StepStrideRef->Native != nullptr)
+	{
+		// We add the StepStride instead of the Sensor Native in order to ensure correct stepping.
+		// This is a quirk of AGX.
+		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
+		return Environment.GetNative()->Native->add(StepStrideRef->Native);
+	}
+
+	return Environment.GetNative()->Native->add(NativeRef->Native);
+}
+
+bool FSensorBarrier::RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment)
+{
+	check(HasNative());
+	check(Environment.HasNative());
+
+	if (StepStrideRef->Native != nullptr)
+	{
+		// See also AddToEnvironment.
+		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
+		return Environment.GetNative()->Native->remove(StepStrideRef->Native);
+	}
+
+	return Environment.GetNative()->Native->remove(NativeRef->Native);
 }

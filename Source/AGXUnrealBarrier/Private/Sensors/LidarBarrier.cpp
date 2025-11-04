@@ -14,7 +14,6 @@
 #include "Sensors/CustomPatternGenerator.h"
 #include "Sensors/CustomPatternFetcherBase.h"
 #include "Sensors/LidarOutputBarrier.h"
-#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "TypeConversions.h"
 
@@ -30,7 +29,6 @@
 
 // Standard library includes.
 #include <limits>
-
 
 namespace LidarBarrier_helpers
 {
@@ -342,39 +340,6 @@ bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 	return GetRayAngleNoise(*GetLidarNative(*this)) != nullptr;
-}
-
-bool FLidarBarrier::AddToEnvironment(FSensorEnvironmentBarrier& Environment)
-{
-	check(HasNative());
-	check(Environment.HasNative());
-	using namespace LidarBarrier_helpers;
-
-	if (StepStrideRef->Native != nullptr)
-	{
-		// We add the StepStride instead of the Lidar Native in order to ensure correct stepping.
-		// This is a quirk of AGX. See comment in SetStepStride also.
-		AGX_CHECK(GetLidarNative(*this)->getEnvironment() == nullptr);
-		return Environment.GetNative()->Native->add(StepStrideRef->Native);
-	}
-
-	return Environment.GetNative()->Native->add(GetLidarNative(*this));
-}
-
-bool FLidarBarrier::RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment)
-{
-	check(HasNative());
-	check(Environment.HasNative());
-	using namespace LidarBarrier_helpers;
-
-	if (StepStrideRef->Native != nullptr)
-	{
-		// See also AddToEnvironment.
-		AGX_CHECK(GetLidarNative(*this)->getEnvironment() == nullptr);
-		return Environment.GetNative()->Native->remove(StepStrideRef->Native);
-	}
-
-	return Environment.GetNative()->Native->remove(GetLidarNative(*this));
 }
 
 void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)

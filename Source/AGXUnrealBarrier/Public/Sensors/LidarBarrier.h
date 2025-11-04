@@ -8,17 +8,10 @@
 #include "Sensors/AGX_RayAngleGaussianNoiseSettings.h"
 #include "Sensors/SensorBarrier.h"
 
-// Unreal Engine includes.
-#include "CoreMinimal.h"
-
-// Standard library includes.
-#include <memory>
-
 #include "LidarBarrier.generated.h"
 
 class FCustomPatternFetcherBase;
 class FLidarOutputBarrier;
-class FSensorEnvironmentBarrier;
 class UAGX_LidarModelParameters;
 
 struct FAGX_RealInterval;
@@ -58,9 +51,6 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void EnableOrUpdateRayAngleGaussianNoise(const FAGX_RayAngleGaussianNoiseSettings& Settings);
 	void DisableRayAngleGaussianNoise();
 	bool GetEnableRayAngleGaussianNoise() const;
-
-	bool AddToEnvironment(FSensorEnvironmentBarrier& Environment);
-	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
 
 	void AddOutput(FLidarOutputBarrier& Output);
 };
