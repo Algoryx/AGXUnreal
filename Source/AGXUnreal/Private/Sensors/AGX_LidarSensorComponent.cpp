@@ -402,8 +402,9 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	Range = Source.Range;
 	BeamDivergence = Source.BeamDivergence;
 	BeamExitRadius = Source.BeamExitRadius;
+	StepStride = Source.StepStride;
 	ModelParameters = Source.ModelParameters;
-	RaytraceDepth = Source.RaytraceDepth;
+	RaytraceDepth = Source.RaytraceDepth;	
 	bEnableRemovePointsMisses = Source.bEnableRemovePointsMisses;
 	bEnableDistanceGaussianNoise = Source.bEnableDistanceGaussianNoise;
 	DistanceNoiseSettings = Source.DistanceNoiseSettings;
@@ -509,7 +510,8 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(Range);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamDivergence);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamExitRadius);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(RaytraceDepth);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(StepStride);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(RaytraceDepth);	
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRemovePointsMisses);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableDistanceGaussianNoise);
