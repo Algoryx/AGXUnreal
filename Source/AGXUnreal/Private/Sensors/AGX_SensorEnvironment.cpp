@@ -1,3 +1,5 @@
+// Copyright 2025, Algoryx Simulation AB.
+
 #include "Sensors/AGX_SensorEnvironment.h"
 
 // AGX Dynamics for Unreal includes.
@@ -598,7 +600,7 @@ bool AAGX_SensorEnvironment::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 	if (!HasNative() || !Lidar->HasNative())
 		return DidRemove;
 
-	DidRemove |= NativeBarrier.Remove(*Lidar->GetNative());
+	DidRemove |= NativeBarrier.Remove(*Lidar->GetNativeAsLidar());
 
 	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
 	{
@@ -905,7 +907,8 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 		return false;
 	}
 
-	FLidarBarrier* Barrier = Lidar->GetOrCreateNative();
+	Lidar->GetOrCreateNative();
+	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
 	if (Barrier == nullptr)
 	{
 		UE_LOG(
