@@ -10,6 +10,7 @@
 #include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Vehicle/AGX_TrackComponent.h"
 #include "Wire/AGX_WireComponent.h"
 
 // Unreal Engine includes.
@@ -149,6 +150,7 @@ void UAGX_CollisionGroupDisablerComponent::UpdateAvailableCollisionGroupsFromWor
 	CollectCollisionGroupsFrom<UAGX_ShapeComponent>(AvailableCollisionGroups);
 	CollectCollisionGroupsFrom<UAGX_WireComponent>(AvailableCollisionGroups);
 	CollectCollisionGroupsFrom<AAGX_Terrain>(AvailableCollisionGroups);
+	CollectCollisionGroupsFrom<UAGX_TrackComponent>(AvailableCollisionGroups);
 }
 
 void UAGX_CollisionGroupDisablerComponent::RemoveDeprecatedCollisionGroups()

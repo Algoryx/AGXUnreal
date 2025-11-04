@@ -59,7 +59,7 @@ TSharedRef<SWidget> SAGX_ImportDialogBase::CreateBrowseFileGui()
 			[
 				SNew(SEditableTextBox)
 				.MinDesiredWidth(150.0f)
-				.Text(this, &SAGX_ImportDialogBase::GetFilePathText)
+				.Text(this, &SAGX_ImportDialogBase::GetFilePathTextIfFileExists)
 				.OnTextCommitted(this, &SAGX_ImportDialogBase::OnFilePathTextCommitted)
 			]
 			+ SHorizontalBox::Slot()
@@ -107,9 +107,8 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 						[
 							SNew(STextBlock)
 							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
-							.Text(LOCTEXT("PLXExperimentalText", "Note: OpenPLX support is currently Experimental, "
-								"meaning the supported features \nare limited and backwards compatibility in "
-								"future releases is not guaranteed."))
+							.Text(LOCTEXT("PLXChangeText", "Note: OpenPLX is under development and is subject to change. "
+								"Backwards compatibility cannot be guaranteed."))
 							.Font(FAGX_SlateUtilities::CreateFont(10))
 						]
 					]
@@ -171,6 +170,14 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 FText SAGX_ImportDialogBase::GetFilePathText() const
 {
 	return FText::FromString(FilePath);
+}
+
+FText SAGX_ImportDialogBase::GetFilePathTextIfFileExists() const
+{
+	if (!FPaths::FileExists(FilePath))
+		return FText();
+
+	return GetFilePathText();
 }
 
 void SAGX_ImportDialogBase::OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState)

@@ -11,6 +11,7 @@
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
@@ -19,7 +20,7 @@
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
-#include "agxOpenPLX/SignalSourceMapper.h"
+#include "agxOpenPLX/AgxObjectMap.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
@@ -40,8 +41,7 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 
 void FOpenPLXSignalHandler::Init(
 	const FString& OpenPLXFile, FSimulationBarrier& Simulation,
-	FOpenPLXModelRegistry& InModelRegistry, TArray<FRigidBodyBarrier*>& Bodies,
-	TArray<FConstraintBarrier*>& Constraints)
+	FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
@@ -79,8 +79,7 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	AssemblyRef->Native =
-		FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Bodies, Constraints);
+	AssemblyRef->Native = FPLXUtilitiesInternal::MapRuntimeObjects(System, Simulation, Barriers);
 	if (AssemblyRef->Native == nullptr)
 	{
 		UE_LOG(
@@ -91,22 +90,22 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	std::shared_ptr<agxopenplx::SignalSourceMapper> SignalSourceMapper;
+	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
 		FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto PlxPowerLine = dynamic_cast<agxPowerLine::PowerLine*>(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
-		SignalSourceMapper = agxopenplx::SignalSourceMapper::create(
-			AssemblyRef->Native, PlxPowerLine, agxopenplx::SignalSourceMapMode::Name);
+		AgxObjectMap = agxopenplx::AgxObjectMap::create(
+			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
 	{
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 		InputSignalListenerRef->Native =
-			new agxopenplx::InputSignalListener(InputSignalQue, SignalSourceMapper);
+			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -114,7 +113,8 @@ void FOpenPLXSignalHandler::Init(
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, SignalSourceMapper);
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap,
+			std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -311,6 +311,9 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
 			case EOpenPLX_OutputType::FractionOutput:
 			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::MassOutput:
+			case EOpenPLX_OutputType::RatioOutput:
+			case EOpenPLX_OutputType::RpmOutput:
 			case EOpenPLX_OutputType::Torque1DOutput:
 			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
 			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:

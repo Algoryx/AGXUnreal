@@ -5,7 +5,7 @@
 #include "Constraints/AGX_ConstraintEnumsCommon.h"
 #include "Constraints/Constraint1DOFBarrier.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintControllerBarrier;
 
 class AGXUNREALBARRIER_API FSingleControllerConstraint1DOFBarrier : public FConstraint1DOFBarrier

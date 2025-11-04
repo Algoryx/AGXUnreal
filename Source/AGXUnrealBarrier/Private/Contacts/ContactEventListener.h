@@ -12,10 +12,10 @@
 // Unreal Engine includes.
 #include "Templates/Function.h"
 
-class FShapeBarrier;
+struct FShapeBarrier;
 class FShapeContactBarrier;
 class FSimulationBarrier;
-class FAnyShapeBarrier;
+struct FAnyShapeBarrier;
 
 /**
  * The AGX Dynamics Contact Event Listener. Since we are in the Private folder of the Barrier module

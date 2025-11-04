@@ -23,10 +23,10 @@ public:
 	~FWireBarrier();
 
 	/** Set the radius of the wire [cm]. */
-	void SetRadius(float Radius);
+	void SetRadius(double Radius);
 
 	/** Get the radius of the wire [cm]. */
-	float GetRadius() const;
+	double GetRadius() const;
 
 	/** Get the maximum resolution of the wire [nodes/cm]. */
 	void SetResolutionPerUnitLength(float InResolution);

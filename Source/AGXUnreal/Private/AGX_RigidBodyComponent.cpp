@@ -6,8 +6,8 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
-#include "AGX_Simulation.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
@@ -273,6 +273,11 @@ FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative()
 		return nullptr;
 	}
 	return &NativeBarrier;
+}
+
+FRigidBodyBarrier& UAGX_RigidBodyComponent::GetNativeByRef()
+{
+	return NativeBarrier;
 }
 
 const FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative() const
@@ -674,13 +679,7 @@ void UAGX_RigidBodyComponent::TryWriteTransformToNative()
 }
 
 #if WITH_EDITOR
-bool UAGX_RigidBodyComponent::CanEditChange(
-#if UE_VERSION_OLDER_THAN(4, 25, 0)
-	const UProperty* InProperty
-#else
-	const FProperty* InProperty
-#endif
-) const
+bool UAGX_RigidBodyComponent::CanEditChange(const FProperty* InProperty) const
 {
 // This code was used when we had a bool property for the transform target and it used to enable
 // or disable the checkbox in the Details Panel. Now that we have a drop-down list instead doing

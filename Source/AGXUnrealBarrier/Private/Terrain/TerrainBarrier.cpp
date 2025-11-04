@@ -172,11 +172,16 @@ double FTerrainBarrier::GetMaximumParticleActivationVolume() const
 		NativeRef->Native->getProperties()->getMaximumParticleActivationVolume());
 }
 
-bool FTerrainBarrier::AddShovel(FShovelBarrier& Shovel)
+void FTerrainBarrier::SetSoilParticleSizeScaling(float Scaling)
 {
 	check(HasNative());
-	check(Shovel.HasNative());
-	return NativeRef->Native->add(Shovel.GetNative()->Native);
+	NativeRef->Native->getProperties()->setSoilParticleSizeScaling(Scaling);
+}
+
+float FTerrainBarrier::GetSoilParticleSizeScaling() const
+{
+	check(HasNative());
+	return NativeRef->Native->getProperties()->getSoilParticleSizeScaling();
 }
 
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
