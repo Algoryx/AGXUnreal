@@ -6,6 +6,8 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Constraints/ConstraintBarrier.h"
+#include "ObserverFrameBarrier.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -638,7 +640,7 @@ bool FPLXUtilitiesInternal::LogErrorsSafe(
 
 agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
-	TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints)
+	const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	AGX_CHECK(System != nullptr);
 	AGX_CHECK(Simulation.HasNative());
@@ -651,7 +653,7 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
 	agx::RigidBodyRefSetVector OldBodiesAGX;
-	for (FRigidBodyBarrier* Body : Bodies)
+	for (FRigidBodyBarrier* Body : Barriers.Bodies)
 	{
 		AGX_CHECK(Body->HasNative());
 		auto BodyAGX = Body->GetNative()->Native;
@@ -660,12 +662,21 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	}
 
 	agx::ConstraintRefSetVector OldConstraintsAGX;
-	for (FConstraintBarrier* Constraint : Constraints)
+	for (FConstraintBarrier* Constraint : Barriers.Constraints)
 	{
 		AGX_CHECK(Constraint->HasNative());
 		auto ConstraintAGX = Constraint->GetNative()->Native;
 		Assembly->add(ConstraintAGX);
 		OldConstraintsAGX.push_back(ConstraintAGX);
+	}
+
+	agx::ObserverFrameRefSetVector OldObserverFrramesAGX;
+	for (FObserverFrameBarrier* Frame : Barriers.ObserverFrames)
+	{
+		AGX_CHECK(Frame->HasNative());
+		auto FrameAGX = Frame->GetNative()->Native;
+		Assembly->add(FrameAGX);
+		OldObserverFrramesAGX.push_back(FrameAGX);
 	}
 
 	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
@@ -701,6 +712,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	{
 		if (!OldConstraintsAGX.contains(C))
 			Simulation.GetNative()->Native->add(C);
+	}
+
+	for (auto F : Assembly->getObserverFrames())
+	{
+		if (!OldObserverFrramesAGX.contains(F))
+			Simulation.GetNative()->Native->add(F);
 	}
 
 	return Assembly;

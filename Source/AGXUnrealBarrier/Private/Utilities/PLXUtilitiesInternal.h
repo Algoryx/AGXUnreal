@@ -28,8 +28,9 @@
 #include <vector>
 
 class FConstraintBarrier;
-struct FRigidBodyBarrier;
 class FSimulationBarrier;
+struct FOpenPLXMappingBarriersCollection;
+struct FRigidBodyBarrier;
 
 namespace openplx
 {
@@ -100,13 +101,13 @@ public:
 	 * Given an OpenPLX System, and all relevant AGX objects part of the simulated model instance,
 	 * this function creates all runtime-mapped objects (such as DriveTrain) and returns an
 	 * agxSDK::Assembly containing all AGX Dynamics objects needed for the
-	 * agxopenplx::IntputSignalListener and agxopenplx::OutputSignalListener. This functions will
+	 * agxopenplx mapping classes. This functions will
 	 * also add objects that are created by it to the passed Simulation (as well as to the returned
 	 * Assembly).
 	 */
 	static agxSDK::AssemblyRef MapRuntimeObjects(
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
-		TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints);
+		const FOpenPLXMappingBarriersCollection& Barriers);
 
 	/**
 	 * On OpenPlx, a default PowerLine is created holding all DriveTrains in the model. This has a

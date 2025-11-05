@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Constraints/AGX_ConstraintComponent.h"
@@ -12,6 +13,7 @@
 #include "OpenPLX/OpenPLX_ModelRegistry.h"
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -530,15 +532,16 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	}
 
 	// Collect all relevant AGX objects in the same AActor as us.
-	auto ConstraintBarriers =
+	FOpenPLXMappingBarriersCollection Barriers;
+	Barriers.Constraints =
 		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
-	auto RigidBodyBarriers =
+	Barriers.Bodies =
 		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+	Barriers.ObserverFrames =
+		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
 
 	// Initialize SignalHandler in Barrier module.
-	SignalHandler.Init(
-		*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, RigidBodyBarriers,
-		ConstraintBarriers);
+	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);
 }
 
 void UOpenPLX_SignalHandlerComponent::EndPlay(const EEndPlayReason::Type Reason)
