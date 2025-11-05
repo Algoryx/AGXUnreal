@@ -16,91 +16,96 @@ class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportContext;
 
+/**
+ * A frame attached to a RigidBody with an optional relative transform.
+ * During runtime, it is possible to get its position, velocity, angular velocity, acceleration
+ * etc.
+ */
 UCLASS(ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_ObserverFrameComponent : public USceneComponent, public IAGX_NativeOwner
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, Category = "AGX Dynamics")
+	UPROPERTY(EditAnywhere, Category = "AGX Observer Frame")
 	bool bEnabled {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetEnabled(bool InEnabled);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	bool IsEnabled() const;
 
 	/**
 	 * Set the world position of the Observer Frame [cm].
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetPosition(FVector Position);
 
 	/**
 	 * Get the world position of the Observer Frame [cm].
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetPosition() const;
 
 	/**
 	 * Set the local position of the Observer Frame [cm].
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetLocalPosition(FVector Position);
 
 	/**
 	 * Get the local position of the Observer Frame [cm].
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetLocalPosition() const;
 
 	/**
 	 * Set the world rotation of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetRotation(FQuat Rotation);
 
 	/**
 	 * Get the world rotation of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FQuat GetRotation() const;
 
 	/**
 	 * Set the local rotation of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetLocalRotation(FQuat Rotation);
 
 	/**
 	 * Get the local rotation of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FQuat GetLocalRotation() const;
 
 	/**
 	 * Set the world rotator of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetRotator(FRotator Rotator);
 
 	/**
 	 * Get the world rotator of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FRotator GetRotator() const;
 
 	/**
 	 * Set the local rotator of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	void SetLocalRotator(FRotator Rotator);
 
 	/**
 	 * Get the local rotator of the Observer Frame.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FRotator GetLocalRotator() const;
 
 	/**
@@ -108,70 +113,38 @@ public:
 	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
 	 * Frame, zero vector is returned.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetVelocity() const;
-
-	/**
-	 * Get the local velocity of the Observer Frame [cm/s].
-	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
-	 * Frame, zero vector is returned.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	FVector GetLocalVelocity() const;
 
 	/**
 	 * Get the world angular velocity of the Observer Frame [deg/s].
 	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
 	 * Frame, zero vector is returned.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetAngularVelocity() const;
-
-	/**
-	 * Get the local angular velocity of the Observer Frame [deg/s].
-	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
-	 * Frame, zero vector is returned.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	FVector GetLocalAngularVelocity() const;
 
 	/**
 	 * Get the world acceleration of the Observer Frame [cm/s^2].
 	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
 	 * Frame, zero vector is returned.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetAcceleration() const;
-
-	/**
-	 * Get the local acceleration of the Observer Frame [cm/s^2].
-	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
-	 * Frame, zero vector is returned.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	FVector GetLocalAcceleration() const;
 
 	/**
 	 * Get the world angular acceleration of the Observer Frame [deg/s^2].
 	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
 	 * Frame, zero vector is returned.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	FVector GetAngularAcceleration() const;
-
-	/**
-	 * Get the local angular acceleration of the Observer Frame [deg/s^2].
-	 * Only valid during Play. If this Observer Frame does not have a native AGX Dynamics Observer
-	 * Frame, zero vector is returned.
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
-	FVector GetLocalAngularAcceleration() const;
 
 	/**
 	 * Get the Rigid Body that owns this Observer Frame. Will return None / nullptr if this Observer
 	 * Frame does not belong to a Rigid Body.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	UFUNCTION(BlueprintCallable, Category = "AGX Observer Frame")
 	UAGX_RigidBodyComponent* GetRigidBody() const;
 
 	/*

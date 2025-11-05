@@ -13,6 +13,7 @@
 #include "Constraints/LockJointBarrier.h"
 #include "Constraints/PrismaticBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "SimulationBarrier.h"
