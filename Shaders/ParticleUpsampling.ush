@@ -12,8 +12,8 @@
 
 // HashTable Defines
 #define ID_TO_VOXEL_INDEX(id) ({ParameterName}_ActiveVoxelIndices[MyId].xyz)
-#define INDEX_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom.xyz)
-#define ROOM_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom.w)
+#define INDEX_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom_Index)
+#define ROOM_AT_HASH(h) ({ParameterName}_HashTable[h].IndexAndRoom_Room)
 #define VELOCITY_AT_HASH(h) ({ParameterName}_HashTable[h].VelocityAndMass.xyz)
 #define MASS_AT_HASH(h) ({ParameterName}_HashTable[h].VelocityAndMass.w)
 #define MAXBOUND_AT_HASH(h) ({ParameterName}_HashTable[h].MaxBounds.xyz)

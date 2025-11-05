@@ -31,10 +31,14 @@ struct AGXUNREALSHADERS_API FCoarseParticle
 struct AGXUNREALSHADERS_API FVoxelEntry
 {
 	/**
-	 * The voxel index stored at XYZ, W represents the voxel's capacity, i.e.,
-	 * how many particles can fit in that voxel.
+	 * IndexAndRoom_Index holds the voxel index (XYZ), IndexAndRoom_Room represents
+	 * the voxel's capacity, i.e., how many particles can fit in that voxel.
+	 * The reason why these two are split (instead of using a single FIntVector4) is because
+	 * some atomic operations will be done on the IndexAndRoom_Room member, which does not work
+	 * if it is part of a FIntVector4 (gives internal Niagara compiler error).
 	 */
-	FIntVector4 IndexAndRoom;
+	FIntVector  IndexAndRoom_Index;
+    int32       IndexAndRoom_Room;
 
 	/**
 	 * The voxel velocity stored at XYZ, the voxel mass stored at W.
