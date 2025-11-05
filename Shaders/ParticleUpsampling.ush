@@ -182,7 +182,8 @@ void UpdateGrid_{ParameterName}(int In_VoxelId)
     float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
     
     float3 MaxBounds, MinBounds, Velocity = float3(0.0, 0.0, 0.0);
-    float Mass, TotalWeight = 0.0;
+    float Mass = 0.0;
+    float TotalWeight = 0.0;
     bool First = true;
     for(int i = 0; i < NUM_COARSE_PARTICLES; i++)
     {
@@ -335,9 +336,10 @@ void ApplyParticleMass_{ParameterName}(in float3 In_ParticlePosition, in float I
         }
         else
         {
-            int _;
-            float3 MaxBounds, MinBounds;
-            LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, _, MaxBounds, MinBounds);
+            int Unused;
+            float3 MaxBounds = float3(0.0, 0.0, 0.0);
+            float3 MinBounds = float3(0.0, 0.0, 0.0);
+            LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, Unused, MaxBounds, MinBounds);
 
             float3 R = float3(NOMINAL_RADIUS, NOMINAL_RADIUS, NOMINAL_RADIUS);
             float3 InnerMaxBounds = MaxBounds - (MaxBounds < (VoxelPos + VOXEL_SIZE / 2)) * R;
@@ -373,7 +375,9 @@ void SpawnParticles_{ParameterName}(in int In_VoxelId, out bool Out_ShouldSpawn,
 {
     Out_ShouldSpawn = false;
     Out_ParticleRoom = 0;
-    Out_VoxelIndex, Out_MaxBounds, Out_MinBounds = float3(0.0, 0.0, 0.0);
+    Out_VoxelIndex = float3(0.0, 0.0, 0.0);
+    Out_MaxBounds = float3(0.0, 0.0, 0.0);
+    Out_MinBounds = float3(0.0, 0.0, 0.0);
     uint MyId = In_VoxelId;
     
     if ((int)MyId >= NUM_ACTIVE_VOXELS)
@@ -383,7 +387,8 @@ void SpawnParticles_{ParameterName}(in int In_VoxelId, out bool Out_ShouldSpawn,
     float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
     
     int ParticleRoom = 0;
-    float3 MaxBounds, MinBounds = float3(0.0, 0.0, 0.0);
+    float3 MaxBounds = float3(0.0, 0.0, 0.0);
+    float3 MinBounds = float3(0.0, 0.0, 0.0);
     LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, ParticleRoom, MaxBounds, MinBounds);
     
     if (all(MaxBounds == 0) && all(MinBounds == 0))

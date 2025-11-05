@@ -135,7 +135,7 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 	/**
 	 * The number of allocated elements that the coarse particle buffer can store.
 	 */
-	uint32 CoarseParticlesCapacity;
+	uint32 CoarseParticlesCapacity {0};
 
 	/** 
 	 * Reference to the SRV buffer containing Active Voxels. 
@@ -156,7 +156,7 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 	/**
 	 * The number of elements the buffers hanlding active voxels can store.
 	 */
-	uint32 ActiveVoxelsCapacity;
+	uint32 ActiveVoxelsCapacity {0};
 };
 
 /**
