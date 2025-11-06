@@ -126,7 +126,7 @@ void FParticleUpsamplingBuffers::UpdateHashTableBuffers(
 		ActiveVoxelsTableOccupancy.SafeRelease();
 
 		// Create new, larger buffers.
-		ActiveVoxelsCapacity *= 2;
+		ActiveVoxelsCapacity = FMath::RoundUpToPowerOfTwo(ElementCount * 2.0);
 
 		ActiveVoxelIndices = InitSRVBuffer<FIntVector4>(
 			RHICmdList, TEXT("ActiveVoxelIndices"), ActiveVoxelsCapacity);
