@@ -3,18 +3,16 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_NativeOwner.h"
 #include "AGX_RealInterval.h"
 #include "Sensors/AGX_CustomPatternFetcher.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_LidarEnums.h"
 #include "Sensors/AGX_LidarModelParameters.h"
 #include "Sensors/AGX_RayAngleGaussianNoiseSettings.h"
+#include "Sensors/AGX_SensorComponentBase.h"
 #include "Sensors/LidarBarrier.h"
 
 // Unreal Engine includes.
-#include "Components/SceneComponent.h"
-#include "CoreMinimal.h"
 #include "Math/UnrealMathUtility.h"
 
 #include "AGX_LidarSensorComponent.generated.h"
@@ -36,9 +34,9 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(
  * Actor.
  */
 UCLASS(
-	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_Sensor", Category = "AGX", Blueprintable, Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
-class AGXUNREAL_API UAGX_LidarSensorComponent : public USceneComponent, public IAGX_NativeOwner
+class AGXUNREAL_API UAGX_LidarSensorComponent : public UAGX_SensorComponentBase
 {
 	GENERATED_BODY()
 
@@ -57,24 +55,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	EAGX_LidarModel GetModel() const;
-
-	/**
-	 * Enable or disable this Lidar Sensor Component. If disabled, it will not perform raytracing
-	 * and will thus not produce any output data.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Lidar")
-	bool bEnabled {true};
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
-	void SetEnabled(bool InEnabled);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
-	bool IsEnabled() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Lidar",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
-	bool GetEnabled() const;
 
 	// clang-format off
 	/**
@@ -280,23 +260,13 @@ public:
 
 	bool IsCustomParametersSupported() const;
 
-	FLidarBarrier* GetOrCreateNative();
-	FLidarBarrier* GetNative();
-	const FLidarBarrier* GetNative() const;
-
-	// ~Begin AGX NativeOwner interface.
-	virtual bool HasNative() const override;
-	virtual uint64 GetNativeAddress() const override;
-	virtual void SetNativeAddress(uint64 NativeAddress) override;
-	// ~/End IAGX_NativeOwner interface.
-
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
+
+	FSensorBarrier* CreateNativeImpl() override;
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
-	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
@@ -309,19 +279,24 @@ public:
 #endif
 	//~ End UObject interface.
 
+	FLidarBarrier* GetNativeAsLidar();
+	const FLidarBarrier* GetNativeAsLidar() const;
+
 	friend class FAGX_CustomPatternFetcher;
+
+protected:
+	virtual void MarkOutputAsRead() override;
 
 private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
 
-	void UpdateNativeProperties();
+	virtual void UpdateNativeProperties() override;
 
 	TArray<FTransform> FetchRayTransforms();
 	FAGX_CustomPatternInterval FetchNextInterval();
 
 	UNiagaraComponent* NiagaraSystemComponent = nullptr;
 	FAGX_CustomPatternFetcher PatternFetcher;
-	FLidarBarrier NativeBarrier;
 };
