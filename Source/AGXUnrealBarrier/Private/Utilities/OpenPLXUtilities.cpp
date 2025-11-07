@@ -11,10 +11,26 @@
 #include "HAL/PlatformFileManager.h"
 #include "Misc/Paths.h"
 
-FString FOpenPLXUtilities::GetBundlePath()
+TArray<FString> FOpenPLXUtilities::GetBundlePaths()
 {
-	return FPaths::Combine(
-		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles");
+	TArray<FString> Paths;
+
+	Paths.Add(FPaths::Combine(
+		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles"));
+	Paths.Add(FPaths::Combine(
+			FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "data", "openplx", "agxBundle"));
+
+	const FString UserBundlePath = GetUserBundlePath();
+	if (FPaths::DirectoryExists(UserBundlePath))
+		Paths.Add(UserBundlePath);
+
+	return Paths;
+}
+
+FString FOpenPLXUtilities::GetUserBundlePath()
+{
+	const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	return FPaths::Combine(ProjectPath, TEXT("OpenPLXUserBundles"));
 }
 
 FString FOpenPLXUtilities::GetModelsDirectory()
@@ -46,7 +62,28 @@ FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
 	return "";
 }
 
-FString FOpenPLXUtilities::CopyAllDependenciesToProject(FString Filepath, const FString& Destination)
+FString FOpenPLXUtilities::RebuildOpenPLXFilePath(FString Path)
+{
+	// Ensure consistent formatting of / and \\ in the path.
+	const FString AbsolutePath = FPaths::ConvertRelativePathToFull(Path);
+
+	const FString Marker = TEXT("OpenPLXModels/");
+	const int32 Index = AbsolutePath.Find(Marker, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+	if (Index == INDEX_NONE)
+		return AbsolutePath;
+
+	// Slice out everything after "OpenPLXModels/"
+	const int32 Start = Index + Marker.Len();
+	const FString RelativeSubPath = AbsolutePath.Mid(Start);
+
+	// Combine with GetModelsDirectory()
+	const FString ModelsDir = FOpenPLXUtilities::GetModelsDirectory();
+	return FPaths::Combine(ModelsDir, RelativeSubPath);
+}
+
+FString FOpenPLXUtilities::CopyAllDependenciesToProject(
+	FString Filepath, const FString& Destination)
 {
 	const TArray<FString> Dependencies = FPLXUtilitiesInternal::GetFileDependencies(Filepath);
 	if (Dependencies.Num() == 0)

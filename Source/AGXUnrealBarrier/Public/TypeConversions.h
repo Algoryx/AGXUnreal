@@ -445,6 +445,15 @@ inline FVector ConvertAngularVelocity(const agx::Vec3& V)
 		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.z())));
 }
 
+inline FVector ConvertAngularAcceleration(const agx::Vec3& V)
+{
+	// Similar to ConvertAngularVelocity.
+	return FVector(
+		FMath::RadiansToDegrees(ConvertToUnreal<decltype(FVector::X)>(V.x())),
+		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.y())),
+		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.z())));
+}
+
 inline FVector ConvertTorque(const agx::Vec3& V)
 {
 	/*
@@ -529,6 +538,17 @@ inline agx::Vec3f ConvertFloatDisplacement(const FVector& V)
 inline agx::Vec3 ConvertAngularVelocity(const FVector& V)
 {
 	// See comment in the AGX-to-Unreal version of this function.
+	// clang-format off
+	return agx::Vec3(
+		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
+		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
+	// clang-format on
+}
+
+inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
+{
+	// Similar to ConvertAngularVelocity.
 	// clang-format off
 	return agx::Vec3(
 		ConvertToAGX(FMath::DegreesToRadians(V.X)),
@@ -1691,12 +1711,12 @@ inline std::vector<DestinationT> ToStdArray(const TArray<SourceT>& A)
 	return Arr;
 }
 
-inline std::vector<std::string> ToStdStringArray(const TArray<FString>& A)
+inline std::vector<std::string> ToStdStringVector(const TArray<FString>& A)
 {
-	std::vector<std::string> Arr;
-	Arr.reserve(A.Num());
+	std::vector<std::string> Vec;
+	Vec.reserve(A.Num());
 	for (const auto& Val : A)
-		Arr.push_back(ToStdString(Val));
+		Vec.push_back(ToStdString(Val));
 
-	return Arr;
+	return Vec;
 }

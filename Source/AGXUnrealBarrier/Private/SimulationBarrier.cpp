@@ -6,10 +6,12 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/ShapeBarrier.h"
 #include "Terrain/ShovelBarrier.h"
@@ -17,6 +19,7 @@
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Tires/TireBarrier.h"
 #include "TypeConversions.h"
+#include "Vehicle/TrackBarrier.h"
 #include "Wire/WireBarrier.h"
 
 // AGX Dynamics includes.
@@ -70,6 +73,13 @@ bool FSimulationBarrier::Add(FContactMaterialBarrier& ContactMaterial)
 	return NativeRef->Native->add(ContactMaterial.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->add(Frame.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FRigidBodyBarrier& Body)
 {
 	check(HasNative());
@@ -119,6 +129,13 @@ bool FSimulationBarrier::Add(FTireBarrier& Tire)
 	return NativeRef->Native->add(Tire.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FTrackBarrier& Track)
+{
+	check(HasNative());
+	check(Track.HasNative());
+	return NativeRef->Native->add(Track.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FWireBarrier& Wire)
 {
 	check(HasNative());
@@ -138,6 +155,13 @@ bool FSimulationBarrier::Remove(FContactMaterialBarrier& ContactMaterial)
 	check(HasNative());
 	check(ContactMaterial.HasNative());
 	return NativeRef->Native->remove(ContactMaterial.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->remove(Frame.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FRigidBodyBarrier& Body)
@@ -187,6 +211,13 @@ bool FSimulationBarrier::Remove(FTireBarrier& Tire)
 	check(HasNative());
 	check(Tire.HasNative());
 	return NativeRef->Native->remove(Tire.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FTrackBarrier& Track)
+{
+	check(HasNative());
+	check(Track.HasNative());
+	return NativeRef->Native->remove(Track.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FWireBarrier& Wire)

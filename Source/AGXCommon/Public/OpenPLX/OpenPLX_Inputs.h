@@ -12,7 +12,8 @@
 #include "OpenPLX_Inputs.generated.h"
 
 /**
- * EXPERIMENTAL
+ * Struct representing an OpenPLX input, which may be written to by means of passing an OpenPLX
+ * Input Signal connected to it.
  */
 USTRUCT(BlueprintType)
 struct AGXCOMMON_API FOpenPLX_Input

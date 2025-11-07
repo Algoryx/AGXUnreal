@@ -1628,7 +1628,8 @@ void FAGX_ImporterToEditor::PreReimport(
 	if (Ms == nullptr)
 		return;
 
-	const FString TargetDir = FPaths::GetPath(Ms->FilePath);
+	const FString TargetDir =
+		FPaths::GetPath(FOpenPLXUtilities::RebuildOpenPLXFilePath(Ms->FilePath));
 	if (!TargetDir.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Constraints/AGX_ConstraintComponent.h"
@@ -12,6 +13,7 @@
 #include "OpenPLX/OpenPLX_ModelRegistry.h"
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
+#include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -48,28 +50,6 @@ namespace OpenPLX_SignalHandlerComponent_helpers
 		return Barriers;
 	}
 
-	/**
-	 * Takes an absolute path to an OpenPLX-file which may have been created in a different project
-	 * or computer and replaces everything before the OpenPLXModels/ part to ensure we are pointing
-	 * to the corresponding file for this project. Works correctly in standalone apps as well.
-	 */
-	FString RebuildOpenPLXFilePath(const FString& AbsolutePath)
-	{
-		const FString Marker = TEXT("OpenPLXModels/");
-		const int32 Index = AbsolutePath.Find(Marker, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-
-		if (Index == INDEX_NONE)
-			return AbsolutePath;
-
-		// Slice out everything after "OpenPLXModels/"
-		const int32 Start = Index + Marker.Len();
-		const FString RelativeSubPath = AbsolutePath.Mid(Start);
-
-		// Combine with GetModelsDirectory()
-		const FString ModelsDir = FOpenPLXUtilities::GetModelsDirectory();
-		return FPaths::Combine(ModelsDir, RelativeSubPath);
-	}
-
 	TOptional<FString> GetOpenPLXFilePath(AActor* Owner)
 	{
 		if (Owner == nullptr)
@@ -79,7 +59,7 @@ namespace OpenPLX_SignalHandlerComponent_helpers
 		if (ModelSource == nullptr)
 			return {};
 
-		return RebuildOpenPLXFilePath(ModelSource->FilePath);
+		return FOpenPLXUtilities::RebuildOpenPLXFilePath(ModelSource->FilePath);
 	}
 
 	void LogTypeMismatchWarning(
@@ -552,15 +532,16 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	}
 
 	// Collect all relevant AGX objects in the same AActor as us.
-	auto ConstraintBarriers =
+	FOpenPLXMappingBarriersCollection Barriers;
+	Barriers.Constraints =
 		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
-	auto RigidBodyBarriers =
+	Barriers.Bodies =
 		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+	Barriers.ObserverFrames =
+		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
 
 	// Initialize SignalHandler in Barrier module.
-	SignalHandler.Init(
-		*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, RigidBodyBarriers,
-		ConstraintBarriers);
+	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);
 }
 
 void UOpenPLX_SignalHandlerComponent::EndPlay(const EEndPlayReason::Type Reason)
