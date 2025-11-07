@@ -39,7 +39,7 @@ public:
  * AGX Dynamics, connected together using constraints.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_Vehicle", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Replication))
 class AGXUNREAL_API UAGX_TrackComponent : public USceneComponent, public IAGX_NativeOwner
 {

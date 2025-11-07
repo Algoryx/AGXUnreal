@@ -7,7 +7,6 @@
 #include "Constraints/BallJointBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
-#include "Utilities/AGX_StringUtilities.h"
 
 struct FRigidBodyBarrier;
 
