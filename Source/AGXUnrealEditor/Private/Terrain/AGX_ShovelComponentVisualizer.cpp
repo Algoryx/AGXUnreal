@@ -53,7 +53,7 @@ struct FShovelVisualizerOperations
 			// Blueprint editor viewport.
 			case EAGX_ShovelFrame::None:
 				break;
-			case EAGX_ShovelFrame::CuttingDirection:
+			case EAGX_ShovelFrame::ToothDirection:
 				InViewportClient.SetWidgetMode(UE::Widget::WM_Rotate);
 				break;
 			case EAGX_ShovelFrame::CuttingEdgeBegin:
@@ -393,7 +393,7 @@ FAGX_ShovelComponentVisualizer::FAGX_ShovelComponentVisualizer()
 	UClass* Class = UAGX_ShovelComponent::StaticClass();
 	TopEdgeProperty = FindFProperty<FProperty>(Class, MEMBER(TopEdge));
 	CuttingEdgeProperty = FindFProperty<FProperty>(Class, MEMBER(CuttingEdge));
-	CuttingDirectionProperty = FindFProperty<FProperty>(Class, MEMBER(CuttingDirection));
+	ToothDirectionProperty = FindFProperty<FProperty>(Class, MEMBER(ToothDirection));
 
 	// Here is where we would register the commands class and create a command list, if we ever have
 	// the need for keyboard shortcuts in the Shovel setup workflow.
@@ -467,8 +467,8 @@ void FAGX_ShovelComponentVisualizer::DrawVisualization(
 
 	// Draw the cutting direction.
 	{
-		const FVector BeginLocation = Shovel->CuttingDirection.GetWorldLocation(*Shovel);
-		const FRotator Rotation = Shovel->CuttingDirection.GetWorldRotation(*Shovel);
+		const FVector BeginLocation = Shovel->ToothDirection.GetWorldLocation(*Shovel);
+		const FRotator Rotation = Shovel->ToothDirection.GetWorldRotation(*Shovel);
 		const FVector Direction = Rotation.RotateVector(FVector::ForwardVector);
 		const FVector EndLocation = BeginLocation + 100 * Direction;
 		// The color used by the diagram in the Shovel Setup section of the
@@ -478,7 +478,7 @@ void FAGX_ShovelComponentVisualizer::DrawVisualization(
 
 		if (bEditable)
 		{
-			PDI->SetHitProxy(new HShovelHitProxy(Shovel, EAGX_ShovelFrame::CuttingDirection));
+			PDI->SetHitProxy(new HShovelHitProxy(Shovel, EAGX_ShovelFrame::ToothDirection));
 			PDI->DrawPoint(BeginLocation, Color, PointSize, SDPG_Foreground);
 			PDI->SetHitProxy(nullptr);
 		}
@@ -659,8 +659,8 @@ FAGX_Frame* FAGX_ShovelComponentVisualizer::GetSelectedFrame() const
 	{
 		case EAGX_ShovelFrame::None:
 			return nullptr;
-		case EAGX_ShovelFrame::CuttingDirection:
-			return &Shovel->CuttingDirection;
+		case EAGX_ShovelFrame::ToothDirection:
+			return &Shovel->ToothDirection;
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 			return &Shovel->CuttingEdge.Start;
 		case EAGX_ShovelFrame::CuttingEdgeEnd:
@@ -694,8 +694,8 @@ FProperty* FAGX_ShovelComponentVisualizer::GetSelectedFrameProperty() const
 	{
 		case EAGX_ShovelFrame::None:
 			return nullptr;
-		case EAGX_ShovelFrame::CuttingDirection:
-			return this->CuttingDirectionProperty;
+		case EAGX_ShovelFrame::ToothDirection:
+			return this->ToothDirectionProperty;
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 		case EAGX_ShovelFrame::CuttingEdgeEnd:
 			return CuttingEdgeProperty;

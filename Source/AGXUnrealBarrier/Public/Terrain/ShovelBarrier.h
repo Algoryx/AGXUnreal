@@ -22,13 +22,6 @@ struct FShovelRef;
  *
  * Shovels are the only objects that are able to dynamically deform a terrain
  * and create particles from displaced soil.
- *
- * There is not corresponding UAGX_Shovel class. Instead, shovels are configured
- * by adding a TopEdge, a CuttingEdge, and a CuttingDirection to any Actor with
- * a RigidBody and registering that Actor in the Shovels Array of the
- * AGX_Terrain. ShovelBarriers are created when needed by the AGX_Terrain. There
- * are, however, an FAGX_Shovel class. This is an internal class used only by
- * AGX_Terrain.
  */
 class AGXUNREALBARRIER_API FShovelBarrier
 {
@@ -46,8 +39,8 @@ public:
 	FTwoVectors GetCuttingEdge() const;
 	FTwoVectors GetCuttingEdgeWorld() const;
 
-	void SetCuttingDirection(const FVector& CuttingDirection);
-	FVector GetCuttingDirection() const;
+	void SetToothDirection(const FVector& CuttingDirection);
+	FVector GetToothDirection() const;
 
 	void SetToothLength(double ToothLength);
 	double GetToothLength() const;
@@ -124,7 +117,7 @@ public:
 	bool HasNative() const;
 	void AllocateNative(
 		FRigidBodyBarrier& Body, const FTwoVectors& TopEdge, const FTwoVectors& CuttingEdge,
-		const FVector& CuttingDirection);
+		const FVector& ToothDirection, double ToothLength);
 	FShovelRef* GetNative();
 	const FShovelRef* GetNative() const;
 	uint64 GetNativeAddress() const;

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -33,7 +34,7 @@ namespace AGX_ShovelComponent_helpers
 		Shovel.TopEdge.End.Parent.LocalScope = Owner;
 		Shovel.CuttingEdge.Start.Parent.LocalScope = Owner;
 		Shovel.CuttingEdge.End.Parent.LocalScope = Owner;
-		Shovel.CuttingDirection.Parent.LocalScope = Owner;
+		Shovel.ToothDirection.Parent.LocalScope = Owner;
 	}
 }
 
@@ -225,22 +226,22 @@ FVector UAGX_ShovelComponent::GetCuttingEdgeEndPositionWorld()
 	return GetComponentTransform().TransformPosition(CuttingEdge.End.LocalLocation);
 }
 
-void UAGX_ShovelComponent::SetCuttingDirection(FAGX_Frame InCuttingDirection)
+void UAGX_ShovelComponent::SetToothDirection(FAGX_Frame InToothDirection)
 {
-	CuttingDirection = InCuttingDirection;
+	ToothDirection = InToothDirection;
 	if (HasNative())
 	{
 		if (UAGX_RigidBodyComponent* Body = RigidBody.GetRigidBody())
 		{
-			const FRotator CuttingRotation = CuttingDirection.GetRotationRelativeTo(*Body, *this);
-			const FVector DirectionInBody = CuttingRotation.RotateVector(FVector::ForwardVector);
-			NativeBarrier.SetCuttingDirection(DirectionInBody);
+			const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*Body, *this);
+			const FVector DirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
+			NativeBarrier.SetToothDirection(DirectionInBody);
 		}
 		else
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Cannot set Cutting Direction on Shovel '%s' in '%s' because the Shovel does "
+				TEXT("Cannot set Tooth Direction on Shovel '%s' in '%s' because the Shovel does "
 					 "not have a Rigid Body."),
 				*GetName(), *GetLabelSafe(GetOwner()));
 		}
@@ -253,7 +254,7 @@ void UAGX_ShovelComponent::FinalizeShovelEdit()
 	{
 		SetTopEdge(TopEdge);
 		SetCuttingEdge(CuttingEdge);
-		SetCuttingDirection(CuttingDirection);
+		SetToothDirection(ToothDirection);
 	}
 }
 
@@ -261,8 +262,8 @@ FAGX_Frame* UAGX_ShovelComponent::GetFrame(EAGX_ShovelFrame Frame)
 {
 	switch (Frame)
 	{
-		case EAGX_ShovelFrame::CuttingDirection:
-			return &CuttingDirection;
+		case EAGX_ShovelFrame::ToothDirection:
+			return &ToothDirection;
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 			return &CuttingEdge.Start;
 		case EAGX_ShovelFrame::CuttingEdgeEnd:
@@ -316,7 +317,8 @@ namespace AGX_ShovelComponent_helpers
 		const FGuid Guid = Barrier.GetGuid();
 		AGX_CHECK(!Context.ShovelProperties->Contains(Guid));
 
-		auto Properties = NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		auto Properties =
+			NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(Barrier, &Context);
 		return Properties;
@@ -342,10 +344,10 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	CuttingEdge.End.LocalLocation = Cutting.v2;
 	CuttingEdge.End.LocalRotation = FRotator(ForceInitToZero);
 
-	CuttingDirection.LocalLocation = 0.5 * (Cutting.v1 + Cutting.v2);
-	const FRotator CuttingDirectionRotation =
-		FRotationMatrix::MakeFromX(Barrier.GetCuttingDirection()).Rotator();
-	CuttingDirection.LocalRotation = CuttingDirectionRotation;
+	ToothDirection.LocalLocation = 0.5 * (Cutting.v1 + Cutting.v2);
+	const FRotator ToothDirectionRotation =
+		FRotationMatrix::MakeFromX(Barrier.GetToothDirection()).Rotator();
+	ToothDirection.LocalRotation = ToothDirectionRotation;
 
 	ImportGuid = Barrier.GetGuid();
 
@@ -357,7 +359,7 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	TopEdge.End.Parent.Name = BodyName;
 	CuttingEdge.Start.Parent.Name = BodyName;
 	CuttingEdge.End.Parent.Name = BodyName;
-	CuttingDirection.Parent.Name = BodyName;
+	ToothDirection.Parent.Name = BodyName;
 
 	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr ||
 		Context->RigidBodies == nullptr)
@@ -495,6 +497,25 @@ TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentIn
 		});
 }
 
+void UAGX_ShovelComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelUsesToothDirection))
+	{
+		ToothDirection = CuttingDirection_DEPRECATED;
+		if (ShovelProperties != nullptr)
+		{
+			// Here we might actually overwrite a user-set ToothLength that was non-zero.
+			// But since the ToothLength now means the edge of the Shovel will translate
+			// this distance (along the ToothDirection vector), leaving it as-is will have much
+			// bigger and unwanted consequences. So this is the best we can do to get as close to
+			// the "old" behavior as we can.
+			ShovelProperties->ToothLength = 0.0;
+		}
+	}
+}
+
 bool UAGX_ShovelComponent::HasNative() const
 {
 	return NativeBarrier.HasNative();
@@ -604,10 +625,13 @@ void UAGX_ShovelComponent::AllocateNative()
 
 	const FTwoVectors TopEdgeInBody = TopEdge.GetLocationsRelativeTo(*BodyComponent, *this);
 	const FTwoVectors CuttingEdgeInBody = CuttingEdge.GetLocationsRelativeTo(*BodyComponent, *this);
-	const FRotator CuttingRotation = CuttingDirection.GetRotationRelativeTo(*BodyComponent, *this);
-	const FVector CuttingDirectionInBody = CuttingRotation.RotateVector(FVector::ForwardVector);
+	const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*BodyComponent, *this);
+	const FVector ToothDirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
+	const double ToothLength =
+		ShovelProperties != nullptr ? ShovelProperties->ToothLength.GetValue() : 0.0;
+
 	NativeBarrier.AllocateNative(
-		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, CuttingDirectionInBody);
+		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, ToothDirectionInBody, ToothLength);
 	check(HasNative()); /// \todo Consider better error handling than 'check'.
 
 	WritePropertiesToNative();
@@ -635,7 +659,7 @@ void UAGX_ShovelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShovelProperties);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TopEdge);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(CuttingEdge);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(CuttingDirection);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ToothDirection);
 }
 #endif
 
