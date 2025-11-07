@@ -76,6 +76,7 @@ public:
 	 */
 	static bool SetCurrentRaytraceDevice(int32 DeviceIndex);
 
+	static bool AGPUIsInitialized();
 	static void AGPUCleanup();
 
 private:

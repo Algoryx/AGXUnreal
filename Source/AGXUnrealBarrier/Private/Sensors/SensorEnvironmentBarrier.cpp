@@ -283,6 +283,12 @@ bool FSensorEnvironmentBarrier::SetCurrentRaytraceDevice(int32 DeviceIndex)
 	return agxSensor::RtConfig::setRaytraceDevice(DeviceIndex);
 }
 
+bool FSensorEnvironmentBarrier::AGPUIsInitialized()
+{
+	return agpu_is_initialized();
+}
+
+
 void FSensorEnvironmentBarrier::AGPUCleanup() {
 	agpu_cleanup();
 }
