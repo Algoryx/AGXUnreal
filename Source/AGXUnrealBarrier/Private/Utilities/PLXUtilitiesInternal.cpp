@@ -76,13 +76,8 @@ namespace PLXUtilities_helpers
 		std::shared_ptr<agxopenplx::AgxCache> AGXCache)
 	{
 		const TArray<FString> PLXBundlesPaths = FOpenPLXUtilities::GetBundlePaths();
-		std::vector<std::string> BundlePaths;
-		BundlePaths.reserve(PLXBundlesPaths.Num());
-		for (const FString& P : PLXBundlesPaths)
-			BundlePaths.push_back(ToStdString(P));
-
-		auto PLXCtx = std::make_shared<openplx::Core::Api::OpenPlxContext>(
-			std::vector<std::string>(BundlePaths));
+		std::vector<std::string> BundlePaths = ToStdStringVector(PLXBundlesPaths);
+		auto PLXCtx = std::make_shared<openplx::Core::Api::OpenPlxContext>(BundlePaths);
 
 		auto InternalContext = openplx::Core::Api::OpenPlxContextInternal::fromContext(*PLXCtx);
 		auto EvalCtx = InternalContext->evaluatorContext().get();
