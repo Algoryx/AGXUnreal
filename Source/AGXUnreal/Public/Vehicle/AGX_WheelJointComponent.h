@@ -4,6 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Constraints/AGX_ConstraintComponent.h"
+#include "Constraints/AGX_ConstraintEnumsCommon.h"
+#include "Constraints/Controllers/AGX_LockController.h"
+#include "Constraints/Controllers/AGX_RangeController.h"
+#include "Constraints/Controllers/AGX_TargetSpeedController.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -13,7 +17,15 @@
 class FWheelJointBarrier;
 
 /**
- * Locks all degrees of freedom except for rotation around the Z-axis.
+ * Note: the first Rigid Body should be the wheel, and the second the chassis.
+ *
+ * The wheel joint is designed to attach two bodies allowing free rotation around one axis, the
+ * wheel axle. A second axis becomes the steering axis and is also the direction for suspension.
+ * This allows for rotation about the center of the wheel around the axle as well as rotation about
+ * the steering axis. The wheel is also allowed to move up/down along the steering axis which acts
+ * as suspension. By default, there is no control on steering or driving. Suspension is initially
+ * locked. By using the secondary constraints, the relative angles can be computed and the extension
+ * for suspension can be controlled.
  */
 UCLASS(
 	ClassGroup = "AGX_Vehicle", Category = "AGX", Blueprintable,
@@ -29,9 +41,29 @@ public:
 	UAGX_WheelJointComponent();
 	virtual ~UAGX_WheelJointComponent() override;
 
+	/**
+	 * Get the current angle of the WheelJoint.
+	 * This function is only valid during runtime and will return 0.0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Wheel Joint")
+	double GetAngle() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Steering")
+	FAGX_ConstraintLockController SteeringLockController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Steering")
+	FAGX_ConstraintRangeController SteeringRangeController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Steering")
+	FAGX_ConstraintTargetSpeedController SteeringTargetSpeedController;
+
+
 	FWheelJointBarrier* GetNativeWheelJoint();
 	const FWheelJointBarrier* GetNativeWheelJoint() const;
 
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
+
 private:
 	virtual void CreateNativeImpl() override;
+	virtual void UpdateNativeProperties() override;
 };
