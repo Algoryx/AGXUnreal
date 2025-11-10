@@ -48,6 +48,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Wheel Joint")
 	double GetAngle() const;
 
+	// Steering.
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Steering")
 	FAGX_ConstraintLockController SteeringLockController;
 
@@ -57,6 +59,38 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Steering")
 	FAGX_ConstraintTargetSpeedController SteeringTargetSpeedController;
 
+	// Wheel.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Wheel")
+	FAGX_ConstraintLockController WheelLockController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Wheel")
+	FAGX_ConstraintRangeController WheelRangeController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Wheel")
+	FAGX_ConstraintTargetSpeedController WheelTargetSpeedController;
+
+	// Suspension.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Suspension")
+	FAGX_ConstraintLockController SuspensionLockController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Suspension")
+	FAGX_ConstraintRangeController SuspensionRangeController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Suspension")
+	FAGX_ConstraintTargetSpeedController SuspensionTargetSpeedController;
+
+	// SteeringBounds.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|SteeringBounds")
+	FAGX_ConstraintLockController SteeringBoundsLockController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|SteeringBounds")
+	FAGX_ConstraintRangeController SteeringBoundsRangeController;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|SteeringBounds")
+	FAGX_ConstraintTargetSpeedController SteeringBoundsTargetSpeedController;
 
 	FWheelJointBarrier* GetNativeWheelJoint();
 	const FWheelJointBarrier* GetNativeWheelJoint() const;

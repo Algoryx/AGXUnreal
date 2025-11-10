@@ -16,6 +16,7 @@ UAGX_WheelJointComponent::UAGX_WheelJointComponent()
 		   EDofFlag::DofFlagRotational1})
 {
 	NativeBarrier.Reset(new FWheelJointBarrier());
+
 }
 
 UAGX_WheelJointComponent::~UAGX_WheelJointComponent()
@@ -60,6 +61,30 @@ void UAGX_WheelJointComponent::CopyFrom(
 		*WJBarrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Steering));
 	SteeringTargetSpeedController.CopyFrom(
 		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Steering));
+
+	// Wheel.
+	WheelLockController.CopyFrom(
+		*WJBarrier->GetLockController(EAGX_WheelJointSecondaryConstraint::Wheel));
+	WheelRangeController.CopyFrom(
+		*WJBarrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Wheel));
+	WheelTargetSpeedController.CopyFrom(
+		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Wheel));
+
+	// Suspension.
+	SuspensionLockController.CopyFrom(
+		*WJBarrier->GetLockController(EAGX_WheelJointSecondaryConstraint::Suspension));
+	SuspensionRangeController.CopyFrom(
+		*WJBarrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Suspension));
+	SuspensionTargetSpeedController.CopyFrom(
+		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Suspension));
+
+	// SteeringBounds.
+	SteeringBoundsLockController.CopyFrom(
+		*WJBarrier->GetLockController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+	SteeringBoundsRangeController.CopyFrom(
+		*WJBarrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+	SteeringBoundsTargetSpeedController.CopyFrom(
+		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
 }
 
 namespace AGX_WheelJointComponent_helpers
@@ -75,6 +100,30 @@ namespace AGX_WheelJointComponent_helpers
 			Barrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Steering));
 		Constraint.SteeringTargetSpeedController.InitializeBarrier(
 			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Steering));
+
+		// Wheel.
+		Constraint.WheelLockController.InitializeBarrier(
+			Barrier->GetLockController(EAGX_WheelJointSecondaryConstraint::Wheel));
+		Constraint.WheelRangeController.InitializeBarrier(
+			Barrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Wheel));
+		Constraint.WheelTargetSpeedController.InitializeBarrier(
+			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Wheel));
+
+		// Suspension.
+		Constraint.SuspensionLockController.InitializeBarrier(
+			Barrier->GetLockController(EAGX_WheelJointSecondaryConstraint::Suspension));
+		Constraint.SuspensionRangeController.InitializeBarrier(
+			Barrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::Suspension));
+		Constraint.SuspensionTargetSpeedController.InitializeBarrier(
+			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Suspension));
+
+		// SteeringBounds.
+		Constraint.SteeringBoundsLockController.InitializeBarrier(
+			Barrier->GetLockController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+		Constraint.SteeringBoundsRangeController.InitializeBarrier(
+			Barrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+		Constraint.SteeringBoundsTargetSpeedController.InitializeBarrier(
+			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
 	}
 }
 
@@ -95,4 +144,19 @@ void UAGX_WheelJointComponent::UpdateNativeProperties()
 	SteeringLockController.UpdateNativeProperties();
 	SteeringRangeController.UpdateNativeProperties();
 	SteeringTargetSpeedController.UpdateNativeProperties();
+
+	// Wheel.
+	WheelLockController.UpdateNativeProperties();
+	WheelRangeController.UpdateNativeProperties();
+	WheelTargetSpeedController.UpdateNativeProperties();
+
+	// Suspension.
+	SuspensionLockController.UpdateNativeProperties();
+	SuspensionRangeController.UpdateNativeProperties();
+	SuspensionTargetSpeedController.UpdateNativeProperties();
+
+	// SteeringBounds.
+	SteeringBoundsLockController.UpdateNativeProperties();
+	SteeringBoundsRangeController.UpdateNativeProperties();
+	SteeringBoundsTargetSpeedController.UpdateNativeProperties();
 }
