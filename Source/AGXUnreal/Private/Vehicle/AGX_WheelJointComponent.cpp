@@ -12,8 +12,7 @@ struct FRigidBodyBarrier;
 UAGX_WheelJointComponent::UAGX_WheelJointComponent()
 	: UAGX_ConstraintComponent(
 		  {EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2,
-		   EDofFlag::DofFlagTranslational3, EDofFlag::DofFlagRotational1,
-		   EDofFlag::DofFlagRotational2})
+		   EDofFlag::DofFlagRotational1})
 {
 	NativeBarrier.Reset(new FWheelJointBarrier());
 }
