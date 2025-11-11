@@ -1,12 +1,12 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
 #include "AGX_LogCategory.h"
 
-FAGX_NativeOwnerInstanceData::FAGX_NativeOwnerInstanceData(
+FAGX_NativeOwnerSceneComponentInstanceData::FAGX_NativeOwnerSceneComponentInstanceData(
 	const IAGX_NativeOwner* NativeOwner, const USceneComponent* SourceComponent,
 	TFunction<IAGX_NativeOwner*(UActorComponent*)> InDowncaster)
 	: FSceneComponentInstanceData(SourceComponent)
@@ -15,7 +15,7 @@ FAGX_NativeOwnerInstanceData::FAGX_NativeOwnerInstanceData(
 	NativeAddress = NativeOwner->GetNativeAddress();
 }
 
-void FAGX_NativeOwnerInstanceData::ApplyToComponent(
+void FAGX_NativeOwnerSceneComponentInstanceData::ApplyToComponent(
 	UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
 {
 	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
@@ -25,7 +25,7 @@ void FAGX_NativeOwnerInstanceData::ApplyToComponent(
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("FAGX_NativeOwnerInstanceData::ApplyToComponent called on something not a "
+			TEXT("FAGX_NativeOwnerSceneComponentInstanceData::ApplyToComponent called on something not a "
 				 "IAGX_NativeOwner. This is a bug. The created Component may malfunction."));
 		return;
 	}
@@ -41,13 +41,13 @@ void FAGX_NativeOwnerInstanceData::ApplyToComponent(
 	NativeOwner->SetNativeAddress(NativeAddress);
 }
 
-bool FAGX_NativeOwnerInstanceData::ContainsData() const
+bool FAGX_NativeOwnerSceneComponentInstanceData::ContainsData() const
 {
 	// Extend with more tests once we store more data.
 	return Super::ContainsData() || HasNativeAddress();
 }
 
-void FAGX_NativeOwnerInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
+void FAGX_NativeOwnerSceneComponentInstanceData::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Super::AddReferencedObjects(Collector);
 
@@ -55,7 +55,7 @@ void FAGX_NativeOwnerInstanceData::AddReferencedObjects(FReferenceCollector& Col
 	/// point here?
 }
 
-void FAGX_NativeOwnerInstanceData::FindAndReplaceInstances(
+void FAGX_NativeOwnerSceneComponentInstanceData::FindAndReplaceInstances(
 	const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	Super::FindAndReplaceInstances(OldToNewInstanceMap);
@@ -64,7 +64,7 @@ void FAGX_NativeOwnerInstanceData::FindAndReplaceInstances(
 	/// point here?
 }
 
-bool FAGX_NativeOwnerInstanceData::HasNativeAddress() const
+bool FAGX_NativeOwnerSceneComponentInstanceData::HasNativeAddress() const
 {
 	return NativeAddress != 0;
 }

@@ -6,7 +6,7 @@
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
@@ -61,7 +61,7 @@ void UAGX_ShapeComponent::SetNativeAddress(uint64 NativeAddress)
 
 TStructOnScope<FActorComponentInstanceData> UAGX_ShapeComponent::GetComponentInstanceData() const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{
@@ -232,7 +232,7 @@ void UAGX_ShapeComponent::BeginPlay()
 	if (GIsReconstructingBlueprintInstances)
 	{
 		// This Component will soon be given a Native Geometry and Shape from a
-		// FAGX_NativeOwnerInstanceData, so don't create a new one here.
+		// FAGX_NativeOwnerSceneComponentInstanceData, so don't create a new one here.
 		return;
 	}
 

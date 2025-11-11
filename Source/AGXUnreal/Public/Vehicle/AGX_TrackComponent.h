@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "Vehicle/AGX_TrackWheel.h"
 #include "Vehicle/TrackBarrier.h"
 
@@ -489,10 +489,10 @@ private:
  * This struct's only purpose is to inform UAGX_TrackComponent when a Blueprint Reconstruction is
  * complete, i.e. when properties have been deserialized and instance data applied.
  *
- * It inherits FAGX_NativeOwnerInstanceData because UAGX_TrackComponent is a native owner.
+ * It inherits FAGX_NativeOwnerSceneComponentInstanceData because UAGX_TrackComponent is a native owner.
  */
 USTRUCT()
-struct AGXUNREAL_API FAGX_TrackComponentInstanceData : public FAGX_NativeOwnerInstanceData
+struct AGXUNREAL_API FAGX_TrackComponentInstanceData : public FAGX_NativeOwnerSceneComponentInstanceData
 {
 	GENERATED_BODY()
 

@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 
-#include "AGX_NativeOwnerInstanceData.generated.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.generated.h"
 
 class IAGX_NativeOwner;
 
@@ -19,11 +19,11 @@ class IAGX_NativeOwner;
  * the IAGX_NativeOwner interface.
  */
 USTRUCT()
-struct AGXUNREAL_API FAGX_NativeOwnerInstanceData : public FSceneComponentInstanceData
+struct AGXUNREAL_API FAGX_NativeOwnerSceneComponentInstanceData : public FSceneComponentInstanceData
 {
 	GENERATED_BODY();
 
-	FAGX_NativeOwnerInstanceData() = default;
+	FAGX_NativeOwnerSceneComponentInstanceData() = default;
 
 	/**
 	 * Record the Native Address of the given Native Owner, i.e., the pointer address of the AGX
@@ -35,11 +35,11 @@ struct AGXUNREAL_API FAGX_NativeOwnerInstanceData : public FSceneComponentInstan
 	 * @param SourceComponent The Native Owner as a USceneComponent.
 	 * @param InDowncaster Conversion function that casts a USceneComponent to a IAGX_NativeOwner.
 	 */
-	FAGX_NativeOwnerInstanceData(
+	FAGX_NativeOwnerSceneComponentInstanceData(
 		const IAGX_NativeOwner* NativeOwner, const USceneComponent* SourceComponent,
 		TFunction<IAGX_NativeOwner*(UActorComponent*)> InDowncaster);
 
-	virtual ~FAGX_NativeOwnerInstanceData() = default;
+	virtual ~FAGX_NativeOwnerSceneComponentInstanceData() = default;
 
 	//~ Begin FComponentInstanceData interface.
 	virtual void ApplyToComponent(
