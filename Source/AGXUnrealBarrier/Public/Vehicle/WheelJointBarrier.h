@@ -22,7 +22,7 @@ public:
 	FWheelJointBarrier();
 	FWheelJointBarrier(FWheelJointBarrier&& Other) = default;
 	FWheelJointBarrier(std::unique_ptr<FConstraintRef> Native);
-	virtual ~FWheelJointBarrier();
+	virtual ~FWheelJointBarrier() override;
 
 	double GetAngle() const;
 
