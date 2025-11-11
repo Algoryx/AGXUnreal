@@ -41,7 +41,7 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	{
 	}
 
-	/*
+	/**
 	 * Initial angle of the kingpin/knuckle of the right wheel [deg].
 	 * Measured from the direction along the axle, pointing to the right.
 	 * With Phi0 = 0, the knuckle points directly along the axle (bad).
@@ -50,40 +50,40 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Phi0 {0.0};
 
-	/*
+	/**
 	 * Length of the knuckle normalized to the wheel base [cm].
 	 * Wheel base is the distance between centers of the two wheels on the same axle.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double L {0.0};
 
-	/*
+	/**
 	 * Initial angle of the right tie rod which connects the knuckle to the steering column or rack
 	 * [deg]. Measured from the axle of the right wheel.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Alpha0 {0.0};
 
-	/*
+	/**
 	 * Distance of the steering column from the tie rods along the line connecting the wheels (in
 	 * units of L) [cm]. Only relevant for mechanisms like Bell crank.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lc {0.0};
 
-	/*
+	/**
 	 * Rack length in units of the wheel base for rack and pinion steering [cm].
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lr {0.0};
 
-	/*
+	/**
 	 * Gear ratio between steering wheel and the control angle of the linkage mechanism.
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Gear {0.0};
 
-	/*
+	/**
 	 * Side of the steering column position: 0 = left wheel, 1 = right wheel.
 	 * Specially used for Ackermann steering mechanisms.
 	 */

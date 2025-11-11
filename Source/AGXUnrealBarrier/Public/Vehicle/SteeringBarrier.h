@@ -25,7 +25,8 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 	virtual ~FSteeringBarrier() = default;
 
 	void AllocateAckermann(
-		FWheelJointBarrier& LeftWheel, FWheelJointBarrier& RightWheel, const FAGX_SteeringParametersData& Params);
+		FWheelJointBarrier& LeftWheel, FWheelJointBarrier& RightWheel,
+		const FAGX_SteeringParametersData& Params);
 
 	void AllocateBellCrank(
 		FWheelJointBarrier& LeftWheel, FWheelJointBarrier& RightWheel,

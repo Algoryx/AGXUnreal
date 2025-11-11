@@ -6,6 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "Constraints/ConstraintBarrier.h"
@@ -19,6 +20,7 @@
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Tires/TireBarrier.h"
 #include "TypeConversions.h"
+#include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/TrackBarrier.h"
 #include "Wire/WireBarrier.h"
 
@@ -108,6 +110,13 @@ bool FSimulationBarrier::Add(FShovelBarrier& Shovel)
 	return NativeRef->Native->add(Shovel.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FSteeringBarrier& Steering)
+{
+	check(HasNative());
+	check(Steering.HasNative());
+	return NativeRef->Native->add(Steering.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FTerrainBarrier& Terrain)
 {
 	check(HasNative());
@@ -190,6 +199,13 @@ bool FSimulationBarrier::Remove(FShovelBarrier& Shovel)
 	check(HasNative());
 	check(Shovel.HasNative());
 	return NativeRef->Native->remove(Shovel.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FSteeringBarrier& Steering)
+{
+	check(HasNative());
+	check(Steering.HasNative());
+	return NativeRef->Native->remove(Steering.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FTerrainBarrier& Terrain)

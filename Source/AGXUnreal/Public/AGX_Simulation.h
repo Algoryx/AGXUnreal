@@ -27,6 +27,7 @@ class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
+class UAGX_SteeringComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
 class UAGX_TireComponent;
@@ -490,6 +491,7 @@ public: // Member functions.
 	bool Add(UAGX_ShapeMaterial& Material);
 	bool Add(UAGX_ShovelComponent& Shovel);
 	bool Add(UAGX_StaticMeshComponent& Body);
+	bool Add(UAGX_SteeringComponent& Steering);
 	bool Add(AAGX_Terrain& Terrain);
 	bool Add(UAGX_TireComponent& Tire);
 	bool Add(UAGX_TrackComponent& Track);
@@ -501,6 +503,7 @@ public: // Member functions.
 	bool Remove(UAGX_ShapeComponent& Shape);
 	bool Remove(UAGX_ShapeMaterial& Material);
 	bool Remove(UAGX_ShovelComponent& Shovel);
+	bool Remove(UAGX_SteeringComponent& Steering);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
 	bool Remove(UAGX_TireComponent& Tire);
