@@ -3,12 +3,14 @@
 #include "Constraints/AGX_ConstraintComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Constraints/AGX_ConstraintActor.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Utilities/AGX_SlateUtilities.h"
+#include "Vehicle/AGX_WheelJointComponent.h"
 
 // Unreal Engine includes.
 #include "CanvasItem.h"
@@ -330,6 +332,70 @@ namespace
 				PDI, TransDofPrimitiveColor, AttachmentTransform, EAxis::Z, Height, TransOffset);
 		}
 	}
+
+	void RenderOptionalWheelJointComponentDetails(
+		FPrimitiveDrawInterface* PDI, const FSceneView* View,
+		const UAGX_WheelJointComponent* Constraint, const FAGX_ConstraintBodyAttachment& Attachment,
+		bool IsViolated)
+	{
+		AGX_CHECK(Constraint != nullptr);
+
+		static constexpr int32 LineCount = 6;
+		static constexpr float ScreenSize = 0.06f;
+		static constexpr float TiltDeg = 15.0f;
+		static constexpr float Zlength = 0.90f;
+		static constexpr float Zoffset = 0.05f;
+		static constexpr float EndTickLen = 0.3f; // Length of the little vertical endings.
+
+		const FTransform LocalToWorld(Attachment.GetGlobalFrameMatrix());
+		const float Dist = FVector::Dist(LocalToWorld.GetLocation(), View->ViewLocation);
+		const float WorldSize =
+			GetWorldSizeFromScreenFactor(ScreenSize, FMath::DegreesToRadians(View->FOV), Dist);
+
+		const float HalfWidth = WorldSize * 0.5f;
+		const float TotalHeight = WorldSize * Zlength;
+		const float Z0 = WorldSize * Zoffset;
+		const float DZ = (LineCount > 1) ? (TotalHeight / (LineCount - 1)) : 0.0f;
+
+		const FVector AxisX = LocalToWorld.GetUnitAxis(EAxis::X);
+		const FVector AxisZ = LocalToWorld.GetUnitAxis(EAxis::Z);
+
+		const FVector TiltVec =
+			FRotationMatrix(FRotator(-TiltDeg, 0.0f, 0.0f)).TransformVector(AxisX) * HalfWidth;
+
+		const FColor Color = IsViolated ? ColorViolated : FColor(200, 200, 200);
+
+		for (int32 i = 0; i < LineCount; ++i)
+		{
+			const float Z = Z0 + i * DZ;
+			const FVector Center = LocalToWorld.GetLocation() + AxisZ * Z;
+			const FVector Start = Center - TiltVec;
+			const FVector End = Center + TiltVec;
+
+			PDI->DrawLine(Start, End, Color, SDPG_Foreground, 1.5f, 0.0f, true);
+
+			// Top and bottom vertical ticks.
+			if (i == 0 || i == LineCount - 1)
+			{
+				const float TickLen = WorldSize * EndTickLen;
+				const FVector TickStart = Center;
+				const FVector TickEnd =
+					i == 0 ? Center - AxisZ * TickLen : Center + AxisZ * TickLen;
+				PDI->DrawLine(TickStart, TickEnd, Color, SDPG_Foreground, 1.5f, 0.0f, true);
+			}
+		}
+	}
+
+	void RenderOptionalSubclassDetails(
+		FPrimitiveDrawInterface* PDI, const FSceneView* View,
+		const UAGX_ConstraintComponent* Constraint, const FAGX_ConstraintBodyAttachment& Attachment,
+		bool IsViolated)
+	{
+		AGX_CHECK(Constraint != nullptr);
+
+		if (auto WheelJoint = Cast<UAGX_WheelJointComponent>(Constraint))
+			RenderOptionalWheelJointComponentDetails(PDI, View, WheelJoint, Attachment, IsViolated);
+	}
 }
 
 void FAGX_ConstraintComponentVisualizer::DrawVisualization(
@@ -464,7 +530,12 @@ void FAGX_ConstraintComponentVisualizer::DrawConstraint(
 
 	PDI->SetHitProxy(new HConstraintHitProxy(Constraint));
 	RenderDofPrimitives(PDI, View, Constraint, Constraint->BodyAttachment1, Violated);
-	RenderDofPrimitives(PDI, View, Constraint, Constraint->BodyAttachment2, Violated);
+	if (Violated)
+		RenderDofPrimitives(PDI, View, Constraint, Constraint->BodyAttachment2, Violated);
+
+	RenderOptionalSubclassDetails(PDI, View, Constraint, Constraint->BodyAttachment1, Violated);
+	if (Violated)
+		RenderOptionalSubclassDetails(PDI, View, Constraint, Constraint->BodyAttachment2, Violated);
 	PDI->SetHitProxy(nullptr);
 
 	const float Distance = 100.0f;
