@@ -17,6 +17,8 @@ UAGX_WheelJointComponent::UAGX_WheelJointComponent()
 {
 	NativeBarrier.Reset(new FWheelJointBarrier());
 
+	// In AGX Dynamics, the Suspension LockController is enabled by default, all other disabled.
+	SuspensionLockController.bEnable = true;
 }
 
 UAGX_WheelJointComponent::~UAGX_WheelJointComponent()
