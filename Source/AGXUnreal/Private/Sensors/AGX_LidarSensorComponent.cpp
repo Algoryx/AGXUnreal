@@ -401,12 +401,6 @@ void UAGX_LidarSensorComponent::PostInitProperties()
 	InitPropertyDispatcher();
 }
 
-void UAGX_LidarSensorComponent::MarkOutputAsRead()
-{
-	if (HasNative())
-		GetNativeAsLidar()->MarkOutputAsRead();
-}
-
 void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
@@ -427,6 +421,12 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(RayAngleNoiseSettings);
 }
 #endif // WITH_EDITOR
+
+void UAGX_LidarSensorComponent::MarkOutputAsRead()
+{
+	if (HasNative())
+		GetNativeAsLidar()->MarkOutputAsRead();
+}
 
 bool UAGX_LidarSensorComponent::IsCustomParametersSupported() const
 {
