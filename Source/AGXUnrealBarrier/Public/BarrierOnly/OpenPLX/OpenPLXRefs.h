@@ -5,7 +5,7 @@
 #include "agxOpenPLX/AgxCache.h"
 #include "agxOpenPLX/InputSignalListener.h"
 #include "agxOpenPLX/OutputSignalListener.h"
-#include "agxOpenPLX/SignalSourceMapper.h"
+#include "agxOpenPLX/AgxObjectMap.h"
 #include "openplx/Physics3D/System.h"
 #include "EndAGXIncludes.h"
 
@@ -26,9 +26,10 @@ struct FInputSignalListenerRef
 
 	FInputSignalListenerRef() = default;
 	FInputSignalListenerRef(
-		agxSDK::Assembly* Assembly, std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
-		std::shared_ptr<agxopenplx::SignalSourceMapper>& Mapper)
-		: Native(new agxopenplx::InputSignalListener(Assembly, InputQueue, Mapper))
+		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
+		std::shared_ptr<agxopenplx::AgxObjectMap>& Mapper)
+		: Native(new agxopenplx::InputSignalListener(
+			  InputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
 	{
 	}
 };
@@ -41,28 +42,9 @@ struct FOutputSignalListenerRef
 	FOutputSignalListenerRef(
 		const std::shared_ptr<openplx::Core::Object>& PlxModel,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
-		std::shared_ptr<agxopenplx::SignalSourceMapper> Mapper)
-		: Native(new agxopenplx::OutputSignalListener(PlxModel, OutputQueue, Mapper))
-	{
-	}
-};
-
-struct FInputSignalQueuePtr
-{
-	agxopenplx::InputSignalQueue* Native;
-	FInputSignalQueuePtr() = default;
-	FInputSignalQueuePtr(agxopenplx::InputSignalQueue* InNative)
-		: Native(InNative)
-	{
-	}
-};
-
-struct FOutputSignalQueuePtr
-{
-	agxopenplx::OutputSignalQueue* Native;
-	FOutputSignalQueuePtr() = default;
-	FOutputSignalQueuePtr(agxopenplx::OutputSignalQueue* InNative)
-		: Native(InNative)
+		std::shared_ptr<agxopenplx::AgxObjectMap> Mapper)
+		: Native(new agxopenplx::OutputSignalListener(
+			  PlxModel, OutputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
 	{
 	}
 };

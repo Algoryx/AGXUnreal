@@ -637,7 +637,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
+	const TArray<FString> PLXBundlesPaths = FOpenPLXUtilities::GetBundlePaths();
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
@@ -654,7 +654,8 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	try
 	{
 		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filename), Convert(PLXBundlesPath), Params);
+			Simulation, Convert(Filename),
+			FPLXUtilitiesInternal::BuildBundlePathsString(PLXBundlesPaths), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{
