@@ -93,8 +93,7 @@ void UAGX_SteeringComponent::EndPlay(const EEndPlayReason::Type Reason)
 		NativeBarrier.ReleaseNative();
 }
 
-TStructOnScope<FActorComponentInstanceData> UAGX_SteeringComponent::GetComponentInstanceData()
-	const
+TStructOnScope<FActorComponentInstanceData> UAGX_SteeringComponent::GetComponentInstanceData() const
 {
 	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
 		this, this,
@@ -106,6 +105,29 @@ TStructOnScope<FActorComponentInstanceData> UAGX_SteeringComponent::GetComponent
 }
 
 #if WITH_EDITOR
+bool UAGX_SteeringComponent::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
+	{
+		// List of names of properties that does not support editing after initialization.
+		static const TArray<FName> PropertiesNotEditableDuringPlay = {
+			AGX_MEMBER_NAME(LeftWheelJoint), AGX_MEMBER_NAME(RightWheelJoint)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+			return false;
+	}
+
+	return SuperCanEditChange;
+}
+
 void UAGX_SteeringComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -127,7 +149,7 @@ void UAGX_SteeringComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
 }
-#endif
+#endif // WITH_EDITOR
 
 void UAGX_SteeringComponent::UpdateNativeProperties()
 {

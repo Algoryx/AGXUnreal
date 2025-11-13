@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "Vehicle/AGX_WheelJointReference.h"
 #include "Vehicle/SteeringBarrier.h"
 
 // Unreal Engine includes.
@@ -43,6 +44,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Steering")
 	bool IsEnabled() const;
 
+	/**
+	 * Reference to the Wheel Joint on the left side of the vehicle that participates in steering.
+	 * This Wheel Joint will have its steering angle controlled according to the configured Steering
+	 * Type.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	FAGX_WheelJointReference LeftWheelJoint;
+
+	/**
+	 * Reference to the Wheel Joint on the right side of the vehicle that participates in steering.
+	 * This Wheel Joint will have its steering angle controlled according to the configured Steering
+	 * Type.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	FAGX_WheelJointReference RightWheelJoint;
+
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
@@ -72,6 +89,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
 	//~ End UActorComponent interface
 
 #if WITH_EDITOR
