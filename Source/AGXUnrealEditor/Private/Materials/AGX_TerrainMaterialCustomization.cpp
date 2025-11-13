@@ -155,7 +155,7 @@ FReply FAGX_TerrainMaterialCustomization::OnCreateShapeMaterialButtonClicked() c
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(TEXT("Unable to create asset given Asset Path: '%s'"), *AssetPath),
 			SNotificationItem::ECompletionState::CS_Fail);
-		FReply::Handled(); 
+		return FReply::Handled();
 	}
 
 	// Copy over the data.
