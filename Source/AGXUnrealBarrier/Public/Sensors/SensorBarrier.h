@@ -25,6 +25,9 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 		std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride);
 	virtual ~FSensorBarrier();
 
+	void AllocateStepStride();
+	bool HasStepStrideNative() const;
+
 	bool HasNative() const;
 	FSensorRef* GetNative();
 	const FSensorRef* GetNative() const;

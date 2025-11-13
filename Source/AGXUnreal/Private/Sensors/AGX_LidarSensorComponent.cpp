@@ -256,6 +256,8 @@ bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
 
 FSensorBarrier* UAGX_LidarSensorComponent::CreateNativeImpl()
 {
+	Super::CreateNativeImpl();
+
 	const bool RaytraceRTXSupported = FSensorEnvironmentBarrier::IsRaytraceSupported();
 	if (!RaytraceRTXSupported)
 	{

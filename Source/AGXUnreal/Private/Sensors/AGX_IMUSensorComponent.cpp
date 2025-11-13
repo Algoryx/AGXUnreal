@@ -724,6 +724,8 @@ void UAGX_IMUSensorComponent::UpdateTransformFromNative()
 
 FSensorBarrier* UAGX_IMUSensorComponent::CreateNativeImpl()
 {
+	Super::CreateNativeImpl();
+
 	AGX_CHECK(!HasNative());
 	if (HasNative())
 		return NativeBarrier.Get();

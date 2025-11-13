@@ -82,8 +82,7 @@ public:
 
 protected:
 	virtual void UpdateNativeProperties();
-	virtual FSensorBarrier* CreateNativeImpl()
-		PURE_VIRTUAL(UAGX_SensorComponentBase::CreateNativeImpl, return nullptr;);
+	virtual FSensorBarrier* CreateNativeImpl();
 	virtual void MarkOutputAsRead()
 		PURE_VIRTUAL(UAGX_SensorComponentBase::MarkOutputAsRead,);
 

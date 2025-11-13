@@ -30,6 +30,17 @@ FSensorBarrier::~FSensorBarrier()
 	ReleaseNative();
 }
 
+void FSensorBarrier::AllocateStepStride()
+{
+	check(!HasStepStrideNative());
+	StepStrideRef->Native = new agxSensor::SensorGroupStepStride();	
+}
+
+bool FSensorBarrier::HasStepStrideNative() const
+{
+	return StepStrideRef->Native != nullptr;
+}
+
 bool FSensorBarrier::HasNative() const
 {
 	return NativeRef->Native != nullptr;
@@ -51,6 +62,9 @@ void FSensorBarrier::ReleaseNative()
 {
 	if (HasNative())
 		NativeRef->Native = nullptr;
+
+	if (HasStepStrideNative())
+		StepStrideRef->Native = nullptr;
 }
 
 void FSensorBarrier::SetEnabled(bool Enabled)
@@ -67,35 +81,13 @@ bool FSensorBarrier::GetEnabled() const
 
 void FSensorBarrier::SetStepStride(uint32 Stride)
 {
-	check(HasNative());
-
-	if (StepStrideRef->Native == nullptr)
-	{
-		// This is the first time StepStride is used for this Sensor.
-		// A quirk of AGX is that if using StepStride for a Sensor, the Sensor itself
-		// should not be part of the agxSensor::Environment, but the StepStride should.
-		// Instead, the Sensor should be added to the StepStride object (agxSensor::SystemNode).
-		StepStrideRef->Native = new agxSensor::SensorGroupStepStride();
-		auto SensorAGX = NativeRef->Native;
-		if (auto Env = SensorAGX->getEnvironment())
-		{
-			Env->remove(SensorAGX);
-			Env->add(StepStrideRef->Native);
-		}
-
-		StepStrideRef->Native->add(SensorAGX);
-	}
-
+	check(HasStepStrideNative());
 	StepStrideRef->Native->setStride(Stride);
 }
 
 uint32 FSensorBarrier::GetStepStride() const
 {
-	check(HasNative());
-
-	if (StepStrideRef->Native == nullptr)
-		return 1; // This is the effective "default" when not using StepStride.
-
+	check(HasStepStrideNative());
 	return StepStrideRef->Native->getStride();
 }
 
@@ -128,30 +120,22 @@ void FSensorBarrier::SetNativeAddress(uint64 Address)
 bool FSensorBarrier::AddToEnvironment(FSensorEnvironmentBarrier& Environment)
 {
 	check(HasNative());
+	check(HasStepStrideNative());
 	check(Environment.HasNative());
 
-	if (StepStrideRef->Native != nullptr)
-	{
-		// We add the StepStride instead of the Sensor Native in order to ensure correct stepping.
-		// This is a quirk of AGX.
-		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
-		return Environment.GetNative()->Native->add(StepStrideRef->Native);
-	}
+	// We add the StepStride instead of the Sensor Native in order to ensure correct stepping.
+	// This is a quirk of AGX.
+	AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
+	AGX_CHECK(NStepStrideRef->Native->getEnvironment() == nullptr);
 
-	return Environment.GetNative()->Native->add(NativeRef->Native);
+	StepStrideRef->Native->add(NativeRef->Native);
+	return Environment.GetNative()->Native->add(StepStrideRef->Native);
 }
 
 bool FSensorBarrier::RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment)
 {
-	check(HasNative());
 	check(Environment.HasNative());
 
-	if (StepStrideRef->Native != nullptr)
-	{
-		// See also AddToEnvironment.
-		AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
-		return Environment.GetNative()->Native->remove(StepStrideRef->Native);
-	}
-
-	return Environment.GetNative()->Native->remove(NativeRef->Native);
+	// See also AddToEnvironment.
+	return Environment.GetNative()->Native->remove(StepStrideRef->Native);
 }

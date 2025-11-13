@@ -183,8 +183,13 @@ void UAGX_SensorComponentBase::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
 	NativeBarrier->SetEnabled(bEnabled);
+	NativeBarrier->SetStepStride(static_cast<uint32>(StepStride));
+}
 
-	// Default is 1, no need to create a Native SensorGroupStepStride Node in this case.
-	if (StepStride != 1)
-		NativeBarrier->SetStepStride(static_cast<uint32>(StepStride));
+FSensorBarrier* UAGX_SensorComponentBase::CreateNativeImpl()
+{
+	if (!NativeBarrier->HasStepStrideNative())
+		NativeBarrier->AllocateStepStride();
+
+	return GetNative();
 }
