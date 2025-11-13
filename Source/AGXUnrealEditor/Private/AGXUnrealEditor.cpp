@@ -117,6 +117,7 @@
 #include "Vehicle/AGX_TrackRenderer.h"
 #include "Vehicle/AGX_TrackRendererDetails.h"
 #include "Vehicle/AGX_TrackInternalMergePropertiesAssetTypeActions.h"
+#include "Vehicle/AGX_WheelJointReference.h"
 #include "Wire/AGX_WireActor.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/AGX_WireComponentVisualizer.h"
@@ -401,6 +402,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
+	// Wheel Joint Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_WheelJointReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
 	/*
 	 * Class customizations.
 	 */
@@ -575,6 +582,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_ShovelReference::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_WheelJointReference::StaticStruct()->GetFName());
 
 	/*
 	 * Class Customizations.

@@ -14,3 +14,15 @@ UAGX_WheelJointComponent* FAGX_WheelJointReference::GetWheelJointComponent() con
 {
 	return Super::GetComponent<UAGX_WheelJointComponent>();
 }
+
+void UAGX_WheelJointReference_FL::SetWheelJointComponent(
+	FAGX_WheelJointReference& Reference, UAGX_WheelJointComponent* Component)
+{
+	Reference.SetComponent(Component);
+}
+
+UAGX_WheelJointComponent* UAGX_WheelJointReference_FL::GetWheelJointComponent(
+	FAGX_WheelJointReference& Reference)
+{
+	return Cast<UAGX_WheelJointComponent>(Reference.GetComponent());
+}
