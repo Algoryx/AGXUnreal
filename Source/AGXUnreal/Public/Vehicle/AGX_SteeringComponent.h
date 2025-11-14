@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "Vehicle/AGX_SteeringParameters.h"
 #include "Vehicle/AGX_WheelJointReference.h"
 #include "Vehicle/SteeringBarrier.h"
 
@@ -59,6 +60,12 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Steering")
 	FAGX_WheelJointReference RightWheelJoint;
+
+	/**
+	* The Steering Parameters used to configure the current steering type.
+	*/
+	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	UAGX_SteeringParameters* SteeringParameters;
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.

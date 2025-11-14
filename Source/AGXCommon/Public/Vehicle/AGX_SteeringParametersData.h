@@ -47,47 +47,47 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	 * With Phi0 = 0, the knuckle points directly along the axle (bad).
 	 * With Phi0 = pi/2, the kingpin is parallel to the wheel (also not ideal).
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Phi0 {0.0};
 
 	/**
 	 * Length of the knuckle normalized to the wheel base [cm].
 	 * Wheel base is the distance between centers of the two wheels on the same axle.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double L {0.0};
 
 	/**
 	 * Initial angle of the right tie rod which connects the knuckle to the steering column or rack
 	 * [deg]. Measured from the axle of the right wheel.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Alpha0 {0.0};
 
 	/**
 	 * Distance of the steering column from the tie rods along the line connecting the wheels (in
 	 * units of L) [cm]. Only relevant for mechanisms like Bell crank.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lc {0.0};
 
 	/**
 	 * Rack length in units of the wheel base for rack and pinion steering [cm].
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lr {0.0};
 
 	/**
 	 * Gear ratio between steering wheel and the control angle of the linkage mechanism.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Gear {0.0};
 
 	/**
 	 * Side of the steering column position: 0 = left wheel, 1 = right wheel.
 	 * Specially used for Ackermann steering mechanisms.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	int32 Side {0};
 };
 
