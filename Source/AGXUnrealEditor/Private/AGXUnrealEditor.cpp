@@ -114,6 +114,8 @@
 #include "Vehicle/AGX_BellCrankSteeringParametersTypeActions.h"
 #include "Vehicle/AGX_DavisSteeringParametersTypeActions.h"
 #include "Vehicle/AGX_RackPinionSteeringParametersTypeActions.h"
+#include "Vehicle/AGX_SteeringComponent.h"
+#include "Vehicle/AGX_SteeringComponentCustomization.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -532,6 +534,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_SimulationCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_SteeringComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_SteeringComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_TerrainMaterial::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_TerrainMaterialCustomization::MakeInstance));
@@ -651,6 +658,8 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_ShapeComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_Simulation::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(UAGX_SteeringComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
 
