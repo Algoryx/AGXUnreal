@@ -81,6 +81,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
 
+	/**
+	 * Set the current steering angle [deg].
+	 * This function is only valid during runtime and will do nothing otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Steering")
+	void SetSteeringAngle(double Angle);
+
+	/**
+	 * Get the current steering angle [deg].
+	 * This function is only valid during runtime and will return 0.0 otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Steering")
+	double GetSteeringAngle() const;
+
 	void CopyFrom(const FSteeringBarrier& Barrier, FAGX_ImportContext* Context);
 
 	FSteeringBarrier* GetNative();
@@ -105,6 +119,7 @@ public:
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	virtual void OnRegister() override;
 	// ~End UObject interface.
 #endif
 
@@ -112,7 +127,6 @@ private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
-	void UpdateNativeProperties();
 	void CreateNative();
 	bool GetEnabled() const; // To be able to use AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL.
 

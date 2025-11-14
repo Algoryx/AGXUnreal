@@ -101,6 +101,18 @@ bool FSteeringBarrier::GetEnabled() const
 	return NativeRef->Native->getEnable();
 }
 
+void FSteeringBarrier::SetSteeringAngle(double Angle)
+{
+	check(HasNative());
+	return NativeRef->Native->setSteeringAngle(ConvertAngleToAGX(Angle));
+}
+
+double FSteeringBarrier::GetSteeringAngle() const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(NativeRef->Native->getSteeringAngle());
+}
+
 void FSteeringBarrier::SetName(const FString& Name)
 {
 	check(HasNative());

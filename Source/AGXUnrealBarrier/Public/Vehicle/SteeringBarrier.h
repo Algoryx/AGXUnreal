@@ -43,6 +43,9 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
 
+	void SetSteeringAngle(double Angle);
+	double GetSteeringAngle() const;
+
 	void SetName(const FString& NewName);
 	FString GetName() const;
 

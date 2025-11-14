@@ -3,6 +3,18 @@
 #include "Vehicle/AGX_SteeringComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
+#include "AGX_Simulation.h"
+#include "Vehicle/AGX_AckermannSteeringParameters.h"
+#include "Vehicle/AGX_BellCrankSteeringParameters.h"
+#include "Vehicle/AGX_DavisSteeringParameters.h"
+#include "Vehicle/AGX_RackPinionSteeringParameters.h"
+#include "Vehicle/AGX_WheelJointComponent.h"
+#include "Vehicle/WheelJointBarrier.h"
+#include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
+
+// AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -26,6 +38,22 @@ bool UAGX_SteeringComponent::IsEnabled() const
 	}
 
 	return bEnabled;
+}
+
+void UAGX_SteeringComponent::SetSteeringAngle(double Angle)
+{
+	if (!HasNative())
+		return;
+
+	NativeBarrier.SetSteeringAngle(Angle);
+}
+
+double UAGX_SteeringComponent::GetSteeringAngle() const
+{
+	if (!HasNative())
+		return 0.0;
+
+	return NativeBarrier.GetSteeringAngle();
 }
 
 void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_ImportContext* Context)
@@ -140,6 +168,26 @@ void UAGX_SteeringComponent::PostEditChangeChainProperty(FPropertyChangedChainEv
 	Super::PostEditChangeChainProperty(Event);
 }
 
+namespace AGX_SteeringComponent_helpers
+{
+	void SetLocalScope(UAGX_SteeringComponent& Component)
+	{
+		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		Component.LeftWheelJoint.LocalScope = Owner;
+		Component.RightWheelJoint.LocalScope = Owner;
+	}
+}
+
+void UAGX_SteeringComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// On Register is called after all object initialization has completed, i.e. Unreal Engine
+	// will not be messing with this object anymore. It is now safe to set the Local Scope on our
+	// Component References.
+	AGX_SteeringComponent_helpers::SetLocalScope(*this);
+}
+
 void UAGX_SteeringComponent::InitPropertyDispatcher()
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
@@ -151,14 +199,94 @@ void UAGX_SteeringComponent::InitPropertyDispatcher()
 }
 #endif // WITH_EDITOR
 
-void UAGX_SteeringComponent::UpdateNativeProperties()
-{
-	// TODO
-}
-
 void UAGX_SteeringComponent::CreateNative()
 {
-	// TODO
+	auto CreateNativeFailNotification = [this]()
+	{
+		const FString Text = FString::Printf(
+			TEXT("Could not create native for Steerin Component '%s' in '%s'. The "
+				 "Output Log may include more information."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_Fail);
+	};
+
+	auto LeftWheelComp = LeftWheelJoint.GetWheelJointComponent();
+	FWheelJointBarrier* LeftWheelBarrier =
+		LeftWheelComp != nullptr
+			? static_cast<FWheelJointBarrier*>(LeftWheelComp->GetOrCreateNative())
+			: nullptr;
+	if (LeftWheelBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Steering Component '%s' in '%s' does not have a valid left wheel selected."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		CreateNativeFailNotification();
+		return;
+	}
+
+	auto RightWheelComp = RightWheelJoint.GetWheelJointComponent();
+	FWheelJointBarrier* RightWheelBarrier =
+		RightWheelComp != nullptr
+			? static_cast<FWheelJointBarrier*>(RightWheelComp->GetOrCreateNative())
+			: nullptr;
+	if (RightWheelBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Steering Component '%s' in '%s' does not have a valid right wheel selected."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		CreateNativeFailNotification();
+		return;
+	}
+
+	if (SteeringParameters == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Steering Component '%s' in '%s' does not have a valid Steering Parameters asset "
+				 "selected."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		CreateNativeFailNotification();
+		return;
+	}
+
+	if (SteeringParameters->IsA<UAGX_AckermannSteeringParameters>())
+	{
+		NativeBarrier.AllocateAckermann(
+			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
+	}
+	else if (SteeringParameters->IsA<UAGX_BellCrankSteeringParameters>())
+
+	{
+		NativeBarrier.AllocateBellCrank(
+			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
+	}
+	else if (SteeringParameters->IsA<UAGX_DavisSteeringParameters>())
+	{
+		NativeBarrier.AllocateDavis(
+			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
+	}
+	else if (SteeringParameters->IsA<UAGX_RackPinionSteeringParameters>())
+	{
+		NativeBarrier.AllocateRackPinion(
+			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
+	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Steering Component '%s' in '%s' has an unknown Steering Parameters asset "
+				 "type selected."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		CreateNativeFailNotification();
+		return;
+	}
+
+	AGX_CHECK(HasNative());
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
+	if (Sim != nullptr)
+		Sim->Add(*this);
 }
 
 bool UAGX_SteeringComponent::GetEnabled() const

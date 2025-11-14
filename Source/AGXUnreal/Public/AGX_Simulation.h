@@ -30,6 +30,7 @@ class UAGX_ShovelComponent;
 class UAGX_SteeringComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
+class UAGX_SteeringComponent;
 class UAGX_TireComponent;
 class UAGX_TrackComponent;
 class UAGX_WireComponent;
