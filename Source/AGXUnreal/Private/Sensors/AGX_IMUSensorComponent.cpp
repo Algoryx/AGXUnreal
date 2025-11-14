@@ -6,7 +6,7 @@
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -152,7 +152,7 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogTemp, Warning,
+			LogAGX, Warning,
 			TEXT("UpdateNativeProperties called on IMU Sensor Component '%s' in '%s' which does "
 				 "not have a Native object. Nothing will be done."),
 			*GetName(), *GetLabelSafe(GetOwner()));
@@ -825,7 +825,7 @@ void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 TStructOnScope<FActorComponentInstanceData> UAGX_IMUSensorComponent::GetComponentInstanceData()
 	const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{

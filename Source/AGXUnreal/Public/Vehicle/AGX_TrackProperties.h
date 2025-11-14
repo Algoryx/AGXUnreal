@@ -18,7 +18,7 @@
  * all properties has been taken from AGX Dynamics.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", BlueprintType,
+	ClassGroup = "AGX_Vehicle", Category = "AGX", BlueprintType,
 	AutoCollapseCategories = ("Hinge Compliance", "Hinge Spook Damping"))
 class AGXUNREAL_API UAGX_TrackProperties : public UObject
 {

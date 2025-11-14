@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -180,7 +180,7 @@ void UAGX_StaticMeshComponent::TickComponent(
 TStructOnScope<FActorComponentInstanceData> UAGX_StaticMeshComponent::GetComponentInstanceData()
 	const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{

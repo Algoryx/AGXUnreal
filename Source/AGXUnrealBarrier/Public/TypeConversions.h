@@ -11,6 +11,7 @@
 #include "AGX_MotionControl.h"
 #include "AGX_RealInterval.h"
 #include "Constraints/AGX_Constraint2DOFFreeDOF.h"
+#include "Constraints/AGX_ConstraintEnumsCommon.h"
 #include "Contacts/AGX_ContactEnums.h"
 #include "Materials/AGX_ContactMaterialEnums.h"
 #include "RigidBodyBarrier.h"
@@ -54,6 +55,7 @@
 #include <agxUtil/agxUtil.h>
 #include <agxVehicle/TrackInternalMergeProperties.h>
 #include <agxVehicle/TrackWheel.h>
+#include <agxVehicle/WheelJoint.h>
 #include <agxWire/Node.h>
 #include "EndAGXIncludes.h"
 
@@ -1023,6 +1025,56 @@ inline agx::Constraint2DOF::DOF Convert(EAGX_Constraint2DOFFreeDOF Dof)
 													: agx::Constraint2DOF::SECOND;
 }
 
+inline agxVehicle::WheelJoint::SecondaryConstraint Convert(EAGX_WheelJointSecondaryConstraint Sc)
+{
+	switch (Sc)
+	{
+		case EAGX_WheelJointSecondaryConstraint::Steering:
+			return agxVehicle::WheelJoint::STEERING;
+
+		case EAGX_WheelJointSecondaryConstraint::Wheel:
+			return agxVehicle::WheelJoint::WHEEL;
+
+		case EAGX_WheelJointSecondaryConstraint::Suspension:
+			return agxVehicle::WheelJoint::SUSPENSION;
+
+		case EAGX_WheelJointSecondaryConstraint::SteeringBounds:
+			return agxVehicle::WheelJoint::STEERINGCONSTRAINT_BOUNDS;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Conversion failed: tried to convert an EAGX_WheelJointSecondaryConstraint enum "
+			 "literal to a agxVehicle::WheelJoint::SecondaryConstraint enum literal, but got "
+			 "unsupported or unknown enum literal. Returning Steering."));
+	return agxVehicle::WheelJoint::STEERING;
+}
+
+inline EAGX_WheelJointSecondaryConstraint Convert(agxVehicle::WheelJoint::SecondaryConstraint Sc)
+{
+	switch (Sc)
+	{
+		case agxVehicle::WheelJoint::STEERING:
+			return EAGX_WheelJointSecondaryConstraint::Steering;
+
+		case agxVehicle::WheelJoint::WHEEL:
+			return EAGX_WheelJointSecondaryConstraint::Wheel;
+
+		case agxVehicle::WheelJoint::SUSPENSION:
+			return EAGX_WheelJointSecondaryConstraint::Suspension;
+
+		case agxVehicle::WheelJoint::STEERINGCONSTRAINT_BOUNDS:
+			return EAGX_WheelJointSecondaryConstraint::SteeringBounds;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Conversion failed: tried to convert a agxVehicle::WheelJoint::SecondaryConstraint "
+			 "enum literal to a EAGX_WheelJointSecondaryConstraint enum literal, but got "
+			 "unsupported or unknown enum literal. Returning Steering."));
+	return EAGX_WheelJointSecondaryConstraint::Steering;
+}
+
 //
 // Enumerations, Lidar.
 //
@@ -1170,7 +1222,6 @@ inline agxSensor::LidarModelOusterOS::LidarMode Convert(EAGX_OusterOSMode Mode)
 			 "an agxSensor::LidarModelOusterOS::LidarMode literal."));
 	return agxSensor::LidarModelOusterOS::Mode_512x10;
 }
-
 
 inline EAGX_OusterOSMode Convert(agxSensor::LidarModelOusterOS::LidarMode Mode)
 {

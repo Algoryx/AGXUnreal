@@ -110,6 +110,12 @@
 #include "Tires/AGX_TwoBodyTireComponentCustomization.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
+#include "Vehicle/AGX_AckermannSteeringParametersTypeActions.h"
+#include "Vehicle/AGX_BellCrankSteeringParametersTypeActions.h"
+#include "Vehicle/AGX_DavisSteeringParametersTypeActions.h"
+#include "Vehicle/AGX_RackPinionSteeringParametersTypeActions.h"
+#include "Vehicle/AGX_SteeringComponent.h"
+#include "Vehicle/AGX_SteeringComponentCustomization.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -117,6 +123,7 @@
 #include "Vehicle/AGX_TrackRenderer.h"
 #include "Vehicle/AGX_TrackRendererDetails.h"
 #include "Vehicle/AGX_TrackInternalMergePropertiesAssetTypeActions.h"
+#include "Vehicle/AGX_WheelJointReference.h"
 #include "Wire/AGX_WireActor.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/AGX_WireComponentVisualizer.h"
@@ -281,12 +288,21 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 
 	RegisterAssetTypeAction(
 		AssetTools,
+		MakeShareable(new FAGX_AckermannSteeringParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
+		MakeShareable(new FAGX_BellCrankSteeringParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
 		MakeShareable(new FAGX_ConstraintMergeSplitThresholdsTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_ContactMaterialAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_CustomRayPatternParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
+		MakeShareable(new FAGX_DavisSteeringParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_GenericHorizontalSweepParametersTypeActions(AgxAssetCategoryBit)));
@@ -303,6 +319,9 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		AssetTools, MakeShareable(new FAGX_OusterOS2ParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_PlayRecordTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
+		MakeShareable(new FAGX_RackPinionSteeringParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_ShapeMaterialTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
@@ -398,6 +417,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 	// Shovel Reference uses the base class customization.
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_ShovelReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
+	// Wheel Joint Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_WheelJointReference::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
@@ -509,6 +534,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_SimulationCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_SteeringComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_SteeringComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_TerrainMaterial::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_TerrainMaterialCustomization::MakeInstance));
@@ -576,6 +606,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_ShovelReference::StaticStruct()->GetFName());
 
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_WheelJointReference::StaticStruct()->GetFName());
+
 	/*
 	 * Class Customizations.
 	 */
@@ -607,8 +640,7 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
 
-	PropertyModule.UnregisterCustomClassLayout(
-		UAGX_IMUSensorComponent::StaticClass()->GetFName());
+	PropertyModule.UnregisterCustomClassLayout(UAGX_IMUSensorComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_LidarAmbientMaterial::StaticClass()->GetFName());
@@ -626,6 +658,8 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_ShapeComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_Simulation::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(UAGX_SteeringComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
 
