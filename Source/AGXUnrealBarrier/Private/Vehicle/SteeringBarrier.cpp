@@ -131,6 +131,22 @@ FGuid FSteeringBarrier::GetGuid() const
 	return Convert(NativeRef->Native->getUuid());
 }
 
+EAGX_SteeringType FSteeringBarrier::GetType() const
+{
+	check(HasNative());
+
+	if (NativeRef->Native->is<agxVehicle::Ackermann>())
+		return EAGX_SteeringType::Ackermann;
+	if (NativeRef->Native->is<agxVehicle::BellCrank>())
+		return EAGX_SteeringType::BellCrank;
+	if (NativeRef->Native->is<agxVehicle::Davis>())
+		return EAGX_SteeringType::Davis;
+	if (NativeRef->Native->is<agxVehicle::RackPinion>())
+		return EAGX_SteeringType::RackPinion;
+
+	return EAGX_SteeringType::Invalid;
+}
+
 bool FSteeringBarrier::HasNative() const
 {
 	return NativeRef != nullptr && NativeRef->Native != nullptr;

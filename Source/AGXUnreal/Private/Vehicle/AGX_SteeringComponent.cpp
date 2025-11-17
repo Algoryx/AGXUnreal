@@ -5,12 +5,14 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Vehicle/AGX_AckermannSteeringParameters.h"
 #include "Vehicle/AGX_BellCrankSteeringParameters.h"
 #include "Vehicle/AGX_DavisSteeringParameters.h"
 #include "Vehicle/AGX_RackPinionSteeringParameters.h"
 #include "Vehicle/AGX_WheelJointComponent.h"
 #include "Vehicle/WheelJointBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -58,7 +60,21 @@ double UAGX_SteeringComponent::GetSteeringAngle() const
 
 void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	ImportGuid = Barrier.GetGuid();
+	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
+	bEnabled = Barrier.GetEnabled();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
+	Rename(*Name);
+
 	// TODO
+	/*if (Context != nullptr && Context->Constraints != nullptr)
+	{
+		// find wheeljoints and assign them here.
+	}*/
 }
 
 FSteeringBarrier* UAGX_SteeringComponent::GetNative()

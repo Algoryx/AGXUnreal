@@ -15,6 +15,16 @@ class FWheelJointBarrier;
 struct FAGX_SteeringParametersData;
 struct FSteeringRef;
 
+UENUM()
+enum class EAGX_SteeringType
+{
+	Invalid,
+	Ackermann,
+	BellCrank,
+	Davis,
+	RackPinion
+};
+
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FSteeringBarrier
 {
@@ -50,6 +60,8 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 	FString GetName() const;
 
 	FGuid GetGuid() const;
+
+	EAGX_SteeringType GetType() const;
 
 	bool HasNative() const;
 	FSteeringRef* GetNative();
