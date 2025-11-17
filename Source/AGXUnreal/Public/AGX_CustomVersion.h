@@ -63,6 +63,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// completely.
 		RuntimeImportSupport,
 
+		// Shovels in AGX uses ToothDirection and ToothLength instead of CuttingDirection.
+		ShovelUsesToothDirection,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

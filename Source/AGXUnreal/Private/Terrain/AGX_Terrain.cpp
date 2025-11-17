@@ -1373,8 +1373,13 @@ void AAGX_Terrain::CreateNativeShovels()
 		const FVector CuttingDirectionVector =
 			WorldToBody.TransformVector(CuttingDirection->GetVectorDirection()).GetSafeNormal();
 
+		// Passing ToothLength 0.0 is the closest we can get to getting the same behavior of old
+		// Shovels when using the new AGX Shovel which moves the edge along the ToothDirection a
+		// distance ToothLength. So we don't want to pass in the actual ToothLength here even if it
+		// exists.
 		ShovelBarrier.AllocateNative(
-			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector);
+			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector,
+			/*ToothLength*/ 0.0);
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 

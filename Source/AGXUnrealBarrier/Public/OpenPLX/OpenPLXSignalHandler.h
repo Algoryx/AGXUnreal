@@ -66,6 +66,4 @@ private:
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
 	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
 	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
-	std::shared_ptr<FInputSignalQueuePtr> InputQueuePtr;
-	std::shared_ptr<FOutputSignalQueuePtr> OutputQueuePtr;
 };
