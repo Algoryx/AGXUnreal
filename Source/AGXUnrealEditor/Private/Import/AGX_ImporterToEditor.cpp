@@ -31,9 +31,11 @@
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
+#include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/TrackBarrier.h"
 #include "Wire/AGX_WireComponent.h"
 
@@ -1392,6 +1394,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Shovels)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Shovels, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.Steerings != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.Steerings)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Steerings, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else

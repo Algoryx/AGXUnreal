@@ -47,8 +47,12 @@
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
+#include "Vehicle/AGX_WheelJointComponent.h"
+#include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/TrackBarrier.h"
+#include "Vehicle/WheelJointBarrier.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/WireBarrier.h"
 
@@ -181,6 +185,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_ShovelComponent, T>)
 			return *Context.Shovels.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_SteeringComponent, T>)
+			return *Context.Steerings.Get();
+
 		if constexpr (std::is_base_of_v<UAGX_WireComponent, T>)
 			return *Context.Wires.Get();
 
@@ -275,6 +282,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.Constraints = MakeUnique<TMap<FGuid, UAGX_ConstraintComponent*>>();
 	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
+	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
@@ -448,7 +456,8 @@ EAGX_ImportResult FAGX_Importer::AddObserverFrame(
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("FAGX_Importer::AddObserverFrame called for Observer Frame '%s' which does not "
-				 "belong to a Rigid Body. The Observer Frame will not be imported."), *Frame.GetName());
+				 "belong to a Rigid Body. The Observer Frame will not be imported."),
+			*Frame.GetName());
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
@@ -633,6 +642,17 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 
 	{
 		FScopedSlowTask T(
+			(float) SimObjects.GetWheelJoints().Num(), FText::FromString("Wheel Joints"));
+		for (const auto& W : SimObjects.GetWheelJoints())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *W.GetName())));
+			Res |= AddComponent<UAGX_WheelJointComponent, FConstraintBarrier>(W, *Root, OutActor);
+		}
+	}
+
+	{
+		FScopedSlowTask T(
 			(float) SimObjects.GetTwoBodyTires().Num(), FText::FromString("TwoBodyTires"));
 		for (const auto& Tire : SimObjects.GetTwoBodyTires())
 		{
@@ -649,6 +669,16 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		{
 			T.EnterProgressFrame(1.f); // Shovel lacks GetName().
 			Res |= AddShovel(Shovel, OutActor);
+		}
+	}
+
+	{
+		FScopedSlowTask T((float) SimObjects.GetSteerings().Num(), FText::FromString("Steerings"));
+		for (const auto& S : SimObjects.GetSteerings())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *S.GetName())));
+			Res |= AddComponent<UAGX_SteeringComponent, FSteeringBarrier>(S, *Root, OutActor);
 		}
 	}
 

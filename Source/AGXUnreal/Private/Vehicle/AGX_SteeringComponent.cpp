@@ -70,11 +70,13 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);
 
-	// TODO
-	/*if (Context != nullptr && Context->Constraints != nullptr)
-	{
-		// find wheeljoints and assign them here.
-	}*/
+	if (Context == nullptr || Context->Steerings == nullptr || Context->Constraints == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Steerings->Contains(ImportGuid));
+	Context->Steerings->Add(ImportGuid, this);
+
+	// TODO: setup wheel joint refs and create Steering Parameters Asset here.
 }
 
 FSteeringBarrier* UAGX_SteeringComponent::GetNative()
