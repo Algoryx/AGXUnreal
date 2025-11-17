@@ -32,6 +32,7 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_SteeringComponent.h"
+#include "Vehicle/AGX_SteeringParameters.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -150,6 +151,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_ShovelProperties>)
 			return FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_SteeringParameters>)
+			return FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_TrackProperties>)
 			return FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName();
@@ -569,6 +573,9 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ShovelProperties>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName())));
 
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_SteeringParameters>(FPaths::Combine(
+			RootDirectory, FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_TrackProperties>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName())));
 
@@ -679,6 +686,16 @@ namespace AGX_ImporterToEditor_helpers
 			const FString AssetType =
 				FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName();
 			for (const auto& [Guid, Sp] : *Context->ShovelProperties)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
+			}
+		}
+
+		if (Context->SteeringParameters != nullptr)
+		{
+			const FString AssetType =
+				FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
+			for (const auto& [Guid, Sp] : *Context->SteeringParameters)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
 			}
@@ -823,6 +840,12 @@ namespace AGX_ImporterToEditor_helpers
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
+		if (Context.SteeringParameters != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.SteeringParameters)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
 		if (Context.TrackProperties != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.TrackProperties)
@@ -939,8 +962,12 @@ namespace AGX_ImporterToEditor_helpers
 		{
 			Node = OutBlueprint.SimpleConstructionScript->CreateNode(
 				ReimportedComponent.GetClass(), Name);
-			if constexpr (std::is_base_of_v<USceneComponent, TComponent>)
+
+			if (Parent != nullptr)
 				Parent->AddChildNode(Node);
+			else
+				OutBlueprint.SimpleConstructionScript->GetDefaultSceneRootNode()->AddChildNode(
+					Node);
 
 			AGX_CHECK(OutGuidToNode.FindRef(Guid) == nullptr);
 			OutGuidToNode.Add(Guid, Node);
@@ -1301,6 +1328,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 	if (Context.ShovelProperties != nullptr)
 	{
 		for (const auto& [Guid, Sp] : *Context.ShovelProperties)
+		{
+			const auto A = UpdateOrCreateAsset(*Sp, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
+	if (Context.SteeringParameters != nullptr)
+	{
+		for (const auto& [Guid, Sp] : *Context.SteeringParameters)
 		{
 			const auto A = UpdateOrCreateAsset(*Sp, Context);
 			AGX_CHECK(A != nullptr);

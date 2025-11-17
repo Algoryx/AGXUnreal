@@ -63,6 +63,8 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 
 	EAGX_SteeringType GetType() const;
 
+	FAGX_SteeringParametersData GetSteeringParameters() const;
+
 	bool HasNative() const;
 	FSteeringRef* GetNative();
 	const FSteeringRef* GetNative() const;

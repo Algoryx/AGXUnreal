@@ -37,6 +37,21 @@ namespace SteeringBarrier_helpers
 		return ParamsAGX;
 	}
 
+	FAGX_SteeringParametersData CreateSteeringParameters(
+		const agxVehicle::SteeringParameters& ParamsAGX)
+	{
+		FAGX_SteeringParametersData Params;
+		Params.Phi0 = ConvertAngleToUnreal<double>(ParamsAGX.phi0);
+		Params.L = ConvertDistanceToUnreal<double>(ParamsAGX.l);
+		Params.Alpha0 = ConvertAngleToUnreal<double>(ParamsAGX.alpha0);
+		Params.Lc = ConvertDistanceToUnreal<double>(ParamsAGX.lc);
+		Params.Lr = ConvertDistanceToUnreal<double>(ParamsAGX.lr);
+		Params.Gear = ParamsAGX.gear;
+		Params.Side = static_cast<int32>(ParamsAGX.side);
+
+		return Params;
+	}
+
 	template <typename T>
 	agxVehicle::SteeringRef AllocateImpl(
 		FWheelJointBarrier& LeftWheel, FWheelJointBarrier& RightWheel,
@@ -145,6 +160,13 @@ EAGX_SteeringType FSteeringBarrier::GetType() const
 		return EAGX_SteeringType::RackPinion;
 
 	return EAGX_SteeringType::Invalid;
+}
+
+FAGX_SteeringParametersData FSteeringBarrier::GetSteeringParameters() const
+{
+	check(HasNative());
+	const auto& SteeringAGX = NativeRef->Native->getSteeringParameters();
+	return SteeringBarrier_helpers::CreateSteeringParameters(SteeringAGX);
 }
 
 bool FSteeringBarrier::HasNative() const

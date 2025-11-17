@@ -58,8 +58,74 @@ double UAGX_SteeringComponent::GetSteeringAngle() const
 	return NativeBarrier.GetSteeringAngle();
 }
 
+namespace AGX_SteeringComponent_helpers
+{
+	UAGX_SteeringParameters* GetOrCreateSteeringParameters(
+		const FSteeringBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		// Note: SteeringParameters does not have a UUID in AGX, so we use the SteeringBarriers UUID
+		// for it. It is always uniquely owned by a Steering object in AGX.
+		if (auto Existing = Context.SteeringParameters->FindRef(Barrier.GetGuid()))
+			return Existing;
+
+		UAGX_SteeringParameters* Parameters = nullptr;
+		switch (Barrier.GetType())
+		{
+			case EAGX_SteeringType::Ackermann:
+			{
+				Parameters = NewObject<UAGX_AckermannSteeringParameters>(
+					Context.Outer, NAME_None, RF_Public | RF_Standalone);
+				break;
+			}
+			case EAGX_SteeringType::BellCrank:
+			{
+				Parameters = NewObject<UAGX_BellCrankSteeringParameters>(
+					Context.Outer, NAME_None, RF_Public | RF_Standalone);
+				break;
+			}
+			case EAGX_SteeringType::Davis:
+			{
+				Parameters = NewObject<UAGX_DavisSteeringParameters>(
+					Context.Outer, NAME_None, RF_Public | RF_Standalone);
+				break;
+			}
+			case EAGX_SteeringType::RackPinion:
+			{
+				Parameters = NewObject<UAGX_RackPinionSteeringParameters>(
+					Context.Outer, NAME_None, RF_Public | RF_Standalone);
+				break;
+			}
+			default:
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Got unknown or invalid type when importing SteeringParameters for "
+						 "Steering '%s'. No SteeringParameters asset will be created."),
+					*Barrier.GetName());
+				return nullptr;
+			}
+		}
+
+		Parameters->SteeringData = Barrier.GetSteeringParameters();
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Parameters, Context.SessionGuid);
+
+		const FString CleanSteeringBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Parameters->GetOuter(), FString::Printf(TEXT("AGX_STP_%s"), *CleanSteeringBarrierName),
+			UAGX_SteeringParameters::StaticClass());
+		Parameters->Rename(*Name);
+
+		Context.SteeringParameters->Add(Barrier.GetGuid(), Parameters);
+		return Parameters;
+	}
+}
+
 void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	using namespace AGX_SteeringComponent_helpers;
+
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
 	bEnabled = Barrier.GetEnabled();
@@ -76,7 +142,8 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 	AGX_CHECK(!Context->Steerings->Contains(ImportGuid));
 	Context->Steerings->Add(ImportGuid, this);
 
-	// TODO: setup wheel joint refs and create Steering Parameters Asset here.
+	SteeringParameters = GetOrCreateSteeringParameters(Barrier, *Context);
+	// TODO: setup wheel joint refs here, once available in AGX.
 }
 
 FSteeringBarrier* UAGX_SteeringComponent::GetNative()

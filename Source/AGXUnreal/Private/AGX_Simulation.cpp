@@ -666,6 +666,7 @@ void UAGX_Simulation::Deinitialize()
 		CloseInstancedAssetEditors<UAGX_TrackProperties>();
 
 		CloseInstancedAssetEditors<UAGX_ShovelProperties>();
+		CloseInstancedAssetEditors<UAGX_SteeringParameters>();
 	}
 #endif
 
