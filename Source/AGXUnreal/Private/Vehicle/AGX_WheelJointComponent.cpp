@@ -81,13 +81,9 @@ void UAGX_WheelJointComponent::CopyFrom(
 	SuspensionTargetSpeedController.CopyFrom(
 		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Suspension));
 
-	// SteeringBounds.
-	SteeringBoundsLockController.CopyFrom(
-		*WJBarrier->GetLockController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+	// SteeringBounds (only has a range controller).
 	SteeringBoundsRangeController.CopyFrom(
 		*WJBarrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
-	SteeringBoundsTargetSpeedController.CopyFrom(
-		*WJBarrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
 }
 
 namespace AGX_WheelJointComponent_helpers
@@ -120,13 +116,9 @@ namespace AGX_WheelJointComponent_helpers
 		Constraint.SuspensionTargetSpeedController.InitializeBarrier(
 			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::Suspension));
 
-		// SteeringBounds.
-		Constraint.SteeringBoundsLockController.InitializeBarrier(
-			Barrier->GetLockController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
+		// SteeringBounds (only has range controller).
 		Constraint.SteeringBoundsRangeController.InitializeBarrier(
 			Barrier->GetRangeController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
-		Constraint.SteeringBoundsTargetSpeedController.InitializeBarrier(
-			Barrier->GetTargetSpeedController(EAGX_WheelJointSecondaryConstraint::SteeringBounds));
 	}
 }
 
@@ -158,8 +150,6 @@ void UAGX_WheelJointComponent::UpdateNativeProperties()
 	SuspensionRangeController.UpdateNativeProperties();
 	SuspensionTargetSpeedController.UpdateNativeProperties();
 
-	// SteeringBounds.
-	SteeringBoundsLockController.UpdateNativeProperties();
+	// SteeringBounds (only has range controller).
 	SteeringBoundsRangeController.UpdateNativeProperties();
-	SteeringBoundsTargetSpeedController.UpdateNativeProperties();
 }
