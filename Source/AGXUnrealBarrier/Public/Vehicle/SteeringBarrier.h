@@ -50,6 +50,9 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 		FWheelJointBarrier& LeftWheel, FWheelJointBarrier& RightWheel,
 		const FAGX_SteeringParametersData& Params);
 
+	FWheelJointBarrier GetLeftWheel() const;
+	FWheelJointBarrier GetRightWheel() const;
+
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
 

@@ -143,7 +143,24 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 	Context->Steerings->Add(ImportGuid, this);
 
 	SteeringParameters = GetOrCreateSteeringParameters(Barrier, *Context);
-	// TODO: setup wheel joint refs here, once available in AGX.
+
+	auto GetWheelComponentNameFromBarrier =
+		[Context](const FWheelJointBarrier& WheelBarrier) -> FName
+	{
+		if (!WheelBarrier.HasNative())
+			return FName();
+
+		if (auto WheelComp = Cast<UAGX_WheelJointComponent>(
+				Context->Constraints->FindRef(WheelBarrier.GetGuid())))
+		{
+			return WheelComp->GetFName();
+		}
+
+		return FName();
+	};
+
+	LeftWheelJoint.Name = GetWheelComponentNameFromBarrier(Barrier.GetLeftWheel());
+	RightWheelJoint.Name = GetWheelComponentNameFromBarrier(Barrier.GetRightWheel());
 }
 
 FSteeringBarrier* UAGX_SteeringComponent::GetNative()

@@ -9,7 +9,6 @@
 #include "Vehicle/AGX_SteeringParametersData.h"
 #include "Vehicle/WheelJointBarrier.h"
 
-
 FSteeringBarrier::FSteeringBarrier()
 	: NativeRef {new FSteeringRef}
 {
@@ -102,6 +101,20 @@ void FSteeringBarrier::AllocateDavis(
 	using namespace SteeringBarrier_helpers;
 	check(!HasNative());
 	NativeRef->Native = AllocateImpl<agxVehicle::Davis>(LeftWheel, RightWheel, Params);
+}
+
+FWheelJointBarrier FSteeringBarrier::GetLeftWheel() const
+{
+	check(HasNative());
+	return FWheelJointBarrier(
+		std::make_unique<FConstraintRef>(NativeRef->Native->getLeftWheelJoint()));
+}
+
+FWheelJointBarrier FSteeringBarrier::GetRightWheel() const
+{
+	check(HasNative());
+	return FWheelJointBarrier(
+		std::make_unique<FConstraintRef>(NativeRef->Native->getRightWheelJoint()));
 }
 
 void FSteeringBarrier::SetEnabled(bool Enabled)
