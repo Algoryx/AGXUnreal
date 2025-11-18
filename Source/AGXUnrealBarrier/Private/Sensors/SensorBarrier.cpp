@@ -126,7 +126,7 @@ bool FSensorBarrier::AddToEnvironment(FSensorEnvironmentBarrier& Environment)
 	// We add the StepStride instead of the Sensor Native in order to ensure correct stepping.
 	// This is a quirk of AGX.
 	AGX_CHECK(NativeRef->Native->getEnvironment() == nullptr);
-	AGX_CHECK(NStepStrideRef->Native->getEnvironment() == nullptr);
+	AGX_CHECK(StepStrideRef->Native->getEnvironment() == nullptr);
 
 	StepStrideRef->Native->add(NativeRef->Native);
 	return Environment.GetNative()->Native->add(StepStrideRef->Native);
