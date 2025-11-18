@@ -3,7 +3,10 @@
 #include "Vehicle/AGX_SteeringComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
+#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Vehicle/AGX_AckermannSteeringParameters.h"
@@ -16,11 +19,6 @@
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-// AGX Dynamics for Unreal includes.
-#include "AGX_AssetGetterSetterImpl.h"
-#include "AGX_NativeOwnerInstanceData.h"
-#include "AGX_PropertyChangedDispatcher.h"
-#include "AGX_Simulation.h"
 
 void UAGX_SteeringComponent::SetEnabled(bool InEnabled)
 {

@@ -60,6 +60,31 @@ void FTireBarrier::ReleaseNative()
 	NativeRef->Native = nullptr;
 }
 
+uintptr_t FTireBarrier::GetNativeAddress() const
+{
+	if (!HasNative())
+		return 0;
+
+	return reinterpret_cast<uintptr_t>(NativeRef->Native.get());
+}
+
+void FTireBarrier::SetNativeAddress(uintptr_t NativeAddress)
+{
+	if (NativeAddress == GetNativeAddress())
+		return;
+
+	if (HasNative())
+		ReleaseNative();
+
+	if (NativeAddress == 0)
+	{
+		NativeRef->Native = nullptr;
+		return;
+	}
+
+	NativeRef->Native = reinterpret_cast<agxModel::Tire* > (NativeAddress);
+}
+
 FGuid FTireBarrier::GetGuid() const
 {
 	check(HasNative());
