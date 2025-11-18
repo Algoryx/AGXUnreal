@@ -81,12 +81,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|Suspension")
 	FAGX_ConstraintTargetSpeedController SuspensionTargetSpeedController;
 
-	// SteeringBounds.
-
-	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Secondary Constraint|SteeringBounds")
-	FAGX_ConstraintRangeController SteeringBoundsRangeController;
-
 	FWheelJointBarrier* GetNativeWheelJoint();
 	const FWheelJointBarrier* GetNativeWheelJoint() const;
 
