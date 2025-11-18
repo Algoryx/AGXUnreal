@@ -86,7 +86,18 @@ public:
 
 	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
 
+	//~ Begin UObject interface.
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	virtual void PostInitProperties() override;
+#endif
+	//~ End UObject interface.
+
 private:
 	virtual void CreateNativeImpl() override;
 	virtual void UpdateNativeProperties() override;
+
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
 };

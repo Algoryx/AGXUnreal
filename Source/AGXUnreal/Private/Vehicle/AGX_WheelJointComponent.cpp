@@ -3,7 +3,9 @@
 #include "Vehicle/AGX_WheelJointComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "Vehicle/WheelJointBarrier.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
@@ -142,3 +144,94 @@ void UAGX_WheelJointComponent::UpdateNativeProperties()
 	SuspensionRangeController.UpdateNativeProperties();
 	SuspensionTargetSpeedController.UpdateNativeProperties();
 }
+
+#if WITH_EDITOR
+void UAGX_WheelJointComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+
+	// If we are part of a Blueprint then this will trigger a RerunConstructionScript on the owning
+	// Actor. That means that this object will be removed from the Actor and destroyed. We want to
+	// apply all our changes before that so that they are carried over to the copy.
+	Super::PostEditChangeChainProperty(Event);
+}
+void UAGX_WheelJointComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
+}
+
+void UAGX_WheelJointComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	// Steering.
+	TFunction<FAGX_ConstraintLockController*(ThisClass*)> GetSteeringLockController =
+		[](ThisClass* EditedObject) { return &EditedObject->SteeringLockController; };
+
+	TFunction<FAGX_ConstraintRangeController*(ThisClass*)> GetSteeringRangeController =
+		[](ThisClass* EditedObject) { return &EditedObject->SteeringRangeController; };
+
+	TFunction<FAGX_ConstraintTargetSpeedController*(ThisClass*)> GetSteeringTargetSpeedController =
+		[](ThisClass* EditedObject) { return &EditedObject->SteeringTargetSpeedController; };
+
+	FAGX_ConstraintUtilities::AddLockControllerPropertyCallbacks(
+		PropertyDispatcher, GetSteeringLockController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SteeringLockController));
+
+	FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks(
+		PropertyDispatcher, GetSteeringRangeController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SteeringRangeController));
+
+	FAGX_ConstraintUtilities::AddTargetSpeedControllerPropertyCallbacks(
+		PropertyDispatcher, GetSteeringTargetSpeedController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SteeringTargetSpeedController));
+
+	// Wheel.
+	TFunction<FAGX_ConstraintLockController*(ThisClass*)> GetWheelLockController =
+		[](ThisClass* EditedObject) { return &EditedObject->WheelLockController; };
+
+	TFunction<FAGX_ConstraintRangeController*(ThisClass*)> GetWheelRangeController =
+		[](ThisClass* EditedObject) { return &EditedObject->WheelRangeController; };
+
+	TFunction<FAGX_ConstraintTargetSpeedController*(ThisClass*)> GetWheelTargetSpeedController =
+		[](ThisClass* EditedObject) { return &EditedObject->WheelTargetSpeedController; };
+
+	FAGX_ConstraintUtilities::AddLockControllerPropertyCallbacks(
+		PropertyDispatcher, GetWheelLockController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, WheelLockController));
+
+	FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks(
+		PropertyDispatcher, GetWheelRangeController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, WheelRangeController));
+
+	FAGX_ConstraintUtilities::AddTargetSpeedControllerPropertyCallbacks(
+		PropertyDispatcher, GetWheelTargetSpeedController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, WheelTargetSpeedController));
+
+	// Suspension.
+	TFunction<FAGX_ConstraintLockController*(ThisClass*)> GetSuspensionLockController =
+		[](ThisClass* EditedObject) { return &EditedObject->SuspensionLockController; };
+
+	TFunction<FAGX_ConstraintRangeController*(ThisClass*)> GetSuspensionRangeController =
+		[](ThisClass* EditedObject) { return &EditedObject->SuspensionRangeController; };
+
+	TFunction<FAGX_ConstraintTargetSpeedController*(ThisClass*)> GetSuspensionTargetSpeedController =
+		[](ThisClass* EditedObject) { return &EditedObject->SuspensionTargetSpeedController; };
+
+	FAGX_ConstraintUtilities::AddLockControllerPropertyCallbacks(
+		PropertyDispatcher, GetSuspensionLockController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SuspensionLockController));
+
+	FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks(
+		PropertyDispatcher, GetSuspensionRangeController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SuspensionRangeController));
+
+	FAGX_ConstraintUtilities::AddTargetSpeedControllerPropertyCallbacks(
+		PropertyDispatcher, GetSuspensionTargetSpeedController,
+		GET_MEMBER_NAME_CHECKED(ThisClass, SuspensionTargetSpeedController));
+}
+#endif // WITH_EDITOR
