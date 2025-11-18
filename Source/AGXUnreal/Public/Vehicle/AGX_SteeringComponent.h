@@ -50,7 +50,7 @@ public:
 	 * This Wheel Joint will have its steering angle controlled according to the configured Steering
 	 * Type.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering", Meta = (ExposeOnSpawn))
 	FAGX_WheelJointReference LeftWheelJoint;
 
 	/**
@@ -58,13 +58,13 @@ public:
 	 * This Wheel Joint will have its steering angle controlled according to the configured Steering
 	 * Type.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering", Meta = (ExposeOnSpawn))
 	FAGX_WheelJointReference RightWheelJoint;
 
 	/**
 	* The Steering Parameters used to configure the current steering type.
 	*/
-	UPROPERTY(EditAnywhere, Category = "AGX Steering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering", Meta = (ExposeOnSpawn))
 	UAGX_SteeringParameters* SteeringParameters;
 
 	/*
