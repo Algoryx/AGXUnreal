@@ -268,11 +268,22 @@ void UAGX_SteeringComponent::PostEditChangeChainProperty(FPropertyChangedChainEv
 	Super::PostEditChangeChainProperty(Event);
 }
 
+void UAGX_SteeringComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
+}
+#endif // WITH_EDITOR
+
 namespace AGX_SteeringComponent_helpers
 {
 	void SetLocalScope(UAGX_SteeringComponent& Component)
 	{
-		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
 		Component.LeftWheelJoint.LocalScope = Owner;
 		Component.RightWheelJoint.LocalScope = Owner;
 	}
@@ -287,17 +298,6 @@ void UAGX_SteeringComponent::OnRegister()
 	// Component References.
 	AGX_SteeringComponent_helpers::SetLocalScope(*this);
 }
-
-void UAGX_SteeringComponent::InitPropertyDispatcher()
-{
-	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
-		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
-	if (PropertyDispatcher.IsInitialized())
-		return;
-
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
-}
-#endif // WITH_EDITOR
 
 void UAGX_SteeringComponent::CreateNative()
 {

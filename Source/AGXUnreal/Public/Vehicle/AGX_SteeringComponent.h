@@ -115,13 +115,14 @@ public:
 #endif
 	//~ End UActorComponent interface
 
-#if WITH_EDITOR
 	// ~Begin UObject interface.
+#if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
 	virtual void OnRegister() override;
 	// ~End UObject interface.
-#endif
+
 
 private:
 #if WITH_EDITOR
