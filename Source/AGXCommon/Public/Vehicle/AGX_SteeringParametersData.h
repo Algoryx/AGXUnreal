@@ -18,16 +18,6 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 
 	FAGX_SteeringParametersData() = default;
 
-	/**
-	 * @param InPhi0   - Initial angle of the kingpin/knuckle of the right wheel [deg].
-	 * @param InL      - Length of the knuckle normalized to the wheel base [cm].
-	 * @param InAlpha0 - Initial angle of the right tie rod measured from the axle of the right
-	 * wheel [deg].
-	 * @param InLc     - Distance of the steering column from the tie rods in units of L [cm].
-	 * @param InLr     - Rack length in units of the wheel base for rack and pinion [cm].
-	 * @param InGear   - Gear ratio between steering wheel and control angle of linkage mechanism.
-	 * @param InSide   - Side of steering column position (0 = left, 1 = right).
-	 */
 	FAGX_SteeringParametersData(
 		double InPhi0, double InL, double InAlpha0, double InLc, double InLr, double InGear,
 		uint32 InSide)
@@ -66,7 +56,7 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 
 	/**
 	 * Distance (fraction) of the steering column from the tie rods along the line connecting the
-	 * wheels, as a fraction of of the wheel base. Only relevant for mechanisms like Bell crank.
+	 * wheels, as a fraction of the knuckle length. Only relevant for mechanisms like Bell crank.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lc {0.0};
