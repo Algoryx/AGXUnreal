@@ -27,10 +27,10 @@ namespace SteeringBarrier_helpers
 	{
 		agxVehicle::SteeringParameters ParamsAGX;
 		ParamsAGX.phi0 = ConvertAngleToAGX(Params.Phi0);
-		ParamsAGX.l = ConvertDistanceToAGX(Params.L);
+		ParamsAGX.l = Params.L;
 		ParamsAGX.alpha0 = ConvertAngleToAGX(Params.Alpha0);
-		ParamsAGX.lc = ConvertDistanceToAGX(Params.Lc);
-		ParamsAGX.lr = ConvertDistanceToAGX(Params.Lr);
+		ParamsAGX.lc = Params.Lc;
+		ParamsAGX.lr = Params.Lr;
 		ParamsAGX.gear = Params.Gear;
 		ParamsAGX.side = static_cast<agx::UInt>(Params.Side);
 		return ParamsAGX;
@@ -41,10 +41,10 @@ namespace SteeringBarrier_helpers
 	{
 		FAGX_SteeringParametersData Params;
 		Params.Phi0 = ConvertAngleToUnreal<double>(ParamsAGX.phi0);
-		Params.L = ConvertDistanceToUnreal<double>(ParamsAGX.l);
+		Params.L = ParamsAGX.l;
 		Params.Alpha0 = ConvertAngleToUnreal<double>(ParamsAGX.alpha0);
-		Params.Lc = ConvertDistanceToUnreal<double>(ParamsAGX.lc);
-		Params.Lr = ConvertDistanceToUnreal<double>(ParamsAGX.lr);
+		Params.Lc = ParamsAGX.lc;
+		Params.Lr = ParamsAGX.lr;
 		Params.Gear = ParamsAGX.gear;
 		Params.Side = static_cast<int32>(ParamsAGX.side);
 

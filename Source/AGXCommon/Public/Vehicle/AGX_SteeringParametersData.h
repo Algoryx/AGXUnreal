@@ -51,7 +51,7 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	double Phi0 {0.0};
 
 	/**
-	 * Length of the knuckle normalized to the wheel base [cm].
+	 * Length of the knuckle as a fraction of the wheel base.
 	 * Wheel base is the distance between centers of the two wheels on the same axle.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
@@ -65,14 +65,14 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	double Alpha0 {0.0};
 
 	/**
-	 * Distance of the steering column from the tie rods along the line connecting the wheels (in
-	 * units of L) [cm]. Only relevant for mechanisms like Bell crank.
+	 * Distance (fraction) of the steering column from the tie rods along the line connecting the
+	 * wheels, as a fraction of of the wheel base. Only relevant for mechanisms like Bell crank.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lc {0.0};
 
 	/**
-	 * Rack length in units of the wheel base for rack and pinion steering [cm].
+	 * Rack length as a fraction of the wheel base for rack and pinion steering.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	double Lr {0.0};
@@ -90,4 +90,3 @@ struct AGXCOMMON_API FAGX_SteeringParametersData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering")
 	int32 Side {0};
 };
-

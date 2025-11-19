@@ -25,7 +25,7 @@ public:
 	virtual ~UAGX_TireComponent() = default;
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
-	bool Visible = true;
+	bool Visible {true};
 
 	FTireBarrier* GetOrCreateNative();
 
