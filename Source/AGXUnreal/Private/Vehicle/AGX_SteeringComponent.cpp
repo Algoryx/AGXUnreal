@@ -19,7 +19,6 @@
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-
 void UAGX_SteeringComponent::SetEnabled(bool InEnabled)
 {
 	if (HasNative())
@@ -383,7 +382,17 @@ void UAGX_SteeringComponent::CreateNative()
 		return;
 	}
 
-	AGX_CHECK(HasNative());
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create native Steering object for Steering Component '%s' in '%s' with "
+				 "given configuration. Ensure wheel Rigid Bodies are the first BodyAttachment in "
+				 "the WheelJoints used and chassis as second BodyAttachment."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim != nullptr)
 		Sim->Add(*this);

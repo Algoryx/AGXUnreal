@@ -63,7 +63,21 @@ namespace SteeringBarrier_helpers
 		auto WheelRightAGX =
 			dynamic_cast<agxVehicle::WheelJoint*>(RightWheel.GetNative()->Native.get());
 		const auto ParamsAGX = SteeringBarrier_helpers::CreateSteeringParameters(Params);
-		return new T(WheelLeftAGX, WheelRightAGX, ParamsAGX);
+
+		try
+		{
+			return new T(WheelLeftAGX, WheelRightAGX, ParamsAGX);
+		}
+		catch (const std::exception& Ex)
+		{
+			UE_LOG(
+				LogAGX, Error, TEXT("Exception while creating Steering Native: %s"), UTF8_TO_TCHAR(Ex.what()));
+		}
+		catch (...)
+		{
+		}
+
+		return nullptr;
 	}
 }
 
