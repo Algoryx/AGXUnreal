@@ -43,6 +43,11 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		return FLinearColor(1.f, 0.9f, 0.f);
 	}
 
+	FLinearColor GetCentralRackColor()
+	{
+		return GetSphereColor();
+	}
+
 	void GetKnucklePositions(
 		const FTransform& AttachmentLeft, const FTransform& AttachmentRight,
 		const UAGX_SteeringParameters& Params, FVector& OutLeft, FVector& OutRight)
@@ -94,17 +99,17 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		// Draw wheel base line.
 		PDI->DrawLine(
 			AttachmentLeft.GetLocation(), AttachmentRight.GetLocation(), GetWheelbaseColor(),
-			SDPG_Foreground, 1.5f);
+			SDPG_Foreground, 2.f);
 
 		// Draw kingpins.
 		PDI->DrawLine(
-			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 1.5f);
+			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 2.f);
 		PDI->DrawLine(
 			AttachmentRight.GetLocation(), KnuckleRightPos, GetKingpinColor(), SDPG_Foreground,
-			1.5f);
+			2.f);
 
 		// Draw rack rod.
-		PDI->DrawLine(KnuckleLeftPos, KnuckleRightPos, GetRackColor(), SDPG_Foreground, 1.5f);
+		PDI->DrawLine(KnuckleLeftPos, KnuckleRightPos, GetRackColor(), SDPG_Foreground, 2.f);
 	}
 
 	void DrawBellCrankSteering(
@@ -139,18 +144,18 @@ namespace AGX_SteeringComponentVisualizer_helpers
 
 		// Draw kingpins.
 		PDI->DrawLine(
-			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 1.5f);
+			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 2.f);
 		PDI->DrawLine(
 			AttachmentRight.GetLocation(), KnuckleRightPos, GetKingpinColor(), SDPG_Foreground,
-			1.5f);
+			2.f);
 
 		// Draw rack rods.
-		PDI->DrawLine(KnuckleLeftPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 1.5f);
-		PDI->DrawLine(KnuckleRightPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 1.5f);
+		PDI->DrawLine(KnuckleLeftPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(KnuckleRightPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 2.f);
 
 		// Draw steering arm.
 		PDI->DrawLine(
-			SteeringArmStart, SteeringArmEnd, GetSteeringArmColor(), SDPG_Foreground, 1.5f);
+			SteeringArmStart, SteeringArmEnd, GetSteeringArmColor(), SDPG_Foreground, 2.f);
 		DrawWireSphere(
 			PDI, FTransform(FQuat::Identity, SteeringArmStart), GetSphereColor(), 3.f, 8,
 			SDPG_Foreground, 1.f);
@@ -169,6 +174,65 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		const UAGX_SteeringComponent& Comp, const UAGX_SteeringParameters& Params,
 		const FSceneView* View, FPrimitiveDrawInterface* PDI)
 	{
+		UAGX_WheelJointComponent* LeftWheel = Comp.LeftWheelJoint.GetWheelJointComponent();
+		UAGX_WheelJointComponent* RightWheel = Comp.RightWheelJoint.GetWheelJointComponent();
+		if (!VerifyValidAttachments(LeftWheel, RightWheel))
+			return;
+
+		const FTransform AttachmentLeft(LeftWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		const FTransform AttachmentRight(RightWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		FVector KnuckleLeftPos, KnuckleRightPos;
+		GetKnucklePositions(
+			AttachmentLeft, AttachmentRight, Params, KnuckleLeftPos, KnuckleRightPos);
+
+		FVector KnuckleToSteeringArmStartDir = (KnuckleRightPos - KnuckleLeftPos).GetSafeNormal();
+		KnuckleToSteeringArmStartDir = FQuat(
+										   AttachmentLeft.GetRotation().GetUpVector(),
+										   FMath::DegreesToRadians(-Params.SteeringData.Alpha0))
+										   .RotateVector(KnuckleToSteeringArmStartDir);
+		const double KnuckleToKnucleDist = (KnuckleLeftPos - KnuckleRightPos).Length();
+		const double WheelBaseLen =
+			(AttachmentLeft.GetLocation() - AttachmentRight.GetLocation()).Length();
+		const double RackLen = WheelBaseLen * Params.SteeringData.Lr;
+
+		const FVector RackStart =
+			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * (KnuckleToKnucleDist - RackLen) /
+								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
+		const FVector RackEnd = RackStart - RackLen * AttachmentLeft.GetUnitAxis(EAxis::Y);
+
+		const double KingpinLen = (AttachmentLeft.GetLocation() - KnuckleLeftPos).Length();
+		const FVector SteeringArmStart = (RackStart + RackEnd) * 0.5;
+		const FVector SteeringArmEnd = SteeringArmStart - AttachmentLeft.GetUnitAxis(EAxis::X) *
+															  KingpinLen * Params.SteeringData.Lc;
+
+		// Draw kingpins.
+		PDI->DrawLine(
+			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(
+			AttachmentRight.GetLocation(), KnuckleRightPos, GetKingpinColor(), SDPG_Foreground,
+			2.f);
+
+		// Draw racks.
+		PDI->DrawLine(KnuckleLeftPos, RackStart, GetRackColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(KnuckleRightPos, RackEnd, GetRackColor(), SDPG_Foreground, 2.f);
+
+		// Draw center rack.
+		PDI->DrawLine(RackStart, RackEnd, GetCentralRackColor(), SDPG_Foreground, 2.f);
+
+		// Draw steering arm lines and spheres (the "triangle").
+		PDI->DrawLine(
+			SteeringArmStart, SteeringArmEnd, GetSteeringArmColor(), SDPG_Foreground, 2.f);
+		DrawWireSphere(
+			PDI, FTransform(FQuat::Identity, SteeringArmEnd), GetSphereColor(), 3.f, 8,
+			SDPG_Foreground, 1.f);
+		PDI->DrawLine(RackStart, SteeringArmEnd, GetSteeringArmColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(RackEnd, SteeringArmEnd, GetSteeringArmColor(), SDPG_Foreground, 2.f);
+		DrawWireSphere(
+			PDI, FTransform(FQuat::Identity, RackStart), GetSphereColor(), 3.f, 8, SDPG_Foreground,
+			1.f);
+		DrawWireSphere(
+			PDI, FTransform(FQuat::Identity, RackEnd), GetSphereColor(), 3.f, 8, SDPG_Foreground,
+			1.f);
 	}
 }
 
