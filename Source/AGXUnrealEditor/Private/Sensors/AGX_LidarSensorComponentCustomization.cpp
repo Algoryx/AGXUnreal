@@ -45,6 +45,9 @@ void FAGX_LidarSensorComponentCustomization::CustomizeDetails(IDetailLayoutBuild
 	InDetailBuilder.HideProperty(
 		InDetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UAGX_LidarSensorComponent, Model)));
 
+	// Ensure high priority for base class Category.
+	InDetailBuilder.EditCategory("AGX Sensor", FText::GetEmpty(), ECategoryPriority::Important);
+
 	IDetailCategoryBuilder& CategoryBuilder =
 		InDetailBuilder.EditCategory("AGX Lidar", FText::GetEmpty(), ECategoryPriority::Important);
 
