@@ -122,7 +122,16 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		GetKnucklePositions(
 			AttachmentLeft, AttachmentRight, Params, KnuckleLeftPos, KnuckleRightPos);
 
-		const FVector SteeringArmStart = (KnuckleLeftPos + KnuckleRightPos) * 0.5;
+		FVector KnuckleToSteeringArmStartDir = (KnuckleRightPos - KnuckleLeftPos).GetSafeNormal();
+		KnuckleToSteeringArmStartDir = FQuat(
+										   AttachmentLeft.GetRotation().GetUpVector(),
+										   FMath::DegreesToRadians(-Params.SteeringData.Alpha0))
+										   .RotateVector(KnuckleToSteeringArmStartDir);
+		const double KnuckleToKnucleDist = (KnuckleLeftPos - KnuckleRightPos).Length();
+
+		const FVector SteeringArmStart =
+			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * KnuckleToKnucleDist /
+								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
 		const double KingpinLen = (AttachmentLeft.GetLocation() - KnuckleLeftPos).Length();
 		const FVector SteeringArmDir = -AttachmentLeft.GetRotation().GetAxisX();
 		const FVector SteeringArmEnd =
@@ -135,8 +144,9 @@ namespace AGX_SteeringComponentVisualizer_helpers
 			AttachmentRight.GetLocation(), KnuckleRightPos, GetKingpinColor(), SDPG_Foreground,
 			1.5f);
 
-		// Draw rack rod.
-		PDI->DrawLine(KnuckleLeftPos, KnuckleRightPos, GetRackColor(), SDPG_Foreground, 1.5f);
+		// Draw rack rods.
+		PDI->DrawLine(KnuckleLeftPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 1.5f);
+		PDI->DrawLine(KnuckleRightPos, SteeringArmStart, GetRackColor(), SDPG_Foreground, 1.5f);
 
 		// Draw steering arm.
 		PDI->DrawLine(
