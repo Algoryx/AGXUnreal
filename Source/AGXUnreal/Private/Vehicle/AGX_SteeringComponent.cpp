@@ -393,6 +393,8 @@ void UAGX_SteeringComponent::CreateNative()
 		return;
 	}
 
+	NativeBarrier.SetEnabled(bEnabled);
+
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim != nullptr)
 		Sim->Add(*this);
