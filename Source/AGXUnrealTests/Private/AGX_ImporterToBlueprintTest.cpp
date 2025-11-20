@@ -3829,7 +3829,7 @@ bool FCheckShovelImportedCommand::Update()
 		TEXT("Cutting Edge End Parent Name"), Shovel->CuttingEdge.End.Parent.Name,
 		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
-		TEXT("Cutting Direction"), Shovel->CuttingDirection.LocalRotation,
+		TEXT("Tooth Direction"), Shovel->ToothDirection.LocalRotation,
 		FRotator(ForceInitToZero));
 
 	Test.TestNotNull(TEXT("Shovel Properties"), Shovel->ShovelProperties);

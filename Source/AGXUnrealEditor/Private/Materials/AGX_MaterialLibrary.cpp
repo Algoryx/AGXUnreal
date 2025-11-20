@@ -311,6 +311,8 @@ bool AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary()
 
 bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 {
+	bool bNeedCleanup = FSensorEnvironmentBarrier::AGPUIsInitialized();
+
 	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
 	{
 		UE_LOG(
@@ -383,6 +385,17 @@ bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 	Result &= AGX_MaterialLibrary_helpers::UpdateLidarAmbientMaterialAssetLibrary(
 		"AGX_LAM_Snowfall_8mm_Per_Hour",
 		[](FRtAmbientMaterialBarrier& Barrier) { Barrier.ConfigureAsSnowfall(8.f, 900.f); });
+
+	// It is debatable wether we should do this cleanup or not. On the one hand, we have done a
+	// completely unnecessary Algoryx GPU Sensors initialization in order to create the lidar
+	// ambient materials and to not keep a bunch of resources bound up for no reason we might as
+	// well release them here. On the other hand, are we absolutely sure that we aren't destroying
+	// Algoryx GPU Sensors state that someone depend on? Can we be certain that initialization
+	// happened during lidar ambient material creation and not at some time before?
+	if (bNeedCleanup)
+	{
+		FSensorEnvironmentBarrier::AGPUCleanup();
+	}
 
 	return Result;
 }
