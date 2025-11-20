@@ -116,6 +116,7 @@
 #include "Vehicle/AGX_RackPinionSteeringParametersTypeActions.h"
 #include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_SteeringComponentCustomization.h"
+#include "Vehicle/AGX_SteeringComponentVisualizer.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -715,6 +716,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_ShovelComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_SteeringComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_SteeringComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_TireComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_TireComponentVisualizer));
 
@@ -741,6 +746,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_LidarSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorLineTraceComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_SteeringComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TireComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TrackComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireComponent::StaticClass()->GetFName());

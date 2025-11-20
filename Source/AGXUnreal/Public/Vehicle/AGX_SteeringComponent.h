@@ -62,10 +62,17 @@ public:
 	FAGX_WheelJointReference RightWheelJoint;
 
 	/**
-	* The Steering Parameters used to configure the current steering type.
-	*/
+	 * The Steering Parameters used to configure the current steering type.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Steering", Meta = (ExposeOnSpawn))
 	UAGX_SteeringParameters* SteeringParameters;
+
+	/**
+	 * Whether or not the Component Visualizer, drawing debug graphics, is active for this Steering
+	 * Component.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Rendering")
+	bool Visible {true};
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
@@ -122,7 +129,6 @@ public:
 #endif
 	virtual void OnRegister() override;
 	// ~End UObject interface.
-
 
 private:
 #if WITH_EDITOR
