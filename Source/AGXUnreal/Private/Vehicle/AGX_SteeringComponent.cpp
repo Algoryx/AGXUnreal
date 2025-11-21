@@ -310,6 +310,41 @@ void UAGX_SteeringComponent::CreateNative()
 	};
 
 	auto LeftWheelComp = LeftWheelJoint.GetWheelJointComponent();
+	auto RightWheelComp = RightWheelJoint.GetWheelJointComponent();
+	if (LeftWheelComp != nullptr && RightWheelComp != nullptr)
+	{
+		if (auto LeftWheel = LeftWheelComp->BodyAttachment1.GetRigidBody())
+		{
+			if (RightWheelComp->BodyAttachment1.GetRigidBody() == LeftWheel)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Wheel Joints used by Steering Component '%s' in '%s' have the same wheel "
+						 "Rigid Body. Ensure the first Body Attachment of all Wheel Joints is the "
+						 "Wheel Rigid Body, and the second Body Attachment is the Chassis Rigid "
+						 "Body."),
+					*GetName(), *GetLabelSafe(GetOwner()));
+				CreateNativeFailNotification();
+				return;
+			}
+		}
+		if (auto LeftChassis = LeftWheelComp->BodyAttachment2.GetRigidBody())
+		{
+			if (RightWheelComp->BodyAttachment2.GetRigidBody() != LeftChassis)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Wheel Joints used by Steering Component '%s' in '%s' does not have the "
+						 "same chassis  Rigid Body. Ensure the second Body Attachment of both "
+						 "Wheel Joints is the chassis Rigid Body (first attachment should always "
+						 "be the wheel)."),
+					*GetName(), *GetLabelSafe(GetOwner()));
+				CreateNativeFailNotification();
+				return;
+			}
+		}
+	}
+
 	FWheelJointBarrier* LeftWheelBarrier =
 		LeftWheelComp != nullptr
 			? static_cast<FWheelJointBarrier*>(LeftWheelComp->GetOrCreateNative())
@@ -324,7 +359,6 @@ void UAGX_SteeringComponent::CreateNative()
 		return;
 	}
 
-	auto RightWheelComp = RightWheelJoint.GetWheelJointComponent();
 	FWheelJointBarrier* RightWheelBarrier =
 		RightWheelComp != nullptr
 			? static_cast<FWheelJointBarrier*>(RightWheelComp->GetOrCreateNative())
