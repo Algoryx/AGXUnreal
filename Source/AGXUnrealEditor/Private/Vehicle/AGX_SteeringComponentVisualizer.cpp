@@ -54,10 +54,11 @@ namespace AGX_SteeringComponentVisualizer_helpers
 	{
 		const double WheelBaseLen =
 			(AttachmentLeft.GetLocation() - AttachmentRight.GetLocation()).Length();
+		const double Angle = Params.SteeringData.Phi0;
 		const FVector KingpinDirLocalLeft =
-			FVector::RightVector.RotateAngleAxis(Params.SteeringData.Phi0, FVector::UpVector);
+			FVector::RightVector.RotateAngleAxis(Angle, FVector::UpVector);
 		const FVector KingpinDirLocalRight =
-			(-FVector::RightVector).RotateAngleAxis(-Params.SteeringData.Phi0, FVector::UpVector);
+			(-FVector::RightVector).RotateAngleAxis(-Angle, FVector::UpVector);
 		const FVector KingpinLeftDir = AttachmentLeft.TransformVectorNoScale(KingpinDirLocalLeft);
 		const FVector KingpinRightDir =
 			AttachmentRight.TransformVectorNoScale(KingpinDirLocalRight);
@@ -168,6 +169,45 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		const UAGX_SteeringComponent& Comp, const UAGX_SteeringParameters& Params,
 		const FSceneView* View, FPrimitiveDrawInterface* PDI)
 	{
+		UAGX_WheelJointComponent* LeftWheel = Comp.LeftWheelJoint.GetWheelJointComponent();
+		UAGX_WheelJointComponent* RightWheel = Comp.RightWheelJoint.GetWheelJointComponent();
+		if (!VerifyValidAttachments(LeftWheel, RightWheel))
+			return;
+
+		const FTransform AttachmentLeft(LeftWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		const FTransform AttachmentRight(RightWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		FVector KnuckleLeftPos, KnuckleRightPos;
+		GetKnucklePositions(
+			AttachmentLeft, AttachmentRight, Params, KnuckleLeftPos, KnuckleRightPos);
+
+		FVector KnuckleToSteeringArmStartDir = (KnuckleRightPos - KnuckleLeftPos).GetSafeNormal();
+		KnuckleToSteeringArmStartDir = FQuat(
+										   AttachmentLeft.GetRotation().GetUpVector(),
+										   FMath::DegreesToRadians(-Params.SteeringData.Alpha0))
+										   .RotateVector(KnuckleToSteeringArmStartDir);
+		const double KnuckleToKnucleDist = (KnuckleLeftPos - KnuckleRightPos).Length();
+		const double WheelBaseLen =
+			(AttachmentLeft.GetLocation() - AttachmentRight.GetLocation()).Length();
+		const double RackLen = WheelBaseLen * Params.SteeringData.Lr;
+
+		const FVector RackStart =
+			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * (KnuckleToKnucleDist - RackLen) /
+								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
+		const FVector RackEnd = RackStart - RackLen * AttachmentLeft.GetUnitAxis(EAxis::Y);
+
+		// Draw kingpins.
+		PDI->DrawLine(
+			AttachmentLeft.GetLocation(), KnuckleLeftPos, GetKingpinColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(
+			AttachmentRight.GetLocation(), KnuckleRightPos, GetKingpinColor(), SDPG_Foreground,
+			2.f);
+
+		// Draw racks.
+		PDI->DrawLine(KnuckleLeftPos, RackStart, GetRackColor(), SDPG_Foreground, 2.f);
+		PDI->DrawLine(KnuckleRightPos, RackEnd, GetRackColor(), SDPG_Foreground, 2.f);
+
+		// Draw center rack.
+		PDI->DrawLine(RackStart, RackEnd, GetCentralRackColor(), SDPG_Foreground, 2.f);
 	}
 
 	void DrawRackPinionSteering(
