@@ -436,6 +436,7 @@ void UAGX_SteeringComponent::CreateNative()
 	}
 
 	NativeBarrier.SetEnabled(bEnabled);
+	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim != nullptr)
