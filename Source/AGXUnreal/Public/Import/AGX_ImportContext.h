@@ -19,6 +19,8 @@ class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
 class UAGX_ShovelProperties;
+class UAGX_SteeringComponent;
+class UAGX_SteeringParameters;
 class UAGX_TrackComponent;
 class UAGX_TrackInternalMergeProperties;
 class UAGX_TrackProperties;
@@ -41,6 +43,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_ConstraintComponent*>> Constraints;
 	TUniquePtr<TMap<FGuid, UAGX_TwoBodyTireComponent*>> Tires;
 	TUniquePtr<TMap<FGuid, UAGX_ShovelComponent*>> Shovels;
+	TUniquePtr<TMap<FGuid, UAGX_SteeringComponent*>> Steerings;
 	TUniquePtr<TMap<FGuid, UAGX_WireComponent*>> Wires;
 	TUniquePtr<TMap<FGuid, UAGX_TrackComponent*>> Tracks;
 	TUniquePtr<TMap<FGuid, UAGX_ObserverFrameComponent*>> ObserverFrames;
@@ -65,6 +68,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_ShapeMaterial*>> ShapeMaterials;
 	TUniquePtr<TMap<FGuid, UAGX_ContactMaterial*>> ContactMaterials;
 	TUniquePtr<TMap<FGuid, UAGX_ShovelProperties*>> ShovelProperties;
+	TUniquePtr<TMap<FGuid, UAGX_SteeringParameters*>> SteeringParameters;
 	TUniquePtr<TMap<FGuid, UAGX_TrackProperties*>> TrackProperties;
 	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
 

@@ -240,6 +240,16 @@ FSimulationObjectCollection::GetSingleControllerConstraint1DOFs() const
 	return SingleControllerConstraint1DOFs;
 }
 
+TArray<FWheelJointBarrier>& FSimulationObjectCollection::GetWheelJoints()
+{
+	return WheelJoints;
+}
+
+const TArray<FWheelJointBarrier>& FSimulationObjectCollection::GetWheelJoints() const
+{
+	return WheelJoints;
+}
+
 TArray<FContactMaterialBarrier>& FSimulationObjectCollection::GetContactMaterials()
 {
 	return ContactMaterials;
@@ -279,6 +289,16 @@ TArray<FShapeMaterialBarrier>& FSimulationObjectCollection::GetShapeMaterials()
 const TArray<FShapeMaterialBarrier>& FSimulationObjectCollection::GetShapeMaterials() const
 {
 	return ShapeMaterials;
+}
+
+TArray<FSteeringBarrier>& FSimulationObjectCollection::GetSteerings()
+{
+	return Steerings;
+}
+
+const TArray<FSteeringBarrier>& FSimulationObjectCollection::GetSteerings() const
+{
+	return Steerings;
 }
 
 TArray<FTwoBodyTireBarrier>& FSimulationObjectCollection::GetTwoBodyTires()

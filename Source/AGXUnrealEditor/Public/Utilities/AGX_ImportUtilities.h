@@ -108,6 +108,7 @@ public:
 	static FString GetImportCollisionStaticMeshDirectoryName();
 	static FString GetImportRenderStaticMeshDirectoryName();
 	static FString GetImportShovelPropertiesDirectoryName();
+	static FString GetImportSteeringParametersDirectoryName();
 	static FString GetImportTrackPropertiesDirectoryName();
 	static FString GetImportTrackMergePropertiesDirectoryName();
 

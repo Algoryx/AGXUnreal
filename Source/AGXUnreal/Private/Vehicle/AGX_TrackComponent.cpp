@@ -1370,7 +1370,7 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 FAGX_TrackComponentInstanceData::FAGX_TrackComponentInstanceData(
 	const IAGX_NativeOwner* NativeOwner, const USceneComponent* SourceComponent,
 	TFunction<IAGX_NativeOwner*(UActorComponent*)> InDowncaster)
-	: FAGX_NativeOwnerInstanceData(NativeOwner, SourceComponent, InDowncaster)
+	: FAGX_NativeOwnerSceneComponentInstanceData(NativeOwner, SourceComponent, InDowncaster)
 {
 }
 
