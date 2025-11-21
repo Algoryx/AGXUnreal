@@ -176,6 +176,14 @@ const FSteeringBarrier* UAGX_SteeringComponent::GetNative() const
 	return &NativeBarrier;
 }
 
+FSteeringBarrier* UAGX_SteeringComponent::GetOrCreateNative()
+{
+	if (!HasNative())
+		CreateNative();
+
+	return GetNative();
+}
+
 bool UAGX_SteeringComponent::HasNative() const
 {
 	return NativeBarrier.HasNative();

@@ -106,6 +106,7 @@ public:
 
 	FSteeringBarrier* GetNative();
 	const FSteeringBarrier* GetNative() const;
+	FSteeringBarrier* GetOrCreateNative();
 
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;

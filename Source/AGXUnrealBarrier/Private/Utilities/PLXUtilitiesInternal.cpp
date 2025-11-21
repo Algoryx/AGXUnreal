@@ -5,12 +5,14 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
 #include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -724,6 +726,16 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		auto FrameAGX = Frame->GetNative()->Native;
 		Assembly->add(FrameAGX);
 		OldObserverFrramesAGX.push_back(FrameAGX);
+	}
+
+	// Note: Steering is a Constraint in AGX.
+	for (FSteeringBarrier* Steering : Barriers.Steerings)
+	{
+		AGX_CHECK(Steering->HasNative());
+		auto SteeringAGX = Steering->GetNative()->Native;
+		Assembly->add(SteeringAGX);
+		agx::ConstraintRef C = SteeringAGX.get();
+		OldConstraintsAGX.push_back(C);
 	}
 
 	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
