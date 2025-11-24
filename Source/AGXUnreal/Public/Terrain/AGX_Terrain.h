@@ -265,8 +265,14 @@ public:
 			 DisplayName = "Shovels [Deprecated]"))
 	TArray<FAGX_Shovel> Shovels;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FShovelReferenceWithSettings> ShovelComponents;
+	/**
+	* Shovels used when using Terrain Paging.
+	* Only relevant when bEnableTerrainPaging is true.
+	*/
+	UPROPERTY(
+		EditAnywhere, Meta = (EditCondition = "bEnableTerrainPaging"),
+		Category = "AGX Terrain")
+	TArray<FShovelReferenceWithSettings> TerrainPagingShovels;
 
 	UFUNCTION(BlueprintCallable, Category = "Shovel Properties")
 	bool SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPreloadRadius);
@@ -439,6 +445,9 @@ private: // Deprecated functions.
 private:
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
+
+	UPROPERTY()
+	TArray<FShovelReferenceWithSettings> ShovelComponents_DEPRECATED;
 
 #if WITH_EDITOR
 	void ShowShapeMaterialWarning() const;
