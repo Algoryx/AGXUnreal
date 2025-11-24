@@ -7,7 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"

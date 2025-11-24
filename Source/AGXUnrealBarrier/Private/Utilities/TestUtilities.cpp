@@ -3,7 +3,7 @@
 #include "Utilities/TestUtilities.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes
 #include "BeginAGXIncludes.h"

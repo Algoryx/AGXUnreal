@@ -3,7 +3,7 @@
 #include "Sensors/LidarOutputBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/SensorRef.h"
 
 FLidarOutputBarrier::FLidarOutputBarrier()

@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CustomPatternFetcherBase.h"
 
 agxSensor::LidarRayPatternInterval FCustomPatternGenerator::getNextInterval(agx::Real /*dt*/)

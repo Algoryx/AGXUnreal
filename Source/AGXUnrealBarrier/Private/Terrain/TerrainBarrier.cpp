@@ -6,7 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/TerrainMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Shapes/HeightFieldShapeBarrier.h"

@@ -6,7 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "Constraints/ConstraintBarrier.h"

@@ -5,7 +5,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/Contacts/ShapeContactEntity.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "SimulationBarrier.h"
 

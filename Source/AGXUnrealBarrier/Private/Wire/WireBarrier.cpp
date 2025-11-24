@@ -5,7 +5,7 @@
 // AGX Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireNodeRef.h"
 #include "BarrierOnly/Wire/WireParameterControllerPtr.h"
 #include "BarrierOnly/Wire/WireRef.h"

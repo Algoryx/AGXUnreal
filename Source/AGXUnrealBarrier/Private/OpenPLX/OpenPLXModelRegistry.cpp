@@ -6,7 +6,7 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "SimulationBarrier.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 

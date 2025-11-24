@@ -6,7 +6,7 @@
 #include "AGX_Check.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "agxTerrain/Shovel.h"
 #include "RigidBodyBarrier.h"
 

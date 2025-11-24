@@ -7,7 +7,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"

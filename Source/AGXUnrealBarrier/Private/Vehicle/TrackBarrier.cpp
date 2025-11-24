@@ -7,7 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Vehicle/TrackPropertiesBarrier.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"

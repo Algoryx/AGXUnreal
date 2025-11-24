@@ -2,7 +2,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Terrain/TerrainHeightFetcherBase.h"
 
 agxTerrain::TerrainDataSource::TerrainHeightType FTerrainDataSource::fetchTerrainTile(

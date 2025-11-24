@@ -3,7 +3,7 @@
 #include "Vehicle/TrackPropertiesBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
 
 // AGX Dynamics includes.

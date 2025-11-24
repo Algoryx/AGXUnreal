@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AgxDynamicsObjectsAccess.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 void FAGX_BarrierConstraintUtilities::ConvertConstraintBodiesAndFrames(
 	const FRigidBodyBarrier& RigidBody1, const FVector& FramePosition1, const FQuat& FrameRotation1,
