@@ -406,13 +406,7 @@ FParticleData FTerrainBarrier::GetParticleData(const EParticleDataFlags ToInclud
 {
 	const size_t NumParticles = FTerrainUtilities::GetNumParticles(*this);
 	FParticleData ParticleData;
-	ParticleData.Positions.Reserve(NumParticles);
-	ParticleData.Velocities.Reserve(NumParticles);
-	ParticleData.Radii.Reserve(NumParticles);
-	ParticleData.Rotations.Reserve(NumParticles);
-
 	FTerrainUtilities::AppendParticleData(*this, ParticleData, ToInclude);
-
 	return ParticleData;
 }
 
