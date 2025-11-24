@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/TypeConversions.h"
 
 FMergeSplitThresholdsBarrier::FMergeSplitThresholdsBarrier()
 	: NativeRef {new FMergeSplitThresholdsRef}

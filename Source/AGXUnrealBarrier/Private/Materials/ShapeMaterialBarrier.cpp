@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/TypeConversions.h"
 
 // AGX Dynamics includes.
 #include <Misc/AssertionMacros.h>

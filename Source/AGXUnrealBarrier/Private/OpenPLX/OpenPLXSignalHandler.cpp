@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
@@ -14,7 +15,6 @@
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // OpenPLX includes.

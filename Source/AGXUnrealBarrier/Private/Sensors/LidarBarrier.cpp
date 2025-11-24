@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "AGX_RealInterval.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
@@ -15,7 +16,6 @@
 #include "Sensors/CustomPatternFetcherBase.h"
 #include "Sensors/LidarOutputBarrier.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"

@@ -3,9 +3,9 @@
 #include "MassPropertiesBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
 #include "AGX_LogCategory.h"
+#include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -21,7 +21,6 @@ FMassPropertiesBarrier::FMassPropertiesBarrier(std::shared_ptr<FMassPropertiesPt
 	: NativePtr {Native}
 {
 }
-
 
 void FMassPropertiesBarrier::SetMass(float MassUnreal)
 {

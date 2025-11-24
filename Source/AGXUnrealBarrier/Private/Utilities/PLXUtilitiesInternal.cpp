@@ -5,11 +5,11 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 
 // OpenPLX includes.

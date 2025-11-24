@@ -4,8 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/Shapes/RenderDataRef.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Shapes/RenderMaterial.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -203,9 +203,8 @@ TArray<FVector> FRenderDataBarrier::GetNormals() const
 TArray<FVector2D> FRenderDataBarrier::GetTextureCoordinates() const
 {
 	return RenderDataBarrier_helpers::ConvertRenderBuffer<agx::Vec2, FVector2D>(
-		*this, TEXT("texture coordinates"),
-		[](const agxCollide::RenderData* Data) -> auto& { return Data->getTexCoordArray(); },
-		[](const agx::Vec2& Vec2) { return Convert(Vec2); });
+		*this, TEXT("texture coordinates"), [](const agxCollide::RenderData* Data) -> auto&
+		{ return Data->getTexCoordArray(); }, [](const agx::Vec2& Vec2) { return Convert(Vec2); });
 }
 
 bool FRenderDataBarrier::HasMaterial() const

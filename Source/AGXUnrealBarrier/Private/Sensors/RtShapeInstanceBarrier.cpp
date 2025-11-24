@@ -3,11 +3,11 @@
 #include "Sensors/RtShapeInstanceBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/TypeConversions.h"
 #include "Sensors/RtLambertianOpaqueMaterialBarrier.h"
 #include "Sensors/RtShapeBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"

@@ -3,9 +3,9 @@
 #include "Materials/MaterialLibraryBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include <AGX_Environment.h>
-#include <AGXBarrierFactories.h>
-#include <TypeConversions.h>
+#include "AGX_Environment.h"
+#include "AGXBarrierFactories.h"
+#include "BarrierOnly/TypeConversions.h"
 
 // AGX Dynamics includes.
 #include <BeginAGXIncludes.h>

@@ -6,12 +6,11 @@
 #include "AGX_LogCategory.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "BarrierOnly/Shapes/RenderDataRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"

@@ -4,9 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "BarrierOnly/TypeConversions.h"
 #include "Sensors/AGX_LidarOutputTypes.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"

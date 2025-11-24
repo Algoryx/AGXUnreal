@@ -3,8 +3,8 @@
 #include "Wire/WireParameterControllerBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/TypeConversions.h"
 #include "BarrierOnly/Wire/WireParameterControllerPtr.h"
-#include "TypeConversions.h"
 
 FWireParameterControllerBarrier::FWireParameterControllerBarrier()
 	: NativePtr {new FWireParameterControllerPtr()}
