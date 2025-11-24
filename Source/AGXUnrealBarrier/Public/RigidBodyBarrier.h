@@ -64,6 +64,10 @@ struct AGXUNREALBARRIER_API FRigidBodyBarrier
 	// In degrees/s.
 	FVector GetAngularVelocity() const;
 
+	// No setters for Acceleration and AngularAcceleration in AGX.
+	FVector GetAcceleration() const;
+	FVector GetAngularAcceleration() const;
+
 	void SetLinearVelocityDamping(const FVector& LinearVelocityDamping);
 	FVector GetLinearVelocityDamping() const;
 

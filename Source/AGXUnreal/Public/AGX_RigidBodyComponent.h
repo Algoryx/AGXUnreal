@@ -251,6 +251,20 @@ public:
 	FVector GetAngularVelocity() const;
 
 	/**
+	 * Get the current acceleration of this Rigid Body in world coordinates [cm/s^2].
+	 * Will always be zero for KINEMATIC and STATIC bodies.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	FVector GetAcceleration() const;
+
+	/**
+	 * Get the current angular acceleration of this Rigid Body in world coordinates [deg/s^2].
+	 * Will always be zero for KINEMATIC and STATIC bodies.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	FVector GetAngularAcceleration() const;
+
+	/**
 	 * The linear velocity damping of the Rigid Body. Can be used to mimic aerodynamic or
 	 * hydrodynamic effects [kg/s].
 	 */
