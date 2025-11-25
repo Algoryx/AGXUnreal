@@ -71,6 +71,12 @@ public:
 	static TArray<FString> GetFileDependencies(const FString& Filepath);
 
 	/**
+	 * Takes a list of OpenPLX bundle paths and builds a single ; separated std::string from them
+	 * which is used in some places in the agxopenplx namespace in AGX Dynamics.
+	 */
+	static std::string BuildBundlePathsString(const TArray<FString>& Paths);
+
+	/**
 	 * Based on Object::getNestedObjects in OpenPLX, but calling that function crashes due to
 	 * different allocators used.
 	 */

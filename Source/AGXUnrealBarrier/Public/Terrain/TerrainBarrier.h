@@ -127,6 +127,11 @@ public:
 	TArray<FQuat> GetParticleRotations() const;
 
 	/**
+	 * Get an array with the masses of the currently existing particles.
+	 */
+	TArray<float> GetParticleMasses() const;
+
+	/**
 	 * Get the data indicated by ToInclude of all particles.
 	 */
 	FParticleData GetParticleData(EParticleDataFlags ToInclude) const;

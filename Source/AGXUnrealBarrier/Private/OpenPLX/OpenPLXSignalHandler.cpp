@@ -20,7 +20,7 @@
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
-#include "agxOpenPLX/SignalSourceMapper.h"
+#include "agxOpenPLX/AgxObjectMap.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
@@ -92,15 +92,15 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	std::shared_ptr<agxopenplx::SignalSourceMapper> SignalSourceMapper;
+	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
 		FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto PlxPowerLine = dynamic_cast<agxPowerLine::PowerLine*>(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
-		SignalSourceMapper = agxopenplx::SignalSourceMapper::create(
-			AssemblyRef->Native, PlxPowerLine, agxopenplx::SignalSourceMapMode::Name);
+		AgxObjectMap = agxopenplx::AgxObjectMap::create(
+			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
@@ -112,7 +112,7 @@ void FOpenPLXSignalHandler::Init(
 		// the InputQue.
 		InputQueuePtr->Native = InputSignalQue.get();
 		InputSignalListenerRef->Native = new agxopenplx::InputSignalListener(
-			AssemblyRef->Native, InputSignalQue, SignalSourceMapper);
+			InputSignalQue, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -126,7 +126,8 @@ void FOpenPLXSignalHandler::Init(
 		OutputQueuePtr->Native = OutputSignalQueue.get();
 
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, SignalSourceMapper);
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap,
+			std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -322,6 +323,9 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
 			case EOpenPLX_OutputType::FractionOutput:
 			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::MassOutput:
+			case EOpenPLX_OutputType::RatioOutput:
+			case EOpenPLX_OutputType::RpmOutput:
 			case EOpenPLX_OutputType::Torque1DOutput:
 			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
 			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:

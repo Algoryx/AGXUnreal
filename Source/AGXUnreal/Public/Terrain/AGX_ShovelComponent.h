@@ -95,7 +95,6 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
 	FVector GetCuttingEdgeStartPositionWorld();
 
-
 	/**
 	 * Returns the position of the Cutting Edge end point in the world coordinate system.
 	 */
@@ -103,18 +102,16 @@ public:
 	FVector GetCuttingEdgeEndPositionWorld();
 
 	/**
-	 * The cutting direction of the shovel where the penetration resistance will be active, which is
-	 * usually parallel to the lowest shovel plate that is used to initially penetrate the soil.
-	 *
-	 * If the cutting direction is edited while the simulation is running then either Set Cutting
-	 * Direction or Finalize Shovel Edit must be called to commit the changes to the native AGX
-	 * Dynamics representation of the shovel
+	 * The direction of the shovel teeth along which the penetration resistance
+	 * will be active. The Tooth Direction together with Tooth Length (see ShovelProperties)
+	 * determines where the the teeth edge, which is the tip of the teeth, will be located where
+	 * soil excavation starts.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
-	FAGX_Frame CuttingDirection;
+	FAGX_Frame ToothDirection;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
-	void SetCuttingDirection(FAGX_Frame InCuttingDirection);
+	void SetToothDirection(FAGX_Frame InToothDirection);
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
@@ -155,6 +152,8 @@ public:
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	// ~End UActorComponent interface.
 
+	virtual void Serialize(FArchive& Archive) override;
+
 	// ~Begin AGX NativeOwner interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
@@ -187,5 +186,8 @@ private:
 	void AllocateNative();
 
 private:
+	UPROPERTY()
+	FAGX_Frame CuttingDirection_DEPRECATED;
+
 	FShovelBarrier NativeBarrier;
 };
