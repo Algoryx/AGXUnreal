@@ -114,6 +114,7 @@ void FAGX_SteeringComponentCustomization::CustomizeDetails(IDetailLayoutBuilder&
 		.Text(FText::FromString(NameString))
 		.ToolTipText(FText::FromString(TooltipString))
 		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.ColorAndOpacity(FLinearColor(1.f, 0.45f, 0.f, 1.f))
 	];
 	// clang-format on
 
