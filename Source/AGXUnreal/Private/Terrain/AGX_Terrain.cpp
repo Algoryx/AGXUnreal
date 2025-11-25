@@ -266,7 +266,7 @@ namespace AGX_Terrain_helpers
 bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPreloadRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		TerrainPagingSettings.TerrainPagingShovels, Shovel, TEXT("Set Preload Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Preload Radius"), *GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -279,7 +279,7 @@ bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPrelo
 bool AAGX_Terrain::SetRequiredRadius(UAGX_ShovelComponent* Shovel, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		TerrainPagingSettings.TerrainPagingShovels, Shovel, TEXT("Set Required Radius"),
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
 		*GetName());
 	if (Element == nullptr)
 	{
@@ -294,7 +294,7 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		TerrainPagingSettings.TerrainPagingShovels, Shovel, TEXT("Set Required Radius"),
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
 		*GetName());
 	if (Element == nullptr)
 	{
@@ -1422,7 +1422,7 @@ void AAGX_Terrain::CreateNativeShovels()
 	// Simulation).
 	if (bEnableTerrainPaging)
 	{
-		for (FShovelReferenceWithSettings& ShovelRef : TerrainPagingSettings.TerrainPagingShovels)
+		for (FShovelReferenceWithSettings& ShovelRef : TerrainPagingSettings.TrackedShovels)
 		{
 			UAGX_ShovelComponent* ShovelComponent = ShovelRef.Shovel.GetShovelComponent();
 			if (ShovelComponent == nullptr)
@@ -1895,7 +1895,7 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 		for (auto& Shovel : ShovelComponents_DEPRECATED)
 		{
 			// Terrain Pager still needs to know about the shovels in order to track them.
-			TerrainPagingSettings.TerrainPagingShovels.Add(Shovel);
+			TerrainPagingSettings.TrackedShovels.Add(Shovel);
 		}
 	}
 }
