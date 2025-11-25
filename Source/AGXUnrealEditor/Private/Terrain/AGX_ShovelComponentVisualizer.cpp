@@ -486,16 +486,15 @@ void FAGX_ShovelComponentVisualizer::DrawVisualization(
 	}
 
 	// Draw a line along the tip of the teeth.
-	const FAGX_Real ToothLength = Shovel->ShovelProperties != nullptr
-									  ? Shovel->ShovelProperties->ToothLength
-									  : FAGX_Real(0.0);
-	if (ToothLength > SMALL_NUMBER)
+	if (Shovel->ShovelProperties != nullptr &&
+		Shovel->ShovelProperties->bEnableExcavationAtTeethEdge)
 	{
+		const FAGX_Real ToothLength = Shovel->ShovelProperties->ToothLength;
 		const FRotator ToothRotation = Shovel->ToothDirection.GetWorldRotation(*Shovel);
 		const FVector ToothDirection = ToothRotation.RotateVector(FVector::ForwardVector);
 		const FVector CuttingEdgeBegin = Shovel->CuttingEdge.Start.GetWorldLocation(*Shovel);
 		const FVector CuttingEdgeEnd = Shovel->CuttingEdge.End.GetWorldLocation(*Shovel);
-		
+
 		const FVector TipBegin = CuttingEdgeBegin + ToothDirection * ToothLength.GetValue();
 		const FVector TipEnd = CuttingEdgeEnd + ToothDirection * ToothLength.GetValue();
 		PDI->DrawLine(TipBegin, TipEnd, FLinearColor::Green, SDPG_Foreground, 0.7f);

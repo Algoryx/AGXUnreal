@@ -154,6 +154,18 @@ int32 FShovelBarrier::GetNumberOfTeeth() const
 	return NativeRef->Native->getSettings()->getNumberOfTeeth();
 }
 
+void FShovelBarrier::SetEnableExcavationAtTeethEdge(bool Enable)
+{
+	check(HasNative());
+	NativeRef->Native->getSettings()->setEnableExcavationAtTeethEdge(Enable);
+}
+
+bool FShovelBarrier::GetEnableExcavationAtTeethEdge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getSettings()->getEnableExcavationAtTeethEdge();
+}
+
 void FShovelBarrier::SetNoMergeExtensionDistance(double NoMergeExtensionDistance)
 {
 	check(HasNative());
@@ -487,6 +499,11 @@ void FShovelBarrier::DecrementRefCount() const
 {
 	check(HasNative());
 	NativeRef->Native->unreference();
+}
+
+void FShovelBarrier::SetbEnableExcavationAtTeethEdge(bool InEnable)
+{
+	SetEnableExcavationAtTeethEdge(InEnable);
 }
 
 void FShovelBarrier::SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts)
