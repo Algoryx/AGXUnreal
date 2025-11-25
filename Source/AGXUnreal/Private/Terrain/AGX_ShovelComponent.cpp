@@ -478,25 +478,11 @@ void UAGX_ShovelComponent::BeginPlay()
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim != nullptr && HasNative())
 	{
-		bool Added = Sim->Add(*this);
-		if (!Added)
+		if (!Sim->Add(*this))
 		{
 			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Simulation add returned false for shovel '%s' in '%s'. Reversing edge "
-					 "directions and trying again."),
+				LogAGX, Warning, TEXT("Simulation add returned false for shovel '%s' in '%s'."),
 				*GetName(), *GetLabelSafe(GetOwner()));
-
-			SwapEdgeDirections();
-			Added = Sim->Add(*this);
-			if (!Added)
-			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Simulation add returned false for shovel '%s' in '%s' even after "
-						 "reversing edge direcitons."),
-					*GetName(), *GetLabelSafe(GetOwner()));
-			}
 		}
 	}
 
