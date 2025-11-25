@@ -4,14 +4,17 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
+#include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_TerrainEnums.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -33,7 +36,7 @@ namespace AGX_ShovelComponent_helpers
 		Shovel.TopEdge.End.Parent.LocalScope = Owner;
 		Shovel.CuttingEdge.Start.Parent.LocalScope = Owner;
 		Shovel.CuttingEdge.End.Parent.LocalScope = Owner;
-		Shovel.CuttingDirection.Parent.LocalScope = Owner;
+		Shovel.ToothDirection.Parent.LocalScope = Owner;
 	}
 }
 
@@ -225,22 +228,22 @@ FVector UAGX_ShovelComponent::GetCuttingEdgeEndPositionWorld()
 	return GetComponentTransform().TransformPosition(CuttingEdge.End.LocalLocation);
 }
 
-void UAGX_ShovelComponent::SetCuttingDirection(FAGX_Frame InCuttingDirection)
+void UAGX_ShovelComponent::SetToothDirection(FAGX_Frame InToothDirection)
 {
-	CuttingDirection = InCuttingDirection;
+	ToothDirection = InToothDirection;
 	if (HasNative())
 	{
 		if (UAGX_RigidBodyComponent* Body = RigidBody.GetRigidBody())
 		{
-			const FRotator CuttingRotation = CuttingDirection.GetRotationRelativeTo(*Body, *this);
-			const FVector DirectionInBody = CuttingRotation.RotateVector(FVector::ForwardVector);
-			NativeBarrier.SetCuttingDirection(DirectionInBody);
+			const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*Body, *this);
+			const FVector DirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
+			NativeBarrier.SetToothDirection(DirectionInBody);
 		}
 		else
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Cannot set Cutting Direction on Shovel '%s' in '%s' because the Shovel does "
+				TEXT("Cannot set Tooth Direction on Shovel '%s' in '%s' because the Shovel does "
 					 "not have a Rigid Body."),
 				*GetName(), *GetLabelSafe(GetOwner()));
 		}
@@ -253,7 +256,7 @@ void UAGX_ShovelComponent::FinalizeShovelEdit()
 	{
 		SetTopEdge(TopEdge);
 		SetCuttingEdge(CuttingEdge);
-		SetCuttingDirection(CuttingDirection);
+		SetToothDirection(ToothDirection);
 	}
 }
 
@@ -261,8 +264,8 @@ FAGX_Frame* UAGX_ShovelComponent::GetFrame(EAGX_ShovelFrame Frame)
 {
 	switch (Frame)
 	{
-		case EAGX_ShovelFrame::CuttingDirection:
-			return &CuttingDirection;
+		case EAGX_ShovelFrame::ToothDirection:
+			return &ToothDirection;
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 			return &CuttingEdge.Start;
 		case EAGX_ShovelFrame::CuttingEdgeEnd:
@@ -316,7 +319,8 @@ namespace AGX_ShovelComponent_helpers
 		const FGuid Guid = Barrier.GetGuid();
 		AGX_CHECK(!Context.ShovelProperties->Contains(Guid));
 
-		auto Properties = NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		auto Properties =
+			NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(Barrier, &Context);
 		return Properties;
@@ -342,10 +346,10 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	CuttingEdge.End.LocalLocation = Cutting.v2;
 	CuttingEdge.End.LocalRotation = FRotator(ForceInitToZero);
 
-	CuttingDirection.LocalLocation = 0.5 * (Cutting.v1 + Cutting.v2);
-	const FRotator CuttingDirectionRotation =
-		FRotationMatrix::MakeFromX(Barrier.GetCuttingDirection()).Rotator();
-	CuttingDirection.LocalRotation = CuttingDirectionRotation;
+	ToothDirection.LocalLocation = 0.5 * (Cutting.v1 + Cutting.v2);
+	const FRotator ToothDirectionRotation =
+		FRotationMatrix::MakeFromX(Barrier.GetToothDirection()).Rotator();
+	ToothDirection.LocalRotation = ToothDirectionRotation;
 
 	ImportGuid = Barrier.GetGuid();
 
@@ -357,7 +361,7 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	TopEdge.End.Parent.Name = BodyName;
 	CuttingEdge.Start.Parent.Name = BodyName;
 	CuttingEdge.End.Parent.Name = BodyName;
-	CuttingDirection.Parent.Name = BodyName;
+	ToothDirection.Parent.Name = BodyName;
 
 	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr ||
 		Context->RigidBodies == nullptr)
@@ -465,23 +469,57 @@ void UAGX_ShovelComponent::BeginPlay()
 		}
 	}
 
-	if (!HasNative() && !GIsReconstructingBlueprintInstances)
-	{
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
 		AllocateNative();
+
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
+	if (Sim != nullptr && HasNative())
+	{
+		if (!Sim->Add(*this))
+		{
+			UE_LOG(
+				LogAGX, Warning, TEXT("Simulation add returned false for shovel '%s' in '%s'."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+		}
+	}
+
+	if (!HasNative())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Unable to create Native Shovel for '%s', Output Log may contain more "
+					 "information."),
+				*GetName()),
+			SNotificationItem::CS_Fail, 8.f);
 	}
 }
 
-void UAGX_ShovelComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UAGX_ShovelComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
-	Super::EndPlay(EndPlayReason);
+	Super::EndPlay(Reason);
 	if (ShovelProperties != nullptr && ShovelProperties->IsInstance())
-	{
 		ShovelProperties->UnregisterShovel(*this);
-	}
-	if (HasNative())
+
+	if (GIsReconstructingBlueprintInstances)
 	{
-		NativeBarrier.ReleaseNative();
+		// Another UAGX_ShovelComponent will inherit this one's Native, so don't wreck it.
+		// The call to NativeBarrier.ReleaseNative below is safe because the AGX Dynamics
+		// Simulation will retain a reference counted pointer to the AGX Dynamics Observer
+		// Frame.
 	}
+	else if (
+		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		if (UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this))
+			Sim->Remove(*this);
+	}
+
+	if (HasNative())
+		NativeBarrier.ReleaseNative();
 }
 
 TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentInstanceData() const
@@ -493,6 +531,25 @@ TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentIn
 			ThisClass* AsThisClass = Cast<ThisClass>(Component);
 			return static_cast<IAGX_NativeOwner*>(AsThisClass);
 		});
+}
+
+void UAGX_ShovelComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelUsesToothDirection))
+	{
+		ToothDirection = CuttingDirection_DEPRECATED;
+		if (ShovelProperties != nullptr)
+		{
+			// Here we might actually overwrite a user-set ToothLength that was non-zero.
+			// But since the ToothLength now means the edge of the Shovel will translate
+			// this distance (along the ToothDirection vector), leaving it as-is will have much
+			// bigger and unwanted consequences. So this is the best we can do to get as close
+			// to the "old" behavior as we can.
+			ShovelProperties->ToothLength = 0.0;
+		}
+	}
 }
 
 bool UAGX_ShovelComponent::HasNative() const
@@ -523,22 +580,24 @@ FShovelBarrier* UAGX_ShovelComponent::GetOrCreateNative()
 	{
 		if (GIsReconstructingBlueprintInstances)
 		{
-			// We're in a very bad situation. Someone need this Component's native but if we're in
-			// the middle of a RerunConstructionScripts and this Component haven't been given its
-			// Native yet then there isn't much we can do. We can't create a new one since we will
-			// be given the actual Native soon, but we also can't return the actual Native right now
-			// because it hasn't been restored from the Component Instance Data yet.
+			// We're in a very bad situation. Someone need this Component's native but if we're
+			// in the middle of a RerunConstructionScripts and this Component haven't been given
+			// its Native yet then there isn't much we can do. We can't create a new one since
+			// we will be given the actual Native soon, but we also can't return the actual
+			// Native right now because it hasn't been restored from the Component Instance Data
+			// yet.
 			//
 			// For now we simply die in non-shipping (checkNoEntry is active) so unit tests will
 			// detect this situation, and log error and return nullptr otherwise, so that the
-			// application can at least keep running. It is unlikely that the simulation will behave
-			// as intended.
+			// application can at least keep running. It is unlikely that the simulation will
+			// behave as intended.
 			checkNoEntry();
 			UE_LOG(
 				LogAGX, Error,
 				TEXT("A request for the AGX Dynamics instance for Shovel '%s' in '%s' was made "
 					 "but we are in the middle of a Blueprint Reconstruction and the requested "
-					 "instance has not yet been restored. The instance cannot be returned, which "
+					 "instance has not yet been restored. The instance cannot be returned, "
+					 "which "
 					 "may lead to incorrect scene configuration."),
 				*GetName(), *GetLabelSafe(GetOwner()));
 			return nullptr;
@@ -604,16 +663,19 @@ void UAGX_ShovelComponent::AllocateNative()
 
 	const FTwoVectors TopEdgeInBody = TopEdge.GetLocationsRelativeTo(*BodyComponent, *this);
 	const FTwoVectors CuttingEdgeInBody = CuttingEdge.GetLocationsRelativeTo(*BodyComponent, *this);
-	const FRotator CuttingRotation = CuttingDirection.GetRotationRelativeTo(*BodyComponent, *this);
-	const FVector CuttingDirectionInBody = CuttingRotation.RotateVector(FVector::ForwardVector);
+	const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*BodyComponent, *this);
+	const FVector ToothDirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
+	const double ToothLength =
+		ShovelProperties != nullptr ? ShovelProperties->ToothLength.GetValue() : 0.0;
+
 	NativeBarrier.AllocateNative(
-		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, CuttingDirectionInBody);
+		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, ToothDirectionInBody, ToothLength);
 	check(HasNative()); /// \todo Consider better error handling than 'check'.
 
 	WritePropertiesToNative();
 
-	// No need to add Shovel to Simulation. Shovels only needs to be added to the Terrain, and that
-	// is handled by the Terrain itself.
+	// No need to add Shovel to Simulation. Shovels only needs to be added to the Terrain, and
+	// that is handled by the Terrain itself.
 }
 
 void UAGX_ShovelComponent::SetbEnabled(bool bInEnable)
@@ -635,7 +697,7 @@ void UAGX_ShovelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShovelProperties);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TopEdge);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(CuttingEdge);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(CuttingDirection);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ToothDirection);
 }
 #endif
 
@@ -704,8 +766,8 @@ bool UAGX_ShovelComponent::WritePropertiesToNative()
 	SetExcavationSettings(
 		EAGX_ExcavationMode::DeformLeft, ShovelProperties->DeformLeftExcavationSettings);
 
-	// Properties initialized by the AGX Dynamics Shovel constructor, i.e. body, edges, and cutting
-	// direction, are not set here.
+	// Properties initialized by the AGX Dynamics Shovel constructor, i.e. body, edges, and
+	// cutting direction, are not set here.
 
 	return true;
 }

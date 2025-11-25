@@ -84,6 +84,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
 
+		/// Points to AGX Dynamics OpenPLX bundles.
+		AGXOpenPLXBundle,
+
 		/// Points to AGX Dynamics external resources.
 		External
 	};
@@ -226,6 +229,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
@@ -288,6 +292,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX libs, located in the same dir as AGX libs.
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-analysis", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-bundle", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-core.api", LibSource.Dependencies);
@@ -380,6 +385,7 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			// OpenPLX:
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
+			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.Dependencies);
@@ -413,6 +419,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "lib", "*"));
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "openplxbundles", "*"));
 		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXModels", "*"));
+		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXUserBundles", "*"));
 		SetLicenseForCopySafe(Target);
 
 		// This is a work-around for Linux which ensures that the .so files are
@@ -885,6 +892,18 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy AGX Dynamics OpenPLX bundles.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
 
 			if (!CopyDirectoryRecursively(Source, Dest))
 			{
@@ -1599,6 +1618,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BuildDir, "include", "external"),
 				null, null
@@ -1650,6 +1673,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1699,6 +1726,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 
 			LibSources.Add(LibSource.External, new LibSourceInfo(
@@ -1752,6 +1783,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(InstalledDir, "include", "external"),
 				null, null
@@ -1801,6 +1836,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1847,6 +1886,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
