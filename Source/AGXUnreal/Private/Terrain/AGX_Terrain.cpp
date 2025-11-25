@@ -1892,6 +1892,7 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 	{
 		for (auto& Shovel : ShovelComponents_DEPRECATED)
 		{
+			// Terrain Pager still needs to know about the shovels in order to track them.
 			TerrainPagingShovels.Add(Shovel);
 		}
 	}
