@@ -85,7 +85,7 @@ struct AGXUNREAL_API FAGX_TerrainPagingSettings
 	 * tiles to load or unload.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FShovelReferenceWithSettings> TerrainPagingShovels;
+	TArray<FShovelReferenceWithSettings> TrackedShovels;
 
 	/**
 	 * Rigid Bodies tracked by the Terrain Pager. These will be used when deciding which Terrain
