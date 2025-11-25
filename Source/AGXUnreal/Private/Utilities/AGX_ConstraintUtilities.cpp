@@ -20,6 +20,7 @@
 #include "Constraints/Controllers/AGX_TargetSpeedController.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "Constraints/Controllers/AGX_TwistRangeController.h"
+#include "Vehicle/AGX_WheelJointComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -343,6 +344,12 @@ FAGX_ConstraintUtilities::AddLockControllerPropertyCallbacks<UAGX_Constraint2Dof
 	TFunction<FAGX_ConstraintLockController*(UAGX_Constraint2DofComponent*)> GetController,
 	const FName& Member);
 
+template AGXUNREAL_API void
+FAGX_ConstraintUtilities::AddLockControllerPropertyCallbacks<UAGX_WheelJointComponent>(
+	FAGX_PropertyChangedDispatcher<UAGX_WheelJointComponent>& PropertyDispatcher,
+	TFunction<FAGX_ConstraintLockController*(UAGX_WheelJointComponent*)> GetController,
+	const FName& Member);
+
 template <typename UConstraintClass>
 void FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks(
 	FAGX_PropertyChangedDispatcher<UConstraintClass>& PropertyDispatcher,
@@ -367,6 +374,12 @@ template AGXUNREAL_API void
 FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks<UAGX_Constraint2DofComponent>(
 	FAGX_PropertyChangedDispatcher<UAGX_Constraint2DofComponent>& PropertyDispatcher,
 	TFunction<FAGX_ConstraintRangeController*(UAGX_Constraint2DofComponent*)> GetController,
+	const FName& Member);
+
+template AGXUNREAL_API void
+FAGX_ConstraintUtilities::AddRangeControllerPropertyCallbacks<UAGX_WheelJointComponent>(
+	FAGX_PropertyChangedDispatcher<UAGX_WheelJointComponent>& PropertyDispatcher,
+	TFunction<FAGX_ConstraintRangeController*(UAGX_WheelJointComponent*)> GetController,
 	const FName& Member);
 
 template <typename UConstraintClass>
@@ -401,6 +414,12 @@ template AGXUNREAL_API void
 FAGX_ConstraintUtilities::AddTargetSpeedControllerPropertyCallbacks<UAGX_Constraint2DofComponent>(
 	FAGX_PropertyChangedDispatcher<UAGX_Constraint2DofComponent>& PropertyDispatcher,
 	TFunction<FAGX_ConstraintTargetSpeedController*(UAGX_Constraint2DofComponent*)> GetController,
+	const FName& Member);
+
+template AGXUNREAL_API void
+FAGX_ConstraintUtilities::AddTargetSpeedControllerPropertyCallbacks<UAGX_WheelJointComponent>(
+	FAGX_PropertyChangedDispatcher<UAGX_WheelJointComponent>& PropertyDispatcher,
+	TFunction<FAGX_ConstraintTargetSpeedController*(UAGX_WheelJointComponent*)> GetController,
 	const FName& Member);
 
 template <typename UConstraintClass>

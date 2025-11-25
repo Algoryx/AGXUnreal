@@ -13,6 +13,8 @@
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "SimulationBarrier.h"
 #include "Terrain/ShovelBarrier.h"
+#include "Vehicle/SteeringBarrier.h"
+#include "Vehicle/WheelJointBarrier.h"
 #include "Wire/WireBarrier.h"
 
 // Unreal Engine includes.
@@ -32,14 +34,15 @@ class FLockJointBarrier;
 class FSingleControllerConstraint1DOFBarrier;
 
 // Others.
-struct FObserverFrameBarrier;
-struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
 class FShapeMaterialBarrier;
 class FSimulationBarrier;
 class FTwoBodyTireBarrier;
 class FTrackBarrier;
+
+struct FObserverFrameBarrier;
+struct FRigidBodyBarrier;
 
 struct AGXUNREALBARRIER_API FSimulationObjectCollection
 {
@@ -89,9 +92,11 @@ public:
 	const TArray<FLockJointBarrier>& GetLockConstraints() const;
 
 	TArray<FSingleControllerConstraint1DOFBarrier>& GetSingleControllerConstraint1DOFs();
-
 	const TArray<FSingleControllerConstraint1DOFBarrier>& GetSingleControllerConstraint1DOFs()
 		const;
+
+	TArray<FWheelJointBarrier>& GetWheelJoints();
+	const TArray<FWheelJointBarrier>& GetWheelJoints() const;
 
 	TArray<FContactMaterialBarrier>& GetContactMaterials();
 	const TArray<FContactMaterialBarrier>& GetContactMaterials() const;
@@ -104,6 +109,9 @@ public:
 
 	TArray<FShapeMaterialBarrier>& GetShapeMaterials();
 	const TArray<FShapeMaterialBarrier>& GetShapeMaterials() const;
+
+	TArray<FSteeringBarrier>& GetSteerings();
+	const TArray<FSteeringBarrier>& GetSteerings() const;
 
 	TArray<FTwoBodyTireBarrier>& GetTwoBodyTires();
 	const TArray<FTwoBodyTireBarrier>& GetTwoBodyTires() const;
@@ -151,6 +159,7 @@ private:
 	TArray<FDistanceJointBarrier> DistanceConstraints;
 	TArray<FLockJointBarrier> LockConstraints;
 	TArray<FSingleControllerConstraint1DOFBarrier> SingleControllerConstraint1DOFs;
+	TArray<FWheelJointBarrier> WheelJoints;
 
 	TArray<FRigidBodyBarrier> RigidBodies;
 	TArray<FContactMaterialBarrier> ContactMaterials;
@@ -160,6 +169,7 @@ private:
 	TArray<FTwoBodyTireBarrier> TwoBodyTires;
 	TArray<FWireBarrier> Wires;
 	TArray<FShovelBarrier> Shovels;
+	TArray<FSteeringBarrier> Steerings;
 	TArray<FTrackBarrier> Tracks;
 
 	TArray<FOpenPLX_Input> PLXInputs;

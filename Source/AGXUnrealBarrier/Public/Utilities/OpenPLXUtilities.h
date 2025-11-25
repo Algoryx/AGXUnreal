@@ -8,7 +8,15 @@
 class AGXUNREALBARRIER_API FOpenPLXUtilities
 {
 public:
-	static FString GetBundlePath();
+	/**
+	 * Returns all known OpenPLX bundle paths, including the user bundle path if it exists.
+	 */
+	static TArray<FString> GetBundlePaths();
+
+	/**
+	* Returns the path to the User Bundle path (residing in the users own project).
+	*/
+	static FString GetUserBundlePath();
 
 	/**
 	 * Returns the directory in which all OpenPLX files must reside in for the to be importable.

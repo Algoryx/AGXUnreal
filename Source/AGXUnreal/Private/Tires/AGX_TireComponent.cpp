@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Simulation.h"
 #include "AGX_LogCategory.h"
+#include "AGX_NativeOwnerInstanceData.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -18,12 +19,36 @@ bool UAGX_TireComponent::HasNative() const
 	return NativeBarrier != nullptr && NativeBarrier->HasNative();
 }
 
+uint64 UAGX_TireComponent::GetNativeAddress() const
+{
+	if (!HasNative())
+		return 0;
+
+	return static_cast<uint64>(NativeBarrier->GetNativeAddress());
+}
+
+void UAGX_TireComponent::SetNativeAddress(uint64 NativeAddress)
+{
+	check(!HasNative());
+	NativeBarrier->SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
+}
+
+TStructOnScope<FActorComponentInstanceData> UAGX_TireComponent::GetComponentInstanceData() const
+{
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+		this, this,
+		[](UActorComponent* Component)
+		{
+			ThisClass* AsThisClass = Cast<ThisClass>(Component);
+			return static_cast<IAGX_NativeOwner*>(AsThisClass);
+		});
+}
+
 FTireBarrier* UAGX_TireComponent::GetOrCreateNative()
 {
 	if (!HasNative())
-	{
 		CreateNative();
-	}
+
 	return GetNative();
 }
 
@@ -40,10 +65,8 @@ const FTireBarrier* UAGX_TireComponent::GetNative() const
 void UAGX_TireComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!HasNative())
-	{
+	if (!HasNative() && !GIsReconstructingBlueprintInstances)
 		CreateNative();
-	}
 }
 
 void UAGX_TireComponent::EndPlay(const EEndPlayReason::Type Reason)

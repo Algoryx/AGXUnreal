@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Wire/AGX_WireUtilities.h"
 #include "Wire/WireBarrier.h"
@@ -124,7 +124,7 @@ void UAGX_WireWinchComponent::EndPlay(const EEndPlayReason::Type Reason)
 TStructOnScope<FActorComponentInstanceData> UAGX_WireWinchComponent::GetComponentInstanceData()
 	const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{
