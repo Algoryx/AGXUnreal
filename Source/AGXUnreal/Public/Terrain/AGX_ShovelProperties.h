@@ -53,6 +53,16 @@ public:
 	void SetToothLength(double InToothLength);
 
 	/**
+	 * Determines whether excavation at the teeth edge should be enabled so
+	 * that digging starts at the teeth tip instead of at the teeth base (cutting edge).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Teeth")
+	bool bEnableExcavationAtTeethEdge {false};
+
+	UFUNCTION(BlueprintCallable, Category = "Shovel Properties")
+	void SetEnableExcavationAtTeethEdge(bool InEnable);
+
+	/**
 	 * Minimum radius of the shovel teeth [cm].
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Teeth")
@@ -398,6 +408,7 @@ public:
 	void UnregisterShovel(UAGX_ShovelComponent& Shovel);
 
 	// Set function aliases required by our live update macros.
+	void SetbEnableExcavationAtTeethEdge(bool InEnable);
 	void SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts);
 	void SetbEnableParticleFreeDeformers(bool InbEnableParticleFreeDeformers);
 	void SetbEnableInnerShapeCreateDynamicMass(bool InbEnableInnerShapeCreateDynamicMass);
