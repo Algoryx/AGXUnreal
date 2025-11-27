@@ -6,9 +6,9 @@
 #include "AGX_Check.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "agxTerrain/Shovel.h"
 #include "RigidBodyBarrier.h"
-#include "TypeConversions.h"
 
 // Unreal Engine includes.
 #include "Math/TwoVectors.h"

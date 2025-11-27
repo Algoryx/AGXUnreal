@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireWinchRef.h"
 
 FWireWinchBarrier::FWireWinchBarrier()

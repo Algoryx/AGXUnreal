@@ -6,6 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
@@ -13,7 +14,6 @@
 #include "Shapes/ShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -281,7 +281,8 @@ FVector FRigidBodyBarrier::GetTorque() const
 FMergeSplitPropertiesBarrier FRigidBodyBarrier::GetMergeSplitProperties() const
 {
 	check(HasNative());
-	agxSDK::MergeSplitProperties* Properties = agxSDK::MergeSplitHandler::getProperties(NativeRef->Native.get());
+	agxSDK::MergeSplitProperties* Properties =
+		agxSDK::MergeSplitHandler::getProperties(NativeRef->Native.get());
 	return FMergeSplitPropertiesBarrier(std::make_shared<FMergeSplitPropertiesPtr>(Properties));
 }
 
