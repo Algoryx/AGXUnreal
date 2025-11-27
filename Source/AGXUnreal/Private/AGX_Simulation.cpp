@@ -189,7 +189,8 @@ namespace AGX_Simulation_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the Simulation."),
+				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the "
+					 "Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return false;
 		}
@@ -657,6 +658,9 @@ void UAGX_Simulation::Deinitialize()
 	}
 #endif
 
+	if (DebuggerBarrier.HasNative())
+		StopWebDebugging();
+
 	Super::Deinitialize();
 	if (HasNative())
 		ReleaseNative();
@@ -779,9 +783,13 @@ void UAGX_Simulation::CreateNative()
 
 	SetGlobalNativeMergeSplitThresholds();
 
-	if (bRemoteDebugging)
+	if (DebuggingMode == EAGX_DebuggingMode::RemoteDebugger)
 	{
-		NativeBarrier.EnableRemoteDebugging(RemoteDebuggingPort);
+		NativeBarrier.EnableRemoteDebugging(DebuggingPort);
+	}
+	else if (DebuggingMode == EAGX_DebuggingMode::WebDebugger)
+	{
+		StartWebDebugging();
 	}
 
 	if (bEnableGlobalContactEventListener)
@@ -1467,6 +1475,40 @@ void UAGX_Simulation::ReleaseNative()
 	PreStepForwardInternal.Clear();
 	PostStepForward.Clear();
 	PostStepForwardInternal.Clear();
+}
+
+void UAGX_Simulation::StartWebDebugging()
+{
+	if (!DebuggerBarrier.HasNative())
+		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
+
+	if (!DebuggerBarrier.IsRunning())
+		DebuggerBarrier.Start();
+
+	NativeBarrier.SetEnableWebDebugger(true, DebuggingPort);
+
+	const FString DebuggerPageUrl =
+		FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
+	FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
+}
+
+void UAGX_Simulation::StopWebDebugging()
+{
+	if (!DebuggerBarrier.HasNative())
+		return;
+
+	if (DebuggerBarrier.IsRunning())
+	{
+		DebuggerBarrier.Stop();
+		DebuggerBarrier.Join();
+	}
+
+	DebuggerBarrier.ReleaseNative();
+}
+
+bool UAGX_Simulation::IsWebDebuggingActive() const
+{
+	return DebuggerBarrier.HasNative() && DebuggerBarrier.IsRunning();
 }
 
 void UAGX_Simulation::PreStep()
