@@ -6,7 +6,6 @@
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Sensors/AGX_LidarOutputBase.h"
@@ -29,12 +28,12 @@
 
 UAGX_LidarSensorComponent::UAGX_LidarSensorComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
-
 	static const TCHAR* DefaultNiagaraSystem =
 		TEXT("NiagaraSystem'/AGXUnreal/Sensor/Lidar/NS_LidarNiagaraSystem.NS_LidarNiagaraSystem'");
 	NiagaraSystemAsset =
 		FAGX_ObjectUtilities::GetAssetFromPath<UNiagaraSystem>(DefaultNiagaraSystem);
+
+	NativeBarrier.Reset(new FLidarBarrier());
 }
 
 void UAGX_LidarSensorComponent::SetModel(EAGX_LidarModel InModel)
@@ -58,39 +57,18 @@ EAGX_LidarModel UAGX_LidarSensorComponent::GetModel() const
 	return Model;
 }
 
-void UAGX_LidarSensorComponent::SetEnabled(bool InEnabled)
-{
-	bEnabled = InEnabled;
-
-	if (HasNative())
-		NativeBarrier.SetEnabled(InEnabled);
-}
-
-bool UAGX_LidarSensorComponent::IsEnabled() const
-{
-	if (HasNative())
-		return NativeBarrier.GetEnabled();
-
-	return bEnabled;
-}
-
-bool UAGX_LidarSensorComponent::GetEnabled() const
-{
-	return IsEnabled();
-}
-
 void UAGX_LidarSensorComponent::SetRange(FAGX_RealInterval InRange)
 {
 	Range = InRange;
 
 	if (HasNative())
-		NativeBarrier.SetRange(InRange);
+		GetNativeAsLidar()->SetRange(InRange);
 }
 
 FAGX_RealInterval UAGX_LidarSensorComponent::GetRange() const
 {
 	if (HasNative())
-		return NativeBarrier.GetRange();
+		return GetNativeAsLidar()->GetRange();
 
 	return Range;
 }
@@ -100,13 +78,13 @@ void UAGX_LidarSensorComponent::SetBeamDivergence(double InBeamDivergence)
 	BeamDivergence = InBeamDivergence;
 
 	if (HasNative())
-		NativeBarrier.SetBeamDivergence(InBeamDivergence);
+		GetNativeAsLidar()->SetBeamDivergence(InBeamDivergence);
 }
 
 double UAGX_LidarSensorComponent::GetBeamDivergence() const
 {
 	if (HasNative())
-		return NativeBarrier.GetBeamDivergence();
+		return GetNativeAsLidar()->GetBeamDivergence();
 
 	return BeamDivergence;
 }
@@ -116,13 +94,13 @@ void UAGX_LidarSensorComponent::SetBeamExitRadius(double InBeamExitRadius)
 	BeamExitRadius = InBeamExitRadius;
 
 	if (HasNative())
-		NativeBarrier.SetBeamExitRadius(InBeamExitRadius);
+		GetNativeAsLidar()->SetBeamExitRadius(InBeamExitRadius);
 }
 
 double UAGX_LidarSensorComponent::GetBeamExitRadius() const
 {
 	if (HasNative())
-		return NativeBarrier.GetBeamExitRadius();
+		return GetNativeAsLidar()->GetBeamExitRadius();
 
 	return BeamExitRadius;
 }
@@ -142,7 +120,7 @@ void UAGX_LidarSensorComponent::SetRaytraceDepth(int32 Depth)
 	}
 
 	if (HasNative())
-		NativeBarrier.SetRaytraceDepth(static_cast<size_t>(Depth));
+		GetNativeAsLidar()->SetRaytraceDepth(static_cast<size_t>(Depth));
 }
 
 int32 UAGX_LidarSensorComponent::GetRaytraceDepth() const
@@ -150,7 +128,7 @@ int32 UAGX_LidarSensorComponent::GetRaytraceDepth() const
 	if (HasNative())
 	{
 		return static_cast<int32>(std::min(
-			NativeBarrier.GetRaytraceDepth(),
+			GetNativeAsLidar()->GetRaytraceDepth(),
 			static_cast<size_t>(std::numeric_limits<int32>::max())));
 	}
 
@@ -162,13 +140,13 @@ void UAGX_LidarSensorComponent::SetEnableRemovePointsMisses(bool bEnable)
 	bEnableRemovePointsMisses = bEnable;
 
 	if (HasNative())
-		NativeBarrier.SetEnableRemoveRayMisses(bEnable);
+		GetNativeAsLidar()->SetEnableRemoveRayMisses(bEnable);
 }
 
 bool UAGX_LidarSensorComponent::GetEnableRemovePointsMisses() const
 {
 	if (HasNative())
-		return NativeBarrier.GetEnableRemoveRayMisses();
+		return GetNativeAsLidar()->GetEnableRemoveRayMisses();
 
 	return bEnableRemovePointsMisses;
 }
@@ -181,11 +159,11 @@ void UAGX_LidarSensorComponent::SetEnableDistanceGaussianNoise(bool bEnable)
 	{
 		if (bEnable)
 		{
-			NativeBarrier.EnableOrUpdateDistanceGaussianNoise(DistanceNoiseSettings);
+			GetNativeAsLidar()->EnableOrUpdateDistanceGaussianNoise(DistanceNoiseSettings);
 		}
 		else
 		{
-			NativeBarrier.DisableDistanceGaussianNoise();
+			GetNativeAsLidar()->DisableDistanceGaussianNoise();
 		}
 	}
 }
@@ -193,7 +171,7 @@ void UAGX_LidarSensorComponent::SetEnableDistanceGaussianNoise(bool bEnable)
 bool UAGX_LidarSensorComponent::GetEnableDistanceGaussianNoise() const
 {
 	if (HasNative())
-		return NativeBarrier.GetEnableDistanceGaussianNoise();
+		return GetNativeAsLidar()->GetEnableDistanceGaussianNoise();
 
 	return bEnableDistanceGaussianNoise;
 }
@@ -203,8 +181,8 @@ void UAGX_LidarSensorComponent::SetDistanceNoiseSettings(
 {
 	DistanceNoiseSettings = Settings;
 
-	if (HasNative() && NativeBarrier.GetEnableDistanceGaussianNoise())
-		NativeBarrier.EnableOrUpdateDistanceGaussianNoise(Settings);
+	if (HasNative() && GetNativeAsLidar()->GetEnableDistanceGaussianNoise())
+		GetNativeAsLidar()->EnableOrUpdateDistanceGaussianNoise(Settings);
 }
 
 FAGX_DistanceGaussianNoiseSettings UAGX_LidarSensorComponent::GetDistanceNoiseSettings() const
@@ -220,11 +198,11 @@ void UAGX_LidarSensorComponent::SetEnableRayAngleGaussianNoise(bool bEnable)
 	{
 		if (bEnable)
 		{
-			NativeBarrier.EnableOrUpdateRayAngleGaussianNoise(RayAngleNoiseSettings);
+			GetNativeAsLidar()->EnableOrUpdateRayAngleGaussianNoise(RayAngleNoiseSettings);
 		}
 		else
 		{
-			NativeBarrier.DisableRayAngleGaussianNoise();
+			GetNativeAsLidar()->DisableRayAngleGaussianNoise();
 		}
 	}
 }
@@ -232,7 +210,7 @@ void UAGX_LidarSensorComponent::SetEnableRayAngleGaussianNoise(bool bEnable)
 bool UAGX_LidarSensorComponent::GetEnableRayAngleGaussianNoise() const
 {
 	if (HasNative())
-		return NativeBarrier.GetEnableRayAngleGaussianNoise();
+		return GetNativeAsLidar()->GetEnableRayAngleGaussianNoise();
 
 	return bEnableRayAngleGaussianNoise;
 }
@@ -242,8 +220,8 @@ void UAGX_LidarSensorComponent::SetRayAngleNoiseSettings(
 {
 	RayAngleNoiseSettings = Settings;
 
-	if (HasNative() && NativeBarrier.GetEnableRayAngleGaussianNoise())
-		NativeBarrier.EnableOrUpdateRayAngleGaussianNoise(Settings);
+	if (HasNative() && GetNativeAsLidar()->GetEnableRayAngleGaussianNoise())
+		GetNativeAsLidar()->EnableOrUpdateRayAngleGaussianNoise(Settings);
 }
 
 FAGX_RayAngleGaussianNoiseSettings UAGX_LidarSensorComponent::GetRayAngleNoiseSettings() const
@@ -259,12 +237,12 @@ UNiagaraComponent* UAGX_LidarSensorComponent::GetSpawnedNiagaraSystemComponent()
 void UAGX_LidarSensorComponent::UpdateNativeTransform()
 {
 	if (HasNative())
-		NativeBarrier.SetTransform(GetComponentTransform());
+		GetNativeAsLidar()->SetTransform(GetComponentTransform());
 }
 
 bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
 {
-	auto Native = GetOrCreateNative();
+	auto Native = static_cast<FLidarBarrier*>(GetOrCreateNative());
 	if (Native == nullptr)
 		return false;
 
@@ -276,37 +254,15 @@ bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
 	return true;
 }
 
-bool UAGX_LidarSensorComponent::HasNative() const
+FSensorBarrier* UAGX_LidarSensorComponent::CreateNativeImpl()
 {
-	return NativeBarrier.HasNative();
-}
-
-uint64 UAGX_LidarSensorComponent::GetNativeAddress() const
-{
-	if (!HasNative())
-		return 0;
-
-	NativeBarrier.IncrementRefCount();
-	return NativeBarrier.GetNativeAddress();
-}
-
-void UAGX_LidarSensorComponent::SetNativeAddress(uint64 NativeAddress)
-{
-	check(!HasNative());
-	NativeBarrier.SetNativeAddress(NativeAddress);
-	NativeBarrier.DecrementRefCount();
-}
-
-FLidarBarrier* UAGX_LidarSensorComponent::GetOrCreateNative()
-{
-	if (HasNative())
-		return GetNative();
+	Super::CreateNativeImpl();
 
 	const bool RaytraceRTXSupported = FSensorEnvironmentBarrier::IsRaytraceSupported();
 	if (!RaytraceRTXSupported)
 	{
 		const FString Message =
-			"UAGX_LidarSensorComponent::GetOrCreateNative called, but Lidar raytracing (RTX) is "
+			"UAGX_LidarSensorComponent::CreateNativeImpl called, but Lidar raytracing (RTX) is "
 			"not supported on this computer, the Lidar Sensor will not "
 			"work. To enable Lidar raytracing (RTX) support, use an RTX "
 			"Graphical Processing Unit (GPU) with updated driver.";
@@ -338,17 +294,18 @@ FLidarBarrier* UAGX_LidarSensorComponent::GetOrCreateNative()
 		return nullptr;
 	}
 
+	auto LidarBarrier = static_cast<FLidarBarrier*>(NativeBarrier.Get());
 	if (Model == EAGX_LidarModel::CustomRayPattern)
 	{
 		PatternFetcher.SetLidar(this);
-		NativeBarrier.AllocateNativeCustomRayPattern(PatternFetcher);
+		LidarBarrier->AllocateNativeCustomRayPattern(PatternFetcher);
 	}
 	else
 	{
-		NativeBarrier.AllocateNative(Model, *ModelParameters);
+		LidarBarrier->AllocateNative(Model, *ModelParameters);
 	}
 
-	if (!NativeBarrier.HasNative())
+	if (!HasNative())
 	{
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(
@@ -360,23 +317,7 @@ FLidarBarrier* UAGX_LidarSensorComponent::GetOrCreateNative()
 	}
 
 	UpdateNativeProperties();
-	return GetNative();
-}
-
-FLidarBarrier* UAGX_LidarSensorComponent::GetNative()
-{
-	if (!HasNative())
-		return nullptr;
-
-	return &NativeBarrier;
-}
-
-const FLidarBarrier* UAGX_LidarSensorComponent::GetNative() const
-{
-	if (!HasNative())
-		return nullptr;
-
-	return &NativeBarrier;
+	return LidarBarrier;
 }
 
 void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source)
@@ -386,6 +327,7 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	Range = Source.Range;
 	BeamDivergence = Source.BeamDivergence;
 	BeamExitRadius = Source.BeamExitRadius;
+	StepStride = Source.StepStride;
 	ModelParameters = Source.ModelParameters;
 	RaytraceDepth = Source.RaytraceDepth;
 	bEnableRemovePointsMisses = Source.bEnableRemovePointsMisses;
@@ -408,32 +350,12 @@ void UAGX_LidarSensorComponent::BeginPlay()
 	}
 }
 
-void UAGX_LidarSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
-{
-	Super::EndPlay(Reason);
-
-	if (HasNative())
-		NativeBarrier.ReleaseNative();
-}
-
 void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)
 {
 	if (NiagaraSystemComponent != nullptr)
 		NiagaraSystemComponent->DestroyComponent();
 
 	Super::DestroyComponent(bPromoteChildren);
-}
-
-TStructOnScope<FActorComponentInstanceData> UAGX_LidarSensorComponent::GetComponentInstanceData()
-	const
-{
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
-		this, this,
-		[](UActorComponent* Component)
-		{
-			ThisClass* AsThisClass = Cast<ThisClass>(Component);
-			return static_cast<IAGX_NativeOwner*>(AsThisClass);
-		});
 }
 
 #if WITH_EDITOR
@@ -494,7 +416,6 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamDivergence);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(BeamExitRadius);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(RaytraceDepth);
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRemovePointsMisses);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableDistanceGaussianNoise);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableRayAngleGaussianNoise);
@@ -502,6 +423,12 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(RayAngleNoiseSettings);
 }
 #endif // WITH_EDITOR
+
+void UAGX_LidarSensorComponent::MarkOutputAsRead()
+{
+	if (HasNative())
+		GetNativeAsLidar()->MarkOutputAsRead();
+}
 
 bool UAGX_LidarSensorComponent::IsCustomParametersSupported() const
 {
@@ -513,18 +440,34 @@ void UAGX_LidarSensorComponent::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
 
+	Super::UpdateNativeProperties();
 	if (IsCustomParametersSupported())
 	{
-		NativeBarrier.SetRange(Range);
-		NativeBarrier.SetBeamDivergence(BeamDivergence);
-		NativeBarrier.SetBeamExitRadius(BeamExitRadius);
+		GetNativeAsLidar()->SetRange(Range);
+		GetNativeAsLidar()->SetBeamDivergence(BeamDivergence);
+		GetNativeAsLidar()->SetBeamExitRadius(BeamExitRadius);
 		SetEnableDistanceGaussianNoise(bEnableDistanceGaussianNoise);
 		SetEnableRayAngleGaussianNoise(bEnableRayAngleGaussianNoise);
 	}
 
-	NativeBarrier.SetEnableRemoveRayMisses(bEnableRemovePointsMisses);
+	GetNativeAsLidar()->SetEnableRemoveRayMisses(bEnableRemovePointsMisses);
 	SetRaytraceDepth(RaytraceDepth);
-	NativeBarrier.SetEnabled(bEnabled);
+}
+
+FLidarBarrier* UAGX_LidarSensorComponent::GetNativeAsLidar()
+{
+	if (!HasNative())
+		return nullptr;
+
+	return static_cast<FLidarBarrier*>(NativeBarrier.Get());
+}
+
+const FLidarBarrier* UAGX_LidarSensorComponent::GetNativeAsLidar() const
+{
+	if (!HasNative())
+		return nullptr;
+
+	return static_cast<const FLidarBarrier*>(NativeBarrier.Get());
 }
 
 TArray<FTransform> UAGX_LidarSensorComponent::FetchRayTransforms()
