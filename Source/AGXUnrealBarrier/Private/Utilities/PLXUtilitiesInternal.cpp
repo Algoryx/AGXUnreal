@@ -517,9 +517,16 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 		return Dependencies;
 	}
 
-	const TArray<FString> PLXBundlePaths = FOpenPLXUtilities::GetBundlePaths();
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 
+	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+	const std::vector<std::string> BundlePathsStd =
+		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
+
+	agxopenplx::OptParams Params = agxopenplx::OptParams()
+									   .withUuidv5("47de4303-16ef-408d-baf5-1c86f0fe4473")
+									   .withSkipDefaultBundles()
+									   .withBundlePaths(BundlePathsStd);
 	agxopenplx::LoadResult Result;
 	auto LogErrors = [&]()
 	{
@@ -529,9 +536,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 
 	try
 	{
-		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filepath),
-			FPLXUtilitiesInternal::BuildBundlePathsString(PLXBundlePaths));
+		Result = agxopenplx::load_from_file(Simulation, Convert(Filepath), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{
@@ -572,7 +577,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	auto ContextInternal =
 		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
 	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
-	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+
 	auto IsKnownBundle = [&](const FString& P)
 	{
 		return BundlePaths.ContainsByPredicate([&](const FString& BundlePath)
