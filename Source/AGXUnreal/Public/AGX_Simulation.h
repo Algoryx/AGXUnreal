@@ -589,8 +589,13 @@ public: // Member functions.
 	 */
 	void EnsureStepperCreated();
 
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	void StartWebDebugging();
+
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	void StopWebDebugging();
+
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	bool IsWebDebuggingActive() const;
 
 	friend class AAGX_Stepper;
