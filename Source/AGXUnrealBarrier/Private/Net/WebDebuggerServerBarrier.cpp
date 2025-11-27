@@ -38,7 +38,7 @@ const FWebDebuggerServerRef* FWebDebuggerServerBarrier::GetNative() const
 
 void FWebDebuggerServerBarrier::ReleaseNative()
 {
-	NativeRef = nullptr;
+	NativeRef->Native = nullptr;
 }
 
 void FWebDebuggerServerBarrier::Start()

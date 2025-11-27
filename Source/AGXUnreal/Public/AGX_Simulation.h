@@ -589,6 +589,10 @@ public: // Member functions.
 	 */
 	void EnsureStepperCreated();
 
+	void StartWebDebugging();
+	void StopWebDebugging();
+	bool IsWebDebuggingActive() const;
+
 	friend class AAGX_Stepper;
 
 private:
@@ -662,9 +666,6 @@ private:
 	void ReleaseNative();
 
 private:
-	void StartWebDebugging();
-	void StopWebDebugging();
-
 	FSimulationBarrier NativeBarrier;
 	FWebDebuggerServerBarrier DebuggerBarrier;
 

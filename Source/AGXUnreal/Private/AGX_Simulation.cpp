@@ -189,7 +189,8 @@ namespace AGX_Simulation_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the Simulation."),
+				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the "
+					 "Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return false;
 		}
@@ -1485,6 +1486,10 @@ void UAGX_Simulation::StartWebDebugging()
 		DebuggerBarrier.Start();
 
 	NativeBarrier.SetEnableWebDebugger(true, DebuggingPort);
+
+	const FString DebuggerPageUrl =
+		FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
+	FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
 }
 
 void UAGX_Simulation::StopWebDebugging()
@@ -1499,6 +1504,11 @@ void UAGX_Simulation::StopWebDebugging()
 	}
 
 	DebuggerBarrier.ReleaseNative();
+}
+
+bool UAGX_Simulation::IsWebDebuggingActive() const
+{
+	return DebuggerBarrier.HasNative() && DebuggerBarrier.IsRunning();
 }
 
 void UAGX_Simulation::PreStep()
