@@ -7,6 +7,7 @@
 #include "Contacts/AGX_ShapeContact.h"
 #include "Contacts/AGX_ContactEnums.h"
 #include "Contacts/ShapeContactBarrier.h"
+#include "Net/WebDebuggerServerBarrier.h"
 #include "SimulationBarrier.h"
 
 // Unreal Engine includes.
@@ -294,23 +295,14 @@ public: // Properties.
 		Meta = (EditCondition = "bOverrideDynamicWireContacts"))
 	bool bEnableDynamicWireContacts {false};
 
-	/**
-	 * Remote debugging allows agxViewer, the default scene viewer in AGX
-	 * Dynamics, to connect to the AGX_Simulation running inside Unreal Engine
-	 * and render the internal simulation state using its built-in debug
-	 * rendering capabilities.
-	 *
-	 * To connect to a running Unreal Engine instance launch agxViewer with
-	 *    agxViewer -p --connect localhost:<PORT>
-	 * where <PORT> is the port number configured in Project Settings > Plugins >  AGX Dynamics >
-	 * Debug > RemoteDebuggingPort.
-	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Debug")
-	uint8 bRemoteDebugging : 1;
+	EAGX_DebuggingMode DebuggingMode {EAGX_DebuggingMode::None};
 
-	/** Network port to use for remote debugging. */
-	UPROPERTY(Config, EditAnywhere, Category = "Debug", Meta = (EditCondition = "bRemoteDebugging"))
-	int16 RemoteDebuggingPort;
+	/** Network port to use for debugging. */
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "bRemoteDebugging", ClampMin = "0"))
+	int16 DebuggingPort {9001};
 
 	/**
 	 * Draws all Shape Contacts to the screen each Simulation time step.
@@ -659,7 +651,11 @@ private:
 	void ReleaseNative();
 
 private:
+	void StartWebDebugging();
+	void StopWebDebugging();
+
 	FSimulationBarrier NativeBarrier;
+	FWebDebuggerServerBarrier DebuggerBarrier;
 
 	/// Time that we couldn't step because DeltaTime was not an even multiple
 	/// of the AGX Dynamics step size. That fraction of a time step is carried

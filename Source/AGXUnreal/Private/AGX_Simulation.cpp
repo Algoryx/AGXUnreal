@@ -657,6 +657,9 @@ void UAGX_Simulation::Deinitialize()
 	}
 #endif
 
+	if (DebuggerBarrier.HasNative())
+		StopWebDebugging();
+
 	Super::Deinitialize();
 	if (HasNative())
 		ReleaseNative();
@@ -779,9 +782,13 @@ void UAGX_Simulation::CreateNative()
 
 	SetGlobalNativeMergeSplitThresholds();
 
-	if (bRemoteDebugging)
+	if (DebuggingMode == EAGX_DebuggingMode::RemoteDebugger)
 	{
-		NativeBarrier.EnableRemoteDebugging(RemoteDebuggingPort);
+		NativeBarrier.EnableRemoteDebugging(DebuggingPort);
+	}
+	else if (DebuggingMode == EAGX_DebuggingMode::WebDebugger)
+	{
+		StartWebDebugging();
 	}
 
 	if (bEnableGlobalContactEventListener)
@@ -1467,6 +1474,31 @@ void UAGX_Simulation::ReleaseNative()
 	PreStepForwardInternal.Clear();
 	PostStepForward.Clear();
 	PostStepForwardInternal.Clear();
+}
+
+void UAGX_Simulation::StartWebDebugging()
+{
+	if (!DebuggerBarrier.HasNative())
+		DebuggerBarrier.AllocateNative(DebuggingPort);
+
+	if (!DebuggerBarrier.IsRunning())
+		DebuggerBarrier.Start();
+
+	NativeBarrier.SetEnableWebDebugger(true, DebuggingPort);
+}
+
+void UAGX_Simulation::StopWebDebugging()
+{
+	if (!DebuggerBarrier.HasNative())
+		return;
+
+	if (DebuggerBarrier.IsRunning())
+	{
+		DebuggerBarrier.Stop();
+		DebuggerBarrier.Join();
+	}
+
+	DebuggerBarrier.ReleaseNative();
 }
 
 void UAGX_Simulation::PreStep()
