@@ -3,6 +3,7 @@
 #include "Net/WebDebuggerServerBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "BarrierOnly/Net/NetRef.h"
 
 FWebDebuggerServerBarrier::FWebDebuggerServerBarrier()
@@ -22,8 +23,7 @@ bool FWebDebuggerServerBarrier::HasNative() const
 
 void FWebDebuggerServerBarrier::AllocateNative(int32 Port)
 {
-	NativeRef->Native = std::make_shared<agxNet::agxWebServer::WebDebuggerServer>(
-		0);
+	NativeRef->Native = std::make_shared<agxNet::agxWebServer::WebDebuggerServer>(Port);
 }
 
 FWebDebuggerServerRef* FWebDebuggerServerBarrier::GetNative()
@@ -44,9 +44,24 @@ void FWebDebuggerServerBarrier::ReleaseNative()
 void FWebDebuggerServerBarrier::Start()
 {
 	check(HasNative());
-	NativeRef->Native->start();
+	try
+	{
+		NativeRef->Native->start();
+	}
+	catch (const std::exception& E)
+	{
+		// Log standard exceptions with message
+		UE_LOG(
+			LogAGX, Error, TEXT("Exception in FWebDebuggerServerBarrier::Start: %s"),
+			*FString(E.what()));
+	}
+	catch (...)
+	{
+		// Log all other unexpected exceptions
+		UE_LOG(
+			LogAGX, Error, TEXT("Unknown exception caught in FWebDebuggerServerBarrier::Start."));
+	}
 }
-
 
 void FWebDebuggerServerBarrier::Stop()
 {

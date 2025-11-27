@@ -49,7 +49,7 @@ enum class EAGX_DebuggingMode : uint8
 
 	/**
 	 * Use Web Debugger, running in a browser.
-	 * Open http://localhost:5173/ to see the debugging UI.
+	 * Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
 	 */
 	WebDebugger,
 

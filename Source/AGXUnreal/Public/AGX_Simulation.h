@@ -298,11 +298,22 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, Category = "Debug")
 	EAGX_DebuggingMode DebuggingMode {EAGX_DebuggingMode::None};
 
-	/** Network port to use for debugging. */
+	/**
+	 * Network port to use for debugging.
+	 */
 	UPROPERTY(
 		Config, EditAnywhere, Category = "Debug",
-		Meta = (EditCondition = "bRemoteDebugging", ClampMin = "0"))
+		Meta = (EditCondition = "DebuggingMode != EAGX_DebuggingMode::None", ClampMin = "0"))
 	int16 DebuggingPort {9001};
+
+	/**
+	* Network port to use for debugging.
+	* Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
+	*/
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "DebuggingMode == EAGX_DebuggingMode::WebDebugger", ClampMin = "0"))
+	int32 WebDebuggerServerPort {5173};
 
 	/**
 	 * Draws all Shape Contacts to the screen each Simulation time step.

@@ -1479,7 +1479,7 @@ void UAGX_Simulation::ReleaseNative()
 void UAGX_Simulation::StartWebDebugging()
 {
 	if (!DebuggerBarrier.HasNative())
-		DebuggerBarrier.AllocateNative(DebuggingPort);
+		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
 
 	if (!DebuggerBarrier.IsRunning())
 		DebuggerBarrier.Start();
