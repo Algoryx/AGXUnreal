@@ -218,8 +218,8 @@ FAGX_TopMenu::~FAGX_TopMenu()
 
 	{
 		const FSlateIcon DebugIcon(
-			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::AgxIconSmall,
-			FAGX_EditorStyle::AgxIconSmall);
+			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::DebugRenderingIcon,
+			FAGX_EditorStyle::DebugRenderingIcon);
 		Builder.AddSubMenu(
 			LOCTEXT("DebuggingMenuLabel", "Debugging"),
 			LOCTEXT(
