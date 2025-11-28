@@ -1507,6 +1507,9 @@ void UAGX_Simulation::StopWebDebugging()
 	}
 
 	DebuggerBarrier.ReleaseNative();
+
+	if (HasNative())
+		NativeBarrier.SetEnableWebDebugger(false, DebuggingPort);
 }
 
 bool UAGX_Simulation::IsWebDebuggingActive() const
