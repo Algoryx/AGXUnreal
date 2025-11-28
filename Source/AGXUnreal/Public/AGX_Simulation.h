@@ -307,13 +307,23 @@ public: // Properties.
 	int16 DebuggingPort {9001};
 
 	/**
-	* Network port to use for debugging.
-	* Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
-	*/
+	 * Network port to use for debugging.
+	 * Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
+	 * Only relevant with DebuggingMode set to WebDebugger.
+	 */
 	UPROPERTY(
 		Config, EditAnywhere, Category = "Debug",
 		Meta = (EditCondition = "DebuggingMode == EAGX_DebuggingMode::WebDebugger", ClampMin = "0"))
 	int32 WebDebuggerServerPort {5173};
+
+	/**
+	 * If enabled, the Web Debugger view will automatically open in the web browser on Play.
+	 * Only relevant with DebuggingMode set to WebDebugger.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "DebuggingMode == EAGX_DebuggingMode::WebDebugger"))
+	bool bOpenWebDebuggerViewInBrowserOnPlay {true};
 
 	/**
 	 * Draws all Shape Contacts to the screen each Simulation time step.
@@ -590,7 +600,7 @@ public: // Member functions.
 	void EnsureStepperCreated();
 
 	UFUNCTION(BlueprintCallable, Category = "Simulation")
-	void StartWebDebugging();
+	void StartWebDebugging(bool OpenViewInBrowser);
 
 	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	void StopWebDebugging();

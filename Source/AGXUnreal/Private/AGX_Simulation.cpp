@@ -789,7 +789,7 @@ void UAGX_Simulation::CreateNative()
 	}
 	else if (DebuggingMode == EAGX_DebuggingMode::WebDebugger)
 	{
-		StartWebDebugging();
+		StartWebDebugging(bOpenWebDebuggerViewInBrowserOnPlay);
 	}
 
 	if (bEnableGlobalContactEventListener)
@@ -1477,7 +1477,7 @@ void UAGX_Simulation::ReleaseNative()
 	PostStepForwardInternal.Clear();
 }
 
-void UAGX_Simulation::StartWebDebugging()
+void UAGX_Simulation::StartWebDebugging(bool OpenViewInBrowser)
 {
 	if (!DebuggerBarrier.HasNative())
 		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
@@ -1487,9 +1487,12 @@ void UAGX_Simulation::StartWebDebugging()
 
 	NativeBarrier.SetEnableWebDebugger(true, DebuggingPort);
 
-	const FString DebuggerPageUrl =
-		FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
-	FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
+	if (OpenViewInBrowser)
+	{
+		const FString DebuggerPageUrl =
+			FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
+		FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
+	}
 }
 
 void UAGX_Simulation::StopWebDebugging()

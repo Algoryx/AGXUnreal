@@ -594,7 +594,7 @@ void FAGX_TopMenu::OnToggleWebDebuggerClicked()
 	if (Sim->IsWebDebuggingActive())
 		Sim->StopWebDebugging();
 	else
-		Sim->StartWebDebugging();
+		Sim->StartWebDebugging(/*OpenBrowser*/ true);
 
 	const TCHAR* State = Sim->IsWebDebuggingActive() ? TEXT("ON") : TEXT("OFF");
 	FAGX_NotificationUtilities::ShowNotification(
