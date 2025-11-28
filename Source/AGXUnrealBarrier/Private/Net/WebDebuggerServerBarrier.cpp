@@ -3,8 +3,13 @@
 #include "Net/WebDebuggerServerBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/Net/NetRef.h"
+#include "TypeConversions.h"
+
+// Unreal Engine includes.
+#include "Misc/Paths.h"
 
 FWebDebuggerServerBarrier::FWebDebuggerServerBarrier()
 	: NativeRef(new FWebDebuggerServerRef())
@@ -23,7 +28,18 @@ bool FWebDebuggerServerBarrier::HasNative() const
 
 void FWebDebuggerServerBarrier::AllocateNative(int32 Port)
 {
-	NativeRef->Native = std::make_shared<agxNet::agxWebServer::WebDebuggerServer>(Port);
+	check(!HasNative());
+	const FString AGXResources = FAGX_Environment::GetAGXDynamicsResourcesPath();
+#if defined(_WIN64)
+	const FString WebDebuggerDir =
+		FPaths::Combine(AGXResources, FString("bin"), FString("Win64"), FString("WebDebugger"));
+#else
+	const FString WebDebuggerDir =
+		FPaths::Combine(AGXResources, FString("lib"), FString("Linux"), FString("WebDebugger"));
+#endif
+
+	NativeRef->Native =
+		std::make_shared<agxNet::agxWebServer::WebDebuggerServer>(Port, ToStdString(WebDebuggerDir));
 }
 
 FWebDebuggerServerRef* FWebDebuggerServerBarrier::GetNative()
