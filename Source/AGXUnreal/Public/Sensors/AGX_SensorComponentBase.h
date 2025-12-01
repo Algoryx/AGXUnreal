@@ -61,7 +61,7 @@ public:
 	virtual uint64 GetNativeAddress() const override;
 	virtual void SetNativeAddress(uint64 NativeAddress) override;
 	virtual bool HasNative() const override;
-	// ~/End IAGX_NativeOwner interface.
+	// ~End IAGX_NativeOwner interface.
 
 	FSensorBarrier* GetOrCreateNative();
 	FSensorBarrier* GetNative();
