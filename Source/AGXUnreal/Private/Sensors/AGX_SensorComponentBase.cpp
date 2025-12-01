@@ -18,13 +18,13 @@ void UAGX_SensorComponentBase::SetEnabled(bool InEnabled)
 {
 	bEnabled = InEnabled;
 
-	if (NativeBarrier != nullptr && NativeBarrier->HasNative())
+	if (HasNative())
 		NativeBarrier->SetEnabled(InEnabled);
 }
 
 bool UAGX_SensorComponentBase::IsEnabled() const
 {
-	if (NativeBarrier != nullptr && NativeBarrier->HasNative())
+	if (HasNative())
 		return NativeBarrier->GetEnabled();
 
 	return bEnabled;
@@ -39,13 +39,13 @@ void UAGX_SensorComponentBase::SetStepStride(int32 Stride)
 {
 	StepStride = Stride;
 
-	if (NativeBarrier != nullptr && NativeBarrier->HasNative())
+	if (HasNative())
 		NativeBarrier->SetStepStride(static_cast<uint32>(Stride));
 }
 
 int32 UAGX_SensorComponentBase::GetStepStride() const
 {
-	if (NativeBarrier != nullptr && NativeBarrier->HasNative())
+	if (HasNative())
 		return static_cast<int32>(NativeBarrier->GetStepStride());
 
 	return StepStride;
