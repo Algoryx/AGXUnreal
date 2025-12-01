@@ -979,7 +979,7 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
-	auto SensorBarrier = IMU->GetOrCreateNative();	
+	auto SensorBarrier = IMU->GetOrCreateNative();
 	if (SensorBarrier == nullptr)
 	{
 		UE_LOG(
