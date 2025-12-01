@@ -110,6 +110,20 @@ FVector FRigidBodyBarrier::GetAngularVelocity() const
 	return AngularVelocityUnreal;
 }
 
+FVector FRigidBodyBarrier::GetAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AccAGX = NativeRef->Native->getAcceleration();
+	return ConvertDisplacement(AccAGX);
+}
+
+FVector FRigidBodyBarrier::GetAngularAcceleration() const
+{
+	check(HasNative());
+	agx::Vec3 AngAccAGX = NativeRef->Native->getAngularAcceleration();
+	return ConvertAngularAcceleration(AngAccAGX);
+}
+
 void FRigidBodyBarrier::SetLinearVelocityDamping(const FVector& LinearVelocityDamping)
 {
 	check(HasNative());
