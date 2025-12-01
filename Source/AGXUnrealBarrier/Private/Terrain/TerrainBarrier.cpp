@@ -11,6 +11,7 @@
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/ShapeBarrierImpl.h"
 #include "Terrain/ShovelBarrier.h"
+#include "Terrain/TerrainPropertiesBarrier.h"
 #include "TypeConversions.h"
 #include "Utilities/TerrainUtilities.h"
 
@@ -120,18 +121,6 @@ FQuat FTerrainBarrier::GetRotation() const
 	return RotationUnreal;
 }
 
-void FTerrainBarrier::SetCreateParticles(bool CreateParticles)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setCreateParticles(CreateParticles);
-}
-
-bool FTerrainBarrier::GetCreateParticles() const
-{
-	check(HasNative());
-	return NativeRef->Native->getProperties()->getCreateParticles();
-}
-
 void FTerrainBarrier::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
 {
 	check(HasNative());
@@ -196,6 +185,13 @@ void FTerrainBarrier::SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainM
 	check(HasNative());
 	check(TerrainMaterial.HasNative());
 	NativeRef->Native->setTerrainMaterial(TerrainMaterial.GetNative()->Native);
+}
+
+void FTerrainBarrier::SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties)
+{
+	check(HasNative());
+	check(TerrainProperties.HasNative());
+	NativeRef->Native->setProperties(TerrainProperties.GetNative()->Native);
 }
 
 void FTerrainBarrier::ClearTerrainMaterial()

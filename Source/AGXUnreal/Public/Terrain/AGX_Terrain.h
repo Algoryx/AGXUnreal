@@ -51,6 +51,7 @@
 
 class UAGX_HeightFieldBoundsComponent;
 class UAGX_TerrainMaterial;
+class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
 class UAGX_ShapeMaterial;
 class ALandscape;
@@ -120,16 +121,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	ALandscape* SourceLandscape;
 
-	/** Whether the native terrain should generate particles or not during shovel interactions. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	bool bCreateParticles = true;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetCreateParticles(bool CreateParticles);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool GetCreateParticles() const;
-
 	/**
 	 * Whether the native terrain simulation should auto-delete particles that are out of bounds.
 	 *
@@ -196,6 +187,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	float GetSoilParticleSizeScaling() const;
+
+	/**
+	* Properties that define the behavior of this Terrain.
+	* If left unspecified, default Terrain properties will be used.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UAGX_TerrainProperties* TerrainProperties;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties);
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -383,6 +384,7 @@ private:
 	void CreateNativeShovels();
 	void AddTerrainPagerBodies();
 	bool UpdateNativeTerrainMaterial();
+	bool UpdateNativeTerrainProperties();
 	bool UpdateNativeShapeMaterial();
 
 	void InitializeRendering();
@@ -440,6 +442,9 @@ private:
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
 
+	UPROPERTY()
+	bool bCreateParticles_DEPRECATED;
+
 #if WITH_EDITOR
 	void ShowShapeMaterialWarning() const;
 #endif
@@ -483,4 +488,6 @@ private:
 		const FVector& WorldPosStart, int32 VertsX, int32 VertsY, TArray<float>& OutHeights);
 
 	FTransform GetNativeTransform() const;
+
+	UAGX_TerrainProperties* GetOrCreateTerrainPropertiesForOldTerrain();
 };

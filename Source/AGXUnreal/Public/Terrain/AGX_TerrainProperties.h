@@ -23,6 +23,16 @@ class AGXUNREAL_API UAGX_TerrainProperties : public UObject
 	GENERATED_BODY()
 
 public:
+	/** Whether the native terrain should generate particles or not during shovel interactions. */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	bool bCreateParticles {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetCreateParticles(bool CreateParticles);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool GetCreateParticles() const;
+
 	/**
 	 * Copy Property values from the native AGX Dynamics instance to the Terrain Properties asset
 	 * the instance was created from. That may be this UAGX_TerrainProperties, if IsAsset returns

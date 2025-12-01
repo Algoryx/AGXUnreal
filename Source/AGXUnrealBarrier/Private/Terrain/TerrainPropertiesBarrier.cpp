@@ -17,6 +17,18 @@ FTerrainPropertiesBarrier::FTerrainPropertiesBarrier(std::shared_ptr<FTerrainPro
 	check(NativeRef);
 }
 
+void FTerrainPropertiesBarrier::SetCreateParticles(bool CreateParticles)
+{
+	check(HasNative());
+	NativeRef->Native->setCreateParticles(CreateParticles);
+}
+
+bool FTerrainPropertiesBarrier::GetCreateParticles() const
+{
+	check(HasNative());
+	return NativeRef->Native->getCreateParticles();
+}
+
 bool FTerrainPropertiesBarrier::HasNative() const
 {
 	return NativeRef && NativeRef->Native != nullptr;

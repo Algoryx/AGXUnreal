@@ -20,6 +20,9 @@ struct AGXUNREALBARRIER_API FTerrainPropertiesBarrier
 	FTerrainPropertiesBarrier();
 	FTerrainPropertiesBarrier(std::shared_ptr<FTerrainPropertiesRef> Native);
 
+	void SetCreateParticles(bool CreateParticles);
+	bool GetCreateParticles() const;
+
 	bool HasNative() const;
 	void AllocateNative();
 	FTerrainPropertiesRef* GetNative();

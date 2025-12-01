@@ -5,18 +5,35 @@
 #include "Terrain/AGX_TerrainProperties.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 
+void UAGX_TerrainProperties::SetCreateParticles(bool CreateParticles)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(bCreateParticles, CreateParticles, SetCreateParticles);
+}
+
+bool UAGX_TerrainProperties::GetCreateParticles() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bCreateParticles, GetCreateParticles);
+}
+
 void UAGX_TerrainProperties::CopyFrom(const UAGX_TerrainProperties* Source)
 {
-	// TODO
+	if (Source == nullptr)
+		return;
+
+	bCreateParticles = Source->bCreateParticles;
 }
 
 void UAGX_TerrainProperties::CopyFrom(const FTerrainPropertiesBarrier& Source)
 {
-	// TODO
+	if (!Source.HasNative())
+		return;
+
+	bCreateParticles = Source.GetCreateParticles();
 }
 
 UAGX_TerrainProperties* UAGX_TerrainProperties::CreateInstanceFromAsset(
@@ -147,7 +164,7 @@ void UAGX_TerrainProperties::UpdateNativeProperties()
 	if (!IsInstance() || !HasNative())
 		return;
 
-	// TODO
+	NativeBarrier.SetCreateParticles(bCreateParticles);
 }
 
 void UAGX_TerrainProperties::PostInitProperties()
@@ -172,7 +189,9 @@ void UAGX_TerrainProperties::InitPropertyDispatcher()
 	if (Dispatcher.IsInitialized())
 		return;
 
-	// TODO
+	Dispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainProperties, bCreateParticles),
+		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
 }
 #endif // WITH_EDITOR
 
