@@ -443,7 +443,7 @@ private:
 	bool bNeedsShapeMaterialWarning {false};
 
 	UPROPERTY()
-	bool bCreateParticles_DEPRECATED;
+	bool bCreateParticles_DEPRECATED {true};
 
 #if WITH_EDITOR
 	void ShowShapeMaterialWarning() const;
