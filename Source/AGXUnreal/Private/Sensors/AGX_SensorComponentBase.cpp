@@ -109,9 +109,10 @@ void UAGX_SensorComponentBase::BeginPlay()
 				.AddLambda(
 					[this](double)
 					{
-						// When using StepStride > 1, old Output data is still available in AGX, so
-						// therefore we mark it as read in Pre so that the user gets no output
-						// between strides.
+						// When using StepStride > 1, old Output data is still available in AGX
+						// between steps, so therefore we mark it as read in Pre (which will
+						// always be old data) so that the user gets no output between strides.
+						// New data is fetched in Post (and will be cleared on the next pre; here).
 						if (StepStride != 1)
 							MarkOutputAsRead();
 					});
