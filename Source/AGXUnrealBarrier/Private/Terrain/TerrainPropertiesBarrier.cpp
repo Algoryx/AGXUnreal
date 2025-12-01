@@ -29,6 +29,58 @@ bool FTerrainPropertiesBarrier::GetCreateParticles() const
 	return NativeRef->Native->getCreateParticles();
 }
 
+void FTerrainPropertiesBarrier::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
+{
+	check(HasNative());
+	NativeRef->Native->setDeleteSoilParticlesOutsideBounds(
+		DeleteParticlesOutsideBounds);
+}
+
+bool FTerrainPropertiesBarrier::GetDeleteParticlesOutsideBounds() const
+{
+	check(HasNative());
+	return NativeRef->Native->getDeleteSoilParticlesOutsideBounds();
+}
+
+void FTerrainPropertiesBarrier::SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling)
+{
+	check(HasNative());
+	NativeRef->Native->setPenetrationForceVelocityScaling(
+		PenetrationForceVelocityScaling);
+}
+
+double FTerrainPropertiesBarrier::GetPenetrationForceVelocityScaling() const
+{
+	check(HasNative());
+	return NativeRef->Native->getPenetrationForceVelocityScaling();
+}
+
+void FTerrainPropertiesBarrier::SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume)
+{
+	check(HasNative());
+	NativeRef->Native->setMaximumParticleActivationVolume(
+		ConvertVolumeToAGX(MaximumParticleActivationVolume));
+}
+
+double FTerrainPropertiesBarrier::GetMaximumParticleActivationVolume() const
+{
+	check(HasNative());
+	return ConvertVolumeToUnreal<double>(
+		NativeRef->Native->getMaximumParticleActivationVolume());
+}
+
+void FTerrainPropertiesBarrier::SetSoilParticleSizeScaling(float Scaling)
+{
+	check(HasNative());
+	NativeRef->Native->setSoilParticleSizeScaling(Scaling);
+}
+
+float FTerrainPropertiesBarrier::GetSoilParticleSizeScaling() const
+{
+	check(HasNative());
+	return NativeRef->Native->getSoilParticleSizeScaling();
+}
+
 bool FTerrainPropertiesBarrier::HasNative() const
 {
 	return NativeRef && NativeRef->Native != nullptr;

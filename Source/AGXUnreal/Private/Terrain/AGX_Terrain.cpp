@@ -339,122 +339,6 @@ bool AAGX_Terrain::GetEnableTerrainPaging() const
 	return bEnableTerrainPaging;
 }
 
-void AAGX_Terrain::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetDeleteParticlesOutsideBounds(DeleteParticlesOutsideBounds);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	bDeleteParticlesOutsideBounds = DeleteParticlesOutsideBounds;
-}
-
-bool AAGX_Terrain::GetDeleteParticlesOutsideBounds() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetDeleteParticlesOutsideBounds();
-	}
-
-	return bDeleteParticlesOutsideBounds;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetPenetrationForceVelocityScaling(InPenetrationForceVelocityScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	PenetrationForceVelocityScaling = InPenetrationForceVelocityScaling;
-}
-
-double AAGX_Terrain::GetPenetrationForceVelocityScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetPenetrationForceVelocityScaling();
-	}
-
-	return PenetrationForceVelocityScaling;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling_BP(float InPenetrationForceVelocityScaling)
-{
-	SetPenetrationForceVelocityScaling(static_cast<double>(InPenetrationForceVelocityScaling));
-}
-
-float AAGX_Terrain::GetPenetrationForceVelocityScaling_BP() const
-{
-	return static_cast<float>(GetPenetrationForceVelocityScaling());
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetMaximumParticleActivationVolume(InMaximumParticleActivationVolume);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	MaximumParticleActivationVolume = InMaximumParticleActivationVolume;
-}
-
-double AAGX_Terrain::GetMaximumParticleActivationVolume() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetMaximumParticleActivationVolume();
-	}
-
-	return MaximumParticleActivationVolume;
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume_BP(float InMaximumParticleActivationVolume)
-{
-	SetMaximumParticleActivationVolume(static_cast<double>(InMaximumParticleActivationVolume));
-}
-
-float AAGX_Terrain::GetMaximumParticleActivationVolume_BP() const
-{
-	return static_cast<float>(GetMaximumParticleActivationVolume());
-}
-
-void AAGX_Terrain::SetSoilParticleSizeScaling(float InScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetSoilParticleSizeScaling(InScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	SoilParticleSizeScaling = InScaling;
-}
-
-float AAGX_Terrain::GetSoilParticleSizeScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetSoilParticleSizeScaling();
-	}
-
-	return SoilParticleSizeScaling;
-}
-
 bool AAGX_Terrain::HasNative() const
 {
 	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
@@ -666,24 +550,12 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
+		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, SourceLandscape),
 		[](ThisClass* This) { AGX_Terrain_helpers::EnsureUseDynamicMaterialInstance(*This); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bDeleteParticlesOutsideBounds), [](ThisClass* This)
-		{ This->SetDeleteParticlesOutsideBounds(This->bDeleteParticlesOutsideBounds); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, PenetrationForceVelocityScaling), [](ThisClass* This)
-		{ This->SetPenetrationForceVelocityScaling(This->PenetrationForceVelocityScaling); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, MaximumParticleActivationVolume), [](ThisClass* This)
-		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SoilParticleSizeScaling),
-		[](ThisClass* This) { This->SetSoilParticleSizeScaling(This->SoilParticleSizeScaling); });
 
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(ParticleSystemAsset),
@@ -1179,11 +1051,6 @@ bool AAGX_Terrain::CreateNative()
 	CurrentHeights.Reserve(OriginalHeights.Num());
 	CurrentHeights = OriginalHeights;
 
-	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
-	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
-	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
-	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
-
 	// Create the AGX Dynamics instance for the terrain.
 	// Note that the AGX Dynamics Terrain messes with the solver parameters on add, parameters that
 	// our user may have set explicitly. If so, re-set the user-provided settings.
@@ -1245,14 +1112,14 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	// Always set DeleteParticlesOutsideBounds to false if we are using Terrain Paging, otherwise
 	// particles may be deleted when tiles are loaded and unloaded in an unexpected way. This will
 	// be handled automatically by AGX Dynamics in the future.
-	if (bDeleteParticlesOutsideBounds)
+	if (TerrainProperties != nullptr && TerrainProperties->bDeleteParticlesOutsideBounds)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("DeleteParticlesOutsideBounds was set to true while using Terrain Paging. This "
 				 "combination is not supported. DeleteParticlesOutsideBounds will be set to "
 				 "false."));
-		SetDeleteParticlesOutsideBounds(false);
+		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
 	const auto QuadSize = SourceLandscape->GetActorScale().X;
@@ -1965,6 +1832,10 @@ UAGX_TerrainProperties* AAGX_Terrain::GetOrCreateTerrainPropertiesForOldTerrain(
 		NewObject<UAGX_TerrainProperties>(Package, *AssetName, RF_Public | RF_Standalone);
 
 	Props->bCreateParticles = bCreateParticles_DEPRECATED;
+	Props->bDeleteParticlesOutsideBounds = bDeleteParticlesOutsideBounds_DEPRECATED;
+	Props->PenetrationForceVelocityScaling = PenetrationForceVelocityScaling_DEPRECATED;
+	Props->MaximumParticleActivationVolume = MaximumParticleActivationVolume_DEPRECATED;
+	Props->SoilParticleSizeScaling = SoilParticleSizeScaling_DEPRECATED;
 
 	Package->SetDirtyFlag(true);
 	return Props;

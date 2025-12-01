@@ -20,12 +20,66 @@ bool UAGX_TerrainProperties::GetCreateParticles() const
 	AGX_ASSET_GETTER_IMPL_VALUE(bCreateParticles, GetCreateParticles);
 }
 
+void UAGX_TerrainProperties::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		bDeleteParticlesOutsideBounds, DeleteParticlesOutsideBounds,
+		SetDeleteParticlesOutsideBounds);
+}
+
+bool UAGX_TerrainProperties::GetDeleteParticlesOutsideBounds() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bDeleteParticlesOutsideBounds, GetDeleteParticlesOutsideBounds);
+}
+
+void UAGX_TerrainProperties::SetPenetrationForceVelocityScaling(
+	double InPenetrationForceVelocityScaling)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		PenetrationForceVelocityScaling, InPenetrationForceVelocityScaling,
+		SetPenetrationForceVelocityScaling);
+}
+
+double UAGX_TerrainProperties::GetPenetrationForceVelocityScaling() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(
+		PenetrationForceVelocityScaling, GetPenetrationForceVelocityScaling);
+}
+
+void UAGX_TerrainProperties::SetMaximumParticleActivationVolume(
+	double InMaximumParticleActivationVolume)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		MaximumParticleActivationVolume, InMaximumParticleActivationVolume,
+		SetMaximumParticleActivationVolume);
+}
+
+double UAGX_TerrainProperties::GetMaximumParticleActivationVolume() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(
+		MaximumParticleActivationVolume, GetMaximumParticleActivationVolume);
+}
+
+void UAGX_TerrainProperties::SetSoilParticleSizeScaling(float InScaling)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleSizeScaling, InScaling, SetSoilParticleSizeScaling);
+}
+
+float UAGX_TerrainProperties::GetSoilParticleSizeScaling() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilParticleSizeScaling, GetSoilParticleSizeScaling);
+}
+
 void UAGX_TerrainProperties::CopyFrom(const UAGX_TerrainProperties* Source)
 {
 	if (Source == nullptr)
 		return;
 
 	bCreateParticles = Source->bCreateParticles;
+	bDeleteParticlesOutsideBounds = Source->bDeleteParticlesOutsideBounds;
+	PenetrationForceVelocityScaling = Source->PenetrationForceVelocityScaling;
+	MaximumParticleActivationVolume = Source->MaximumParticleActivationVolume;
+	SoilParticleSizeScaling = Source->SoilParticleSizeScaling;
 }
 
 void UAGX_TerrainProperties::CopyFrom(const FTerrainPropertiesBarrier& Source)
@@ -34,6 +88,11 @@ void UAGX_TerrainProperties::CopyFrom(const FTerrainPropertiesBarrier& Source)
 		return;
 
 	bCreateParticles = Source.GetCreateParticles();
+	bCreateParticles = Source.GetCreateParticles();
+	bDeleteParticlesOutsideBounds = Source.GetDeleteParticlesOutsideBounds();
+	PenetrationForceVelocityScaling = Source.GetPenetrationForceVelocityScaling();
+	MaximumParticleActivationVolume = Source.GetMaximumParticleActivationVolume();
+	SoilParticleSizeScaling = Source.GetSoilParticleSizeScaling();
 }
 
 UAGX_TerrainProperties* UAGX_TerrainProperties::CreateInstanceFromAsset(
@@ -165,6 +224,10 @@ void UAGX_TerrainProperties::UpdateNativeProperties()
 		return;
 
 	NativeBarrier.SetCreateParticles(bCreateParticles);
+	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
+	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
+	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
 }
 
 void UAGX_TerrainProperties::PostInitProperties()
@@ -185,13 +248,15 @@ void UAGX_TerrainProperties::PostEditChangeChainProperty(FPropertyChangedChainEv
 
 void UAGX_TerrainProperties::InitPropertyDispatcher()
 {
-	auto& Dispatcher = FAGX_PropertyChangedDispatcher<ThisClass>::Get();
-	if (Dispatcher.IsInitialized())
+	auto& PropertyDispatcher = FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	Dispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_TerrainProperties, bCreateParticles),
-		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CreateParticles);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(DeleteParticlesOutsideBounds);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(PenetrationForceVelocityScaling);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MaximumParticleActivationVolume);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleSizeScaling);
 }
 #endif // WITH_EDITOR
 

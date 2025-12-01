@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Real.h"
 #include "Terrain/TerrainPropertiesBarrier.h"
 
 // Unreal Engine includes.
@@ -24,14 +25,68 @@ class AGXUNREAL_API UAGX_TerrainProperties : public UObject
 
 public:
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
 	bool bCreateParticles {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
 	void SetCreateParticles(bool CreateParticles);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
 	bool GetCreateParticles() const;
+
+	/**
+	 * Whether the native terrain should auto-delete particles that are out of bounds.
+	 * Cannot be combined with Terrain Paging.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	bool bDeleteParticlesOutsideBounds = false;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	bool GetDeleteParticlesOutsideBounds() const;
+
+	/**
+	 * Scales the penetration force with the shovel velocity squared in the cutting
+	 * direction according to: ( 1.0 + C * v^2 ).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	FAGX_Real PenetrationForceVelocityScaling = 0.0f;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	double GetPenetrationForceVelocityScaling() const;
+
+	/**
+	 * Sets the maximum volume of active zone wedges that should wake particles [cm^3].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	FAGX_Real MaximumParticleActivationVolume = std::numeric_limits<double>::infinity();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	double GetMaximumParticleActivationVolume() const;
+
+	/**
+	 * The soil particle size scaling factor scales the nominal radius that the algorithm will aim
+	 * for during the dynamic resizing of particles that occur during terrain interaction. This is
+	 * used to alter the desired number of soil particles in the Terrain.
+	 * Default value is 1.0, where the nominal particle size matches the Terrain grid size, which in
+	 * turn matches the Landscape quad size.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	float SoilParticleSizeScaling {1.f};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetSoilParticleSizeScaling(float InScaling);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	float GetSoilParticleSizeScaling() const;
 
 	/**
 	 * Copy Property values from the native AGX Dynamics instance to the Terrain Properties asset

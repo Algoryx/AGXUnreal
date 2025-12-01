@@ -48,18 +48,6 @@ public:
 	void SetRotation(const FQuat& Rotation);
 	FQuat GetRotation() const;
 
-	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
-	bool GetDeleteParticlesOutsideBounds() const;
-
-	void SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling);
-	double GetPenetrationForceVelocityScaling() const;
-
-	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
-	double GetMaximumParticleActivationVolume() const;
-
-	void SetSoilParticleSizeScaling(float Scaling);
-	float GetSoilParticleSizeScaling() const;
-
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
 	void SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties);

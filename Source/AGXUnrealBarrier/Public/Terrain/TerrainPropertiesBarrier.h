@@ -23,6 +23,18 @@ struct AGXUNREALBARRIER_API FTerrainPropertiesBarrier
 	void SetCreateParticles(bool CreateParticles);
 	bool GetCreateParticles() const;
 
+	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
+	bool GetDeleteParticlesOutsideBounds() const;
+
+	void SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling);
+	double GetPenetrationForceVelocityScaling() const;
+
+	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
+	double GetMaximumParticleActivationVolume() const;
+
+	void SetSoilParticleSizeScaling(float Scaling);
+	float GetSoilParticleSizeScaling() const;
+
 	bool HasNative() const;
 	void AllocateNative();
 	FTerrainPropertiesRef* GetNative();
