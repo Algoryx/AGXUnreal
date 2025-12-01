@@ -35,6 +35,45 @@ struct AGXUNREALBARRIER_API FTerrainPropertiesBarrier
 	void SetSoilParticleSizeScaling(float Scaling);
 	float GetSoilParticleSizeScaling() const;
 
+	void SetSoilParticleGrowthRate(double InRate);
+	double GetSoilParticleGrowthRate() const;
+
+	void SetSoilParticleMergeRate(double InRate);
+	double GetSoilParticleMergeRate() const;
+
+	void SetSoilParticleMergeThreshold(double InThreshold);
+	double GetSoilParticleMergeThreshold() const;
+
+	void SetSoilMergeSpeedThreshold(double InThreshold);
+	double GetSoilMergeSpeedThreshold() const;
+
+	void SetSoilParticleLifeTime(double InLifeTime);
+	double GetSoilParticleLifeTime() const;
+
+	void SetEnableAvalanching(bool Enable);
+	bool GetEnableAvalanching() const;
+
+	void SetAvalancheMaxHeightGrowth(double InValue);
+	double GetAvalancheMaxHeightGrowth() const;
+
+	void SetAvalancheDecayFraction(double InValue);
+	double GetAvalancheDecayFraction() const;
+
+	void SetAvalancheErrorThreshold(double InValue);
+	double GetAvalancheErrorThreshold() const;
+
+	void SetActivationSpeed(double InSpeed);
+	double GetActivationSpeed() const;
+
+	void SetEnableDeformation(bool bEnable);
+	bool GetEnableDeformation() const;
+
+	void SetEnableLockedBorders(bool Enable);
+	bool GetEnableLockedBorders() const;
+
+	void SetEnableSoilCompaction(bool Enable);
+	bool GetEnableSoilCompaction() const;
+
 	bool HasNative() const;
 	void AllocateNative();
 	FTerrainPropertiesRef* GetNative();

@@ -25,51 +25,38 @@ class AGXUNREAL_API UAGX_TerrainProperties : public UObject
 
 public:
 	/** Whether the native terrain should generate particles or not during shovel interactions. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
 	bool bCreateParticles {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	void SetCreateParticles(bool CreateParticles);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	bool GetCreateParticles() const;
 
 	/**
 	 * Whether the native terrain should auto-delete particles that are out of bounds.
 	 * Cannot be combined with Terrain Paging.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
-	bool bDeleteParticlesOutsideBounds = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	bool bDeleteParticlesOutsideBounds {false};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	bool GetDeleteParticlesOutsideBounds() const;
-
-	/**
-	 * Scales the penetration force with the shovel velocity squared in the cutting
-	 * direction according to: ( 1.0 + C * v^2 ).
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
-	FAGX_Real PenetrationForceVelocityScaling = 0.0f;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
-	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
-	double GetPenetrationForceVelocityScaling() const;
 
 	/**
 	 * Sets the maximum volume of active zone wedges that should wake particles [cm^3].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
 	FAGX_Real MaximumParticleActivationVolume = std::numeric_limits<double>::infinity();
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	double GetMaximumParticleActivationVolume() const;
 
 	/**
@@ -79,14 +66,193 @@ public:
 	 * Default value is 1.0, where the nominal particle size matches the Terrain grid size, which in
 	 * turn matches the Landscape quad size.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
 	float SoilParticleSizeScaling {1.f};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	void SetSoilParticleSizeScaling(float InScaling);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
 	float GetSoilParticleSizeScaling() const;
+
+	/**
+	 * The rate factor in the algorithm that governs particle growth from fluid mass and resizing.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	double SoilParticleGrowthRate {0.05};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	void SetSoilParticleGrowthRate(double InRate);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	double GetSoilParticleGrowthRate() const;
+
+	/**
+	 * The merge rate for soil particles in the terrain. The merge rate is defined as the fraction
+	 * of the current particle mass that should be merged into the terrain each second.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	double SoilParticleMergeRate {9.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	void SetSoilParticleMergeRate(double InRate);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	double GetSoilParticleMergeRate() const;
+
+	/**
+	 * The fraction of the particle nominal radius that will trigger instant merge of particles
+	 * into the terrain during merging.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	double SoilParticleMergeThreshold {0.3};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	void SetSoilParticleMergeThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	double GetSoilParticleMergeThreshold() const;
+
+	/**
+	 * The absolute lower speed threshold where soil particles are allowed to merge with the terrain
+	 * [cm/s].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	double SoilMergeSpeedThreshold {400.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	void SetSoilMergeSpeedThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	double GetSoilMergeSpeedThreshold() const;
+
+	/**
+	 * The lifetime of the created soil particles [s].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Particle")
+	double SoilParticleLifeTime {std::numeric_limits<double>::infinity()};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	void SetSoilParticleLifeTime(double InLifeTime);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Particle")
+	double GetSoilParticleLifeTime() const;
+
+	/**
+	 * Whether or not to use avalanching in the terrain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Avalanching")
+	bool bEnableAvalanching {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	void SetEnableAvalanching(bool Enable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	bool GetEnableAvalanching() const;
+
+	/**
+	 * The maximum allowed height transfer per time step due to avalanching.
+	 * [cm].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Avalanching")
+	double AvalancheMaxHeightGrowth {std::numeric_limits<double>::infinity()};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	void SetAvalancheMaxHeightGrowth(double InValue);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	double GetAvalancheMaxHeightGrowth() const;
+
+	/**
+	 * The fraction of the height difference that violates the angle of repose condition
+	 * that will be transferred in each time step during avalanching.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Avalanching")
+	double AvalancheDecayFraction {0.1};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	void SetAvalancheDecayFraction(double InValue);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	double GetAvalancheDecayFraction() const;
+
+	/**
+	 * The fractional error threshold for the height difference that will trigger avalanching in a
+	 * grid point. Note: Height difference error threshold is calculated as: ErrorThreshold *
+	 * ElementSize.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties|Avalanching")
+	double AvalancheErrorThreshold {0.05};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	void SetAvalancheErrorThreshold(double InValue);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties|Avalanching")
+	double GetAvalancheErrorThreshold() const;
+
+	/**
+	 * Scales the penetration force with the shovel velocity squared in the cutting
+	 * direction according to: ( 1.0 + C * v^2 ).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	FAGX_Real PenetrationForceVelocityScaling {0.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	double GetPenetrationForceVelocityScaling() const;
+
+	/**
+	 * The shovel speed threshold in the excavation plane of shovel deformers when static mass
+	 * in the active zone is converted to dynamic mass [cm/s].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	double ActivationSpeed {10.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetActivationSpeed(double InSpeed);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	double GetActivationSpeed() const;
+
+	/**
+	 * Whether the terrain should be deformable. If false, no avalanching will occur,
+	 * no dynamic particles will be created, and the soil will not be compacted.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	bool bEnableDeformation {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetEnableDeformation(bool bEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	bool GetEnableDeformation() const;
+
+	/**
+	 * Whether or not to use locked borders, i.e the borders of the terrain are not allowed to
+	 * change from excavation and avalanching.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	bool btEnableLockedBorders {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetEnableLockedBorders(bool Enable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	bool GetEnableLockedBorders() const;
+
+	/**
+	 * Whether or not to use soil compaction calculation in the terrain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
+	bool bEnableSoilCompaction {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	void SetEnableSoilCompaction(bool Enable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
+	bool GetEnableSoilCompaction() const;
 
 	/**
 	 * Copy Property values from the native AGX Dynamics instance to the Terrain Properties asset
