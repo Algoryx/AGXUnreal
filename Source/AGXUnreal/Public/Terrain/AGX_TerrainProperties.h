@@ -7,6 +7,7 @@
 #include "Terrain/TerrainPropertiesBarrier.h"
 
 // Unreal Engine includes.
+#include "CoreMinimal.h"
 #include "UObject/Object.h"
 
 #include "AGX_TerrainProperties.generated.h"

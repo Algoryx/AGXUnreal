@@ -10,6 +10,11 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 
+// Unreal Engine includes.
+#include "Engine/World.h"
+#include "UObject/Package.h"
+#include "UObject/UObjectGlobals.h"
+
 void UAGX_TerrainProperties::SetCreateParticles(bool CreateParticles)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bCreateParticles, CreateParticles, SetCreateParticles);
@@ -267,8 +272,8 @@ UAGX_TerrainProperties* UAGX_TerrainProperties::CreateInstanceFromAsset(
 
 	const FString InstanceName = Source->GetName() + "_Instance";
 
-	UAGX_TerrainProperties* NewInstance = NewObject<UAGX_TerrainProperties>(
-		GetTransientPackage(), *InstanceName, RF_Transient);
+	auto NewInstance = NewObject<UAGX_TerrainProperties>(
+		GetTransientPackage(), UAGX_TerrainProperties::StaticClass(), *InstanceName, RF_Transient);
 	NewInstance->Asset = Source;
 	NewInstance->CopyFrom(Source);
 	NewInstance->CreateNative();
