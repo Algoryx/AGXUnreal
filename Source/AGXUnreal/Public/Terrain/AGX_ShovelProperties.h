@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -16,8 +16,10 @@
 
 #include "AGX_ShovelProperties.generated.h"
 
+class FShovelBarrier;
 class UAGX_ShovelComponent;
 class UWorld;
+struct FAGX_ImportContext;
 
 /**
  * An asset used to hold configuration properties for Shovel Components.
@@ -49,6 +51,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Shovel Properties")
 	void SetToothLength(double InToothLength);
+
+	/**
+	 * Determines whether excavation at the teeth edge should be enabled so
+	 * that digging starts at the teeth tip instead of at the teeth base (cutting edge).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Teeth")
+	bool bEnableExcavationAtTeethEdge {false};
+
+	UFUNCTION(BlueprintCallable, Category = "Shovel Properties")
+	void SetEnableExcavationAtTeethEdge(bool InEnable);
 
 	/**
 	 * Minimum radius of the shovel teeth [cm].
@@ -314,7 +326,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import GUID")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import GUID")
 	FGuid ImportGuid;
 
 #if WITH_EDITOR
@@ -396,10 +408,13 @@ public:
 	void UnregisterShovel(UAGX_ShovelComponent& Shovel);
 
 	// Set function aliases required by our live update macros.
+	void SetbEnableExcavationAtTeethEdge(bool InEnable);
 	void SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts);
 	void SetbEnableParticleFreeDeformers(bool InbEnableParticleFreeDeformers);
 	void SetbEnableInnerShapeCreateDynamicMass(bool InbEnableInnerShapeCreateDynamicMass);
 	void SetbEnableParticleForceFeedback(bool InbEnableParticleForceFeedback);
+
+	void CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context);
 
 private:
 #if WITH_EDITOR

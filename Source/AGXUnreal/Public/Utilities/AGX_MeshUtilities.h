@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -35,8 +35,18 @@
 
 class AStaticMeshActor;
 class FDynamicMeshIndexBuffer32;
-struct FStaticMeshVertexBuffers;
+class FRenderDataBarrier;
+struct FShapeBarrier;
+class UMaterial;
+class UMaterialInterface;
+class UStaticMesh;
+class UStaticMeshComponent;
+
+struct FAGX_RenderMaterial;
 struct FAGX_SimpleMeshTriangle;
+struct FTrimeshShapeBarrier;
+
+struct FStaticMeshVertexBuffers;
 
 /// \todo Each nested ***ConstructionData classes below could contain the respective Make-function
 /// as a member function, to even furter reduce potential usage mistakes!
@@ -336,8 +346,7 @@ public:
 
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
-
-	
+		
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
@@ -346,6 +355,198 @@ public:
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 		const TArray<VectorType>& Vertices, const TArrayView<const IndexType> Indices);
+
+	/**
+	 * Low-level mesh creation function that operates on raw mesh vertex attribute arrays. Called by
+	 * the higher-level mesh creation functions that take a Trimesh or a Render Data and builds the
+	 * vertex attribute arrays from that.
+	 *
+	 * Creates a UStaticMesh from attribute data. The attribute data must conform to Unreal's
+	 * attribute layout. Unreal splits the attributes into per-vertex data and per-vertex-instance
+	 * data. There are three vertex instances per triangle and each vertex instance references one
+	 * of the per-vertex datum.
+	 *
+	 * Attributes:
+	 * - Positions: One per vertex.
+	 * - Indices: Three per triangle, one per vertex instance.
+	 * - Normals: One per vertex instance. Optional.
+	 * - UVs: One per vertex instance. Optional. Often called "texture coordinates".
+	 * - Tangents: One per vertex instance. Optional.
+	 *
+	 * Optional attributes means that the array may be empty.
+	 *
+	 * Normals are optional, in which case Unreal will compute smooth normals for each vertex
+	 * instance. Or share the same smoothed normal among multiple vertex instances by storing it
+	 * per-vertex instead, I'm not sure how that works behind the scenes.
+	 *
+	 * UVs, a.k.a. texture coordinates, are optional but are not computed by Unreal. Expect
+	 * rendering artifacts if the mesh has no UVs.
+	 *
+	 * Tangents are optional and computed by Unreal if not provided.
+	 *
+	 * It is the responsibility of the caller to ensure that the name is valid and does not conflict
+	 * with anything in the same outer.
+	 *
+	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
+	 *
+	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
+	 * only when bInBuild is true.
+	 *
+	 * This function only creates the in-memory representation. The created Static Mesh will not be
+	 * written to drive.
+	 *
+	 * @param InPositions The positions of the vertices.
+	 * @param InIndices Indices into 'Positions', each three of which define a triangle.
+	 * @param InNormals One normal per index, or empty to let Unreal compute the normals.
+	 * @param InUVs One UV per index, or empty. Will not be computed by Unreal.
+	 * @param InTangents One tangent per index, or empty to let Unreal compute the tangents.
+	 * @param InName The name to give to the Static Mesh.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
+	 * @return The UStaticMesh created from the given mesh data.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const TArray<FVector3f>& InPositions, const TArray<uint32>& InIndices,
+		const TArray<FVector3f>& InNormals, const TArray<FVector2f>& InUVs,
+		const TArray<FVector3f>& InTangents, const FString& InName, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision);
+
+	/**
+	 * Control how normals are assigned for a mesh.
+	 */
+	enum class EAGX_NormalsSource
+	{
+		/// Let Unreal recompute smooth averaged per-vertex normals. The normals provided with the
+		/// source data, if any, are ignored.
+		Generated,
+
+		/// Use normals provided with the source data. The source data must contain normals either
+		/// per-vertex, per-vertex-instance, or per-triangle.
+		FromImport,
+
+		/// Use imported normals if the number of imported normals match either the number of
+		/// vertices, vertex instances, or triangles. Otherwise, fall back to letting Unreal
+		/// generate the normals without warning.
+		Auto
+	};
+
+	/**
+	 * Create a Static Mesh from the triangle held by the given Trimesh.
+	 *
+	 * Extracts the mesh data from the Trimesh and then calls the CreateStaticMesh overload that
+	 * takes a bunch of TArrays.
+	 *
+	 * AGX Dynamics store one normal per triangle, not per vertex instance as Unreal does. There is
+	 * an option whether the per-triangle normals should be used, which results in flat-shaded
+	 * faceted triangles, or if we should disregard the per-triangle normals and let Unreal compute
+	 * smoothed normals based on the triangle definition. The selection is controlled with the
+	 * InNormalsSource parameter.
+	 *
+	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
+	 *
+	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
+	 * only when bInBuild is true.
+	 *
+	 * This function only creates the in-memory representation. The created Static Mesh will not be
+	 * written to drive.
+	 *
+	 * If the given name is empty then the Trimesh's source name will be used with the standard
+	 * 'SM_' prefix. If the Trimesh doesn't have a source name then the mesh will be named
+	 * 'SM_CollisionMesh_<GUID>'.
+	 *
+	 * @param InTrimeshBarrier The Trimesh to create a Static Mesh from.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
+	 * @param InNormalsSource Where to get normals from, either triangles or let Unreal generate.
+	 * @param InName The name of the Static Mesh.
+	 * @return The UStaticMesh created from the Trimesh.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const FTrimeshShapeBarrier& InTrimeshBarrier, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
+
+	/**
+	 * Create a Static Mesh from the triangles held by the given Render Data.
+	 *
+	 * Extracts the mesh data from the Render Data and then calls the CreateStaticMesh overload that
+	 * takes a bunch of TArrays.
+	 *
+	 * AGX Dynamics does not enforce a particular mesh attributes layout so it is not well-defined
+	 * how the data we find in the Render Data should be mapped to the attributes of the Static
+	 * Mesh. This function employs a count based heuristic where attribute elements are mapped
+	 * depending on how may elements there are for each attribute. There is not always a valid
+	 * mapping, in which case a warning is printed and no Static Mesh is created. There may be valid
+	 * layouts that are not yet detected and handled by this function.
+	 *
+	 * Delayed builds, i.e. passing false to bInBuild, is only allowed from WITH_EDITOR builds.
+	 * Static Meshes created this way must be built elsewhere before they can be used.
+	 *
+	 * Box collision creation is only supported when the Static Mesh is built immediately, i.e.
+	 * only when bInBuild is true.
+	 *
+	 * This function only creates the in-memory representation. The created Static Mesh will not be
+	 * written to drive.
+	 *
+	 * If the given name is empty then the created Static Mesh is named 'SM_RenderMesh_<GUID>'.
+	 *
+	 * @param InRenderDataBarrier The Render Data to create a Static Mesh from.
+	 * @param InOuter The UObject that will own the Static Mesh.
+	 * @param InMaterial Render material to assign to all triangles.
+	 * @param bInBuild True to build the Static Mesh immediately. Required in non-editor builds.
+	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
+	 * @param InNormalsSource Where to get normals from, either Render Data or let Unreal compute.
+	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
+	 * @return The UStaticMesh created from the Render Data.
+	 */
+	static UStaticMesh* CreateStaticMesh(
+		const FRenderDataBarrier& InRenderDataBarrier, UObject& InOuter,
+		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
+
+	/**
+	 * Copies triangle information and render material from one Static Mesh to another.
+	 * Does not copy other properties.
+	 * Always generates a new SimpleCollision (Box primitive) to the Destination Static Mesh.
+	 */
+	static bool CopyStaticMesh(UStaticMesh* Source, UStaticMesh* Destination);
+
+	static bool HasRenderDataMesh(const FShapeBarrier& Shape);
+
+	/**
+	 * Creates a new render Material instance based on the given RenderMaterial Barrier and Base.
+	 * If Base is nullptr, this functions returns nullptr.
+	 * This function supports runtime usage.
+	 */
+	static UMaterialInterface* CreateRenderMaterial(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial* Base, UObject& Owner);
+
+	/**
+	 * Returns the default (AGX) render material.
+	 */
+	static UMaterial* GetDefaultRenderMaterial(bool bIsSensor);
+
+	/**
+	 * Add a Simple Collision Box to the given StaticMesh.
+	 */
+	static bool AddBoxSimpleCollision(UStaticMesh& OutStaticMesh);
+
+	/**
+	 * Simple comparison to test if two meshes are equal.
+	 * Does not test all possible data, but does vertex and RenderMaterial comparisons.
+	 */
+	static bool AreStaticMeshesEqual(UStaticMesh* MeshA, UStaticMesh* MeshB);
+
+	/**
+	 * Checks whether two Render Materials are equal.
+	 */
+	static bool AreImportedRenderMaterialsEqual(UMaterialInterface* MatA, UMaterialInterface* MatB);
 };
 
 template <typename VectorType, typename IndexType>

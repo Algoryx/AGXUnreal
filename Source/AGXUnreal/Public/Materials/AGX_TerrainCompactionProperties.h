@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -20,6 +20,9 @@ struct AGXUNREAL_API FAGX_TerrainCompactionProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainCompactionProperties&) const = default;
+
 	/**
 	 * Sets how the compaction should increase the angle of repose.
 	 */

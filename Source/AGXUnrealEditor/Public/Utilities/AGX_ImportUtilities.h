@@ -1,9 +1,8 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
 #include "AGX_LogCategory.h"
 
 // Unreal Engine includes.
@@ -12,9 +11,9 @@
 #include "GameFramework/Actor.h"
 #include "Math/Color.h"
 
-class FTrimeshShapeBarrier;
+struct FTrimeshShapeBarrier;
 class FRenderDataBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class FMergeSplitThresholdsBarrier;
 class FShapeMaterialBarrier;
 class FTrackBarrier;
@@ -33,6 +32,7 @@ struct FAGX_RenderMaterial;
 class AActor;
 class FString;
 class UActorComponent;
+class UBlueprint;
 class UMaterialInterface;
 class UMaterialInstanceConstant;
 class UStaticMesh;
@@ -84,67 +84,6 @@ public:
 	/// and/or asset name.
 
 	/**
-	 * Sets up the imported Trimesh as an UStaticMesh asset, but does not write it to disk.
-	 *
-	 * @param Trimesh The imported trimesh to be saved.
-	 * @param DirectoryPath The path of the directory where the assets are collected.
-	 * @param FallbackName Name to give the asset in case the trimesh doesn't have a source
-	 * name.
-	 * @param Material Optional default material to apply to the Mesh Asset.
-	 * @return The created asset.
-	 */
-	static UStaticMesh* SaveImportedStaticMeshAsset(
-		const FTrimeshShapeBarrier& Trimesh, const FString& DirectoryPath,
-		const FString& FallbackName, UMaterialInstanceConstant* Material);
-
-	/**
-	 * Sets up the imported Render Data Mesh as an UStaticMesh asset, but does not write it to disk.
-	 *
-	 * @param RenderData The Render Data holding the render mesh to store.
-	 * @param DirectoryPath The path of the directory where the assets are collected.
-	 * @param Material Optional default material to apply to the Mesh Asset.
-	 * @return The created asset.
-	 */
-	static UStaticMesh* SaveImportedStaticMeshAsset(
-		const FRenderDataBarrier& RenderData, const FString& DirectoryPath,
-		UMaterialInstanceConstant* Material);
-
-	/**
-	 * Store an imported AGX Dynamics Track Internal Merge Property as an
-	 * UAGX_TrackInternalMergeProperties asset on drive..
-	 * @param Barrier The imported Track owning the Internal Merge Property.
-	 * @param DirectoryPath The path of the directory where the assets are collected.
-	 * @param Name The name to give to the new asset. A sequence number will be added in case of a
-	 * conflict.
-	 * @return The created UAGX_TrackInternalMergeProperties asset.
-	 */
-	static UAGX_TrackInternalMergeProperties* SaveImportedTrackInternalMergePropertiesAsset(
-		const FTrackBarrier& Barrier, const FString& DirectoryPath, const FString& Name);
-
-	/**
-	 * Store an imported AGX Dynamics Track Property as an UAGX_TrackProperties.
-	 * @param Barrier The imported Track referencing the Track Property.
-	 * @param DirectoryPath The path of the directory where the assets are collected.
-	 * @param Name The name to give to the new asset. A sequence number will be added in case of a
-	 * conflict.
-	 * @return The created UAGX_TrackProperties.
-	 */
-	static UAGX_TrackProperties* SaveImportedTrackPropertiesAsset(
-		const FTrackPropertiesBarrier& Barrier, const FString& DirectoryPath, const FString& Name);
-
-	/**
-	 * Generate valid name for the object. Generates a fallback name if the given name can't be
-	 * used.
-	 */
-	static FString CreateName(UObject& Object, const FString& Name);
-
-	/**
-	 * Handles the case of renaming Actor Components, where an extra name validation occurs compared
-	 * to the more general Rename(UObject&, ...) version of this function.
-	 */
-	static void Rename(UActorComponent& Component, const FString& Name);
-
-	/**
 	 * Convert an sRGB space float channels color, as used in AGX Dynamics' render materials, to a
 	 * linear space float channels color, as used by Unreal Engine's render materials.
 	 *
@@ -166,9 +105,13 @@ public:
 	static FString GetImportContactMaterialDirectoryName();
 	static FString GetImportRenderMaterialDirectoryName();
 	static FString GetImportMergeSplitThresholdsDirectoryName();
-	static FString GetImportStaticMeshDirectoryName();
-	static FString GetImportRenderMeshDirectoryName();
+	static FString GetImportCollisionStaticMeshDirectoryName();
+	static FString GetImportRenderStaticMeshDirectoryName();
 	static FString GetImportShovelPropertiesDirectoryName();
+	static FString GetImportTrackPropertiesDirectoryName();
+	static FString GetImportTrackMergePropertiesDirectoryName();
+
+	static FString GetImportBaseBlueprintNamePrefix();
 
 	/**
 	 * Template version of the asset directory name getter.
@@ -208,7 +151,7 @@ public:
 	template <typename TComponent>
 	static TComponent* CreateComponent(AActor& Owner, USceneComponent& AttachParent);
 
-	static EAGX_ImportType GetFrom(const FString& FilePath);
+	static void OnImportedBlueprintDeleted(const UBlueprint& Bp);
 };
 
 template <typename UAsset>

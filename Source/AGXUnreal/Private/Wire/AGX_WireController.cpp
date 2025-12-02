@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireController.h"
 
@@ -10,12 +10,13 @@
 
 UAGX_WireController::UAGX_WireController()
 {
-	NativeBarrier.InitializeNative();
 }
 
 UAGX_WireController* UAGX_WireController::Get()
 {
-	return NewObject<UAGX_WireController>();
+	auto Wc = NewObject<UAGX_WireController>();
+	Wc->EnsureNativeIsSet();
+	return Wc;
 }
 
 bool UAGX_WireController::IsWireWireActive() const
@@ -247,5 +248,17 @@ bool UAGX_WireController::GetDynamicWireContactsGloballyEnabled() const
 
 bool UAGX_WireController::HasNative() const
 {
+	// Before, we used to call NativeBarrier.InitializeNative() from the Constructor (CDO).
+	// This gave us errors on startup with UE5.6 because it was called before the plugin
+	// was loaded (on Windows).
+	// Therefore, we have moved this call here, to act as a "lazy" native initialization.
+	const_cast<UAGX_WireController*>(this)->EnsureNativeIsSet();
+
 	return NativeBarrier.HasNative();
+}
+
+void UAGX_WireController::EnsureNativeIsSet()
+{
+	if (!NativeBarrier.HasNative())
+		NativeBarrier.InitializeNative();
 }

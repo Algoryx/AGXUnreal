@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 
@@ -27,24 +27,11 @@ FMergeSplitPropertiesBarrier::FMergeSplitPropertiesBarrier()
 }
 
 FMergeSplitPropertiesBarrier::FMergeSplitPropertiesBarrier(
-	std::unique_ptr<FMergeSplitPropertiesPtr>&& Native)
-	: NativePtr {std::move(Native)}
+	std::shared_ptr<FMergeSplitPropertiesPtr> Native)
+	: NativePtr {(Native)}
 {
 }
 
-FMergeSplitPropertiesBarrier::FMergeSplitPropertiesBarrier(
-	FMergeSplitPropertiesBarrier&& Other) noexcept
-	: NativePtr {std::move(Other.NativePtr)}
-{
-	Other.NativePtr = std::make_unique<FMergeSplitPropertiesPtr>();
-}
-
-FMergeSplitPropertiesBarrier::~FMergeSplitPropertiesBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the std::unique_ptr
-	// NativePtr's destructor must be able to see the definition, not just the declaration, of
-	// FMergeSplitPropertiesBarrier.
-}
 
 namespace MergeSplitProperties_helpers
 {

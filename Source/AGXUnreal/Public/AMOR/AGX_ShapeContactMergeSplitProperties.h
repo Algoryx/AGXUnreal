@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -13,8 +13,8 @@
 
 #include "AGX_ShapeContactMergeSplitProperties.generated.h"
 
-class FRigidBodyBarrier;
-class FShapeBarrier;
+struct FRigidBodyBarrier;
+struct FShapeBarrier;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeComponent;
 
@@ -49,6 +49,9 @@ public:
 
 	void CreateNative(UAGX_RigidBodyComponent& Owner);
 	void CreateNative(UAGX_ShapeComponent& Owner);
+
+	virtual void CopyFrom(
+		const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	/*
 	 * This struct is typically a member (UPROPERTY) of its owner, which is a

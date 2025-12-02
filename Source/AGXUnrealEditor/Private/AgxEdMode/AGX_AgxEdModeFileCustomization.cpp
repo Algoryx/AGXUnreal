@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AgxEdMode/AGX_AgxEdModeFileCustomization.h"
 
@@ -34,7 +34,7 @@ void FAGX_AgxEdModeFileCustomization::CustomizeFileImporterCategory(
 	// Create import Buttons.
 
 	AddCustomButton(
-		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import model to Blueprint..."),
+		CategoryBuilder, LOCTEXT("CreateButtonTextImportBP", "Import Model to Blueprint..."),
 		LOCTEXT("CreateButtonTextImportTt", "Import a model from a file to a Blueprint."),
 		[&]()
 		{
@@ -66,12 +66,7 @@ namespace AGX_AgxEdModeFileCustomization_helpers
 {
 	bool RefreshMaterialLibraries()
 	{
-		bool Success = true;
-		Success &= AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary(true);
-		Success &= AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary(true);
-		Success &= AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(true);
-		Success &= AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary(true);
-		return Success;
+		return AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries();
 	}
 }
 
@@ -99,7 +94,7 @@ void FAGX_AgxEdModeFileCustomization::CustomizeMaterialLibraryCategory(
 			else
 			{
 				FAGX_NotificationUtilities::ShowNotification(
-					"Issues encountered during Refresh, see the Console Log for more details.",
+					"Issues encountered during Refresh, see the Output Log for more details.",
 					SNotificationItem::CS_Fail);
 			}
 			return FReply::Handled();

@@ -1,10 +1,11 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Sensors/SensorEnvironmentBarrier.h"
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/RtAmbientMaterialBarrier.h"
 #include "Sensors/RtLambertianOpaqueMaterialBarrier.h"
@@ -22,10 +23,12 @@
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceSurfaceMaterial.h>
 #include <agxSensor/RaytraceConfig.h>
+#include <agxSensor/UniformMagneticField.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
 // Standard Library includes.
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -84,6 +87,13 @@ bool FSensorEnvironmentBarrier::Add(FLidarBarrier& Lidar)
 	return NativeRef->Native->add(Lidar.GetNative()->Native);
 }
 
+bool FSensorEnvironmentBarrier::Add(FIMUBarrier& IMU)
+{
+	check(HasNative());
+	check(IMU.HasNative());
+	return NativeRef->Native->add(IMU.GetNative()->Native);
+}
+
 bool FSensorEnvironmentBarrier::Add(FTerrainBarrier& Terrain)
 {
 	check(HasNative());
@@ -110,6 +120,13 @@ bool FSensorEnvironmentBarrier::Remove(FLidarBarrier& Lidar)
 	check(HasNative());
 	check(Lidar.HasNative());
 	return NativeRef->Native->remove(Lidar.GetNative()->Native);
+}
+
+bool FSensorEnvironmentBarrier::Remove(FIMUBarrier& IMU)
+{
+	check(HasNative());
+	check(IMU.HasNative());
+	return NativeRef->Native->remove(IMU.GetNative()->Native);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FTerrainBarrier& Terrain)
@@ -183,9 +200,64 @@ void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
 	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterialOrDefault(Wire, Material);
 }
 
+void FSensorEnvironmentBarrier::SetMagneticField(const FVector& MagneticField)
+{
+	check(HasNative());
+	agxSensor::UniformMagneticFieldRef Field = dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
+	if (Field == nullptr)
+	{
+		Field = new agxSensor::UniformMagneticField();
+		NativeRef->Native->setMagneticField(Field);
+	}
+
+	Field->setMagneticField(ConvertVector(MagneticField));
+}
+
+FVector FSensorEnvironmentBarrier::GetMagneticField() const
+{
+	check(HasNative());
+	FVector FieldUnreal = FVector::ZeroVector;
+
+	agxSensor::UniformMagneticFieldRef Field =
+		dynamic_cast<agxSensor::UniformMagneticField*>(NativeRef->Native->getMagneticField());
+	if (Field == nullptr)
+		return FieldUnreal;
+
+	FieldUnreal = ConvertVector(Field->getMagneticField());
+	return FieldUnreal;
+}
+
 bool FSensorEnvironmentBarrier::IsRaytraceSupported()
 {
-	return agxSensor::RtConfig::isRaytraceSupported();
+	static bool bIsRaytraceSupported = true;
+	static std::once_flag InitFlag; // Ensures initialization runs only once.
+
+	std::call_once(
+		InitFlag,
+		[&]()
+		{
+			bIsRaytraceSupported = agxSensor::RtConfig::isRaytraceSupported();
+			if (!bIsRaytraceSupported)
+				return;
+
+			// We might get false positives from the isRaytraceSupported check above, try initialize
+			// the library to ensure everything works as expected.
+			FRtAmbientMaterialBarrier Barrier;
+			try
+			{
+				UE_LOG(LogAGX, Log, TEXT("Trying to initialize a Lidar material."));
+				Barrier.AllocateNative();
+				bIsRaytraceSupported = Barrier.HasNative();
+				Barrier.ReleaseNative();
+			}
+			catch (...)
+			{
+				UE_LOG(LogAGX, Log, TEXT("Caught exception after Lidar material initialization."));
+				bIsRaytraceSupported = false;
+			}
+		});
+
+	return bIsRaytraceSupported;
 }
 
 TArray<FString> FSensorEnvironmentBarrier::GetRaytraceDevices()

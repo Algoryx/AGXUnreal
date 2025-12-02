@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -194,7 +194,14 @@ inline int32 Convert(agx::Int I)
 	return static_cast<int32>(I);
 }
 
-inline int32 Convert(std::size_t S)
+inline bool CanConvert(std::size_t S)
+{
+	static constexpr std::size_t MaxAllowed =
+		static_cast<std::size_t>(std::numeric_limits<int32>::max());
+	return S <= MaxAllowed;
+}
+
+inline int32 Convert(std::size_t S, const TCHAR* const Message = TEXT(""))
 {
 	static constexpr std::size_t MaxAllowed =
 		static_cast<std::size_t>(std::numeric_limits<int32>::max());
@@ -202,7 +209,7 @@ inline int32 Convert(std::size_t S)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Too large size_t being converted to int32, value is truncated."));
+			TEXT("%s: Too large size_t being converted to int32, value is truncated."), Message);
 		S = MaxAllowed;
 	}
 	return static_cast<int32>(S);
@@ -438,6 +445,15 @@ inline FVector ConvertAngularVelocity(const agx::Vec3& V)
 		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.z())));
 }
 
+inline FVector ConvertAngularAcceleration(const agx::Vec3& V)
+{
+	// Similar to ConvertAngularVelocity.
+	return FVector(
+		FMath::RadiansToDegrees(ConvertToUnreal<decltype(FVector::X)>(V.x())),
+		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.y())),
+		FMath::RadiansToDegrees(-ConvertToUnreal<decltype(FVector::X)>(V.z())));
+}
+
 inline FVector ConvertTorque(const agx::Vec3& V)
 {
 	/*
@@ -522,6 +538,17 @@ inline agx::Vec3f ConvertFloatDisplacement(const FVector& V)
 inline agx::Vec3 ConvertAngularVelocity(const FVector& V)
 {
 	// See comment in the AGX-to-Unreal version of this function.
+	// clang-format off
+	return agx::Vec3(
+		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
+		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
+	// clang-format on
+}
+
+inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
+{
+	// Similar to ConvertAngularVelocity.
 	// clang-format off
 	return agx::Vec3(
 		ConvertToAGX(FMath::DegreesToRadians(V.X)),
@@ -714,6 +741,13 @@ inline agx::Quat Convert(const FQuat& V)
 //
 
 inline FTransform Convert(const agx::AffineMatrix4x4& T)
+{
+	const FVector Translation = ConvertDisplacement(T.getTranslate());
+	const FQuat Rotation = Convert(T.getRotate());
+	return FTransform(Rotation, Translation);
+}
+
+inline FTransform Convert(const agx::Frame& T)
 {
 	const FVector Translation = ConvertDisplacement(T.getTranslate());
 	const FQuat Rotation = Convert(T.getRotate());
@@ -1631,6 +1665,11 @@ inline FString Convert(const std::string& Str)
 	return FString(Str.c_str());
 }
 
+inline FName ConvertStrToName(const std::string& Str)
+{
+	return FName(Str.c_str());
+}
+
 template <typename SourceT, typename DestinationT>
 inline TArray<DestinationT> ToUnrealArray(const std::vector<SourceT>& V)
 {
@@ -1672,12 +1711,12 @@ inline std::vector<DestinationT> ToStdArray(const TArray<SourceT>& A)
 	return Arr;
 }
 
-inline std::vector<std::string> ToStdStringArray(const TArray<FString>& A)
+inline std::vector<std::string> ToStdStringVector(const TArray<FString>& A)
 {
-	std::vector<std::string> Arr;
-	Arr.reserve(A.Num());
+	std::vector<std::string> Vec;
+	Vec.reserve(A.Num());
 	for (const auto& Val : A)
-		Arr.push_back(ToStdString(Val));
+		Vec.push_back(ToStdString(Val));
 
-	return Arr;
+	return Vec;
 }

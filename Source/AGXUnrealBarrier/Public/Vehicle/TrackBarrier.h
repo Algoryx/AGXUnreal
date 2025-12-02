@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -13,9 +13,8 @@
 // Standard library includes.
 #include <memory>
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
-class FSimulationBarrier;
 class FTrackPropertiesBarrier;
 class FTrackWheelBarrier;
 struct FTrackRef;
@@ -53,9 +52,6 @@ public:
 		uint8 Model, double Radius, const FRigidBodyBarrier& RigidBody,
 		const FVector& RelativePosition, const FQuat& RelativeRotation, bool bSplitSegments,
 		bool bMoveNodesToRotationPlane, bool bMoveNodesToWheel);
-
-	bool AddToSimulation(FSimulationBarrier& Sim) const;
-	bool RemoveFromSimulation(FSimulationBarrier& Sim) const;
 
 	void SetName(const FString& Name);
 	FString GetName() const;

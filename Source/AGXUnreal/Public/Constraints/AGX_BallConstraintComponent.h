@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -47,6 +47,8 @@ public: // Function overrides.
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& Event) override;
 #endif
 	//~ End UObject interface.
+
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 public: // Native management.
 	FBallJointBarrier* GetNativeBallJoint();

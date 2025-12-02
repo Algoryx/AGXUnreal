@@ -1,4 +1,4 @@
-// Copyright 2023, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 // AGX Dynamics for Unreal includes.
 #include "AgxAutomationCommon.h"

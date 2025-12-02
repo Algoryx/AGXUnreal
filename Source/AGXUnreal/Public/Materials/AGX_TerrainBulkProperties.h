@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -19,9 +19,15 @@ struct AGXUNREAL_API FAGX_TerrainBulkProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainBulkProperties& Other) const = default;
+
 	/**
 	 * Sets the adhesion overlap factor of the bulk material, i.e what fraction of the particle
 	 * radius is allowed to overlap to simulate adhesion.
+	 *
+	 * As of AGX Dynamics versions 2.29 this property is deprecated. The the property with the same
+	 * name in Terrain Particle Properties instead.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Material Bulk",

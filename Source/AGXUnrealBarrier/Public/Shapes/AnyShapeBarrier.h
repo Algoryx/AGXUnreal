@@ -1,8 +1,11 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
+
+#include "AnyShapeBarrier.generated.h"
 
 /**
  * A Shape Barrier that may wrap any AGX Dynamics shape type.
@@ -10,13 +13,13 @@
  * Cannot be used to allocate new AGX Dynamics shapes, since it doesn't know what type of shape to
  * allocate.
  */
-class AGXUNREALBARRIER_API FAnyShapeBarrier : public FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FAnyShapeBarrier : public FShapeBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FAnyShapeBarrier();
-	FAnyShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	FAnyShapeBarrier(FAnyShapeBarrier&& Other);
-	virtual ~FAnyShapeBarrier() override;
+	FAnyShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 private:
 	/**
@@ -28,8 +31,4 @@ private:
 	 * Will always fail with an error message.
 	 */
 	virtual void ReleaseNativeShape() override;
-
-private:
-	FAnyShapeBarrier(const FAnyShapeBarrier&) = delete;
-	void operator=(const FAnyShapeBarrier&) = delete;
 };

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -55,6 +55,8 @@ public:
 
 	static void GetAGXDynamicsVersion(
 		int32& OutGeneration, int32& OutMajor, int32& OutMinor, int32& OutPatch);
+
+	static FString GetOpenPLXVersion();
 
 	static bool IsAGXDynamicsVersionNewerOrEqualTo(
 		int32 InGeneration, int32 InMajor, int32 InMinor, int32 InPatch);

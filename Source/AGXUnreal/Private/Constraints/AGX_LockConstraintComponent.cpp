@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_LockConstraintComponent.h"
 
@@ -7,7 +7,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_LockConstraintComponent::UAGX_LockConstraintComponent()
 	: UAGX_ConstraintComponent(

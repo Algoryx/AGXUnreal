@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AMOR/AGX_ShapeContactMergeSplitProperties.h"
 
@@ -7,8 +7,14 @@
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
+#include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
+
+// Unreal Engine includes.
+#include "UObject/Package.h"
 
 template <typename T>
 void FAGX_ShapeContactMergeSplitProperties::OnBeginPlayInternal(T& Owner)
@@ -94,6 +100,37 @@ void FAGX_ShapeContactMergeSplitProperties::CreateNative(UAGX_ShapeComponent& Ow
 	CreateNativeInternal(Owner);
 }
 
+void FAGX_ShapeContactMergeSplitProperties::CopyFrom(
+	const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || Context->MSThresholds == nullptr)
+		return;
+
+	// Get or create Merge Split Threashold from Context.
+	FShapeContactMergeSplitThresholdsBarrier ThresholdsBarrier =
+		Barrier.GetShapeContactMergeSplitThresholds();
+	if (!ThresholdsBarrier.HasNative())
+		return;
+
+	const auto MSTGuid = ThresholdsBarrier.GetGuid();
+	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	{
+		Thresholds = Cast<UAGX_ShapeContactMergeSplitThresholds>(MST);
+		return; // We are done.
+	}
+
+	Thresholds = NewObject<UAGX_ShapeContactMergeSplitThresholds>(
+		Context->Outer, NAME_None, RF_Public | RF_Standalone);
+	FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Thresholds, Context->SessionGuid);
+	const FString THName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_SMST_%s"), *MSTGuid.ToString()), nullptr);
+	Thresholds->Rename(*THName);
+	Thresholds->CopyFrom(ThresholdsBarrier);
+	Context->MSThresholds->Add(MSTGuid, Thresholds);
+}
+
 void FAGX_ShapeContactMergeSplitProperties::UpdateNativeProperties()
 {
 	AGX_CHECK(HasNative());
@@ -106,7 +143,15 @@ void FAGX_ShapeContactMergeSplitProperties::UpdateNativeProperties()
 void FAGX_ShapeContactMergeSplitProperties::CreateNativeThresholds(UWorld* PlayingWorld)
 {
 	if (Thresholds == nullptr)
+		return;
+
+	// This will be true if we are runtime imported and instantiated.
+	if (Thresholds->IsInstance())
 	{
+		if (!Thresholds->HasNative())
+		{
+			Thresholds->CreateNative();
+		}
 		return;
 	}
 

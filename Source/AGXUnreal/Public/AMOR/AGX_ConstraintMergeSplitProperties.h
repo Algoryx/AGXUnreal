@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -58,6 +58,9 @@ public:
 	void BindBarrierToOwner(FConstraintBarrier& NewOwner);
 
 	virtual UAGX_MergeSplitThresholdsBase* GetThresholds() override;
+
+	virtual void CopyFrom(
+		const FMergeSplitPropertiesBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 private:
 	void CreateNativeThresholds(UAGX_ConstraintComponent& Owner);

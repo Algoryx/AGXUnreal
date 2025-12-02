@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AgxEdMode/AGX_AgxEdModeTerrainCustomization.h"
 
@@ -25,7 +25,7 @@ namespace FAGX_AgxEdModeTerrainCustomization_helpers
 {
 	bool RefreshTerrainMaterialLibrary()
 	{
-		return AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary(true);
+		return AGX_MaterialLibrary::UpdateTerrainMaterialAssetLibrary();
 	}
 }
 
@@ -61,7 +61,7 @@ void FAGX_AgxEdModeTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& 
 				else
 				{
 					FAGX_NotificationUtilities::ShowNotification(
-						"Issues encountered during Refresh, see the Console Log for more details.",
+						"Issues encountered during Refresh, see the Output Log for more details.",
 						SNotificationItem::CS_Fail);
 				}
 				return FReply::Handled();

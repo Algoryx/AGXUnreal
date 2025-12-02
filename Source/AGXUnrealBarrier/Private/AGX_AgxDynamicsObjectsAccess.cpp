@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_AgxDynamicsObjectsAccess.h"
 
@@ -20,6 +20,7 @@
 #include "Constraints/HingeBarrier.h"
 #include "Constraints/LockJointBarrier.h"
 #include "Constraints/PrismaticBarrier.h"
+#include "Constraints/SingleControllerConstraint1DOFBarrier.h"
 #include "Contacts/ContactPointBarrier.h"
 #include "Contacts/ContactPointEntity.h"
 #include "MassPropertiesBarrier.h"
@@ -46,6 +47,7 @@
 #include <agx/DistanceJoint.h>
 #include <agx/Hinge.h>
 #include <agx/LockJoint.h>
+#include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/MassProperties.h>
 #include <agx/Material.h>
 #include <agx/Prismatic.h>
@@ -63,7 +65,7 @@
 #include <agxWire/Node.h>
 #include "EndAGXIncludes.h"
 #include "Shapes/RenderDataBarrier.h"
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 
 namespace AgxDynamicsObjectAccess_Helper
 {
@@ -239,6 +241,12 @@ agx::Hinge* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FHingeBarrier* Barrier)
 agx::LockJoint* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FLockJointBarrier* Barrier)
 {
 	return AgxDynamicsObjectAccess_Helper::GetFromAs<agx::LockJoint>(Barrier);
+}
+
+agx::SingleControllerConstraint1DOF* FAGX_AgxDynamicsObjectsAccess::GetFrom(
+	const FSingleControllerConstraint1DOFBarrier* Barrier)
+{
+	return AgxDynamicsObjectAccess_Helper::GetFromAs<agx::SingleControllerConstraint1DOF>(Barrier);
 }
 
 agx::Prismatic* FAGX_AgxDynamicsObjectsAccess::GetFrom(const FPrismaticBarrier* Barrier)

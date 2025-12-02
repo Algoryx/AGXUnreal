@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/HeightFieldShapeBarrier.h"
 
@@ -25,17 +25,10 @@ FHeightFieldShapeBarrier::FHeightFieldShapeBarrier()
 {
 }
 
-FHeightFieldShapeBarrier::FHeightFieldShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FHeightFieldShapeBarrier::FHeightFieldShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
 	check(NativeRef->NativeShape->is<agxCollide::HeightField>());
-}
-
-FHeightFieldShapeBarrier::~FHeightFieldShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FHeightFieldShapeRef.
 }
 
 void FHeightFieldShapeBarrier::AllocateNative(

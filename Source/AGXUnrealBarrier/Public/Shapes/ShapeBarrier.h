@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -14,7 +14,10 @@
 #include <memory>
 #include <tuple>
 
+#include "ShapeBarrier.generated.h"
+
 struct FGeometryAndShapeRef;
+struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 
 class FRenderDataBarrier;
@@ -26,15 +29,14 @@ class FRenderDataBarrier;
  *
  * A Shape may come with Render Data, which may contain a Render Mesh and/or a Render Material.
  */
-class AGXUNREALBARRIER_API FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FShapeBarrier
 {
-public:
-	FShapeBarrier();
-	FShapeBarrier(FShapeBarrier&& Other) noexcept;
-	FShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	virtual ~FShapeBarrier();
+	GENERATED_BODY()
 
-	FShapeBarrier& operator=(FShapeBarrier&& Other) noexcept;
+	FShapeBarrier();
+	FShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
+	virtual ~FShapeBarrier() = default;
 
 	bool HasNativeGeometry() const;
 	bool HasNativeShape() const;
@@ -84,11 +86,6 @@ public:
 
 	void ClearMaterial();
 	void SetMaterial(const FShapeMaterialBarrier& Material);
-
-	/// \todo Should GetMaterial() create a new FShapeMaterialBarrier, or get an existing somehow?
-	/// If it creates a new FShapeMaterialBarrier we should implement comparison operators etc since
-	/// multiple FShapeMaterialBarrier that points to the same native object should be logically
-	/// seen as same object (similar to smart pointers).
 	FShapeMaterialBarrier GetMaterial() const;
 
 	void SetEnableCollisions(bool CanCollide);
@@ -103,6 +100,9 @@ public:
 
 	FGuid GetShapeGuid() const;
 	FGuid GetGeometryGuid() const;
+
+	/** Returns the Shape GUID. */
+	FGuid GetGuid() const;
 
 	/**
 	 * Get all collision groups registered for this Shape.
@@ -145,13 +145,15 @@ public:
 	 */
 	FAGX_RenderMaterial GetRenderMaterial() const;
 
+	/**
+	 * Return the owning RigidBody if there is one. If none exists, a RigidBodyBarrier without a
+	 * Native is returned.
+	 */
+	FRigidBodyBarrier GetRigidBody() const;
+
 protected:
 	template <typename TFunc, typename... TPack>
 	void AllocateNative(TFunc Factory, TPack... Params);
-
-private:
-	FShapeBarrier(const FShapeBarrier&) = delete;
-	void operator=(const FShapeBarrier&) = delete;
 
 private:
 	/// \todo Are we allowed to have pure virtual classes in an Unreal plugin.
@@ -168,5 +170,5 @@ private:
 	virtual void ReleaseNativeShape() {};
 
 protected:
-	std::unique_ptr<FGeometryAndShapeRef> NativeRef;
+	std::shared_ptr<FGeometryAndShapeRef> NativeRef;
 };

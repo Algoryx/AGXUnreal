@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 
@@ -11,6 +11,15 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "UObject/Package.h"
+
+bool UAGX_LidarAmbientMaterial::operator==(const UAGX_LidarAmbientMaterial& Other) const
+{
+	return RefractiveIndex == Other.RefractiveIndex &&
+		   AttenuationCoefficient == Other.AttenuationCoefficient &&
+		   ReturnProbabilityScaling == Other.ReturnProbabilityScaling &&
+		   ReturnGammaDistributionShapeParameter == Other.ReturnGammaDistributionShapeParameter &&
+		   ReturnGammaDistributionScaleParameter == Other.ReturnGammaDistributionScaleParameter;
+}
 
 void UAGX_LidarAmbientMaterial::SetRefractiveIndex(float InRefractiveIndex)
 {
@@ -219,8 +228,12 @@ void UAGX_LidarAmbientMaterial::UpdateNativeProperties()
 
 bool UAGX_LidarAmbientMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 	AGX_CHECK(bIsInstance != IsAsset());
 	return bIsInstance;
@@ -228,12 +241,11 @@ bool UAGX_LidarAmbientMaterial::IsInstance() const
 
 void UAGX_LidarAmbientMaterial::CopyFrom(const FRtAmbientMaterialBarrier& Source)
 {
-	RefractiveIndex = Source.GetRefractiveIndex();
-	AttenuationCoefficient = Source.GetAttenuationCoefficient();
-	ReturnProbabilityScaling =
-		Source.GetReturnProbabilityScaling();
-	ReturnGammaDistributionShapeParameter = Source.GetReturnGammaDistributionShapeParameter();
-	ReturnGammaDistributionScaleParameter = Source.GetReturnGammaDistributionScaleParameter();
+	SetRefractiveIndex(Source.GetRefractiveIndex());
+	SetAttenuationCoefficient(Source.GetAttenuationCoefficient());
+	SetReturnProbabilityScaling(Source.GetReturnProbabilityScaling());
+	SetReturnGammaDistributionShapeParameter(Source.GetReturnGammaDistributionShapeParameter());
+	SetReturnGammaDistributionScaleParameter(Source.GetReturnGammaDistributionScaleParameter());
 }
 
 void UAGX_LidarAmbientMaterial::CopyProperties(const UAGX_LidarAmbientMaterial& Source)

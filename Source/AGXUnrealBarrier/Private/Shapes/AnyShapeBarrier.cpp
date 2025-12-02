@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/AnyShapeBarrier.h"
 
@@ -11,21 +11,9 @@ FAnyShapeBarrier::FAnyShapeBarrier()
 {
 }
 
-FAnyShapeBarrier::FAnyShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FAnyShapeBarrier::FAnyShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
-}
-
-FAnyShapeBarrier::FAnyShapeBarrier(FAnyShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FAnyShapeBarrier::~FAnyShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FAnyShapeRef.
 }
 
 void FAnyShapeBarrier::AllocateNativeShape()

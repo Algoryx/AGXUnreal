@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -23,16 +23,11 @@ struct AGXUNREAL_API FAGX_LidarSensorReference : public FAGX_ComponentReference
 	UAGX_LidarSensorComponent* GetLidarComponent() const;
 };
 
-#if UE_BUILD_DEBUG
-uint32 GetTypeHash(const FAGX_LidarSensorReference& Thing);
-#else // optimize by inlining in shipping and development builds
 FORCEINLINE uint32 GetTypeHash(const FAGX_LidarSensorReference& Thing)
 {
 	uint32 Hash = FCrc::MemCrc32(&Thing, sizeof(FAGX_LidarSensorReference));
 	return Hash;
 }
-#endif
-
 
 // Blueprint API
 

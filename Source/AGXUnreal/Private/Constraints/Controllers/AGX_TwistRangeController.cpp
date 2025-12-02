@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/Controllers/AGX_TwistRangeController.h"
 
@@ -114,28 +114,11 @@ void FAGX_TwistRangeController::InitializeBarrier(const FTwistRangeControllerBar
 	Barrier = InBarrier;
 }
 
-void FAGX_TwistRangeController::CopyFrom(
-	const FTwistRangeControllerBarrier& Source,
-	TArray<FAGX_TwistRangeController*>& ArchetypeInstances, bool bForceOverwriteInstances)
+void FAGX_TwistRangeController::CopyFrom(const FTwistRangeControllerBarrier& Source)
 {
-	TArray<FAGX_ElementaryConstraint*> BaseInstances(ArchetypeInstances);
-	Super::CopyFrom(Source, BaseInstances, bForceOverwriteInstances);
+	Super::CopyFrom(Source);
 
 	const FAGX_RealInterval RangeBarrier = Source.GetRange();
-
-	for (auto Instance : ArchetypeInstances)
-	{
-		if (Instance == nullptr)
-		{
-			continue;
-		}
-
-		if (bForceOverwriteInstances || Instance->Range == Range)
-		{
-			Instance->Range = RangeBarrier;
-		}
-	}
-
 	Range = RangeBarrier;
 }
 

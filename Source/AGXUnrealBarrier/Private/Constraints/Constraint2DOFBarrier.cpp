@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/Constraint2DOFBarrier.h"
 
@@ -72,6 +72,26 @@ double FConstraint2DOFBarrier::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const
 		default:
 			// Don't know the type, so pass the value unchanged to the caller.
 			return NativeAngle;
+	}
+}
+
+double FConstraint2DOFBarrier::GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	check(HasNative());
+
+	agx::Constraint2DOF* Constraint = Get2DOF(NativeRef);
+	const agx::Real SpeedAGX = Constraint->getCurrentSpeed(Convert(Dof));
+	const agx::Motor1D* MotorAGX = Constraint->getMotor1D(Convert(Dof));
+	const agx::Angle::Type DofType = FAGX_BarrierConstraintUtilities::GetDofType(MotorAGX);
+	switch (DofType)
+	{
+		case agx::Angle::ROTATIONAL:
+			return ConvertAngleToUnreal<double>(SpeedAGX);
+		case agx::Angle::TRANSLATIONAL:
+			return ConvertDistanceToUnreal<double>(SpeedAGX);
+		default:
+			// Don't know the type, so pass the value unchanged to the caller.
+			return SpeedAGX;
 	}
 }
 

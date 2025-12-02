@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -20,6 +20,9 @@ struct AGXUNREAL_API FAGX_ContactMaterialReductionMode
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ContactMaterialReductionMode& Other) const = default;
+
 	/**
 	 * Whether contact reduction should be enabled and to what extent.
 	 *

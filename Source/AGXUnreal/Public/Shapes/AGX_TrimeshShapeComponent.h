@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -76,11 +76,11 @@ public:
 
 	/**
 	 * Copy properties from the given AGX Dynamics trimesh into this component.
-	 * Does not copy assets, so not triangle data and not material.
-	 * Does copy properties inherited from UAGX_ShapeComponent.
 	 * @param Barrier The AGX Dynamics trimesh to copy from.
 	 */
-	void CopyFrom(const FTrimeshShapeBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportContext* Context) override;
+
+	static FString GetCollisionMeshComponentNamePrefix();
 
 #if WITH_EDITOR
 	// ~Begin UObject interface.

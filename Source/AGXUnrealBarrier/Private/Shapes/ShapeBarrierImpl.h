@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 // This header file should only be included from source files built as part of AGXUnrealBarrier.
 

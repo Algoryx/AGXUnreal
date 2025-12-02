@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 // AGX Dynamics for Unreal includes.
 #include "Shapes/AGX_SimpleMeshComponent.h"
@@ -25,6 +25,7 @@
 #include "LocalVertexFactory.h"
 #include "SceneInterface.h"
 #include "SceneManagement.h"
+#include "SceneView.h"
 #include "DynamicMeshBuilder.h"
 #include "EngineGlobals.h"
 #include "Engine/Engine.h"

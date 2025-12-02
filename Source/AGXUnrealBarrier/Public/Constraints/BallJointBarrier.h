@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -7,7 +7,7 @@
 // AGX Dynamics for Unreal includes.
 #include "Constraints/TwistRangeControllerBarrier.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 class AGXUNREALBARRIER_API FBallJointBarrier : public FConstraintBarrier
 {

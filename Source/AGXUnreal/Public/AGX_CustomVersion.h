@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -58,6 +58,13 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// In Model Source Component, associate render data Static Mesh Components with a Shape
 		// instead of a Render Data since the same Render Data can be used by many Shapes.
 		RenderDataPerShape,
+
+		// Runtime Import support added, where the Import and Reimport pipeline was refactored
+		// completely.
+		RuntimeImportSupport,
+
+		// Shovels in AGX uses ToothDirection and ToothLength instead of CuttingDirection.
+		ShovelUsesToothDirection,
 
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,

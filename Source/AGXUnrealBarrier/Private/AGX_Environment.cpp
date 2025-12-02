@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_Environment.h"
 
@@ -13,6 +13,9 @@
 #include <agx/version.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
+
+// OpenPLX includes.
+#include "openplx/OpenPlxCoreApi.h"
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
@@ -512,6 +515,11 @@ void FAGX_Environment::GetAGXDynamicsVersion(
 	OutPatch = AGX_PATCH_VERSION;
 }
 
+FString FAGX_Environment::GetOpenPLXVersion()
+{
+	return Convert(openplx::Core::Api::getOpenPlxCoreVersion());
+}
+
 bool FAGX_Environment::IsAGXDynamicsVersionNewerOrEqualTo(
 	int32 InGeneration, int32 InMajor, int32 InMinor, int32 InPatch)
 {
@@ -772,23 +780,28 @@ TOptional<FString> FAGX_Environment::GenerateRuntimeActivation(
 		return TOptional<FString>();
 	}
 
-	const FString ReferenceFileDirectory = FPaths::GetPath(ReferenceFilePath);
-
-	// The ReferenceFile must be inside a directory known to agxIO::Environment.
-	AGX_ENVIRONMENT()
-		.getFilePath(agxIO::Environment::RESOURCE_PATH)
-		.pushbackPath(Convert(ReferenceFileDirectory));
+	// Ensure '/' at the end of the license dir path, otherwise the relative path will not be
+	// correct.
+	const FString LicenseDirWithSlash = FPaths::Combine(LicenseDir, "");
+	FString ReferenceRelativePath = ReferenceFilePath;
+	const bool RelativePathResult =
+		FPaths::MakePathRelativeTo(ReferenceRelativePath, *LicenseDirWithSlash);
+	if (!RelativePathResult)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Error during runtime activation generation. Unable to generate relative path from '%s' to '%s'."),
+			*ReferenceFilePath, *LicenseDirWithSlash);
+		return TOptional<FString>();
+	}
 
 	agx::String ContentAGX = AgxRuntime->encryptRuntimeActivation(
-		LicenseId, Convert(ActivationCode), Convert(ReferenceFilePath));
+		LicenseId, Convert(ActivationCode), Convert(ReferenceRelativePath));
 	const FString Content = Convert(ContentAGX);
 
 	// Must be called to avoid crash due to different allocators used by AGX Dynamics and
 	// Unreal Engine.
 	agxUtil::freeContainerMemory(ContentAGX);
-
-	// Restore the agxIO::Environment's list of RESOURCE_PATHs.
-	AGX_ENVIRONMENT().getFilePath(agxIO::Environment::RESOURCE_PATH).getFilePathList().pop_back();
 
 	if (Content.IsEmpty())
 	{

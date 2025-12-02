@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_SimulationCustomization.h"
 
@@ -22,8 +22,9 @@
 
 FAGX_SimulationCustomization::FAGX_SimulationCustomization()
 {
-	for (const auto& DeviceName : FSensorEnvironmentBarrier::GetRaytraceDevices())
-		RaytraceDevices.Add(MakeShared<FString>(DeviceName));
+	const TArray<FString> Devices = FSensorEnvironmentBarrier::GetRaytraceDevices();
+	for (int32 I = 0; I < Devices.Num(); I++)
+		RaytraceDevices.Add(MakeShared<FString>(FString::Printf(TEXT("[%d] %s"), I, *Devices[I])));
 }
 
 TSharedRef<IDetailCustomization> FAGX_SimulationCustomization::MakeInstance()
@@ -143,7 +144,7 @@ FReply FAGX_SimulationCustomization::OnBrowseFileButtonClicked()
 {
 	if (DetailBuilder == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithWarning(
 			"Unexpected error, unable to get the Detail Builder. Browsing for an output file "
 			"will not be possible.");
 		return FReply::Handled();
@@ -153,7 +154,7 @@ FReply FAGX_SimulationCustomization::OnBrowseFileButtonClicked()
 		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<UAGX_Simulation>(*DetailBuilder);
 	if (Simulation == nullptr)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithWarningLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithWarning(
 			"Unexpected error, unable to get the Simulation object. Browsing for an output file "
 			"will not be possible.");
 		return FReply::Handled();
@@ -193,7 +194,7 @@ void FAGX_SimulationCustomization::OnRaytraceDeviceComboBoxChanged(
 	if (!Result)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
-			"Unable to set Raytrace Device. The Console Log may contain more information.",
+			"Unable to set Raytrace Device. The Output Log may contain more information.",
 			SNotificationItem::CS_Fail);
 		return;
 	}
@@ -237,7 +238,7 @@ FText FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString()
 			LogAGX, Error,
 			TEXT("Unable to get Simulation object in "
 				 "FAGX_SimulationCustomization::GetSelectedRaytraceDeviceString."));
-		FText::FromString("Unknown");
+		return FText::FromString("Unknown");
 	}
 
 	const int32 CurrentDeviceIndex = Simulation->RaytraceDeviceIndex;

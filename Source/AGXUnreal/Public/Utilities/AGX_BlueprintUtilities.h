@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -217,7 +217,7 @@ public:
 	 * type.
 	 */
 	template <typename T>
-	static T* GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot = false);
+	static T* GetFirstComponentOfType(const UBlueprint* Blueprint, bool SkipSceneRoot = false);
 };
 
 template <typename ComponentT>
@@ -275,7 +275,7 @@ USCS_Node* FAGX_BlueprintUtilities::GetParentSCSNode(USCS_Node* Node, bool bSear
 }
 
 template <typename T>
-T* FAGX_BlueprintUtilities::GetFirstComponentOfType(UBlueprint* Blueprint, bool SkipSceneRoot)
+T* FAGX_BlueprintUtilities::GetFirstComponentOfType(const UBlueprint* Blueprint, bool SkipSceneRoot)
 {
 	if (Blueprint == nullptr || Blueprint->SimpleConstructionScript == nullptr)
 	{

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_VectorComponent.h"
 
@@ -16,6 +16,7 @@
 #include "Misc/EngineVersionComparison.h"
 #include "PrimitiveSceneProxy.h"
 #include "SceneInterface.h"
+#include "SceneView.h"
 #include "StaticMeshResources.h"
 #include "Misc/EngineVersionComparison.h"
 

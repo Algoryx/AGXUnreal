@@ -1,10 +1,11 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_Simulation.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
+#include "AGX_ObserverFrameComponent.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_StaticMeshComponent.h"
@@ -20,10 +21,12 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
+#include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
+#include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -124,69 +127,99 @@ FAGX_Statistics UAGX_Simulation::GetStatistics()
 namespace AGX_Simulation_helpers
 {
 	template <typename T>
-	void Add(UAGX_Simulation& Sim, T& ActorOrComponent)
+	bool Add(UAGX_Simulation& Sim, T& ActorOrComponent)
 	{
 		if (!Sim.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to add '%s' in '%s' to Simulation that does not have a native."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
-			return;
+			return false;
 		}
 
 		if (!ActorOrComponent.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
-				TEXT("Tried to add '%s' in '%s' that does not have a native to Simulation."),
+				LogAGX, Warning,
+				TEXT("Tried to add '%s' in '%s' that does not have a native, to the Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
-			return;
+			return false;
 		}
 
-		const bool Result = Sim.GetNative()->Add(*ActorOrComponent.GetNative());
-		if (!Result)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("Failed to add '%s' in '%s' to Simulation. FSimulationBarrier::Add returned "
-					 "false. The Log category AGXDynamicsLog may contain more information about "
-					 "the failure."),
-				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
-		}
+		return Sim.GetNative()->Add(*ActorOrComponent.GetNative());
 	}
 
 	template <typename T>
-	void Remove(UAGX_Simulation& Sim, T& ActorOrComponent)
+	bool AddAssetType(UAGX_Simulation& Sim, T& Asset)
 	{
 		if (!Sim.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
+				TEXT("Tried to add '%s' to Simulation that does not have a native."),
+				*Asset.GetName());
+			return false;
+		}
+
+		if (!Asset.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to add '%s' that does not have a native, to the Simulation."),
+				*Asset.GetName());
+			return false;
+		}
+
+		return Sim.GetNative()->Add(*Asset.GetNative());
+	}
+
+	template <typename T>
+	bool Remove(UAGX_Simulation& Sim, T& ActorOrComponent)
+	{
+		if (!Sim.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
 				TEXT("Tried to remove '%s' in '%s' from Simulation that does not have a native."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
-			return;
+			return false;
 		}
 
 		if (!ActorOrComponent.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
-				TEXT("Tried to remove '%s' in '%s' that does not have a native from Simulation "),
+				LogAGX, Warning,
+				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
-			return;
+			return false;
 		}
 
-		const bool Result = Sim.GetNative()->Remove(*ActorOrComponent.GetNative());
-		if (!Result)
+		return Sim.GetNative()->Remove(*ActorOrComponent.GetNative());
+	}
+
+	template <typename T>
+	bool RemoveAssetType(UAGX_Simulation& Sim, T& Asset)
+	{
+		if (!Sim.HasNative())
 		{
 			UE_LOG(
-				LogAGX, Error,
-				TEXT("Failed to remove '%s' in '%s' from Simulation. FSimulationBarrier::Remove "
-					 "returned false. The Log category AGXDynamicsLog may contain more information "
-					 "about the failure."),
-				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
+				LogAGX, Warning,
+				TEXT("Tried to remove '%s' from Simulation that does not have a native."),
+				*Asset.GetName());
+			return false;
 		}
+
+		if (!Asset.HasNative())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to remove '%s' that does not have a native, from the Simulation."),
+				*Asset.GetName());
+			return false;
+		}
+
+		return Sim.GetNative()->Remove(*Asset.GetNative());
 	}
 
 	template <typename T>
@@ -223,84 +256,68 @@ namespace AGX_Simulation_helpers
 #endif
 }
 
-void UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
+bool UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
 {
 	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Constraint);
+	return AGX_Simulation_helpers::Add(*this, Constraint);
 }
 
-void UAGX_Simulation::Add(UAGX_RigidBodyComponent& Body)
+bool UAGX_Simulation::Add(UAGX_ObserverFrameComponent& Frame)
 {
 	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Body);
+	return AGX_Simulation_helpers::Add(*this, Frame);
 }
 
-void UAGX_Simulation::Add(UAGX_ShapeComponent& Shape)
+bool UAGX_Simulation::Add(UAGX_RigidBodyComponent& Body)
 {
 	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Shape);
+	return AGX_Simulation_helpers::Add(*this, Body);
 }
 
-void UAGX_Simulation::Add(UAGX_ShapeMaterial& Shape)
+bool UAGX_Simulation::Add(UAGX_ShapeComponent& Shape)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Shape);
+}
+
+bool UAGX_Simulation::Add(UAGX_ShapeMaterial& Material)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::AddAssetType(*this, Material);
+}
+
+bool UAGX_Simulation::Add(UAGX_ShovelComponent& Shovel)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Shovel);
+}
+
+bool UAGX_Simulation::Add(UAGX_StaticMeshComponent& Body)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Body);
+}
+
+bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 {
 	EnsureStepperCreated();
 
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to add Shape Material '%s' to Simulation that does not have a native."),
-			*Shape.GetName());
-		return;
-	}
-
-	if (!Shape.HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to add Shape Material '%s' to Simulation but the Shape Material does not "
-				 "have a native."),
-			*Shape.GetName());
-		return;
-	}
-
-	if (!GetNative()->Add(*Shape.GetNative()))
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to add Shape Material '%s' to Simulation but FSimulationBarrier::Add "
-				 "returned false. The Log category AGXDynamicsLog may contain more information "
-				 "about the failure."),
-			*Shape.GetName());
-	}
-}
-
-void UAGX_Simulation::Add(UAGX_StaticMeshComponent& Body)
-{
-	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Body);
-}
-
-void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
-{
-	EnsureStepperCreated();
-
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Terrain '%s' to Simulation that does not have a native."),
 			*Terrain.GetName());
-		return;
+		return false;
 	}
 
 	if (!Terrain.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to add Terrain '%s' that does not have a native to Simulation."),
 			*Terrain.GetName());
-		return;
+		return false;
 	}
 
 	const bool Result = [this, &Terrain]()
@@ -311,15 +328,7 @@ void UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 			return GetNative()->Add(*Terrain.GetNative());
 	}();
 
-	if (!Result)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Failed to add '%s' to Simulation. FSimulationBarrier::Add returned "
-				 "false. The Log category AGXDynamicsLog may contain more information about "
-				 "the failure."),
-			*Terrain.GetName());
-	}
+	return Result;
 }
 
 void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
@@ -356,91 +365,79 @@ void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
 	}
 }
 
-void UAGX_Simulation::Add(UAGX_TireComponent& Tire)
+bool UAGX_Simulation::Add(UAGX_TireComponent& Tire)
 {
 	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Tire);
+	return AGX_Simulation_helpers::Add(*this, Tire);
 }
 
-void UAGX_Simulation::Add(UAGX_WireComponent& Wire)
+bool UAGX_Simulation::Add(UAGX_TrackComponent& Track)
 {
 	EnsureStepperCreated();
-	AGX_Simulation_helpers::Add(*this, Wire);
+	return AGX_Simulation_helpers::Add(*this, Track);
 }
 
-void UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
+bool UAGX_Simulation::Add(UAGX_WireComponent& Wire)
 {
-	AGX_Simulation_helpers::Remove(*this, Constraint);
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Wire);
 }
 
-void UAGX_Simulation::Remove(UAGX_RigidBodyComponent& Body)
+bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
 {
-	AGX_Simulation_helpers::Remove(*this, Body);
+	return AGX_Simulation_helpers::Remove(*this, Constraint);
 }
 
-void UAGX_Simulation::Remove(UAGX_ShapeComponent& Shape)
+bool UAGX_Simulation::Remove(UAGX_ObserverFrameComponent& Frame)
 {
-	AGX_Simulation_helpers::Remove(*this, Shape);
+	return AGX_Simulation_helpers::Remove(*this, Frame);
 }
 
-void UAGX_Simulation::Remove(UAGX_ShapeMaterial& Shape)
+bool UAGX_Simulation::Remove(UAGX_RigidBodyComponent& Body)
+{
+	return AGX_Simulation_helpers::Remove(*this, Body);
+}
+
+bool UAGX_Simulation::Remove(UAGX_ShapeComponent& Shape)
+{
+	return AGX_Simulation_helpers::Remove(*this, Shape);
+}
+
+bool UAGX_Simulation::Remove(UAGX_ShapeMaterial& Material)
+{
+	return AGX_Simulation_helpers::RemoveAssetType(*this, Material);
+}
+
+bool UAGX_Simulation::Remove(UAGX_ShovelComponent& Shovel)
+{
+	return AGX_Simulation_helpers::Remove(*this, Shovel);
+}
+
+bool UAGX_Simulation::Remove(UAGX_StaticMeshComponent& Body)
+{
+	return AGX_Simulation_helpers::Remove(*this, Body);
+}
+
+bool UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 {
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to remove Shape Material '%s' from a Simulation that does not have a "
-				 "native."),
-			*Shape.GetName());
-		return;
-	}
-
-	if (!Shape.HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to remove Shape Material '%s' from Simulation but the Shape Material does "
-				 "not have a native."),
-			*Shape.GetName());
-		return;
-	}
-
-	if (!GetNative()->Remove(*Shape.GetNative()))
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to remove Shape Material '%s' from Simulation but "
-				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
-				 "contain more information about the failure."),
-			*Shape.GetName());
-	}
-}
-
-void UAGX_Simulation::Remove(UAGX_StaticMeshComponent& Body)
-{
-	AGX_Simulation_helpers::Remove(*this, Body);
-}
-
-void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
-{
-	if (!HasNative())
-	{
-		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Terrain '%s' from a Simulation that does not have a "
 				 "native."),
 			*Terrain.GetName());
-		return;
+		return false;
 	}
 
 	if (!Terrain.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to remove Terrain '%s' from Simulation but the Terrain does "
 				 "not have a native."),
 			*Terrain.GetName());
-		return;
+		return false;
 	}
 
 	const bool Result = [this, &Terrain]()
@@ -451,15 +448,7 @@ void UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 			return GetNative()->Remove(*Terrain.GetNative());
 	}();
 
-	if (!Result)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Tried to remove Terrain '%s' from Simulation but "
-				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
-				 "contain more information about the failure."),
-			*Terrain.GetName());
-	}
+	return Result;
 }
 
 void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
@@ -497,14 +486,19 @@ void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
 	}
 }
 
-void UAGX_Simulation::Remove(UAGX_TireComponent& Tire)
+bool UAGX_Simulation::Remove(UAGX_TireComponent& Tire)
 {
-	AGX_Simulation_helpers::Remove(*this, Tire);
+	return AGX_Simulation_helpers::Remove(*this, Tire);
 }
 
-void UAGX_Simulation::Remove(UAGX_WireComponent& Wire)
+bool UAGX_Simulation::Remove(UAGX_TrackComponent& Track)
 {
-	AGX_Simulation_helpers::Remove(*this, Wire);
+	return AGX_Simulation_helpers::Remove(*this, Track);
+}
+
+bool UAGX_Simulation::Remove(UAGX_WireComponent& Wire)
+{
+	return AGX_Simulation_helpers::Remove(*this, Wire);
 }
 
 void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
@@ -514,7 +508,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to register Contact Material '%s' to Simulation that does not have a "
 				 "native."),
 			*Material.GetName());
@@ -524,7 +518,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 	if (!Material.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to register Contact Material '%s' to Simulation but the Contact Material "
 				 "does not have a native."),
 			*Material.GetName());
@@ -540,7 +534,7 @@ void UAGX_Simulation::Register(UAGX_ContactMaterial& Material)
 		if (!GetNative()->Add(*Material.GetNative()))
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to add Contact Material '%s' to Simulation but FSimulationBarrier::Add "
 					 "returned false. The Log category AGXDynamicsLog may contain more information "
 					 "about the failure."),
@@ -554,7 +548,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation that does not have a "
 				 "native."),
 			*Material.GetName());
@@ -564,7 +558,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!Material.HasNative())
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation but the Contact "
 				 "Material does not have a native."),
 			*Material.GetName());
@@ -574,7 +568,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 	if (!ContactMaterials.Contains(&Material) || ContactMaterials[&Material] <= 0)
 	{
 		UE_LOG(
-			LogAGX, Error,
+			LogAGX, Warning,
 			TEXT("Tried to unregister Contact Material '%s' from Simulation but the Contact "
 				 "Material has not been registered."),
 			*Material.GetName());
@@ -590,7 +584,7 @@ void UAGX_Simulation::Unregister(UAGX_ContactMaterial& Material)
 		if (!GetNative()->Remove(*Material.GetNative()))
 		{
 			UE_LOG(
-				LogAGX, Error,
+				LogAGX, Warning,
 				TEXT("Tried to remove Contact Material '%s' from Simulation but "
 					 "FSimulationBarrier::Remove "
 					 "returned false. The Log category AGXDynamicsLog may contain more information "
@@ -734,12 +728,8 @@ void UAGX_Simulation::Deinitialize()
 #endif
 
 	Super::Deinitialize();
-	if (!HasNative())
-	{
-		return;
-	}
-
-	ReleaseNative();
+	if (HasNative())
+		ReleaseNative();
 }
 
 #if WITH_EDITOR
@@ -867,8 +857,7 @@ void UAGX_Simulation::CreateNative()
 	if (bEnableGlobalContactEventListener)
 	{
 		CreateContactEventListener(
-			NativeBarrier,
-			[this](double TimeStamp, FShapeContactBarrier& Contact)
+			NativeBarrier, [this](double TimeStamp, FShapeContactBarrier& Contact)
 			{ return ImpactCallback(TimeStamp, Contact); },
 			[this](double TimeStamp, FShapeContactBarrier& Contact)
 			{ return ContactCallback(TimeStamp, Contact); },
@@ -893,7 +882,8 @@ bool UAGX_Simulation::WriteAGXArchive(const FString& Filename) const
 	{
 		/// \todo Can we create a temporary Simulation, instantiate all the AGX
 		/// Dynamics objects there, store, and then throw everything away?
-		UE_LOG(LogAGX, Error, TEXT("No simulation available, cannot store AGX Dynamics archive."));
+		UE_LOG(
+			LogAGX, Warning, TEXT("No simulation available, cannot store AGX Dynamics archive."));
 		return false;
 	}
 
@@ -976,54 +966,139 @@ namespace AGX_Simulation_helpers
 
 	void ReportStepStatistics(const FAGX_Statistics& Statistics)
 	{
-		// Last step only timers.
-		SET_FLOAT_STAT(STAT_AGXD_StepForward_STEP, Statistics.StepForwardTime);
-		double Unaccounted = Statistics.StepForwardTime;
-		SET_FLOAT_STAT(STAT_AGXD_SpaceUpdate_STEP, Statistics.SpaceTime);
-		Unaccounted -= Statistics.SpaceTime;
-		SET_FLOAT_STAT(STAT_AGXD_DynamicsUpdate_STEP, Statistics.DynamicsSystemTime);
-		Unaccounted -= Statistics.DynamicsSystemTime;
-		SET_FLOAT_STAT(STAT_AGXD_PreCollide_STEP, Statistics.PreCollideTime);
-		Unaccounted -= Statistics.PreCollideTime;
-		SET_FLOAT_STAT(STAT_AGXD_ContactEvents_STEP, Statistics.ContactEventsTime);
-		Unaccounted -= Statistics.ContactEventsTime;
-		SET_FLOAT_STAT(STAT_AGXD_PreStep_STEP, Statistics.PreStepTime);
-		Unaccounted -= Statistics.PreStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_PostStep_STEP, Statistics.PostStepTime);
-		Unaccounted -= Statistics.PostStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_LastStep_STEP, Statistics.LastStepTime);
-		Unaccounted -= Statistics.LastStepTime;
-		SET_FLOAT_STAT(STAT_AGXD_Unaccounted_STEP, Unaccounted);
+		// These are the same lines repeated over and over with some rather long
+		// names here and there. I find such lines easier to read when colun
+		// aligned even when the lines get long.
+		//
+		// clang-format off
+
+		// Statistics reported by Simulation. The 'Unaccounted' one is 'StepForwardTime' minus all
+		// other times reported by Simulation. So it is basically 'Simulation.self', all the little
+		// things Simulation does that doesn't have a timer around it.
+		SET_FLOAT_STAT(STAT_AGXD_SimStepForward_STEP,                       Statistics.Sim_StepForwardTime);
+		float Unaccounted = Statistics.Sim_StepForwardTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPreCollide_STEP,                        Statistics.Sim_PreCollideEventTime);
+		Unaccounted -= Statistics.Sim_PreCollideEventTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCollisionDetection_STEP,                Statistics.Sim_CollisionDetectionTime);
+		Unaccounted -= Statistics.Sim_CollisionDetectionTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactSeparationEvents_STEP,           Statistics.Sim_TriggeringContactSeparationEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactSeparationEventsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactEvents_STEP,                     Statistics.Sim_TriggeringContactEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactEventsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimContactReduction_STEP,                  Statistics.Sim_ContactReductionTime);
+		Unaccounted -= Statistics.Sim_ContactReductionTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCullingContacts_STEP,                   Statistics.Sim_CullingContactsTime);
+		Unaccounted -= Statistics.Sim_CullingContactsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimCommittingRemovedContacts_STEP,         Statistics.Sim_CommittingRemovedContactsTime);
+		Unaccounted -= Statistics.Sim_CommittingRemovedContactsTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPreStep_STEP,                           Statistics.Sim_PreStepEventTime);
+		Unaccounted -= Statistics.Sim_PreStepEventTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimDynamicsSystem_STEP,                    Statistics.Sim_DynamicsSystemTime);
+		Unaccounted -= Statistics.Sim_DynamicsSystemTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimPostStep_STEP,                          Statistics.Sim_PostStepTime);
+		Unaccounted -= Statistics.Sim_PostStepTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimLastStep_STEP,                          Statistics.Sim_LastStepTime);
+		Unaccounted -= Statistics.Sim_LastStepTime;
+		SET_FLOAT_STAT(STAT_AGXD_SimUnaccounted_STEP,                       Unaccounted);
+
+		// Update Render Manager and Inter-Step are special in the sense that they are reported by
+		// Simulation but they are not between the start and stop of the main step timer, so they
+		// should not be included in 'Unaccounted'.
+		SET_FLOAT_STAT(STAT_AGXD_SimUpdateRenderManager_STEP,               Statistics.Sim_UpdateRenderManagerTime);
+		SET_FLOAT_STAT(STAT_AGXD_SimInterStep_STEP,                         Statistics.Sim_InterStepTime);
+
+		// Statistics reported by Space.
+		SET_FLOAT_STAT(STAT_AGXD_SpaceUpdate_STEP,                          Statistics.Space_UpdateTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceBroadPhase_STEP,                      Statistics.Space_BroadPhaseTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceNarrowPhase_STEP,                     Statistics.Space_NarrowPhaseTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceSyncBounds_STEP,                      Statistics.Space_SyncBoundsTime);
+		SET_FLOAT_STAT(STAT_AGXD_SpaceSyncTransforms_STEP,                  Statistics.Space_SyncTransformsTime);
+
+		// Statistics reported by Dynamics System.
+		SET_FLOAT_STAT(STAT_AGXD_DynSysUpdate_STEP,                         Statistics.DynSys_UpdateTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSolver_STEP,                         Statistics.DynSys_SolverTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSabreFactoring_STEP,                 Statistics.DynSys_SabreFactoringTime);
+		SET_FLOAT_STAT(STAT_AGXD_DynSysSabreSolve_STEP,                     Statistics.DynSys_SabreSolveTime);
 
 		// Counters.
-		SET_DWORD_STAT(STAT_AGXD_NumBodies, Statistics.NumBodies);
-		SET_DWORD_STAT(STAT_AGXD_NumConstraints, Statistics.NumConstraints);
-		SET_DWORD_STAT(STAT_AGXD_NumContactConstraints, Statistics.NumContacts);
-		SET_DWORD_STAT(STAT_AGXD_NumParticles, Statistics.NumParticles);
+		SET_DWORD_STAT(STAT_AGXD_SimNumParticles,                           Statistics.Sim_NumParticles);
+		SET_DWORD_STAT(STAT_AGXD_SimNumContactsRemoved,                     Statistics.Sim_NumContactsRemoved);
+		SET_DWORD_STAT(STAT_AGXD_SimNumWarmStartedParticleParticleContacts, Statistics.Sim_NumWarmStartedParticleParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SimNumWarmStartedShapeParticleContacts,    Statistics.Sim_NumWarmStartedParticleShapeContacts);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumEnabledRigidBodies,               Statistics.DynSys_NumEnabledRigidBodies);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumBinaryConstraints,                Statistics.DynSys_NumBinaryConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumMultiBodyConstraints,             Statistics.DynSys_NumMultiBodyConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumContactConstraints,               Statistics.DynSys_NumContactConstraints);
+		SET_DWORD_STAT(STAT_AGXD_DynSysNumSolveIslands,                     Statistics.DynSys_NumSolveIslands);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapes,                            Statistics.Space_NumShapes);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeShapeContactPoints,           Statistics.Space_NumShapeShapeContactPoints);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeShapeContacts,                Statistics.Space_NumShapeShapeContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumParticleParticleContacts,          Statistics.Space_NumParticleParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumShapeParticleContacts,             Statistics.Space_NumShapeParticleContacts);
+		SET_DWORD_STAT(STAT_AGXD_SpaceNumNarrowPhaseTests,                  Statistics.Space_NumNarrowPhaseTests);
+
+		// clang-format on
 	}
 
 	void AccumulateFrameStatistics(const FAGX_Statistics& Statistics)
 	{
-		// Entire frame timers.
-		INC_FLOAT_STAT_BY(STAT_AGXD_StepForward_FRAME, Statistics.StepForwardTime);
-		double Unaccounted = Statistics.StepForwardTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceUpdate_FRAME, Statistics.SpaceTime);
-		Unaccounted -= Statistics.SpaceTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_DynamicsUpdate_FRAME, Statistics.DynamicsSystemTime);
-		Unaccounted -= Statistics.DynamicsSystemTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PreCollide_FRAME, Statistics.PreCollideTime);
-		Unaccounted -= Statistics.PreCollideTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_ContactEvents_FRAME, Statistics.ContactEventsTime);
-		Unaccounted -= Statistics.ContactEventsTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PreStep_FRAME, Statistics.PreStepTime);
-		Unaccounted -= Statistics.PreStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_PostStep_FRAME, Statistics.PostStepTime);
-		Unaccounted -= Statistics.PostStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_LastStep_FRAME, Statistics.LastStepTime);
-		Unaccounted -= Statistics.LastStepTime;
-		INC_FLOAT_STAT_BY(STAT_AGXD_Unaccounted_FRAME, Unaccounted);
+		// These are the same lines repeated over and over with some rather long
+		// names here and there. I find such lines easier to read when colun
+		// aligned even when the lines get long.
+		//
+		// clang-format off
+
+		// Statistics reported by Simulation. The 'Unaccounted' one is 'StepForwardTime' minus all
+		// other times reported by Simulation. So it is basically 'Simulation.self', all the little
+		// things Simulation does that doesn't have a timer around it.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimStepForward_FRAME,                   Statistics.Sim_StepForwardTime);
+		float Unaccounted = Statistics.Sim_StepForwardTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPreCollide_FRAME,                    Statistics.Sim_PreCollideEventTime);
+		Unaccounted -= Statistics.Sim_PreCollideEventTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCollisionDetection_FRAME,            Statistics.Sim_CollisionDetectionTime);
+		Unaccounted -= Statistics.Sim_CollisionDetectionTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactSeparationEvents_FRAME,       Statistics.Sim_TriggeringContactSeparationEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactSeparationEventsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactEvents_FRAME,                 Statistics.Sim_TriggeringContactEventsTime);
+		Unaccounted -= Statistics.Sim_TriggeringContactEventsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimContactReduction_FRAME,              Statistics.Sim_ContactReductionTime);
+		Unaccounted -= Statistics.Sim_ContactReductionTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCullingContacts_FRAME,               Statistics.Sim_CullingContactsTime);
+		Unaccounted -= Statistics.Sim_CullingContactsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimCommittingRemovedContacts_FRAME,     Statistics.Sim_CommittingRemovedContactsTime);
+		Unaccounted -= Statistics.Sim_CommittingRemovedContactsTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPreStep_FRAME,                       Statistics.Sim_PreStepEventTime);
+		Unaccounted -= Statistics.Sim_PreStepEventTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimDynamicsSystem_FRAME,                Statistics.Sim_DynamicsSystemTime);
+		Unaccounted -= Statistics.Sim_DynamicsSystemTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimPostStep_FRAME,                      Statistics.Sim_PostStepTime);
+		Unaccounted -= Statistics.Sim_PostStepTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimLastStep_FRAME,                      Statistics.Sim_LastStepTime);
+		Unaccounted -= Statistics.Sim_LastStepTime;
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimUnaccounted_FRAME, Unaccounted);
+
+		// Update Render Manager and Inter-Step are special in the sense that they are reported by
+		// Simulation but they are not between the start and stop of the main step timer, so they
+		// should not be included in 'Unaccounted'.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimUpdateRenderManager_FRAME,           Statistics.Sim_UpdateRenderManagerTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SimInterStep_FRAME,                     Statistics.Sim_InterStepTime);
+
+		// Statistics reported by Space.
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceUpdate_FRAME,                      Statistics.Space_UpdateTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceBroadPhase_FRAME,                  Statistics.Space_BroadPhaseTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceNarrowPhase_FRAME,                 Statistics.Space_NarrowPhaseTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceSyncBounds_FRAME,                  Statistics.Space_SyncBoundsTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_SpaceSyncTransforms_FRAME,              Statistics.Space_SyncTransformsTime);
+
+		// Statistics reported by Dynamics System.
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysUpdate_FRAME,                     Statistics.DynSys_UpdateTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSolver_FRAME,                     Statistics.DynSys_SolverTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSabreFactoring_FRAME,             Statistics.DynSys_SabreFactoringTime);
+		INC_FLOAT_STAT_BY(STAT_AGXD_DynSysSabreSolve_FRAME,                 Statistics.DynSys_SabreSolveTime);
 
 		// Counters should not be incremented every step, only once per frame.
+
+		// clang-format on
 	}
 }
 
@@ -1404,7 +1479,7 @@ void UAGX_Simulation::SetGravity()
 {
 	if (!HasNative())
 	{
-		UE_LOG(LogAGX, Error, TEXT("SetGravity failed, native object has not been allocated."));
+		UE_LOG(LogAGX, Warning, TEXT("SetGravity failed, native object has not been allocated."));
 		return;
 	}
 

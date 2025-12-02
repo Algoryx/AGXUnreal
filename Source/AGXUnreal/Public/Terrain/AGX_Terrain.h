@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -181,6 +181,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	double GetMaximumParticleActivationVolume() const;
 
+	/**
+	 * The soil particle size scaling factor scales the nominal radius that the algorithm will aim
+	 * for during the dynamic resizing of particles that occur during terrain interaction. This is
+	 * used to alter the desired number of soil particles in the Terrain.
+	 * Default value is 1.0, where the nominal particle size matches the Terrain grid size, which in
+	 * turn matches the Landscape quad size.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	float SoilParticleSizeScaling {1.f};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetSoilParticleSizeScaling(float InScaling);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	float GetSoilParticleSizeScaling() const;
+
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
 	UAGX_TerrainMaterial* TerrainMaterial;
@@ -244,7 +260,9 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain",
-		Meta = (DeprecatedProperty, DeprecationMessage = "Use Shovel Components instead."))
+		Meta =
+			(DeprecatedProperty, DeprecationMessage = "Use Shovel Components instead.",
+			 DisplayName = "Shovels [Deprecated]"))
 	TArray<FAGX_Shovel> Shovels;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
@@ -377,13 +395,13 @@ private:
 	void UpdateParticlesArrays();
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
+	virtual void PostLoad() override;
 #endif
 	virtual void Serialize(FArchive& Archive) override;
 
 	friend class FAGX_TerrainHeightFetcher;
 
 private: // Deprecated functions.
-
 	// clang-format off
 
 	UFUNCTION(
@@ -419,6 +437,13 @@ private: // Deprecated functions.
 	// clang-format on
 
 private:
+	UPROPERTY(Transient)
+	bool bNeedsShapeMaterialWarning {false};
+
+#if WITH_EDITOR
+	void ShowShapeMaterialWarning() const;
+#endif
+
 	/**
 	 * Even if Terrain paging is enabled, and this Terrain has a NativeTerrainPagerBarrier, it will
 	 * also have a regular NativeBarrier agx::Terrain that will in that case be used as a template

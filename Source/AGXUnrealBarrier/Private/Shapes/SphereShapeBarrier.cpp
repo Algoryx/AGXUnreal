@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/SphereShapeBarrier.h"
 
@@ -32,22 +32,10 @@ FSphereShapeBarrier::FSphereShapeBarrier()
 {
 }
 
-FSphereShapeBarrier::FSphereShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FSphereShapeBarrier::FSphereShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
 	check(GetNative()->NativeShape->is<agxCollide::Sphere>());
-}
-
-FSphereShapeBarrier::FSphereShapeBarrier(FSphereShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FSphereShapeBarrier::~FSphereShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FSphereShapeRef.
 }
 
 void FSphereShapeBarrier::SetRadius(float RadiusUnreal)

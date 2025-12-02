@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 
 class FSimulationBarrier;
 class FShapeContactBarrier;
-class FAnyShapeBarrier;
+struct FAnyShapeBarrier;
 
 // TODO Create A Contact Event Listener Barrier class, return that from Create Contact Event
 // Listener, and let AGX Simulation hold it.

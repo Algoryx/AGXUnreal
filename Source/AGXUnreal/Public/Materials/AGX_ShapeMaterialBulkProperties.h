@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -20,6 +20,9 @@ struct AGXUNREAL_API FAGX_ShapeMaterialBulkProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ShapeMaterialBulkProperties& Other) const = default;
+
 	/**
 	 * Density of Shapes using the material [kg/m^3].
 	 * The density can be used for automatic calculation of total mass and inertia of the Rigid Body

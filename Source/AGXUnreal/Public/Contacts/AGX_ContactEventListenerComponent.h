@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -43,6 +43,9 @@ public: // Delegates.
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
 		FOnSeparation, double, TimeStamp, UAGX_ShapeComponent*, FirstShape, UAGX_ShapeComponent*,
 		SecondShape);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
+		FOnSeparationBarrier, double, TimeStamp, const FAnyShapeBarrier&, FirstShape, const FAnyShapeBarrier&,
+		SecondShape);
 
 	UPROPERTY(BlueprintAssignable, Category = "AGX Contact Event Listener")
 	FOnImpact OnImpact;
@@ -52,6 +55,9 @@ public: // Delegates.
 
 	UPROPERTY(BlueprintAssignable, Category = "AGX Contact Event Listener")
 	FOnSeparation OnSeparation;
+
+	UPROPERTY(BlueprintAssignable, Category = "AGX Contact Event Listener")
+	FOnSeparationBarrier OnSeparationBarrier;
 
 public: // Blueprint Native Events.
 	/**
@@ -84,6 +90,10 @@ public: // Blueprint Native Events.
 	UFUNCTION(BlueprintNativeEvent, Category = "AGX Contact Event Listener")
 	void Separation(
 		double TimeStamp, const UAGX_ShapeComponent* FirstShape, UAGX_ShapeComponent* SecondShape);
+
+	UFUNCTION(BlueprintNativeEvent, Category = "AGX Contact Event Listener")
+	void SeparationBarrier(
+		double TimeStamp, const FAnyShapeBarrier& FirstShape, const FAnyShapeBarrier& SecondShape);
 
 public: // Member function overrides.
 	//~ Begin UActorComponent interface.

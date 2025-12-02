@@ -1,11 +1,12 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/AGX_SphereShapeComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Components/StaticMeshComponent.h"
+#include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_MeshUtilities.h"
-#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "PhysicsEngine/AggregateGeom.h"
@@ -101,10 +102,11 @@ void UAGX_SphereShapeComponent::UpdateNativeProperties()
 }
 
 void UAGX_SphereShapeComponent::CopyFrom(
-	const FSphereShapeBarrier& Barrier, bool ForceOverwriteInstances)
+	const FShapeBarrier& ShapeBarrier, FAGX_ImportContext* Context)
 {
-	Super::CopyFrom(Barrier, ForceOverwriteInstances);
-	AGX_COPY_PROPERTY_FROM(Radius, Barrier.GetRadius(), *this, ForceOverwriteInstances)
+	Super::CopyFrom(ShapeBarrier, Context);
+	const auto Barrier = static_cast<const FSphereShapeBarrier*>(&ShapeBarrier);
+	Radius = Barrier->GetRadius();
 }
 
 void UAGX_SphereShapeComponent::CreateVisualMesh(FAGX_SimpleMeshData& OutMeshData)

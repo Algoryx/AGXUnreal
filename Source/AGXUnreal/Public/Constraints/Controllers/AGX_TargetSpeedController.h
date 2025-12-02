@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -48,13 +48,8 @@ struct AGXUNREAL_API FAGX_ConstraintTargetSpeedController : public FAGX_Constrai
 
 public:
 	FAGX_ConstraintTargetSpeedController() = default;
-	FAGX_ConstraintTargetSpeedController(bool bRotational);
-
 	void InitializeBarrier(TUniquePtr<FTargetSpeedControllerBarrier> Barrier);
-	void CopyFrom(
-		const FTargetSpeedControllerBarrier& Source,
-		TArray<FAGX_ConstraintTargetSpeedController*>& ArchetypeInstances,
-		bool ForceOverwriteInstances);
+	void CopyFrom(const FTargetSpeedControllerBarrier& Source);
 
 private:
 	virtual void UpdateNativePropertiesImpl() override;
@@ -73,13 +68,13 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller, const float Speed)
 	{
 		Controller.SetSpeed(static_cast<double>(Speed));
-	};
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Target Speed Controller")
 	static float GetSpeed(UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpeed());
-	};
+	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Target Speed Controller")
 	static void SetLockedAtZeroSpeed(

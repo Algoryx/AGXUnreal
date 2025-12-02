@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -17,7 +17,7 @@
 class UAGX_ConstraintComponent;
 class UAGX_RigidBodyComponent;
 class AAGX_ConstraintFrameActor;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 /**
  * Defines the Rigid Body to be bound by a Constraint and an attachment frame that is

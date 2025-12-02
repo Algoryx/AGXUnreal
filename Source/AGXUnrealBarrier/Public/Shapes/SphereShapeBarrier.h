@@ -1,18 +1,19 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
 
-#include <memory>
+#include "SphereShapeBarrier.generated.h"
 
-class AGXUNREALBARRIER_API FSphereShapeBarrier : public FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FSphereShapeBarrier : public FShapeBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FSphereShapeBarrier();
-	FSphereShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	FSphereShapeBarrier(FSphereShapeBarrier&& Other);
-	virtual ~FSphereShapeBarrier() override;
+	FSphereShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 	void SetRadius(float Radius);
 	float GetRadius() const;
@@ -20,8 +21,4 @@ public:
 private:
 	virtual void AllocateNativeShape() override;
 	virtual void ReleaseNativeShape() override;
-
-private:
-	FSphereShapeBarrier(const FSphereShapeBarrier&) = delete;
-	void operator=(const FSphereShapeBarrier&) = delete;
 };

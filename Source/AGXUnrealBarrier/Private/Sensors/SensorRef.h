@@ -1,10 +1,11 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Environment.h>
+#include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
@@ -71,4 +72,14 @@ struct FRtAmbientMaterial
 {
 	std::shared_ptr<agxSensor::RtAmbientMaterial> Native;
 	FRtAmbientMaterial() = default;
+};
+
+struct FIMURef
+{
+	agxSensor::IMURef Native;
+	FIMURef() = default;
+	FIMURef(agxSensor::IMU* InNative)
+		: Native(InNative)
+	{
+	}
 };

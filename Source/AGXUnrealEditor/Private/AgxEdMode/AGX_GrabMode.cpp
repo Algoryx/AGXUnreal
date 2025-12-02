@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AgxEdMode/AGX_GrabMode.h"
 
@@ -27,7 +27,7 @@ void FAGX_GrabMode::Activate()
 
 	if (!World->IsGameWorld())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"AGX Grab Mode can only be activated during play.");
 		return;
 	}

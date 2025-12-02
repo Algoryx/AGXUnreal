@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/CapsuleShapeBarrier.h"
 
@@ -32,22 +32,10 @@ FCapsuleShapeBarrier::FCapsuleShapeBarrier()
 {
 }
 
-FCapsuleShapeBarrier::FCapsuleShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FCapsuleShapeBarrier::FCapsuleShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
 	check(NativeRef->NativeShape->is<agxCollide::Capsule>());
-}
-
-FCapsuleShapeBarrier::FCapsuleShapeBarrier(FCapsuleShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FCapsuleShapeBarrier::~FCapsuleShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FCapsuleShapeRef.
 }
 
 void FCapsuleShapeBarrier::SetHeight(double Height)

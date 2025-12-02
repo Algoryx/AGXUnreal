@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -21,6 +21,9 @@ struct AGXUNREAL_API FAGX_TerrainParticleProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainParticleProperties& Other) const = default;
+
 	/**
 	 * The adhesion overlap factor of particle contacts, i.e what fraction of the particle
 	 * radius is allowed to overlap to simulate adhesion.

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Vehicle/AGX_TrackRenderer.h"
 
@@ -98,7 +98,7 @@ namespace AGX_TrackRenderer_helpers
 					"changes. It is recommended to make a copy and place the "
 					"material within the project Contents, that way the behavior will be the same "
 					"on any computer opening this project.";
-				FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(Message);
+				FAGX_NotificationUtilities::ShowDialogBoxWithInfo(Message);
 
 				// Clear the material selection.
 				MatInterface = nullptr;

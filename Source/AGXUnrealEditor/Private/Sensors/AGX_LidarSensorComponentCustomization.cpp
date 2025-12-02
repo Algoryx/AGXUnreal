@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Sensors/AGX_LidarSensorComponentCustomization.h"
 
@@ -271,7 +271,7 @@ FReply FAGX_LidarSensorComponentCustomization::OnCreateModelParametersAssetButto
 
 	Lidar->ModelParameters = ModelParametersAsset;
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		FString::Printf(TEXT("Successfully saved: '%s'"), *ModelParametersAsset->GetName()));
 
 	return FReply::Handled();

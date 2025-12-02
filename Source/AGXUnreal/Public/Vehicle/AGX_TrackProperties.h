@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -296,6 +296,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
 	void SetStabilizingHingeFrictionParameter(double FrictionParameter);
+
+	/*
+	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	FGuid ImportGuid;
 
 public:
 	UAGX_TrackProperties() = default;

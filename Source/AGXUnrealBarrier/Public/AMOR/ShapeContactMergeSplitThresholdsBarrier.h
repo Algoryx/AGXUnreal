@@ -1,12 +1,12 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // AGX Dynamics for Unreal includes.
 #include "AMOR/MergeSplitThresholdsBarrier.h"
 
-class FRigidBodyBarrier;
-class FShapeBarrier;
+struct FRigidBodyBarrier;
+struct FShapeBarrier;
 
 class AGXUNREALBARRIER_API FShapeContactMergeSplitThresholdsBarrier
 	: public FMergeSplitThresholdsBarrier

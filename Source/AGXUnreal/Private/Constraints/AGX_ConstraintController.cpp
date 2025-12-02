@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_ConstraintController.h"
 
@@ -8,20 +8,12 @@
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 
-FAGX_ConstraintController::FAGX_ConstraintController()
-	// This 'false' here doesn't really make much sense, but we must have a
-	// default constructor and the default constructor must provide some value.
-	// Should never be called for an actual ConstraintController.
-	: FAGX_ConstraintController(false)
-{
-}
 
-FAGX_ConstraintController::FAGX_ConstraintController(bool bInRotational)
+FAGX_ConstraintController::FAGX_ConstraintController()
 	: bEnable(false)
 	, Compliance(ConstraintConstants::DefaultCompliance())
 	, SpookDamping(ConstraintConstants::DefaultSpookDamping())
 	, ForceRange(ConstraintConstants::DefaultForceRange())
-	, bRotational(bInRotational)
 	, NativeBarrier(nullptr)
 	, Elasticity_DEPRECATED(ConstraintConstants::DefaultElasticity())
 {
@@ -38,7 +30,7 @@ FAGX_ConstraintController& FAGX_ConstraintController::operator=(
 	Compliance = Other.Compliance;
 	SpookDamping = Other.SpookDamping;
 	ForceRange = Other.ForceRange;
-	bRotational = Other.bRotational;
+	Name = Other.Name;
 	return *this;
 }
 
@@ -180,13 +172,11 @@ bool FAGX_ConstraintController::HasNative() const
 
 FConstraintControllerBarrier* FAGX_ConstraintController::GetNative()
 {
-	check(HasNative());
 	return NativeBarrier.Get();
 }
 
 const FConstraintControllerBarrier* FAGX_ConstraintController::GetNative() const
 {
-	check(HasNative());
 	return NativeBarrier.Get();
 }
 
@@ -201,33 +191,15 @@ void FAGX_ConstraintController::UpdateNativeProperties()
 	NativeBarrier->SetCompliance(Compliance);
 	NativeBarrier->SetSpookDamping(SpookDamping);
 	NativeBarrier->SetForceRange(ForceRange);
+	NativeBarrier->SetName(Name);
 	UpdateNativePropertiesImpl();
 }
 
-void FAGX_ConstraintController::CopyFrom(
-	const FConstraintControllerBarrier& Source, TArray<FAGX_ConstraintController*>& Instances,
-	bool ForceOverwriteInstances)
+void FAGX_ConstraintController::CopyFrom(const FConstraintControllerBarrier& Source)
 {
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->bEnable == bEnable)
-			Instance->bEnable = Source.GetEnable();
-
-		if (ForceOverwriteInstances || Instance->Compliance == Compliance)
-			Instance->Compliance = Source.GetCompliance();
-
-		if (ForceOverwriteInstances || Instance->SpookDamping == SpookDamping)
-			Instance->SpookDamping = Source.GetSpookDamping();
-
-		if (ForceOverwriteInstances || Instance->ForceRange == ForceRange)
-			Instance->ForceRange = Source.GetForceRange();
-	}
-
 	bEnable = Source.GetEnable();
 	Compliance = Source.GetCompliance();
 	SpookDamping = Source.GetSpookDamping();
 	ForceRange = Source.GetForceRange();
+	Name = Source.GetName();
 }

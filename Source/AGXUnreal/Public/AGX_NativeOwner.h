@@ -1,15 +1,24 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "UObject/Interface.h"
 
 // Standard library includes.
 #include <cstdint>
 #include <limits>
 
+#include "AGX_NativeOwner.generated.h"
+
 class UActorComponent;
+
+UINTERFACE(MinimalAPI, Blueprintable)
+class UAGX_NativeOwner : public UInterface
+{
+	GENERATED_BODY()
+};
 
 /**
  * Interface implemented by all classes that owns an AGX Dynamics native object.
@@ -65,6 +74,7 @@ class UActorComponent;
  */
 class IAGX_NativeOwner
 {
+	GENERATED_BODY()
 public:
 	/** @return True if this Native Owner currently owns a native AGX Dynamics object. */
 	virtual bool HasNative() const = 0;
@@ -84,8 +94,6 @@ public:
 	 * should own.
 	 */
 	virtual void SetNativeAddress(uint64 NativeAddress) = 0;
-
-	virtual ~IAGX_NativeOwner() = default;
 };
 
 // Make sure we can hold an address in an uint64.

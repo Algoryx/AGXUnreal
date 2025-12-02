@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Wire/WireBarrier.h"
 
@@ -42,18 +42,18 @@ FWireBarrier::~FWireBarrier()
 	// forward declaration, of FWireRef.
 }
 
-void FWireBarrier::SetRadius(float Radius)
+void FWireBarrier::SetRadius(double Radius)
 {
 	check(HasNative());
 	const agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
 	NativeRef->Native->setRadius(RadiusAGX);
 }
 
-float FWireBarrier::GetRadius() const
+double FWireBarrier::GetRadius() const
 {
 	check(HasNative());
 	const agx::Real RadiusAGX = NativeRef->Native->getRadius();
-	const float Radius = ConvertDistanceToUnreal<float>(RadiusAGX);
+	const double Radius = ConvertDistanceToUnreal<double>(RadiusAGX);
 	return Radius;
 }
 

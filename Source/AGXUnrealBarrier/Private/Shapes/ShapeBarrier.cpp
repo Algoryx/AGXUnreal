@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/ShapeBarrier.h"
 
@@ -8,8 +8,9 @@
 #include "BarrierOnly/AGXRefs.h"
 #include "TypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "RigidBodyBarrier.h"
 #include "Shapes/RenderDataBarrier.h"
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 #include "TypeConversions.h"
 
 // AGX Dynamics includes.
@@ -26,27 +27,9 @@ FShapeBarrier::FShapeBarrier()
 {
 }
 
-FShapeBarrier::FShapeBarrier(FShapeBarrier&& Other) noexcept
-	: NativeRef {std::move(Other.NativeRef)}
-{
-}
-
-FShapeBarrier::FShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FShapeBarrier::FShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: NativeRef {std::move(Native)}
 {
-}
-
-FShapeBarrier::~FShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FGeometryAndShapeRef.
-}
-
-FShapeBarrier& FShapeBarrier::operator=(FShapeBarrier&& Other) noexcept
-{
-	NativeRef = std::move(Other.NativeRef);
-	return *this;
 }
 
 bool FShapeBarrier::HasNative() const
@@ -270,6 +253,11 @@ FGuid FShapeBarrier::GetGeometryGuid() const
 	return Convert(NativeRef->NativeGeometry->getUuid());
 }
 
+FGuid FShapeBarrier::GetGuid() const
+{
+	return GetShapeGuid();
+}
+
 TArray<FName> FShapeBarrier::GetCollisionGroups() const
 {
 	check(HasNative());
@@ -367,6 +355,12 @@ FAGX_RenderMaterial FShapeBarrier::GetRenderMaterial() const
 		RenderMaterialUnreal.Shininess = RenderMaterialAgx->getShininess();
 	}
 	return RenderMaterialUnreal;
+}
+
+FRigidBodyBarrier FShapeBarrier::GetRigidBody() const
+{
+	check(HasNative());
+	return AGXBarrierFactories::CreateRigidBodyBarrier(NativeRef->NativeGeometry->getRigidBody());
 }
 
 namespace

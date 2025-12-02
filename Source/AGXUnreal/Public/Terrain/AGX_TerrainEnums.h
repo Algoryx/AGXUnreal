@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -20,7 +20,7 @@ enum class EAGX_ShovelFrame : uint8
 	TopEdgeEnd,
 	CuttingEdgeBegin,
 	CuttingEdgeEnd,
-	CuttingDirection
+	ToothDirection
 };
 
 inline bool IsTranslatable(EAGX_ShovelFrame ShovelFrame)
@@ -31,7 +31,7 @@ inline bool IsTranslatable(EAGX_ShovelFrame ShovelFrame)
 		// Is helpful in order to line the direction vector up with geometry on the shovel.
 		case EAGX_ShovelFrame::None:
 			return false;
-		case EAGX_ShovelFrame::CuttingDirection:
+		case EAGX_ShovelFrame::ToothDirection:
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 		case EAGX_ShovelFrame::CuttingEdgeEnd:
 		case EAGX_ShovelFrame::TopEdgeBegin:
@@ -51,7 +51,7 @@ inline bool IsRotatable(EAGX_ShovelFrame ShovelFrame)
 	{
 		case EAGX_ShovelFrame::None:
 			return false;
-		case EAGX_ShovelFrame::CuttingDirection:
+		case EAGX_ShovelFrame::ToothDirection:
 			return true;
 		case EAGX_ShovelFrame::CuttingEdgeBegin:
 		case EAGX_ShovelFrame::CuttingEdgeEnd:

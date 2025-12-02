@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Terrain/AGX_ShovelProperties.h"
 
@@ -8,7 +8,9 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/ShovelBarrier.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -133,6 +135,11 @@ void SetAndPropagateShovelExcavationProperty(
 void UAGX_ShovelProperties::SetToothLength(double InToothLength)
 {
 	AGX_SHOVEL_SETTER_IMPL(ToothLength);
+}
+
+void UAGX_ShovelProperties::SetEnableExcavationAtTeethEdge(bool InbEnableExcavationAtTeethEdge)
+{
+	AGX_SHOVEL_SETTER_IMPL(bEnableExcavationAtTeethEdge);
 }
 
 void UAGX_ShovelProperties::SetToothMinimumRadius(double InToothMinimumRadius)
@@ -379,8 +386,12 @@ UAGX_ShovelProperties* UAGX_ShovelProperties::GetOrCreateInstance(UWorld* Playin
 
 bool UAGX_ShovelProperties::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	return Asset != nullptr;
 }
 
@@ -502,6 +513,7 @@ void UAGX_ShovelProperties::InitPropertyDispatcher()
 	AGX_ASSET_DEFAULT_DISPATCHER(ToothMinimumRadius);
 	AGX_ASSET_DEFAULT_DISPATCHER(ToothMaximumRadius);
 	AGX_ASSET_DEFAULT_DISPATCHER(NumberOfTeeth);
+	AGX_ASSET_DEFAULT_DISPATCHER(bEnableExcavationAtTeethEdge);
 	AGX_ASSET_DEFAULT_DISPATCHER(NoMergeExtensionDistance);
 	AGX_ASSET_DEFAULT_DISPATCHER(MinimumSubmergedContactLengthFraction);
 	AGX_ASSET_DEFAULT_DISPATCHER(VerticalBladeSoilMergeDistance);
@@ -578,6 +590,11 @@ void UAGX_ShovelProperties::InitPropertyDispatcher()
 }
 #endif
 
+void UAGX_ShovelProperties::SetbEnableExcavationAtTeethEdge(bool InEnable)
+{
+	SetEnableExcavationAtTeethEdge(InEnable);
+}
+
 void UAGX_ShovelProperties::SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts)
 {
 	SetAlwaysRemoveShovelContacts(InbAlwaysRemoveShovelContacts);
@@ -594,4 +611,74 @@ void UAGX_ShovelProperties::SetbEnableInnerShapeCreateDynamicMass(
 void UAGX_ShovelProperties::SetbEnableParticleForceFeedback(bool InbEnableParticleForceFeedback)
 {
 	SetEnableParticleForceFeedback(InbEnableParticleForceFeedback);
+}
+
+namespace AGX_ShovelProperties_helpers
+{
+	FString CreatePropertiesName(const FShovelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		auto Shovel = Context.Shovels->FindRef(Barrier.GetGuid());
+		const FString BaseName = Shovel != nullptr ? Shovel->GetName() : "Unknown";
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("AGX_SP_%s"), *BaseName),
+			UAGX_ShovelProperties::StaticClass());
+
+		if (Shovel == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to get Shovel from FAGX_ImportContext in "
+					 "AGX_ShovelProperties_helpers::CreatePropertiesName. The ShovelProperties "
+					 "will get the name '%s'."), *Name);
+		}
+
+		return Name;
+	}
+}
+
+void UAGX_ShovelProperties::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	ImportGuid = Barrier.GetGuid();
+	ToothLength = Barrier.GetToothLength();
+	ToothMinimumRadius = Barrier.GetToothMinimumRadius();
+	ToothMaximumRadius = Barrier.GetToothMaximumRadius();
+	NumberOfTeeth = Barrier.GetNumberOfTeeth();
+	bEnableExcavationAtTeethEdge = Barrier.GetEnableExcavationAtTeethEdge();
+	NoMergeExtensionDistance = Barrier.GetNoMergeExtensionDistance();
+	MinimumSubmergedContactLengthFraction = Barrier.GetMinimumSubmergedContactLengthFraction();
+	VerticalBladeSoilMergeDistance = Barrier.GetVerticalBladeSoilMergeDistance();
+	SecondarySeparationDeadloadLimit = Barrier.GetSecondarySeparationDeadloadLimit();
+	PenetrationDepthThreshold = Barrier.GetPenetrationDepthThreshold();
+	PenetrationForceScaling = Barrier.GetPenetrationForceScaling();
+	bEnableParticleFreeDeformers = Barrier.GetEnableParticleFreeDeformers();
+	bAlwaysRemoveShovelContacts = Barrier.GetAlwaysRemoveShovelContacts();
+	MaximumPenetrationForce = Barrier.GetMaximumPenetrationForce();
+	bOverride_ContactRegionThreshold = true;
+	ContactRegionThreshold = Barrier.GetContactRegionThreshold();
+	bOverride_ContactRegionVerticalLimit = true;
+	ContactRegionVerticalLimit = Barrier.GetContactRegionVerticalLimit();
+	bEnableInnerShapeCreateDynamicMass = Barrier.GetEnableInnerShapeCreateDynamicMass();
+	bEnableParticleForceFeedback = Barrier.GetEnableParticleForceFeedback();
+	ParticleInclusionMultiplier = Barrier.GetParticleInclusionMultiplier();
+
+	auto CopyExcavationSettings =
+		[&Barrier](EAGX_ExcavationMode Mode, FAGX_ShovelExcavationSettings& Settings)
+	{
+		Settings.bEnabled = Barrier.GetExcavationSettingsEnabled(Mode);
+		Settings.bEnableCreateDynamicMass =
+			Barrier.GetExcavationSettingsEnableCreateDynamicMass(Mode);
+		Settings.bEnableForceFeedback = Barrier.GetExcavationSettingsEnableForceFeedback(Mode);
+	};
+
+	CopyExcavationSettings(EAGX_ExcavationMode::Primary, PrimaryExcavationSettings);
+	CopyExcavationSettings(EAGX_ExcavationMode::DeformBack, DeformBackExcavationSettings);
+	CopyExcavationSettings(EAGX_ExcavationMode::DeformRight, DeformRightExcavationSettings);
+	CopyExcavationSettings(EAGX_ExcavationMode::DeformLeft, DeformLeftExcavationSettings);
+
+	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr)
+		return; // We are done.
+
+	Rename(*AGX_ShovelProperties_helpers::CreatePropertiesName(Barrier, *Context));
+	AGX_CHECK(!Context->ShovelProperties->Contains(ImportGuid));
+	Context->ShovelProperties->Add(ImportGuid, this);
 }

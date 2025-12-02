@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "ROS2/ROS2AnyMessageBuilderBarrier.h"
 
@@ -200,7 +200,7 @@ void FROS2AnyMessageBuilderBarrier::WriteDouble64Sequence(const TArray<double>& 
 void FROS2AnyMessageBuilderBarrier::WriteStringSequence(const TArray<FString>& d)
 {
 	check(HasNative());
-	Native->Native->writeStringSequence(ToStdStringArray(d));
+	Native->Native->writeStringSequence(ToStdStringVector(d));
 }
 
 void FROS2AnyMessageBuilderBarrier::WriteBoolSequence(const TArray<bool>& d)

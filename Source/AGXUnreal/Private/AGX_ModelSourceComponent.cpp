@@ -1,11 +1,13 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
-#include "AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_CustomVersion.h"
+#include "AGX_LogCategory.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 // Unreal Engine includes.
 #include "Serialization/Archive.h"
@@ -91,7 +93,7 @@ void UAGX_ModelSourceComponent::UpgradeRenderDataTableFromRenderDataUuidToShapeU
 		// Static Mesh Component SCS Node.
 		//
 		// A workaround is to call this function manually and explicitly at a later time, when the
-		// Blueprint has been fully loaded. For model synchronization this is done by the
+		// Blueprint has been fully loaded. For model reimport this is done by the
 		// SCS Node Collection constructor.
 		USCS_Node* RenderDataMeshNode =
 			FAGX_BlueprintUtilities::GetSCSNodeFromName(*Blueprint, StaticMeshName, true).FoundNode;
@@ -117,7 +119,7 @@ void UAGX_ModelSourceComponent::UpgradeRenderDataTableFromRenderDataUuidToShapeU
 	// it dirty. However, Unreal does not allow marking a package dirty during loading.
 	// So the old table will linger until the Blueprint is changed through some other means.
 	// Worse, the Blueprint is the hidden parent Blueprint that the user should not modify, so
-	// it likely won't be modified until the user does a model synchronization.
+	// it likely won't be modified until the user does a model reimport.
 #if 0
 		Blueprint->MarkPackageDirty();
 #endif
@@ -128,6 +130,21 @@ void UAGX_ModelSourceComponent::UpgradeRenderDataTableFromRenderDataUuidToShapeU
 const TMap<FString, FGuid>& UAGX_ModelSourceComponent::GetDeprecatedRenderDataTable() const
 {
 	return StaticMeshComponentToOwningRenderData_DEPRECATED;
+}
+
+void UAGX_ModelSourceComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+	if (bRuntimeImport &&
+		FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath) == EAGX_ImportType::Plx)
+	{
+		if (FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(FilePath).IsEmpty())
+		{
+			UE_LOG(
+				LogAGX, Warning, TEXT("Failed to remove OpenPLX files for '%s'."),
+				*FilePath);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

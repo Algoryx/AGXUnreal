@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -24,17 +24,20 @@ class AAGX_Terrain;
 class UAGX_MovableTerrainComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
+class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
+class UAGX_ShovelComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
 class UAGX_TireComponent;
+class UAGX_TrackComponent;
 class UAGX_WireComponent;
 
 class AActor;
 class UActorComponent;
 class UWorld;
-class FShapeBarrier;
+struct FShapeBarrier;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPreStepForward, double, Time);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPostStepForward, double, Time);
@@ -209,6 +212,16 @@ public: // Properties.
 	bool bEnableGlobalContactEventListener {true};
 
 	/**
+	 * If enabled, whenever a Blueprint Asset from an imported OpenPLX file is deleted, the
+	 * corresponding OpenPLX files located in Project/OpenPLXModels used by that Blueprint is
+	 * deleted.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "OpenPLX",
+		Meta = (DisplayName = "Delete OpenPLX File Copy on Blueprint Deletion"))
+	bool bDeleteOpenPLXFileCopyOnBlueprintDeletion {true};
+
+	/**
 	 * Globally enable or disable AMOR (Merge Split Handler) in AGX Dynamics.
 	 * Note that each RigidBody / Geometry / Wire / Constraint need to enable merge/split
 	 * individually for AMOR to be used for those.
@@ -250,6 +263,7 @@ public: // Properties.
 	int32 RaytraceDeviceIndex {0};
 
 #if WITH_EDITORONLY_DATA
+
 	/**
 	 * Set to true to write an AGX Dynamics for Unreal archive of the initial state.
 	 * The archive is written to the path set in ExportPath on the first game Tick.
@@ -465,30 +479,36 @@ public: // Member functions.
 	UPROPERTY(BlueprintAssignable, Category = "Simulation")
 	FOnSeparation OnSeparation;
 
-	void Add(UAGX_ConstraintComponent& Constraint);
+	bool Add(UAGX_ConstraintComponent& Constraint);
+	bool Add(UAGX_ObserverFrameComponent& Frame);
 
 	/**
 	 * Note that Shapes that are child of the passed Rigid Body are NOT added to the simulation
 	 * when calling this function.
 	 */
-	void Add(UAGX_RigidBodyComponent& Body);
-	void Add(UAGX_ShapeComponent& Shape);
-	void Add(UAGX_ShapeMaterial& Shape);
-	void Add(UAGX_StaticMeshComponent& Body);
-	void Add(AAGX_Terrain& Terrain);
+	bool Add(UAGX_RigidBodyComponent& Body);
+	bool Add(UAGX_ShapeComponent& Shape);
+	bool Add(UAGX_ShapeMaterial& Material);
+	bool Add(UAGX_ShovelComponent& Shovel);
+	bool Add(UAGX_StaticMeshComponent& Body);
+	bool Add(AAGX_Terrain& Terrain);
 	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
-	void Add(UAGX_TireComponent& Tire);
-	void Add(UAGX_WireComponent& Wire);
+	bool Add(UAGX_TireComponent& Tire);
+	bool Add(UAGX_TrackComponent& Track);
+	bool Add(UAGX_WireComponent& Wire);
 
-	void Remove(UAGX_ConstraintComponent& Constraint);
-	void Remove(UAGX_RigidBodyComponent& Body);
-	void Remove(UAGX_ShapeComponent& Shape);
-	void Remove(UAGX_ShapeMaterial& Shape);
-	void Remove(UAGX_StaticMeshComponent& Body);
-	void Remove(AAGX_Terrain& Terrain);
+	bool Remove(UAGX_ConstraintComponent& Constraint);
+	bool Remove(UAGX_ObserverFrameComponent& Frame);
+	bool Remove(UAGX_RigidBodyComponent& Body);
+	bool Remove(UAGX_ShapeComponent& Shape);
+	bool Remove(UAGX_ShapeMaterial& Material);
+	bool Remove(UAGX_ShovelComponent& Shovel);
+	bool Remove(UAGX_StaticMeshComponent& Body);
+	bool Remove(AAGX_Terrain& Terrain);
 	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
-	void Remove(UAGX_TireComponent& Tire);
-	void Remove(UAGX_WireComponent& Wire);
+	bool Remove(UAGX_TireComponent& Tire);
+	bool Remove(UAGX_TrackComponent& Track);
+	bool Remove(UAGX_WireComponent& Wire);
 
 	void Register(UAGX_ContactMaterial& Material);
 	void Unregister(UAGX_ContactMaterial& Material);

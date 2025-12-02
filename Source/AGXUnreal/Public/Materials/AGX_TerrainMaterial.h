@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -41,6 +41,8 @@ class AGXUNREAL_API UAGX_TerrainMaterial : public UObject
 {
 public:
 	GENERATED_BODY()
+
+	bool operator==(const UAGX_TerrainMaterial& Other) const;
 
 	// Terrain Bulk properties.
 
@@ -259,6 +261,12 @@ public:
 	double GetDepthIncreaseFactor() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
+	void SetDepthAngleThreshold(double DepthAngleThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
+	double GetDepthAngleThreshold() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
 	void SetMaximumAggregateNormalForce(double MaximumAggregateNormalForce);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
@@ -270,23 +278,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
 	double GetMaximumContactDepth() const;
 
-	/**
-	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
-	 * Should never be assigned manually.
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
-	FGuid ImportGuid;
-
 	virtual void Serialize(FArchive& Archive) override;
 
 	void CopyFrom(const FTerrainMaterialBarrier& Source);
 
 	FTerrainMaterialBarrier* GetOrCreateTerrainMaterialNative(UWorld* PlayingWorld);
+	FTerrainMaterialBarrier* GetTerrainMaterialNative();
 	UAGX_TerrainMaterial* GetOrCreateInstance(UWorld* PlayingWorld);
+	bool HasTerrainMaterialNative() const;
 	static UAGX_TerrainMaterial* CreateFromAsset(
 		UWorld* PlayingWorld, UAGX_TerrainMaterial* Source);
 
 	void CopyTerrainMaterialProperties(const UAGX_TerrainMaterial* Source);
+	void UpdateTerrainMaterialNativeProperties();
 
 	bool IsInstance() const;
 
@@ -302,9 +306,6 @@ private:
 #endif
 
 	void CreateTerrainMaterialNative();
-	bool HasTerrainMaterialNative() const;
-	FTerrainMaterialBarrier* GetTerrainMaterialNative();
-	void UpdateTerrainMaterialNativeProperties();
 
 	TWeakObjectPtr<UAGX_TerrainMaterial> Asset;
 	TWeakObjectPtr<UAGX_TerrainMaterial> Instance;

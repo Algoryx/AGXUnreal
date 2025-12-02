@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -78,7 +78,7 @@ public:
 	 * Will also copy properties inherited from UAGX_ShapeComponent.
 	 * @param Barrier The AGX Dynamics Capsule to copy from.
 	 */
-	void CopyFrom(const FCapsuleShapeBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 protected:
 	// ~Begin UAGX_ShapeComponent interface.

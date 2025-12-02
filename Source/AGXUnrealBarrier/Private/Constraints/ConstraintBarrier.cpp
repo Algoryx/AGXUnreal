@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/ConstraintBarrier.h"
 
@@ -173,6 +173,13 @@ FAGX_RealInterval FConstraintBarrier::GetForceRange(int32 Dof) const
 
 	return FAGX_RealInterval(Range.lower(), Range.upper());
 }
+
+double FConstraintBarrier::GetCurrentForce(int32 Dof)
+{
+	check(HasNative());
+	return NativeRef->Native->getCurrentForce(Dof);
+}
+
 
 void FConstraintBarrier::SetEnableComputeForces(bool bEnable)
 {

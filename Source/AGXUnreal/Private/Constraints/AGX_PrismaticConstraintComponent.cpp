@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_PrismaticConstraintComponent.h"
 
@@ -7,13 +7,12 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_PrismaticConstraintComponent::UAGX_PrismaticConstraintComponent()
 	: UAGX_Constraint1DofComponent(
 		  {EDofFlag::DofFlagRotational1, EDofFlag::DofFlagRotational2, EDofFlag::DofFlagRotational3,
-		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2},
-		  /*bIsSecondaryConstraintRotational*/ false)
+		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2})
 {
 	NativeBarrier.Reset(new FPrismaticBarrier());
 }

@@ -1,9 +1,10 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/AGX_IMUSensorReference.h"
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_ShapeInstanceData.h"
 
@@ -35,6 +36,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
 	TArray<FAGX_LidarSensorReference> LidarSensors;
+
+	/**
+	 * Array of all IMU Sensor Components that should be active in the simulation.
+	 * Any IMU Sensor Components that should be active has to be added by the user to this Array.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
+	TArray<FAGX_IMUSensorReference> IMUSensors;
 
 	/**
 	 * Objects in the Level that gets within the range of any added Lidar will automatically be
@@ -88,6 +96,27 @@ public:
 	bool UpdateAddedInstancedMeshesTransforms {true};
 
 	/**
+	 * The (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
+	FVector MagneticField {0.0, 44.754e-6, 0.0};
+
+	/**
+	 * Set the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	void SetMagneticField(const FVector& Field);
+
+	/**
+	 * Get the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	FVector GetMagneticField() const;
+
+	/**
 	 * For debugging purposes. If set to true, a message is logged in the Output Console each time
 	 * an object is succesfully added to this Sensor Environment.
 	 */
@@ -100,6 +129,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddLidar(UAGX_LidarSensorComponent* Lidar);
+
+	/**
+	 * Manually add an IMU Sensor Component. This can also be done from the Details Panel.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool AddIMU(UAGX_IMUSensorComponent* IMU);
 
 	/**
 	 * Manually add a Static Mesh Component so that it can be detected by sensors handled by this
@@ -164,10 +199,15 @@ public:
 
 	/**
 	 * Manually remove a Lidar Sensor Component from this Sensor Environment.
-	 * Only valid to call during Play.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveLidar(UAGX_LidarSensorComponent* Lidar);
+
+	/**
+	 * Manually remove an IMU Sensor Component from this Sensor Environment.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool RemoveIMU(UAGX_IMUSensorComponent* IMU);
 
 	/**
 	 * Manually remove a Static Mesh Component from this Sensor Environment.
@@ -227,12 +267,16 @@ private:
 	void InitializeNative();
 	void RegisterLidars();
 	bool RegisterLidar(FAGX_LidarSensorReference& LidarRef);
+	void RegisterIMUs();
+	bool RegisterIMU(FAGX_IMUSensorReference& IMURef);
 	void UpdateTrackedLidars();
+	void UpdateTrackedIMUs();
 	void UpdateTrackedMeshes();
 	void UpdateTrackedInstancedMeshes();
 	void UpdateTrackedAGXMeshes();
 	void UpdateAmbientMaterial();
 	void TickTrackedLidars() const;
+	void TickTrackedIMUs() const;
 
 	bool AddMesh(
 		UStaticMeshComponent* Mesh, const TArray<FVector>& Vertices,
@@ -268,12 +312,19 @@ private:
 		UInstancedStaticMeshComponent& Mesh, int32 Index);
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
 
+#if WITH_EDITOR
+	virtual void PostInitProperties() override;
+	void InitPropertyDispatcher();
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif // WITH_EDITOR
+
 private:
 	TMap<FAGX_LidarSensorReference, TObjectPtr<USphereComponent>> TrackedLidars;
 	TMap<TWeakObjectPtr<UStaticMeshComponent>, FAGX_RtShapeInstanceData> TrackedMeshes;
 	TMap<TWeakObjectPtr<UInstancedStaticMeshComponent>, FAGX_RtInstancedShapeInstanceData>
 		TrackedInstancedMeshes;
 	TMap<TWeakObjectPtr<UAGX_SimpleMeshComponent>, FAGX_RtShapeInstanceData> TrackedAGXMeshes;
+	TSet<FAGX_IMUSensorReference> TrackedIMUs;
 
 	FSensorEnvironmentBarrier NativeBarrier;
 };

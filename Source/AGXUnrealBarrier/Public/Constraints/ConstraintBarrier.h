@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -73,6 +73,8 @@ public:
 	void SetForceRange(double Min, double Max, int32 Dof);
 	void GetForceRange(double* Min, double* Max, int32 Dof) const;
 	FAGX_RealInterval GetForceRange(int32 Dof) const;
+
+	double GetCurrentForce(int32 Dof);
 
 	void SetEnableComputeForces(bool bEnable);
 	bool GetEnableComputeForces() const;

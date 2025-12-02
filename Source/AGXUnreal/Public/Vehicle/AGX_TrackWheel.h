@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -33,7 +33,7 @@ public:
 	/**
 	 *  The Rigid Body to which this wheel belongs.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	FAGX_RigidBodyReference RigidBody;
 
 	/**
@@ -43,18 +43,20 @@ public:
 	 * Component.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Track Wheel",
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel",
 		Meta = (EditCondition = "bUseFrameDefiningComponent"))
 	FAGX_SceneComponentReference FrameDefiningComponent;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel", Meta = (InlineEditConditionToggle))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel",
+		Meta = (InlineEditConditionToggle))
 	bool bUseFrameDefiningComponent {false};
 
 	/**
 	 * Wheel location relative to the Rigid Body,
 	 * or to the FrameDefiningComponent if bUseFrameDefiningComponent is true [cm].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	FVector RelativeLocation {FVector::ZeroVector};
 
 	/**
@@ -63,27 +65,27 @@ public:
 	 *
 	 * The Y-Axis becomes the rotation-axis, and the Z-axis becomes the up-axis.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	FRotator RelativeRotation {FRotator::ZeroRotator};
 
 	/**
 	 * Radius of the wheel [cm].
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	float Radius = 50.0f;
 
 	/**
 	 * The wheel type. Sprocket and Idler wheel types will merge track nodes to them,
 	 * simulating geared, non-slip, type of properties.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	EAGX_TrackWheelModel Model = EAGX_TrackWheelModel::Roller;
 
 	/**
 	 * Wheels with this property will split segments, i.e., intermediate nodes that are merged.
 	 * Use this property on ROLLER models where the track changes angle.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	bool bSplitSegments {false};
 
 	/**
@@ -93,7 +95,7 @@ public:
 	 *
 	 * Only relevant for Idler or Sprocket wheels.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	bool bMoveNodesToRotationPlane {false};
 
 	/**
@@ -102,7 +104,7 @@ public:
 	 *
 	 * Only relevant for Idler or Sprocket wheels.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Track Wheel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track Wheel")
 	bool bMoveNodesToWheel {false};
 
 	// \note Not exposing the MERGE_NODES flag here because it seems to automatically be set

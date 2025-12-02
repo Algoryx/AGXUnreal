@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 using UnrealBuildTool;
 
@@ -23,7 +23,6 @@ public class AGXCommon : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core", "CoreUObject", "Engine"});
-
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Projects"});

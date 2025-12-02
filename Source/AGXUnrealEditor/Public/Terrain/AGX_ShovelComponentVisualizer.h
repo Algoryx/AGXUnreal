@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -55,7 +55,7 @@ public:
 
 private:
 	/**
-	 * The type of frame (TopEdgeBegin, CuttingDirection, etc) that was most recently clicked by
+	 * The type of frame (TopEdgeBegin, ToothDirection, etc) that was most recently clicked by
 	 * the user.
 	 */
 	EAGX_ShovelFrame SelectedFrame {EAGX_ShovelFrame::None};
@@ -77,7 +77,7 @@ private:
 	// structs.
 	FProperty* TopEdgeProperty {nullptr};
 	FProperty* CuttingEdgeProperty {nullptr};
-	FProperty* CuttingDirectionProperty {nullptr};
+	FProperty* ToothDirectionProperty {nullptr};
 
 	FQuat CachedRotation {ForceInit};
 

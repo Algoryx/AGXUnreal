@@ -1,9 +1,10 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "RigidBodyBarrier.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
+#include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
@@ -31,27 +32,11 @@ FRigidBodyBarrier::FRigidBodyBarrier()
 {
 }
 
-FRigidBodyBarrier::FRigidBodyBarrier(std::unique_ptr<FRigidBodyRef> Native)
+FRigidBodyBarrier::FRigidBodyBarrier(std::shared_ptr<FRigidBodyRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
 	MassProperties.BindTo(*NativeRef);
-}
-
-FRigidBodyBarrier::FRigidBodyBarrier(FRigidBodyBarrier&& Other)
-	: NativeRef {std::move(Other.NativeRef)}
-{
-	Other.NativeRef.reset(new FRigidBodyRef);
-	Other.MassProperties.BindTo(*Other.NativeRef);
-
-	MassProperties.BindTo(*NativeRef);
-}
-
-FRigidBodyBarrier::~FRigidBodyBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FRigidBodyRef.
 }
 
 void FRigidBodyBarrier::SetEnabled(bool Enabled)
@@ -291,6 +276,13 @@ FVector FRigidBodyBarrier::GetTorque() const
 	check(HasNative());
 	const agx::Vec3 TorqueAGX = NativeRef->Native->getTorque();
 	return ConvertTorque(TorqueAGX);
+}
+
+FMergeSplitPropertiesBarrier FRigidBodyBarrier::GetMergeSplitProperties() const
+{
+	check(HasNative());
+	agxSDK::MergeSplitProperties* Properties = agxSDK::MergeSplitHandler::getProperties(NativeRef->Native.get());
+	return FMergeSplitPropertiesBarrier(std::make_shared<FMergeSplitPropertiesPtr>(Properties));
 }
 
 bool FRigidBodyBarrier::IsAutomaticallyMerged()

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -47,5 +47,5 @@ class AGXUNREAL_API UAGX_PlotDataSeries_FL : public UBlueprintFunctionLibrary
 	static void Write(UPARAM(ref) FAGX_PlotDataSeries& Series, float Data)
 	{
 		Series.Write(Data);
-	};
+	}
 };

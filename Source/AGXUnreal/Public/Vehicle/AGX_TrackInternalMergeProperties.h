@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -61,7 +61,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
-		Meta = (EditCondition = "bMergeEnabled", ClampMin = "1"))
+		Meta = (EditCondition = "bEnableMerge", ClampMin = "1"))
 	int32 NumNodesPerMergeSegment {3};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
@@ -75,7 +75,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
-		Meta = (EditCondition = "bMergeEnabled"))
+		Meta = (EditCondition = "bEnableMerge"))
 	EAGX_MergedTrackNodeContactReduction ContactReduction {
 		EAGX_MergedTrackNodeContactReduction::Minimal};
 
@@ -90,7 +90,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
-		Meta = (EditCondition = "bMergeEnabled"))
+		Meta = (EditCondition = "bEnableMerge"))
 	bool bEnableLockToReachMergeCondition {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
@@ -105,7 +105,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
 		Meta =
-			(EditCondition = "bMergeEnabled && bLockToReachMergeConditionEnabled",
+			(EditCondition = "bEnableMerge && bEnableLockToReachMergeCondition",
 			 ClampMin = "0.0"))
 	FAGX_Real LockToReachMergeConditionCompliance {1.0e-11};
 
@@ -121,7 +121,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
 		Meta =
-			(EditCondition = "bMergeEnabled && bLockToReachMergeConditionEnabled",
+			(EditCondition = "bEnableMerge && bEnableLockToReachMergeCondition",
 			 ClampMin = "0.0"))
 	FAGX_Real LockToReachMergeConditionSpookDamping {3.0 / 60.0};
 
@@ -138,7 +138,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
-		Meta = (EditCondition = "bMergeEnabled"))
+		Meta = (EditCondition = "bEnableMerge"))
 	FAGX_Real MaxAngleMergeCondition {FMath::RadiansToDegrees(1.0e-5)};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")

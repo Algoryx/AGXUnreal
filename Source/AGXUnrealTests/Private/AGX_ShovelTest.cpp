@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 /*
  * This files contains simulation unit tests for Shovel Component.
@@ -38,7 +38,7 @@ bool FCheckShovelDiggingCommand::Update()
 	check(World != nullptr);
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(World);
 	FAGX_Statistics Statistics = Simulation->GetStatistics();
-	Test.TestTrue(TEXT("Number of particles in statistics."), Statistics.NumParticles > 0);
+	Test.TestTrue(TEXT("Number of particles in statistics."), Statistics.Sim_NumParticles > 0);
 	TArray<AActor*> AllTerrains;
 	UGameplayStatics::GetAllActorsOfClass(World, AAGX_Terrain::StaticClass(), AllTerrains);
 	Test.TestEqual(TEXT("Number of terrains"), AllTerrains.Num(), 1);

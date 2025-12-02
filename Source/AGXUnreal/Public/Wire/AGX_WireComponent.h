@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -22,6 +22,7 @@ class UAGX_ShapeMaterial;
 class UAGX_WireWinchComponent;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
+struct FAGX_ImportContext;
 
 /**
  * A Wire is a lumped element structure with dynamic resolution, the wire will adapt the resolution,
@@ -51,10 +52,23 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire",
 		Meta = (ClampMin = "0", UIMin = "0"))
-	float Radius = 1.5f;
+	double Radius {1.5};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
-	void SetRadius(float InRadius);
+	void SetRadius(double InRadius);
+
+	/**
+	 * Scale to apply to the radius when rendering the wire.
+	 *
+	 * Wires are often very thin compared to other objects in the scene, making them difficult to
+	 * see. By increasing the Rander Radius Scale it is possible to make the wire larger on-screen
+	 * without affecting the simulation behavior.
+	 *
+	 * This setting affects rendering only, it does not change the simulation behavior or collision
+	 * shape of the wire.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
+	double RenderRadiusScale {1.0};
 
 	/**
 	 * The shortest a lumped segment is allowed to become [cm].
@@ -209,7 +223,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX AMOR")
@@ -890,13 +904,7 @@ public:
 	void SynchronizeRendering();
 #endif
 
-	/*
-	 * Copy configuration from the given Barrier.
-	 * Only the basic properties, such as Radius and MinSegmentLength, are copied. More complicated
-	 * properties, such as winch setup and route nodes, must be handled elsewhere. During AGX
-	 * Dynamics archive import those are handled by Sim Objects Importer Helper.
-	 */
-	void CopyFrom(const FWireBarrier& Barrier);
+	void CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContext* Context);
 
 	//~ Begin IAGX_NativeOwner interface.
 	/**

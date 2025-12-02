@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -23,6 +23,9 @@ struct AGXUNREAL_API FAGX_TerrainExcavationContactProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainExcavationContactProperties& Other) const = default;
+
 	/**
 	 * The contact stiffness multiplier for the generated contacts between the soil
 	 * aggregates <-> terrain for excavation and deformation. The final Young's modulus value that
@@ -56,6 +59,15 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Excavation Contact")
 	FAGX_Real DepthIncreaseFactor {1.0};
+
+	/**
+	 * Angle threshold between the separation normal and the terrain-aggregate contact plane.
+	 * When the angle is below this threshold, additional depth within the contact plane
+	 * contributes to increasing the overall contact depth used in the terrain-aggregate contact
+	 * model [deg].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Excavation Contact")
+	FAGX_Real DepthAngleThreshold {45.0};
 
 	/**
 	 * The maximum force that the soil aggregate <-> terrain contacts are allowed to have. Default

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Vehicle/TrackBarrier.h"
 
@@ -8,7 +8,6 @@
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "SimulationBarrier.h"
 #include "TypeConversions.h"
 #include "Vehicle/TrackPropertiesBarrier.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
@@ -123,22 +122,6 @@ void FTrackBarrier::AddTrackWheel(
 
 	// Add to Track
 	NativeRef->Native->add(WheelAGX);
-}
-
-bool FTrackBarrier::AddToSimulation(FSimulationBarrier& Sim) const
-{
-	check(HasNative());
-	check(Sim.HasNative()); // \todo More gentle check and return false?
-	agxSDK::Simulation* SimAGX = FAGX_AgxDynamicsObjectsAccess::GetFrom(&Sim);
-	return SimAGX->add(NativeRef->Native);
-}
-
-bool FTrackBarrier::RemoveFromSimulation(FSimulationBarrier& Sim) const
-{
-	check(HasNative());
-	check(Sim.HasNative()); // \todo More gentle check and return false?
-	agxSDK::Simulation* SimAGX = FAGX_AgxDynamicsObjectsAccess::GetFrom(&Sim);
-	return SimAGX->remove(NativeRef->Native);
 }
 
 void FTrackBarrier::SetName(const FString& Name)

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -12,6 +12,8 @@ class FToolBarBuilder;
 class FMenuBuilder;
 class IAssetTools;
 class IAssetTypeActions;
+
+struct FAssetData;
 
 class FAGXUnrealEditorModule : public IModuleInterface
 {
@@ -72,6 +74,8 @@ private:
 
 	void OnGrabModeCommand() const;
 	bool OnCanExecuteGrabModeCommand() const;
+
+	void OnAssetRemoved(const FAssetData& AssetData);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;

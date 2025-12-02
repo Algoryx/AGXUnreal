@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -9,6 +9,7 @@
 #include <agx/FrictionModel.h>
 #include <agx/Material.h>
 #include <agx/MassProperties.h>
+#include <agx/ObserverFrame.h>
 #include <agx/ref_ptr.h>
 #include <agx/RigidBody.h>
 #include <agxCollide/Geometry.h>
@@ -17,6 +18,7 @@
 #include <agxPlot/DataSeries.h>
 #include <agxPlot/System.h>
 #include <agxPlot/WebPlot.h>
+#include <agxSDK/Assembly.h>
 #include <agxSDK/MergeSplitHandler.h>
 #include <agxSDK/MergeSplitThresholds.h>
 #include <agxSDK/Simulation.h>
@@ -146,6 +148,17 @@ struct FMergeSplitThresholdsRef
 	}
 };
 
+struct FObserverFrameRef
+{
+	agx::ObserverFrameRef Native;
+
+	FObserverFrameRef() = default;
+	FObserverFrameRef(agx::ObserverFrame* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
 struct FPlotRef
 {
 	agxPlot::SystemRef Native;
@@ -185,6 +198,17 @@ struct FSimulationRef
 
 	FSimulationRef() = default;
 	FSimulationRef(agxSDK::Simulation* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FAssemblyRef
+{
+	agxSDK::AssemblyRef Native;
+
+	FAssemblyRef() = default;
+	FAssemblyRef(agxSDK::Assembly* InNative)
 		: Native(InNative)
 	{
 	}

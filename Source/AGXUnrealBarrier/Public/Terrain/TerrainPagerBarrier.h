@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -11,7 +11,7 @@
 // Standard library includes.
 #include <memory>
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;
 class FTerrainHeightFetcherBase;

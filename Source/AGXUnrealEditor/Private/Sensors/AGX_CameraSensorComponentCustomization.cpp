@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Sensors/AGX_CameraSensorComponentCustomization.h"
 
@@ -206,7 +206,7 @@ FReply FAGX_CameraSensorComponentCustomization::OnGenerateRuntimeAssetsButtonCli
 
 	CameraComponent->RenderTarget = RenderTargetAsset;
 
-	FAGX_NotificationUtilities::ShowDialogBoxWithLogLog(
+	FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(
 		FString::Printf(TEXT("Successfully saved: '%s'"), *RenderTargetAsset->GetName()));
 
 	return FReply::Handled();

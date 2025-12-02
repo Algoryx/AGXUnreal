@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/Controllers/AGX_ElectricMotorController.h"
 
@@ -6,17 +6,11 @@
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 
-FAGX_ConstraintElectricMotorController::FAGX_ConstraintElectricMotorController(bool bRotational)
-	: FAGX_ConstraintController(bRotational)
-{
-}
-
 void FAGX_ConstraintElectricMotorController::InitializeBarrier(
 	TUniquePtr<FElectricMotorControllerBarrier> Barrier)
 {
 	check(!HasNative());
 	NativeBarrier = std::move(Barrier);
-	check(HasNative());
 }
 
 namespace
@@ -123,26 +117,9 @@ void FAGX_ConstraintElectricMotorController::UpdateNativePropertiesImpl()
 }
 
 void FAGX_ConstraintElectricMotorController::CopyFrom(
-	const FElectricMotorControllerBarrier& Source,
-	TArray<FAGX_ConstraintElectricMotorController*>& Instances, bool ForceOverwriteInstances)
+	const FElectricMotorControllerBarrier& Source)
 {
-	TArray<FAGX_ConstraintController*> BaseInstances(Instances);
-	Super::CopyFrom(Source, BaseInstances, ForceOverwriteInstances);
-
-	for (auto Instance : Instances)
-	{
-		if (Instance == nullptr)
-			continue;
-
-		if (ForceOverwriteInstances || Instance->Voltage == Voltage)
-			Instance->Voltage = Source.GetVoltage();
-
-		if (ForceOverwriteInstances || Instance->ArmatureResistance == ArmatureResistance)
-			Instance->ArmatureResistance = Source.GetArmatureResistance();
-
-		if (ForceOverwriteInstances || Instance->TorqueConstant == TorqueConstant)
-			Instance->TorqueConstant = Source.GetTorqueConstant();
-	}
+	Super::CopyFrom(Source);
 
 	Voltage = Source.GetVoltage();
 	ArmatureResistance = Source.GetArmatureResistance();

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -16,7 +16,7 @@
 
 struct FTerrainRef;
 
-class FHeightFieldShapeBarrier;
+struct FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
@@ -66,11 +66,14 @@ public:
 
 	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
 	double GetMaximumParticleActivationVolume() const;
-
+	
 	bool AddShovel(FShovelBarrier& Shovel);
 	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
 	void SetNoMerge(bool bNoMerge);
 	bool GetNoMerge() const;
+
+	void SetSoilParticleSizeScaling(float Scaling);
+	float GetSoilParticleSizeScaling() const;
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -10,7 +10,7 @@
 
 struct FContactMaterialRef;
 class FShapeMaterialBarrier;
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 /**
  * Acts as an interface to a native AGX Contact Material, and encapsulates it so that it is
@@ -74,10 +74,11 @@ public:
 	bool SetPrimaryDirection(const FVector& Direction);
 	bool GetPrimaryDirection(FVector& Direction) const;
 
-	// Functions that deal with oriented friction models. These do nothing / return empty string
-	// if the friction model isn't one of the oriented ones.
+	// Functions that deal with oriented friction models. These do nothing / return empty string or
+	// guid if the friction model isn't one of the oriented ones.
 	bool SetOrientedFrictionModelReferenceFrame(FRigidBodyBarrier* RigidBody);
 	FString GetOrientedFrictionModelReferenceFrameBodyName() const;
+	FGuid GetOrientedFrictionModelReferenceFrameBodyGuid() const;
 
 	void SetAdhesiveForce(double AdhesiveForce) const;
 	void SetAdhesiveOverlap(double AdhesiveOverlap) const;

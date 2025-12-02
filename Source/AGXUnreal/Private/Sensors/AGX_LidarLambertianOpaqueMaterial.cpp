@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Sensors/AGX_LidarLambertianOpaqueMaterial.h"
 
@@ -165,8 +165,12 @@ void UAGX_LidarLambertianOpaqueMaterial::UpdateNativeProperties()
 
 bool UAGX_LidarLambertianOpaqueMaterial::IsInstance() const
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
+	// This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// A runtime non-imported instance of this class will always have a reference to it's
+	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
 	AGX_CHECK(bIsInstance != IsAsset());
 	return bIsInstance;

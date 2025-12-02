@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 // Standard library includes.
 #include <memory>
 
+class FIMUBarrier;
 class FLidarBarrier;
 class FRtAmbientMaterialBarrier;
 class FRtLambertianOpaqueMaterialBarrier;
@@ -33,11 +34,13 @@ public:
 	void ReleaseNative();
 
 	bool Add(FLidarBarrier& Lidar);
+	bool Add(FIMUBarrier& IMU);
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Pager);
 	bool Add(FWireBarrier& Wire);
 
 	bool Remove(FLidarBarrier& Lidar);
+	bool Remove(FIMUBarrier& IMU);
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Pager);
 	bool Remove(FWireBarrier& Wire);
@@ -50,6 +53,10 @@ public:
 		FTerrainPagerBarrier& TerrainPager, FRtLambertianOpaqueMaterialBarrier* Material);
 	void SetLidarSurfaceMaterialOrDefault(
 		FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material);
+
+	/// In Tesla [T].
+	void SetMagneticField(const FVector& Field);
+	FVector GetMagneticField() const;
 
 	/// Returns true if raytrace (RTX) is supported on this computer.
 	static bool IsRaytraceSupported();

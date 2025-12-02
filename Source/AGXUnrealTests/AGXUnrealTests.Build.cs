@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 
 using UnrealBuildTool;
@@ -21,7 +21,7 @@ public class AGXUnrealTests : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
-			"Core", "Engine", "UnrealEd", "CoreUObject", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor"
+			"Core", "Engine", "UnrealEd", "CoreUObject", "AGXCommon", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor"
 		});
 	}
 }

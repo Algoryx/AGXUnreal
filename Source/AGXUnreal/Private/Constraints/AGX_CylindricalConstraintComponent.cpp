@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_CylindricalConstraintComponent.h"
 
@@ -7,14 +7,12 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_CylindricalConstraintComponent::UAGX_CylindricalConstraintComponent()
 	: UAGX_Constraint2DofComponent(
 		  {EDofFlag::DofFlagRotational1, EDofFlag::DofFlagRotational2,
-		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2},
-		  /*bIsSecondaryConstraint1Rotational*/ false,
-		  /*bIsSecondaryConstraint2Rotational*/ true)
+		   EDofFlag::DofFlagTranslational1, EDofFlag::DofFlagTranslational2})
 {
 	NativeBarrier.Reset(new FCylindricalJointBarrier());
 }

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -134,6 +134,9 @@ public:
 
 	void SetDepthIncreaseFactor(double DepthIncreaseFactor);
 	double GetDepthIncreaseFactor() const;
+	
+	void SetDepthAngleThreshold(double DepthAngleThreshold);
+	double GetDepthAngleThreshold() const;
 
 	void SetMaximumAggregateNormalForce(double MaximumAggregateNormalForce);
 	double GetMaximumAggregateNormalForce() const;

@@ -1,20 +1,23 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
 
+// Unreal Engine includes.
 #include <Math/Vector.h>
 
-#include <memory>
+#include "BoxShapeBarrier.generated.h"
 
-class AGXUNREALBARRIER_API FBoxShapeBarrier : public FShapeBarrier
+
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FBoxShapeBarrier : public FShapeBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FBoxShapeBarrier();
-	FBoxShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	FBoxShapeBarrier(FBoxShapeBarrier&& Other);
-	virtual ~FBoxShapeBarrier() override;
+	FBoxShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 	void SetHalfExtents(const FVector& NewHalfExtents);
 	FVector GetHalfExtents() const;
@@ -22,8 +25,4 @@ public:
 private:
 	virtual void AllocateNativeShape() override;
 	virtual void ReleaseNativeShape() override;
-
-private:
-	FBoxShapeBarrier(const FBoxShapeBarrier&) = delete;
-	void operator=(const FBoxShapeBarrier&) = delete;
 };

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Constraints/AGX_DistanceConstraintComponent.h"
 
@@ -7,14 +7,13 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_DistanceConstraintComponent::UAGX_DistanceConstraintComponent()
 	: UAGX_Constraint1DofComponent(
 		  TArray<EDofFlag> {
 			  // All common DOFs are free.
-		  },
-		  /*bIsSecondaryConstraintRotational*/ false)
+		  })
 {
 	// The AGX Dynamics distance constraint need the Lock to be enabled to function.
 	LockController.bEnable = true;

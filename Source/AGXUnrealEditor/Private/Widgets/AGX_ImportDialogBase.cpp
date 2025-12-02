@@ -1,11 +1,11 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Widgets/AGX_ImportDialogBase.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "Utilities/AGX_EditorUtilities.h"
-#include "Utilities/AGX_ImportUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
@@ -59,7 +59,7 @@ TSharedRef<SWidget> SAGX_ImportDialogBase::CreateBrowseFileGui()
 			[
 				SNew(SEditableTextBox)
 				.MinDesiredWidth(150.0f)
-				.Text(this, &SAGX_ImportDialogBase::GetFilePathText)
+				.Text(this, &SAGX_ImportDialogBase::GetFilePathTextIfFileExists)
 				.OnTextCommitted(this, &SAGX_ImportDialogBase::OnFilePathTextCommitted)
 			]
 			+ SHorizontalBox::Slot()
@@ -80,6 +80,40 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreateAGXFileGui()
 	// Currently no AGX File specific GUI elements to show. This can be expanded in the future if
 	// needed.
 	return MakeShared<SBorder>();
+}
+
+TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
+{
+	if (ImportType != EAGX_ImportType::Plx)
+	{
+		return MakeShared<SBorder>();
+	}
+
+	// clang-format off
+	return SNew(SBorder)
+				.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f))
+				.BorderImage(FAGX_EditorUtilities::GetBrush("ToolPanel.GroupBorder"))
+				.Padding(FMargin(5.0f, 15.0f))
+				.Content()
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(FMargin(0.f, 0.f, 33.f, 0.f))
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
+							.Text(LOCTEXT("PLXChangeText", "Note: OpenPLX is under development and is subject to change. "
+								"Backwards compatibility cannot be guaranteed."))
+							.Font(FAGX_SlateUtilities::CreateFont(10))
+						]
+					]
+				];
+	// clang-format on
 }
 
 TSharedRef<SWidget> SAGX_ImportDialogBase::CreateIgnoreDisabledTrimeshGui()
@@ -118,13 +152,13 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 	const FString CurrentSelectedDir = FPaths::GetPath(FilePath);
 	const FString StartDir = FPaths::DirectoryExists(CurrentSelectedDir) ? CurrentSelectedDir : "";
 	FilePath = FAGX_EditorUtilities::SelectExistingFileDialog("file", FileTypes, StartDir);
-	ImportType = FAGX_ImportUtilities::GetFrom(FilePath);
+	ImportType = FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath);
 
 	RefreshGui();
 
 	if (ImportType == EAGX_ImportType::Invalid && !FilePath.IsEmpty())
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithErrorLog(
+		FAGX_NotificationUtilities::ShowDialogBoxWithError(
 			"Unable to detect file type for selected type.");
 		FilePath = "";
 		return FReply::Handled();
@@ -136,6 +170,14 @@ FReply SAGX_ImportDialogBase::OnBrowseFileButtonClicked()
 FText SAGX_ImportDialogBase::GetFilePathText() const
 {
 	return FText::FromString(FilePath);
+}
+
+FText SAGX_ImportDialogBase::GetFilePathTextIfFileExists() const
+{
+	if (!FPaths::FileExists(FilePath))
+		return FText();
+
+	return GetFilePathText();
 }
 
 void SAGX_ImportDialogBase::OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState)
@@ -152,7 +194,7 @@ void SAGX_ImportDialogBase::OnFilePathTextCommitted(
 	const FText& InNewText, ETextCommit::Type InCommitType)
 {
 	FilePath = InNewText.ToString();
-	ImportType = FAGX_ImportUtilities::GetFrom(FilePath);
+	ImportType = FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath);
 	RefreshGui();
 }
 

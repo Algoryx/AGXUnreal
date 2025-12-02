@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -42,6 +42,7 @@ public:
 	bool GetEnabled() const;
 
 	void SetTransform(const FTransform& Transform);
+	FTransform GetTransform() const;
 
 	void SetRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetRange() const;

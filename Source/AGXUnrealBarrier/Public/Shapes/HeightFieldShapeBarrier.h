@@ -1,20 +1,19 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
 #include "Shapes/ShapeBarrier.h"
 
-#include <memory>
+#include "HeightFieldShapeBarrier.generated.h"
 
-class AGXUNREALBARRIER_API FHeightFieldShapeBarrier : public FShapeBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FHeightFieldShapeBarrier : public FShapeBarrier
 {
-public:
-	FHeightFieldShapeBarrier();
-	FHeightFieldShapeBarrier(FHeightFieldShapeBarrier&& Other) = default;
-	FHeightFieldShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native);
-	virtual ~FHeightFieldShapeBarrier() override;
+	GENERATED_BODY()
 
-	FHeightFieldShapeBarrier& operator=(FHeightFieldShapeBarrier&& Other) = default;
+	FHeightFieldShapeBarrier();
+	FHeightFieldShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native);
 
 	void AllocateNative(int32 NumVerticesX, int32 NumVerticesY, double SizeX, double SizeY);
 
@@ -26,8 +25,4 @@ private:
 
 	void AllocateNativeHeightField(
 		int32 NumVerticesX, int32 NumVerticesY, double SizeX, double SizeY);
-
-private:
-	FHeightFieldShapeBarrier(const FHeightFieldShapeBarrier&) = delete;
-	void operator=(const FHeightFieldShapeBarrier&) = delete;
 };

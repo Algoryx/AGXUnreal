@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -82,17 +82,26 @@ public:
 	 * angle is in [deg].
 	 * @return The angle [deg] or position [cm] of the given free degree of freedom.
 	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint")
 	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
 
-	UAGX_Constraint2DofComponent();
+	/**
+	 * Get the current speed in the given free degree of freedom (DOF). If this is a translational
+	 * constraint then the speed is in [cm/s], if it is a rotational constraint then the speed is in
+	 * [deg/s].
+	 * @return The speed, either [cm/s] or [rad/s].
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint")
+	double GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const;
 
-	UAGX_Constraint2DofComponent(
-		const TArray<EDofFlag>& LockedDofsOrdered, bool bIsSecondaryConstraint1Rotational,
-		bool bIsSecondaryConstraint2Rotational);
+	UAGX_Constraint2DofComponent() = default;
+	UAGX_Constraint2DofComponent(const TArray<EDofFlag>& LockedDofsOrdered);
 
 	virtual ~UAGX_Constraint2DofComponent() override;
 
 	virtual void UpdateNativeProperties() override;
+
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	TStaticArray<FAGX_ConstraintController*, 11> GetAllControllers();
 

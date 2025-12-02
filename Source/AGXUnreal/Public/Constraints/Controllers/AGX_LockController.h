@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -35,12 +35,8 @@ struct AGXUNREAL_API FAGX_ConstraintLockController : public FAGX_ConstraintContr
 
 public:
 	FAGX_ConstraintLockController() = default;
-	FAGX_ConstraintLockController(bool bRotational);
-
 	void InitializeBarrier(TUniquePtr<FLockControllerBarrier> Barrier);
-	void CopyFrom(
-		const FLockControllerBarrier& Source,
-		TArray<FAGX_ConstraintLockController*>& ArchetypeInstances, bool ForceOverwriteInstances);
+	void CopyFrom(const FLockControllerBarrier& Source);
 
 protected:
 	virtual void UpdateNativePropertiesImpl() override;

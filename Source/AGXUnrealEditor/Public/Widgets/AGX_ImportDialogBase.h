@@ -1,10 +1,9 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ImportEnums.h"
-#include "AGX_ImportSettings.h"
+#include "Import/AGX_ImportEnums.h"
 
 // Unreal Engine includes.
 #include "Styling/SlateTypes.h"
@@ -27,10 +26,12 @@ public:
 protected:
 	TSharedRef<SWidget> CreateBrowseFileGui();
 	TSharedRef<SBorder> CreateAGXFileGui();
+	TSharedRef<SBorder> CreatePLXFileGui();
 	TSharedRef<SWidget> CreateIgnoreDisabledTrimeshGui();
 
 	FReply OnBrowseFileButtonClicked();
 	FText GetFilePathText() const;
+	FText GetFilePathTextIfFileExists() const;
 	void OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState);
 	void OnFilePathTextCommitted(const FText& InNewText, ETextCommit::Type InCommitType);
 
@@ -38,5 +39,5 @@ protected:
 	EAGX_ImportType ImportType = EAGX_ImportType::Invalid;
 	FString FilePath;
 	bool bIgnoreDisabledTrimesh = true;
-	bool bUserHasPressedImportOrSynchronize = false;
+	bool bUserHasPressedImportOrReimport = false;
 };

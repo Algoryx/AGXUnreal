@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include "CoreMinimal.h"
 
 #include "AGX_AgxEdModeFile.generated.h"
+
+class UWorld;
 
 /**
  * Sub-mode for AgxEdMode. Used to import/export .agx and .urdf files.
@@ -29,5 +31,13 @@ public:
 	static void ExportAgxArchive();
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	static void ReimportModel_BP(UObject* Blueprint);
+
+	/**
+	 * Deprecated, use ReimportModel_BP instead.
+	 */
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Dynamics",
+		meta = (DeprecatedFunction, DeprecationMessage = "Use ReimportModel_BP instead."))
 	static void SynchronizeModel_BP(UObject* Blueprint);
 };

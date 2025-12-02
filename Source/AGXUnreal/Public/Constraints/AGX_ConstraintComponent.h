@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -19,6 +19,7 @@
 #include "AGX_ConstraintComponent.generated.h"
 
 struct FAGX_ConstraintController;
+struct FAGX_ImportContext;
 class FConstraintBarrier;
 
 /**
@@ -224,7 +225,21 @@ public:
 	 * initialized.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
-	bool GetValid() const;
+	virtual bool GetValid() const;
+
+	/**
+	 * Get the current force [N] or torque [Nm] of the constraint along a particular degree of
+	 * freedom.
+	 *
+	 * Only degrees of freedoms listed in the return value of GetLockedDofsBitmask may be passed.
+	 *
+	 * Consider using one of the Get Last Force functions instead.
+	 *
+	 * @param Dof Degree of freedom to get current force for.
+	 * @return Constraint force in the given degree of freedom.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetCurrentForce(EGenericDofIndex Dof) const;
 
 	/**
 	 * If Compute Forces is enabled, returns the last force [N] and torque [Nm] applied by this
@@ -329,8 +344,7 @@ public:
 		const UAGX_RigidBodyComponent* Body, FVector& OutForce, FVector& OutTorque,
 		bool bForceAtCm = false) const;
 
-	// Does not setup body attachments. This must be done by the caller of this function.
-	void CopyFrom(const FConstraintBarrier& Barrier, bool ForceOverwriteInstances = false);
+	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context);
 
 	/**
 	 * Returns true if for any of the locked DOFs both the global attachment frame transforms do no
@@ -411,8 +425,15 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
+
+	/*
+	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	FString ImportName;
 
 public: // Deprecated functions.
 	UFUNCTION(

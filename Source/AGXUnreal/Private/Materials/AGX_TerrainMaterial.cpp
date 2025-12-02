@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Materials/AGX_TerrainMaterial.h"
 
@@ -8,12 +8,21 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Materials/TerrainMaterialBarrier.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
 
 // Bulk properties.
+
+bool UAGX_TerrainMaterial::operator==(const UAGX_TerrainMaterial& Other) const
+{
+	return TerrainBulk == Other.TerrainBulk && TerrainCompaction == Other.TerrainCompaction &&
+		   TerrainParticles == Other.TerrainParticles &&
+		   TerrainExcavationContact == Other.TerrainExcavationContact && Bulk == Other.Bulk &&
+		   Surface == Other.Surface && Wire == Other.Wire;
+}
 
 void UAGX_TerrainMaterial::SetAdhesionOverlapFactor(double AdhesionOverlapFactor)
 {
@@ -482,6 +491,20 @@ double UAGX_TerrainMaterial::GetDepthIncreaseFactor() const
 		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
 }
 
+void UAGX_TerrainMaterial::SetDepthAngleThreshold(double DepthAngleThreshold)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainExcavationContact.DepthAngleThreshold, DepthAngleThreshold, SetDepthAngleThreshold,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetDepthAngleThreshold() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainExcavationContact.DepthAngleThreshold, GetDepthAngleThreshold,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
 void UAGX_TerrainMaterial::SetMaximumAggregateNormalForce(double MaximumAggregateNormalForce)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
@@ -516,87 +539,6 @@ void UAGX_TerrainMaterial::Serialize(FArchive& Archive)
 	TerrainCompaction.Serialize(Archive);
 }
 
-void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
-{
-	TerrainBulk = FAGX_TerrainBulkProperties();
-	TerrainBulk.AdhesionOverlapFactor = Source.GetAdhesionOverlapFactor();
-	TerrainBulk.Cohesion = Source.GetCohesion();
-	TerrainBulk.Density = Source.GetDensity();
-	TerrainBulk.DilatancyAngle = Source.GetDilatancyAngle();
-	TerrainBulk.FrictionAngle = Source.GetFrictionAngle();
-	TerrainBulk.MaxDensity = Source.GetMaxDensity();
-	TerrainBulk.PoissonsRatio = Source.GetPoissonsRatio();
-	TerrainBulk.SwellFactor = Source.GetSwellFactor();
-	TerrainBulk.YoungsModulus = Source.GetYoungsModulus();
-
-	TerrainCompaction = FAGX_TerrainCompactionProperties();
-	TerrainCompaction.AngleOfReposeCompactionRate = Source.GetAngleOfReposeCompactionRate();
-	TerrainCompaction.BankStatePhi0 = Source.GetBankStatePhi();
-	TerrainCompaction.CompactionTimeRelaxationConstant =
-		Source.GetCompactionTimeRelaxationConstant();
-	TerrainCompaction.CompressionIndex = Source.GetCompressionIndex();
-	TerrainCompaction.HardeningConstantKe = Source.GetHardeningConstantKe();
-	TerrainCompaction.HardeningConstantNe = Source.GetHardeningConstantNe();
-	TerrainCompaction.PreconsolidationStress = Source.GetPreconsolidationStress();
-	TerrainCompaction.StressCutOffFraction = Source.GetStressCutOffFraction();
-	TerrainCompaction.DilatancyAngleScalingFactor = Source.GetDilatancyAngleScalingFactor();
-
-	TerrainParticles = FAGX_TerrainParticleProperties();
-	TerrainParticles.AdhesionOverlapFactor = Source.GetParticleAdhesionOverlapFactor();
-	TerrainParticles.ParticleCohesion = Source.GetParticleCohesion();
-	TerrainParticles.ParticleRestitution = Source.GetParticleRestitution();
-	TerrainParticles.ParticleRollingResistance = Source.GetParticleRollingResistance();
-	TerrainParticles.ParticleSurfaceFriction = Source.GetParticleSurfaceFriction();
-	TerrainParticles.ParticleTerrainCohesion = Source.GetParticleTerrainCohesion();
-	TerrainParticles.ParticleTerrainRestitution = Source.GetParticleTerrainRestitution();
-	TerrainParticles.ParticleTerrainRollingResistance =
-		Source.GetParticleTerrainRollingResistance();
-	TerrainParticles.ParticleTerrainSurfaceFriction = Source.GetParticleTerrainSurfaceFriction();
-	TerrainParticles.ParticleTerrainYoungsModulus = Source.GetParticleTerrainYoungsModulus();
-	TerrainParticles.ParticleYoungsModulus = Source.GetParticleYoungsModulus();
-
-	TerrainExcavationContact = FAGX_TerrainExcavationContactProperties();
-	TerrainExcavationContact.AggregateStiffnessMultiplier =
-		Source.GetAggregateStiffnessMultiplier();
-	TerrainExcavationContact.ExcavationStiffnessMultiplier =
-		Source.GetExcavationStiffnessMultiplier();
-	TerrainExcavationContact.DepthDecayFactor = Source.GetDepthDecayFactor();
-	TerrainExcavationContact.DepthIncreaseFactor = Source.GetDepthIncreaseFactor();
-	TerrainExcavationContact.MaximumAggregateNormalForce = Source.GetMaximumAggregateNormalForce();
-	TerrainExcavationContact.MaximumContactDepth = Source.GetMaximumContactDepth();
-}
-
-void UAGX_TerrainMaterial::CopyTerrainMaterialProperties(const UAGX_TerrainMaterial* Source)
-{
-	if (Source)
-	{
-		// As of now, this property is not used for terrain (replaced by the terrain specific bulk
-		// properties) and will always have default values.
-		Bulk = Source->Bulk;
-
-		Surface = Source->Surface;
-		TerrainBulk = Source->TerrainBulk;
-		TerrainCompaction = Source->TerrainCompaction;
-	}
-}
-
-UAGX_TerrainMaterial* UAGX_TerrainMaterial::GetOrCreateInstance(UWorld* PlayingWorld)
-{
-	if (IsInstance())
-	{
-		return this;
-	}
-
-	UAGX_TerrainMaterial* InstancePtr = Instance.Get();
-	if (!InstancePtr && PlayingWorld && PlayingWorld->IsGameWorld())
-	{
-		InstancePtr = UAGX_TerrainMaterial::CreateFromAsset(PlayingWorld, this);
-		Instance = InstancePtr;
-	}
-
-	return InstancePtr;
-}
-
 #if WITH_EDITOR
 void UAGX_TerrainMaterial::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
@@ -623,15 +565,15 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
 		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, AdhesionOverlapFactor),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				TerrainBulk.AdhesionOverlapFactor, SetAdhesionOverlapFactor)
 		});
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, Cohesion),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, Cohesion), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.Cohesion, SetCohesion) });
 
 	PropertyDispatcher.Add(
@@ -641,38 +583,32 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, DilatancyAngle),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, DilatancyAngle), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.DilatancyAngle, SetDilatancyAngle) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, FrictionAngle),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, FrictionAngle), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.FrictionAngle, SetFrictionAngle) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, MaxDensity),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, MaxDensity), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.MaxDensity, SetMaxDensity) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, PoissonsRatio),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, PoissonsRatio), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.PoissonsRatio, SetPoissonsRatio) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, SwellFactor),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, SwellFactor), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.SwellFactor, SetSwellFactor) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, YoungsModulus),
-		[](ThisClass* This)
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, YoungsModulus), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.YoungsModulus, SetYoungsModulus) });
 
 	// Compaction properties.
@@ -704,7 +640,8 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainCompaction),
 		GET_MEMBER_NAME_CHECKED(FAGX_TerrainCompactionProperties, CompressionIndex),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				TerrainCompaction.CompressionIndex, SetCompressionIndex)
 		});
@@ -767,14 +704,16 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainParticles),
 		GET_MEMBER_NAME_CHECKED(FAGX_TerrainParticleProperties, ParticleCohesion),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainParticles.ParticleCohesion, SetParticleCohesion)
 		});
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainParticles),
 		GET_MEMBER_NAME_CHECKED(FAGX_TerrainParticleProperties, ParticleRestitution),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				TerrainParticles.ParticleRestitution, SetParticleRestitution)
 		});
@@ -895,6 +834,15 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainExcavationContact),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainExcavationContactProperties, DepthAngleThreshold),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainExcavationContact.DepthAngleThreshold, SetDepthAngleThreshold)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainExcavationContact),
 		GET_MEMBER_NAME_CHECKED(
 			FAGX_TerrainExcavationContactProperties, MaximumAggregateNormalForce),
 		[](ThisClass* This)
@@ -942,57 +890,26 @@ FTerrainMaterialBarrier* UAGX_TerrainMaterial::GetOrCreateTerrainMaterialNative(
 	return GetTerrainMaterialNative();
 }
 
-UAGX_TerrainMaterial* UAGX_TerrainMaterial::CreateFromAsset(
-	UWorld* PlayingWorld, UAGX_TerrainMaterial* Source)
+FTerrainMaterialBarrier* UAGX_TerrainMaterial::GetTerrainMaterialNative()
 {
-	check(Source);
-	check(!Source->IsInstance());
-	check(PlayingWorld);
-	check(PlayingWorld->IsGameWorld());
-
-	FString InstanceName = Source->GetName() + "_Instance";
-
-	UAGX_TerrainMaterial* NewInstance = NewObject<UAGX_TerrainMaterial>(
-		GetTransientPackage(), UAGX_TerrainMaterial::StaticClass(), *InstanceName, RF_Transient);
-	NewInstance->Asset = Source;
-
-	// Copy the terrain material properties
-	NewInstance->CopyTerrainMaterialProperties(Source);
-
-	NewInstance->CreateTerrainMaterialNative();
-
-	return NewInstance;
+	return HasTerrainMaterialNative() ? &TerrainMaterialNativeBarrier : nullptr;
 }
 
-void UAGX_TerrainMaterial::CreateTerrainMaterialNative()
+UAGX_TerrainMaterial* UAGX_TerrainMaterial::GetOrCreateInstance(UWorld* PlayingWorld)
 {
-	if (!IsInstance())
+	if (IsInstance())
 	{
-		if (Instance == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("CreateTerrainMaterialNative was called on UAGX_TerrainMaterial '%s'"
-					 "who's instance is nullptr. Ensure e.g. GetOrCreateInstance is called "
-					 "prior to calling this function."),
-				*GetName());
-			return;
-		}
-
-		Instance->CreateTerrainMaterialNative();
-		return;
+		return this;
 	}
 
-	AGX_CHECK(IsInstance());
-	if (TerrainMaterialNativeBarrier.HasNative())
+	UAGX_TerrainMaterial* InstancePtr = Instance.Get();
+	if (!InstancePtr && PlayingWorld && PlayingWorld->IsGameWorld())
 	{
-		TerrainMaterialNativeBarrier.ReleaseNative();
+		InstancePtr = UAGX_TerrainMaterial::CreateFromAsset(PlayingWorld, this);
+		Instance = InstancePtr;
 	}
 
-	TerrainMaterialNativeBarrier.AllocateNative(TCHAR_TO_UTF8(*GetName()));
-	check(HasTerrainMaterialNative());
-
-	UpdateTerrainMaterialNativeProperties();
+	return InstancePtr;
 }
 
 bool UAGX_TerrainMaterial::HasTerrainMaterialNative() const
@@ -1011,9 +928,42 @@ bool UAGX_TerrainMaterial::HasTerrainMaterialNative() const
 	return TerrainMaterialNativeBarrier.HasNative();
 }
 
-FTerrainMaterialBarrier* UAGX_TerrainMaterial::GetTerrainMaterialNative()
+UAGX_TerrainMaterial* UAGX_TerrainMaterial::CreateFromAsset(
+	UWorld* PlayingWorld, UAGX_TerrainMaterial* Source)
 {
-	return HasTerrainMaterialNative() ? &TerrainMaterialNativeBarrier : nullptr;
+	check(Source);
+	check(PlayingWorld);
+	check(PlayingWorld->IsGameWorld());
+
+	FString InstanceName = Source->GetName() + "_Instance";
+
+	UAGX_TerrainMaterial* NewInstance = NewObject<UAGX_TerrainMaterial>(
+		GetTransientPackage(), UAGX_TerrainMaterial::StaticClass(), *InstanceName, RF_Transient);
+	NewInstance->Asset = Source;
+
+	// Copy the terrain material properties
+	NewInstance->CopyTerrainMaterialProperties(Source);
+
+	NewInstance->CreateTerrainMaterialNative();
+
+	return NewInstance;
+}
+
+void UAGX_TerrainMaterial::CopyTerrainMaterialProperties(const UAGX_TerrainMaterial* Source)
+{
+	if (Source)
+	{
+		TerrainBulk = Source->TerrainBulk;
+		TerrainCompaction = Source->TerrainCompaction;
+		TerrainParticles = Source->TerrainParticles;
+		TerrainExcavationContact = Source->TerrainExcavationContact;
+
+		// The rest of the properties are legacy and should not be used. Still copied to maintain
+		// consistency, and to keep our unit tests passing.
+		Bulk = Source->Bulk;
+		Surface = Source->Surface;
+		Wire = Source->Wire;
+	}
 }
 
 void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
@@ -1080,6 +1030,8 @@ void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
 		TerrainMaterialNativeBarrier.SetDepthDecayFactor(TerrainExcavationContact.DepthDecayFactor);
 		TerrainMaterialNativeBarrier.SetDepthIncreaseFactor(
 			TerrainExcavationContact.DepthIncreaseFactor);
+		TerrainMaterialNativeBarrier.SetDepthAngleThreshold(
+			TerrainExcavationContact.DepthAngleThreshold);
 		TerrainMaterialNativeBarrier.SetMaximumAggregateNormalForce(
 			TerrainExcavationContact.MaximumAggregateNormalForce);
 		TerrainMaterialNativeBarrier.SetMaximumContactDepth(
@@ -1087,19 +1039,72 @@ void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
 	}
 }
 
-bool UAGX_TerrainMaterial::IsInstance() const
+void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 {
-	// An instance of this class will always have a reference to it's corresponding Asset.
-	// An asset will never have this reference set.
-	const bool bIsInstance = Asset != nullptr;
+	// Copy Bulk properties.
+	TerrainBulk = FAGX_TerrainBulkProperties();
+	TerrainBulk.AdhesionOverlapFactor = Source.GetAdhesionOverlapFactor();
+	TerrainBulk.Cohesion = Source.GetCohesion();
+	TerrainBulk.Density = Source.GetDensity();
+	TerrainBulk.DilatancyAngle = Source.GetDilatancyAngle();
+	TerrainBulk.FrictionAngle = Source.GetFrictionAngle();
+	TerrainBulk.MaxDensity = Source.GetMaxDensity();
+	TerrainBulk.PoissonsRatio = Source.GetPoissonsRatio();
+	TerrainBulk.SwellFactor = Source.GetSwellFactor();
+	TerrainBulk.YoungsModulus = Source.GetYoungsModulus();
 
-	// Internal testing the hypothesis that UObject::IsAsset is a valid inverse of this
-	// function.
-	// @todo Consider removing this function and instead use UObject::IsAsset, if the below
-	// check has never failed.
-	AGX_CHECK(bIsInstance != IsAsset());
+	// Copy Compaction properties.
+	TerrainCompaction = FAGX_TerrainCompactionProperties();
+	TerrainCompaction.AngleOfReposeCompactionRate = Source.GetAngleOfReposeCompactionRate();
+	TerrainCompaction.BankStatePhi0 = Source.GetBankStatePhi();
+	TerrainCompaction.CompactionTimeRelaxationConstant =
+		Source.GetCompactionTimeRelaxationConstant();
+	TerrainCompaction.CompressionIndex = Source.GetCompressionIndex();
+	TerrainCompaction.HardeningConstantKe = Source.GetHardeningConstantKe();
+	TerrainCompaction.HardeningConstantNe = Source.GetHardeningConstantNe();
+	TerrainCompaction.PreconsolidationStress = Source.GetPreconsolidationStress();
+	TerrainCompaction.StressCutOffFraction = Source.GetStressCutOffFraction();
+	TerrainCompaction.DilatancyAngleScalingFactor = Source.GetDilatancyAngleScalingFactor();
 
-	return bIsInstance;
+	// Copy Particle properties.
+	TerrainParticles = FAGX_TerrainParticleProperties();
+	TerrainParticles.AdhesionOverlapFactor = Source.GetParticleAdhesionOverlapFactor();
+	TerrainParticles.ParticleCohesion = Source.GetParticleCohesion();
+	TerrainParticles.ParticleRestitution = Source.GetParticleRestitution();
+	TerrainParticles.ParticleRollingResistance = Source.GetParticleRollingResistance();
+	TerrainParticles.ParticleSurfaceFriction = Source.GetParticleSurfaceFriction();
+	TerrainParticles.ParticleTerrainCohesion = Source.GetParticleTerrainCohesion();
+	TerrainParticles.ParticleTerrainRestitution = Source.GetParticleTerrainRestitution();
+	TerrainParticles.ParticleTerrainRollingResistance =
+		Source.GetParticleTerrainRollingResistance();
+	TerrainParticles.ParticleTerrainSurfaceFriction = Source.GetParticleTerrainSurfaceFriction();
+	TerrainParticles.ParticleTerrainYoungsModulus = Source.GetParticleTerrainYoungsModulus();
+	TerrainParticles.ParticleYoungsModulus = Source.GetParticleYoungsModulus();
+
+	// Copy Excavation properties.
+	TerrainExcavationContact = FAGX_TerrainExcavationContactProperties();
+	TerrainExcavationContact.AggregateStiffnessMultiplier =
+		Source.GetAggregateStiffnessMultiplier();
+	TerrainExcavationContact.ExcavationStiffnessMultiplier =
+		Source.GetExcavationStiffnessMultiplier();
+	TerrainExcavationContact.DepthDecayFactor = Source.GetDepthDecayFactor();
+	TerrainExcavationContact.DepthIncreaseFactor = Source.GetDepthIncreaseFactor();
+	TerrainExcavationContact.DepthAngleThreshold = Source.GetDepthAngleThreshold();
+	TerrainExcavationContact.MaximumAggregateNormalForce = Source.GetMaximumAggregateNormalForce();
+	TerrainExcavationContact.MaximumContactDepth = Source.GetMaximumContactDepth();
+}
+
+bool UAGX_TerrainMaterial::IsInstance() const
+{   
+    // This is the case for runtime imported instances.
+	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
+		return true;
+
+	// Cannot use a negated return value from IsAsset because sometimes we create runtime instances
+	// that we want to use as-if they are assets without actually creating real on-drive assets,
+	// and difficult to fool the IsAsset function into believing that something is an asset when it
+	// actually is not.
+	return Asset != nullptr;
 }
 
 const FAGX_ShapeMaterialBulkProperties& UAGX_TerrainMaterial::GetShapeMaterialBulkProperties()
@@ -1115,4 +1120,35 @@ const FAGX_ShapeMaterialSurfaceProperties& UAGX_TerrainMaterial::GetShapeMateria
 const FAGX_ShapeMaterialWireProperties& UAGX_TerrainMaterial::GetShapeMaterialWireProperties()
 {
 	return Wire;
+}
+
+void UAGX_TerrainMaterial::CreateTerrainMaterialNative()
+{
+	if (!IsInstance())
+	{
+		if (Instance == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("CreateTerrainMaterialNative was called on UAGX_TerrainMaterial '%s'"
+					 "who's instance is nullptr. Ensure e.g. GetOrCreateInstance is called "
+					 "prior to calling this function."),
+				*GetName());
+			return;
+		}
+
+		Instance->CreateTerrainMaterialNative();
+		return;
+	}
+
+	AGX_CHECK(IsInstance());
+	if (TerrainMaterialNativeBarrier.HasNative())
+	{
+		TerrainMaterialNativeBarrier.ReleaseNative();
+	}
+
+	TerrainMaterialNativeBarrier.AllocateNative(TCHAR_TO_UTF8(*GetName()));
+	check(HasTerrainMaterialNative());
+
+	UpdateTerrainMaterialNativeProperties();
 }

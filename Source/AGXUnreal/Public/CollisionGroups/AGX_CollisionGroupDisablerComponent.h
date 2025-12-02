@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -10,6 +10,8 @@
 #include "Components/ActorComponent.h"
 
 #include "AGX_CollisionGroupDisablerComponent.generated.h"
+
+struct FAGX_ImportContext;
 
 /**
  * From the Collision Group Disabler Component's detail panel, it is possible to disable
@@ -70,6 +72,8 @@ public:
 
 	bool IsCollisionGroupPairDisabled(
 		const FName& CollisionGroup1, const FName& CollisionGroup2) const;
+
+	void CopyFrom(const TArray<std::pair<FString, FString>>& Groups, FAGX_ImportContext* Context);
 
 protected:
 	virtual void BeginPlay() override;

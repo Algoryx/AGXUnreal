@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -20,11 +20,12 @@ class AGXUNREALEDITOR_API FAGX_RigidBodyComponentCustomization : public IDetailC
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
+	//~ Begin IDetailCustomNodeBuilder.
 	virtual void CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder) override;
-
-private:
-	FText GetHasNativeText() const;
+	//~ End IDetailCustomNodeBuilder.
 
 private:
 	IDetailLayoutBuilder* DetailBuilder;
+
+	FText ExternalForce;
 };

@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -16,6 +16,9 @@ struct AGXUNREAL_API FAGX_ShapeMaterialWireProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_ShapeMaterialWireProperties& Other) const = default;
+
 	/**
 	 * Young's modulus when stretching the wire [Pa].
 	 */

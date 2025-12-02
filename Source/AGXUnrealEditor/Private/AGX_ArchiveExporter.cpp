@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_ArchiveExporter.h"
 
@@ -10,6 +10,7 @@
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+
 
 bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 {
@@ -36,7 +37,7 @@ bool AGX_ArchiveExporter::ExportAGXArchive(const FString& ArchivePath)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(
-				TEXT("Unable to export .agx to: '%s'. The Console Log may contain more "
+				TEXT("Unable to export .agx to: '%s'. The Output Log may contain more "
 					 "information."),
 				*ArchivePath),
 			SNotificationItem::CS_Fail);

@@ -1,10 +1,10 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
 #include "Constraints/ConstraintBarrier.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 struct FConstraintRef;
 

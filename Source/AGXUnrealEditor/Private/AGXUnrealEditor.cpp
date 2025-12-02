@@ -1,20 +1,6 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGXUnrealEditor.h"
-
-// Unreal Engine includes.
-#include "AssetToolsModule.h"
-#include "AssetTypeCategories.h"
-#include "Editor/UnrealEdEngine.h"
-#include "Framework/Commands/Commands.h"
-#include "IAssetTools.h"
-#include "IAssetTypeActions.h"
-#include "IPlacementModeModule.h"
-#include "ISettingsModule.h"
-#include "LevelEditor.h"
-#include "Modules/ModuleManager.h"
-#include "PropertyEditorModule.h"
-#include "UnrealEdGlobals.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_ComponentReference.h"
@@ -30,8 +16,6 @@
 #include "AGX_Real.h"
 #include "AGX_RealDetails.h"
 #include "AGX_RuntimeStyle.h"
-#include "AGX_ModelSourceComponent.h"
-#include "AGX_ModelSourceComponentCustomization.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
 #include "AGX_StaticMeshComponent.h"
@@ -68,6 +52,8 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Import/AGX_ModelSourceComponent.h"
+#include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialCustomization.h"
@@ -79,12 +65,20 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
 #include "Sensors/AGX_CameraSensorBase.h"
 #include "Sensors/AGX_CameraSensorComponentCustomization.h"
 #include "Sensors/AGX_CameraSensorComponentVisualizer.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
+#include "Sensors/AGX_IMUSensorComponentCustomization.h"
+#include "Sensors/AGX_IMUSensorComponentVisualizer.h"
+#include "Sensors/AGX_IMUSensorReference.h"
+#include "Sensors/AGX_LidarAmbientMaterial.h"
+#include "Sensors/AGX_LidarAmbientMaterialCustomization.h"
 #include "Sensors/AGX_LidarAmbientMaterialTypeActions.h"
 #include "Sensors/AGX_LidarLambertianOpaqueMaterialTypeActions.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
@@ -117,6 +111,7 @@
 #include "Tires/AGX_TwoBodyTireActor.h"
 #include "Tires/AGX_TwoBodyTireComponentCustomization.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/AGX_ImportUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackComponentDetails.h"
 #include "Vehicle/AGX_TrackComponentVisualizer.h"
@@ -132,6 +127,22 @@
 #include "Wire/AGX_WireWinchComponent.h"
 #include "Wire/AGX_WireWinchDetails.h"
 #include "Wire/AGX_WireWinchVisualizer.h"
+
+// Unreal Engine includes.
+#include "AssetRegistry/AssetData.h"
+#include "AssetToolsModule.h"
+#include "AssetTypeCategories.h"
+#include "Editor/UnrealEdEngine.h"
+#include "Engine/Blueprint.h"
+#include "Framework/Commands/Commands.h"
+#include "IAssetTools.h"
+#include "IAssetTypeActions.h"
+#include "IPlacementModeModule.h"
+#include "ISettingsModule.h"
+#include "LevelEditor.h"
+#include "Modules/ModuleManager.h"
+#include "PropertyEditorModule.h"
+#include "UnrealEdGlobals.h"
 
 #define LOCTEXT_NAMESPACE "FAGXUnrealEditorModule"
 
@@ -181,6 +192,12 @@ void FAGXUnrealEditorModule::StartupModule()
 	InitializeAssets();
 
 	AgxTopMenu = MakeShareable(new FAGX_TopMenu());
+
+	// Listen to Asset Removal events.
+	FAssetRegistryModule& AssetRegistryModule =
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().OnAssetRemoved().AddRaw(
+		this, &FAGXUnrealEditorModule::OnAssetRemoved);
 }
 
 void FAGXUnrealEditorModule::ShutdownModule()
@@ -196,6 +213,13 @@ void FAGXUnrealEditorModule::ShutdownModule()
 	UnregisterPlacementCategory();
 
 	AgxTopMenu = nullptr;
+
+	if (FModuleManager::Get().IsModuleLoaded("AssetRegistry"))
+	{
+		FAssetRegistryModule& AssetRegistryModule =
+			FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
+		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+	}
 }
 
 const TSharedPtr<FAGX_TopMenu>& FAGXUnrealEditorModule::GetAgxTopMenu() const
@@ -345,6 +369,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_FrameCustomization::MakeInstance));
 
+	// IMU Sensor Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
 	// Lidar Sensor Reference uses the base class customization.
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName(),
@@ -436,6 +466,16 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_HeightFieldBoundsComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_IMUSensorComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
+		UAGX_LidarAmbientMaterial::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_LidarAmbientMaterialCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_LidarSensorComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_LidarSensorComponentCustomization::MakeInstance));
@@ -501,6 +541,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		UAGX_WireWinchComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
+	PropertyModule.RegisterCustomClassLayout(
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FOpenPLX_SignalHandlerComponentCustomization::MakeInstance));
+
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -520,6 +565,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 		FAGX_ConstraintBodyAttachment::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(FAGX_Frame::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName());
@@ -567,6 +615,12 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_LidarAmbientMaterial::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_LidarSensorComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
@@ -596,6 +650,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
 
+	PropertyModule.UnregisterCustomClassLayout(
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName());
+
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
 
@@ -616,6 +673,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 	RegisterComponentVisualizer(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_HeightFieldBoundsComponentVisualizer));
+
+	RegisterComponentVisualizer(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_IMUSensorComponentVisualizer));
 
 	RegisterComponentVisualizer(
 		UAGX_LidarSensorComponent::StaticClass()->GetFName(),
@@ -652,6 +713,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_IMUSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorLineTraceComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
@@ -752,10 +814,7 @@ void FAGXUnrealEditorModule::UnregisterPlacementCategory()
 
 void FAGXUnrealEditorModule::InitializeAssets()
 {
-	AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries();
 }
 
 void FAGXUnrealEditorModule::OnGrabModeCommand() const
@@ -767,6 +826,28 @@ bool FAGXUnrealEditorModule::OnCanExecuteGrabModeCommand() const
 {
 	const UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
 	return World != nullptr && World->IsGameWorld();
+}
+
+void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
+{
+	if (AssetData.GetClass() != UBlueprint::StaticClass())
+		return;
+
+	// Handle deletion of OpenPLX file copies.
+	if (!GetDefault<UAGX_Simulation>()->bDeleteOpenPLXFileCopyOnBlueprintDeletion)
+		return;
+
+	static const FString BaseBPPrefix = FAGX_ImportUtilities::GetImportBaseBlueprintNamePrefix();
+	if (!AssetData.AssetName.ToString().StartsWith(BaseBPPrefix))
+		return;
+
+	FString FullObjectPath =
+		FPaths::Combine(AssetData.PackagePath.ToString(), AssetData.AssetName.ToString());
+	auto Blueprint = FAGX_ObjectUtilities::GetAssetFromPath<UBlueprint>(*FullObjectPath);
+	if (Blueprint == nullptr)
+		return;
+
+	FAGX_ImportUtilities::OnImportedBlueprintDeleted(*Blueprint);
 }
 
 #undef LOCTEXT_NAMESPACE

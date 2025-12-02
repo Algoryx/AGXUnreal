@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #pragma once
 
@@ -27,6 +27,7 @@ public:
 	virtual ~FConstraint2DOFBarrier();
 
 	double GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const;
+	double GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const;
 
 	TUniquePtr<FElectricMotorControllerBarrier> GetElectricMotorController(
 		EAGX_Constraint2DOFFreeDOF Dof);

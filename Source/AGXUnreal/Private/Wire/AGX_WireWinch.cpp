@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireWinch.h"
 
@@ -292,7 +292,6 @@ uint64 FAGX_WireWinch::GetNativeAddress() const
 	return static_cast<uint64>(NativeBarrier.GetNativeAddress());
 }
 
-/// @todo Rename to SetNativeAddress.
 void FAGX_WireWinch::SetNativeAddress(uint64 NativeAddress)
 {
 	check(!HasNative());

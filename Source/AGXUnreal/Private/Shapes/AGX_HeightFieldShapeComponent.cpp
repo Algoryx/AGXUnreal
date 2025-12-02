@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "Shapes/AGX_HeightFieldShapeComponent.h"
 
@@ -68,12 +68,6 @@ FHeightFieldShapeBarrier* UAGX_HeightFieldShapeComponent::GetNativeHeightField()
 		return nullptr;
 	}
 	return &NativeBarrier;
-}
-
-void UAGX_HeightFieldShapeComponent::CopyFrom(
-	const FHeightFieldShapeBarrier& Barrier, bool ForceOverwriteInstances)
-{
-	Super::CopyFrom(Barrier, ForceOverwriteInstances);
 }
 
 void UAGX_HeightFieldShapeComponent::UpdateNativeProperties()

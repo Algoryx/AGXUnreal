@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 #include "AGX_ComponentReferenceCustomization.h"
 
@@ -476,7 +476,7 @@ void FAGX_ComponentReferenceCustomization::OnComboBoxChanged(
 	if (ComponentReferenceHandle.IsValid() && ComponentReferenceHandle->IsValidHandle() &&
 		ComponentReferenceHandle->GetNumPerObjectValues() == 0)
 	{
-		// I looks like Blueprint Reconstruction happened, which means that both the object we
+		// It looks like Blueprint Reconstruction happened, which means that both the object we
 		// were editing and the entire Details panel has been destroyed. We can do nothing more.
 		return;
 	}

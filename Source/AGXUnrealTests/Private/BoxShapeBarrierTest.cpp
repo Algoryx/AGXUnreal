@@ -1,4 +1,4 @@
-// Copyright 2024, Algoryx Simulation AB.
+// Copyright 2025, Algoryx Simulation AB.
 
 // This test is disabled because including it leads to
 //    Warning: dlopen failed: libUE4Editor-AGXUnrealBarrier.so: undefined symbol: "typeinfo for
