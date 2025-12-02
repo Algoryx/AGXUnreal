@@ -9,6 +9,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Terrain/AGX_Terrain.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -18,6 +19,7 @@
 void UAGX_TerrainProperties::SetCreateParticles(bool CreateParticles)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bCreateParticles, CreateParticles, SetCreateParticles);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetCreateParticles() const
@@ -30,6 +32,7 @@ void UAGX_TerrainProperties::SetDeleteParticlesOutsideBounds(bool DeleteParticle
 	AGX_ASSET_SETTER_IMPL_VALUE(
 		bDeleteParticlesOutsideBounds, DeleteParticlesOutsideBounds,
 		SetDeleteParticlesOutsideBounds);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetDeleteParticlesOutsideBounds() const
@@ -40,6 +43,7 @@ bool UAGX_TerrainProperties::GetDeleteParticlesOutsideBounds() const
 void UAGX_TerrainProperties::SetSoilParticleGrowthRate(double InRate)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleGrowthRate, InRate, SetSoilParticleGrowthRate);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetSoilParticleGrowthRate() const
@@ -50,6 +54,7 @@ double UAGX_TerrainProperties::GetSoilParticleGrowthRate() const
 void UAGX_TerrainProperties::SetSoilParticleMergeRate(double InRate)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleMergeRate, InRate, SetSoilParticleMergeRate);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetSoilParticleMergeRate() const
@@ -61,6 +66,7 @@ void UAGX_TerrainProperties::SetSoilParticleMergeThreshold(double InThreshold)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(
 		SoilParticleMergeThreshold, InThreshold, SetSoilParticleMergeThreshold);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetSoilParticleMergeThreshold() const
@@ -71,6 +77,7 @@ double UAGX_TerrainProperties::GetSoilParticleMergeThreshold() const
 void UAGX_TerrainProperties::SetSoilMergeSpeedThreshold(double InThreshold)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(SoilMergeSpeedThreshold, InThreshold, SetSoilMergeSpeedThreshold);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetSoilMergeSpeedThreshold() const
@@ -81,6 +88,7 @@ double UAGX_TerrainProperties::GetSoilMergeSpeedThreshold() const
 void UAGX_TerrainProperties::SetSoilParticleLifeTime(double InLifeTime)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleLifeTime, InLifeTime, SetSoilParticleLifeTime);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetSoilParticleLifeTime() const
@@ -91,6 +99,7 @@ double UAGX_TerrainProperties::GetSoilParticleLifeTime() const
 void UAGX_TerrainProperties::SetEnableAvalanching(bool Enable)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bEnableAvalanching, Enable, SetEnableAvalanching);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetEnableAvalanching() const
@@ -101,6 +110,7 @@ bool UAGX_TerrainProperties::GetEnableAvalanching() const
 void UAGX_TerrainProperties::SetAvalancheMaxHeightGrowth(double InValue)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheMaxHeightGrowth, InValue, SetAvalancheMaxHeightGrowth);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetAvalancheMaxHeightGrowth() const
@@ -111,6 +121,7 @@ double UAGX_TerrainProperties::GetAvalancheMaxHeightGrowth() const
 void UAGX_TerrainProperties::SetAvalancheDecayFraction(double InValue)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheDecayFraction, InValue, SetAvalancheDecayFraction);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetAvalancheDecayFraction() const
@@ -121,6 +132,7 @@ double UAGX_TerrainProperties::GetAvalancheDecayFraction() const
 void UAGX_TerrainProperties::SetAvalancheErrorThreshold(double InValue)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheErrorThreshold, InValue, SetAvalancheErrorThreshold);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetAvalancheErrorThreshold() const
@@ -131,6 +143,7 @@ double UAGX_TerrainProperties::GetAvalancheErrorThreshold() const
 void UAGX_TerrainProperties::SetActivationSpeed(double InSpeed)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(ActivationSpeed, InSpeed, SetActivationSpeed);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetActivationSpeed() const
@@ -141,6 +154,7 @@ double UAGX_TerrainProperties::GetActivationSpeed() const
 void UAGX_TerrainProperties::SetEnableDeformation(bool bEnable)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bEnableDeformation, bEnable, SetEnableDeformation);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetEnableDeformation() const
@@ -151,6 +165,7 @@ bool UAGX_TerrainProperties::GetEnableDeformation() const
 void UAGX_TerrainProperties::SetEnableLockedBorders(bool Enable)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bEnableLockedBorders, Enable, SetEnableLockedBorders);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetEnableLockedBorders() const
@@ -161,6 +176,7 @@ bool UAGX_TerrainProperties::GetEnableLockedBorders() const
 void UAGX_TerrainProperties::SetEnableSoilCompaction(bool Enable)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(bEnableSoilCompaction, Enable, SetEnableSoilCompaction);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 bool UAGX_TerrainProperties::GetEnableSoilCompaction() const
@@ -174,6 +190,7 @@ void UAGX_TerrainProperties::SetPenetrationForceVelocityScaling(
 	AGX_ASSET_SETTER_IMPL_VALUE(
 		PenetrationForceVelocityScaling, InPenetrationForceVelocityScaling,
 		SetPenetrationForceVelocityScaling);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetPenetrationForceVelocityScaling() const
@@ -188,6 +205,7 @@ void UAGX_TerrainProperties::SetMaximumParticleActivationVolume(
 	AGX_ASSET_SETTER_IMPL_VALUE(
 		MaximumParticleActivationVolume, InMaximumParticleActivationVolume,
 		SetMaximumParticleActivationVolume);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 double UAGX_TerrainProperties::GetMaximumParticleActivationVolume() const
@@ -199,6 +217,7 @@ double UAGX_TerrainProperties::GetMaximumParticleActivationVolume() const
 void UAGX_TerrainProperties::SetSoilParticleSizeScaling(float InScaling)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleSizeScaling, InScaling, SetSoilParticleSizeScaling);
+	CallOnTemplateTerrainChangedOnAll();
 }
 
 float UAGX_TerrainProperties::GetSoilParticleSizeScaling() const
@@ -413,6 +432,46 @@ void UAGX_TerrainProperties::UpdateNativeProperties()
 	NativeBarrier.SetEnableSoilCompaction(bEnableSoilCompaction);
 }
 
+void UAGX_TerrainProperties::RegisterTerrainPager(AAGX_Terrain& Terrain)
+{
+	if (!IsInstance())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Terrain '%s' called Register Terrain Pager on non-instance Terrain "
+				 "Properties '%s'."),
+			*Terrain.GetName(), *GetPathName());
+		return;
+	}
+
+	if (!Terrain.HasNativeTerrainPager())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Terrain '%s' called Register Terrain Pager on Terrain Properties '%s' but does "
+				 "not have a Terrain Pager native ojbect."),
+			*Terrain.GetName(), *GetPathName());
+		return;
+	}
+
+	TerrainPagers.AddUnique(&Terrain);
+}
+
+void UAGX_TerrainProperties::UnregisterTerrainPager(AAGX_Terrain& Terrain)
+{
+	if (!IsInstance())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Terrain '%s' called Unregister Terrain Pager on non-instance Terrain "
+				 "Properties '%s'."),
+			*Terrain.GetName(), *GetPathName());
+		return;
+	}
+
+	TerrainPagers.RemoveSwap(&Terrain);
+}
+
 void UAGX_TerrainProperties::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -493,5 +552,16 @@ void UAGX_TerrainProperties::CreateNative()
 		}
 
 		Instance->CreateNative();
+	}
+}
+
+void UAGX_TerrainProperties::CallOnTemplateTerrainChangedOnAll()
+{
+	for (auto& Tp : TerrainPagers)
+	{
+		if (Tp == nullptr || !Tp->HasNativeTerrainPager())
+			continue;
+
+		Tp->GetNativeTerrainPager()->OnTemplateTerrainChanged();
 	}
 }

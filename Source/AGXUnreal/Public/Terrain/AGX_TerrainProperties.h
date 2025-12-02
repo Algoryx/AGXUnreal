@@ -12,6 +12,7 @@
 
 #include "AGX_TerrainProperties.generated.h"
 
+class AAGX_Terrain;
 class UWorld;
 
 /**
@@ -305,6 +306,21 @@ public:
 
 	void UpdateNativeProperties();
 
+	/**
+	 * Register the given Terrain pager as one that uses this Terrain Properties runtime instance.
+	 * When a property is changed for this runtime instance, the OnTemplateTerrainChanged (Barrier)
+	 * function is called on all registered Terrain pagers.
+	 *
+	 * Should not be called on persistent assets.
+	 */
+	void RegisterTerrainPager(AAGX_Terrain& Terrain);
+
+	/**
+	 * Unregister the given Terrain pager from this Terrain Properties runtime instance.
+	 * Should not be called on persistent assets.
+	 */
+	void UnregisterTerrainPager(AAGX_Terrain& Terrain);
+
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
@@ -318,9 +334,14 @@ private:
 #endif
 
 	void CreateNative();
+	void CallOnTemplateTerrainChangedOnAll();
 
 private:
 	TWeakObjectPtr<UAGX_TerrainProperties> Asset;
 	TWeakObjectPtr<UAGX_TerrainProperties> Instance;
 	FTerrainPropertiesBarrier NativeBarrier;
+
+	/// Registered Terrain Pagers that will have their OnTemplateTerrainChanged called whenever a
+	/// property is changed. Only populated for runtime instances, not for persistent assets.
+	TArray<TWeakObjectPtr<AAGX_Terrain>> TerrainPagers;
 };

@@ -127,6 +127,9 @@ bool AAGX_Terrain::GetCanCollide() const
 bool AAGX_Terrain::SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties)
 {
 	UAGX_TerrainProperties* TerrainPropertiesOrig = TerrainProperties;
+	if (TerrainPropertiesOrig != nullptr && HasNativeTerrainPager())
+		TerrainPropertiesOrig->UnregisterTerrainPager(*this);
+
 	TerrainProperties = InTerrainProperties;
 
 	if (!HasNative())
@@ -141,6 +144,8 @@ bool AAGX_Terrain::SetTerrainProperties(UAGX_TerrainProperties* InTerrainPropert
 	{
 		// Something went wrong, restore original TerrainProperties.
 		TerrainProperties = TerrainPropertiesOrig;
+		if (HasNativeTerrainPager())
+			TerrainProperties->RegisterTerrainPager(*this);
 		return false;
 	}
 
@@ -621,6 +626,9 @@ void AAGX_Terrain::BeginPlay()
 void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
+
+	if (HasNativeTerrainPager() && TerrainProperties != nullptr)
+		TerrainProperties->UnregisterTerrainPager(*this);
 
 	ClearDisplacementMap();
 	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
@@ -1421,6 +1429,8 @@ bool AAGX_Terrain::UpdateNativeTerrainProperties()
 
 	UAGX_TerrainProperties* Instance = TerrainProperties->GetOrCreateInstance(World);
 	check(Instance);
+	if (HasNativeTerrainPager())
+		Instance->RegisterTerrainPager(*this);
 
 	if (TerrainProperties != Instance)
 		TerrainProperties = Instance;
