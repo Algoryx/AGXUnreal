@@ -32,6 +32,137 @@ bool UAGX_TerrainProperties::GetDeleteParticlesOutsideBounds() const
 	AGX_ASSET_GETTER_IMPL_VALUE(bDeleteParticlesOutsideBounds, GetDeleteParticlesOutsideBounds);
 }
 
+void UAGX_TerrainProperties::SetSoilParticleGrowthRate(double InRate)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleGrowthRate, InRate, SetSoilParticleGrowthRate);
+}
+
+double UAGX_TerrainProperties::GetSoilParticleGrowthRate() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilParticleGrowthRate, GetSoilParticleGrowthRate);
+}
+
+void UAGX_TerrainProperties::SetSoilParticleMergeRate(double InRate)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleMergeRate, InRate, SetSoilParticleMergeRate);
+}
+
+double UAGX_TerrainProperties::GetSoilParticleMergeRate() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilParticleMergeRate, GetSoilParticleMergeRate);
+}
+
+void UAGX_TerrainProperties::SetSoilParticleMergeThreshold(double InThreshold)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		SoilParticleMergeThreshold, InThreshold, SetSoilParticleMergeThreshold);
+}
+
+double UAGX_TerrainProperties::GetSoilParticleMergeThreshold() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilParticleMergeThreshold, GetSoilParticleMergeThreshold);
+}
+
+void UAGX_TerrainProperties::SetSoilMergeSpeedThreshold(double InThreshold)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SoilMergeSpeedThreshold, InThreshold, SetSoilMergeSpeedThreshold);
+}
+
+double UAGX_TerrainProperties::GetSoilMergeSpeedThreshold() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilMergeSpeedThreshold, GetSoilMergeSpeedThreshold);
+}
+
+void UAGX_TerrainProperties::SetSoilParticleLifeTime(double InLifeTime)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SoilParticleLifeTime, InLifeTime, SetSoilParticleLifeTime);
+}
+
+double UAGX_TerrainProperties::GetSoilParticleLifeTime() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SoilParticleLifeTime, GetSoilParticleLifeTime);
+}
+
+void UAGX_TerrainProperties::SetEnableAvalanching(bool Enable)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(bEnableAvalanching, Enable, SetEnableAvalanching);
+}
+
+bool UAGX_TerrainProperties::GetEnableAvalanching() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableAvalanching, GetEnableAvalanching);
+}
+
+void UAGX_TerrainProperties::SetAvalancheMaxHeightGrowth(double InValue)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheMaxHeightGrowth, InValue, SetAvalancheMaxHeightGrowth);
+}
+
+double UAGX_TerrainProperties::GetAvalancheMaxHeightGrowth() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(AvalancheMaxHeightGrowth, GetAvalancheMaxHeightGrowth);
+}
+
+void UAGX_TerrainProperties::SetAvalancheDecayFraction(double InValue)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheDecayFraction, InValue, SetAvalancheDecayFraction);
+}
+
+double UAGX_TerrainProperties::GetAvalancheDecayFraction() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(AvalancheDecayFraction, GetAvalancheDecayFraction);
+}
+
+void UAGX_TerrainProperties::SetAvalancheErrorThreshold(double InValue)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(AvalancheErrorThreshold, InValue, SetAvalancheErrorThreshold);
+}
+
+double UAGX_TerrainProperties::GetAvalancheErrorThreshold() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(AvalancheErrorThreshold, GetAvalancheErrorThreshold);
+}
+
+void UAGX_TerrainProperties::SetActivationSpeed(double InSpeed)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ActivationSpeed, InSpeed, SetActivationSpeed);
+}
+
+double UAGX_TerrainProperties::GetActivationSpeed() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ActivationSpeed, GetActivationSpeed);
+}
+
+void UAGX_TerrainProperties::SetEnableDeformation(bool bEnable)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(bEnableDeformation, bEnable, SetEnableDeformation);
+}
+
+bool UAGX_TerrainProperties::GetEnableDeformation() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableDeformation, GetEnableDeformation);
+}
+
+void UAGX_TerrainProperties::SetEnableLockedBorders(bool Enable)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(bEnableLockedBorders, Enable, SetEnableLockedBorders);
+}
+
+bool UAGX_TerrainProperties::GetEnableLockedBorders() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableLockedBorders, GetEnableLockedBorders);
+}
+
+void UAGX_TerrainProperties::SetEnableSoilCompaction(bool Enable)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(bEnableSoilCompaction, Enable, SetEnableSoilCompaction);
+}
+
+bool UAGX_TerrainProperties::GetEnableSoilCompaction() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableSoilCompaction, GetEnableSoilCompaction);
+}
+
 void UAGX_TerrainProperties::SetPenetrationForceVelocityScaling(
 	double InPenetrationForceVelocityScaling)
 {
@@ -80,6 +211,22 @@ void UAGX_TerrainProperties::CopyFrom(const UAGX_TerrainProperties* Source)
 	PenetrationForceVelocityScaling = Source->PenetrationForceVelocityScaling;
 	MaximumParticleActivationVolume = Source->MaximumParticleActivationVolume;
 	SoilParticleSizeScaling = Source->SoilParticleSizeScaling;
+
+	SoilParticleGrowthRate = Source->SoilParticleGrowthRate;
+	SoilParticleMergeRate = Source->SoilParticleMergeRate;
+	SoilParticleMergeThreshold = Source->SoilParticleMergeThreshold;
+	SoilMergeSpeedThreshold = Source->SoilMergeSpeedThreshold;
+	SoilParticleLifeTime = Source->SoilParticleLifeTime;
+
+	bEnableAvalanching = Source->bEnableAvalanching;
+	AvalancheMaxHeightGrowth = Source->AvalancheMaxHeightGrowth;
+	AvalancheDecayFraction = Source->AvalancheDecayFraction;
+	AvalancheErrorThreshold = Source->AvalancheErrorThreshold;
+
+	ActivationSpeed = Source->ActivationSpeed;
+	bEnableDeformation = Source->bEnableDeformation;
+	bEnableLockedBorders = Source->bEnableLockedBorders;
+	bEnableSoilCompaction = Source->bEnableSoilCompaction;
 }
 
 void UAGX_TerrainProperties::CopyFrom(const FTerrainPropertiesBarrier& Source)
@@ -88,11 +235,26 @@ void UAGX_TerrainProperties::CopyFrom(const FTerrainPropertiesBarrier& Source)
 		return;
 
 	bCreateParticles = Source.GetCreateParticles();
-	bCreateParticles = Source.GetCreateParticles();
 	bDeleteParticlesOutsideBounds = Source.GetDeleteParticlesOutsideBounds();
 	PenetrationForceVelocityScaling = Source.GetPenetrationForceVelocityScaling();
 	MaximumParticleActivationVolume = Source.GetMaximumParticleActivationVolume();
 	SoilParticleSizeScaling = Source.GetSoilParticleSizeScaling();
+
+	SoilParticleGrowthRate = Source.GetSoilParticleGrowthRate();
+	SoilParticleMergeRate = Source.GetSoilParticleMergeRate();
+	SoilParticleMergeThreshold = Source.GetSoilParticleMergeThreshold();
+	SoilMergeSpeedThreshold = Source.GetSoilMergeSpeedThreshold();
+	SoilParticleLifeTime = Source.GetSoilParticleLifeTime();
+
+	bEnableAvalanching = Source.GetEnableAvalanching();
+	AvalancheMaxHeightGrowth = Source.GetAvalancheMaxHeightGrowth();
+	AvalancheDecayFraction = Source.GetAvalancheDecayFraction();
+	AvalancheErrorThreshold = Source.GetAvalancheErrorThreshold();
+
+	ActivationSpeed = Source.GetActivationSpeed();
+	bEnableDeformation = Source.GetEnableDeformation();
+	bEnableLockedBorders = Source.GetEnableLockedBorders();
+	bEnableSoilCompaction = Source.GetEnableSoilCompaction();
 }
 
 UAGX_TerrainProperties* UAGX_TerrainProperties::CreateInstanceFromAsset(
@@ -228,6 +390,22 @@ void UAGX_TerrainProperties::UpdateNativeProperties()
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
 	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
+
+	NativeBarrier.SetSoilParticleGrowthRate(SoilParticleGrowthRate);
+	NativeBarrier.SetSoilParticleMergeRate(SoilParticleMergeRate);
+	NativeBarrier.SetSoilParticleMergeThreshold(SoilParticleMergeThreshold);
+	NativeBarrier.SetSoilMergeSpeedThreshold(SoilMergeSpeedThreshold);
+	NativeBarrier.SetSoilParticleLifeTime(SoilParticleLifeTime);
+
+	NativeBarrier.SetEnableAvalanching(bEnableAvalanching);
+	NativeBarrier.SetAvalancheMaxHeightGrowth(AvalancheMaxHeightGrowth);
+	NativeBarrier.SetAvalancheDecayFraction(AvalancheDecayFraction);
+	NativeBarrier.SetAvalancheErrorThreshold(AvalancheErrorThreshold);
+
+	NativeBarrier.SetActivationSpeed(ActivationSpeed);
+	NativeBarrier.SetEnableDeformation(bEnableDeformation);
+	NativeBarrier.SetEnableLockedBorders(bEnableLockedBorders);
+	NativeBarrier.SetEnableSoilCompaction(bEnableSoilCompaction);
 }
 
 void UAGX_TerrainProperties::PostInitProperties()
@@ -257,6 +435,28 @@ void UAGX_TerrainProperties::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(PenetrationForceVelocityScaling);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MaximumParticleActivationVolume);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleSizeScaling);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CreateParticles);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(DeleteParticlesOutsideBounds);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(PenetrationForceVelocityScaling);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MaximumParticleActivationVolume);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleSizeScaling);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleGrowthRate);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleMergeRate);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleMergeThreshold);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilMergeSpeedThreshold);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SoilParticleLifeTime);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAvalanching);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AvalancheMaxHeightGrowth);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AvalancheDecayFraction);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AvalancheErrorThreshold);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ActivationSpeed);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableDeformation);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableLockedBorders);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableSoilCompaction);
 }
 #endif // WITH_EDITOR
 

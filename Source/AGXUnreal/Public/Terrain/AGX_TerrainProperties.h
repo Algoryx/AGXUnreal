@@ -234,7 +234,7 @@ public:
 	 * change from excavation and avalanching.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Properties")
-	bool btEnableLockedBorders {false};
+	bool bEnableLockedBorders {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Properties")
 	void SetEnableLockedBorders(bool Enable);
