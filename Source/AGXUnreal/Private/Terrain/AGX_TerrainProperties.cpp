@@ -268,7 +268,7 @@ UAGX_TerrainProperties* UAGX_TerrainProperties::CreateInstanceFromAsset(
 	const FString InstanceName = Source->GetName() + "_Instance";
 
 	UAGX_TerrainProperties* NewInstance = NewObject<UAGX_TerrainProperties>(
-		GetTransientPackage(), UAGX_TerrainProperties::StaticClass(), *InstanceName, RF_Transient);
+		GetTransientPackage(), *InstanceName, RF_Transient);
 	NewInstance->Asset = Source;
 	NewInstance->CopyFrom(Source);
 	NewInstance->CreateNative();
