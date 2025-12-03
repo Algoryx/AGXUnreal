@@ -381,7 +381,7 @@ TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
 			}
 		}
 	}
-
+#if WITH_EDITOR
 	// If Outer is a Blueprint Generated Class, we are in the Blueprint Editor.
 	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
 	if (OwningGenClass != nullptr)
@@ -393,6 +393,7 @@ TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
 			Names.Add(Node->GetVariableName());
 		}
 	}
+#endif // WITH_EDITOR
 
 	Names.Sort([](const FName& Lhs, const FName& Rhs) { return Lhs.FastLess(Rhs); });
 

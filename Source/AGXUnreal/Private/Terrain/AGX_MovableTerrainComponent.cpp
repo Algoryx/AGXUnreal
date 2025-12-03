@@ -15,6 +15,7 @@
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
@@ -604,7 +605,6 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 			GET_MEMBER_NAME_CHECKED(ThisClass, InitialHeight),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bUseInitialNoise),
 			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ShovelComponents),
 			GET_MEMBER_NAME_CHECKED(ThisClass, ParticleSystemAsset)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
@@ -769,7 +769,6 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
 	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
 	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
-	CreateNativeShovels();
 	UpdateNativeTerrainMaterial();
 	UpdateNativeShapeMaterial();
 }
@@ -1124,81 +1123,6 @@ void UAGX_MovableTerrainComponent::RemoveCollisionGroupIfExists(FName GroupName)
 	CollisionGroups.RemoveAt(Index);
 	if (HasNative())
 		NativeBarrier.RemoveCollisionGroup(GroupName);
-}
-
-void UAGX_MovableTerrainComponent::CreateNativeShovels()
-{
-	for (FAGX_ShovelReference& ShovelRef : ShovelComponents)
-	{
-		UAGX_ShovelComponent* ShovelComponent = ShovelRef.GetShovelComponent();
-		if (ShovelComponent == nullptr)
-		{
-			const FString Message = FString::Printf(
-				TEXT("AGX MovableTerrain '%s' in '%s' have a Shovel reference to '%s' in '%s' "
-					 "that does not reference a valid Shovel. "
-					 "Abandoning shovel. "),
-				*GetName(), *GetLabelSafe(GetOwner()), *ShovelRef.Name.ToString(),
-				*GetLabelSafe(ShovelRef.OwningActor));
-			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
-			continue;
-		}
-
-		AddNativeShovel(ShovelComponent);
-	}
-}
-
-void UAGX_MovableTerrainComponent::AddShovel(UAGX_ShovelComponent* ShovelComponent)
-{
-	FAGX_ShovelReference ShovelRef;
-	ShovelRef.SetComponent(ShovelComponent);
-	ShovelComponents.Add(ShovelRef);
-
-	if (HasNative())
-	{
-		AddNativeShovel(ShovelComponent);
-	}
-}
-
-bool UAGX_MovableTerrainComponent::AddNativeShovel(UAGX_ShovelComponent* ShovelComponent)
-{
-	FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
-	if (ShovelBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s'. "
-				 "Shovel does not reference a valid Native. "),
-			*GetName(), *GetLabelSafe(GetOwner()), *ShovelComponent->GetName(),
-			*GetLabelSafe(ShovelComponent->GetOwner()));
-		return false;
-	}
-	check(ShovelBarrier->HasNative());
-
-	bool Added = NativeBarrier.AddShovel(*ShovelBarrier);
-	if (!Added)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("AGX MovableTerrain '%s' in '%s' rejected AddNativeShovel '%s' in '%s'.  "
-				 "Reversing edge directions and trying again."),
-			*GetName(), *GetLabelSafe(GetOwner()), *ShovelComponent->GetName(),
-			*GetLabelSafe(ShovelComponent->GetOwner()));
-
-		ShovelComponent->SwapEdgeDirections();
-		Added = NativeBarrier.AddShovel(*ShovelBarrier);
-		if (!Added)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("AGX MovableTerrain '%s' in '%s' failed to AddNativeShovel '%s' in '%s' "
-					 "after edge directions flip. "
-					 "Abandoning shovel. "),
-				*GetName(), *GetLabelSafe(GetOwner()), *GetNameSafe(ShovelComponent),
-				*GetLabelSafe(ShovelComponent->GetOwner()));
-		}
-	}
-
-	return Added;
 }
 
 void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape)

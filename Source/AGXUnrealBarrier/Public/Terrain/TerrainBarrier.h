@@ -14,13 +14,13 @@
 #include <memory>
 #include <tuple>
 
+struct FShapeBarrier;
 struct FTerrainRef;
 
 struct FHeightFieldShapeBarrier;
-class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
-class FShapeBarrier;
+
 
 /**
  * AGX Dynamics access barrier for Terrain.
@@ -66,8 +66,7 @@ public:
 
 	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
 	double GetMaximumParticleActivationVolume() const;
-	
-	bool AddShovel(FShovelBarrier& Shovel);
+
 	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
 	void SetNoMerge(bool bNoMerge);
 	bool GetNoMerge() const;

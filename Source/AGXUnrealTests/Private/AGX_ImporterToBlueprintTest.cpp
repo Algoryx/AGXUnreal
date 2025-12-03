@@ -4016,7 +4016,7 @@ bool FCheckNestedAssembliesImportedCommand::Update()
 
 	// Get all the imported components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 
 	// One Rigid Bodies, one Geometry, one Default Scene Root and one Reimport Component.
 	Test.TestEqual(TEXT("Number of imported components"), Components.Num(), 4);

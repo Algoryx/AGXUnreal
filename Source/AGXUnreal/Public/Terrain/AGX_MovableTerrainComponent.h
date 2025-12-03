@@ -180,14 +180,6 @@ protected:
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
-	/** Shovels that can cut into the Terrain. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FAGX_ShovelReference> ShovelComponents;
-	void CreateNativeShovels();
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void AddShovel(UAGX_ShovelComponent* ShovelComponent);
-
-	bool AddNativeShovel(UAGX_ShovelComponent* ShovelComponent);
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
