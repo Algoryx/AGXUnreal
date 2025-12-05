@@ -343,7 +343,8 @@ private:
 		UMaterialInterface* MeshMaterial = nullptr, int MeshLod = 0,
 		EAGX_MeshTilingPattern TilingPattern = EAGX_MeshTilingPattern::None,
 		int TileResolution = 10, bool bCreateEdges = false, bool bFixSeams = false,
-		bool bMeshReverseWinding = false, bool bMeshCollision = false, bool bMeshVisible = true);
+		bool bMeshReverseWinding = false, bool bMeshCollision = false, bool bMeshVisible = true,
+		bool bCalcFastTerrainBedNormals = true);
 
 	FVector2D ToUv(const FVector& LocalPos, const FVector2D& PlaneSize) const
 	{

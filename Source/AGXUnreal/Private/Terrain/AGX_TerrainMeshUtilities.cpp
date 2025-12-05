@@ -12,7 +12,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	const FVector& MeshCenter, const FVector2D& MeshSize, const FAGX_UvParams& Uv0,
 	const FAGX_UvParams& Uv1, const FAGX_MeshVertexFunction MeshHeightFunc,
 	const FAGX_MeshVertexFunction EdgeHeightFunc, bool bCreateEdges, bool bFixSeams,
-	bool bReverseWinding)
+	bool bReverseWinding, bool bCalcFastTerrainBedNormals)
 {
 	// Tile corners
 	FVector2D T1(TileCenter.X - TileSize.X / 2, TileCenter.Y - TileSize.Y / 2);
@@ -153,12 +153,58 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	}
 
 	// Triangles shrinks if we are on a corner with edges
-	MeshDesc.Triangles.SetNum(TriangleIndex); // Before 5.5: bAllowShrink == true
+	MeshDesc.Triangles.SetNum(TriangleIndex);
+	if (bCalcFastTerrainBedNormals)
+	{
+		// This method of calculating Normals is blazing fast but is inappropriate for e.g. the
+		// underside of the Terrain Mesh or similar. So this normals calculation should be used for
+		// the "above" portions of the Terrain Mesh, i.e. the one that can be dug in.
 
-	UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
-		MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals, MeshDesc.Tangents);
+		auto GetHeight = [&](int X, int Y) { return MeshDesc.Vertices[Y * VertexRes.X + X].Z; };
 
-	// Move skirt vertices after lightning calculation
+		MeshDesc.Normals.SetNum(VertexRes.X * VertexRes.Y);
+
+		const float DX = TriangleSize.X;
+		const float DY = TriangleSize.Y;
+
+		auto SafeGet = [&](int X, int Y)
+		{
+			X = FMath::Clamp(X, 0, VertexRes.X - 1);
+			Y = FMath::Clamp(Y, 0, VertexRes.Y - 1);
+			return GetHeight(X, Y);
+		};
+
+		for (int y = 0; y < VertexRes.Y; ++y)
+		{
+			for (int x = 0; x < VertexRes.X; ++x)
+			{
+				const int Index = y * VertexRes.X + x;
+
+				// Compute gradient (dh/dx, dh/dy) using central diff.
+				float H_L = SafeGet(x - 1, y);
+				float H_R = SafeGet(x + 1, y);
+				float H_D = SafeGet(x, y - 1);
+				float H_U = SafeGet(x, y + 1);
+
+				const float ddx = (H_R - H_L) / (2.0f * DX);
+				const float ddy = (H_U - H_D) / (2.0f * DY);
+
+				// Normal vector from gradient.
+				FVector Normal = FVector(-ddx, -ddy, 1.0f).GetSafeNormal();
+				MeshDesc.Normals[Index] = Normal;
+			}
+		}
+	}
+	else
+	{
+		// bCalcFastTerrainBedNormals is false, i.e. this tile may be the underside of the Terrain Mesh or the
+		// Debug Plane. For those tiles, we do the accurate, but slow CalculateTangentsForMesh call.
+		// This is OK since these tiles rarely get updated in runtime, if at all.
+		UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
+			MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals,
+			MeshDesc.Tangents);
+	}
+
 	if (bFixSeams)
 	{
 		float SkirtLength = 1.0f;

@@ -151,7 +151,8 @@ public:
 		const FVector& MeshCenter, const FVector2D& MeshSize, const FAGX_UvParams& Uv0,
 		const FAGX_UvParams& Uv1, const FAGX_MeshVertexFunction MeshHeightFunc,
 		const FAGX_MeshVertexFunction EdgeHeightFunc, bool bCreateEdges = false,
-		bool bFixSeams = false, bool bReverseWinding = false);
+		bool bFixSeams = false, bool bReverseWinding = false,
+		bool bCalcFastTerrainBedNormals = true);
 
 	static HeightMesh CreateHeightMesh(
 		const int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,

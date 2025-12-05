@@ -131,7 +131,7 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 											Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center,
 											Mesh.Size, Mesh.Uv0, Mesh.Uv1, Mesh.HeightFunc,
 											Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
-											Mesh.bReverseWinding);
+											Mesh.bReverseWinding, /*bCalcFastTerrainBedNormals*/ true);
 
 									// Update MeshSection (Re-Upload to GPU)
 									UpdateMeshSection(
@@ -180,8 +180,8 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 			LogAGX, Error,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetHeights from Native. "
 				 "Expected: %d, Got: %d"),
-			*GetName(), *GetLabelSafe(GetOwner()),
-			TerrainResolution.X * TerrainResolution.Y, FetchedHeights.Num());
+			*GetName(), *GetLabelSafe(GetOwner()), TerrainResolution.X * TerrainResolution.Y,
+			FetchedHeights.Num());
 		return false;
 	}
 
@@ -193,8 +193,8 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 			LogAGX, Error,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetMinimumHeights from Native. "
 				 "Expected: %d, Got: %d"),
-			*GetName(), *GetLabelSafe(GetOwner()),
-			TerrainResolution.X * TerrainResolution.Y, FetchedMinHeights.Num());
+			*GetName(), *GetLabelSafe(GetOwner()), TerrainResolution.X * TerrainResolution.Y,
+			FetchedMinHeights.Num());
 		return false;
 	}
 
@@ -287,7 +287,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		MeshIndex, FVector(0, 0, MeshZOffset), Size,
 		bAutoMeshResolution ? AutoMeshResolution : MeshResolution, MeshUv, TerrainUv,
 		TerrainHeightFunc, BedHeightFunc, Material, MeshLevelOfDetail, MeshTilingPattern,
-		MeshTileResolution, bCloseMesh, bFixMeshSeams, false, false, true);
+		MeshTileResolution, bCloseMesh, bFixMeshSeams, false, false, true,
+		/*bCalcFastTerrainBedNormals*/ true);
 	MeshIndex += TerrainMesh.Tiles.Num();
 
 	// Collision Mesh (Low resolution Terrain)
@@ -297,7 +298,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			MeshIndex, FVector::Zero(), Size, AutoMeshResolution, MeshUv, TerrainUv,
 			TerrainHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
 			EAGX_MeshTilingPattern::StretchedTiles, 6, true, false, false, bIsUnrealCollision,
-			bShowUnrealCollision);
+			bShowUnrealCollision, /*bCalcFastTerrainBedNormals*/ true);
 		MeshIndex += CollisionMesh.Tiles.Num();
 	}
 
@@ -309,7 +310,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 			MeshIndex, FVector::Zero(), Size, HasShapes ? AutoMeshResolution : FIntVector2(1, 1),
 			MeshUv, TerrainUv, BedHeightFunc, BedHeightFunc, nullptr, UnrealCollisionLOD,
 			HasShapes ? EAGX_MeshTilingPattern::StretchedTiles : EAGX_MeshTilingPattern::None, 10,
-			false, false, true, bIsUnrealCollision, bCloseMesh || bShowUnrealCollision);
+			false, false, true, bIsUnrealCollision, bCloseMesh || bShowUnrealCollision,
+			/*bCalcFastTerrainBedNormals*/ false);
 		MeshIndex += BedMesh.Tiles.Num();
 	}
 
@@ -319,12 +321,14 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		HeightMesh DebugPlaneFront = CreateHeightMesh(
 			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1),
 			TerrainUv, MeshUv, FlatHeightFunc, FlatHeightFunc, nullptr, 0,
-			EAGX_MeshTilingPattern::None, 10, false, false, false, false, true);
+			EAGX_MeshTilingPattern::None, 10, false, false, false, false, true,
+			/*bCalcFastTerrainBedNormals*/ false);
 		MeshIndex += DebugPlaneFront.Tiles.Num();
 		HeightMesh DebugPlaneBack = CreateHeightMesh(
 			MeshIndex, FVector(0, 0, MeshZOffset - 0.1f), GetTerrainSize(), FIntVector2(1, 1),
 			TerrainUv, MeshUv, FlatHeightFunc, FlatHeightFunc, nullptr, 0,
-			EAGX_MeshTilingPattern::None, 10, false, false, true, false, true);
+			EAGX_MeshTilingPattern::None, 10, false, false, true, false, true,
+			/*bCalcFastTerrainBedNormals*/ false);
 		MeshIndex += DebugPlaneBack.Tiles.Num();
 	}
 }
@@ -335,7 +339,7 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 	const FAGX_MeshVertexFunction MeshHeightFunc, const FAGX_MeshVertexFunction EdgeHeightFunc,
 	UMaterialInterface* MeshMaterial, int MeshLod, EAGX_MeshTilingPattern TilingPattern,
 	int TileResolution, bool bCreateEdges, bool bFixSeams, bool bReverseWinding,
-	bool bMeshCollision, bool bMeshVisible)
+	bool bMeshCollision, bool bMeshVisible, bool bCalcFastTerrainBedNormals)
 {
 	HeightMesh Mesh = UAGX_TerrainMeshUtilities::CreateHeightMesh(
 		StartMeshIndex, MeshCenter, MeshSize, MeshRes, Uv0Params, Uv1Params, MeshLod, TilingPattern,
@@ -347,7 +351,7 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
 			Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center, Mesh.Size, Mesh.Uv0, Mesh.Uv1,
 			Mesh.HeightFunc, Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
-			Mesh.bReverseWinding);
+			Mesh.bReverseWinding, bCalcFastTerrainBedNormals);
 
 		// Create MeshSection (Upload to GPU).
 		CreateMeshSection(
@@ -378,7 +382,6 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 		// A reconstructed component with inherited properties, (See: EndPlay())
 		return;
 	}
-
 
 	GetOrCreateNative();
 
