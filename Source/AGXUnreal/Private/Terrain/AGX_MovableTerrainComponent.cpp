@@ -41,13 +41,10 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	if (OwningRigidBody)
 		OwningRigidBody->GetOrCreateNative();
 
-	// Resolution
 	FIntVector2 TerrainResolution = GetTerrainResolution();
 
-	// Create Heights
 	InitializeHeights();
 
-	// Allocate Native
 	NativeBarrier.AllocateNative(
 		TerrainResolution.X, TerrainResolution.Y, ElementSize, CurrentHeights, BedHeights);
 
@@ -60,33 +57,28 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		return;
 	}
 
-	// Attach to RigidBody
+	// Attach to RigidBody.
 	if (OwningRigidBody)
 	{
-		FHeightFieldShapeBarrier Temp = NativeBarrier.GetHeightField();
-		OwningRigidBody->GetNative()->AddShape(&Temp);
+		FHeightFieldShapeBarrier Hf = NativeBarrier.GetHeightField();
+		OwningRigidBody->GetNative()->AddShape(&Hf);
 	}
 
-	// Set transform
+
 	WriteTransformToNative();
-
-	// Set Native Properties
 	UpdateNativeProperties();
-
-	// Create Mesh
 	RecreateMeshes();
 
-	// Create PostHandle callback to update mesh
+	// Create PostHandle callback to update mesh.
 	ConnectMeshToNative();
 
-	// Add Native
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	Simulation->Add(*this);
 }
 
 void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 {
-	// Update Mesh each tick
+	// Update Mesh each StepForward.
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
 		PostStepForwardHandle =
@@ -181,27 +173,28 @@ bool UAGX_MovableTerrainComponent::FetchNativeHeights()
 	}
 	TArray<float> FetchedHeights;
 	NativeBarrier.GetHeights(FetchedHeights, false);
-	if (FetchedHeights.Num() != GetTerrainResolution().X * GetTerrainResolution().Y)
+	const auto TerrainResolution = GetTerrainResolution();
+	if (FetchedHeights.Num() != TerrainResolution.X * TerrainResolution.Y)
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetHeights from Native. "
 				 "Expected: %d, Got: %d"),
 			*GetName(), *GetLabelSafe(GetOwner()),
-			GetTerrainResolution().X * GetTerrainResolution().Y, FetchedHeights.Num());
+			TerrainResolution.X * TerrainResolution.Y, FetchedHeights.Num());
 		return false;
 	}
 
 	TArray<float> FetchedMinHeights;
 	NativeBarrier.GetMinimumHeights(FetchedMinHeights);
-	if (FetchedMinHeights.Num() != GetTerrainResolution().X * GetTerrainResolution().Y)
+	if (FetchedMinHeights.Num() != TerrainResolution.X * TerrainResolution.Y)
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("AGX MovableTerrain '%s' in '%s' failed to GetMinimumHeights from Native. "
 				 "Expected: %d, Got: %d"),
 			*GetName(), *GetLabelSafe(GetOwner()),
-			GetTerrainResolution().X * GetTerrainResolution().Y, FetchedMinHeights.Num());
+			TerrainResolution.X * TerrainResolution.Y, FetchedMinHeights.Num());
 		return false;
 	}
 
@@ -272,8 +265,8 @@ float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos
 void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
-	FIntVector2 AutoMeshResolution =
-		FIntVector2(GetTerrainResolution().X - 1, GetTerrainResolution().Y - 1);
+	const auto TerrainResolution = GetTerrainResolution();
+	FIntVector2 AutoMeshResolution = FIntVector2(TerrainResolution.X - 1, TerrainResolution.Y - 1);
 	FAGX_UvParams MeshUv {Size / 2.0, {1.0 / Size.X, 1.0 / Size.Y}};
 	FAGX_UvParams TerrainUv {GetTerrainSize() / 2.0, {1.0 / ElementSize, 1.0 / ElementSize}};
 
@@ -350,13 +343,13 @@ HeightMesh UAGX_MovableTerrainComponent::CreateHeightMesh(
 
 	for (auto& Tile : Mesh.Tiles)
 	{
-		// Create Mesh Description (Vertex Positions)
+		// Create Mesh Description (Vertex Positions).
 		auto MeshDesc = UAGX_TerrainMeshUtilities::CreateHeightMeshTileDescription(
 			Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center, Mesh.Size, Mesh.Uv0, Mesh.Uv1,
 			Mesh.HeightFunc, Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
 			Mesh.bReverseWinding);
 
-		// Create MeshSection (Upload to GPU)
+		// Create MeshSection (Upload to GPU).
 		CreateMeshSection(
 			Tile.MeshIndex, MeshDesc->Vertices, MeshDesc->Triangles, MeshDesc->Normals,
 			MeshDesc->UV0, MeshDesc->UV1, TArray<FVector2D>(), TArray<FVector2D>(),
@@ -386,17 +379,15 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 		return;
 	}
 
-	// Create Native
+
 	GetOrCreateNative();
 
-	// Fetch native heights (as a fail safe)
+	// Fetch native heights (as a fail safe).
 	if (FetchNativeHeights())
 		RecreateMeshes();
 
-	// Init particles
 	InitializeParticles();
 
-	// Unreal Collision
 	this->SetCollisionEnabled(AdditionalUnrealCollision);
 }
 

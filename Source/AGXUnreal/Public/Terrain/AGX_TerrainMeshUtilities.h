@@ -82,7 +82,7 @@ enum class EAGX_MeshTilingPattern : uint8
 
 struct MeshTile
 {
-	int MeshIndex;
+	int MeshIndex {0};
 	FIntVector2 Resolution;
 	FVector Center;
 	FVector2D Size;
@@ -104,9 +104,9 @@ struct HeightMesh
 	FAGX_UvParams Uv0;
 	FAGX_UvParams Uv1;
 
-	bool bCreateEdges;
-	bool bFixSeams;
-	bool bReverseWinding;
+	bool bCreateEdges {false};
+	bool bFixSeams {false};
+	bool bReverseWinding {false};
 
 	FAGX_MeshVertexFunction HeightFunc;
 	FAGX_MeshVertexFunction EdgeHeightFunc;

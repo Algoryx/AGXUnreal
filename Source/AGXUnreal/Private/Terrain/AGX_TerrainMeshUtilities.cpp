@@ -200,18 +200,18 @@ HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 	bool bCreateEdges, bool bFixSeams, bool bReverseWinding)
 {
 	int MeshIndex = StartMeshIndex;
-	float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
-	FVector2D ScaledResolution = FVector2D(MeshRes.X * LodScaling, MeshRes.Y * LodScaling);
+	const float LodScaling = 1.0f / (FMath::Pow(2.0f, MeshLod));
+	const FVector2D ScaledResolution = FVector2D(MeshRes.X * LodScaling, MeshRes.Y * LodScaling);
 
 	TArray<MeshTile> Tiles;
 
-	// Generate Tiles
+	// Generate Tiles.
 	if (TilingPattern == EAGX_MeshTilingPattern::None)
 	{
-		// One single tile
-		FVector TileCenter = MeshCenter;
-		FVector2D TileSize = MeshSize;
-		FIntVector2 TileRes = FIntVector2(
+		// One single tile.
+		const FVector TileCenter = MeshCenter;
+		const FVector2D TileSize = MeshSize;
+		const FIntVector2 TileRes = FIntVector2(
 			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X)),
 			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y)));
 
@@ -219,20 +219,21 @@ HeightMesh UAGX_TerrainMeshUtilities::CreateHeightMesh(
 	}
 	else if (TilingPattern == EAGX_MeshTilingPattern::StretchedTiles)
 	{
-		// Multiple tiles in a grid
-		FIntVector2 NrOfTiles = FIntVector2(
+		// Multiple tiles in a grid.
+		const FIntVector2 NrOfTiles = FIntVector2(
 			FMath::Max(1, FMath::RoundToInt(ScaledResolution.X / TileResolution)),
 			FMath::Max(1, FMath::RoundToInt(ScaledResolution.Y / TileResolution)));
-		FIntVector2 TileRes = FIntVector2(TileResolution, TileResolution);
-		FVector2D TileSize = FVector2D(MeshSize.X / NrOfTiles.X, MeshSize.Y / NrOfTiles.Y);
+		const FIntVector2 TileRes = FIntVector2(TileResolution, TileResolution);
+		const FVector2D TileSize = FVector2D(MeshSize.X / NrOfTiles.X, MeshSize.Y / NrOfTiles.Y);
 
+		Tiles.Reserve(NrOfTiles.X * NrOfTiles.Y);
 		for (int Tx = 0; Tx < NrOfTiles.X; Tx++)
 		{
 			for (int Ty = 0; Ty < NrOfTiles.Y; Ty++)
 			{
-				FVector2D PlanePos =
+				const FVector2D PlanePos =
 					TileSize / 2 - MeshSize / 2 + FVector2D(Tx * TileSize.X, Ty * TileSize.Y);
-				FVector TileCenter = MeshCenter + FVector(PlanePos.X, PlanePos.Y, 0.0);
+				const FVector TileCenter = MeshCenter + FVector(PlanePos.X, PlanePos.Y, 0.0);
 				Tiles.Add(MeshTile(MeshIndex++, TileCenter, TileSize, TileRes));
 			}
 		}
