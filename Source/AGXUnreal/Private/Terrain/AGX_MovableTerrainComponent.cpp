@@ -397,7 +397,6 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 
 	if (HasNative())
 	{
-		// Remove callback
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		{
 			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
@@ -407,14 +406,10 @@ void UAGX_MovableTerrainComponent::EndPlay(const EEndPlayReason::Type Reason)
 		if (!GIsReconstructingBlueprintInstances && Reason != EEndPlayReason::EndPlayInEditor &&
 			Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 		{
-			// Remove from simulation
 			if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
-			{
 				Simulation->Remove(*this);
-			}
 		}
 
-		// Release Native
 		NativeBarrier.ReleaseNative();
 	}
 }
