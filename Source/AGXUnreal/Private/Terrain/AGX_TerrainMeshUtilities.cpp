@@ -163,6 +163,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 		auto GetHeight = [&](int X, int Y) { return MeshDesc.Vertices[Y * VertexRes.X + X].Z; };
 
 		MeshDesc.Normals.SetNum(VertexRes.X * VertexRes.Y);
+		MeshDesc.Tangents.SetNum(VertexRes.X * VertexRes.Y);
 
 		const float DX = TriangleSize.X;
 		const float DY = TriangleSize.Y;
@@ -180,7 +181,7 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 			{
 				const int Index = y * VertexRes.X + x;
 
-				// Compute gradient (dh/dx, dh/dy) using central diff.
+				// --- NORMAL ---
 				float H_L = SafeGet(x - 1, y);
 				float H_R = SafeGet(x + 1, y);
 				float H_D = SafeGet(x, y - 1);
@@ -189,17 +190,26 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 				const float ddx = (H_R - H_L) / (2.0f * DX);
 				const float ddy = (H_U - H_D) / (2.0f * DY);
 
-				// Normal vector from gradient.
-				FVector Normal = FVector(-ddx, -ddy, 1.0f).GetSafeNormal();
-				MeshDesc.Normals[Index] = Normal;
+				FVector N = FVector(-ddx, -ddy, 1.0f).GetSafeNormal();
+				MeshDesc.Normals[Index] = N;
+
+				// --- TANGENT ---
+				FVector T = FVector::CrossProduct(FVector::XAxisVector, N).GetSafeNormal();
+
+				// Fallback: if somehow degenerate (should never happen for heightfields).
+				if (!T.IsNormalized())
+					T = FVector::CrossProduct(FVector::YAxisVector, N).GetSafeNormal();
+
+				MeshDesc.Tangents[Index] = FProcMeshTangent(T, /*FlipTangentY*/ true);
 			}
 		}
 	}
 	else
 	{
-		// bCalcFastTerrainBedNormals is false, i.e. this tile may be the underside of the Terrain Mesh or the
-		// Debug Plane. For those tiles, we do the accurate, but slow CalculateTangentsForMesh call.
-		// This is OK since these tiles rarely get updated in runtime, if at all.
+		// bCalcFastTerrainBedNormals is false, i.e. this tile may be the underside of the Terrain
+		// Mesh or the Debug Plane. For those tiles, we do the accurate, but slow
+		// CalculateTangentsForMesh call. This is OK since these tiles rarely get updated in
+		// runtime, if at all.
 		UKismetProceduralMeshLibrary::CalculateTangentsForMesh(
 			MeshDesc.Vertices, MeshDesc.Triangles, MeshDesc.UV0, MeshDesc.Normals,
 			MeshDesc.Tangents);
