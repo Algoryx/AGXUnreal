@@ -64,7 +64,6 @@ void UAGX_MovableTerrainComponent::CreateNative()
 		OwningRigidBody->GetNative()->AddShape(&Hf);
 	}
 
-
 	WriteTransformToNative();
 	UpdateNativeProperties();
 	RecreateMeshes();
@@ -131,7 +130,8 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 											Tile.Center, Tile.Size, Tile.Resolution, Mesh.Center,
 											Mesh.Size, Mesh.Uv0, Mesh.Uv1, Mesh.HeightFunc,
 											Mesh.EdgeHeightFunc, Mesh.bCreateEdges, Mesh.bFixSeams,
-											Mesh.bReverseWinding, /*bCalcFastTerrainBedNormals*/ true);
+											Mesh.bReverseWinding,
+											/*bCalcFastTerrainBedNormals*/ true);
 
 									// Update MeshSection (Re-Upload to GPU)
 									UpdateMeshSection(
@@ -634,16 +634,19 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	{
 		// Postpone mesh creation for next tick, because bedshape geometries needs
 		// to be properly created for BedHeights raycast
-		World->GetTimerManager().SetTimerForNextTick(
-			[this, World, Owner]
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
+			[this, World, Owner](float DeltaTime)
 			{
 				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
 					Owner->HasAnyFlags(RF_BeginDestroyed) ||
 					!Owner->HasActorRegisteredAllComponents())
-					return;
+				{
+					return false;
+				}
 
 				RecreateMeshes();
-			});
+				return false; // This signals to only run once.
+			}));
 	}
 	// In-Game
 	else if (World->IsGameWorld())
