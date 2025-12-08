@@ -624,21 +624,28 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	// In-Editor
 	if (!World->IsGameWorld())
 	{
-		// Postpone mesh creation for next tick, because bedshape geometries needs
-		// to be properly created for BedHeights raycast
-		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
-			[this, World, Owner](float DeltaTime)
-			{
-				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
-					Owner->HasAnyFlags(RF_BeginDestroyed) ||
-					!Owner->HasActorRegisteredAllComponents())
+		if (bUseBedShapes)
+		{
+			// Postpone mesh creation for next tick, because bedshape geometries needs
+			// to be properly created for BedHeights raycast
+			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
+				[this, World, Owner](float DeltaTime)
 				{
-					return false;
-				}
+					if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) ||
+						!IsValid(Owner) || Owner->HasAnyFlags(RF_BeginDestroyed) ||
+						!Owner->HasActorRegisteredAllComponents())
+					{
+						return false;
+					}
 
-				RecreateMeshes();
-				return false; // This signals to only run once.
-			}));
+					RecreateMeshes();
+					return false; // This signals to only run once.
+				}));
+		}
+		else
+		{
+			RecreateMeshes();
+		}
 	}
 	// In-Game
 	else if (World->IsGameWorld())
