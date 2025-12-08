@@ -1227,7 +1227,7 @@ void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMateri
 	RecreateMeshes();
 }
 
-void UAGX_MovableTerrainComponent::SetMeshLOD(int Lod)
+void UAGX_MovableTerrainComponent::SetMeshLOD(int32 Lod)
 {
 	MeshLevelOfDetail = Lod;
 	RecreateMeshes();

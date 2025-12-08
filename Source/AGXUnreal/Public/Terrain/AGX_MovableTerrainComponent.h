@@ -251,7 +251,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
-	int MeshLevelOfDetail = 1;
+	int32 MeshLevelOfDetail = 1;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bCloseMesh = true;
@@ -270,7 +270,7 @@ public:
 	void SetMeshMaterial(UMaterialInterface* Material);
 	void SetAutoMeshResolution(bool bAuto);
 	void SetMeshResolution(FIntVector2 Resolution);
-	void SetMeshLOD(int Lod);
+	void SetMeshLOD(int32 Lod);
 	void SetMeshZOffset(double zOffset);
 	void SetCloseMesh(bool bClose);
 	void SetMeshTileResolution(int TileRes);
