@@ -32,8 +32,9 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	PrimaryComponentTick.bCanEverTick = true;
 	SetCanEverAffectNavigation(false);
 
-	static const TCHAR* DefaultRenderMaterial =
-		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/MI_MovableTerrain.MI_MovableTerrain'");
+	static const TCHAR* DefaultRenderMaterial = TEXT(
+		"NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
+		"MI_MovableTerrain.MI_MovableTerrain'");
 	Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultRenderMaterial);
 }
 
@@ -432,7 +433,7 @@ void UAGX_MovableTerrainComponent::PostInitProperties()
 	UWorld* World = GetWorld();
 
 	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate() &&
-		GIsReconstructingBlueprintInstances)
+		!GIsReconstructingBlueprintInstances)
 	{
 		RecreateMeshesEditor();
 	}
@@ -614,8 +615,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();
 
-	if (!IsValid(World) || !IsValid(this) || !IsValid(Owner) ||
-		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed))
+	if (!IsValid(World) || !IsValid(this) || !IsValid(Owner) || IsBeingDestroyed() ||
+		Owner->HasAnyFlags(RF_BeginDestroyed))
 	{
 		return;
 	}
@@ -629,7 +630,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 			[this, World, Owner](float DeltaTime)
 			{
 				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
-					Owner->HasAnyFlags(RF_BeginDestroyed))
+					Owner->HasAnyFlags(RF_BeginDestroyed) ||
+					!Owner->HasActorRegisteredAllComponents())
 				{
 					return false;
 				}
