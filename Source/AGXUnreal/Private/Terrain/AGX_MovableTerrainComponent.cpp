@@ -31,6 +31,10 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	bAllowConcurrentTick = false;
 	PrimaryComponentTick.bCanEverTick = true;
 	SetCanEverAffectNavigation(false);
+
+	static const TCHAR* DefaultRenderMaterial =
+		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/MI_MovableTerrain.MI_MovableTerrain'");
+	Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultRenderMaterial);
 }
 
 void UAGX_MovableTerrainComponent::CreateNative()
