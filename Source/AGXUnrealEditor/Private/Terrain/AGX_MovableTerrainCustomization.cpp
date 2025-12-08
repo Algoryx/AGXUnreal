@@ -29,10 +29,7 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 
 	if (ObjectsBeingCustomized.Num() > 0)
 	{
-		// Assuming a single component is being customized
-		if (UAGX_MovableTerrainComponent* Component =
-				Cast<UAGX_MovableTerrainComponent>(ObjectsBeingCustomized[0]))
-		{
+		
 			FText RebuildMeshesText = LOCTEXT("RebuildMesh", "Rebuild Mesh");
 			FText RebuildMeshesToolTip = LOCTEXT(
 				"RebuildMeshTooltip", "Manually force the underlying Mesh to rebuild (update) itself.");
@@ -45,13 +42,22 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 									.Text(RebuildMeshesText)
 									.ToolTipText(RebuildMeshesToolTip)
 									.OnClicked_Lambda(
-										[Component]() -> FReply
+										[this]() -> FReply
 										{
-											// Call RecreateMeshesEditor
-											Component->RecreateMeshesEditor();
+											TArray<TWeakObjectPtr<UObject>> Objects;
+											DetailBuilder->GetObjectsBeingCustomized(Objects);
+											for (TWeakObjectPtr<UObject>& Object : Objects)
+											{
+												UAGX_MovableTerrainComponent* Terrain =
+													Cast<UAGX_MovableTerrainComponent>(Object);
+												if (Terrain == nullptr)
+													continue;
+
+												Terrain->RecreateMeshesEditor();
+											}
 											return FReply::Handled();
 										})];
-		}
+
 	}
 
 	DetailBuilder->SortCategories(
