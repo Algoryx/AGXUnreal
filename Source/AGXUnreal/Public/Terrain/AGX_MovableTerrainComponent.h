@@ -253,10 +253,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bCloseMesh = true;
 
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (ClampMin = "-2.5", UIMin = "-2.5", ClampMax = "2.5", UIMax = "2.5"))
-	double MeshZOffset = -1.0;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	double MeshZOffset = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	EAGX_MeshTilingPattern MeshTilingPattern = EAGX_MeshTilingPattern::StretchedTiles;
