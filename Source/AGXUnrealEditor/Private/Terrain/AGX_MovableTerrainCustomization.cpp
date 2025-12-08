@@ -34,6 +34,8 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 				Cast<UAGX_MovableTerrainComponent>(ObjectsBeingCustomized[0]))
 		{
 			FText RebuildMeshesText = LOCTEXT("RebuildMesh", "Rebuild Mesh");
+			FText RebuildMeshesToolTip = LOCTEXT(
+				"RebuildMeshTooltip", "Manually force the underlying Mesh to rebuild (update) itself.");
 
 			EditorCategory.AddCustomRow(RebuildMeshesText)
 				.NameContent()[SNew(STextBlock)
@@ -41,6 +43,7 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 								   .Font(IDetailLayoutBuilder::GetDetailFont())]
 				.ValueContent()[SNew(SButton)
 									.Text(RebuildMeshesText)
+									.ToolTipText(RebuildMeshesToolTip)
 									.OnClicked_Lambda(
 										[Component]() -> FReply
 										{
