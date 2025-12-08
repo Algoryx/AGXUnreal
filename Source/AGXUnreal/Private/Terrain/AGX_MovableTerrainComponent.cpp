@@ -1224,6 +1224,7 @@ void UAGX_MovableTerrainComponent::UpdateParticles()
 void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMaterial)
 {
 	Material = NewMaterial;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetMeshLOD(int Lod)
