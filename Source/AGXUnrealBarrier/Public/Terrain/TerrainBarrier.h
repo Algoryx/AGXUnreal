@@ -15,12 +15,12 @@
 #include <tuple>
 
 struct FShapeBarrier;
-struct FTerrainRef;
-
-struct FHeightFieldShapeBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
 
+struct FTerrainRef;
+struct FTerrainPropertiesBarrier;
+struct FHeightFieldShapeBarrier;
 
 /**
  * AGX Dynamics access barrier for Terrain.
@@ -55,27 +55,9 @@ public:
 	void SetRotation(const FQuat& Rotation);
 	FQuat GetRotation() const;
 
-	void SetCreateParticles(bool CreateParticles);
-	bool GetCreateParticles() const;
-
-	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
-	bool GetDeleteParticlesOutsideBounds() const;
-
-	void SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling);
-	double GetPenetrationForceVelocityScaling() const;
-
-	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
-	double GetMaximumParticleActivationVolume() const;
-
-	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
-	void SetNoMerge(bool bNoMerge);
-	bool GetNoMerge() const;
-
-	void SetSoilParticleSizeScaling(float Scaling);
-	float GetSoilParticleSizeScaling() const;
-
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
+	void SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties);
 
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);

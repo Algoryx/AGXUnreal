@@ -13,6 +13,8 @@
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/ShapeBarrierImpl.h"
 #include "Terrain/ShovelBarrier.h"
+#include "Terrain/TerrainPropertiesBarrier.h"
+#include "TypeConversions.h"
 #include "Utilities/TerrainUtilities.h"
 
 // AGX Dynamics includes.
@@ -176,90 +178,6 @@ FQuat FTerrainBarrier::GetRotation() const
 	return RotationUnreal;
 }
 
-void FTerrainBarrier::SetCreateParticles(bool CreateParticles)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setCreateParticles(CreateParticles);
-}
-
-bool FTerrainBarrier::GetCreateParticles() const
-{
-	check(HasNative());
-	return NativeRef->Native->getProperties()->getCreateParticles();
-}
-
-void FTerrainBarrier::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setDeleteSoilParticlesOutsideBounds(
-		DeleteParticlesOutsideBounds);
-}
-
-bool FTerrainBarrier::GetDeleteParticlesOutsideBounds() const
-{
-	check(HasNative());
-	return NativeRef->Native->getProperties()->getDeleteSoilParticlesOutsideBounds();
-}
-
-void FTerrainBarrier::SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setPenetrationForceVelocityScaling(
-		PenetrationForceVelocityScaling);
-}
-
-double FTerrainBarrier::GetPenetrationForceVelocityScaling() const
-{
-	check(HasNative());
-	return NativeRef->Native->getProperties()->getPenetrationForceVelocityScaling();
-}
-
-void FTerrainBarrier::SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setMaximumParticleActivationVolume(
-		ConvertVolumeToAGX(MaximumParticleActivationVolume));
-}
-
-double FTerrainBarrier::GetMaximumParticleActivationVolume() const
-{
-	check(HasNative());
-	return ConvertVolumeToUnreal<double>(
-		NativeRef->Native->getProperties()->getMaximumParticleActivationVolume());
-}
-
-void FTerrainBarrier::SetSoilParticleSizeScaling(float Scaling)
-{
-	check(HasNative());
-	NativeRef->Native->getProperties()->setSoilParticleSizeScaling(Scaling);
-}
-
-float FTerrainBarrier::GetSoilParticleSizeScaling() const
-{
-	check(HasNative());
-	return NativeRef->Native->getProperties()->getSoilParticleSizeScaling();
-}
-
-void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier* Shape)
-{
-	check(HasNative());
-	check(Shape->HasNative());
-	auto shapeNative = Shape->GetNative();
-	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
-}
-
-void FTerrainBarrier::SetNoMerge(bool bNoMerge)
-{
-	check(HasNative());
-	NativeRef->Native->setNoMerge(bNoMerge);
-}
-
-bool FTerrainBarrier::GetNoMerge() const
-{
-	check(HasNative());
-	return NativeRef->Native->getNoMerge();
-}
-
 void FTerrainBarrier::SetShapeMaterial(const FShapeMaterialBarrier& Material)
 {
 	check(HasNative());
@@ -272,6 +190,13 @@ void FTerrainBarrier::SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainM
 	check(HasNative());
 	check(TerrainMaterial.HasNative());
 	NativeRef->Native->setTerrainMaterial(TerrainMaterial.GetNative()->Native);
+}
+
+void FTerrainBarrier::SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties)
+{
+	check(HasNative());
+	check(TerrainProperties.HasNative());
+	NativeRef->Native->setProperties(TerrainProperties.GetNative()->Native);
 }
 
 void FTerrainBarrier::ClearTerrainMaterial()
