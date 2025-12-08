@@ -14,9 +14,11 @@
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_SensorEnvironmentSpriteComponent.h"
 #include "Sensors/AGX_SurfaceMaterialAssetUserData.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/WireBarrier.h"
@@ -546,6 +548,39 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 	return true;
 }
 
+bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+{
+	using namespace AGX_SensorEnvironment_helpers;
+	if (Terrain == nullptr)
+		return false;
+
+	if (!HasNative())
+	{
+		InitializeNative();
+		if (!HasNative())
+			return false;
+	}
+
+	FTerrainBarrier* TerrainBarrier = Terrain->GetOrCreateNative();
+	if (TerrainBarrier == nullptr)
+		return false;
+
+	if (!NativeBarrier.Add(*TerrainBarrier))
+		return false;
+
+	NativeBarrier.SetLidarSurfaceMaterialOrDefault(
+		*TerrainBarrier, GetLambertianOpaqueMaterialBarrierFrom(*Terrain));
+
+	if (DebugLogOnAdd)
+	{
+		UE_LOG(
+			LogAGX, Log, TEXT("Sensor Environment '%s' added Movable Terrain '%s'."), *GetName(),
+			*Terrain->GetName());
+	}
+
+	return true;
+}
+
 bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
 {
 	using namespace AGX_SensorEnvironment_helpers;
@@ -691,6 +726,14 @@ bool AAGX_SensorEnvironment::RemoveTerrain(AAGX_Terrain* Terrain)
 		return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
 }
 
+bool AAGX_SensorEnvironment::RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+{
+	if (!HasNative() || Terrain == nullptr || !Terrain->HasNative())
+		return false;
+
+	return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
+}
+
 bool AAGX_SensorEnvironment::RemoveWire(UAGX_WireComponent* Wire)
 {
 	if (!HasNative() || Wire == nullptr || !Wire->HasNative())
@@ -795,6 +838,16 @@ void AAGX_SensorEnvironment::BeginPlay()
 		// Add Terrains.
 		for (TActorIterator<AActor> ActorIt(GetWorld()); ActorIt; ++ActorIt)
 		{
+			if (auto SceneRoot = ActorIt->GetRootComponent())
+			{
+				for (auto MovableTerrain :
+					 FAGX_ObjectUtilities::GetChildrenOfType<UAGX_MovableTerrainComponent>(
+						 *SceneRoot, /*recursive*/ true))
+				{
+					AddMovableTerrain(MovableTerrain);
+				}
+			}
+
 			if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
 			{
 				AddTerrain(Terrain);

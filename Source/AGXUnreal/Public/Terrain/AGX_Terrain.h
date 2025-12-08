@@ -4,7 +4,6 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
-#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Terrain/AGX_TerrainHeightFetcher.h"
@@ -49,6 +48,7 @@
 #include "AGX_Terrain.generated.h"
 
 class UAGX_HeightFieldBoundsComponent;
+class UAGX_LidarSurfaceMaterial;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;

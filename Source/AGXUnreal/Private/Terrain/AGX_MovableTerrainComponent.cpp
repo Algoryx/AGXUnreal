@@ -65,7 +65,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	}
 
 	WriteTransformToNative();
-	UpdateNativeTerrainProperties();
+	UpdateNativeProperties();
 	RecreateMeshes();
 
 	// Create PostHandle callback to update mesh.

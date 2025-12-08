@@ -46,7 +46,6 @@ public:
 
 	virtual FTerrainBarrier* GetNative();
 	virtual const FTerrainBarrier* GetNative() const;
-	virtual void UpdateNativeProperties();
 	virtual FTerrainBarrier* GetOrCreateNative();
 
 	// ~Begin IAGX_NativeObject interface.
@@ -171,14 +170,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void RemoveCollisionGroupIfExists(FName GroupName);
 
-	/** Defines physical properties of the surface of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
-	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
-	bool UpdateNativeShapeMaterial();
-
 	/**
 	 * Properties that define the behavior of this Terrain.
 	 * If left unspecified, default Terrain properties will be used.
@@ -195,6 +186,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
+
+	/** Defines physical properties of the surface of the Terrain. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
@@ -301,8 +299,10 @@ private:
 	float CalcInitialHeight(const FVector& LocalPos) const;
 	float CalcInitialBedHeight(const FVector& LocalPos) const;
 
+	virtual void UpdateNativeProperties();
 	bool UpdateNativeTerrainProperties();
 	bool UpdateNativeTerrainMaterial();
+	bool UpdateNativeShapeMaterial();
 
 	void RecreateMeshes();
 
