@@ -622,9 +622,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();
 
-	if (!IsValid(World) || IsTemplate() || !IsValid(this) || !IsValid(Owner) ||
-		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed) ||
-		!Owner->HasActorRegisteredAllComponents())
+	if (!IsValid(World) || !IsValid(this) || !IsValid(Owner) ||
+		IsBeingDestroyed() || Owner->HasAnyFlags(RF_BeginDestroyed))
 	{
 		return;
 	}
@@ -638,8 +637,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 			[this, World, Owner](float DeltaTime)
 			{
 				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
-					Owner->HasAnyFlags(RF_BeginDestroyed) ||
-					!Owner->HasActorRegisteredAllComponents())
+					Owner->HasAnyFlags(RF_BeginDestroyed))
 				{
 					return false;
 				}
