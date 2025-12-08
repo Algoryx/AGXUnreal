@@ -701,6 +701,7 @@ void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
 	}
 
 	Size = NewSize;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetElementSize(double NewSize)
@@ -715,27 +716,32 @@ void UAGX_MovableTerrainComponent::SetElementSize(double NewSize)
 		return;
 	}
 	ElementSize = NewSize;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetShowDebugPlane(bool bShow)
 {
 	bShowDebugPlane = bShow;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetShowUnrealCollision(bool bShow)
 {
 	bShowUnrealCollision = bShow;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetUnrealCollisionLOD(int Lod)
 {
 	UnrealCollisionLOD = Lod;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetUnrealCollisionType(
 	TEnumAsByte<enum ECollisionEnabled::Type> CollisionType)
 {
 	AdditionalUnrealCollision = CollisionType;
+	RecreateMeshes();
 }
 
 /*
