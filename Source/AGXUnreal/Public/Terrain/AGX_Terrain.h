@@ -325,6 +325,9 @@ private:
 	bool bNeedsShapeMaterialWarning {false};
 
 	UPROPERTY()
+	TArray<FShovelReferenceWithSettings> ShovelComponents_DEPRECATED;
+
+	UPROPERTY()
 	bool bCreateParticles_DEPRECATED {true};
 
 	UPROPERTY()
