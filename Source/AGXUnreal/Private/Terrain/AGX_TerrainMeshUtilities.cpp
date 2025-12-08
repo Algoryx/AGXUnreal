@@ -60,8 +60,8 @@ TSharedPtr<FAGX_MeshDescription> UAGX_TerrainMeshUtilities::CreateHeightMeshTile
 	FVector2D TriangleSize =
 		FVector2D(TileSize.X / TileResolution.X, TileSize.Y / TileResolution.Y);
 
-	FIntVector2 StartIndex =
-		FIntVector2(((EdgeL != -1 || bFixSeams) ? 1 : 0), ((EdgeT != -1 || bFixSeams) ? 1 : 0));
+	FIntVector2 StartIndex(
+		((EdgeL != -1 || bFixSeams) ? 1 : 0), ((EdgeT != -1 || bFixSeams) ? 1 : 0));
 
 	// Populate vertices, uvs, colors
 	int32 VertexIndex = 0;
