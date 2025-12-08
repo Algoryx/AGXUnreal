@@ -444,25 +444,6 @@ void UAGX_MovableTerrainComponent::PostEditChangeChainProperty(FPropertyChangedC
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
 	Super::PostEditChangeChainProperty(Event);
-
-	UWorld* World = GetWorld();
-	if (!IsValid(this))
-	{
-		return;
-	}
-
-	// In-Game
-	if (IsValid(World) && World->IsGameWorld())
-	{
-		if (HasNative() && FetchNativeHeights())
-			RecreateMeshes();
-	}
-
-	// In Editor
-	if (IsValid(World) && !World->IsGameWorld() && !IsTemplate())
-	{
-		RecreateMeshesEditor();
-	}
 }
 
 void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
@@ -1248,39 +1229,47 @@ void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMateri
 void UAGX_MovableTerrainComponent::SetMeshLOD(int Lod)
 {
 	MeshLevelOfDetail = Lod;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetAutoMeshResolution(bool bAuto)
 {
 	bAutoMeshResolution = bAuto;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetMeshResolution(FIntVector2 NewResolution)
 {
 	MeshResolution = NewResolution;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetCloseMesh(bool bClose)
 {
 	bCloseMesh = bClose;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetMeshTileResolution(int TileRes)
 {
 	MeshTileResolution = TileRes;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetMeshTilingPattern(EAGX_MeshTilingPattern Pattern)
 {
 	MeshTilingPattern = Pattern;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetFixMeshSeams(bool bFix)
 {
 	bFixMeshSeams = bFix;
+	RecreateMeshes();
 }
 
 void UAGX_MovableTerrainComponent::SetMeshZOffset(double zOffset)
 {
 	MeshZOffset = zOffset;
+	RecreateMeshes();
 }
