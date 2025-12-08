@@ -4,7 +4,6 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
-#include "AGX_ShovelReference.h"
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Terrain/TerrainBarrier.h"
 
@@ -16,7 +15,7 @@
 
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
-class UAGX_ShovelComponent;
+class UAGX_TerrainProperties;
 class UNiagaraSystem;
 class UNiagaraComponent;
 
@@ -82,9 +81,9 @@ public:
 
 	void RecreateMeshesEditor();
 
-protected:
 	// AGX Movable Terrain
 	//----------------
+
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material = nullptr;
@@ -180,6 +179,15 @@ protected:
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 	bool UpdateNativeShapeMaterial();
 
+	/**
+	 * Properties that define the behavior of this Terrain.
+	 * If left unspecified, default Terrain properties will be used.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UAGX_TerrainProperties* TerrainProperties;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties);
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
@@ -187,55 +195,14 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
-	bool UpdateNativeTerrainMaterial();
-
-	/** Whether the native terrain should generate particles or not during shovel interactions. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	bool bCreateParticles = true;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetCreateParticles(bool CreateParticles);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool GetCreateParticles() const;
-
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	bool bDeleteParticlesOutsideBounds = false;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool GetDeleteParticlesOutsideBounds() const;
-
-	/**
-	 * Scales the penetration force with the shovel velocity squared in the cutting
-	 * direction according to: ( 1.0 + C * v^2 ).
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	double PenetrationForceVelocityScaling = 0.0f;
-
-	void SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling);
-
-	double GetPenetrationForceVelocityScaling() const;
-
-	/**
-	 * Sets the maximum volume of active zone wedges that should wake particles [cm^3].
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	double MaximumParticleActivationVolume = std::numeric_limits<double>::infinity();
-
-	void SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume);
-
-	double GetMaximumParticleActivationVolume() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	void SetIsNoMerge(bool IsNoMerge);
+	void SetNoMerge(bool IsNoMerge);
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
-	bool GetIsNoMerge() const;
+	bool GetNoMerge() const;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
 	bool bShowUnrealCollision = false;
@@ -333,6 +300,9 @@ private:
 
 	float CalcInitialHeight(const FVector& LocalPos) const;
 	float CalcInitialBedHeight(const FVector& LocalPos) const;
+
+	bool UpdateNativeTerrainProperties();
+	bool UpdateNativeTerrainMaterial();
 
 	void RecreateMeshes();
 

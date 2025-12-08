@@ -285,6 +285,26 @@ double FTerrainBarrier::GetElementSize() const
 	return ConvertDistanceToUnreal<double>(NativeRef->Native->getElementSize());
 }
 
+void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier* Shape)
+{
+	check(HasNative());
+	check(Shape->HasNative());
+	auto shapeNative = Shape->GetNative();
+	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
+}
+
+void FTerrainBarrier::SetNoMerge(bool bNoMerge)
+{
+	check(HasNative());
+	NativeRef->Native->setNoMerge(bNoMerge);
+}
+
+bool FTerrainBarrier::GetNoMerge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getNoMerge();
+}
+
 TArray<std::tuple<int32, int32>> FTerrainBarrier::GetModifiedVertices() const
 {
 	check(HasNative());

@@ -13,7 +13,7 @@
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
-#include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/AGX_TerrainProperties.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -65,7 +65,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	}
 
 	WriteTransformToNative();
-	UpdateNativeProperties();
+	UpdateNativeTerrainProperties();
 	RecreateMeshes();
 
 	// Create PostHandle callback to update mesh.
@@ -494,22 +494,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bCreateParticles),
-		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bDeleteParticlesOutsideBounds), [](ThisClass* This)
-		{ This->SetDeleteParticlesOutsideBounds(This->bDeleteParticlesOutsideBounds); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, PenetrationForceVelocityScaling), [](ThisClass* This)
-		{ This->SetPenetrationForceVelocityScaling(This->PenetrationForceVelocityScaling); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, MaximumParticleActivationVolume), [](ThisClass* This)
-		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
-
-	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(ParticleSystemAsset),
 		[](ThisClass* This)
 		{
@@ -522,6 +506,10 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
 		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
+		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
 
 	// Size
 	PropertyDispatcher.Add(
@@ -755,12 +743,41 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 {
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
-	NativeBarrier.SetCreateParticles(bCreateParticles);
-	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
-	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
-	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
+	UpdateNativeTerrainProperties();
 	UpdateNativeTerrainMaterial();
 	UpdateNativeShapeMaterial();
+}
+
+bool UAGX_MovableTerrainComponent::UpdateNativeTerrainProperties()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainProperties == nullptr)
+		return false; // Nullptr TerrainProperties not allowed.
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot update native Terrain Properties because don't have a world to create "
+				 "the Properties instance in."));
+		return false;
+	}
+
+	UAGX_TerrainProperties* Instance = TerrainProperties->GetOrCreateInstance(World);
+	check(Instance);
+
+	if (TerrainProperties != Instance)
+		TerrainProperties = Instance;
+
+	FTerrainPropertiesBarrier* TerrainPropertiesBarrier = Instance->GetOrCreateNative();
+	check(TerrainPropertiesBarrier);
+
+	GetNative()->SetTerrainProperties(*TerrainPropertiesBarrier);
+
+	return true;
 }
 
 FTerrainBarrier* UAGX_MovableTerrainComponent::GetOrCreateNative()
@@ -886,87 +903,27 @@ bool UAGX_MovableTerrainComponent::GetCanCollide() const
 	return bCanCollide;
 }
 
-void UAGX_MovableTerrainComponent::SetCreateParticles(bool CreateParticles)
+bool UAGX_MovableTerrainComponent::SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties)
 {
-	if (HasNative())
+	UAGX_TerrainProperties* TerrainPropertiesOrig = TerrainProperties;
+	TerrainProperties = InTerrainProperties;
+
+	if (!HasNative())
 	{
-		NativeBarrier.SetCreateParticles(CreateParticles);
+		// Not in play, we are done.
+		return true;
 	}
 
-	bCreateParticles = CreateParticles;
-}
-
-bool UAGX_MovableTerrainComponent::GetCreateParticles() const
-{
-	if (HasNative())
+	// UpdateNativeTerrainProperties is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeTerrainProperties())
 	{
-		return NativeBarrier.GetCreateParticles();
+		// Something went wrong, restore original TerrainProperties.
+		TerrainProperties = TerrainPropertiesOrig;
+		return false;
 	}
 
-	return bCreateParticles;
-}
-
-void UAGX_MovableTerrainComponent::SetDeleteParticlesOutsideBounds(
-	bool DeleteParticlesOutsideBounds)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetDeleteParticlesOutsideBounds(DeleteParticlesOutsideBounds);
-	}
-
-	bDeleteParticlesOutsideBounds = DeleteParticlesOutsideBounds;
-}
-
-bool UAGX_MovableTerrainComponent::GetDeleteParticlesOutsideBounds() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetDeleteParticlesOutsideBounds();
-	}
-
-	return bDeleteParticlesOutsideBounds;
-}
-
-void UAGX_MovableTerrainComponent::SetPenetrationForceVelocityScaling(
-	double InPenetrationForceVelocityScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetPenetrationForceVelocityScaling(InPenetrationForceVelocityScaling);
-	}
-
-	PenetrationForceVelocityScaling = InPenetrationForceVelocityScaling;
-}
-
-double UAGX_MovableTerrainComponent::GetPenetrationForceVelocityScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetPenetrationForceVelocityScaling();
-	}
-
-	return PenetrationForceVelocityScaling;
-}
-
-void UAGX_MovableTerrainComponent::SetMaximumParticleActivationVolume(
-	double InMaximumParticleActivationVolume)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetMaximumParticleActivationVolume(InMaximumParticleActivationVolume);
-	}
-
-	MaximumParticleActivationVolume = InMaximumParticleActivationVolume;
-}
-
-double UAGX_MovableTerrainComponent::GetMaximumParticleActivationVolume() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetMaximumParticleActivationVolume();
-	}
-
-	return MaximumParticleActivationVolume;
+	return true;
 }
 
 bool UAGX_MovableTerrainComponent::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
@@ -1121,13 +1078,13 @@ void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeCompone
 		NativeBarrier.ConvertToDynamicMassInShape(Shape->GetNative());
 }
 
-void UAGX_MovableTerrainComponent::SetIsNoMerge(bool IsNoMerge)
+void UAGX_MovableTerrainComponent::SetNoMerge(bool IsNoMerge)
 {
 	if (HasNative())
 		NativeBarrier.SetNoMerge(IsNoMerge);
 }
 
-bool UAGX_MovableTerrainComponent::GetIsNoMerge() const
+bool UAGX_MovableTerrainComponent::GetNoMerge() const
 {
 	if (HasNative())
 		return NativeBarrier.GetNoMerge();

@@ -80,6 +80,13 @@ public:
 	FVector2D GetSize() const;
 	double GetElementSize() const;
 
+	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
+
+	/// Disable/enable merge of dynamic mass to this terrain
+	void SetNoMerge(bool bNoMerge);
+	bool GetNoMerge() const;
+
+
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.
 	 * The x/y layout matches that of an Unreal Landscape coordinate system.
