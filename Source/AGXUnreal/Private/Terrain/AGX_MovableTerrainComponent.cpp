@@ -523,6 +523,10 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, ElementSize),
 		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
 
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bIsNoMerge),
+		[](ThisClass* This) { This->SetNoMerge(This->bIsNoMerge); });
+
 	// Unreal collision.
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
@@ -772,6 +776,7 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 {
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
+	NativeBarrier.SetNoMerge(bIsNoMerge);
 	UpdateNativeTerrainProperties();
 	UpdateNativeTerrainMaterial();
 	UpdateNativeShapeMaterial();
@@ -1111,13 +1116,16 @@ void UAGX_MovableTerrainComponent::SetNoMerge(bool IsNoMerge)
 {
 	if (HasNative())
 		NativeBarrier.SetNoMerge(IsNoMerge);
+
+	bIsNoMerge = IsNoMerge;
 }
 
 bool UAGX_MovableTerrainComponent::GetNoMerge() const
 {
 	if (HasNative())
 		return NativeBarrier.GetNoMerge();
-	return false;
+
+	return bIsNoMerge;
 }
 
 UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()

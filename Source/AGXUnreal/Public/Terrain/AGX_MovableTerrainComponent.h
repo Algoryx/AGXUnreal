@@ -197,6 +197,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	bool bIsNoMerge = false;
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
 	void SetNoMerge(bool IsNoMerge);
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
