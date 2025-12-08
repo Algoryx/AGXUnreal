@@ -234,13 +234,13 @@ void UAGX_MovableTerrainComponent::InitializeHeights()
 	BedHeights.Reset();
 	BedHeights.SetNumZeroed(Res.X * Res.Y);
 
-	FVector Center = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
+	FVector Corner = FVector(ElementSize * (1 - Res.X) / 2.0, ElementSize * (1 - Res.Y) / 2.0, 0.0);
 
 	for (int y = 0; y < Res.Y; y++)
 	{
 		for (int x = 0; x < Res.X; x++)
 		{
-			FVector LocalPos = Center + FVector(x * ElementSize, y * ElementSize, 0);
+			FVector LocalPos = Corner + FVector(x * ElementSize, y * ElementSize, 0);
 
 			BedHeights[y * Res.X + x] = CalcInitialBedHeight(LocalPos);
 			CurrentHeights[y * Res.X + x] = CalcInitialHeight(LocalPos);
@@ -273,7 +273,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 {
 	bool bIsUnrealCollision = AdditionalUnrealCollision != ECollisionEnabled::NoCollision;
 	const auto TerrainResolution = GetTerrainResolution();
-	FIntVector2 AutoMeshResolution = FIntVector2(TerrainResolution.X - 1, TerrainResolution.Y - 1);
+	FIntVector2 AutoMeshResolution(TerrainResolution.X - 1, TerrainResolution.Y - 1);
 	FAGX_UvParams MeshUv {Size / 2.0, {1.0 / Size.X, 1.0 / Size.Y}};
 	FAGX_UvParams TerrainUv {GetTerrainSize() / 2.0, {1.0 / ElementSize, 1.0 / ElementSize}};
 
