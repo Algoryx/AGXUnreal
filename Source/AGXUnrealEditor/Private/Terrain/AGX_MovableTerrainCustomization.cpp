@@ -22,7 +22,6 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 {
 	DetailBuilder = &InDetailBuilder;
 
-
 	IDetailCategoryBuilder& EditorCategory = DetailBuilder->EditCategory("AGX Editor");
 	// Retrieve the UObject associated with the details panel
 	TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
@@ -53,45 +52,37 @@ void FAGX_MovableTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& In
 	}
 
 	DetailBuilder->SortCategories(
-	[](const TMap<FName, IDetailCategoryBuilder*>& CategoryMap)
-	{
-		for (const TPair<FName, IDetailCategoryBuilder*>& Pair : CategoryMap)
+		[](const TMap<FName, IDetailCategoryBuilder*>& CategoryMap)
 		{
-			int32 SortOrder = Pair.Value->GetSortOrder();
-			const FName CategoryName = Pair.Key;
+			for (const TPair<FName, IDetailCategoryBuilder*>& Pair : CategoryMap)
+			{
+				int32 SortOrder = Pair.Value->GetSortOrder();
+				const FName CategoryName = Pair.Key;
 
-			if (CategoryName == "AGX Editor")
-			{
-				SortOrder += 1;
-			}
-			else if (CategoryName == "AGX Movable Terrain")
-			{
-				SortOrder += 4;
-			}
-			else if (CategoryName == "AGX Terrain")
-			{
-				SortOrder += 3;
-			}
-			else if (CategoryName == "AGX Terrain Rendering")
-			{
-				SortOrder += 4;
-			}
-			else
-			{
-				const int32 ValueSortOrder = Pair.Value->GetSortOrder();
-				if (ValueSortOrder >= SortOrder && ValueSortOrder < SortOrder + 10)
+				if (CategoryName == "AGX Editor")
 				{
-					SortOrder += 10;
+					SortOrder += 1;
+				}
+				else if (CategoryName == "AGX Movable Terrain")
+				{
+					SortOrder += 4;
+				}
+				else if (CategoryName == "AGX Terrain")
+				{
+					SortOrder += 3;
+				}
+				else if (CategoryName == "AGX Terrain Rendering")
+				{
+					SortOrder += 4;
 				}
 				else
 				{
-					continue;
+					SortOrder += 10;
 				}
-			}
 
-			Pair.Value->SetSortOrder(SortOrder);
-		}
-	});
+				Pair.Value->SetSortOrder(SortOrder);
+			}
+		});
 }
 
 #undef LOCTEXT_NAMESPACE
