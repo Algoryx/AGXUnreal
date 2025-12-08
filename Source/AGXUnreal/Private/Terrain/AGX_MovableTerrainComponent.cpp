@@ -78,7 +78,7 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Create PostHandle callback to update mesh.
 	ConnectMeshToNative();
 
-	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))	
+	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		Simulation->Add(*this);
 }
 
@@ -690,11 +690,30 @@ TArray<FName> UAGX_MovableTerrainComponent::GetBedShapesOptions() const
 
 void UAGX_MovableTerrainComponent::SetSize(FVector2D NewSize)
 {
+	if (HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SetSize called on Movable Terrain '%s' in '%s' during Play. SetSize can only be "
+				 "called pre-play."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
 	Size = NewSize;
 }
 
 void UAGX_MovableTerrainComponent::SetElementSize(double NewSize)
 {
+	if (HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SetElementSize called on Movable Terrain '%s' in '%s' during Play. SetSize can "
+				 "only be called pre-play."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
 	ElementSize = NewSize;
 }
 
