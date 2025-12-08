@@ -98,7 +98,6 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 						if (!bHeightsInitialized && FetchNativeHeights())
 							RecreateMeshes();
 
-						// Get ModifiedHeights
 						auto ModifiedHeights = NativeBarrier.GetModifiedVertices();
 						FVector2D NativeTerrainSize = GetTerrainSize();
 
@@ -284,7 +283,6 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 	FAGX_MeshVertexFunction FlatHeightFunc = [&](const FVector& LocalPos) -> double
 	{ return 0.0f; };
 
-	// Reset MeshSections
 	ClearAllMeshSections();
 
 	int MeshIndex = 0;
@@ -518,7 +516,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
 		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
 
-	// Size
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
 		[](ThisClass* This) { This->SetSize(This->Size); });
@@ -526,7 +523,7 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, ElementSize),
 		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
 
-	// Unreal collision
+	// Unreal collision.
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
 		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
@@ -537,7 +534,7 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, AdditionalUnrealCollision),
 		[](ThisClass* This) { This->SetUnrealCollisionType(This->AdditionalUnrealCollision); });
 
-	// Mesh
+	// Mesh.
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Material),
 		[](ThisClass* This) { This->SetMeshMaterial(This->Material); });
@@ -579,7 +576,6 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
 	if (bIsPlaying)
 	{
-		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(ThisClass, Size),
 			GET_MEMBER_NAME_CHECKED(ThisClass, ElementSize),
