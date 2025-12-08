@@ -228,11 +228,11 @@ public:
 	int32 GetNumParticles() const;
 
 	/** Whether soil particles should be rendered or not. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
-	bool bEnableParticleRendering = false;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	bool bEnableParticleRendering = true;
 
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay,
+		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (EditCondition = "bEnableParticleRendering"))
 	UNiagaraSystem* ParticleSystemAsset = nullptr;
 	UNiagaraComponent* ParticleSystemComponent = nullptr;

@@ -32,10 +32,31 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	PrimaryComponentTick.bCanEverTick = true;
 	SetCanEverAffectNavigation(false);
 
-	static const TCHAR* DefaultRenderMaterial = TEXT(
-		"NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
-		"MI_MovableTerrain.MI_MovableTerrain'");
-	Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultRenderMaterial);
+	auto AssignDefault = [](auto*& AssetRefProperty, const TCHAR* Path)
+	{
+		if (AssetRefProperty != nullptr)
+			return;
+
+		using Type = typename std::remove_reference<decltype(*AssetRefProperty)>::type;
+		auto AssetFinder = ConstructorHelpers::FObjectFinder<Type>(Path);
+		if (!AssetFinder.Succeeded())
+		{
+			UE_LOG(
+				LogAGX, Warning, TEXT("Expected to find asset '%s' but it was not found."), Path);
+			return;
+		}
+
+		AssetRefProperty = AssetFinder.Object;
+	};
+
+	AssignDefault(
+		Material,
+		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
+									"MI_MovableTerrain.MI_MovableTerrain'"));
+
+	AssignDefault(
+		ParticleSystemAsset, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/"
+								  "PS_SoilParticleSystem.PS_SoilParticleSystem'"));
 }
 
 void UAGX_MovableTerrainComponent::CreateNative()
