@@ -78,8 +78,8 @@ void UAGX_MovableTerrainComponent::CreateNative()
 	// Create PostHandle callback to update mesh.
 	ConnectMeshToNative();
 
-	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
-	Simulation->Add(*this);
+	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))	
+		Simulation->Add(*this);
 }
 
 void UAGX_MovableTerrainComponent::ConnectMeshToNative()
