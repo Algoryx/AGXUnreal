@@ -55,9 +55,11 @@ void UAGX_MovableTerrainComponent::CreateNative()
 
 	if (!HasNative())
 	{
-		UE_LOG(
-			LogAGX, Error, TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. "),
+		const FString Message = FString::Printf(
+			TEXT("AGX MovableTerrain '%s' in '%s' failed AllocateNative. Output Log may contain "
+				 "more details."),
 			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 
 		return;
 	}
@@ -624,28 +626,21 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	// In-Editor
 	if (!World->IsGameWorld())
 	{
-		if (bUseBedShapes)
-		{
-			// Postpone mesh creation for next tick, because bedshape geometries needs
-			// to be properly created for BedHeights raycast
-			FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
-				[this, World, Owner](float DeltaTime)
+		// Postpone mesh creation for next tick, because bedshape geometries needs
+		// to be properly created for BedHeights raycast
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
+			[this, World, Owner](float DeltaTime)
+			{
+				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
+					Owner->HasAnyFlags(RF_BeginDestroyed) ||
+					!Owner->HasActorRegisteredAllComponents())
 				{
-					if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) ||
-						!IsValid(Owner) || Owner->HasAnyFlags(RF_BeginDestroyed) ||
-						!Owner->HasActorRegisteredAllComponents())
-					{
-						return false;
-					}
+					return false;
+				}
 
-					RecreateMeshes();
-					return false; // This signals to only run once.
-				}));
-		}
-		else
-		{
-			RecreateMeshes();
-		}
+				RecreateMeshes();
+				return false; // This signals to only run once.
+			}));
 	}
 	// In-Game
 	else if (World->IsGameWorld())
