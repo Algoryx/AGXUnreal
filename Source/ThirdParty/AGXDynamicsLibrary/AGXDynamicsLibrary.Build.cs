@@ -234,6 +234,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
@@ -286,6 +287,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-generate", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
@@ -374,6 +376,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxurdfplugin", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Physics", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Physics1D", LibSource.Dependencies);
