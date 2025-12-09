@@ -31,8 +31,9 @@ void FWebDebuggerServerBarrier::AllocateNative(int32 Port)
 	check(!HasNative());
 	const FString AGXResources = FAGX_Environment::GetAGXDynamicsResourcesPath();
 #if defined(_WIN64)
+	const FString BinSubDir = FAGX_Environment::IsSetupEnvRun() ? TEXT("x64") : TEXT("Win64");
 	const FString WebDebuggerDir =
-		FPaths::Combine(AGXResources, FString("bin"), FString("Win64"), FString("WebDebugger"));
+		FPaths::Combine(AGXResources, FString("bin"), BinSubDir, FString("WebDebugger"));
 #else
 	const FString WebDebuggerDir =
 		FPaths::Combine(AGXResources, FString("lib"), FString("Linux"), FString("WebDebugger"));
