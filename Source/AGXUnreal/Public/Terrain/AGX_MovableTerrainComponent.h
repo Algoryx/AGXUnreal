@@ -56,6 +56,7 @@ public:
 
 	//~ Begin UActorComponent Interface
 	virtual void OnComponentCreated() override;
+	virtual void DestroyComponent(bool bPromoteChildren) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;

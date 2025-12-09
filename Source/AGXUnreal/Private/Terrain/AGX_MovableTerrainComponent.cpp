@@ -399,6 +399,14 @@ void UAGX_MovableTerrainComponent::OnComponentCreated()
 		RecreateMeshesEditor();
 }
 
+void UAGX_MovableTerrainComponent::DestroyComponent(bool bPromoteChildren)
+{
+	if (ParticleSystemComponent != nullptr)
+		ParticleSystemComponent->DestroyComponent();
+
+	Super::DestroyComponent(bPromoteChildren);
+}
+
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
