@@ -46,6 +46,9 @@ public:
 	uintptr_t GetNativeAddress() const;
 	void SetNativeAddress(uintptr_t NativeAddress);
 
+	void SetEnabled(bool InEnabled);
+	bool GetEnabled() const;
+
 	void SetCanCollide(bool bCanCollide);
 	bool GetCanCollide() const;
 

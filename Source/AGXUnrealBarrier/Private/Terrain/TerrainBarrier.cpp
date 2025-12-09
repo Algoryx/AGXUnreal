@@ -132,6 +132,18 @@ void FTerrainBarrier::SetNativeAddress(uintptr_t NativeAddress)
 	NativeRef->Native = reinterpret_cast<agxTerrain::Terrain*>(NativeAddress);
 }
 
+void FTerrainBarrier::SetEnabled(bool Enabled)
+{
+	check(HasNative());
+	NativeRef->Native->setEnable(Enabled);
+}
+
+bool FTerrainBarrier::GetEnabled() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnable();
+}
+
 void FTerrainBarrier::SetCanCollide(bool bCanCollide)
 {
 	check(HasNative());

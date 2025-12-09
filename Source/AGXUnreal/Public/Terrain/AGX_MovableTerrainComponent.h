@@ -35,13 +35,14 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowDebugPlane = false;
+
 	void SetShowDebugPlane(bool bShow);
 
 	void CreateNative();
 	void ConnectMeshToNative();
 	bool FetchNativeHeights();
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool WriteTransformToNative();
 
 	virtual FTerrainBarrier* GetNative();
@@ -81,8 +82,17 @@ public:
 
 	void RecreateMeshesEditor();
 
-	// AGX Movable Terrain
-	//----------------
+	/**
+	 * Enable or disable Terrrain computations.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
+	bool bIsEnabled = true;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
+	void SetEnabled(bool InEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
+	bool IsEnabled() const;
 
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
@@ -116,6 +126,7 @@ public:
 
 	// BedShapes
 	// ______________________
+
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	bool bUseBedShapes = false;
@@ -140,9 +151,11 @@ public:
 
 	// InitialNoise
 	//______________________
+
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	bool bUseInitialNoise = false;
+
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
@@ -150,68 +163,72 @@ public:
 
 	// AGX Terrain
 	// _________________
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+
+	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
 	bool bCanCollide {true};
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void SetCanCollide(bool bInCanCollide);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool GetCanCollide() const;
 
 	/**
 	 * List of collision groups that this Terrain is part of.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
 	TArray<FName> CollisionGroups;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void AddCollisionGroup(FName GroupName);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void RemoveCollisionGroupIfExists(FName GroupName);
 
 	/**
 	 * Properties that define the behavior of this Terrain.
 	 * If left unspecified, default Terrain properties will be used.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
 	UAGX_TerrainProperties* TerrainProperties;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties);
 
 	/** The physical bulk, compaction, particle and surface properties of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
 	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial);
 
 	/** Defines physical properties of the surface of the Terrain. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
 	bool bIsNoMerge = false;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void SetNoMerge(bool IsNoMerge);
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool GetNoMerge() const;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
 	bool bShowUnrealCollision = false;
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain", AdvancedDisplay)
+
+	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
 	int UnrealCollisionLOD = 4;
+
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Terrain", AdvancedDisplay,
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", AdvancedDisplay,
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5", UIMax = "5"))
 	TEnumAsByte<enum ECollisionEnabled::Type> AdditionalUnrealCollision {
 		ECollisionEnabled::NoCollision};
@@ -222,6 +239,7 @@ public:
 
 	// AGX Terrain Rendering
 	//--------------------------
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
 	UNiagaraComponent* GetSpawnedParticleSystemComponent();
 
@@ -243,12 +261,15 @@ public:
 
 	// Terrain Mesh
 	// --------------------
+
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bAutoMeshResolution = true;
+
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (EditCondition = "!bAutoMeshResolution"))
 	FIntVector2 MeshResolution = FIntVector2(20, 20);
+
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
@@ -262,6 +283,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	EAGX_MeshTilingPattern MeshTilingPattern = EAGX_MeshTilingPattern::StretchedTiles;
+
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	int MeshTileResolution = 10;
 

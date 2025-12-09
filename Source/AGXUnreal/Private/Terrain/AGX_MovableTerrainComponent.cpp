@@ -50,13 +50,28 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	};
 
 	AssignDefault(
-		Material,
-		TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
-									"MI_MovableTerrain.MI_MovableTerrain'"));
+		Material, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
+					   "MI_MovableTerrain.MI_MovableTerrain'"));
 
 	AssignDefault(
 		ParticleSystemAsset, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/"
 								  "PS_SoilParticleSystem.PS_SoilParticleSystem'"));
+}
+
+void UAGX_MovableTerrainComponent::SetEnabled(bool InEnabled)
+{
+	if (HasNative())
+		NativeBarrier.SetEnabled(InEnabled);
+
+	bIsEnabled = InEnabled;
+}
+
+bool UAGX_MovableTerrainComponent::IsEnabled() const
+{
+	if (HasNative())
+		return NativeBarrier.GetEnabled();
+
+	return bIsEnabled;
 }
 
 void UAGX_MovableTerrainComponent::CreateNative()
@@ -505,6 +520,10 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->WriteTransformToNative(); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, bIsEnabled),
+		[](ThisClass* This) { This->SetEnabled(This->bIsEnabled); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
@@ -787,6 +806,7 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
 	NativeBarrier.SetNoMerge(bIsNoMerge);
+	NativeBarrier.SetEnabled(bIsEnabled);
 	UpdateNativeTerrainProperties();
 	UpdateNativeTerrainMaterial();
 	UpdateNativeShapeMaterial();

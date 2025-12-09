@@ -66,6 +66,18 @@ public:
 	// Sets default values for this actor's properties
 	AAGX_Terrain();
 
+	/**
+	 * Enable or disable Terrrain computations.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	bool bIsEnabled = true;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetEnabled(bool InEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool IsEnabled() const;
+
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_TerrainSpriteComponent* SpriteComponent;
 
