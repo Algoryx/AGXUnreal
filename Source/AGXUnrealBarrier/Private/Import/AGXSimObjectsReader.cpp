@@ -7,6 +7,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
@@ -14,7 +15,6 @@
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 

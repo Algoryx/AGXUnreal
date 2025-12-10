@@ -5,9 +5,9 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/Contacts/ShapeContactEntity.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 // Note the BeginAGXIncludes.h and EndAGXIncludes.h wrapping the AGX Dynamics header files.
