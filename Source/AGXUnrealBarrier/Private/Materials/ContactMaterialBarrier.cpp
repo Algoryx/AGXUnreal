@@ -6,8 +6,8 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_AgxDynamicsObjectsAccess.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
