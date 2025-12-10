@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_InternalDelegateAccessor.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 
@@ -140,7 +140,8 @@ void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 TStructOnScope<FActorComponentInstanceData> UAGX_SensorComponentBase::GetComponentInstanceData()
 	const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<
+		FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{

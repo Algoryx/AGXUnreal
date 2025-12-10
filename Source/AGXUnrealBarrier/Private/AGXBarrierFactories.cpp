@@ -5,9 +5,12 @@
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/Contacts/ShapeContactEntity.h"
+#include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "Contacts/ContactPointEntity.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Vehicle/SteeringBarrier.h"
+#include "Vehicle/WheelJointBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -28,6 +31,8 @@
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/TerrainMaterial.h>
+#include <agxVehicle/Steering.h>
+#include <agxVehicle/WheelJoint.h>
 #include <agxWire/Wire.h>
 #include <agxWire/Node.h>
 #include <agxWire/WireWinchController.h>
@@ -120,6 +125,11 @@ AGXBarrierFactories::CreateSingleControllerConstraint1DOFBarrier(
 	return {std::make_unique<FConstraintRef>(Constraint)};
 }
 
+FWheelJointBarrier AGXBarrierFactories::CreateWheelJointBarrier(agxVehicle::WheelJoint* WJ)
+{
+	return {std::make_unique<FConstraintRef>(WJ)};
+}
+
 FTwistRangeControllerBarrier AGXBarrierFactories::CreateTwistRangeControllerBarrier(
 	agx::TwistRangeController* Controller)
 {
@@ -191,6 +201,11 @@ FWireWinchBarrier AGXBarrierFactories::CreateWireWinchBarrier(agxWire::WireWinch
 FShovelBarrier AGXBarrierFactories::CreateShovelBarrier(agxTerrain::Shovel* Shovel)
 {
 	return {std::make_unique<FShovelRef>(Shovel)};
+}
+
+FSteeringBarrier AGXBarrierFactories::CreateSteeringBarrier(agxVehicle::Steering* Steering)
+{
+	return {std::make_shared<FSteeringRef>(Steering)};
 }
 
 FTrackBarrier AGXBarrierFactories::CreateTrackBarrier(agxVehicle::Track* Track)

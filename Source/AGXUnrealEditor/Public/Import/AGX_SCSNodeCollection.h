@@ -29,8 +29,10 @@ struct AGXUNREALEDITOR_API FAGX_SCSNodeCollection
 	TMap<FGuid, USCS_Node*> TwoBodyTires;
 	TMap<FGuid, USCS_Node*> ObserverFrames;
 	TMap<FGuid, USCS_Node*> Shovels;
-	TMap<FGuid, USCS_Node*> Wires;
+	TMap<FGuid, USCS_Node*> Steerings;
 	TMap<FGuid, USCS_Node*> Tracks;
+	TMap<FGuid, USCS_Node*> Wires;
+	
 
 	// Guid is the AGX Dynamics shape (Trimesh) guid.
 	TMap<FGuid, USCS_Node*> CollisionStaticMeshComponents;

@@ -38,7 +38,7 @@ class FTrackBarrier;
  * object during Play without altering the persistent asset, while still being able to edit the
  * asset object from within Unreal Editor.
  */
-UCLASS(ClassGroup = "AGX", Category = "AGX", BlueprintType)
+UCLASS(ClassGroup = "AGX_Vehicle", Category = "AGX", BlueprintType)
 class AGXUNREAL_API UAGX_TrackInternalMergeProperties : public UObject
 {
 	GENERATED_BODY()
