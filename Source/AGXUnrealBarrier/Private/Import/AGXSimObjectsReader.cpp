@@ -637,13 +637,22 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FOpenPLXUtilities::GetBundlePath();
+
+	const std::vector<std::string> BundlePaths =
+		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
+	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
+
+	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
+	//  allocated in Unreal.
+	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
 	agxopenplx::OptParams Params = agxopenplx::OptParams()
-									   .with_uuidv5("47de4303-16ef-408d-baf5-1c86f0fe4473")
-									   .with_map_visuals(true);
+									   .withUuidv5(std::move(UuidAgxAllocated))
+									   .withMapVisuals(true)
+									   .withSkipDefaultBundles()
+									   .withBundlePaths(BundlePaths);
 	agxopenplx::LoadResult Result;
 	auto LogErrors = [&]()
 	{
@@ -653,8 +662,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 
 	try
 	{
-		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filename), Convert(PLXBundlesPath), Params);
+		Result = agxopenplx::load_from_file(Simulation, Convert(Filename), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{

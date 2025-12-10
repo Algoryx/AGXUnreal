@@ -137,6 +137,11 @@ void UAGX_ShovelProperties::SetToothLength(double InToothLength)
 	AGX_SHOVEL_SETTER_IMPL(ToothLength);
 }
 
+void UAGX_ShovelProperties::SetEnableExcavationAtTeethEdge(bool InbEnableExcavationAtTeethEdge)
+{
+	AGX_SHOVEL_SETTER_IMPL(bEnableExcavationAtTeethEdge);
+}
+
 void UAGX_ShovelProperties::SetToothMinimumRadius(double InToothMinimumRadius)
 {
 	AGX_SHOVEL_SETTER_IMPL(ToothMinimumRadius);
@@ -508,6 +513,7 @@ void UAGX_ShovelProperties::InitPropertyDispatcher()
 	AGX_ASSET_DEFAULT_DISPATCHER(ToothMinimumRadius);
 	AGX_ASSET_DEFAULT_DISPATCHER(ToothMaximumRadius);
 	AGX_ASSET_DEFAULT_DISPATCHER(NumberOfTeeth);
+	AGX_ASSET_DEFAULT_DISPATCHER(bEnableExcavationAtTeethEdge);
 	AGX_ASSET_DEFAULT_DISPATCHER(NoMergeExtensionDistance);
 	AGX_ASSET_DEFAULT_DISPATCHER(MinimumSubmergedContactLengthFraction);
 	AGX_ASSET_DEFAULT_DISPATCHER(VerticalBladeSoilMergeDistance);
@@ -584,6 +590,11 @@ void UAGX_ShovelProperties::InitPropertyDispatcher()
 }
 #endif
 
+void UAGX_ShovelProperties::SetbEnableExcavationAtTeethEdge(bool InEnable)
+{
+	SetEnableExcavationAtTeethEdge(InEnable);
+}
+
 void UAGX_ShovelProperties::SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts)
 {
 	SetAlwaysRemoveShovelContacts(InbAlwaysRemoveShovelContacts);
@@ -632,6 +643,7 @@ void UAGX_ShovelProperties::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportC
 	ToothMinimumRadius = Barrier.GetToothMinimumRadius();
 	ToothMaximumRadius = Barrier.GetToothMaximumRadius();
 	NumberOfTeeth = Barrier.GetNumberOfTeeth();
+	bEnableExcavationAtTeethEdge = Barrier.GetEnableExcavationAtTeethEdge();
 	NoMergeExtensionDistance = Barrier.GetNoMergeExtensionDistance();
 	MinimumSubmergedContactLengthFraction = Barrier.GetMinimumSubmergedContactLengthFraction();
 	VerticalBladeSoilMergeDistance = Barrier.GetVerticalBladeSoilMergeDistance();

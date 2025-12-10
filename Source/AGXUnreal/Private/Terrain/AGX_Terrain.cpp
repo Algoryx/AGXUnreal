@@ -1379,7 +1379,7 @@ void AAGX_Terrain::CreateNativeShovels()
 			WorldToBody.TransformVector(CuttingDirection->GetVectorDirection()).GetSafeNormal();
 
 		ShovelBarrier.AllocateNative(
-			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector);
+			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector, Shovel.ToothLength);
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 

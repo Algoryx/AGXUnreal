@@ -11,10 +11,26 @@
 #include "HAL/PlatformFileManager.h"
 #include "Misc/Paths.h"
 
-FString FOpenPLXUtilities::GetBundlePath()
+TArray<FString> FOpenPLXUtilities::GetBundlePaths()
 {
-	return FPaths::Combine(
-		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles");
+	TArray<FString> Paths;
+
+	Paths.Add(FPaths::Combine(
+		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles"));
+	Paths.Add(FPaths::Combine(
+			FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "data", "openplx", "agxBundle"));
+
+	const FString UserBundlePath = GetUserBundlePath();
+	if (FPaths::DirectoryExists(UserBundlePath))
+		Paths.Add(UserBundlePath);
+
+	return Paths;
+}
+
+FString FOpenPLXUtilities::GetUserBundlePath()
+{
+	const FString ProjectPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	return FPaths::Combine(ProjectPath, TEXT("OpenPLXUserBundles"));
 }
 
 FString FOpenPLXUtilities::GetModelsDirectory()

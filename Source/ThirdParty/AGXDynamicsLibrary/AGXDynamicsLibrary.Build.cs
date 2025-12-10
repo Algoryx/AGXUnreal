@@ -84,6 +84,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
 
+		/// Points to AGX Dynamics OpenPLX bundles.
+		AGXOpenPLXBundle,
+
 		/// Points to AGX Dynamics external resources.
 		External
 	};
@@ -226,18 +229,12 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
+		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-analysis", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-bundle", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-core.api", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-error", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-eval", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-internal", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-nodes", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-parser", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplx-runtime", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
@@ -288,16 +285,10 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		// OpenPLX libs, located in the same dir as AGX libs.
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
-		LinkLibFiles.Add("openplx-analysis", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-bundle", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-core.api", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-error", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-eval", LibSource.Dependencies);
+		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
+		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-generate", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-internal", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-nodes", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-parser", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-runtime", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
@@ -380,18 +371,12 @@ public class AGXDynamicsLibrary : ModuleRules
 
 			// OpenPLX:
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
+			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-analysis", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-bundle", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-core.api", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-error", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-eval", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-internal", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-nodes", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-parser", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-runtime", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxurdfplugin", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Physics", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplxbundles-Physics1D", LibSource.Dependencies);
@@ -413,6 +398,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "lib", "*"));
 		RuntimeDependencies.Add(Path.Combine(BundledAGXResourcesPath, "openplxbundles", "*"));
 		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXModels", "*"));
+		RuntimeDependencies.Add(Path.Combine(Target.ProjectFile.Directory.FullName, "OpenPLXUserBundles", "*"));
 		SetLicenseForCopySafe(Target);
 
 		// This is a work-around for Linux which ensures that the .so files are
@@ -885,6 +871,18 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy AGX Dynamics OpenPLX bundles.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.AGXOpenPLXBundle, true);
 
 			if (!CopyDirectoryRecursively(Source, Dest))
 			{
@@ -1599,6 +1597,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BuildDir, "include", "external"),
 				null, null
@@ -1650,6 +1652,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1699,6 +1705,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 
 			LibSources.Add(LibSource.External, new LibSourceInfo(
@@ -1752,6 +1762,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(InstalledDir, "include", "external"),
 				null, null
@@ -1801,6 +1815,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "openplx", "agxBundle")
+			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
 				null, null
@@ -1847,6 +1865,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
 			));
 			LibSources.Add(LibSource.External, new LibSourceInfo(
 				Path.Combine(BaseDir, "include", "external"),
