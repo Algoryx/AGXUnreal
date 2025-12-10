@@ -3,8 +3,8 @@
 #include "Contacts/ContactPointBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Contacts/ContactPointEntity.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
