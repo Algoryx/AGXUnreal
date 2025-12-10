@@ -497,25 +497,6 @@ TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentIn
 		});
 }
 
-void UAGX_ShovelComponent::Serialize(FArchive& Archive)
-{
-	Super::Serialize(Archive);
-	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
-	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelUsesToothDirection))
-	{
-		ToothDirection = CuttingDirection_DEPRECATED;
-		if (ShovelProperties != nullptr)
-		{
-			// Here we might actually overwrite a user-set ToothLength that was non-zero.
-			// But since the ToothLength now means the edge of the Shovel will translate
-			// this distance (along the ToothDirection vector), leaving it as-is will have much
-			// bigger and unwanted consequences. So this is the best we can do to get as close to
-			// the "old" behavior as we can.
-			ShovelProperties->ToothLength = 0.0;
-		}
-	}
-}
-
 bool UAGX_ShovelComponent::HasNative() const
 {
 	return NativeBarrier.HasNative();
@@ -628,7 +609,7 @@ void UAGX_ShovelComponent::AllocateNative()
 	const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*BodyComponent, *this);
 	const FVector ToothDirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
 	const double ToothLength =
-		ShovelProperties != nullptr ? ShovelProperties->ToothLength.GetValue() : 0.0;
+		ShovelProperties != nullptr ? ShovelProperties->ToothLength.GetValue() : 0.15 /*AGX default*/;
 
 	NativeBarrier.AllocateNative(
 		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, ToothDirectionInBody, ToothLength);
@@ -685,6 +666,7 @@ bool UAGX_ShovelComponent::WritePropertiesToNative()
 	NativeBarrier.SetToothMinimumRadius(ShovelProperties->ToothMinimumRadius);
 	NativeBarrier.SetToothMaximumRadius(ShovelProperties->ToothMaximumRadius);
 	NativeBarrier.SetNumberOfTeeth(ShovelProperties->NumberOfTeeth);
+	NativeBarrier.SetEnableExcavationAtTeethEdge(ShovelProperties->bEnableExcavationAtTeethEdge);
 	NativeBarrier.SetNoMergeExtensionDistance(ShovelProperties->NoMergeExtensionDistance);
 	NativeBarrier.SetMinimumSubmergedContactLengthFraction(
 		ShovelProperties->MinimumSubmergedContactLengthFraction);

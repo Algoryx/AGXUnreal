@@ -1106,6 +1106,22 @@ FVector UAGX_RigidBodyComponent::GetAngularVelocity() const
 	return AngularVelocity;
 }
 
+FVector UAGX_RigidBodyComponent::GetAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAcceleration();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_RigidBodyComponent::GetAngularAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAngularAcceleration();
+
+	return FVector::ZeroVector;
+}
+
 void UAGX_RigidBodyComponent::SetLinearVelocityDamping(FVector InLinearVelocityDamping)
 {
 	if (HasNative())

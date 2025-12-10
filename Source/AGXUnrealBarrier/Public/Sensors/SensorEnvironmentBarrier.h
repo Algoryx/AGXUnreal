@@ -8,8 +8,6 @@
 // Standard library includes.
 #include <memory>
 
-class FIMUBarrier;
-class FLidarBarrier;
 class FRtAmbientMaterialBarrier;
 class FRtLambertianOpaqueMaterialBarrier;
 class FSimulationBarrier;
@@ -17,6 +15,8 @@ class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FWireBarrier;
 
+struct FIMUBarrier;
+struct FLidarBarrier;
 struct FSensorEnvironmentRef;
 
 class AGXUNREALBARRIER_API FSensorEnvironmentBarrier
@@ -75,6 +75,9 @@ public:
 	 * Returns true if the hardware device is successfully set.
 	 */
 	static bool SetCurrentRaytraceDevice(int32 DeviceIndex);
+
+	static bool AGPUIsInitialized();
+	static void AGPUCleanup();
 
 private:
 	FSensorEnvironmentBarrier(const FSensorEnvironmentBarrier&) = delete;

@@ -5,9 +5,14 @@
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 
+// Standard Library includes.
+#include <limits>
+
 FAGX_ConstraintRangeController::FAGX_ConstraintRangeController()
 	: Range(ConstraintConstants::DefaultForceRange())
 {
+	// In AGX Dynamics, the default range controller force range is not [-inf, inf], but [0, inf].
+	ForceRange = FAGX_RealInterval(0.0, std::numeric_limits<double>::infinity());
 }
 
 void FAGX_ConstraintRangeController::InitializeBarrier(TUniquePtr<FRangeControllerBarrier> Barrier)

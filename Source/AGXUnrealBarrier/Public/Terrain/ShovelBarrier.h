@@ -54,6 +54,9 @@ public:
 	void SetNumberOfTeeth(int32 NumberOfTeeth);
 	int32 GetNumberOfTeeth() const;
 
+	void SetEnableExcavationAtTeethEdge(bool Enable);
+	bool GetEnableExcavationAtTeethEdge() const;
+
 	void SetNoMergeExtensionDistance(double NoMergeExtensionDistance);
 	double GetNoMergeExtensionDistance() const;
 
@@ -144,6 +147,7 @@ public:
 	void DecrementRefCount() const;
 
 	// Aliases required for the live update macros to work.
+	void SetbEnableExcavationAtTeethEdge(bool InEnable);
 	void SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts);
 	void SetbEnableParticleFreeDeformers(bool InbEnableParticleFreeDeformers);
 	void SetbEnableInnerShapeCreateDynamicMass(bool InbEnableInnerShapeCreateDynamicMass);

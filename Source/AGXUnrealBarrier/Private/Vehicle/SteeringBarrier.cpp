@@ -3,9 +3,9 @@
 #include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Vehicle/AGX_SteeringParametersData.h"
 #include "Vehicle/WheelJointBarrier.h"
 

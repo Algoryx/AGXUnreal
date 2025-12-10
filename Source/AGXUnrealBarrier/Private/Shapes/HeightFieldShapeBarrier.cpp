@@ -4,8 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "ShapeBarrierImpl.h"
-#include "TypeConversions.h"
 
 namespace
 {

@@ -5,12 +5,12 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/SteeringBarrier.h"
 
@@ -519,9 +519,23 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 		return Dependencies;
 	}
 
-	const TArray<FString> PLXBundlePaths = FOpenPLXUtilities::GetBundlePaths();
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 
+	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+	const std::vector<std::string> BundlePathsStd =
+		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
+
+	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
+	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
+	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
+
+	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
+	//  allocated in Unreal.
+	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
+	agxopenplx::OptParams Params = agxopenplx::OptParams()
+									   .withUuidv5(std::move(UuidAgxAllocated))
+									   .withSkipDefaultBundles()
+									   .withBundlePaths(BundlePathsStd);
 	agxopenplx::LoadResult Result;
 	auto LogErrors = [&]()
 	{
@@ -531,9 +545,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 
 	try
 	{
-		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filepath),
-			FPLXUtilitiesInternal::BuildBundlePathsString(PLXBundlePaths));
+		Result = agxopenplx::load_from_file(Simulation, Convert(Filepath), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{
@@ -574,7 +586,7 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	auto ContextInternal =
 		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
 	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
-	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+
 	auto IsKnownBundle = [&](const FString& P)
 	{
 		return BundlePaths.ContainsByPredicate([&](const FString& BundlePath)

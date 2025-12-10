@@ -152,8 +152,6 @@ public:
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	// ~End UActorComponent interface.
 
-	virtual void Serialize(FArchive& Archive) override;
-
 	// ~Begin AGX NativeOwner interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
