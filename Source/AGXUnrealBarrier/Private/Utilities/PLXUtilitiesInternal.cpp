@@ -713,15 +713,15 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 
 	agxSDK::AssemblyRef Assembly = new agxSDK::Assembly();
 
-	agx::RigidBodyRefSetVector OldBodiesAGX;
 	for (FRigidBodyBarrier* Body : Barriers.Bodies)
 	{
 		AGX_CHECK(Body->HasNative());
 		auto BodyAGX = Body->GetNative()->Native;
 		Assembly->add(BodyAGX);
-		OldBodiesAGX.push_back(BodyAGX);
 	}
 
+	// Wee need to keep track of Constraints already handled, because the DriveTrainMapper below may
+	// create new Constraints that we need to add to the Simulation (and Assembly).
 	agx::ConstraintRefSetVector OldConstraintsAGX;
 	for (FConstraintBarrier* Constraint : Barriers.Constraints)
 	{
@@ -731,23 +731,18 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		OldConstraintsAGX.push_back(ConstraintAGX);
 	}
 
-	agx::ObserverFrameRefSetVector OldObserverFrramesAGX;
 	for (FObserverFrameBarrier* Frame : Barriers.ObserverFrames)
 	{
 		AGX_CHECK(Frame->HasNative());
 		auto FrameAGX = Frame->GetNative()->Native;
 		Assembly->add(FrameAGX);
-		OldObserverFrramesAGX.push_back(FrameAGX);
 	}
 
-	// Note: Steering is a Constraint in AGX.
 	for (FSteeringBarrier* Steering : Barriers.Steerings)
 	{
 		AGX_CHECK(Steering->HasNative());
 		auto SteeringAGX = Steering->GetNative()->Native;
 		Assembly->add(SteeringAGX);
-		agx::ConstraintRef C = SteeringAGX.get();
-		OldConstraintsAGX.push_back(C);
 	}
 
 	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
@@ -762,6 +757,10 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
 		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
+	// The DriveTrainMapper will put any DriveTrain object into RequiredPowerLine, and may create
+	// new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints() (handled
+	// below). It does not create other things that we have to add explicitly to the Assembly or
+	// Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
 	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
 
@@ -773,25 +772,15 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		}
 	}
 
-	// All objects created within this function must be added to the Simulation.
 	Simulation.GetNative()->Native->add(RequiredPowerLine);
 
-	for (auto B : Assembly->getRigidBodies())
+	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{
-		if (!OldBodiesAGX.contains(B))
-			Simulation.GetNative()->Native->add(B);
-	}
-
-	for (auto C : Assembly->getConstraints())
-	{
-		if (!OldConstraintsAGX.contains(C))
-			Simulation.GetNative()->Native->add(C);
-	}
-
-	for (auto F : Assembly->getObserverFrames())
-	{
-		if (!OldObserverFrramesAGX.contains(F))
-			Simulation.GetNative()->Native->add(F);
+		if (Constraint != nullptr && !OldConstraintsAGX.contains(Constraint.get()))
+		{
+			Simulation.GetNative()->Native->add(Constraint.get());
+			Assembly->add(Constraint.get());
+		}
 	}
 
 	return Assembly;
