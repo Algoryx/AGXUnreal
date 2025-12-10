@@ -20,7 +20,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agpu/api/core.h>
+#include <agpu/api/api.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceSurfaceMaterial.h>
 #include <agxSensor/RaytraceConfig.h>
