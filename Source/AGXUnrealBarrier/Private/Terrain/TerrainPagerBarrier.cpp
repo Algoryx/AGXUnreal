@@ -4,12 +4,14 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGXBarrierFactories.h"
+#include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainDataSource.h"
-#include "TypeConversions.h"
+#include "Terrain/TerrainHeightFetcherBase.h"
 #include "Utilities/TerrainUtilities.h"
 
 FTerrainPagerBarrier::FTerrainPagerBarrier()

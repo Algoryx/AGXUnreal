@@ -2858,8 +2858,12 @@ bool AGX_MeshUtilities::AddBoxSimpleCollision(UStaticMesh& OutStaticMesh)
 	BodySetup->AggGeom.BoxElems.Add(BoxElem);
 
 #if WITH_EDITOR
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 	OutStaticMesh.bCustomizedCollision = true;
-#endif
+#else
+	OutStaticMesh.SetCustomizedCollision(true);
+#endif // UE_VERSION_OLDER_THAN(5, 7, 0)
+#endif // WITH_EDITOR
 
 	return true;
 }

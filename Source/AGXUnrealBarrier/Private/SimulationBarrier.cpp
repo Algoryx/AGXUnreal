@@ -6,6 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "Constraints/ConstraintBarrier.h"
@@ -18,7 +19,6 @@
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Tires/TireBarrier.h"
-#include "TypeConversions.h"
 #include "Vehicle/TrackBarrier.h"
 #include "Wire/WireBarrier.h"
 

@@ -1,3 +1,5 @@
+// Copyright 2025, Algoryx Simulation AB.
+
 #include "Sensors/AGX_SensorEnvironment.h"
 
 // AGX Dynamics for Unreal includes.
@@ -633,7 +635,7 @@ bool AAGX_SensorEnvironment::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 	if (!HasNative() || !Lidar->HasNative())
 		return DidRemove;
 
-	DidRemove |= NativeBarrier.Remove(*Lidar->GetNative());
+	DidRemove |= NativeBarrier.Remove(*Lidar->GetNativeAsLidar());
 
 	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
 	{
@@ -667,7 +669,7 @@ bool AAGX_SensorEnvironment::RemoveIMU(UAGX_IMUSensorComponent* IMU)
 	if (!HasNative() || !IMU->HasNative())
 		return DidRemove;
 
-	DidRemove |= NativeBarrier.Remove(*IMU->GetNative());
+	DidRemove |= NativeBarrier.Remove(*IMU->GetNativeAsIMU());
 	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
 	{
 		if (It->GetIMUComponent() == IMU)
@@ -958,8 +960,8 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 		return false;
 	}
 
-	FLidarBarrier* Barrier = Lidar->GetOrCreateNative();
-	if (Barrier == nullptr)
+	auto SensorBarrier = Lidar->GetOrCreateNative();
+	if (SensorBarrier == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -969,6 +971,7 @@ bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
 		return false;
 	}
 
+	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
 	NativeBarrier.Add(*Barrier);
 
 	// Associate each Lidar with a USphereComponent used to detect objects in the world to
@@ -1029,8 +1032,8 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
-	FIMUBarrier* Barrier = IMU->GetOrCreateNative();
-	if (Barrier == nullptr)
+	auto SensorBarrier = IMU->GetOrCreateNative();
+	if (SensorBarrier == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -1040,6 +1043,7 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
+	FIMUBarrier* Barrier = IMU->GetNativeAsIMU(); 
 	NativeBarrier.Add(*Barrier);
 	TrackedIMUs.Add(IMURef);
 	return true;

@@ -4,9 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/AGX_LidarOutputTypes.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -40,6 +40,16 @@ void FLidarOutputPositionBarrier::GetData(TArray<FAGX_LidarOutputPositionData>& 
 
 	check(HasNative());
 	AGX_CHECK(sizeof(LidarPositionData) == GetNative()->Native->getElementSize());
+
+	if (!GetNative()->Native->hasUnreadData(/*markAsRead*/ false))
+	{
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
+		OutData.SetNumUninitialized(0, false);
+#else
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+#endif
+		return;
+	}
 
 	agxSensor::BinaryOutputView<LidarPositionData> ViewAGX =
 		GetNative()->Native->view<LidarPositionData>();
