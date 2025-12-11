@@ -297,11 +297,15 @@ float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) c
 
 float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos) const
 {
-	return !bUseBedShapes || GetBedShapes().Num() == 0
-			   ? 0.0f
-			   : UAGX_TerrainMeshUtilities::GetBedHeight(
-					 LocalPos, GetComponentTransform(), GetBedShapes()) +
-					 BedZOffset;
+	if (!bUseBedShapes)
+		return 0;
+
+	if (GetBedShapes().Num() == 0)
+		return BedZOffset;
+
+	return UAGX_TerrainMeshUtilities::GetBedHeight(
+			   LocalPos, GetComponentTransform(), GetBedShapes()) +
+		   BedZOffset;
 }
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
