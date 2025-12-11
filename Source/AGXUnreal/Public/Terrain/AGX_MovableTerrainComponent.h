@@ -285,7 +285,7 @@ public:
 	EAGX_MeshTilingPattern MeshTilingPattern = EAGX_MeshTilingPattern::StretchedTiles;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
-	int MeshTileResolution = 10;
+	int MeshTileScale = 10;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bFixMeshSeams = true;
