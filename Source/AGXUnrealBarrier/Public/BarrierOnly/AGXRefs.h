@@ -25,6 +25,7 @@
 #include <agxTerrain/Terrain.h>
 #include <agxTerrain/TerrainMaterial.h>
 #include <agxTerrain/TerrainPager.h>
+#include <agxTerrain/TerrainProperties.h>
 #include "EndAGXIncludes.h"
 
 struct FElementaryConstraintRef
@@ -249,11 +250,21 @@ struct FTerrainMaterialRef
 
 struct FTerrainPagerRef
 {
-	// @todo: once AGX Dynamics exposes a TerrainPagerRef, use that.
-	agx::ref_ptr<agxTerrain::TerrainPager> Native;
+	agxTerrain::TerrainPagerRef Native;
 
 	FTerrainPagerRef() = default;
 	FTerrainPagerRef(agxTerrain::TerrainPager* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FTerrainPropertiesRef
+{
+	agxTerrain::TerrainPropertiesRef Native;
+
+	FTerrainPropertiesRef() = default;
+	FTerrainPropertiesRef(agxTerrain::TerrainProperties* InNative)
 		: Native(InNative)
 	{
 	}

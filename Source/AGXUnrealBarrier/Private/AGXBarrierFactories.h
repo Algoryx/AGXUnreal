@@ -26,6 +26,7 @@
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
+#include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "SimulationBarrier.h"
@@ -59,6 +60,7 @@ namespace agxCollide
 	class Shape;
 	class Sphere;
 	class Trimesh;
+	class HeightField;
 
 	class GeometryContact;
 	class ContactPoint;
@@ -123,6 +125,8 @@ namespace AGXBarrierFactories
 	FCapsuleShapeBarrier CreateCapsuleShapeBarrier(agxCollide::Capsule* Capsule);
 
 	FTrimeshShapeBarrier CreateTrimeshShapeBarrier(agxCollide::Trimesh* Trimesh);
+
+	FHeightFieldShapeBarrier CreateHeightFieldShapeBarrier(agxCollide::HeightField* HeightField);
 
 	FAnyConstraintBarrier CreateAnyConstraintBarrier(agx::Constraint* Constraint);
 

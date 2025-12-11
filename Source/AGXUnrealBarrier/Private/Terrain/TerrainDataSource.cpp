@@ -1,3 +1,5 @@
+// Copyright 2025, Algoryx Simulation AB.
+
 #include "Terrain/TerrainDataSource.h"
 
 // AGX Dynamics for Unreal includes.

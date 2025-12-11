@@ -21,6 +21,7 @@
 
 class AAGX_Stepper;
 class AAGX_Terrain;
+class UAGX_MovableTerrainComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ObserverFrameComponent;
@@ -491,6 +492,7 @@ public: // Member functions.
 	bool Add(UAGX_ShovelComponent& Shovel);
 	bool Add(UAGX_StaticMeshComponent& Body);
 	bool Add(AAGX_Terrain& Terrain);
+	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Add(UAGX_TireComponent& Tire);
 	bool Add(UAGX_TrackComponent& Track);
 	bool Add(UAGX_WireComponent& Wire);
@@ -503,6 +505,7 @@ public: // Member functions.
 	bool Remove(UAGX_ShovelComponent& Shovel);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
+	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Remove(UAGX_TireComponent& Tire);
 	bool Remove(UAGX_TrackComponent& Track);
 	bool Remove(UAGX_WireComponent& Wire);

@@ -1,3 +1,5 @@
+// Copyright 2025, Algoryx Simulation AB.
+
 #include "Terrain/TerrainPagerBarrier.h"
 
 // AGX Dynamics for Unreal includes.

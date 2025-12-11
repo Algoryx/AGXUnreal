@@ -96,6 +96,7 @@ struct AGXUNREALBARRIER_API FRigidBodyBarrier
 	void AddShape(FShapeBarrier* Shape);
 	void RemoveShape(FShapeBarrier* Shape);
 
+
 	void AddForceAtCenterOfMass(const FVector& Force);
 	void AddForceAtLocalLocation(const FVector& Force, const FVector& Location);
 	void AddForceAtWorldLocation(const FVector& Force, const FVector& Location);

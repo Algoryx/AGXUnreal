@@ -99,10 +99,13 @@
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentVisualizer.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
+#include "Terrain/AGX_MovableTerrainCustomization.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelComponentVisualizer.h"
 #include "Terrain/AGX_ShovelPropertiesActions.h"
 #include "Terrain/AGX_ShovelReference.h"
+#include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
@@ -313,6 +316,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainMaterialAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_TerrainPropertiesActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_TrackInternalMergePropertiesAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
@@ -484,6 +489,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_ModelSourceComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_MovableTerrainCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_PlotComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_PlotComponentCustomization::MakeInstance));
@@ -618,6 +628,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_ModelSourceComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_PlotComponent::StaticClass()->GetFName());
 
