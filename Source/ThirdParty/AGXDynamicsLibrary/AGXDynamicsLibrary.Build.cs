@@ -288,7 +288,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-generate", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
