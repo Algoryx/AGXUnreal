@@ -4,9 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGXROS2Types.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "ROS2/ROS2Conversions.h"
-#include "TypeConversions.h"
 
 FROS2AnyMessageBuilderBarrier::FROS2AnyMessageBuilderBarrier()
 {

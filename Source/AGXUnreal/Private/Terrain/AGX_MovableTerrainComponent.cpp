@@ -297,11 +297,15 @@ float UAGX_MovableTerrainComponent::CalcInitialHeight(const FVector& LocalPos) c
 
 float UAGX_MovableTerrainComponent::CalcInitialBedHeight(const FVector& LocalPos) const
 {
-	return !bUseBedShapes || GetBedShapes().Num() == 0
-			   ? 0.0f
-			   : UAGX_TerrainMeshUtilities::GetBedHeight(
-					 LocalPos, GetComponentTransform(), GetBedShapes()) +
-					 BedZOffset;
+	if (!bUseBedShapes)
+		return 0;
+
+	if (GetBedShapes().Num() == 0)
+		return BedZOffset;
+
+	return UAGX_TerrainMeshUtilities::GetBedHeight(
+			   LocalPos, GetComponentTransform(), GetBedShapes()) +
+		   BedZOffset;
 }
 
 void UAGX_MovableTerrainComponent::RecreateMeshes()
@@ -328,7 +332,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshes()
 		MeshIndex, FVector(0, 0, MeshZOffset), Size,
 		bAutoMeshResolution ? AutoMeshResolution : MeshResolution, MeshUv, TerrainUv,
 		TerrainHeightFunc, BedHeightFunc, Material, MeshLevelOfDetail, MeshTilingPattern,
-		MeshTileResolution, bCloseMesh, bFixMeshSeams, false, false, true,
+		MeshTileScale, bCloseMesh, bFixMeshSeams, false, false, true,
 		/*bCalcFastTerrainBedNormals*/ true);
 	MeshIndex += TerrainMesh.Tiles.Num();
 
@@ -587,8 +591,8 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bCloseMesh),
 		[](ThisClass* This) { This->SetCloseMesh(This->bCloseMesh); });
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTileResolution),
-		[](ThisClass* This) { This->SetMeshTileResolution(This->MeshTileResolution); });
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTileScale),
+		[](ThisClass* This) { This->SetMeshTileScale(This->MeshTileScale); });
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTilingPattern),
 		[](ThisClass* This) { This->SetMeshTilingPattern(This->MeshTilingPattern); });
@@ -1300,9 +1304,9 @@ void UAGX_MovableTerrainComponent::SetCloseMesh(bool bClose)
 	RecreateMeshes();
 }
 
-void UAGX_MovableTerrainComponent::SetMeshTileResolution(int TileRes)
+void UAGX_MovableTerrainComponent::SetMeshTileScale(int TileScale)
 {
-	MeshTileResolution = TileRes;
+	MeshTileScale = TileScale;
 	RecreateMeshes();
 }
 

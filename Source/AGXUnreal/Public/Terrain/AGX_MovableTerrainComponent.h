@@ -20,7 +20,12 @@ class UNiagaraSystem;
 class UNiagaraComponent;
 
 /**
+ * The Movable Terrain Components represents an AGX Terrain similar to the AGX Terrain Actor, but
+ * does not use a Landscape to render itself, but instead uses a Mesh that is dynamically updated
+ * during Play when digging/displacements occur.
  *
+ * The Movable Terrain Component can be attached to a Rigid Body (by making it a child Component to
+ * a Rigid Body Component) to allow it to move in the world during Play.
  */
 UCLASS(
 	ClassGroup = "AGX_Terrain", Category = "AGX", Meta = (BlueprintSpawnableComponent),
@@ -33,6 +38,10 @@ class AGXUNREAL_API UAGX_MovableTerrainComponent : public UProceduralMeshCompone
 public:
 	UAGX_MovableTerrainComponent(const FObjectInitializer& ObjectInitializer);
 
+	/**
+	 * If enabled, a flat debug plane is rendered underneath the terrain mesh.
+	 * Useful for visualizing the terrain extents.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Editor")
 	bool bShowDebugPlane = false;
 
@@ -94,19 +103,33 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool IsEnabled() const;
 
+	/**
+	 * Render Material applied to the underlying terrain mesh.
+	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	UMaterialInterface* Material = nullptr;
 
+	/**
+	 * Size of the terrain in X and Y dimensions [cm].
+	 * The terrain boundaries are derived directly from this value.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	FVector2D Size = FVector2D(200.0f, 200.0f);
 
+	/**
+	 * Spacing between heightfield samples (grid resolution) [cm].
+	 * Smaller values yield higher-resolution terrain but is more performance costly.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		Meta = (ExposeOnSpawn, ClampMin = "1", UIMin = "1", ClampMax = "100", UIMax = "100"))
 	double ElementSize = 10;
 
+	/**
+	 * Initial height added uniformly to the entire terrain at initialization [cm].
+	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	float InitialHeight = 10.f;
@@ -127,10 +150,21 @@ public:
 	// BedShapes
 	// ______________________
 
+	/**
+	 * Enables use of Bed Shapes—meshes that influence the initial "bottom" shape
+	 * (minimum heights) of the terrain.
+	 * Commonly used to match the contour of a dumper bed or other underlying geometry.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite, Meta = (ExposeOnSpawn))
 	bool bUseBedShapes = false;
 
+	/**
+	 * Names of mesh components whose geometry defines the "bottom" shape
+	 * (minimum heights) of the Terrain at initialization.
+	 * Commonly used to match the contour of a dumper bed or other underlying geometry.
+	 * Only applicable when bUseBedShapes is enabled.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		Meta = (GetOptions = "GetBedShapesOptions", EditCondition = "bUseBedShapes"))
@@ -139,23 +173,39 @@ public:
 	UFUNCTION(CallInEditor)
 	TArray<FName> GetBedShapesOptions() const;
 
+	/**
+	 * Mesh components whose geometry defines the "bottom" (minimum heights) of the Terrain at
+	 * initialization. Commonly used to match the contour of a dumper bed or other underlying
+	 * geometry. Only applicable when bUseBedShapes is enabled.
+	 */
 	UPROPERTY(BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	TArray<UMeshComponent*> BedShapeComponents;
 
 	TArray<UMeshComponent*> GetBedShapes() const;
 
+	/**
+	 * Vertical offset for the "bottom" (minimum heights) of the Terrain at initialization.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		Meta = (ExposeOnSpawn, EditCondition = "bUseBedShapes"))
-	double BedZOffset = 0.5;
+	double BedZOffset = 0.0;
 
 	// InitialNoise
 	//______________________
 
+	/**
+	 * Enables generation of Brownian noise across the terrain, which applies to the initial heights
+	 * of the Terrain.
+	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", Meta = (ExposeOnSpawn))
 	bool bUseInitialNoise = false;
 
+	/**
+	 * Controls Brownian noise applied at terrain initialization.
+	 * Noise contributes to the initial height but does not change dynamically afterward.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Movable Terrain", BlueprintReadWrite,
 		meta = (EditCondition = "bUseInitialNoise", ExposeOnSpawn))
@@ -164,6 +214,9 @@ public:
 	// AGX Terrain
 	// _________________
 
+	/**
+	 * If true, the terrains underlying HeightField interacts with AGX Shapes.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
 	bool bCanCollide {true};
 
@@ -175,6 +228,7 @@ public:
 
 	/**
 	 * List of collision groups that this Terrain is part of.
+	 * Controls which objects can collide or interact with the terrain.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
 	TArray<FName> CollisionGroups;
@@ -212,6 +266,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	void ConvertToDynamicMassInShape(UAGX_ShapeComponent* Shape);
 
+	/**
+	 * If true, prevents dynamic mass (particles)to merge into the terrain.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
 	bool bIsNoMerge = false;
 
@@ -221,12 +278,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool GetNoMerge() const;
 
+	/**
+	 * Shows Unreal Engine’s internal collision mesh for debugging.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
 	bool bShowUnrealCollision = false;
 
+	/**
+	 * Level of detail used for generating Unreal’s built-in collision mesh.
+	 * Higher values reduce resolution but improve performance.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
 	int UnrealCollisionLOD = 4;
 
+	/**
+	 * Additional Unreal collision mode applied to the generated collision mesh.
+	 * Allows enabling UE collision separately from AGX collision.
+	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Movable Terrain", AdvancedDisplay,
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "5", UIMax = "5"))
@@ -250,6 +318,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bEnableParticleRendering = true;
 
+	/**
+	 * Niagara System used to render soil particles.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (EditCondition = "bEnableParticleRendering"))
@@ -262,31 +333,65 @@ public:
 	// Terrain Mesh
 	// --------------------
 
+	/**
+	 * If true, mesh resolution is automatically derived from heightfield resolution.
+	 * When disabled, MeshResolution determines the rendering resolution.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bAutoMeshResolution = true;
 
+	/**
+	 * Resolution of the rendered terrain mesh when not using automatic resolution.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (EditCondition = "!bAutoMeshResolution"))
 	FIntVector2 MeshResolution = FIntVector2(20, 20);
 
+	/**
+	 * Level of detail applied when generating terrain mesh tiles.
+	 * Higher values decrease the resolution.
+	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Rendering",
 		Meta = (ClampMin = "0", UIMin = "0", ClampMax = "3", UIMax = "3"))
 	int32 MeshLevelOfDetail = 1;
 
+	/**
+	 * If true, a backside mesh is generated to close off the terrain mesh volume.
+	 * Useful for visual continuity when the underside may be visible.
+	 * Does not affect the underlying AGX Terrain.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	bool bCloseMesh = true;
 
+	/**
+	 * Vertical offset applied to the entire terrain mesh.
+	 * Does not affect the underlying AGX Terrain.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
 	double MeshZOffset = 0.0;
 
+	/**
+	 * Tiling pattern used when generating terrain mesh tiles.
+	 * Affects performance, UV layout, and how tile boundaries are handled.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	EAGX_MeshTilingPattern MeshTilingPattern = EAGX_MeshTilingPattern::StretchedTiles;
 
+	/**
+	 * Tile scale used by this Movable Terrain Component when splitting the terrain into
+	 * multiple mesh tiles for rendering. Higher values increase the scale of each tile but also
+	 * makes updating the underlying mesh tile more computationally expensive.
+	 * Does not effect the underlying AGX Terrain.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
-	int MeshTileResolution = 10;
+	int MeshTileScale = 10;
 
+	/**
+	 * Enables seam-fixing which hide overlapping vertices between adjacent mesh tiles.
+	 * May cause causing rendering artifacts if disabled.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering", AdvancedDisplay)
 	bool bFixMeshSeams = true;
 
@@ -296,7 +401,7 @@ public:
 	void SetMeshLOD(int32 Lod);
 	void SetMeshZOffset(double zOffset);
 	void SetCloseMesh(bool bClose);
-	void SetMeshTileResolution(int TileRes);
+	void SetMeshTileScale(int TileScale);
 	void SetMeshTilingPattern(EAGX_MeshTilingPattern Pattern);
 	void SetFixMeshSeams(bool bFix);
 

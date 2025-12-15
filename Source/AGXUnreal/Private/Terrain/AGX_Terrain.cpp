@@ -875,7 +875,12 @@ namespace AGX_Terrain_helpers
 		ULandscapeInfo* Info = Landscape.GetLandscapeInfo();
 		if (Info == nullptr)
 			return;
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->StreamingProxies;
+#else
+		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies =
+			Info->GetSortedStreamingProxies();
+#endif
 		if (Proxies.IsEmpty())
 		{
 			UE_LOG(
@@ -904,7 +909,7 @@ namespace AGX_Terrain_helpers
 		// Determine if there are any Streaming Proxies with Is Spatially Loaded enabled overlapping
 		// the Terrain bounds. Log a note to disable Is Spatially Loaded for each found.
 		bool bFoundIntersectingStreamingProxy {false};
-		for (const auto& Proxy : Info->StreamingProxies)
+		for (const auto& Proxy : Proxies)
 		{
 			if (!Proxy->GetIsSpatiallyLoaded())
 				continue;

@@ -5,16 +5,15 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "TypeConversions.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/TerrainMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/ShapeBarrierImpl.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainPropertiesBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/TerrainUtilities.h"
 
 // AGX Dynamics includes.
@@ -495,13 +494,7 @@ FParticleData FTerrainBarrier::GetParticleData(const EParticleDataFlags ToInclud
 {
 	const size_t NumParticles = FTerrainUtilities::GetNumParticles(*this);
 	FParticleData ParticleData;
-	ParticleData.Positions.Reserve(NumParticles);
-	ParticleData.Velocities.Reserve(NumParticles);
-	ParticleData.Radii.Reserve(NumParticles);
-	ParticleData.Rotations.Reserve(NumParticles);
-
 	FTerrainUtilities::AppendParticleData(*this, ParticleData, ToInclude);
-
 	return ParticleData;
 }
 

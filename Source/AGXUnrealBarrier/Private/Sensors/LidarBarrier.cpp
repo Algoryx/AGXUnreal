@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "AGX_RealInterval.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
@@ -15,7 +16,6 @@
 #include "Sensors/CustomPatternFetcherBase.h"
 #include "Sensors/LidarOutputBarrier.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -24,36 +24,11 @@
 #include <agxSensor/LidarRayPatternHorizontalSweep.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
 #include <agxSensor/RaytraceOutput.h>
+#include <agxSensor/SensorGroupStepStride.h>
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
 #include <limits>
-
-FLidarBarrier::FLidarBarrier()
-	: NativeRef {new FLidarRef}
-{
-}
-
-FLidarBarrier::FLidarBarrier(std::unique_ptr<FLidarRef> Native)
-	: NativeRef(std::move(Native))
-{
-}
-
-FLidarBarrier::FLidarBarrier(FLidarBarrier&& Other)
-	: NativeRef {std::move(Other.NativeRef)}
-{
-	Other.NativeRef.reset(new FLidarRef);
-}
-
-FLidarBarrier::~FLidarBarrier()
-{
-	ReleaseNative();
-}
-
-bool FLidarBarrier::HasNative() const
-{
-	return NativeRef->Native != nullptr;
-}
 
 namespace LidarBarrier_helpers
 {
@@ -109,6 +84,18 @@ namespace LidarBarrier_helpers
 		return new agxSensor::Lidar(
 			new agx::Frame(), new UnrealLidarModel(new FCustomPatternGenerator(PatternFetcher)));
 	}
+
+	agxSensor::Lidar* GetLidarNative(FLidarBarrier& Lidar)
+	{
+		AGX_CHECK(Lidar.HasNative());
+		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+	}
+
+	agxSensor::Lidar* GetLidarNative(const FLidarBarrier& Lidar)
+	{
+		AGX_CHECK(Lidar.HasNative());
+		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+	}
 }
 
 void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params)
@@ -153,62 +140,22 @@ void FLidarBarrier::AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& Pa
 	NativeRef->Native = CreateAGXLidar(&PatternFetcher);
 }
 
-FLidarRef* FLidarBarrier::GetNative()
-{
-	check(HasNative());
-	return NativeRef.get();
-}
-
-const FLidarRef* FLidarBarrier::GetNative() const
-{
-	check(HasNative());
-	return NativeRef.get();
-}
-
-uint64 FLidarBarrier::GetNativeAddress() const
-{
-	return HasNative() ? reinterpret_cast<uint64>(NativeRef->Native.get()) : 0;
-}
-
-void FLidarBarrier::SetNativeAddress(uint64 Address)
-{
-	NativeRef->Native = reinterpret_cast<agxSensor::Lidar*>(Address);
-}
-
-void FLidarBarrier::ReleaseNative()
-{
-	if (HasNative())
-		NativeRef->Native = nullptr;
-}
-
-void FLidarBarrier::SetEnabled(bool Enabled)
-{
-	check(HasNative());
-	NativeRef->Native->setEnable(Enabled);
-}
-
-bool FLidarBarrier::GetEnabled() const
-{
-	check(HasNative());
-	return NativeRef->Native->getEnable();
-}
-
 void FLidarBarrier::SetTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	NativeRef->Native->getFrame()->setMatrix(Convert(Transform));
+	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setMatrix(Convert(Transform));
 }
 
 FTransform FLidarBarrier::GetTransform() const
 {
 	check(HasNative());
-	return Convert(NativeRef->Native->getFrame()->getMatrix());
+	return Convert(LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->getMatrix());
 }
 
 void FLidarBarrier::SetRange(FAGX_RealInterval Range)
 {
 	check(HasNative());
-	NativeRef->Native->getModel()->getRayRange()->setRange(
+	LidarBarrier_helpers::GetLidarNative(*this)->getModel()->getRayRange()->setRange(
 		{static_cast<float>(ConvertDistanceToAGX(Range.Min)),
 		 static_cast<float>(ConvertDistanceToAGX(Range.Max))});
 }
@@ -216,37 +163,42 @@ void FLidarBarrier::SetRange(FAGX_RealInterval Range)
 FAGX_RealInterval FLidarBarrier::GetRange() const
 {
 	check(HasNative());
-	const agx::RangeReal32 RangeAGX = NativeRef->Native->getModel()->getRayRange()->getRange();
+	const agx::RangeReal32 RangeAGX =
+		LidarBarrier_helpers::GetLidarNative(*this)->getModel()->getRayRange()->getRange();
 	return ConvertDistance(RangeAGX);
 }
 
 void FLidarBarrier::SetBeamDivergence(double BeamDivergence)
 {
 	check(HasNative());
+	using namespace LidarBarrier_helpers;
 	const agx::Real DivergenceAGX = ConvertAngleToAGX(BeamDivergence);
-	NativeRef->Native->getModel()->getProperties()->setBeamDivergence(DivergenceAGX);
+	GetLidarNative(*this)->getModel()->getProperties()->setBeamDivergence(DivergenceAGX);
 }
 
 double FLidarBarrier::GetBeamDivergence() const
 {
 	check(HasNative());
+	using namespace LidarBarrier_helpers;
 	const agx::Real DivergenceAGX =
-		NativeRef->Native->getModel()->getProperties()->getBeamDivergence();
+		GetLidarNative(*this)->getModel()->getProperties()->getBeamDivergence();
 	return ConvertAngleToUnreal<double>(DivergenceAGX);
 }
 
 void FLidarBarrier::SetBeamExitRadius(double BeamExitRadius)
 {
 	check(HasNative());
+	using namespace LidarBarrier_helpers;
 	const agx::Real ExitRadiusAGX = ConvertDistanceToAGX(BeamExitRadius);
-	NativeRef->Native->getModel()->getProperties()->setBeamExitRadius(ExitRadiusAGX);
+	GetLidarNative(*this)->getModel()->getProperties()->setBeamExitRadius(ExitRadiusAGX);
 }
 
 double FLidarBarrier::GetBeamExitRadius() const
 {
 	check(HasNative());
+	using namespace LidarBarrier_helpers;
 	const agx::Real ExitRadiusAGX =
-		NativeRef->Native->getModel()->getProperties()->getBeamExitRadius();
+		GetLidarNative(*this)->getModel()->getProperties()->getBeamExitRadius();
 	return ConvertDistanceToUnreal<double>(ExitRadiusAGX);
 }
 
@@ -287,25 +239,28 @@ namespace LidarBarrier_helpers
 void FLidarBarrier::SetEnableRemoveRayMisses(bool bEnable)
 {
 	check(HasNative());
-	NativeRef->Native->getOutputHandler()->setEnableRemoveRayMisses(bEnable);
+	LidarBarrier_helpers::GetLidarNative(*this)->getOutputHandler()->setEnableRemoveRayMisses(
+		bEnable);
 }
 
 bool FLidarBarrier::GetEnableRemoveRayMisses() const
 {
 	check(HasNative());
-	return NativeRef->Native->getOutputHandler()->getEnableRemoveRayMisses();
+	return LidarBarrier_helpers::GetLidarNative(*this)
+		->getOutputHandler()
+		->getEnableRemoveRayMisses();
 }
 
 void FLidarBarrier::SetRaytraceDepth(size_t Depth)
 {
 	check(HasNative());
-	NativeRef->Native->getOutputHandler()->setRaytraceDepth(Depth);
+	LidarBarrier_helpers::GetLidarNative(*this)->getOutputHandler()->setRaytraceDepth(Depth);
 }
 
 size_t FLidarBarrier::GetRaytraceDepth() const
 {
 	check(HasNative());
-	return NativeRef->Native->getOutputHandler()->getRaytraceDepth();
+	return LidarBarrier_helpers::GetLidarNative(*this)->getOutputHandler()->getRaytraceDepth();
 }
 
 void FLidarBarrier::EnableOrUpdateDistanceGaussianNoise(
@@ -314,11 +269,11 @@ void FLidarBarrier::EnableOrUpdateDistanceGaussianNoise(
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 
-	agxSensor::RtDistanceGaussianNoiseRef DistanceNoise = GetDistanceNoise(*NativeRef->Native);
+	agxSensor::RtDistanceGaussianNoiseRef DistanceNoise = GetDistanceNoise(*GetLidarNative(*this));
 	if (DistanceNoise == nullptr)
 	{
 		DistanceNoise = new agxSensor::RtDistanceGaussianNoise();
-		NativeRef->Native->getOutputHandler()->add(DistanceNoise);
+		GetLidarNative(*this)->getOutputHandler()->add(DistanceNoise);
 	}
 
 	const agx::Real MeanAGX = ConvertDistanceToAGX(Settings.Mean);
@@ -336,16 +291,16 @@ void FLidarBarrier::DisableDistanceGaussianNoise()
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 
-	agxSensor::RtDistanceGaussianNoise* DistanceNoise = GetDistanceNoise(*NativeRef->Native);
+	agxSensor::RtDistanceGaussianNoise* DistanceNoise = GetDistanceNoise(*GetLidarNative(*this));
 	if (DistanceNoise != nullptr)
-		NativeRef->Native->getOutputHandler()->remove(DistanceNoise);
+		GetLidarNative(*this)->getOutputHandler()->remove(DistanceNoise);
 }
 
 bool FLidarBarrier::GetEnableDistanceGaussianNoise() const
 {
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
-	return GetDistanceNoise(*NativeRef->Native) != nullptr;
+	return GetDistanceNoise(*GetLidarNative(*this)) != nullptr;
 }
 
 void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(
@@ -354,11 +309,11 @@ void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 
-	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*NativeRef->Native);
+	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*GetLidarNative(*this));
 	if (Noise == nullptr)
 	{
 		Noise = new agxSensor::LidarRayAngleGaussianNoise();
-		NativeRef->Native->getRayDistortionHandler()->add(Noise);
+		GetLidarNative(*this)->getRayDistortionHandler()->add(Noise);
 	}
 
 	const auto AxisAGX = Convert(Settings.Axis);
@@ -375,35 +330,36 @@ void FLidarBarrier::DisableRayAngleGaussianNoise()
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 
-	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*NativeRef->Native);
+	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*GetLidarNative(*this));
 	if (Noise != nullptr)
-		NativeRef->Native->getRayDistortionHandler()->remove(Noise);
+		GetLidarNative(*this)->getRayDistortionHandler()->remove(Noise);
 }
 
 bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 {
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
-	return GetRayAngleNoise(*NativeRef->Native) != nullptr;
+	return GetRayAngleNoise(*GetLidarNative(*this)) != nullptr;
 }
 
 void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)
 {
 	check(HasNative());
 	check(Output.HasNative());
+	using namespace LidarBarrier_helpers;
 
-	NativeRef->Native->getOutputHandler()->add(
-		LidarBarrier_helpers::GenerateUniqueOutputId(), Output.GetNative()->Native);
+	const size_t Id = GenerateUniqueOutputId();
+	GetLidarNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
 }
 
-void FLidarBarrier::IncrementRefCount() const
+void FLidarBarrier::MarkOutputAsRead()
 {
 	check(HasNative());
-	NativeRef->Native->reference();
-}
+	using namespace LidarBarrier_helpers;
 
-void FLidarBarrier::DecrementRefCount() const
-{
-	check(HasNative());
-	NativeRef->Native->unreference();
+	GetLidarNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::RtOutput>(
+		[](agxSensor::RtOutput& Output)
+		{
+			Output.hasUnreadData(/*markAsRead*/ true);
+		});
 }
