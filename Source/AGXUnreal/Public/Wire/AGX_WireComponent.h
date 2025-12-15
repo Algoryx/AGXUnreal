@@ -14,6 +14,7 @@
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 #include "Engine/EngineTypes.h"
+#include "Math/InterpCurve.h"
 #include "UObject/UObjectGlobals.h"
 
 #include "AGX_WireComponent.generated.h"
@@ -995,7 +996,7 @@ private:
 	TArray<FVector> GetNodesForRendering() const;
 	bool ShouldRenderSelf() const;
 	void UpdateVisuals();
-	void RenderSelf(const TArray<FVector>& Points);
+	void RenderSelf();
 	void SetVisualsInstanceCount(int32 Num);
 
 	friend class UAGX_LidarSurfaceMaterialComponent;
@@ -1004,6 +1005,7 @@ private:
 	FWireBarrier NativeBarrier;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;
+	FInterpCurveVector RenderSplinePrev;
 
 	/**
 	 * Keep track which node frame parents we have registered a callback with. Note that a single
