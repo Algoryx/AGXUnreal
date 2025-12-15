@@ -66,6 +66,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// Shovels in AGX uses ToothDirection and ToothLength instead of CuttingDirection.
 		ShovelUsesToothDirection,
 
+		// Shovel Component adds itself to the Simulation instead of the Terrain doing that.
+		ShovelComponentAddsSelf,
+
 		// TerrainProperties Asset introduced, to hold Terrain Properties for the AGX Terrain.
 		TerrainPropertiesAsset,
 

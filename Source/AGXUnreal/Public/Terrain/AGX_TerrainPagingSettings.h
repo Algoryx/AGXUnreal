@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes
+#include "AGX_ShovelReference.h"
 #include "AGX_TerrainPagingBodyReference.h"
 
 // Unreal Engine includes.
@@ -10,6 +11,29 @@
 #include "Math/Color.h"
 
 #include "AGX_TerrainPagingSettings.generated.h"
+
+USTRUCT(BlueprintType)
+struct AGXUNREAL_API FShovelReferenceWithSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Terrain")
+	FAGX_ShovelReference Shovel;
+
+	/**
+	 * The max distance from the Shovel at which new Terrain Tiles will be preloaded [cm].
+	 * Only relevant when using Terrain Paging.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Paging Terrain")
+	FAGX_Real PreloadRadius {1000.f};
+
+	/**
+	 * The max distance from the Shovel at which new Terrain Tiles is guaranteed to be loaded [cm].
+	 * Only relevant when using Terrain Paging.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Paging Terrain")
+	FAGX_Real RequiredRadius {600.f};
+};
 
 USTRUCT()
 struct AGXUNREAL_API FAGX_TerrainPagingSettings
@@ -55,6 +79,13 @@ struct AGXUNREAL_API FAGX_TerrainPagingSettings
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Paging Editor Settings")
 	float TileOutlineThickness {4.0};
 #endif
+
+	/**
+	 * Shovels tracked by the Terrain Pager. These will be used when deciding which Terrain
+	 * tiles to load or unload.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	TArray<FShovelReferenceWithSettings> TrackedShovels;
 
 	/**
 	 * Rigid Bodies tracked by the Terrain Pager. These will be used when deciding which Terrain
