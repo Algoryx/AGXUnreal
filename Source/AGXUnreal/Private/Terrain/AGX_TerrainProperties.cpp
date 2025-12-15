@@ -1,7 +1,5 @@
 // Copyright 2025, Algoryx Simulation AB.
 
-#pragma once
-
 #include "Terrain/AGX_TerrainProperties.h"
 
 // AGX Dynamics for Unreal includes.
