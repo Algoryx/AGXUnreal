@@ -978,7 +978,12 @@ namespace AGX_Terrain_helpers
 		ULandscapeInfo* Info = Landscape.GetLandscapeInfo();
 		if (Info == nullptr)
 			return;
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->StreamingProxies;
+#else
+		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies =
+			Info->GetSortedStreamingProxies();
+#endif
 		if (Proxies.IsEmpty())
 		{
 			UE_LOG(
@@ -1007,7 +1012,7 @@ namespace AGX_Terrain_helpers
 		// Determine if there are any Streaming Proxies with Is Spatially Loaded enabled overlapping
 		// the Terrain bounds. Log a note to disable Is Spatially Loaded for each found.
 		bool bFoundIntersectingStreamingProxy {false};
-		for (const auto& Proxy : Info->StreamingProxies)
+		for (const auto& Proxy : Proxies)
 		{
 			if (!Proxy->GetIsSpatiallyLoaded())
 				continue;
@@ -1375,13 +1380,8 @@ void AAGX_Terrain::CreateNativeShovels()
 		const FVector CuttingDirectionVector =
 			WorldToBody.TransformVector(CuttingDirection->GetVectorDirection()).GetSafeNormal();
 
-		// Passing ToothLength 0.0 is the closest we can get to getting the same behavior of old
-		// Shovels when using the new AGX Shovel which moves the edge along the ToothDirection a
-		// distance ToothLength. So we don't want to pass in the actual ToothLength here even if it
-		// exists.
 		ShovelBarrier.AllocateNative(
-			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector,
-			/*ToothLength*/ 0.0);
+			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector, Shovel.ToothLength);
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 

@@ -44,7 +44,11 @@ public:
 	FAGX_SimpleMeshSceneProxy(UAGX_SimpleMeshComponent* Component)
 		: FPrimitiveSceneProxy(Component)
 		, VertexFactory(GetScene().GetFeatureLevel(), "FAGX_SimpleMeshSceneProxy")
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
+#else
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetShaderPlatform()))
+#endif
 	{
 		check(Component->MeshData);
 

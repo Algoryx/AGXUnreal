@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGXUnrealBarrier.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 void FAGXNotify::StartAgxNotify(ELogVerbosity::Type LogVerbosity)
 {

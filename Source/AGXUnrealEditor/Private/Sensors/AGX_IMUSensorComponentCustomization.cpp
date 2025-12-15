@@ -19,7 +19,12 @@ TSharedRef<IDetailCustomization> FAGX_IMUSensorComponentCustomization::MakeInsta
 
 void FAGX_IMUSensorComponentCustomization::CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder)
 {
+	// Ensure high priority for our categories.
+	InDetailBuilder.EditCategory("AGX Sensor", FText::GetEmpty(), ECategoryPriority::Important);
+	InDetailBuilder.EditCategory("AGX IMU", FText::GetEmpty(), ECategoryPriority::Important);
+
 	InDetailBuilder.HideCategory(FName("Sockets"));
+	InDetailBuilder.HideCategory(FName("Visualisation"));
 }
 
 #undef LOCTEXT_NAMESPACE
