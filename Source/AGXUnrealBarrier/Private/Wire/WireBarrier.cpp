@@ -5,12 +5,12 @@
 // AGX Unreal includes.
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireNodeRef.h"
 #include "BarrierOnly/Wire/WireParameterControllerPtr.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "BarrierOnly/Wire/WireWinchRef.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "TypeConversions.h"
 #include "Wire/WireNodeBarrier.h"
 #include "Wire/WireWinchBarrier.h"
 #include "Wire/WireParameterControllerBarrier.h"
@@ -42,18 +42,18 @@ FWireBarrier::~FWireBarrier()
 	// forward declaration, of FWireRef.
 }
 
-void FWireBarrier::SetRadius(float Radius)
+void FWireBarrier::SetRadius(double Radius)
 {
 	check(HasNative());
 	const agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
 	NativeRef->Native->setRadius(RadiusAGX);
 }
 
-float FWireBarrier::GetRadius() const
+double FWireBarrier::GetRadius() const
 {
 	check(HasNative());
 	const agx::Real RadiusAGX = NativeRef->Native->getRadius();
-	const float Radius = ConvertDistanceToUnreal<float>(RadiusAGX);
+	const double Radius = ConvertDistanceToUnreal<double>(RadiusAGX);
 	return Radius;
 }
 

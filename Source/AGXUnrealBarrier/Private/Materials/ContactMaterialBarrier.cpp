@@ -6,8 +6,8 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_AgxDynamicsObjectsAccess.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -511,6 +511,8 @@ bool FContactMaterialBarrier::GetPrimaryDirection(FVector& Direction) const
 	{
 		return false;
 	}
+
+	Direction = ConvertVector(DirAGX);
 	return true;
 }
 
@@ -605,6 +607,18 @@ FString FContactMaterialBarrier::GetOrientedFrictionModelReferenceFrameBodyName(
 	const agx::Frame* Frame = GetReferenceFrame(FrictionModel);
 	const agx::RigidBody* Body = Frame != nullptr ? Frame->getRigidBody() : nullptr;
 	return Body != nullptr ? Convert(Body->getName()) : FString();
+}
+
+FGuid FContactMaterialBarrier::GetOrientedFrictionModelReferenceFrameBodyGuid() const
+{
+	// The Contact Material may not actually have an oriented friction model at all, in which
+	// case a default-created FGuid (invalid) is returned.
+	using namespace ContactMaterialBarrier_helpers;
+	check(HasNative());
+	const agx::FrictionModel* FrictionModel = NativeRef->Native->getFrictionModel();
+	const agx::Frame* Frame = GetReferenceFrame(FrictionModel);
+	const agx::RigidBody* Body = Frame != nullptr ? Frame->getRigidBody() : nullptr;
+	return Body != nullptr ? Convert(Body->getUuid()) : FGuid();
 }
 
 void FContactMaterialBarrier::SetAdhesiveForce(double AdhesiveForce) const

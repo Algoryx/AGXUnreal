@@ -15,16 +15,19 @@
 // Standard library includes.
 #include <memory>
 
+#include "RigidBodyBarrier.generated.h"
+
 struct FRigidBodyRef;
 
-class FAnyShapeBarrier;
-class FBoxShapeBarrier;
-class FCapsuleShapeBarrier;
-class FCylinderShapeBarrier;
+struct FAnyShapeBarrier;
+struct FBoxShapeBarrier;
+struct FCapsuleShapeBarrier;
+struct FCylinderShapeBarrier;
 class FMassPropertiesBarrier;
-class FShapeBarrier;
-class FSphereShapeBarrier;
-class FTrimeshShapeBarrier;
+struct FShapeBarrier;
+struct FSphereShapeBarrier;
+struct FTrimeshShapeBarrier;
+struct FMergeSplitPropertiesBarrier;
 
 /**
  * Barrier between UAGX_RigidBody and agx::RigidBody. UAGX_RigidBody holds an
@@ -35,13 +38,13 @@ class FTrimeshShapeBarrier;
  * This class handles all translation between Unreal Engine types and
  * AGX Dynamics types, such as back and forth between FVector and agx::Vec3.
  */
-class AGXUNREALBARRIER_API FRigidBodyBarrier
+USTRUCT(BlueprintType)
+struct AGXUNREALBARRIER_API FRigidBodyBarrier
 {
-public:
+	GENERATED_BODY()
+
 	FRigidBodyBarrier();
-	FRigidBodyBarrier(std::unique_ptr<FRigidBodyRef> Native);
-	FRigidBodyBarrier(FRigidBodyBarrier&& Other);
-	~FRigidBodyBarrier();
+	FRigidBodyBarrier(std::shared_ptr<FRigidBodyRef> Native);
 
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
@@ -60,6 +63,10 @@ public:
 
 	// In degrees/s.
 	FVector GetAngularVelocity() const;
+
+	// No setters for Acceleration and AngularAcceleration in AGX.
+	FVector GetAcceleration() const;
+	FVector GetAngularAcceleration() const;
 
 	void SetLinearVelocityDamping(const FVector& LinearVelocityDamping);
 	FVector GetLinearVelocityDamping() const;
@@ -98,6 +105,8 @@ public:
 	void AddTorqueLocal(const FVector& Torque);
 	FVector GetTorque() const;
 
+	FMergeSplitPropertiesBarrier GetMergeSplitProperties() const;
+
 	bool IsAutomaticallyMerged();
 	bool Split();
 
@@ -125,10 +134,6 @@ public:
 	TArray<FTrimeshShapeBarrier> GetTrimeshShapes() const;
 
 private:
-	FRigidBodyBarrier(const FRigidBodyBarrier&) = delete;
-	void operator=(const FRigidBodyBarrier&) = delete;
-
-private:
-	std::unique_ptr<FRigidBodyRef> NativeRef;
+	std::shared_ptr<FRigidBodyRef> NativeRef;
 	FMassPropertiesBarrier MassProperties;
 };

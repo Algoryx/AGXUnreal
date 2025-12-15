@@ -4,8 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
-#include "OpenPLX/PLX_Inputs.h"
-#include "OpenPLX/PLX_Outputs.h"
+#include "OpenPLX/OpenPLX_Inputs.h"
+#include "OpenPLX/OpenPLX_Outputs.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -28,8 +28,9 @@
 #include <vector>
 
 class FConstraintBarrier;
-class FRigidBodyBarrier;
 class FSimulationBarrier;
+struct FOpenPLXMappingBarriersCollection;
+struct FRigidBodyBarrier;
 
 namespace openplx
 {
@@ -57,17 +58,23 @@ public:
 	static bool HasInputs(openplx::Physics3D::System* System);
 	static bool HasOutputs(openplx::Physics3D::System* System);
 
-	static TArray<FPLX_Input> GetInputs(openplx::Physics3D::System* System);
-	static TArray<FPLX_Output> GetOutputs(openplx::Physics3D::System* System);
+	static TArray<FOpenPLX_Input> GetInputs(openplx::Physics3D::System* System);
+	static TArray<FOpenPLX_Output> GetOutputs(openplx::Physics3D::System* System);
 
-	static EPLX_InputType GetInputType(const openplx::Physics::Signals::Input& Input);
-	static EPLX_OutputType GetOutputType(const openplx::Physics::Signals::Output& Output);
+	static EOpenPLX_InputType GetInputType(const openplx::Physics::Signals::Input& Input);
+	static EOpenPLX_OutputType GetOutputType(const openplx::Physics::Signals::Output& Output);
 
 	/**
 	 * Returns an array of paths to all dependencies of an OpenPLX file.
 	 * Files part of the AGX Dynamics bundle in the plugin are skipped.
 	 */
 	static TArray<FString> GetFileDependencies(const FString& Filepath);
+
+	/**
+	 * Takes a list of OpenPLX bundle paths and builds a single ; separated std::string from them
+	 * which is used in some places in the agxopenplx namespace in AGX Dynamics.
+	 */
+	static std::string BuildBundlePathsString(const TArray<FString>& Paths);
 
 	/**
 	 * Based on Object::getNestedObjects in OpenPLX, but calling that function crashes due to
@@ -100,13 +107,13 @@ public:
 	 * Given an OpenPLX System, and all relevant AGX objects part of the simulated model instance,
 	 * this function creates all runtime-mapped objects (such as DriveTrain) and returns an
 	 * agxSDK::Assembly containing all AGX Dynamics objects needed for the
-	 * agxopenplx::IntputSignalListener and agxopenplx::OutputSignalListener. This functions will
+	 * agxopenplx mapping classes. This functions will
 	 * also add objects that are created by it to the passed Simulation (as well as to the returned
 	 * Assembly).
 	 */
 	static agxSDK::AssemblyRef MapRuntimeObjects(
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
-		TArray<FRigidBodyBarrier*>& Bodies, TArray<FConstraintBarrier*>& Constraints);
+		const FOpenPLXMappingBarriersCollection& Barriers);
 
 	/**
 	 * On OpenPlx, a default PowerLine is created holding all DriveTrains in the model. This has a

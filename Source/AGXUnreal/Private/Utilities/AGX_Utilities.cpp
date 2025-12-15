@@ -9,7 +9,7 @@
 #include "Import/AGX_ImportSettings.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -65,16 +65,16 @@ namespace AGX_AGXUtilities_helpers
 		if (OutSettings.ImportType != EAGX_ImportType::Plx)
 			return;
 
-		if (OutSettings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+		if (OutSettings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			return;
 
 		// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 		// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX
 		// file.
 		const FString DestinationDir =
-			FPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+			FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
 		const FString NewLocation =
-			FPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
+			FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 
 		if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))
 		{
@@ -114,6 +114,7 @@ AActor* UAGX_AGXUtilities::Import(UObject* WorldContextObject, FAGX_ImportSettin
 	Settings.bRuntimeImport = true;
 	AGX_AGXUtilities_helpers::ResolveImportPaths(Settings);
 	UWorld* World = WorldContextObject->GetWorld();
+
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 		AGX_AGXUtilities_helpers::PreOpenPLXImport(Settings);
 

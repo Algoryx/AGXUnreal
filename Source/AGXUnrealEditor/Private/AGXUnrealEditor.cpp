@@ -65,14 +65,18 @@
 #include "Materials/AGX_TerrainMaterialAssetTypeActions.h"
 #include "Materials/AGX_TerrainMaterialCustomization.h"
 #include "Materials/AGX_MaterialLibrary.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
-#include "OpenPLX/PLX_SignalHandlerComponentCustomization.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponentCustomization.h"
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
 #include "Sensors/AGX_CameraSensorBase.h"
 #include "Sensors/AGX_CameraSensorComponentCustomization.h"
 #include "Sensors/AGX_CameraSensorComponentVisualizer.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
+#include "Sensors/AGX_IMUSensorComponentCustomization.h"
+#include "Sensors/AGX_IMUSensorComponentVisualizer.h"
+#include "Sensors/AGX_IMUSensorReference.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarAmbientMaterialCustomization.h"
 #include "Sensors/AGX_LidarAmbientMaterialTypeActions.h"
@@ -99,6 +103,7 @@
 #include "Terrain/AGX_ShovelComponentVisualizer.h"
 #include "Terrain/AGX_ShovelPropertiesActions.h"
 #include "Terrain/AGX_ShovelReference.h"
+#include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
@@ -309,6 +314,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainMaterialAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_TerrainPropertiesActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_TrackInternalMergePropertiesAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
@@ -362,6 +369,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FAGX_Frame::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_FrameCustomization::MakeInstance));
+
+	// IMU Sensor Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
 	// Lidar Sensor Reference uses the base class customization.
 	PropertyModule.RegisterCustomPropertyTypeLayout(
@@ -454,6 +467,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_HeightFieldBoundsComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_IMUSensorComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_LidarAmbientMaterial::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_LidarAmbientMaterialCustomization::MakeInstance));
@@ -520,9 +538,9 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_WireWinchDetails::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName(),
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FPLX_SignalHandlerComponentCustomization::MakeInstance));
+			&FOpenPLX_SignalHandlerComponentCustomization::MakeInstance));
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -543,6 +561,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 		FAGX_ConstraintBodyAttachment::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(FAGX_Frame::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_IMUSensorReference::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName());
@@ -590,6 +611,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_LidarAmbientMaterial::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
@@ -620,7 +644,7 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_WireWinchComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
-		UPLX_SignalHandlerComponent::StaticClass()->GetFName());
+		UOpenPLX_SignalHandlerComponent::StaticClass()->GetFName());
 
 	PropertyModule.NotifyCustomizationModuleChanged();
 }
@@ -642,6 +666,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 	RegisterComponentVisualizer(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_HeightFieldBoundsComponentVisualizer));
+
+	RegisterComponentVisualizer(
+		UAGX_IMUSensorComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_IMUSensorComponentVisualizer));
 
 	RegisterComponentVisualizer(
 		UAGX_LidarSensorComponent::StaticClass()->GetFName(),
@@ -678,6 +706,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_IMUSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorLineTraceComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
@@ -778,10 +807,7 @@ void FAGXUnrealEditorModule::UnregisterPlacementCategory()
 
 void FAGXUnrealEditorModule::InitializeAssets()
 {
-	AGX_MaterialLibrary::InitializeShapeMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeContactMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeTerrainMaterialAssetLibrary();
-	AGX_MaterialLibrary::InitializeLidarAmbientMaterialAssetLibrary();
+	AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries();
 }
 
 void FAGXUnrealEditorModule::OnGrabModeCommand() const
@@ -801,7 +827,7 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 		return;
 
 	// Handle deletion of OpenPLX file copies.
-	if (!GetDefault<UAGX_Simulation>()->bDeletePLXFileCopyOnBlueprintDeletion)
+	if (!GetDefault<UAGX_Simulation>()->bDeleteOpenPLXFileCopyOnBlueprintDeletion)
 		return;
 
 	static const FString BaseBPPrefix = FAGX_ImportUtilities::GetImportBaseBlueprintNamePrefix();

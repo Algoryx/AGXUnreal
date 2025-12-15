@@ -17,15 +17,17 @@
 
 struct FSimulationRef;
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
-class FShapeBarrier;
+struct FObserverFrameBarrier;
+struct FShapeBarrier;
 class FShapeMaterialBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FTireBarrier;
+class FTrackBarrier;
 class FWireBarrier;
 
 class AGXUNREALBARRIER_API FSimulationBarrier
@@ -38,6 +40,7 @@ public:
 
 	bool Add(FConstraintBarrier& Constraint);
 	bool Add(FContactMaterialBarrier& ContactMaterial);
+	bool Add(FObserverFrameBarrier& Frame);
 
 	/**
 	 * Note that Shapes that are child of the passed Rigid Body are NOT added to the simulation
@@ -52,10 +55,12 @@ public:
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Terrain);
 	bool Add(FTireBarrier& Tire);
+	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
 
 	bool Remove(FConstraintBarrier& Constraint);
 	bool Remove(FContactMaterialBarrier& ContactMaterial);
+	bool Remove(FObserverFrameBarrier& Frame);
 
 	/**
 	 * Note that agx::Simulation::remove(agx::RigidBody*, bool) is called with RemoveGeometries =
@@ -68,6 +73,7 @@ public:
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Terrain);
 	bool Remove(FTireBarrier& Tire);
+	bool Remove(FTrackBarrier& Track);
 	bool Remove(FWireBarrier& Wire);
 
 	void SetEnableCollisionGroupPair(const FName& Group1, const FName& Group2, bool CanCollide);

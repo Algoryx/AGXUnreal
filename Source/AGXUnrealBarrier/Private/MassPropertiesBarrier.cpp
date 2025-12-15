@@ -3,9 +3,9 @@
 #include "MassPropertiesBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
 #include "AGX_LogCategory.h"
+#include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -17,22 +17,9 @@ FMassPropertiesBarrier::FMassPropertiesBarrier()
 {
 }
 
-FMassPropertiesBarrier::FMassPropertiesBarrier(std::unique_ptr<FMassPropertiesPtr> Native)
-	: NativePtr {std::move(Native)}
+FMassPropertiesBarrier::FMassPropertiesBarrier(std::shared_ptr<FMassPropertiesPtr> Native)
+	: NativePtr {Native}
 {
-}
-
-FMassPropertiesBarrier::FMassPropertiesBarrier(FMassPropertiesBarrier&& Other)
-	: NativePtr {std::move(Other.NativePtr)}
-{
-	Other.NativePtr = std::make_unique<FMassPropertiesPtr>();
-}
-
-FMassPropertiesBarrier::~FMassPropertiesBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the std::unique_ptr
-	// NativePtr's destructor must be able to see the definition, not just the declaration, of
-	// FMassPropertiesPtr.
 }
 
 void FMassPropertiesBarrier::SetMass(float MassUnreal)

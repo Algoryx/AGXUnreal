@@ -8,7 +8,6 @@
 // Standard library includes.
 #include <memory>
 
-class FLidarBarrier;
 class FRtAmbientMaterialBarrier;
 class FRtLambertianOpaqueMaterialBarrier;
 class FSimulationBarrier;
@@ -16,6 +15,8 @@ class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FWireBarrier;
 
+struct FIMUBarrier;
+struct FLidarBarrier;
 struct FSensorEnvironmentRef;
 
 class AGXUNREALBARRIER_API FSensorEnvironmentBarrier
@@ -33,11 +34,13 @@ public:
 	void ReleaseNative();
 
 	bool Add(FLidarBarrier& Lidar);
+	bool Add(FIMUBarrier& IMU);
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Pager);
 	bool Add(FWireBarrier& Wire);
 
 	bool Remove(FLidarBarrier& Lidar);
+	bool Remove(FIMUBarrier& IMU);
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Pager);
 	bool Remove(FWireBarrier& Wire);
@@ -50,6 +53,10 @@ public:
 		FTerrainPagerBarrier& TerrainPager, FRtLambertianOpaqueMaterialBarrier* Material);
 	void SetLidarSurfaceMaterialOrDefault(
 		FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material);
+
+	/// In Tesla [T].
+	void SetMagneticField(const FVector& Field);
+	FVector GetMagneticField() const;
 
 	/// Returns true if raytrace (RTX) is supported on this computer.
 	static bool IsRaytraceSupported();
@@ -68,6 +75,9 @@ public:
 	 * Returns true if the hardware device is successfully set.
 	 */
 	static bool SetCurrentRaytraceDevice(int32 DeviceIndex);
+
+	static bool AGPUIsInitialized();
+	static void AGPUCleanup();
 
 private:
 	FSensorEnvironmentBarrier(const FSensorEnvironmentBarrier&) = delete;

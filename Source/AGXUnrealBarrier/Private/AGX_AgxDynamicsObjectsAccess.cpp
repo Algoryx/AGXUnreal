@@ -65,7 +65,7 @@
 #include <agxWire/Node.h>
 #include "EndAGXIncludes.h"
 #include "Shapes/RenderDataBarrier.h"
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
 
 namespace AgxDynamicsObjectAccess_Helper
 {

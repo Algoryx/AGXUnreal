@@ -6,11 +6,12 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
-#include "AGX_Simulation.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
 #include "AMOR/MergeSplitPropertiesBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_ShapeComponent.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -274,6 +275,11 @@ FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative()
 	return &NativeBarrier;
 }
 
+FRigidBodyBarrier& UAGX_RigidBodyComponent::GetNativeByRef()
+{
+	return NativeBarrier;
+}
+
 const FRigidBodyBarrier* UAGX_RigidBodyComponent::GetNative() const
 {
 	if (!HasNative())
@@ -500,8 +506,10 @@ void UAGX_RigidBodyComponent::WritePropertiesToNative()
 void UAGX_RigidBodyComponent::CopyFrom(
 	const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOuter(), Barrier.GetName(), UAGX_RigidBodyComponent::StaticClass());
+		GetOuter(), CleanBarrierName, UAGX_RigidBodyComponent::StaticClass());
 	Rename(*Name);
 
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
@@ -671,13 +679,7 @@ void UAGX_RigidBodyComponent::TryWriteTransformToNative()
 }
 
 #if WITH_EDITOR
-bool UAGX_RigidBodyComponent::CanEditChange(
-#if UE_VERSION_OLDER_THAN(4, 25, 0)
-	const UProperty* InProperty
-#else
-	const FProperty* InProperty
-#endif
-) const
+bool UAGX_RigidBodyComponent::CanEditChange(const FProperty* InProperty) const
 {
 // This code was used when we had a bool property for the transform target and it used to enable
 // or disable the checkbox in the Details Panel. Now that we have a drop-down list instead doing
@@ -1102,6 +1104,22 @@ FVector UAGX_RigidBodyComponent::GetAngularVelocity() const
 	}
 
 	return AngularVelocity;
+}
+
+FVector UAGX_RigidBodyComponent::GetAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAcceleration();
+
+	return FVector::ZeroVector;
+}
+
+FVector UAGX_RigidBodyComponent::GetAngularAcceleration() const
+{
+	if (HasNative())
+		return NativeBarrier.GetAngularAcceleration();
+
+	return FVector::ZeroVector;
 }
 
 void UAGX_RigidBodyComponent::SetLinearVelocityDamping(FVector InLinearVelocityDamping)

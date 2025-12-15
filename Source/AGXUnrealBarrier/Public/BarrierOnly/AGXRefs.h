@@ -9,6 +9,7 @@
 #include <agx/FrictionModel.h>
 #include <agx/Material.h>
 #include <agx/MassProperties.h>
+#include <agx/ObserverFrame.h>
 #include <agx/ref_ptr.h>
 #include <agx/RigidBody.h>
 #include <agxCollide/Geometry.h>
@@ -24,6 +25,7 @@
 #include <agxTerrain/Terrain.h>
 #include <agxTerrain/TerrainMaterial.h>
 #include <agxTerrain/TerrainPager.h>
+#include <agxTerrain/TerrainProperties.h>
 #include "EndAGXIncludes.h"
 
 struct FElementaryConstraintRef
@@ -147,6 +149,17 @@ struct FMergeSplitThresholdsRef
 	}
 };
 
+struct FObserverFrameRef
+{
+	agx::ObserverFrameRef Native;
+
+	FObserverFrameRef() = default;
+	FObserverFrameRef(agx::ObserverFrame* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
 struct FPlotRef
 {
 	agxPlot::SystemRef Native;
@@ -237,11 +250,21 @@ struct FTerrainMaterialRef
 
 struct FTerrainPagerRef
 {
-	// @todo: once AGX Dynamics exposes a TerrainPagerRef, use that.
-	agx::ref_ptr<agxTerrain::TerrainPager> Native;
+	agxTerrain::TerrainPagerRef Native;
 
 	FTerrainPagerRef() = default;
 	FTerrainPagerRef(agxTerrain::TerrainPager* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FTerrainPropertiesRef
+{
+	agxTerrain::TerrainPropertiesRef Native;
+
+	FTerrainPropertiesRef() = default;
+	FTerrainPropertiesRef(agxTerrain::TerrainProperties* InNative)
 		: Native(InNative)
 	{
 	}

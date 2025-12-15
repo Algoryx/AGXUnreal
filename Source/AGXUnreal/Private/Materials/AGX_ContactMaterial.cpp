@@ -21,6 +21,33 @@
 
 #define LOCTEXT_NAMESPACE "UAGX_ContactMaterial"
 
+bool UAGX_ContactMaterial::operator==(const UAGX_ContactMaterial& Other) const
+{
+	// clang-format off
+	return ContactSolver == Other.ContactSolver
+            && ContactReduction == Other.ContactReduction
+            && MechanicsApproach == Other.MechanicsApproach
+            && FrictionModel == Other.FrictionModel
+            && NormalForceMagnitude == Other.NormalForceMagnitude
+            && bScaleNormalForceWithDepth == Other.bScaleNormalForceWithDepth
+            && bEnableSurfaceFriction == Other.bEnableSurfaceFriction
+            && FrictionCoefficient == Other.FrictionCoefficient
+            && SecondaryFrictionCoefficient == Other.SecondaryFrictionCoefficient
+            && bUseSecondaryFrictionCoefficient == Other.bUseSecondaryFrictionCoefficient
+            && SurfaceViscosity == Other.SurfaceViscosity
+            && SecondarySurfaceViscosity == Other.SecondarySurfaceViscosity
+            && bUseSecondarySurfaceViscosity == Other.bUseSecondarySurfaceViscosity
+            && PrimaryDirection == Other.PrimaryDirection
+            && OrientedFrictionReferenceFrameActor == Other.OrientedFrictionReferenceFrameActor
+            && OrientedFrictionReferenceFrameComponent == Other.OrientedFrictionReferenceFrameComponent
+            && Restitution == Other.Restitution
+            && YoungsModulus == Other.YoungsModulus
+            && SpookDamping == Other.SpookDamping
+            && AdhesiveForce == Other.AdhesiveForce
+            && AdhesiveOverlap == Other.AdhesiveOverlap;
+	// clang-format on
+}
+
 void UAGX_ContactMaterial::SetContactSolver(EAGX_ContactSolver InContactSolver)
 {
 	// This block of code should be equivalent to AGX_ASSET_SETTER_IMPL_VALUE. We can't use that
@@ -748,18 +775,22 @@ namespace AGX_ContactMaterial_helpers
 		FShapeMaterialBarrier MBarrier1 = Barrier.GetMaterial1();
 		FShapeMaterialBarrier MBarrier2 = Barrier.GetMaterial2();
 
-		const FString Name1 = MBarrier1.HasNative() ? MBarrier1.GetName() : "Default";
-		const FString Name2 = MBarrier2.HasNative() ? MBarrier2.GetName() : "Default";
+		OutCm.Material1 =
+			MBarrier1.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context)
+				: nullptr;
+		OutCm.Material2 =
+			MBarrier2.HasNative()
+				? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context)
+				: nullptr;
+
+		const FString Name1 = OutCm.Material1 != nullptr ? OutCm.Material1->GetName() : "Default";
+		const FString Name2 = OutCm.Material2 != nullptr ? OutCm.Material2->GetName() : "Default";
 
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			OutCm.GetOuter(), FString::Printf(TEXT("CM_%s_%s"), *Name1, *Name2),
 			UAGX_ContactMaterial::StaticClass());
 		OutCm.Rename(*Name);
-
-		OutCm.Material1 = MBarrier1.HasNative()
-			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier1, &Context) : nullptr;
-		OutCm.Material2 = MBarrier2.HasNative()
-			? FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(MBarrier2, &Context) : nullptr;
 	}
 }
 
@@ -797,8 +828,22 @@ void UAGX_ContactMaterial::CopyFrom(
 	Source.GetPrimaryDirection(PrimaryDirection);
 
 	OrientedFrictionReferenceFrameActor = FName();
-	OrientedFrictionReferenceFrameComponent =
-		FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+
+	OrientedFrictionReferenceFrameComponent = [&]() -> FName
+	{
+		// Use the actual Component Name if possible since it may be different than the Native AGX
+		// Rigid Body name.
+		if (Context != nullptr && Context->RigidBodies != nullptr)
+		{
+			const FGuid OrientedFrictionBodyGuid =
+				Source.GetOrientedFrictionModelReferenceFrameBodyGuid();
+			if (auto Body = Context->RigidBodies->FindRef(OrientedFrictionBodyGuid))
+				return Body->GetFName();
+		}
+
+		// Fallback.
+		return FName(Source.GetOrientedFrictionModelReferenceFrameBodyName());
+	}();
 
 	COPY_PROPERTY(Restitution);
 	COPY_PROPERTY(YoungsModulus);
@@ -1160,11 +1205,10 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 #error "Macro name NESTED_DISPATCHER already in use, chose a different name."
 #endif
 
-#define NESTED_DISPATCHER(OuterProperty, OuterType, InnerProperty, Setter) \
-	Dispatcher.Add(                                                        \
-		GET_MEMBER_NAME_CHECKED(ThisClass, OuterProperty),                 \
-		GET_MEMBER_NAME_CHECKED(OuterType, InnerProperty),                 \
-		[](ThisClass* This)                                                \
+#define NESTED_DISPATCHER(OuterProperty, OuterType, InnerProperty, Setter)     \
+	Dispatcher.Add(                                                            \
+		GET_MEMBER_NAME_CHECKED(ThisClass, OuterProperty),                     \
+		GET_MEMBER_NAME_CHECKED(OuterType, InnerProperty), [](ThisClass* This) \
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(OuterProperty.InnerProperty, Setter) });
 
 #ifdef SETTER_DISPATCHER

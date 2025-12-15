@@ -13,6 +13,7 @@
 #include "Constraints/LockJointBarrier.h"
 #include "Constraints/PrismaticBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "SimulationBarrier.h"
@@ -260,11 +261,12 @@ const TArray<std::pair<FString, FString>>& FSimulationObjectCollection::GetDisab
 	return DisabledCollisionGroups;
 }
 
-TArray<FObserverFrameData>& FSimulationObjectCollection::GetObserverFrames()
+TArray<FObserverFrameBarrier>& FSimulationObjectCollection::GetObserverFrames()
 {
 	return ObserverFrames;
 }
-const TArray<FObserverFrameData>& FSimulationObjectCollection::GetObserverFrames() const
+
+const TArray<FObserverFrameBarrier>& FSimulationObjectCollection::GetObserverFrames() const
 {
 	return ObserverFrames;
 }
@@ -329,22 +331,32 @@ const std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimul
 	return Simulation;
 }
 
-TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs()
+TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetOpenPLXInputs()
 {
 	return PLXInputs;
 }
 
-const TArray<FPLX_Input>& FSimulationObjectCollection::GetPLXInputs() const
+const TArray<FOpenPLX_Input>& FSimulationObjectCollection::GetOpenPLXInputs() const
 {
 	return PLXInputs;
 }
 
-TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs()
+TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs()
 {
 	return PLXOutputs;
 }
 
-const TArray<FPLX_Output>& FSimulationObjectCollection::GetPLXOutputs() const
+const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() const
 {
 	return PLXOutputs;
+}
+
+void FSimulationObjectCollection::SetModelName(const FString& Name)
+{
+	ModelName = Name;
+}
+
+FString FSimulationObjectCollection::GetModelName() const
+{
+	return ModelName;
 }

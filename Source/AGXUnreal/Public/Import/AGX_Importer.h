@@ -10,15 +10,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
-class FRigidBodyBarrier;
-class FShapeBarrier;
+struct FRigidBodyBarrier;
+struct FShapeBarrier;
 class FShovelBarrier;
 class UAGX_ModelSourceComponent;
 class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportSettings;
+struct FObserverFrameBarrier;
 struct FSimulationObjectCollection;
-struct FObserverFrameData;
 
 struct AGXUNREAL_API FAGX_ImportResult
 {
@@ -52,15 +52,14 @@ public:
 	 * immediately in a world, or used to create a Blueprint from it.
 	 * The Outer must be set to a World if doing runtime imports, otherwise it can be set to
 	 * TransientPackage.
-	 * OpenPLX files must reside in the Unreal project/OpenPLXModels directory.
 	 */
 	FAGX_ImportResult Import(const FAGX_ImportSettings& Settings, UObject& Outer);
 	const FAGX_ImportContext& GetContext() const;
 
 private:
 	EAGX_ImportResult AddComponents(
-		const FAGX_ImportSettings& Settings,
-		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
+		const FAGX_ImportSettings& Settings, const FSimulationObjectCollection& SimObjects,
+		AActor& OutActor);
 
 	EAGX_ImportResult AddModelSourceComponent(AActor& OutActor);
 
@@ -71,7 +70,7 @@ private:
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
 
 	EAGX_ImportResult AddObserverFrame(
-		const FObserverFrameData& Frame, const FSimulationObjectCollection& SimObjects,
+		const FObserverFrameBarrier& Frame, const FSimulationObjectCollection& SimObjects,
 		AActor& OutActor);
 
 	template <typename TComponent, typename TBarrier>

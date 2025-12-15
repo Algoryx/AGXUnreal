@@ -17,7 +17,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
-#include "OpenPLX/PLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -30,7 +30,7 @@
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -45,8 +45,10 @@
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "PackageTools.h"
 #include "Subsystems/AssetEditorSubsystem.h"
@@ -519,7 +521,12 @@ namespace AGX_ImporterToEditor_helpers
 
 	bool HasMatchingSessionGuid(const UObject& Object, const FGuid& SessionGuid)
 	{
-		UMetaData* MetaData = Object.GetOutermost()->GetMetaData();
+#if UE_VERSION_OLDER_THAN(5, 6, 0)
+		auto MetaData = Object.GetOutermost()->GetMetaData();
+#else
+		auto MetaData = &Object.GetOutermost()->GetMetaData();
+#endif // UE_VERSION_OLDER_THAN(...)
+
 		const FString GuidStr = MetaData->GetValue(&Object, TEXT("AGX_ImportSessionGuid"));
 		return FGuid(GuidStr) == SessionGuid;
 	}
@@ -832,13 +839,18 @@ namespace AGX_ImporterToEditor_helpers
 		const FGuid& Guid, const TComponent& ReimportedComponent,
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		USCS_Node* Node = OutGuidToNode.FindRef(Guid);
 
 		// Resolve name collisions.
 		USCS_Node* NameCollNode = OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
-		if (Node != nullptr && NameCollNode != nullptr && NameCollNode != Node)
-			NameCollNode->SetVariableName(*FAGX_ImportUtilities::GetUnsetUniqueImportName());
+		if (NameCollNode != nullptr && NameCollNode != Node)
+		{
+			const FString NewName =
+				Name.ToString() + FAGX_ImportUtilities::GetUnsetUniqueImportName();
+			FBlueprintEditorUtils::RenameComponentMemberVariable(
+				&OutBlueprint, NameCollNode, FName(*NewName));
+		}
 
 		return Node;
 	}
@@ -850,7 +862,7 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		// StaticMeshComponents we look up by using the name which includes the guid.
 		// We expect no conflicts.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -860,7 +872,7 @@ namespace AGX_ImporterToEditor_helpers
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
 		// UAGX_ContactMaterialRegistrarComponent we look up by using the name.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -870,7 +882,17 @@ namespace AGX_ImporterToEditor_helpers
 		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
 	{
 		// UAGX_CollisionGroupDisablerComponent we look up by using the name.
-		const FName Name(*ReimportedComponent.GetName());
+		const FName Name = ReimportedComponent.GetFName();
+		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
+	}
+
+	template <>
+	USCS_Node* FindNodeAndResolveConflicts<UOpenPLX_SignalHandlerComponent>(
+		const FGuid& Guid, const UOpenPLX_SignalHandlerComponent& ReimportedComponent,
+		TMap<FGuid, USCS_Node*>& OutGuidToNode, UBlueprint& OutBlueprint)
+	{
+		// UOpenPLX_SignalHandlerComponent we look up by using the name.
+		const FName Name = ReimportedComponent.GetFName();
 		return OutBlueprint.SimpleConstructionScript->FindSCSNode(Name);
 	}
 
@@ -915,8 +937,12 @@ namespace AGX_ImporterToEditor_helpers
 		{
 			Node = OutBlueprint.SimpleConstructionScript->CreateNode(
 				ReimportedComponent.GetClass(), Name);
-			if constexpr (std::is_base_of_v<USceneComponent, TComponent>)
+
+			if (Parent != nullptr)
 				Parent->AddChildNode(Node);
+			else
+				OutBlueprint.SimpleConstructionScript->GetDefaultSceneRootNode()->AddChildNode(
+					Node);
 
 			AGX_CHECK(OutGuidToNode.FindRef(Guid) == nullptr);
 			OutGuidToNode.Add(Guid, Node);
@@ -929,7 +955,7 @@ namespace AGX_ImporterToEditor_helpers
 				FAGX_BlueprintUtilities::ReParentNode(OutBlueprint, *Node, *Parent, false);
 
 			if (!Node->GetVariableName().IsEqual(Name))
-				Node->SetVariableName(Name);
+				FBlueprintEditorUtils::RenameComponentMemberVariable(&OutBlueprint, Node, Name);
 		}
 
 		return Node;
@@ -1572,14 +1598,15 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
-	if (OutSettings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	if (OutSettings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
-	const FString DestinationDir = FPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+	const FString DestinationDir =
+		FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
 	const FString NewLocation =
-		FPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
+		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))
 	{
 		IFileManager::Get().DeleteDirectory(
@@ -1594,7 +1621,7 @@ void FAGX_ImporterToEditor::PreReimport(
 	if (OutSettings.ImportType != EAGX_ImportType::Plx)
 		return;
 
-	if (OutSettings.FilePath.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	if (OutSettings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	USCS_Node* MsNode = Blueprint.SimpleConstructionScript->FindSCSNode(TEXT("AGX_ModelSource"));
@@ -1605,12 +1632,13 @@ void FAGX_ImporterToEditor::PreReimport(
 	if (Ms == nullptr)
 		return;
 
-	const FString TargetDir = FPaths::GetPath(Ms->FilePath);
-	if (!TargetDir.StartsWith(FPLXUtilities::GetModelsDirectory()))
+	const FString TargetDir =
+		FPaths::GetPath(FOpenPLXUtilities::RebuildOpenPLXFilePath(Ms->FilePath));
+	if (!TargetDir.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 
 	const FString NewLocation =
-		FPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, TargetDir);
+		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, TargetDir);
 	OutSettings.FilePath = NewLocation;
 }
 

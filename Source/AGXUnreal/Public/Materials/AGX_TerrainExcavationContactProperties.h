@@ -23,6 +23,9 @@ struct AGXUNREAL_API FAGX_TerrainExcavationContactProperties
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const FAGX_TerrainExcavationContactProperties& Other) const = default;
+
 	/**
 	 * The contact stiffness multiplier for the generated contacts between the soil
 	 * aggregates <-> terrain for excavation and deformation. The final Young's modulus value that

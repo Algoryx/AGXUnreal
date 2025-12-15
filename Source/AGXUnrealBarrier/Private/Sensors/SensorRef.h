@@ -5,6 +5,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Environment.h>
+#include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
@@ -12,9 +13,20 @@
 #include <agxSensor/RaytraceOutput.h>
 #include <agxSensor/RaytraceShapeInstance.h>
 #include <agxSensor/RaytraceLambertianOpaqueMaterial.h>
+#include <agxSensor/SensorGroupStepStride.h>
 #include "EndAGXIncludes.h"
 
 #include <memory>
+
+struct FIMURef
+{
+	agxSensor::IMURef Native;
+	FIMURef() = default;
+	FIMURef(agxSensor::IMU* InNative)
+		: Native(InNative)
+	{
+	}
+};
 
 struct FSensorEnvironmentRef
 {
@@ -71,4 +83,24 @@ struct FRtAmbientMaterial
 {
 	std::shared_ptr<agxSensor::RtAmbientMaterial> Native;
 	FRtAmbientMaterial() = default;
+};
+
+struct FSensorGroupStepStrideRef
+{
+	agxSensor::SensorGroupStepStrideRef Native;
+	FSensorGroupStepStrideRef() = default;
+	FSensorGroupStepStrideRef(agxSensor::SensorGroupStepStride* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FSensorRef
+{
+	agxSensor::SensorRef Native;
+	FSensorRef() = default;
+	FSensorRef(agxSensor::Sensor* InNative)
+		: Native(InNative)
+	{
+	}
 };

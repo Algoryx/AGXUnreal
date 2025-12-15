@@ -3,9 +3,9 @@
 #include "Shapes/RenderDataBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Shapes/RenderDataRef.h"
+#include "BarrierOnly/Shapes/RenderDataRef.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Shapes/RenderMaterial.h"
-#include "TypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -158,6 +158,24 @@ int32 FRenderDataBarrier::GetNumIndices() const
 	return CastWithSaturate(NumIndicesAGX, TEXT("indices"), GetGuid());
 }
 
+int32 FRenderDataBarrier::GetNumPositions() const
+{
+	const size_t Size = NativeRef->Native->getVertexArray().size();
+	return Convert(Size, TEXT("Render Data positions array."));
+}
+
+int32 FRenderDataBarrier::GetNumNormals() const
+{
+	const size_t Size = NativeRef->Native->getNormalArray().size();
+	return Convert(Size, TEXT("Render Data normals array."));
+}
+
+int32 FRenderDataBarrier::GetNumTextureCoordinates() const
+{
+	const size_t Size = NativeRef->Native->getTexCoordArray().size();
+	return Convert(Size, TEXT("Render Data texture coordinates array."));
+}
+
 TArray<FVector> FRenderDataBarrier::GetPositions() const
 {
 	return RenderDataBarrier_helpers::ConvertRenderBuffer<agx::Vec3, FVector>(
@@ -185,9 +203,8 @@ TArray<FVector> FRenderDataBarrier::GetNormals() const
 TArray<FVector2D> FRenderDataBarrier::GetTextureCoordinates() const
 {
 	return RenderDataBarrier_helpers::ConvertRenderBuffer<agx::Vec2, FVector2D>(
-		*this, TEXT("texture coordinates"),
-		[](const agxCollide::RenderData* Data) -> auto& { return Data->getTexCoordArray(); },
-		[](const agx::Vec2& Vec2) { return Convert(Vec2); });
+		*this, TEXT("texture coordinates"), [](const agxCollide::RenderData* Data) -> auto&
+		{ return Data->getTexCoordArray(); }, [](const agx::Vec2& Vec2) { return Convert(Vec2); });
 }
 
 bool FRenderDataBarrier::HasMaterial() const

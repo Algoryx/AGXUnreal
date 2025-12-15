@@ -4,10 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Constraints/AGX_Constraint2DOFFreeDOF.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "RigidBodyBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/AGX_BarrierConstraintUtilities.h"
 
 FConstraint2DOFBarrier::FConstraint2DOFBarrier()
@@ -72,6 +72,26 @@ double FConstraint2DOFBarrier::GetAngle(EAGX_Constraint2DOFFreeDOF Dof) const
 		default:
 			// Don't know the type, so pass the value unchanged to the caller.
 			return NativeAngle;
+	}
+}
+
+double FConstraint2DOFBarrier::GetSpeed(EAGX_Constraint2DOFFreeDOF Dof) const
+{
+	check(HasNative());
+
+	agx::Constraint2DOF* Constraint = Get2DOF(NativeRef);
+	const agx::Real SpeedAGX = Constraint->getCurrentSpeed(Convert(Dof));
+	const agx::Motor1D* MotorAGX = Constraint->getMotor1D(Convert(Dof));
+	const agx::Angle::Type DofType = FAGX_BarrierConstraintUtilities::GetDofType(MotorAGX);
+	switch (DofType)
+	{
+		case agx::Angle::ROTATIONAL:
+			return ConvertAngleToUnreal<double>(SpeedAGX);
+		case agx::Angle::TRANSLATIONAL:
+			return ConvertDistanceToUnreal<double>(SpeedAGX);
+		default:
+			// Don't know the type, so pass the value unchanged to the caller.
+			return SpeedAGX;
 	}
 }
 

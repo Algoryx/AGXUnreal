@@ -14,12 +14,13 @@
 #include <memory>
 #include <tuple>
 
-struct FTerrainRef;
-
-class FHeightFieldShapeBarrier;
 class FShovelBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
+
+struct FTerrainRef;
+struct FTerrainPropertiesBarrier;
+struct FHeightFieldShapeBarrier;
 
 /**
  *
@@ -47,23 +48,9 @@ public:
 	void SetRotation(const FQuat& Rotation);
 	FQuat GetRotation() const;
 
-	void SetCreateParticles(bool CreateParticles);
-	bool GetCreateParticles() const;
-
-	void SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds);
-	bool GetDeleteParticlesOutsideBounds() const;
-
-	void SetPenetrationForceVelocityScaling(double PenetrationForceVelocityScaling);
-	double GetPenetrationForceVelocityScaling() const;
-
-	void SetMaximumParticleActivationVolume(double MaximumParticleActivationVolume);
-	double GetMaximumParticleActivationVolume() const;
-
-	/// Deprecated, Shovels should be added to the Simulation instead.
-	bool AddShovel(FShovelBarrier& Shovel);
-
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
+	void SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties);
 
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);

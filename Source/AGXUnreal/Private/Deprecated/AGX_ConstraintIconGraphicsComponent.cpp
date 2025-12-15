@@ -42,6 +42,7 @@
 #include "RenderResource.h"
 #include "SceneInterface.h"
 #include "SceneManagement.h"
+#include "SceneView.h"
 #include "StaticMeshResources.h"
 #include "UObject/ConstructorHelpers.h"
 #include "VertexFactory.h"
@@ -148,7 +149,11 @@ public:
 
 	FAGX_ConstraintIconGraphicsProxy(UAGX_ConstraintIconGraphicsComponent* Component)
 		: FPrimitiveSceneProxy(Component)
+		#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
+#else
+		, MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetShaderPlatform()))
+#endif
 		, bDrawOnlyIfUnselected(true)
 		, Constraint(Component->Constraint)
 		, LockedDofs(Component->Constraint->GetLockedDofsBitmask())

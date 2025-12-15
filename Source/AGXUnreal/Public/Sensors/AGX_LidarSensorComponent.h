@@ -3,18 +3,16 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_NativeOwner.h"
 #include "AGX_RealInterval.h"
 #include "Sensors/AGX_CustomPatternFetcher.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_LidarEnums.h"
 #include "Sensors/AGX_LidarModelParameters.h"
 #include "Sensors/AGX_RayAngleGaussianNoiseSettings.h"
+#include "Sensors/AGX_SensorComponentBase.h"
 #include "Sensors/LidarBarrier.h"
 
 // Unreal Engine includes.
-#include "Components/SceneComponent.h"
-#include "CoreMinimal.h"
 #include "Math/UnrealMathUtility.h"
 
 #include "AGX_LidarSensorComponent.generated.h"
@@ -32,11 +30,13 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(
 
 /**
  * Lidar Sensor Component, allowing to create point clouds at runtime.
+ * Note that to use the Lidar Sensor Component, it must be registered with an AGX Sensor Environment
+ * Actor.
  */
 UCLASS(
-	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "AGX_Sensor", Category = "AGX", Blueprintable, Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
-class AGXUNREAL_API UAGX_LidarSensorComponent : public USceneComponent, public IAGX_NativeOwner
+class AGXUNREAL_API UAGX_LidarSensorComponent : public UAGX_SensorComponentBase
 {
 	GENERATED_BODY()
 
@@ -56,26 +56,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	EAGX_LidarModel GetModel() const;
 
-	/**
-	 * Enable or disable this Lidar Sensor Component. If disabled, it will not perform raytracing
-	 * and will thus not produce any output data.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
-	bool bEnabled {true};
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
-	void SetEnabled(bool InEnabled);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
-	bool GetEnabled() const;
-
 	// clang-format off
 	/**
 	 * The minimum and maximum range of the Lidar Sensor [cm].
 	 * Objects outside this range will not be detected by this Lidar Sensor.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",		
+		EditAnywhere, Category = "AGX Lidar",		
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))	
 	FAGX_RealInterval Range {0.0, 10000.0};
 	// clang-format on
@@ -94,7 +81,7 @@ public:
 	 * This property affects the calculated intensity.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	FAGX_Real BeamDivergence {0.001 * 180.0 / PI};
 	// clang-format on
@@ -111,7 +98,7 @@ public:
 	 * This property affects the calculated intensity.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	FAGX_Real BeamExitRadius {0.5};
 	// clang-format on
@@ -136,7 +123,7 @@ public:
 	 * It should be noted that the time and memory complexity of the raytrace will grow
 	 * exponentially with the maximum number of raytrace steps.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar", Meta = (ClampMin = "1"))
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar", Meta = (ClampMin = "1"))
 	int32 RaytraceDepth {1};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
@@ -148,7 +135,7 @@ public:
 	/**
 	 * Enables or disables removal of point misses, i.e. makes the output dense if set to true.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
+	UPROPERTY(EditAnywhere, Category = "AGX Lidar")
 	bool bEnableRemovePointsMisses {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar")
@@ -163,7 +150,7 @@ public:
 	 * measurements of Position.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	bool bEnableDistanceGaussianNoise {false};
 	// clang-format on
@@ -180,7 +167,7 @@ public:
 	 * s = stdDev + d * stdDevSlope where d is the distance in centimeters.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "bEnableDistanceGaussianNoise"))
 	FAGX_DistanceGaussianNoiseSettings DistanceNoiseSettings;
 	// clang-format on
@@ -197,7 +184,7 @@ public:
 	 * ray.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (EditCondition = "Model == EAGX_LidarModel::CustomRayPattern || Model == EAGX_LidarModel::GenericHorizontalSweep"))
 	bool bEnableRayAngleGaussianNoise {false};
 	// clang-format on
@@ -213,7 +200,7 @@ public:
 	 * Determines the lidar ray noise characteristics.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		EditAnywhere, Category = "AGX Lidar",
 		Meta = (ClampMin = "0.0", EditCondition = "bEnableRayAngleGaussianNoise"))	
 	FAGX_RayAngleGaussianNoiseSettings RayAngleNoiseSettings;
 	// clang-format on
@@ -273,23 +260,13 @@ public:
 
 	bool IsCustomParametersSupported() const;
 
-	FLidarBarrier* GetOrCreateNative();
-	FLidarBarrier* GetNative();
-	const FLidarBarrier* GetNative() const;
-
-	// ~Begin AGX NativeOwner interface.
-	virtual bool HasNative() const override;
-	virtual uint64 GetNativeAddress() const override;
-	virtual void SetNativeAddress(uint64 NativeAddress) override;
-	// ~/End IAGX_NativeOwner interface.
-
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
+
+	FSensorBarrier* CreateNativeImpl() override;
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
-	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
@@ -302,19 +279,24 @@ public:
 #endif
 	//~ End UObject interface.
 
+	FLidarBarrier* GetNativeAsLidar();
+	const FLidarBarrier* GetNativeAsLidar() const;
+
 	friend class FAGX_CustomPatternFetcher;
+
+protected:
+	virtual void MarkOutputAsRead() override;
 
 private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
 
-	void UpdateNativeProperties();
+	virtual void UpdateNativeProperties() override;
 
 	TArray<FTransform> FetchRayTransforms();
 	FAGX_CustomPatternInterval FetchNextInterval();
 
 	UNiagaraComponent* NiagaraSystemComponent = nullptr;
 	FAGX_CustomPatternFetcher PatternFetcher;
-	FLidarBarrier NativeBarrier;
 };

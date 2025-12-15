@@ -58,12 +58,23 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge TopEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetTopEdge(FAGX_Edge InTopEdge);
+
+	/**
+	 * Returns the position of the Top Edge start point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetTopEdgeStartPositionWorld();
+
+	/**
+	 * Returns the position of the Top Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetTopEdgeEndPositionWorld();
 
 	/**
 	 * The cutting edge of the active zone.
@@ -72,33 +83,41 @@ public:
 	 * Finalize Shovel Edit must be called to commit the changes to the native AGX Dynamics
 	 * representation of the shovel
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
 	FAGX_Edge CuttingEdge;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
 	void SetCuttingEdge(FAGX_Edge InCuttingEdge);
 
 	/**
-	 * The cutting direction of the shovel where the penetration resistance will be active, which is
-	 * usually parallel to the lowest shovel plate that is used to initially penetrate the soil.
-	 *
-	 * If the cutting direction is edited while the simulation is running then either Set Cutting
-	 * Direction or Finalize Shovel Edit must be called to commit the changes to the native AGX
-	 * Dynamics representation of the shovel
+	 * Returns the position of the Cutting Edge start point in the world coordinate system.
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
-	FAGX_Frame CuttingDirection;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetCuttingEdgeStartPositionWorld();
+
+	/**
+	 * Returns the position of the Cutting Edge end point in the world coordinate system.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Shovel")
+	FVector GetCuttingEdgeEndPositionWorld();
+
+	/**
+	 * The direction of the shovel teeth along which the penetration resistance
+	 * will be active. The Tooth Direction together with Tooth Length (see ShovelProperties)
+	 * determines where the the teeth edge, which is the tip of the teeth, will be located where
+	 * soil excavation starts.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Shovel")
+	FAGX_Frame ToothDirection;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shovel")
-	void SetCuttingDirection(FAGX_Frame InCuttingDirection);
+	void SetToothDirection(FAGX_Frame InToothDirection);
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/**
@@ -124,6 +143,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
+	virtual void Serialize(FArchive& Archive) override;
 	// ~End UObject interface.
 
 	//~ Begin ActorComponent Interface
@@ -165,5 +185,8 @@ private:
 	void AllocateNative();
 
 private:
+	UPROPERTY()
+	FAGX_Frame CuttingDirection_DEPRECATED;
+
 	FShovelBarrier NativeBarrier;
 };

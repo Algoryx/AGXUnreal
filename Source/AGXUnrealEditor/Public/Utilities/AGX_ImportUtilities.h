@@ -11,9 +11,9 @@
 #include "GameFramework/Actor.h"
 #include "Math/Color.h"
 
-class FTrimeshShapeBarrier;
+struct FTrimeshShapeBarrier;
 class FRenderDataBarrier;
-class FShapeBarrier;
+struct FShapeBarrier;
 class FMergeSplitThresholdsBarrier;
 class FShapeMaterialBarrier;
 class FTrackBarrier;

@@ -7,14 +7,15 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Import/SimulationObjectCollection.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
-#include "Utilities/PLXUtilities.h"
+#include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // OpenPLX includes.
@@ -175,7 +176,7 @@ namespace
 			if (NonFreeContactMaterials.Contains(ContMat))
 				continue;
 			const agx::Material* Material1 = ContMat->getMaterial1();
-			const agx::Material* Material2 = ContMat->getMaterial1();
+			const agx::Material* Material2 = ContMat->getMaterial2();
 			if ((Material1 != nullptr && NonFreeMaterials.Contains(Material1)) ||
 				(Material2 != nullptr && NonFreeMaterials.Contains(Material2)))
 			{
@@ -516,6 +517,12 @@ namespace
 			// Each shovel holds a prismatic.
 			NonFreeConstraints.Add(Shovel->getPenetrationResistance()->getPenetrationPrismatic());
 
+			// Some shovels may have a teethGeometry.
+			if (auto TeethGeom = Shovel->getPenetrationResistance()->getTeethGeometry())
+			{
+				NonFreeGeometries.Add(TeethGeom);
+			}
+
 			agxTerrain::AggregateContactGenerator* ContactGenerator =
 				Shovel->getAggregateContactGenerator();
 			NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
@@ -535,15 +542,10 @@ namespace
 		for (const agx::ObserverFrameRef& ObserverFrame : ObserverFrames)
 		{
 			if (ObserverFrame->getRigidBody() == nullptr)
-			{
 				continue;
-			}
 
-			const FString Name = Convert(ObserverFrame->getName());
-			const FGuid BodyGuid = Convert(ObserverFrame->getRigidBody()->getUuid());
-			const FGuid ObserverGuid = Convert(ObserverFrame->getUuid());
-			const FTransform Transform = Convert(ObserverFrame->getLocalTransform());
-			OutSimObjects.GetObserverFrames().Add({Name, BodyGuid, ObserverGuid, Transform});
+			OutSimObjects.GetObserverFrames().Add(
+				FObserverFrameBarrier(std::make_shared<FObserverFrameRef>(ObserverFrame)));
 		}
 	}
 
@@ -641,13 +643,22 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	const FString& Filename, FSimulationObjectCollection& OutSimObjects)
 {
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-	const FString PLXBundlesPath = FPLXUtilities::GetBundlePath();
+
+	const std::vector<std::string> BundlePaths =
+		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
 
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
+	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
+
+	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
+	//  allocated in Unreal.
+	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
 	agxopenplx::OptParams Params = agxopenplx::OptParams()
-									   .with_uuidv5("47de4303-16ef-408d-baf5-1c86f0fe4473")
-									   .with_map_visuals(true);
+									   .withUuidv5(std::move(UuidAgxAllocated))
+									   .withMapVisuals(true)
+									   .withSkipDefaultBundles()
+									   .withBundlePaths(BundlePaths);
 	agxopenplx::LoadResult Result;
 	auto LogErrors = [&]()
 	{
@@ -657,8 +668,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 
 	try
 	{
-		Result = agxopenplx::load_from_file(
-			Simulation, Convert(Filename), Convert(PLXBundlesPath), Params);
+		Result = agxopenplx::load_from_file(Simulation, Convert(Filename), Params);
 	}
 	catch (const std::runtime_error& Excep)
 	{
@@ -676,10 +686,11 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, Filename, OutSimObjects);
 
-	// Read PLX inputs.
+	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
-	OutSimObjects.GetPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
-	OutSimObjects.GetPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
+	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
+	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
+	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getName()));
 	return true;
 }

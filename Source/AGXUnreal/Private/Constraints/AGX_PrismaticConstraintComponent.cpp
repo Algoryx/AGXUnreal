@@ -7,7 +7,7 @@
 #include "Utilities/AGX_ConstraintUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
-class FRigidBodyBarrier;
+struct FRigidBodyBarrier;
 
 UAGX_PrismaticConstraintComponent::UAGX_PrismaticConstraintComponent()
 	: UAGX_Constraint1DofComponent(

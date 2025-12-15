@@ -6,17 +6,20 @@
 #include "AGXBarrierFactories.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/ShapeBarrier.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Tires/TireBarrier.h"
-#include "TypeConversions.h"
+#include "Vehicle/TrackBarrier.h"
 #include "Wire/WireBarrier.h"
 
 // AGX Dynamics includes.
@@ -70,6 +73,13 @@ bool FSimulationBarrier::Add(FContactMaterialBarrier& ContactMaterial)
 	return NativeRef->Native->add(ContactMaterial.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->add(Frame.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FRigidBodyBarrier& Body)
 {
 	check(HasNative());
@@ -119,6 +129,13 @@ bool FSimulationBarrier::Add(FTireBarrier& Tire)
 	return NativeRef->Native->add(Tire.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FTrackBarrier& Track)
+{
+	check(HasNative());
+	check(Track.HasNative());
+	return NativeRef->Native->add(Track.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FWireBarrier& Wire)
 {
 	check(HasNative());
@@ -138,6 +155,13 @@ bool FSimulationBarrier::Remove(FContactMaterialBarrier& ContactMaterial)
 	check(HasNative());
 	check(ContactMaterial.HasNative());
 	return NativeRef->Native->remove(ContactMaterial.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FObserverFrameBarrier& Frame)
+{
+	check(HasNative());
+	check(Frame.HasNative());
+	return NativeRef->Native->remove(Frame.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FRigidBodyBarrier& Body)
@@ -187,6 +211,13 @@ bool FSimulationBarrier::Remove(FTireBarrier& Tire)
 	check(HasNative());
 	check(Tire.HasNative());
 	return NativeRef->Native->remove(Tire.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FTrackBarrier& Track)
+{
+	check(HasNative());
+	check(Track.HasNative());
+	return NativeRef->Native->remove(Track.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FWireBarrier& Wire)
@@ -560,23 +591,75 @@ FAGX_Statistics FSimulationBarrier::GetStatistics()
 	FAGX_Statistics Statistics;
 
 	void* SimulationContext = static_cast<void*>(NativeRef->Native.get());
-	Statistics.StepForwardTime = GetStatisticsTime(SimulationContext, "Step forward time");
-	Statistics.PreCollideTime = GetStatisticsTime(SimulationContext, "Pre-collide event time");
-	Statistics.ContactEventsTime =
-		GetStatisticsTime(SimulationContext, "Triggering contact events");
-	Statistics.PreStepTime = GetStatisticsTime(SimulationContext, "Pre-step event time");
-	Statistics.DynamicsSystemTime = GetStatisticsTime(SimulationContext, "Dynamics-system time");
-	Statistics.SpaceTime = GetStatisticsTime(SimulationContext, "Collision-detection time");
-	Statistics.PostStepTime = GetStatisticsTime(SimulationContext, "Post-step event time");
-	Statistics.LastStepTime = GetStatisticsTime(SimulationContext, "Last-step event time");
-	Statistics.InterStepTime = GetStatisticsTime(SimulationContext, "Inter-step time");
-	Statistics.NumParticles = GetStatisticsCount(SimulationContext, "Num particles");
 
-	void* DynamicsContext = static_cast<void*>(NativeRef->Native.get()->getDynamicsSystem());
-	Statistics.NumBodies = GetStatisticsCount(DynamicsContext, "Num enabled rigid bodies");
-	Statistics.NumConstraints = GetStatisticsCount(DynamicsContext, "Num binary constraints") +
-								GetStatisticsCount(DynamicsContext, "Num multi-body constraints");
-	Statistics.NumContacts = GetStatisticsCount(DynamicsContext, "Num contact constraints");
+	// Get timings reported by Simulation.
+	auto GetSimTime = [SimulationContext](const char* const Name)
+	{ return GetStatisticsTime(SimulationContext, Name); };
+	Statistics.Sim_StepForwardTime = GetSimTime("Step forward time");
+	Statistics.Sim_PreCollideEventTime = GetSimTime("Pre-collide event time");
+	Statistics.Sim_CollisionDetectionTime = GetSimTime("Collision-detection time");
+	Statistics.Sim_TriggeringContactSeparationEventsTime =
+		GetSimTime("Triggering contact separation events");
+	Statistics.Sim_TriggeringContactEventsTime = GetSimTime("Triggering contact events");
+	Statistics.Sim_ContactReductionTime = GetSimTime("Contact reduction");
+	Statistics.Sim_CullingContactsTime = GetSimTime("Culling contacts");
+	Statistics.Sim_CommittingRemovedContactsTime = GetSimTime("Committing removed contacts");
+	Statistics.Sim_PreStepEventTime = GetSimTime("Pre-step event time");
+	Statistics.Sim_DynamicsSystemTime = GetSimTime("Dynamics-system time");
+	Statistics.Sim_PostStepTime = GetSimTime("Post-step event time");
+	Statistics.Sim_LastStepTime = GetSimTime("Last-step event time");
+	Statistics.Sim_UpdateRenderManagerTime = GetSimTime("Update RenderManager");
+	Statistics.Sim_InterStepTime = GetSimTime("Inter-step time");
+
+	// Get counts reported by Simulation.
+	auto GetSimCount = [SimulationContext](const char* const Name)
+	{ return GetStatisticsCount(SimulationContext, Name); };
+	Statistics.Sim_NumParticles = GetSimCount("Num particles");
+	Statistics.Sim_NumContactsRemoved = GetSimCount("Num contacts removed");
+	Statistics.Sim_NumWarmStartedParticleParticleContacts =
+		GetSimCount("Num warm started particle-particle contacts");
+	Statistics.Sim_NumWarmStartedParticleShapeContacts =
+		GetSimCount("Num warm started geometry-particle contacts");
+
+	void* SpaceContext = static_cast<void*>(NativeRef->Native.get()->getSpace());
+
+	// Get timings reported by Space.
+	auto GetSpaceTime = [SpaceContext](const char* const Name)
+	{ return GetStatisticsTime(SpaceContext, Name); };
+	Statistics.Space_UpdateTime = GetSpaceTime("Update time");
+	Statistics.Space_BroadPhaseTime = GetSpaceTime("Broad-phase time");
+	Statistics.Space_NarrowPhaseTime = GetSpaceTime("Narrow-phase time");
+	Statistics.Space_SyncBoundsTime = GetSpaceTime("Sync bounds time");
+	Statistics.Space_SyncTransformsTime = GetSpaceTime("Sync transforms time");
+
+	// Get counts reported by Space.
+	auto GetSpaceCount = [SpaceContext](const char* const Name)
+	{ return GetStatisticsCount(SpaceContext, Name); };
+	Statistics.Space_NumShapes = GetSpaceCount("Num geometries");
+	Statistics.Space_NumShapeShapeContactPoints = GetSpaceCount("Num geometry-geometry contact points");
+	Statistics.Space_NumShapeShapeContacts = GetSpaceCount("Num geometry-geometry contacts");
+	Statistics.Space_NumParticleParticleContacts = GetSpaceCount("Num particle-particle contacts");
+	Statistics.Space_NumShapeParticleContacts = GetSpaceCount("Num geometry-particle contacts");
+	Statistics.Space_NumNarrowPhaseTests = GetSpaceCount("Num narrow phase tests");
+
+	void* DynamicsSystemContext = static_cast<void*>(NativeRef->Native.get()->getDynamicsSystem());
+
+	// Timings reported by Dynamics system.
+	auto GetDynSysTime = [DynamicsSystemContext](const char* const Name)
+	{ return GetStatisticsTime(DynamicsSystemContext, Name); };
+	Statistics.DynSys_UpdateTime = GetDynSysTime("Update time");
+	Statistics.DynSys_SolverTime = GetDynSysTime("Solver time");
+	Statistics.DynSys_SabreFactoringTime = GetDynSysTime("Sabre: Factoring");
+	Statistics.DynSys_SabreSolveTime = GetDynSysTime("Sabre: Solve");
+
+	// Get counts reported by Dynamics System.
+	auto GetDynSysCount = [DynamicsSystemContext](const char* const Name)
+	{ return GetStatisticsCount(DynamicsSystemContext, Name); };
+	Statistics.DynSys_NumEnabledRigidBodies = GetDynSysCount("Num enabled rigid bodies");
+	Statistics.DynSys_NumBinaryConstraints = GetDynSysCount("Num binary constraints");
+	Statistics.DynSys_NumMultiBodyConstraints = GetDynSysCount("Num multi-body constraints");
+	Statistics.DynSys_NumContactConstraints = GetDynSysCount("Num contact constraints");
+	Statistics.DynSys_NumSolveIslands = GetDynSysCount("Num solve islands");
 
 	return Statistics;
 }

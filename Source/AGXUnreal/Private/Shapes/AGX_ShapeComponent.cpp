@@ -6,7 +6,6 @@
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
-#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
@@ -211,6 +210,7 @@ void UAGX_ShapeComponent::PostInitProperties()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(IsSensor);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SensorType);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SurfaceVelocity);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(ShapeMaterial);
 
@@ -324,12 +324,27 @@ namespace AGX_ShapeComponent_helpers
 		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
 			return Existing;
 
-		UStaticMesh* Mesh =
 #if WITH_EDITOR
-			AGX_MeshUtilities::CreateStaticMeshNoBuild(RenderData, *Context.Outer, Material);
+		// In editor builds we can delay the build and do it in batch mode later. During import this
+		// is done at the end of `FAGX_Importer::Import.
+		const bool bBuild = false;
+		const bool bWithBoxCollision = false;
 #else
-			AGX_MeshUtilities::CreateStaticMesh(RenderData, *Context.Outer, Material);
-#endif // WITH_EDITOR
+		// Unreal does not support batch builds in non-editor packaged builds so we are forced
+		// to build each mesh individually.
+		const bool bBuild = true;
+		const bool bWithBoxCollision = true;
+#endif
+
+		// TODO The normal source could be an import setting. If we add such a setting we should
+		// have separate checkboxes for Render Data and Trimesh since Render Data may have good
+		// normals in the imported data while Trimesh will only ever have per-triangle normals.
+		AGX_MeshUtilities::EAGX_NormalsSource NormalsSource =
+			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
+
+		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
+			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
+
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
 
@@ -358,7 +373,10 @@ namespace AGX_ShapeComponent_helpers
 		const FTransform RelTransform = Shape.GetGeometryToShapeTransform().Inverse();
 
 		const FString ComponentName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			&Owner, FString::Printf(TEXT("RenderMesh_%s"), *Shape.GetShapeGuid().ToString()),
+			&Owner,
+			FString::Printf(
+				TEXT("%s%s"), *UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix(),
+				*Shape.GetShapeGuid().ToString()),
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
@@ -378,8 +396,11 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	ImportGuid = Barrier.GetShapeGuid();
 	ImportName = Barrier.GetName();
 	SurfaceVelocity = Barrier.GetSurfaceVelocity();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		GetOwner(), Barrier.GetName(), UAGX_ShapeComponent::StaticClass());
+		GetOwner(), CleanBarrierName, UAGX_ShapeComponent::StaticClass());
 	Rename(*Name);
 
 	const EAGX_ShapeSensorType BarrierSensorType = Barrier.GetIsSensorGeneratingContactData()
@@ -567,6 +588,28 @@ bool UAGX_ShapeComponent::GetIsSensor() const
 	return bIsSensor;
 }
 
+void UAGX_ShapeComponent::SetSensorType(EAGX_ShapeSensorType Type)
+{
+	if (HasNative())
+	{
+		GetNative()->SetIsSensor(GetIsSensor(), Type == EAGX_ShapeSensorType::ContactsSensor);
+	}
+
+	SensorType = Type;
+}
+
+EAGX_ShapeSensorType UAGX_ShapeComponent::GetSensorType() const
+{
+	if (HasNative())
+	{
+		return GetNative()->GetIsSensorGeneratingContactData()
+				   ? EAGX_ShapeSensorType::ContactsSensor
+				   : EAGX_ShapeSensorType::BooleanSensor;
+	}
+
+	return SensorType;
+}
+
 void UAGX_ShapeComponent::SetSurfaceVelocity(FVector InSurfaceVelocity)
 {
 	if (HasNative())
@@ -583,6 +626,11 @@ FVector UAGX_ShapeComponent::GetSurfaceVelocity() const
 		return GetNative()->GetSurfaceVelocity();
 	}
 	return SurfaceVelocity;
+}
+
+UAGX_RigidBodyComponent* UAGX_ShapeComponent::GetRigidBody() const
+{
+	return FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
 }
 
 TArray<FAGX_ShapeContact> UAGX_ShapeComponent::GetShapeContacts() const
@@ -761,4 +809,9 @@ void UAGX_ShapeComponent::AddShapeBodySetupGeometry()
 bool UAGX_ShapeComponent::SupportsShapeBodySetup()
 {
 	return false; // Default behavior.
+}
+
+FString UAGX_ShapeComponent::GetRenderMeshComponentNamePrefix()
+{
+	return FString("RenderMesh_");
 }

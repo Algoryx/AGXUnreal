@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -32,22 +32,10 @@ FCylinderShapeBarrier::FCylinderShapeBarrier()
 {
 }
 
-FCylinderShapeBarrier::FCylinderShapeBarrier(std::unique_ptr<FGeometryAndShapeRef> Native)
+FCylinderShapeBarrier::FCylinderShapeBarrier(std::shared_ptr<FGeometryAndShapeRef> Native)
 	: FShapeBarrier(std::move(Native))
 {
 	check(NativeRef->NativeShape->is<agxCollide::Cylinder>());
-}
-
-FCylinderShapeBarrier::FCylinderShapeBarrier(FCylinderShapeBarrier&& Other)
-	: FShapeBarrier(std::move(Other))
-{
-}
-
-FCylinderShapeBarrier::~FCylinderShapeBarrier()
-{
-	// Must provide a destructor implementation in the .cpp file because the
-	// std::unique_ptr NativeRef's destructor must be able to see the definition,
-	// not just the forward declaration, of FCylinderShapeRef.
 }
 
 void FCylinderShapeBarrier::SetHeight(double Height)

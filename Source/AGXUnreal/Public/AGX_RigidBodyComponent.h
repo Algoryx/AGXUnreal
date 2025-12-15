@@ -100,7 +100,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
 	bool IsEnabled() const;
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Dynamics",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use IsEnabled instead."))
 	bool GetEnabled() const;
 
 	/**
@@ -187,7 +189,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
 	double CalculateMass() const;
 
-
 	/**
 	 * The three-component diagonal of the inertia tensor [kgm^2].
 	 */
@@ -248,6 +249,20 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Dynamics")
 	FVector GetAngularVelocity() const;
+
+	/**
+	 * Get the current acceleration of this Rigid Body in world coordinates [cm/s^2].
+	 * Will always be zero for KINEMATIC and STATIC bodies.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	FVector GetAcceleration() const;
+
+	/**
+	 * Get the current angular acceleration of this Rigid Body in world coordinates [deg/s^2].
+	 * Will always be zero for KINEMATIC and STATIC bodies.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	FVector GetAngularAcceleration() const;
 
 	/**
 	 * The linear velocity damping of the Rigid Body. Can be used to mimic aerodynamic or
@@ -468,6 +483,19 @@ public:
 
 	const FRigidBodyBarrier* GetNative() const;
 
+	/**
+	 * Get access to the underlying native AGX Dynamics object that this Rigid Body Component
+	 * represents. If there is no underlying AGX Dynamics object then the returned Barrier object
+	 * will be invalid and Has Native will return false. Do not call any other function on a Barrier
+	 * object for which Has Native returns false.
+	 *
+	 * @return Barrier for the native AGX Dynamics object this Rigid Body Component represents.
+	 */
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Rigid Body",
+		Meta = (DisplayName = "Get Native"))
+	FRigidBodyBarrier& GetNativeByRef();
+
 	// ~Begin IAGX_NativeOwner interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
@@ -512,7 +540,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
 	FGuid ImportGuid;
 
 	/*
@@ -523,7 +551,6 @@ public:
 	FString ImportName;
 
 private: // Deprecated functions.
-
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Dynamics",
 		Meta =
@@ -532,7 +559,6 @@ private: // Deprecated functions.
 	float CalculateMass_BP() const;
 
 private:
-
 #if WITH_EDITOR
 	// Fill in a bunch of callbacks in PropertyDispatcher so we don't have to manually check each
 	// and every UPROPERTY in PostEditChangeProperty and PostEditChangeChainProperty.
@@ -555,11 +581,7 @@ private:
 	void TryWriteTransformToNative();
 
 #if WITH_EDITOR
-#if UE_VERSION_OLDER_THAN(4, 25, 0)
-	virtual bool CanEditChange(const UProperty* InProperty) const override;
-#else
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
-#endif
 	void DisableTransformRootCompIfMultiple();
 #endif
 
