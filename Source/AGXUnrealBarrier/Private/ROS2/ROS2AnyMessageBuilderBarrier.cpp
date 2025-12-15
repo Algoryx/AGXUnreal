@@ -4,9 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGXROS2Types.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "ROS2/ROS2Conversions.h"
-#include "TypeConversions.h"
 
 FROS2AnyMessageBuilderBarrier::FROS2AnyMessageBuilderBarrier()
 {
@@ -200,7 +200,7 @@ void FROS2AnyMessageBuilderBarrier::WriteDouble64Sequence(const TArray<double>& 
 void FROS2AnyMessageBuilderBarrier::WriteStringSequence(const TArray<FString>& d)
 {
 	check(HasNative());
-	Native->Native->writeStringSequence(ToStdStringArray(d));
+	Native->Native->writeStringSequence(ToStdStringVector(d));
 }
 
 void FROS2AnyMessageBuilderBarrier::WriteBoolSequence(const TArray<bool>& d)

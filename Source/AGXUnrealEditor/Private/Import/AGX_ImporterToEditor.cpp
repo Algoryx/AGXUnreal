@@ -937,8 +937,12 @@ namespace AGX_ImporterToEditor_helpers
 		{
 			Node = OutBlueprint.SimpleConstructionScript->CreateNode(
 				ReimportedComponent.GetClass(), Name);
-			if constexpr (std::is_base_of_v<USceneComponent, TComponent>)
+
+			if (Parent != nullptr)
 				Parent->AddChildNode(Node);
+			else
+				OutBlueprint.SimpleConstructionScript->GetDefaultSceneRootNode()->AddChildNode(
+					Node);
 
 			AGX_CHECK(OutGuidToNode.FindRef(Guid) == nullptr);
 			OutGuidToNode.Add(Guid, Node);
@@ -1628,7 +1632,8 @@ void FAGX_ImporterToEditor::PreReimport(
 	if (Ms == nullptr)
 		return;
 
-	const FString TargetDir = FPaths::GetPath(Ms->FilePath);
+	const FString TargetDir =
+		FPaths::GetPath(FOpenPLXUtilities::RebuildOpenPLXFilePath(Ms->FilePath));
 	if (!TargetDir.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 		return;
 

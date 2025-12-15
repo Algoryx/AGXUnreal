@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelHitProxies.h"
+#include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_ShovelUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -465,7 +466,7 @@ void FAGX_ShovelComponentVisualizer::DrawVisualization(
 		}
 	}
 
-	// Draw the cutting direction.
+	// Draw the tooth direction.
 	{
 		const FVector BeginLocation = Shovel->ToothDirection.GetWorldLocation(*Shovel);
 		const FRotator Rotation = Shovel->ToothDirection.GetWorldRotation(*Shovel);
@@ -482,6 +483,21 @@ void FAGX_ShovelComponentVisualizer::DrawVisualization(
 			PDI->DrawPoint(BeginLocation, Color, PointSize, SDPG_Foreground);
 			PDI->SetHitProxy(nullptr);
 		}
+	}
+
+	// Draw a line along the tip of the teeth.
+	if (Shovel->ShovelProperties != nullptr &&
+		Shovel->ShovelProperties->bEnableExcavationAtTeethEdge)
+	{
+		const FAGX_Real ToothLength = Shovel->ShovelProperties->ToothLength;
+		const FRotator ToothRotation = Shovel->ToothDirection.GetWorldRotation(*Shovel);
+		const FVector ToothDirection = ToothRotation.RotateVector(FVector::ForwardVector);
+		const FVector CuttingEdgeBegin = Shovel->CuttingEdge.Start.GetWorldLocation(*Shovel);
+		const FVector CuttingEdgeEnd = Shovel->CuttingEdge.End.GetWorldLocation(*Shovel);
+
+		const FVector TipBegin = CuttingEdgeBegin + ToothDirection * ToothLength.GetValue();
+		const FVector TipEnd = CuttingEdgeEnd + ToothDirection * ToothLength.GetValue();
+		PDI->DrawLine(TipBegin, TipEnd, FLinearColor::Green, SDPG_Foreground, 0.7f);
 	}
 
 	// Not sure where to best put this. Don't want to miss a deselection if the we don't get

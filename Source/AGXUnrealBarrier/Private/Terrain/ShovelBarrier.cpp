@@ -6,9 +6,9 @@
 #include "AGX_Check.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "agxTerrain/Shovel.h"
 #include "RigidBodyBarrier.h"
-#include "TypeConversions.h"
 
 // Unreal Engine includes.
 #include "Math/TwoVectors.h"
@@ -152,6 +152,18 @@ int32 FShovelBarrier::GetNumberOfTeeth() const
 {
 	check(HasNative());
 	return NativeRef->Native->getSettings()->getNumberOfTeeth();
+}
+
+void FShovelBarrier::SetEnableExcavationAtTeethEdge(bool Enable)
+{
+	check(HasNative());
+	NativeRef->Native->getSettings()->setEnableExcavationAtTeethEdge(Enable);
+}
+
+bool FShovelBarrier::GetEnableExcavationAtTeethEdge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getSettings()->getEnableExcavationAtTeethEdge();
 }
 
 void FShovelBarrier::SetNoMergeExtensionDistance(double NoMergeExtensionDistance)
@@ -487,6 +499,11 @@ void FShovelBarrier::DecrementRefCount() const
 {
 	check(HasNative());
 	NativeRef->Native->unreference();
+}
+
+void FShovelBarrier::SetbEnableExcavationAtTeethEdge(bool InEnable)
+{
+	SetEnableExcavationAtTeethEdge(InEnable);
 }
 
 void FShovelBarrier::SetbAlwaysRemoveShovelContacts(bool InbAlwaysRemoveShovelContacts)

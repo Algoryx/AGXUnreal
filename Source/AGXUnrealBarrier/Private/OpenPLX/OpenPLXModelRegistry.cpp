@@ -6,8 +6,8 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // Standard library includes.
@@ -53,7 +53,8 @@ namespace OpenPLXModelRegistry_helpers
 		return static_cast<size_t>(Val);
 	}
 
-	using InputMap = std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>>;
+	using InputMap =
+		std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>>;
 
 	InputMap MapInputs(openplx::Physics3D::System* System)
 	{
@@ -61,7 +62,8 @@ namespace OpenPLXModelRegistry_helpers
 		if (System == nullptr)
 			return Inputs;
 
-		for (auto& Input : FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System))
+		for (auto& Input :
+			 FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System))
 		{
 			if (Input == nullptr)
 				continue;
@@ -138,7 +140,8 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString&
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Could not get OpenPLX system from file '%s'. The OpenPLX model will not be loaded."),
+			TEXT("Could not get OpenPLX system from file '%s'. The OpenPLX model will not be "
+				 "loaded."),
 			*PLXFile);
 		return InvalidHandle;
 	}

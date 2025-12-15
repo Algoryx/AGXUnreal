@@ -1711,12 +1711,12 @@ inline std::vector<DestinationT> ToStdArray(const TArray<SourceT>& A)
 	return Arr;
 }
 
-inline std::vector<std::string> ToStdStringArray(const TArray<FString>& A)
+inline std::vector<std::string> ToStdStringVector(const TArray<FString>& A)
 {
-	std::vector<std::string> Arr;
-	Arr.reserve(A.Num());
+	std::vector<std::string> Vec;
+	Vec.reserve(A.Num());
 	for (const auto& Val : A)
-		Arr.push_back(ToStdString(Val));
+		Vec.push_back(ToStdString(Val));
 
-	return Arr;
+	return Vec;
 }

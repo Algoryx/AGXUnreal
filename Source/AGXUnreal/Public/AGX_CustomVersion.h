@@ -66,7 +66,10 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// Shovels in AGX uses ToothDirection and ToothLength instead of CuttingDirection.
 		ShovelUsesToothDirection,
 
-        // Particle rendering is performed by specialized rendering Components, either built-in in
+		// Shovel Component adds itself to the Simulation instead of the Terrain doing that.
+		ShovelComponentAddsSelf,
+
+		// Particle rendering is performed by specialized rendering Components, either built-in in
 		// AGX Dynamics for Unreal or provided by a user. AGX Terrain does not render particles
 		// created by it, anymore, and instead uses one or several rendering Components to do that.
 		ParticleRenderingByRenderingComponents,

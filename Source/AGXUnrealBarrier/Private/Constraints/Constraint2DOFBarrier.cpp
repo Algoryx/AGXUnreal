@@ -4,10 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Constraints/AGX_Constraint2DOFFreeDOF.h"
 #include "Constraints/ControllerConstraintBarriers.h"
 #include "RigidBodyBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/AGX_BarrierConstraintUtilities.h"
 
 FConstraint2DOFBarrier::FConstraint2DOFBarrier()

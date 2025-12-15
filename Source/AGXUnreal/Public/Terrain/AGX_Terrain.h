@@ -10,7 +10,6 @@
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainPagingSettings.h"
 #include "Terrain/AGX_Shovel.h"
-#include "AGX_ShovelReference.h"
 #include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
@@ -58,30 +57,6 @@ class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
-
-
-USTRUCT(BlueprintType)
-struct AGXUNREAL_API FShovelReferenceWithSettings
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, Category = "Terrain")
-	FAGX_ShovelReference Shovel;
-
-	/**
-	 * The max distance from the Shovel at which new Terrain Tiles will be preloaded [cm].
-	 * Only relevant when using Terrain Paging.
-	 */
-	UPROPERTY(EditAnywhere, Category = "Paging Terrain")
-	FAGX_Real PreloadRadius {1000.f};
-
-	/**
-	 * The max distance from the Shovel at which new Terrain Tiles is guaranteed to be loaded [cm].
-	 * Only relevant when using Terrain Paging.
-	 */
-	UPROPERTY(EditAnywhere, Category = "Paging Terrain")
-	FAGX_Real RequiredRadius {600.f};
-};
 
 USTRUCT(BlueprintType)
 struct AGXUNREAL_API FDelegateParticleData
@@ -294,9 +269,6 @@ public:
 			 DisplayName = "Shovels [Deprecated]"))
 	TArray<FAGX_Shovel> Shovels;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
-	TArray<FShovelReferenceWithSettings> ShovelComponents;
-
 	UFUNCTION(BlueprintCallable, Category = "Shovel Properties")
 	bool SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPreloadRadius);
 
@@ -450,6 +422,8 @@ private:
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
 
+	UPROPERTY()
+	TArray<FShovelReferenceWithSettings> ShovelComponents_DEPRECATED;
 
 	/// Deprecated, see UAGX_SoilParticleRendererComponent.
 	UPROPERTY()

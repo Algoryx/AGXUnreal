@@ -5,9 +5,9 @@
 // AGX Dynamics for Unreal include.
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "RigidBodyBarrier.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireNodeRef.h"
+#include "RigidBodyBarrier.h"
 
 FWireNodeBarrier::FWireNodeBarrier()
 	: NativeRef {new FWireNodeRef()}

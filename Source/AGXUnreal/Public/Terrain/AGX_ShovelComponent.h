@@ -143,6 +143,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
+	virtual void Serialize(FArchive& Archive) override;
 	// ~End UObject interface.
 
 	//~ Begin ActorComponent Interface
@@ -151,8 +152,6 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	// ~End UActorComponent interface.
-
-	virtual void Serialize(FArchive& Archive) override;
 
 	// ~Begin AGX NativeOwner interface.
 	virtual bool HasNative() const override;

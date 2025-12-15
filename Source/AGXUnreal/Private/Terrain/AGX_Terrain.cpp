@@ -267,7 +267,7 @@ namespace AGX_Terrain_helpers
 bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPreloadRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Preload Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Preload Radius"), *GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -280,7 +280,8 @@ bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPrelo
 bool AAGX_Terrain::SetRequiredRadius(UAGX_ShovelComponent* Shovel, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Required Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
+		*GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -294,7 +295,8 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Required Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
+		*GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -963,7 +965,12 @@ namespace AGX_Terrain_helpers
 		ULandscapeInfo* Info = Landscape.GetLandscapeInfo();
 		if (Info == nullptr)
 			return;
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies = Info->StreamingProxies;
+#else
+		const TArray<TWeakObjectPtr<ALandscapeStreamingProxy>>& Proxies =
+			Info->GetSortedStreamingProxies();
+#endif
 		if (Proxies.IsEmpty())
 		{
 			UE_LOG(
@@ -992,7 +999,7 @@ namespace AGX_Terrain_helpers
 		// Determine if there are any Streaming Proxies with Is Spatially Loaded enabled overlapping
 		// the Terrain bounds. Log a note to disable Is Spatially Loaded for each found.
 		bool bFoundIntersectingStreamingProxy {false};
-		for (const auto& Proxy : Info->StreamingProxies)
+		for (const auto& Proxy : Proxies)
 		{
 			if (!Proxy->GetIsSpatiallyLoaded())
 				continue;
@@ -1360,13 +1367,8 @@ void AAGX_Terrain::CreateNativeShovels()
 		const FVector CuttingDirectionVector =
 			WorldToBody.TransformVector(CuttingDirection->GetVectorDirection()).GetSafeNormal();
 
-		// Passing ToothLength 0.0 is the closest we can get to getting the same behavior of old
-		// Shovels when using the new AGX Shovel which moves the edge along the ToothDirection a
-		// distance ToothLength. So we don't want to pass in the actual ToothLength here even if it
-		// exists.
 		ShovelBarrier.AllocateNative(
-			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector,
-			/*ToothLength*/ 0.0);
+			*BodyBarrier, TopEdgeLine, CuttingEdgeLine, CuttingDirectionVector, Shovel.ToothLength);
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 
@@ -1403,56 +1405,48 @@ void AAGX_Terrain::CreateNativeShovels()
 			*GetName());
 	}
 
-	// Create and register Shovel Components.
-	for (FShovelReferenceWithSettings& ShovelRef : ShovelComponents)
+	// Register Terrain Paging Shovel Components (the Shovel Components add themselves to the
+	// Simulation).
+	if (bEnableTerrainPaging)
 	{
-		UAGX_ShovelComponent* ShovelComponent = ShovelRef.Shovel.GetShovelComponent();
-		if (ShovelComponent == nullptr)
+		for (FShovelReferenceWithSettings& ShovelRef : TerrainPagingSettings.TrackedShovels)
 		{
-			const FString Message = FString::Printf(
-				TEXT("AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
-					 "reference a valid Shovel."),
-				*GetLabelSafe(this), *ShovelRef.Shovel.Name.ToString(),
-				*GetLabelSafe(ShovelRef.Shovel.OwningActor));
-			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
-			continue;
-		}
+			UAGX_ShovelComponent* ShovelComponent = ShovelRef.Shovel.GetShovelComponent();
+			if (ShovelComponent == nullptr)
+			{
+				const FString Message = FString::Printf(
+					TEXT("AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
+						 "reference a valid Shovel."),
+					*GetLabelSafe(this), *ShovelRef.Shovel.Name.ToString(),
+					*GetLabelSafe(ShovelRef.Shovel.OwningActor));
+				FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+				continue;
+			}
 
-		FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
-		if (ShovelBarrier == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
-					 "representation. Ignoring this shovel. It will not be able to deform the "
-					 "Terrain."),
-				*ShovelComponent->GetName(), *GetLabelSafe(this));
-			continue;
-		}
-		check(ShovelBarrier->HasNative());
-
-		const double RequiredRadius = ShovelRef.RequiredRadius;
-		const double PreloadRadius = ShovelRef.PreloadRadius;
-
-		bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-		if (!Added)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Terrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions and "
-					 "trying again."),
-				*GetLabelSafe(this), *ShovelComponent->GetName(),
-				*GetLabelSafe(ShovelComponent->GetOwner()));
-
-			ShovelComponent->SwapEdgeDirections();
-			Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-			if (!Added)
+			FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
+			if (ShovelBarrier == nullptr)
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Terrain '%s' rejected shovel '%s' in '%s' after edge directions flip. "
-						 "Abandoning shovel."),
-					*GetLabelSafe(this), *GetNameSafe(ShovelComponent),
+					TEXT("Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
+						 "representation. Ignoring this shovel. It will not be able to deform the "
+						 "Terrain."),
+					*ShovelComponent->GetName(), *GetLabelSafe(this));
+				continue;
+			}
+			check(ShovelBarrier->HasNative());
+
+			const double RequiredRadius = ShovelRef.RequiredRadius;
+			const double PreloadRadius = ShovelRef.PreloadRadius;
+
+			bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
+			if (!Added)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Terrain '%s' rejected shovel '%s' in '%s'. The Output Log may contain "
+						 "more details."),
+					*GetLabelSafe(this), *ShovelComponent->GetName(),
 					*GetLabelSafe(ShovelComponent->GetOwner()));
 			}
 		}
@@ -1825,6 +1819,16 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 		TerrainMaterial != nullptr && ShapeMaterial == nullptr)
 	{
 		bNeedsShapeMaterialWarning = true;
+	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelComponentAddsSelf) &&
+		bEnableTerrainPaging)
+	{
+		for (auto& Shovel : ShovelComponents_DEPRECATED)
+		{
+			// Terrain Pager still needs to know about the shovels in order to track them.
+			TerrainPagingSettings.TrackedShovels.Add(Shovel);
+		}
 	}
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ParticleRenderingByRenderingComponents))

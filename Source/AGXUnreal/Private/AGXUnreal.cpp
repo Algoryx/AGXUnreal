@@ -8,6 +8,7 @@
 #include "AGX_RuntimeStyle.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
@@ -47,6 +48,7 @@ void FAGXUnrealModule::StartupModule()
 
 void FAGXUnrealModule::ShutdownModule()
 {
+	FSensorEnvironmentBarrier::AGPUCleanup();
 	FAGX_RuntimeStyle::Shutdown();
 }
 
