@@ -5,11 +5,11 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
-#include "TypeConversions.h"
 #include "Utilities/OpenPLXUtilities.h"
 
 // AGX Dynamics includes.
@@ -523,8 +523,15 @@ TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepa
 	const std::vector<std::string> BundlePathsStd =
 		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
 
+	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
+	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
+	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
+
+	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
+	//  allocated in Unreal.
+	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
 	agxopenplx::OptParams Params = agxopenplx::OptParams()
-									   .withUuidv5("47de4303-16ef-408d-baf5-1c86f0fe4473")
+									   .withUuidv5(std::move(UuidAgxAllocated))
 									   .withSkipDefaultBundles()
 									   .withBundlePaths(BundlePathsStd);
 	agxopenplx::LoadResult Result;

@@ -3,9 +3,8 @@
 #include "Sensors/LidarOutputBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/SensorRef.h"
-#include "TypeConversions.h"
-
 
 FLidarOutputBarrier::FLidarOutputBarrier()
 	: NativeRef {new FLidarOutputRef}
@@ -49,4 +48,3 @@ void FLidarOutputBarrier::ReleaseNative()
 	if (HasNative())
 		NativeRef->Native = nullptr;
 }
-

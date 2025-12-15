@@ -5,9 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGXROS2Types.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "ROS2/ROS2Conversions.h"
-#include "TypeConversions.h"
 #include "Utilities/ROS2Utilities.h"
 
 // Helper macros to minimize amount of code needed in large switch-statement.
