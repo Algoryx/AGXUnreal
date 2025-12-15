@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+﻿// Copyright 2025, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireComponent.h"
 
@@ -35,10 +35,13 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Materials/MaterialInterface.h"
 #include "Math/UnrealMathUtility.h"
+#include "Math/InterpCurve.h"
 
 // Standard library includes.
 #include <algorithm>
 #include <tuple>
+#include <chrono>
+#include <limits>
 
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -1425,7 +1428,8 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 		{
 			// Eye nodes are attached to a Rigid Body, so make Local Location relative to that body.
 			FRigidBodyBarrier BodyBarrier = NodeAGX.GetRigidBody();
-			UAGX_RigidBodyComponent* BodyComponent = Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
+			UAGX_RigidBodyComponent* BodyComponent =
+				Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
 			if (BodyComponent != nullptr)
 			{
 				RouteNode.SetBody(BodyComponent);
@@ -1656,38 +1660,32 @@ void UAGX_WireComponent::InitPropertyDispatcher()
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, PulledInLength),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, PulledInLength), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetPulledInLength(Wire->OwnedBeginWinch.PulledInLength); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bMotorEnabled),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bMotorEnabled), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetMotorEnabled(Wire->OwnedBeginWinch.bMotorEnabled); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, TargetSpeed),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, TargetSpeed), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetTargetSpeed(Wire->OwnedBeginWinch.TargetSpeed); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, MotorForceRange),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, MotorForceRange), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetMotorForceRange(Wire->OwnedBeginWinch.MotorForceRange); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bBrakeEnabled),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bBrakeEnabled), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetBrakeEnabled(Wire->OwnedBeginWinch.bBrakeEnabled); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedBeginWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, BrakeForceRange),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, BrakeForceRange), [](ThisClass* Wire)
 		{ Wire->OwnedBeginWinch.SetBrakeForceRange(Wire->OwnedBeginWinch.BrakeForceRange); });
 
 	/// @todo Find ways to do attach/detach during runtime from the Details Panel.
@@ -1701,38 +1699,32 @@ void UAGX_WireComponent::InitPropertyDispatcher()
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, PulledInLength),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, PulledInLength), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetPulledInLength(Wire->OwnedEndWinch.PulledInLength); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bMotorEnabled),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bMotorEnabled), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetMotorEnabled(Wire->OwnedEndWinch.bMotorEnabled); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, TargetSpeed),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, TargetSpeed), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetTargetSpeed(Wire->OwnedEndWinch.TargetSpeed); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, MotorForceRange),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, MotorForceRange), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetMotorForceRange(Wire->OwnedEndWinch.MotorForceRange); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bBrakeEnabled),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, bBrakeEnabled), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetBrakeEnabled(Wire->OwnedEndWinch.bBrakeEnabled); });
 
 	Dispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, OwnedEndWinch),
-		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, BrakeForceRange),
-		[](ThisClass* Wire)
+		GET_MEMBER_NAME_CHECKED(FAGX_WireWinch, BrakeForceRange), [](ThisClass* Wire)
 		{ Wire->OwnedEndWinch.SetBrakeForceRange(Wire->OwnedEndWinch.BrakeForceRange); });
 
 	/// @todo Find ways to do attach/detach from winch during runtime from the Details Panel.
@@ -2483,6 +2475,151 @@ bool UAGX_WireComponent::ShouldRenderSelf() const
 	return VisualCylinders != nullptr && VisualSpheres != nullptr && ShouldRender();
 }
 
+namespace UltraResample_helpers
+{
+	FInterpCurveVector BuildWireCurve(const TArray<FVector>& AGXNodes)
+	{
+		FInterpCurveVector Curve;
+
+		const int32 Num = AGXNodes.Num();
+		if (Num < 2)
+			return Curve;
+
+		float Distance = 0.f;
+
+		for (int32 i = 0; i < Num; ++i)
+		{
+			if (i > 0)
+			{
+				Distance += FVector::Distance(AGXNodes[i - 1], AGXNodes[i]);
+			}
+
+			const int32 Index = Curve.AddPoint(Distance, AGXNodes[i]);
+			Curve.Points[Index].InterpMode = CIM_CurveAuto;
+		}
+
+		Curve.AutoSetTangents(/*Tension=*/0.0f, /*bStationaryEndpoints=*/false);
+
+		return Curve;
+	}
+
+	double GetNextDistSample(
+		const FInterpCurveVector& Curve, FVector Pos, double Dist, const FVector& Tangent,
+		double DeviationMax)
+	{
+		const double Step =
+			1.0; // Change this to do smart stepping later, e.g. half-distance to next point.
+		double Deviation = 0.0;
+
+		while (Deviation < DeviationMax)
+		{
+			Dist += Step;
+			Pos = Pos + Step * Tangent;
+			Deviation = (Pos - Curve.Eval(Dist)).Length();
+		}
+
+		return Dist;
+	}
+
+	void SmartMatchNum(const TArray<FTransform>& Orig, TArray<FTransform>& ToUpdate)
+	{
+		const int32 OrigNum = Orig.Num();
+		const int32 UpdateNum = ToUpdate.Num();
+
+		if (OrigNum == UpdateNum)
+			return;
+
+		if (UpdateNum > OrigNum)
+		{
+			ToUpdate.SetNum(OrigNum);
+			return;
+		}
+
+		// Grow
+		const int32 MissingCount = OrigNum - UpdateNum;
+		ToUpdate.Reserve(OrigNum);
+
+		for (int32 i = 0; i < MissingCount; ++i)
+		{
+			ToUpdate.Add(Orig[UpdateNum + i]);
+		}
+	}
+
+	void SmartMatchNum(const TArray<FTransform>& Orig, TArray<FMatrix>& ToUpdate)
+	{
+		const int32 OrigNum = Orig.Num();
+		const int32 UpdateNum = ToUpdate.Num();
+
+		if (OrigNum == UpdateNum)
+			return;
+
+		if (UpdateNum > OrigNum)
+		{
+			ToUpdate.SetNum(OrigNum);
+			return;
+		}
+
+		// Grow
+		const int32 MissingCount = OrigNum - UpdateNum;
+		ToUpdate.Reserve(OrigNum);
+
+		for (int32 i = 0; i < MissingCount; ++i)
+		{
+			const FTransform& T = Orig[UpdateNum + i];
+
+			FMatrix M = T.ToMatrixWithScale();
+			ToUpdate.Add(M);
+		}
+	}
+}
+
+TArray<FVector> UAGX_WireComponent::UltraResample(const TArray<FVector>& AGXNodes)
+{
+	using namespace UltraResample_helpers;
+	auto Start = std::chrono::high_resolution_clock::now();
+
+	if (AGXNodes.Num() <= 2)
+		return AGXNodes;
+
+	UltraResamples.Reset();
+	if (AGXNodes.Num() > UltraResamples.Num() + UltraResamples.GetSlack())
+	{
+		UltraResamples.Reset(AGXNodes.Num() * 2);
+	}
+
+	FInterpCurveVector Curve = BuildWireCurve(AGXNodes);
+	const float ParamMax = Curve.Points.Last().InVal;
+
+	float NextParam = Curve.Points[0].InVal;
+	UltraResamples.Add(Curve.Eval(NextParam));
+
+	// int32 StepIndex = 0;
+
+	while (NextParam < ParamMax)
+	{
+		FVector Pos = Curve.Eval(NextParam);
+
+		// StepIndex++;
+		// float Alpha = FMath::Clamp(float(StepIndex) / float(20.f), 0.f, 1.f);
+		// FColor DebugColor = FColor::MakeRedToGreenColorFromScalar(Alpha);
+		// DrawDebugPoint(GetWorld(), Pos, 9.0, DebugColor, false);
+
+		FVector Tangent = Curve.EvalDerivative(NextParam);
+		NextParam = GetNextDistSample(Curve, Pos, NextParam, Tangent, ResamplingDeviationMax);
+		if (NextParam < ParamMax)
+			UltraResamples.Add(Curve.Eval(NextParam));
+	}
+
+	UltraResamples.Add(Curve.Eval(ParamMax));
+
+	auto Stop = std::chrono::high_resolution_clock::now();
+	auto Elapsed = std::chrono::duration_cast<std::chrono::microseconds>(Stop - Start).count();
+	UE_LOG(
+		LogTemp, Log, TEXT("UltraResample time: %lld microseconds, numAGXNodes: %d"), Elapsed,
+		AGXNodes.Num());
+	return UltraResamples;
+}
+
 void UAGX_WireComponent::UpdateVisuals()
 {
 	if (!ShouldRenderSelf())
@@ -2507,6 +2644,12 @@ void UAGX_WireComponent::UpdateVisuals()
 		VisualSpheres->SetMaterial(0, RenderMaterial);
 
 	TArray<FVector> NodeLocations = GetNodesForRendering();
+
+	if (!bWtfRendering)
+	{
+		NodeLocations = UltraResample(NodeLocations);
+	}
+
 	RenderSelf(NodeLocations);
 }
 
@@ -2514,6 +2657,9 @@ void UAGX_WireComponent::RenderSelf(const TArray<FVector>& Points)
 {
 	if (Points.Num() <= 1)
 		return;
+
+	for (auto P : Points)
+		DrawDebugPoint(GetWorld(), P, 8.0, FColor::Green, false);
 
 	const int32 NumSegments = Points.Num() - 1;
 	SetVisualsInstanceCount(NumSegments);
@@ -2525,8 +2671,11 @@ void UAGX_WireComponent::RenderSelf(const TArray<FVector>& Points)
 	// 2.0 to go from radius to diameter.
 	const double ScaleXY = RenderRadiusScale * Radius * 0.01 * 2.0;
 	FTransform SphereTransform {FTransform::Identity};
-	FTransform CylTransform {FTransform::Identity};
+	NodeTransformsCache.SetNum(NumSegments);
 	SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));
+
+	FTransform CylTransform {FTransform::Identity};
+
 	for (int i = 0; i < NumSegments; i++)
 	{
 		const FVector& StartLocation = Points[i];
@@ -2534,15 +2683,40 @@ void UAGX_WireComponent::RenderSelf(const TArray<FVector>& Points)
 		const FVector MidPoint = (StartLocation + EndLocation) * 0.5;
 		const FVector DeltaVec = EndLocation - StartLocation;
 		const FRotator Rot = UKismetMathLibrary::MakeRotFromZ(DeltaVec);
-
-		CylTransform.SetLocation(MidPoint);
-		CylTransform.SetRotation(Rot.Quaternion());
 		const auto Distance = (DeltaVec).Length();
-		CylTransform.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
-		VisualCylinders->UpdateInstanceTransform(i, CylTransform, true, true);
+		if (bWtfRendering)
+		{
+			CylTransform.SetLocation(MidPoint);
+			CylTransform.SetRotation(Rot.Quaternion());
+			CylTransform.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
+			VisualCylinders->UpdateInstanceTransform(i, CylTransform, true, true);
+		}
+		else
+		{
+			NodeTransformsCache[i].SetLocation(MidPoint);
+			NodeTransformsCache[i].SetRotation(Rot.Quaternion());
+			NodeTransformsCache[i].SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
+		}
 
 		SphereTransform.SetLocation(StartLocation);
 		VisualSpheres->UpdateInstanceTransform(i, SphereTransform, true, true);
+	}
+
+	if (bWtfRendering)
+	{
+		// done
+	}
+	else
+	{
+		UltraResample_helpers::SmartMatchNum(
+			NodeTransformsCache, VisualCylinders->PerInstancePrevTransform);
+		UltraResample_helpers::SmartMatchNum(NodeTransformsCache, NodeTransformsCachePrev);
+
+		VisualCylinders->BatchUpdateInstancesTransforms(
+			0, NodeTransformsCache, NodeTransformsCachePrev, /*bWorldSpace*/ true);
+
+		NodeTransformsCachePrev = NodeTransformsCache;
+
 	}
 }
 

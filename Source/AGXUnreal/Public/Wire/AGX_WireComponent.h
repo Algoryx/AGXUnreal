@@ -42,6 +42,14 @@ public:
 public:
 	UAGX_WireComponent();
 
+
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
+	bool bWtfRendering{true};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire")
+	double ResamplingDeviationMax {1.0};
+
 	/*
 	 * Wire settings.
 	 */
@@ -1004,6 +1012,11 @@ private:
 	FWireBarrier NativeBarrier;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;
+
+	TArray<FVector> UltraResample(const TArray<FVector>& AGXNodes);
+	TArray<FVector> UltraResamples;
+	TArray<FTransform> NodeTransformsCache;
+	TArray<FTransform> NodeTransformsCachePrev;
 
 	/**
 	 * Keep track which node frame parents we have registered a callback with. Note that a single
