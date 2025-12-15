@@ -311,7 +311,7 @@ void UAGX_SteeringComponent::CreateNative()
 	auto CreateNativeFailNotification = [this]()
 	{
 		const FString Text = FString::Printf(
-			TEXT("Could not create native for Steerin Component '%s' in '%s'. The "
+			TEXT("Could not create native for Steering Component '%s' in '%s'. The "
 				 "Output Log may include more information."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_Fail);
