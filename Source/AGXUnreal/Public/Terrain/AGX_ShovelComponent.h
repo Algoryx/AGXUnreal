@@ -143,6 +143,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
+	virtual void Serialize(FArchive& Archive) override;
 	// ~End UObject interface.
 
 	//~ Begin ActorComponent Interface
