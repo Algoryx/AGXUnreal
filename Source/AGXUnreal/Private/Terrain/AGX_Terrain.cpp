@@ -17,12 +17,14 @@
 #include "Terrain/AGX_CuttingEdgeComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/AGX_TerrainProperties.h"
 #include "Terrain/AGX_TerrainSpriteComponent.h"
 #include "Terrain/AGX_TopEdgeComponent.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Utilities/AGX_HeightFieldUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -120,6 +122,34 @@ bool AAGX_Terrain::GetCanCollide() const
 	}
 
 	return bCanCollide;
+}
+
+bool AAGX_Terrain::SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties)
+{
+	UAGX_TerrainProperties* TerrainPropertiesOrig = TerrainProperties;
+	if (TerrainPropertiesOrig != nullptr && HasNativeTerrainPager())
+		TerrainPropertiesOrig->UnregisterTerrainPager(*this);
+
+	TerrainProperties = InTerrainProperties;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeTerrainProperties is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeTerrainProperties())
+	{
+		// Something went wrong, restore original TerrainProperties.
+		TerrainProperties = TerrainPropertiesOrig;
+		if (HasNativeTerrainPager())
+			TerrainProperties->RegisterTerrainPager(*this);
+		return false;
+	}
+
+	return true;
 }
 
 bool AAGX_Terrain::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
@@ -306,20 +336,6 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	return AGX_Terrain_helpers::WriteBarrierRadii(NativeTerrainPagerBarrier, *Element);
 }
 
-void AAGX_Terrain::SetCreateParticles(bool CreateParticles)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetCreateParticles(CreateParticles);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	bCreateParticles = CreateParticles;
-}
-
 void AAGX_Terrain::SetEnableTerrainPaging(bool bEnabled)
 {
 	bEnableTerrainPaging = bEnabled;
@@ -328,132 +344,6 @@ void AAGX_Terrain::SetEnableTerrainPaging(bool bEnabled)
 bool AAGX_Terrain::GetEnableTerrainPaging() const
 {
 	return bEnableTerrainPaging;
-}
-
-bool AAGX_Terrain::GetCreateParticles() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetCreateParticles();
-	}
-
-	return bCreateParticles;
-}
-
-void AAGX_Terrain::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetDeleteParticlesOutsideBounds(DeleteParticlesOutsideBounds);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	bDeleteParticlesOutsideBounds = DeleteParticlesOutsideBounds;
-}
-
-bool AAGX_Terrain::GetDeleteParticlesOutsideBounds() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetDeleteParticlesOutsideBounds();
-	}
-
-	return bDeleteParticlesOutsideBounds;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetPenetrationForceVelocityScaling(InPenetrationForceVelocityScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	PenetrationForceVelocityScaling = InPenetrationForceVelocityScaling;
-}
-
-double AAGX_Terrain::GetPenetrationForceVelocityScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetPenetrationForceVelocityScaling();
-	}
-
-	return PenetrationForceVelocityScaling;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling_BP(float InPenetrationForceVelocityScaling)
-{
-	SetPenetrationForceVelocityScaling(static_cast<double>(InPenetrationForceVelocityScaling));
-}
-
-float AAGX_Terrain::GetPenetrationForceVelocityScaling_BP() const
-{
-	return static_cast<float>(GetPenetrationForceVelocityScaling());
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetMaximumParticleActivationVolume(InMaximumParticleActivationVolume);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	MaximumParticleActivationVolume = InMaximumParticleActivationVolume;
-}
-
-double AAGX_Terrain::GetMaximumParticleActivationVolume() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetMaximumParticleActivationVolume();
-	}
-
-	return MaximumParticleActivationVolume;
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume_BP(float InMaximumParticleActivationVolume)
-{
-	SetMaximumParticleActivationVolume(static_cast<double>(InMaximumParticleActivationVolume));
-}
-
-float AAGX_Terrain::GetMaximumParticleActivationVolume_BP() const
-{
-	return static_cast<float>(GetMaximumParticleActivationVolume());
-}
-
-void AAGX_Terrain::SetSoilParticleSizeScaling(float InScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetSoilParticleSizeScaling(InScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	SoilParticleSizeScaling = InScaling;
-}
-
-float AAGX_Terrain::GetSoilParticleSizeScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetSoilParticleSizeScaling();
-	}
-
-	return SoilParticleSizeScaling;
 }
 
 bool AAGX_Terrain::HasNative() const
@@ -667,28 +557,12 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
+		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, SourceLandscape),
 		[](ThisClass* This) { AGX_Terrain_helpers::EnsureUseDynamicMaterialInstance(*This); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bCreateParticles),
-		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bDeleteParticlesOutsideBounds), [](ThisClass* This)
-		{ This->SetDeleteParticlesOutsideBounds(This->bDeleteParticlesOutsideBounds); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, PenetrationForceVelocityScaling), [](ThisClass* This)
-		{ This->SetPenetrationForceVelocityScaling(This->PenetrationForceVelocityScaling); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, MaximumParticleActivationVolume), [](ThisClass* This)
-		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SoilParticleSizeScaling),
-		[](ThisClass* This) { This->SetSoilParticleSizeScaling(This->SoilParticleSizeScaling); });
 
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(ParticleSystemAsset),
@@ -754,6 +628,9 @@ void AAGX_Terrain::BeginPlay()
 void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
+
+	if (HasNativeTerrainPager() && TerrainProperties != nullptr)
+		TerrainProperties->UnregisterTerrainPager(*this);
 
 	ClearDisplacementMap();
 	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
@@ -1095,6 +972,7 @@ void AAGX_Terrain::InitializeNative()
 	CreateNativeShovels();
 	AddTerrainPagerBodies();
 	InitializeRendering();
+	UpdateNativeTerrainProperties();
 
 	if (!UpdateNativeTerrainMaterial())
 	{
@@ -1188,12 +1066,6 @@ bool AAGX_Terrain::CreateNative()
 	CurrentHeights.Reserve(OriginalHeights.Num());
 	CurrentHeights = OriginalHeights;
 
-	NativeBarrier.SetCreateParticles(bCreateParticles);
-	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
-	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
-	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
-	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
-
 	// Create the AGX Dynamics instance for the terrain.
 	// Note that the AGX Dynamics Terrain messes with the solver parameters on add, parameters that
 	// our user may have set explicitly. If so, re-set the user-provided settings.
@@ -1255,14 +1127,14 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	// Always set DeleteParticlesOutsideBounds to false if we are using Terrain Paging, otherwise
 	// particles may be deleted when tiles are loaded and unloaded in an unexpected way. This will
 	// be handled automatically by AGX Dynamics in the future.
-	if (bDeleteParticlesOutsideBounds)
+	if (TerrainProperties != nullptr && TerrainProperties->bDeleteParticlesOutsideBounds)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("DeleteParticlesOutsideBounds was set to true while using Terrain Paging. This "
 				 "combination is not supported. DeleteParticlesOutsideBounds will be set to "
 				 "false."));
-		SetDeleteParticlesOutsideBounds(false);
+		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
 	const auto QuadSize = SourceLandscape->GetActorScale().X;
@@ -1532,6 +1404,40 @@ bool AAGX_Terrain::UpdateNativeTerrainMaterial()
 	check(TerrainMaterialBarrier);
 
 	GetNative()->SetTerrainMaterial(*TerrainMaterialBarrier);
+
+	return true;
+}
+
+bool AAGX_Terrain::UpdateNativeTerrainProperties()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainProperties == nullptr)
+		return false; // Nullptr TerrainProperties not allowed.
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot update native Terrain Properties because don't have a world to create "
+				 "the Properties instance in."));
+		return false;
+	}
+
+	UAGX_TerrainProperties* Instance = TerrainProperties->GetOrCreateInstance(World);
+	check(Instance);
+	if (HasNativeTerrainPager())
+		Instance->RegisterTerrainPager(*this);
+
+	if (TerrainProperties != Instance)
+		TerrainProperties = Instance;
+
+	FTerrainPropertiesBarrier* TerrainPropertiesBarrier = Instance->GetOrCreateNative();
+	check(TerrainPropertiesBarrier);
+
+	GetNative()->SetTerrainProperties(*TerrainPropertiesBarrier);
 
 	return true;
 }
@@ -1898,6 +1804,12 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 			TerrainPagingSettings.TrackedShovels.Add(Shovel);
 		}
 	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesAsset) &&
+		TerrainProperties == nullptr)
+	{
+		TerrainProperties = GetOrCreateTerrainPropertiesForOldTerrain();
+	}
 }
 
 #if WITH_EDITOR
@@ -1924,5 +1836,28 @@ void AAGX_Terrain::ShowShapeMaterialWarning() const
 	FAGX_NotificationUtilities::ShowDialogBoxWithWarning(Msg);
 }
 #endif // WITH_EDITOR
+
+UAGX_TerrainProperties* AAGX_Terrain::GetOrCreateTerrainPropertiesForOldTerrain()
+{
+	const FString AssetName = FString::Printf(TEXT("AGX_TEP_%s"), *GetName());
+	FString PackagePath = FString::Printf(TEXT("/Game/%s"), *AssetName);
+	if (auto Existing = FAGX_ObjectUtilities::GetAssetFromPath<UObject>(*PackagePath))
+		return Cast<UAGX_TerrainProperties>(Existing);
+
+	// We have an old Terrain that did not have Terrain Properties.
+	// Create a new Terrain Properties asset, set it's values and assign it to the Terrain.
+	UPackage* Package = CreatePackage(*PackagePath);
+	UAGX_TerrainProperties* Props =
+		NewObject<UAGX_TerrainProperties>(Package, *AssetName, RF_Public | RF_Standalone);
+
+	Props->bCreateParticles = bCreateParticles_DEPRECATED;
+	Props->bDeleteParticlesOutsideBounds = bDeleteParticlesOutsideBounds_DEPRECATED;
+	Props->PenetrationForceVelocityScaling = PenetrationForceVelocityScaling_DEPRECATED;
+	Props->MaximumParticleActivationVolume = MaximumParticleActivationVolume_DEPRECATED;
+	Props->SoilParticleSizeScaling = SoilParticleSizeScaling_DEPRECATED;
+
+	Package->SetDirtyFlag(true);
+	return Props;
+}
 
 #undef LOCTEXT_NAMESPACE
