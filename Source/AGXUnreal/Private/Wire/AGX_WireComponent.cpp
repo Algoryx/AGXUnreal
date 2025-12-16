@@ -2686,13 +2686,14 @@ namespace AGX_WireComponent_render_helpers
 void UAGX_WireComponent::RenderSelf()
 {
 	// The strategy for rendering the Wire is the following:
-	// We generate a spline from the AGX Dynamics Wire nodes. This spline is also cached so that we
-	// always have the current and previous spline. Then we select a number of "sample distances",
-	// i.e. a collection of distances along the spline that is de-coupled from the AGX nodes,
-	// according to an algorithm that will generate sample distances based on the curvature of the
-	// spline (more curvature yields sample points that are more densly packed, and vice versa).
-	// Lastly, we sample the current and previous spline given those distances, and from those
-	// create cylinder and sphere transforms that are given to the Instanced Static Meshes.
+	// In each step, we generate a spline from the AGX Dynamics Wire nodes. This spline is also
+	// cached so that we always have the current and previous spline. Then we generate a number of
+	// "sample distances", i.e. a collection of distances along the spline that is de-coupled from
+	// the AGX nodes, according to an algorithm that will generate sample distances based on the
+	// curvature of the spline (more curvature yields sample points that are more densly packed, and
+	// vice versa). Lastly, we sample the current and previous spline given those distances, and
+	// from those create cylinder and sphere transforms that are given to the Instanced Static
+	// Meshes.
 
 	using namespace AGX_WireComponent_render_helpers;
 	TArray<FVector> AGXNodes = GetNodesForRendering();
