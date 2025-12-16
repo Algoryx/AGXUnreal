@@ -12,6 +12,7 @@
 class FConstraintBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
+struct FSteeringBarrier;
 
 
 /**
@@ -27,4 +28,5 @@ struct AGXUNREALBARRIER_API FOpenPLXMappingBarriersCollection
 	TArray<FRigidBodyBarrier*> Bodies;
 	TArray<FConstraintBarrier*> Constraints;
 	TArray<FObserverFrameBarrier*> ObserverFrames;
+	TArray<FSteeringBarrier*> Steerings;
 };

@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_NativeOwner.h"
 #include "Tires/TireBarrier.h"
 
 // Unreal Engine includes.
@@ -15,7 +16,7 @@
  * Base class for Tire model components.
  */
 UCLASS(Category = "AGX", ClassGroup = "AGX", NotPlaceable)
-class AGXUNREAL_API UAGX_TireComponent : public UActorComponent
+class AGXUNREAL_API UAGX_TireComponent : public UActorComponent, public IAGX_NativeOwner
 {
 	GENERATED_BODY()
 
@@ -24,15 +25,21 @@ public:
 	virtual ~UAGX_TireComponent() = default;
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
-	bool Visible = true;
-
-	bool HasNative() const;
+	bool Visible {true};
 
 	FTireBarrier* GetOrCreateNative();
 
 	FTireBarrier* GetNative();
 
 	const FTireBarrier* GetNative() const;
+
+	//~ Begin IAGX_NativeObject interface.
+	virtual bool HasNative() const override;
+	virtual uint64 GetNativeAddress() const override;
+	virtual void SetNativeAddress(uint64 NativeAddress) override;
+	//~ End IAGX_NativeObject interface.
+
+	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 
 protected:
 	TUniquePtr<FTireBarrier> NativeBarrier;

@@ -18,6 +18,7 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
+#include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Wire/AGX_WireComponent.h"
 
@@ -140,11 +141,16 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 			if (Shovel->ImportGuid.IsValid())
 				Shovels.Add(Shovel->ImportGuid, Node);
 		}
-		else if (auto Wire = Cast<UAGX_WireComponent>(Component))
+		else if (auto Sh = Cast<UOpenPLX_SignalHandlerComponent>(Component))
 		{
-			AGX_CHECK(!Wires.Contains(Wire->ImportGuid))
-			if (Wire->ImportGuid.IsValid())
-				Wires.Add(Wire->ImportGuid, Node);
+			AGX_CHECK(SignalHandler == nullptr);
+			SignalHandler = Node;
+		}
+		else if (auto Steering = Cast<UAGX_SteeringComponent>(Component))
+		{
+			AGX_CHECK(!Steerings.Contains(Steering->ImportGuid))
+			if (Steering->ImportGuid.IsValid())
+				Steerings.Add(Steering->ImportGuid, Node);
 		}
 		else if (auto Track = Cast<UAGX_TrackComponent>(Component))
 		{
@@ -152,10 +158,11 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 			if (Track->ImportGuid.IsValid())
 				Tracks.Add(Track->ImportGuid, Node);
 		}
-		else if (auto Sh = Cast<UOpenPLX_SignalHandlerComponent>(Component))
+		else if (auto Wire = Cast<UAGX_WireComponent>(Component))
 		{
-			AGX_CHECK(SignalHandler == nullptr);
-			SignalHandler = Node;
+			AGX_CHECK(!Wires.Contains(Wire->ImportGuid))
+			if (Wire->ImportGuid.IsValid())
+				Wires.Add(Wire->ImportGuid, Node);
 		}
 		else
 		{

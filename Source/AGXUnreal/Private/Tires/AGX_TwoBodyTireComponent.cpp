@@ -13,6 +13,7 @@
 
 UAGX_TwoBodyTireComponent::UAGX_TwoBodyTireComponent()
 {
+	NativeBarrier.Reset(new FTwoBodyTireBarrier());
 	UpdateReferencesLocalScope();
 }
 
@@ -150,7 +151,7 @@ void UAGX_TwoBodyTireComponent::OnRegister()
 
 void UAGX_TwoBodyTireComponent::AllocateNative()
 {
-	NativeBarrier.Reset(CreateTwoBodyTireBarrier());
+	CreateTwoBodyTireBarrier();
 }
 
 void UAGX_TwoBodyTireComponent::UpdateNativeProperties()
@@ -208,7 +209,7 @@ void UAGX_TwoBodyTireComponent::UpdateReferencesLocalScope()
 
 FTwoBodyTireBarrier* UAGX_TwoBodyTireComponent::CreateTwoBodyTireBarrier()
 {
-	FTwoBodyTireBarrier* Barrier = new FTwoBodyTireBarrier;
+	FTwoBodyTireBarrier* Barrier = static_cast<FTwoBodyTireBarrier*>(NativeBarrier.Get());
 	UAGX_RigidBodyComponent* TireBody = GetTireRigidBody();
 	UAGX_RigidBodyComponent* HubBody = GetHubRigidBody();
 	if (TireBody == nullptr || HubBody == nullptr)

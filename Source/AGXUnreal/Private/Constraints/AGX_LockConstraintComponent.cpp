@@ -5,7 +5,6 @@
 // AGX Dynamics for Unreal includes.
 #include "Constraints/LockJointBarrier.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
-#include "Utilities/AGX_StringUtilities.h"
 
 struct FRigidBodyBarrier;
 

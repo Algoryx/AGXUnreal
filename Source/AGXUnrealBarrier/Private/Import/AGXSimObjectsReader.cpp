@@ -56,7 +56,9 @@
 #include <agxTerrain/Terrain.h>
 #include <agxTerrain/Utils.h>
 #include <agxWire/Wire.h>
+#include <agxVehicle/Steering.h>
 #include <agxVehicle/Track.h>
+#include <agxVehicle/WheelJoint.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine inludes.
@@ -192,8 +194,8 @@ namespace
 	}
 
 	void ReadTireModels(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects, TSet<const agx::Constraint*>& NonFreeConstraint)
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::Constraint*>& NonFreeConstraint)
 	{
 		const agxSDK::AssemblyHash& Assemblies = Simulation.getAssemblies();
 
@@ -224,8 +226,7 @@ namespace
 	}
 
 	void ReadRigidBodies(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects,
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
 		const TSet<const agx::RigidBody*>& NonFreeBodies)
 	{
 		agx::RigidBodyRefVector& Bodies {Simulation.getRigidBodies()};
@@ -244,8 +245,8 @@ namespace
 	}
 
 	void ReadTracks(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects, TSet<const agx::Constraint*>& NonFreeConstraint)
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::Constraint*>& NonFreeConstraint)
 	{
 		agxVehicle::TrackPtrVector Tracks = agxVehicle::Track::findAll(&Simulation);
 
@@ -272,8 +273,7 @@ namespace
 
 	// Reads all Geometries.
 	void ReadGeometries(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects,
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
 		TSet<const agxCollide::Geometry*>& NonFreeGeometries)
 	{
 		auto SkipGeometry = [&](agxCollide::Geometry* G) -> bool
@@ -299,8 +299,7 @@ namespace
 	}
 
 	void ReadConstraints(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects,
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
 		const TSet<const agx::Constraint*>& NonFreeConstraint)
 	{
 		agx::ConstraintRefSetVector& Constraints = Simulation.getConstraints();
@@ -360,6 +359,16 @@ namespace
 			{
 				OutSimObjects.GetSingleControllerConstraint1DOFs().Add(
 					AGXBarrierFactories::CreateSingleControllerConstraint1DOFBarrier(C));
+			}
+			else if (agxVehicle::Steering* S = Constraint->asSafe<agxVehicle::Steering>())
+			{
+				OutSimObjects.GetSteerings().Add(
+					AGXBarrierFactories::CreateSteeringBarrier(S));
+			}
+			else if (agxVehicle::WheelJoint* WJ = Constraint->asSafe<agxVehicle::WheelJoint>())
+			{
+				OutSimObjects.GetWheelJoints().Add(
+					AGXBarrierFactories::CreateWheelJointBarrier(WJ));
 			}
 		}
 	}
@@ -549,9 +558,7 @@ namespace
 		}
 	}
 
-	void ReadAll(
-		agxSDK::Simulation& Simulation, const FString& Filename,
-		FSimulationObjectCollection& OutSimObjects)
+	void ReadAll(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
 	{
 		// These contain objects that are not free-standing but owned by something else and will
 		// be created by that something else. Should not result in Actor Components in the imported
@@ -564,16 +571,16 @@ namespace
 
 		OutSimObjects.GetSimulation() = std::make_shared<FSimulationBarrier>(
 			AGXBarrierFactories::CreateSimulationBarrier(&Simulation));
-		ReadTireModels(Simulation, Filename, OutSimObjects, NonFreeConstraints);
+		ReadTireModels(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadTerrainMaterials(Simulation, NonFreeMaterials, NonFreeContactMaterials);
 		ReadShovels(
 			Simulation, OutSimObjects, NonFreeBodies, NonFreeGeometries, NonFreeConstraints,
 			NonFreeMaterials, NonFreeContactMaterials);
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
-		ReadGeometries(Simulation, Filename, OutSimObjects, NonFreeGeometries);
-		ReadRigidBodies(Simulation, Filename, OutSimObjects, NonFreeBodies);
-		ReadTracks(Simulation, Filename, OutSimObjects, NonFreeConstraints);
-		ReadConstraints(Simulation, Filename, OutSimObjects, NonFreeConstraints);
+		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
+		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
+		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
+		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
@@ -600,7 +607,7 @@ bool FAGXSimObjectsReader::ReadAGXArchive(
 		return false;
 	}
 
-	::ReadAll(*Simulation, Filename, OutSimObjects);
+	::ReadAll(*Simulation, OutSimObjects);
 	return true;
 }
 
@@ -634,7 +641,7 @@ AGXUNREALBARRIER_API bool FAGXSimObjectsReader::ReadUrdf(
 
 	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
 	Simulation->add(Model);
-	::ReadAll(*Simulation, UrdfFilePath, OutSimObjects);
+	::ReadAll(*Simulation, OutSimObjects);
 
 	return true;
 }
@@ -684,7 +691,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 
 	agxSDK::AssemblyRef AssemblyAGX = Result.assembly();
 	Simulation->add(AssemblyAGX);
-	::ReadAll(*Simulation, Filename, OutSimObjects);
+	::ReadAll(*Simulation, OutSimObjects);
 
 	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
