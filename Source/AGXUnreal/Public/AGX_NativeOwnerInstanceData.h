@@ -10,6 +10,8 @@
 
 /**
  * Component Instance Data for Actor Components.
+ * Do not use for SceneComponents! Instead, use the FAGX_NativeOwnerSceneComponentInstanceData
+ * for those.
  */
 USTRUCT()
 struct AGXUNREAL_API FAGX_NativeOwnerInstanceData : public FActorComponentInstanceData
