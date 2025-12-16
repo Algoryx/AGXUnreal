@@ -155,6 +155,7 @@ void UAGX_WheelJointComponent::PostEditChangeChainProperty(FPropertyChangedChain
 	// apply all our changes before that so that they are carried over to the copy.
 	Super::PostEditChangeChainProperty(Event);
 }
+
 void UAGX_WheelJointComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
