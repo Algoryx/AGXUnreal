@@ -43,7 +43,7 @@ struct AGXUNREALBARRIER_API FWebDebuggerServerBarrier
 	/**
 	 * Wait for the server thread to finish.
 	 * Call after stop() to ensure clean shutdown.
-	 *Safe to call multiple times.
+	 * Safe to call multiple times.
 	 */
 	void Join();
 
