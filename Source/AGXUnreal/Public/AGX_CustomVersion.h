@@ -69,6 +69,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// Shovel Component adds itself to the Simulation instead of the Terrain doing that.
 		ShovelComponentAddsSelf,
 
+		// TerrainProperties Asset introduced, to hold Terrain Properties for the AGX Terrain.
+		TerrainPropertiesAsset,
+
 		// Particle rendering is performed by specialized rendering Components, either built-in in
 		// AGX Dynamics for Unreal or provided by a user. AGX Terrain does not render particles
 		// created by it, anymore, and instead uses one or several rendering Components to do that.

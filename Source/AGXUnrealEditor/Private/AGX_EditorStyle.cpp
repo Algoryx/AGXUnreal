@@ -311,6 +311,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));
 	Style->Set(
+		"ClassThumbnail.AGX_TerrainProperties",
+		new IMAGE_BRUSH("Thumbnails/terrain_properties_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_TrackInternalMergeProperties",
 		new IMAGE_BRUSH("Thumbnails/track_internal_merge_properties_128x128", IconSize128));
 	Style->Set(
