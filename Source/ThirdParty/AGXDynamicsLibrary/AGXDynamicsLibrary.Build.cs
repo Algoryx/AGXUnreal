@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using UnrealBuildTool;
+using UnrealBuildTool; 
 
 
 /// AGXDynamicsLibrary is the portal from AGXUnrealBarrier to AGX Dynamics. This
@@ -288,7 +288,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-generate", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
 		LinkLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);

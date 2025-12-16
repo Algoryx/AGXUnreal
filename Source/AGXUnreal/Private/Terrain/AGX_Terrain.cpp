@@ -17,14 +17,17 @@
 #include "Terrain/AGX_CuttingEdgeComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/AGX_TerrainProperties.h"
 #include "Terrain/AGX_TerrainSpriteComponent.h"
 #include "Terrain/AGX_TopEdgeComponent.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Utilities/AGX_HeightFieldUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Terrain/ParticleRendering/AGX_SoilParticleRendererComponent.h"
 
 // Unreal Engine includes.
 #include "Containers/Ticker.h"
@@ -63,6 +66,10 @@ AAGX_Terrain::AAGX_Terrain()
 	RootComponent = SpriteComponent;
 
 	TerrainBounds = CreateDefaultSubobject<UAGX_HeightFieldBoundsComponent>(TEXT("TerrainBounds"));
+	
+	DefaultParticleRenderer =
+		CreateDefaultSubobject<UAGX_SoilParticleRendererComponent>(
+		TEXT("DefaultParticleRenderer"));
 
 	// Set render targets and niagara system from plugin by default to reduce manual steps when
 	// using Terrain.
@@ -87,10 +94,6 @@ AAGX_Terrain::AAGX_Terrain()
 		LandscapeDisplacementMap,
 		TEXT("TextureRenderTarget2D'/AGXUnreal/Terrain/Rendering/HeightField/"
 			 "RT_LandscapeDisplacementMap.RT_LandscapeDisplacementMap'"));
-
-	AssignDefault(
-		ParticleSystemAsset, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/"
-								  "PS_SoilParticleSystem.PS_SoilParticleSystem'"));
 }
 
 void AAGX_Terrain::SetCanCollide(bool bInCanCollide)
@@ -120,6 +123,34 @@ bool AAGX_Terrain::GetCanCollide() const
 	}
 
 	return bCanCollide;
+}
+
+bool AAGX_Terrain::SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties)
+{
+	UAGX_TerrainProperties* TerrainPropertiesOrig = TerrainProperties;
+	if (TerrainPropertiesOrig != nullptr && HasNativeTerrainPager())
+		TerrainPropertiesOrig->UnregisterTerrainPager(*this);
+
+	TerrainProperties = InTerrainProperties;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeTerrainProperties is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeTerrainProperties())
+	{
+		// Something went wrong, restore original TerrainProperties.
+		TerrainProperties = TerrainPropertiesOrig;
+		if (HasNativeTerrainPager())
+			TerrainProperties->RegisterTerrainPager(*this);
+		return false;
+	}
+
+	return true;
 }
 
 bool AAGX_Terrain::SetTerrainMaterial(UAGX_TerrainMaterial* InTerrainMaterial)
@@ -199,7 +230,7 @@ void AAGX_Terrain::RemoveCollisionGroupIfExists(FName GroupName)
 
 UNiagaraComponent* AAGX_Terrain::GetSpawnedParticleSystemComponent()
 {
-	return ParticleSystemComponent;
+	return DefaultParticleRenderer->GetParticleSystemComponent();
 }
 
 int32 AAGX_Terrain::GetNumParticles() const
@@ -266,7 +297,7 @@ namespace AGX_Terrain_helpers
 bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPreloadRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Preload Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Preload Radius"), *GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -279,7 +310,8 @@ bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPrelo
 bool AAGX_Terrain::SetRequiredRadius(UAGX_ShovelComponent* Shovel, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Required Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
+		*GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -293,7 +325,8 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		ShovelComponents, Shovel, TEXT("Set Required Radius"), *GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
+		*GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -304,20 +337,6 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	return AGX_Terrain_helpers::WriteBarrierRadii(NativeTerrainPagerBarrier, *Element);
 }
 
-void AAGX_Terrain::SetCreateParticles(bool CreateParticles)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetCreateParticles(CreateParticles);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	bCreateParticles = CreateParticles;
-}
-
 void AAGX_Terrain::SetEnableTerrainPaging(bool bEnabled)
 {
 	bEnableTerrainPaging = bEnabled;
@@ -326,132 +345,6 @@ void AAGX_Terrain::SetEnableTerrainPaging(bool bEnabled)
 bool AAGX_Terrain::GetEnableTerrainPaging() const
 {
 	return bEnableTerrainPaging;
-}
-
-bool AAGX_Terrain::GetCreateParticles() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetCreateParticles();
-	}
-
-	return bCreateParticles;
-}
-
-void AAGX_Terrain::SetDeleteParticlesOutsideBounds(bool DeleteParticlesOutsideBounds)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetDeleteParticlesOutsideBounds(DeleteParticlesOutsideBounds);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	bDeleteParticlesOutsideBounds = DeleteParticlesOutsideBounds;
-}
-
-bool AAGX_Terrain::GetDeleteParticlesOutsideBounds() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetDeleteParticlesOutsideBounds();
-	}
-
-	return bDeleteParticlesOutsideBounds;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling(double InPenetrationForceVelocityScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetPenetrationForceVelocityScaling(InPenetrationForceVelocityScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	PenetrationForceVelocityScaling = InPenetrationForceVelocityScaling;
-}
-
-double AAGX_Terrain::GetPenetrationForceVelocityScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetPenetrationForceVelocityScaling();
-	}
-
-	return PenetrationForceVelocityScaling;
-}
-
-void AAGX_Terrain::SetPenetrationForceVelocityScaling_BP(float InPenetrationForceVelocityScaling)
-{
-	SetPenetrationForceVelocityScaling(static_cast<double>(InPenetrationForceVelocityScaling));
-}
-
-float AAGX_Terrain::GetPenetrationForceVelocityScaling_BP() const
-{
-	return static_cast<float>(GetPenetrationForceVelocityScaling());
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume(double InMaximumParticleActivationVolume)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetMaximumParticleActivationVolume(InMaximumParticleActivationVolume);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	MaximumParticleActivationVolume = InMaximumParticleActivationVolume;
-}
-
-double AAGX_Terrain::GetMaximumParticleActivationVolume() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetMaximumParticleActivationVolume();
-	}
-
-	return MaximumParticleActivationVolume;
-}
-
-void AAGX_Terrain::SetMaximumParticleActivationVolume_BP(float InMaximumParticleActivationVolume)
-{
-	SetMaximumParticleActivationVolume(static_cast<double>(InMaximumParticleActivationVolume));
-}
-
-float AAGX_Terrain::GetMaximumParticleActivationVolume_BP() const
-{
-	return static_cast<float>(GetMaximumParticleActivationVolume());
-}
-
-void AAGX_Terrain::SetSoilParticleSizeScaling(float InScaling)
-{
-	if (HasNative())
-	{
-		NativeBarrier.SetSoilParticleSizeScaling(InScaling);
-		if (HasNativeTerrainPager())
-		{
-			NativeTerrainPagerBarrier.OnTemplateTerrainChanged();
-		}
-	}
-
-	SoilParticleSizeScaling = InScaling;
-}
-
-float AAGX_Terrain::GetSoilParticleSizeScaling() const
-{
-	if (HasNative())
-	{
-		return NativeBarrier.GetSoilParticleSizeScaling();
-	}
-
-	return SoilParticleSizeScaling;
 }
 
 bool AAGX_Terrain::HasNative() const
@@ -580,8 +473,6 @@ bool AAGX_Terrain::CanEditChange(const FProperty* InProperty) const
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, Shovels))
 		return false;
-	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, ParticleSystemAsset))
-		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, LandscapeDisplacementMap))
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bEnableTerrainPaging))
@@ -665,38 +556,12 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
+		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, SourceLandscape),
 		[](ThisClass* This) { AGX_Terrain_helpers::EnsureUseDynamicMaterialInstance(*This); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bCreateParticles),
-		[](ThisClass* This) { This->SetCreateParticles(This->bCreateParticles); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bDeleteParticlesOutsideBounds), [](ThisClass* This)
-		{ This->SetDeleteParticlesOutsideBounds(This->bDeleteParticlesOutsideBounds); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, PenetrationForceVelocityScaling), [](ThisClass* This)
-		{ This->SetPenetrationForceVelocityScaling(This->PenetrationForceVelocityScaling); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, MaximumParticleActivationVolume), [](ThisClass* This)
-		{ This->SetMaximumParticleActivationVolume(This->MaximumParticleActivationVolume); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SoilParticleSizeScaling),
-		[](ThisClass* This) { This->SetSoilParticleSizeScaling(This->SoilParticleSizeScaling); });
-
-	PropertyDispatcher.Add(
-		AGX_MEMBER_NAME(ParticleSystemAsset),
-		[](ThisClass* This)
-		{
-			if (This->ParticleSystemAsset != nullptr)
-			{
-				This->ParticleSystemAsset->RequestCompile(true);
-			}
-		});
 
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(bEnableTerrainPaging),
@@ -753,6 +618,9 @@ void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
 
+	if (HasNativeTerrainPager() && TerrainProperties != nullptr)
+		TerrainProperties->UnregisterTerrainPager(*this);
+
 	ClearDisplacementMap();
 	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
@@ -785,10 +653,8 @@ void AAGX_Terrain::Tick(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_Terrain::Tick"));
 	Super::Tick(DeltaTime);
-	if (bEnableParticleRendering)
-	{
-		UpdateParticlesArrays();
-	}
+
+	UpdateParticlesArrays();
 }
 
 bool AAGX_Terrain::FetchHeights(
@@ -1093,6 +959,7 @@ void AAGX_Terrain::InitializeNative()
 	CreateNativeShovels();
 	AddTerrainPagerBodies();
 	InitializeRendering();
+	UpdateNativeTerrainProperties();
 
 	if (!UpdateNativeTerrainMaterial())
 	{
@@ -1186,12 +1053,6 @@ bool AAGX_Terrain::CreateNative()
 	CurrentHeights.Reserve(OriginalHeights.Num());
 	CurrentHeights = OriginalHeights;
 
-	NativeBarrier.SetCreateParticles(bCreateParticles);
-	NativeBarrier.SetDeleteParticlesOutsideBounds(bDeleteParticlesOutsideBounds);
-	NativeBarrier.SetPenetrationForceVelocityScaling(PenetrationForceVelocityScaling);
-	NativeBarrier.SetMaximumParticleActivationVolume(MaximumParticleActivationVolume);
-	NativeBarrier.SetSoilParticleSizeScaling(SoilParticleSizeScaling);
-
 	// Create the AGX Dynamics instance for the terrain.
 	// Note that the AGX Dynamics Terrain messes with the solver parameters on add, parameters that
 	// our user may have set explicitly. If so, re-set the user-provided settings.
@@ -1253,14 +1114,14 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	// Always set DeleteParticlesOutsideBounds to false if we are using Terrain Paging, otherwise
 	// particles may be deleted when tiles are loaded and unloaded in an unexpected way. This will
 	// be handled automatically by AGX Dynamics in the future.
-	if (bDeleteParticlesOutsideBounds)
+	if (TerrainProperties != nullptr && TerrainProperties->bDeleteParticlesOutsideBounds)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("DeleteParticlesOutsideBounds was set to true while using Terrain Paging. This "
 				 "combination is not supported. DeleteParticlesOutsideBounds will be set to "
 				 "false."));
-		SetDeleteParticlesOutsideBounds(false);
+		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
 	const auto QuadSize = SourceLandscape->GetActorScale().X;
@@ -1416,56 +1277,48 @@ void AAGX_Terrain::CreateNativeShovels()
 			*GetName());
 	}
 
-	// Create and register Shovel Components.
-	for (FShovelReferenceWithSettings& ShovelRef : ShovelComponents)
+	// Register Terrain Paging Shovel Components (the Shovel Components add themselves to the
+	// Simulation).
+	if (bEnableTerrainPaging)
 	{
-		UAGX_ShovelComponent* ShovelComponent = ShovelRef.Shovel.GetShovelComponent();
-		if (ShovelComponent == nullptr)
+		for (FShovelReferenceWithSettings& ShovelRef : TerrainPagingSettings.TrackedShovels)
 		{
-			const FString Message = FString::Printf(
-				TEXT("AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
-					 "reference a valid Shovel."),
-				*GetLabelSafe(this), *ShovelRef.Shovel.Name.ToString(),
-				*GetLabelSafe(ShovelRef.Shovel.OwningActor));
-			FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
-			continue;
-		}
+			UAGX_ShovelComponent* ShovelComponent = ShovelRef.Shovel.GetShovelComponent();
+			if (ShovelComponent == nullptr)
+			{
+				const FString Message = FString::Printf(
+					TEXT("AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
+						 "reference a valid Shovel."),
+					*GetLabelSafe(this), *ShovelRef.Shovel.Name.ToString(),
+					*GetLabelSafe(ShovelRef.Shovel.OwningActor));
+				FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+				continue;
+			}
 
-		FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
-		if (ShovelBarrier == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT("Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
-					 "representation. Ignoring this shovel. It will not be able to deform the "
-					 "Terrain."),
-				*ShovelComponent->GetName(), *GetLabelSafe(this));
-			continue;
-		}
-		check(ShovelBarrier->HasNative());
-
-		const double RequiredRadius = ShovelRef.RequiredRadius;
-		const double PreloadRadius = ShovelRef.PreloadRadius;
-
-		bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-		if (!Added)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Terrain '%s' rejected shovel '%s' in '%s'. Reversing edge directions and "
-					 "trying again."),
-				*GetLabelSafe(this), *ShovelComponent->GetName(),
-				*GetLabelSafe(ShovelComponent->GetOwner()));
-
-			ShovelComponent->SwapEdgeDirections();
-			Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-			if (!Added)
+			FShovelBarrier* ShovelBarrier = ShovelComponent->GetOrCreateNative();
+			if (ShovelBarrier == nullptr)
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Terrain '%s' rejected shovel '%s' in '%s' after edge directions flip. "
-						 "Abandoning shovel."),
-					*GetLabelSafe(this), *GetNameSafe(ShovelComponent),
+					TEXT("Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
+						 "representation. Ignoring this shovel. It will not be able to deform the "
+						 "Terrain."),
+					*ShovelComponent->GetName(), *GetLabelSafe(this));
+				continue;
+			}
+			check(ShovelBarrier->HasNative());
+
+			const double RequiredRadius = ShovelRef.RequiredRadius;
+			const double PreloadRadius = ShovelRef.PreloadRadius;
+
+			bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
+			if (!Added)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Terrain '%s' rejected shovel '%s' in '%s'. The Output Log may contain "
+						 "more details."),
+					*GetLabelSafe(this), *ShovelComponent->GetName(),
 					*GetLabelSafe(ShovelComponent->GetOwner()));
 			}
 		}
@@ -1497,10 +1350,6 @@ void AAGX_Terrain::InitializeRendering()
 	if (bEnableDisplacementRendering)
 	{
 		InitializeDisplacementMap();
-	}
-	if (bEnableParticleRendering)
-	{
-		InitializeParticleSystem();
 	}
 
 	UpdateLandscapeMaterialParameters();
@@ -1538,6 +1387,40 @@ bool AAGX_Terrain::UpdateNativeTerrainMaterial()
 	check(TerrainMaterialBarrier);
 
 	GetNative()->SetTerrainMaterial(*TerrainMaterialBarrier);
+
+	return true;
+}
+
+bool AAGX_Terrain::UpdateNativeTerrainProperties()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainProperties == nullptr)
+		return false; // Nullptr TerrainProperties not allowed.
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot update native Terrain Properties because don't have a world to create "
+				 "the Properties instance in."));
+		return false;
+	}
+
+	UAGX_TerrainProperties* Instance = TerrainProperties->GetOrCreateInstance(World);
+	check(Instance);
+	if (HasNativeTerrainPager())
+		Instance->RegisterTerrainPager(*this);
+
+	if (TerrainProperties != Instance)
+		TerrainProperties = Instance;
+
+	FTerrainPropertiesBarrier* TerrainPropertiesBarrier = Instance->GetOrCreateNative();
+	check(TerrainPropertiesBarrier);
+
+	GetNative()->SetTerrainProperties(*TerrainPropertiesBarrier);
 
 	return true;
 }
@@ -1703,67 +1586,29 @@ void AAGX_Terrain::ClearDisplacementMap()
 	{
 		Displacement = FFloat16();
 	}
+
 	uint8* PixelData = reinterpret_cast<uint8*>(DisplacementData.GetData());
 	FAGX_RenderUtilities::UpdateRenderTextureRegions(
 		*LandscapeDisplacementMap, 1, DisplacementMapRegions.GetData(),
 		NumVerticesX * BytesPerPixel, BytesPerPixel, PixelData, false);
 }
 
-bool AAGX_Terrain::InitializeParticleSystem()
-{
-	return InitializeParticleSystemComponent();
-}
-
-bool AAGX_Terrain::InitializeParticleSystemComponent()
-{
-	if (!ParticleSystemAsset)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Terrain '%s' does not have a particle system, cannot render particles"),
-			*GetName());
-		return false;
-	}
-
-	// It is important that we attach the ParticleSystemComponent using "KeepRelativeOffset" so that
-	// it's world position becomes the same as the Terrain's. Otherwise it will be spawned at
-	// the world origin which in turn may result in particles being culled and not rendered if the
-	// terrain is located far away from the world origin (see Fixed Bounds in the Particle System).
-	ParticleSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
-		ParticleSystemAsset, RootComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
-		FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
-#if UE_VERSION_OLDER_THAN(4, 24, 0)
-		EPSCPoolMethod::None
-#else
-		ENCPoolMethod::None
-#endif
-	);
-#if WITH_EDITORONLY_DATA
-	// Must check for nullptr here because no particle system component is created with running
-	// as a unit test without graphics, i.e. with our run_unit_tests script in GitLab CI.
-	if (ParticleSystemComponent != nullptr)
-	{
-		ParticleSystemComponent->bVisualizeComponent = true;
-	}
-#endif
-
-	return ParticleSystemComponent != nullptr;
-}
-
 void AAGX_Terrain::UpdateParticlesArrays()
 {
-	if (!NativeBarrier.HasNative())
-	{
-		return;
-	}
-	if (ParticleSystemComponent == nullptr)
+	if (!NativeBarrier.HasNative() || !OnParticleData.IsBound())
 	{
 		return;
 	}
 
+
 	// Copy data with holes.
+	// 
+	// TODO: Change the way this data broadcasting is done by letting the user
+	// request only the subset of data that the user wants.This is to avoid fetching, 
+	// converting, packing, and passing data that will never be looked at. Right now
+	// we fetch everything but may not look at everything. 
 	EParticleDataFlags ToInclude = EParticleDataFlags::Positions | EParticleDataFlags::Rotations |
-								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities;
+								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities | EParticleDataFlags::Masses;
 	const FParticleDataById ParticleData =
 		bEnableTerrainPaging ? NativeTerrainPagerBarrier.GetParticleDataById(ToInclude)
 							 : NativeBarrier.GetParticleDataById(ToInclude);
@@ -1773,40 +1618,27 @@ void AAGX_Terrain::UpdateParticlesArrays()
 	const TArray<float>& Radii = ParticleData.Radii;
 	const TArray<bool>& Exists = ParticleData.Exists;
 	const TArray<FVector>& Velocities = ParticleData.Velocities;
-
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
-	ParticleSystemComponent->SetNiagaraVariableInt("User.Target Particle Count", Exists.Num());
-#else
-	ParticleSystemComponent->SetVariableInt(FName("User.Target Particle Count"), Exists.Num());
-#endif
+	const TArray<float>& Masses = ParticleData.Masses;
 
 	const int32 NumParticles = Positions.Num();
 
-	TArray<FVector4> PositionsAndScale;
-	PositionsAndScale.SetNum(NumParticles);
-	TArray<FVector4> Orientations;
-	Orientations.SetNum(NumParticles);
+	FDelegateParticleData data;
+	data.PositionsAndRadii.SetNum(NumParticles);
+	data.Orientations.SetNum(NumParticles);
+	data.VelocitiesAndMasses.SetNum(NumParticles);
+	data.Exists.SetNum(NumParticles);
+	data.ParticleCount = NumParticles;
 
 	for (int32 I = 0; I < NumParticles; ++I)
 	{
-		// The particle size slot in the PositionAndScale buffer is a scale and not the
-		// actual size. The scale is relative to a SI unit cube, meaning that a
-		// scale of 1.0 should render a particle that is 1x1x1 m large, or
-		// 100x100x100 Unreal units. We multiply by 2.0 to convert from radius
-		// to full width.
-		float UnitCubeScale = (Radii[I] * 2.0f) / 100.0f;
-		PositionsAndScale[I] = FVector4(Positions[I], UnitCubeScale);
-		Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.PositionsAndRadii[I] = FVector4(Positions[I], Radii[I]);
+		data.Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.VelocitiesAndMasses[I] =
+			FVector4(Velocities[I].X, Velocities[I].Y, Velocities[I].Z, Masses[I]);
+		data.Exists[I] = Exists[I];
 	}
 
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Positions And Scales", PositionsAndScale);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Orientations", Orientations);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayBool(
-		ParticleSystemComponent, "Exists", Exists);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(
-		ParticleSystemComponent, TEXT("Velocities"), Velocities);
+	OnParticleData.Broadcast(data);
 }
 
 void AAGX_Terrain::UpdateLandscapeMaterialParameters()
@@ -1894,6 +1726,32 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 	{
 		bNeedsShapeMaterialWarning = true;
 	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelComponentAddsSelf) &&
+		bEnableTerrainPaging)
+	{
+		for (auto& Shovel : ShovelComponents_DEPRECATED)
+		{
+			// Terrain Pager still needs to know about the shovels in order to track them.
+			TerrainPagingSettings.TrackedShovels.Add(Shovel);
+		}
+	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesAsset) &&
+		TerrainProperties == nullptr)
+	{
+		TerrainProperties = GetOrCreateTerrainPropertiesForOldTerrain();
+	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ParticleRenderingByRenderingComponents))
+	{
+		if (DefaultParticleRenderer != nullptr)
+		{
+			DefaultParticleRenderer->bEnableParticleRendering = bEnableParticleRendering_DEPRECATED;
+			if (ParticleSystemAsset_DEPRECATED != nullptr)
+				DefaultParticleRenderer->ParticleSystemAsset = ParticleSystemAsset_DEPRECATED;
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -1920,5 +1778,28 @@ void AAGX_Terrain::ShowShapeMaterialWarning() const
 	FAGX_NotificationUtilities::ShowDialogBoxWithWarning(Msg);
 }
 #endif // WITH_EDITOR
+
+UAGX_TerrainProperties* AAGX_Terrain::GetOrCreateTerrainPropertiesForOldTerrain()
+{
+	const FString AssetName = FString::Printf(TEXT("AGX_TEP_%s"), *GetName());
+	FString PackagePath = FString::Printf(TEXT("/Game/%s"), *AssetName);
+	if (auto Existing = FAGX_ObjectUtilities::GetAssetFromPath<UObject>(*PackagePath))
+		return Cast<UAGX_TerrainProperties>(Existing);
+
+	// We have an old Terrain that did not have Terrain Properties.
+	// Create a new Terrain Properties asset, set it's values and assign it to the Terrain.
+	UPackage* Package = CreatePackage(*PackagePath);
+	UAGX_TerrainProperties* Props =
+		NewObject<UAGX_TerrainProperties>(Package, *AssetName, RF_Public | RF_Standalone);
+
+	Props->bCreateParticles = bCreateParticles_DEPRECATED;
+	Props->bDeleteParticlesOutsideBounds = bDeleteParticlesOutsideBounds_DEPRECATED;
+	Props->PenetrationForceVelocityScaling = PenetrationForceVelocityScaling_DEPRECATED;
+	Props->MaximumParticleActivationVolume = MaximumParticleActivationVolume_DEPRECATED;
+	Props->SoilParticleSizeScaling = SoilParticleSizeScaling_DEPRECATED;
+
+	Package->SetDirtyFlag(true);
+	return Props;
+}
 
 #undef LOCTEXT_NAMESPACE

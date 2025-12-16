@@ -9,10 +9,12 @@
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
+#include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_TerrainEnums.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -467,23 +469,57 @@ void UAGX_ShovelComponent::BeginPlay()
 		}
 	}
 
-	if (!HasNative() && !GIsReconstructingBlueprintInstances)
-	{
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
 		AllocateNative();
+
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
+	if (Sim != nullptr && HasNative())
+	{
+		if (!Sim->Add(*this))
+		{
+			UE_LOG(
+				LogAGX, Warning, TEXT("Simulation add returned false for shovel '%s' in '%s'."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+		}
+	}
+
+	if (!HasNative())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Unable to create Native Shovel for '%s', Output Log may contain more "
+					 "information."),
+				*GetName()),
+			SNotificationItem::CS_Fail, 8.f);
 	}
 }
 
-void UAGX_ShovelComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UAGX_ShovelComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
-	Super::EndPlay(EndPlayReason);
+	Super::EndPlay(Reason);
 	if (ShovelProperties != nullptr && ShovelProperties->IsInstance())
-	{
 		ShovelProperties->UnregisterShovel(*this);
-	}
-	if (HasNative())
+
+	if (GIsReconstructingBlueprintInstances)
 	{
-		NativeBarrier.ReleaseNative();
+		// Another UAGX_ShovelComponent will inherit this one's Native, so don't wreck it.
+		// The call to NativeBarrier.ReleaseNative below is safe because the AGX Dynamics
+		// Simulation will retain a reference counted pointer to the AGX Dynamics Observer
+		// Frame.
 	}
+	else if (
+		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		if (UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this))
+			Sim->Remove(*this);
+	}
+
+	if (HasNative())
+		NativeBarrier.ReleaseNative();
 }
 
 TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentInstanceData() const
@@ -495,6 +531,16 @@ TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentIn
 			ThisClass* AsThisClass = Cast<ThisClass>(Component);
 			return static_cast<IAGX_NativeOwner*>(AsThisClass);
 		});
+}
+
+void UAGX_ShovelComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ShovelUsesToothDirection))
+	{
+		ToothDirection = CuttingDirection_DEPRECATED;
+	}
 }
 
 bool UAGX_ShovelComponent::HasNative() const
@@ -525,23 +571,24 @@ FShovelBarrier* UAGX_ShovelComponent::GetOrCreateNative()
 	{
 		if (GIsReconstructingBlueprintInstances)
 		{
-			// We're in a very bad situation. Someone need this Component's native but if we're in
-			// the middle of a RerunConstructionScripts and this Component haven't been given its
-			// Native yet then there isn't much we can do. We can't create a new one since we will
-			// be given the actual Native soon, but we also can't return the actual Native right now
-			// because it hasn't been restored from the Component Instance Data yet.
+			// We're in a very bad situation. Someone need this Component's native but if we're
+			// in the middle of a RerunConstructionScripts and this Component haven't been given
+			// its Native yet then there isn't much we can do. We can't create a new one since
+			// we will be given the actual Native soon, but we also can't return the actual
+			// Native right now because it hasn't been restored from the Component Instance Data
+			// yet.
 			//
 			// For now we simply die in non-shipping (checkNoEntry is active) so unit tests will
 			// detect this situation, and log error and return nullptr otherwise, so that the
-			// application can at least keep running. It is unlikely that the simulation will behave
-			// as intended.
+			// application can at least keep running. It is unlikely that the simulation will
+			// behave as intended.
 			checkNoEntry();
 			UE_LOG(
 				LogAGX, Error,
 				TEXT("A request for the AGX Dynamics instance for Shovel '%s' in '%s' was made "
 					 "but we are in the middle of a Blueprint Reconstruction and the requested "
-					 "instance has not yet been restored. The instance cannot be returned, which "
-					 "may lead to incorrect scene configuration."),
+					 "instance has not yet been restored. The instance cannot be returned, "
+					 "which may lead to incorrect scene configuration."),
 				*GetName(), *GetLabelSafe(GetOwner()));
 			return nullptr;
 		}
@@ -617,8 +664,8 @@ void UAGX_ShovelComponent::AllocateNative()
 
 	WritePropertiesToNative();
 
-	// No need to add Shovel to Simulation. Shovels only needs to be added to the Terrain, and that
-	// is handled by the Terrain itself.
+	// No need to add Shovel to Simulation. Shovels only needs to be added to the Terrain, and
+	// that is handled by the Terrain itself.
 }
 
 void UAGX_ShovelComponent::SetbEnabled(bool bInEnable)
@@ -710,8 +757,8 @@ bool UAGX_ShovelComponent::WritePropertiesToNative()
 	SetExcavationSettings(
 		EAGX_ExcavationMode::DeformLeft, ShovelProperties->DeformLeftExcavationSettings);
 
-	// Properties initialized by the AGX Dynamics Shovel constructor, i.e. body, edges, and cutting
-	// direction, are not set here.
+	// Properties initialized by the AGX Dynamics Shovel constructor, i.e. body, edges, and
+	// cutting direction, are not set here.
 
 	return true;
 }

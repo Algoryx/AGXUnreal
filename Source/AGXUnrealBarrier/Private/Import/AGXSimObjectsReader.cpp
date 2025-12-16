@@ -526,6 +526,12 @@ namespace
 			// Each shovel holds a prismatic.
 			NonFreeConstraints.Add(Shovel->getPenetrationResistance()->getPenetrationPrismatic());
 
+			// Some shovels may have a teethGeometry.
+			if (auto TeethGeom = Shovel->getPenetrationResistance()->getTeethGeometry())
+			{
+				NonFreeGeometries.Add(TeethGeom);
+			}
+
 			agxTerrain::AggregateContactGenerator* ContactGenerator =
 				Shovel->getAggregateContactGenerator();
 			NonFreeContactMaterials.Add(ContactGenerator->getAggregateShovelContactMaterial());
