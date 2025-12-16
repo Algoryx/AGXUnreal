@@ -1479,6 +1479,11 @@ void UAGX_Simulation::ReleaseNative()
 
 void UAGX_Simulation::StartWebDebugging(bool OpenViewInBrowser)
 {
+#if PLATFORM_LINUX
+	UE_LOG(LogAGX, Warning, TEXT("WebDebugger is currently not supported on Linux."));
+	return;
+#endif
+
 	if (!DebuggerBarrier.HasNative())
 		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
 

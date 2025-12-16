@@ -50,6 +50,8 @@ enum class EAGX_DebuggingMode : uint8
 	/**
 	 * Use Web Debugger, running in a browser.
 	 * Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
+	 *
+	 * Currently not supported on Linux.
 	 */
 	WebDebugger,
 
