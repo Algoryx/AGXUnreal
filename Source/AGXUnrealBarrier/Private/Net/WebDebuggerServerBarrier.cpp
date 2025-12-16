@@ -6,7 +6,7 @@
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/Net/NetRef.h"
-#include "TypeConversions.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
