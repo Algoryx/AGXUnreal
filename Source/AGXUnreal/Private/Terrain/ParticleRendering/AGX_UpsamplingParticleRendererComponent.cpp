@@ -8,6 +8,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "ParticleUpsamplingDataHandler.h"
 #include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "Landscape.h"
