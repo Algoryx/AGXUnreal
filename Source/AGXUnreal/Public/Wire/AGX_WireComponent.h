@@ -152,6 +152,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	void SetRenderMaterial(UMaterialInterface* Material);
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Wire", AdvancedDisplay)
+	double RenderSamplingDeviationMax {1.0};
+
 	/*
 	 * Begin winch.
 	 */

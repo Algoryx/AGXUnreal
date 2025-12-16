@@ -2500,24 +2500,6 @@ void UAGX_WireComponent::UpdateVisuals()
 
 namespace AGX_WireComponent_helpers
 {
-	double GetNextDistSample(
-		const FInterpCurveVector& Curve, FVector Pos, double Dist, const FVector& Tangent,
-		double DeviationMax)
-	{
-		const double Step =
-			1.0; // Change this to do smart stepping later, e.g. half-distance to next point.
-		double Deviation = 0.0;
-
-		while (Deviation < DeviationMax)
-		{
-			Dist += Step;
-			Pos = Pos + Step * Tangent;
-			Deviation = (Pos - Curve.Eval(Dist)).Length();
-		}
-
-		return Dist;
-	}
-
 	FInterpCurveVector BuildWireCurve(const TArray<FVector>& AGXNodes)
 	{
 		FInterpCurveVector Curve;
@@ -2527,13 +2509,10 @@ namespace AGX_WireComponent_helpers
 			return Curve;
 
 		float Distance = 0.f;
-
 		for (int32 i = 0; i < Num; ++i)
 		{
 			if (i > 0)
-			{
 				Distance += FVector::Distance(AGXNodes[i - 1], AGXNodes[i]);
-			}
 
 			const int32 Index = Curve.AddPoint(Distance, AGXNodes[i]);
 			Curve.Points[Index].InterpMode = CIM_CurveAuto;
@@ -2544,52 +2523,114 @@ namespace AGX_WireComponent_helpers
 		return Curve;
 	}
 
-	TArray<float> GetSampleParams(const FInterpCurveVector& Spline)
+	int32 GetLowerBoundIndex(
+		const FInterpCurveVector& Spline, int32 StartLowerBundIndex, float StartDist,
+		double DeviationMax)
 	{
-		AGX_CHECK(Spline.Points.Num() >= 2);
-		TArray<float> Params;
-		Params.Add(Spline.Points[0].InVal);
-		const float ParamMax = Spline.Points.Last().InVal;
+		const int32 LastIndex = Spline.Points.Num() - 1;
+		if (StartLowerBundIndex + 1 >= LastIndex)
+			return StartLowerBundIndex;
 
-		while (Params.Last() < ParamMax)
+		const FVector StartPos = Spline.Eval(StartDist);
+		const FVector Tangent = Spline.EvalDerivative(StartDist);
+		double Deviation = 0.0;
+		int32 UpperBoundIndex = StartLowerBundIndex + 1;
+		while (Deviation < DeviationMax && UpperBoundIndex <= LastIndex)
 		{
-			const float CurrentParam = Params.Last();
-			FVector Pos = Spline.Eval(CurrentParam);
-			FVector Tangent = Spline.EvalDerivative(CurrentParam);
-			const float NextParam =
-				GetNextDistSample(Spline, Pos, CurrentParam, Tangent, /*max deviation*/ 1.0);
-			if (NextParam < ParamMax)
-				Params.Add(NextParam);
-			else
-				break;
+			const float Step = Spline.Points[UpperBoundIndex].InVal - StartDist;
+			const FVector Pos = StartPos + Tangent * Step;
+
+			Deviation = (Spline.Points[UpperBoundIndex].OutVal - Pos).Length();
+			UpperBoundIndex++;
 		}
 
-		Params.Add(ParamMax);
-		return Params;
+		return UpperBoundIndex - 2; // Minus 2 since we incremented one too many in the while loop.
 	}
 
-	TArray<FVector> SampleSpline(const FInterpCurveVector& Spline, const TArray<float> SampleParams)
+	float SolveSplineDist(
+		const FInterpCurveVector& Spline, int32 LowerBoundIndex, int32 UpperBoundIndex,
+		float StartDist, double DeviationMax)
 	{
-		const float ParamMax = Spline.Points.Last().InVal;
-		TArray<FVector> Positions;
-		Positions.Reserve(SampleParams.Num());
-		for (float InParam : SampleParams)
+		AGX_CHECK(UpperBoundIndex - LowerBoundIndex == 1);
+
+		const FVector StartPos = Spline.Eval(StartDist);
+		const FVector Tangent = Spline.EvalDerivative(StartDist);
+		auto CalcDeviation = [&](float Step)
 		{
-			const float Param = FMath::Min(ParamMax, InParam);
-			Positions.Add(Spline.Eval(Param));
+			return (StartPos + Tangent * Step - Spline.Eval(StartDist + Step))
+				.Length();
+		};
+
+		// Check if the solution lies beyond the UpperBoundIndex (the last point on the Spline).
+		{
+			const float DistToEnd = Spline.Points[UpperBoundIndex].InVal - StartDist;
+			if (CalcDeviation(DistToEnd) < DeviationMax)
+				return Spline.Points[UpperBoundIndex].InVal;
+		}
+
+		float StepLen = (Spline.Points[UpperBoundIndex].InVal - StartDist) / 2.f;
+		float Offs = StepLen;
+		float Err = DeviationMax - CalcDeviation(Offs);
+		const float ErrMax = 0.05 * DeviationMax; // Within 5% is good enough while being fast.
+
+		while (FMath::Abs(Err) > ErrMax)
+		{
+			StepLen *= 0.5f;
+			if (Err > 0)
+				Offs += StepLen;
+			else
+				Offs -= StepLen;
+
+			Err = DeviationMax - CalcDeviation(Offs);
+		}
+
+		return StartDist + Offs;
+	}
+
+	TArray<float> GetSampleDistances(const FInterpCurveVector& Spline, double DeviationMax)
+	{
+		AGX_CHECK(Spline.Points.Num() >= 2);
+		TArray<float> Distances;
+
+		const float DistMax = Spline.Points.Last().InVal;
+		float DistNext = 0.f;
+		int32 LowerBound = 0;
+
+		while (DistNext < DistMax)
+		{
+			Distances.Add(DistNext);
+			LowerBound = GetLowerBoundIndex(Spline, LowerBound, DistNext, DeviationMax);
+			DistNext = SolveSplineDist(Spline, LowerBound, LowerBound + 1, DistNext, DeviationMax);
+		}
+
+		// Lastly, we add the last point.
+		Distances.Add(DistMax);
+		return Distances;
+	}
+
+	TArray<FVector> SampleSpline(const FInterpCurveVector& Spline, const TArray<float> SampleDistances)
+	{
+		const float DistanceMax = Spline.Points.Last().InVal;
+		TArray<FVector> Positions;
+		Positions.Reserve(SampleDistances.Num());
+		for (float InDistance : SampleDistances)
+		{
+			const float Distance = FMath::Min(DistanceMax, InDistance);
+			Positions.Add(Spline.Eval(Distance));
 		}
 
 		return Positions;
 	}
 
-	TArray<FTransform> CreateMeshInstanceTransformsFromPoints(const TArray<FVector>& Points, double Radius)
+	TArray<FTransform> CreateMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius)
 	{
 		TArray<FTransform> Result;
 
 		// 0.01 because the mesh is 100 units large.
 		// 2.0 to go from radius to diameter.
 		const double ScaleXY = Radius * 0.01 * 2.0;
-		const int32 NumSegments = Points.Num() - 1; 
+		const int32 NumSegments = Points.Num() - 1;
 		for (int i = 0; i < NumSegments; i++)
 		{
 			const FVector& StartLocation = Points[i];
@@ -2616,20 +2657,19 @@ void UAGX_WireComponent::RenderSelf()
 	if (AGXNodes.Num() <= 1)
 		return;
 
-
-
 	VisualCylinders->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
 	FInterpCurveVector RenderSpline = BuildWireCurve(AGXNodes);
 	if (RenderSplinePrev.Points.Num() == 0)
 		RenderSplinePrev = RenderSpline;
 
-	const TArray<float> SampleParams = GetSampleParams(RenderSpline);
-	const TArray<FVector> PositionsNew = SampleSpline(RenderSpline, SampleParams);
+	const TArray<float> SampleDistances =
+		GetSampleDistances(RenderSpline, RenderSamplingDeviationMax);
+	const TArray<FVector> PositionsNew = SampleSpline(RenderSpline, SampleDistances);
 
 	// This is the clever part: we sample the cached spline from the previous tick in the same
 	// locations as the new spline to ensure nicely matching Transforms and Previous Transforms when
 	// calling the BatchUpdateInstancesTransforms function further below.
-	const TArray<FVector> PositionsPrev = SampleSpline(RenderSplinePrev, SampleParams);
+	const TArray<FVector> PositionsPrev = SampleSpline(RenderSplinePrev, SampleDistances);
 
 	const TArray<FTransform> SegmentsNew =
 		CreateMeshInstanceTransformsFromPoints(PositionsNew, Radius * RenderRadiusScale);
@@ -2642,7 +2682,6 @@ void UAGX_WireComponent::RenderSelf()
 	AGX_CHECK(SegmentsNew.Num() == SegmentsPrev.Num());
 	if (VisualCylinders->PerInstancePrevTransform.Num() != SegmentsNew.Num())
 		VisualCylinders->PerInstancePrevTransform.SetNum(SegmentsNew.Num());
-
 
 	VisualCylinders->UpdateComponentToWorld();
 	VisualCylinders->BatchUpdateInstancesTransforms(
