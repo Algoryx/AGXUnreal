@@ -13,6 +13,10 @@
 
 // Unreal Engine includes.
 #include "UObject/CoreRedirects.h"
+#include "RenderGraphResources.h"
+#include "Interfaces/IPluginManager.h"
+#include "Misc/Paths.h"
+#include "ShaderCore.h"
 
 #define LOCTEXT_NAMESPACE "FAGXUnrealModule"
 

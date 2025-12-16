@@ -151,6 +151,13 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_ObserverFrameComponent",
 		new IMAGE_BRUSH("Icons/observer_frame_32x32", IconSize16));
+	// Particle Renderer.
+	Style->Set(
+		"ClassIcon.AGX_SoilParticleRendererComponent",
+		new IMAGE_BRUSH("Icons/particle_renderer_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_UpsamplingParticleRendererComponent",
+		new IMAGE_BRUSH("Icons/particle_renderer_32x32", IconSize16));
 	// Plots.
 	Style->Set("ClassIcon.AGX_PlotComponent", new IMAGE_BRUSH("Icons/plot_32x32", IconSize16));
 	// ROS2.
@@ -305,6 +312,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_TerrainProperties",
+		new IMAGE_BRUSH("Thumbnails/terrain_properties_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_TrackInternalMergeProperties",
 		new IMAGE_BRUSH("Thumbnails/track_internal_merge_properties_128x128", IconSize128));
