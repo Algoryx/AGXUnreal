@@ -78,8 +78,23 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		UAGX_RigidBodyComponent* RightBody = RightWheel->BodyAttachment1.GetRigidBody();
 		UAGX_RigidBodyComponent* ChassisBody = LeftWheel->BodyAttachment2.GetRigidBody();
 
-		return LeftBody != RightBody && LeftBody != nullptr && RightBody != nullptr &&
-			   ChassisBody != nullptr;
+		if (LeftBody == RightBody || LeftBody == nullptr || RightBody == nullptr ||
+			ChassisBody == nullptr)
+		{
+			return false;
+		}
+
+		// Ensure that wheels are alligned. We don't support inital steering angle other than zero.
+		const FTransform AttachmentLeft(LeftWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		const FTransform AttachmentRight(RightWheel->BodyAttachment1.GetGlobalFrameMatrix());
+		FVector AxisDir = AttachmentRight.GetLocation() - AttachmentLeft.GetLocation();
+		AxisDir.Normalize();
+
+		double DotLeft = FVector::DotProduct(AxisDir, AttachmentLeft.GetUnitAxis(EAxis::Y));
+		double DotRight = FVector::DotProduct(AxisDir, AttachmentLeft.GetUnitAxis(EAxis::Y));
+
+		return FMath::IsNearlyEqual(FMath::Abs(DotLeft), 1.0, /*Tolerance*/ 0.05) &&
+			   FMath::IsNearlyEqual(FMath::Abs(DotRight), 1.0, /*Tolerance*/ 0.05);
 	}
 
 	void DrawAckermannSteering(
