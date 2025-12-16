@@ -2556,10 +2556,7 @@ namespace AGX_WireComponent_render_helpers
 		const FVector StartPos = Spline.Eval(StartDist);
 		const FVector Tangent = Spline.EvalDerivative(StartDist);
 		auto CalcDeviation = [&](float Step)
-		{
-			return (StartPos + Tangent * Step - Spline.Eval(StartDist + Step))
-				.Length();
-		};
+		{ return (StartPos + Tangent * Step - Spline.Eval(StartDist + Step)).Length(); };
 
 		// Check if the solution lies beyond the UpperBoundIndex (the last point on the Spline).
 		{
@@ -2608,7 +2605,8 @@ namespace AGX_WireComponent_render_helpers
 		return Distances;
 	}
 
-	TArray<FVector> SampleSpline(const FInterpCurveVector& Spline, const TArray<float> SampleDistances)
+	TArray<FVector> SampleSpline(
+		const FInterpCurveVector& Spline, const TArray<float> SampleDistances)
 	{
 		const float DistanceMax = Spline.Points.Last().InVal;
 		TArray<FVector> Positions;
@@ -2687,6 +2685,15 @@ namespace AGX_WireComponent_render_helpers
 
 void UAGX_WireComponent::RenderSelf()
 {
+	// The strategy for rendering the Wire is the following:
+	// We generate a spline from the AGX Dynamics Wire nodes. This spline is also cached so that we
+	// always have the current and previous spline. Then we select a number of "sample distances",
+	// i.e. a collection of distances along the spline that is de-coupled from the AGX nodes,
+	// according to an algorithm that will generate sample distances based on the curvature of the
+	// spline (more curvature yields sample points that are more densly packed, and vice versa).
+	// Lastly, we sample the current and previous spline given those distances, and from those
+	// create cylinder and sphere transforms that are given to the Instanced Static Meshes.
+
 	using namespace AGX_WireComponent_render_helpers;
 	TArray<FVector> AGXNodes = GetNodesForRendering();
 	if (AGXNodes.Num() < 2)
