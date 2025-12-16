@@ -2482,7 +2482,7 @@ void UAGX_WireComponent::UpdateVisuals()
 			VisualSpheres != nullptr && VisualSpheres->GetInstanceCount() > 0;
 
 		if (bHasVisualCylinders || bHasVisualSpheres)
-			SetVisualsInstanceCount(0);
+			SetVisualsInstanceCount(0, 0);
 
 		return;
 	}
@@ -2498,7 +2498,7 @@ void UAGX_WireComponent::UpdateVisuals()
 	RenderSelf();
 }
 
-namespace AGX_WireComponent_helpers
+namespace AGX_WireComponent_render_helpers
 {
 	FInterpCurveVector BuildWireCurve(const TArray<FVector>& AGXNodes)
 	{
@@ -2622,7 +2622,7 @@ namespace AGX_WireComponent_helpers
 		return Positions;
 	}
 
-	TArray<FTransform> CreateMeshInstanceTransformsFromPoints(
+	TArray<FTransform> CreateCylinderMeshInstanceTransformsFromPoints(
 		const TArray<FVector>& Points, double Radius)
 	{
 		TArray<FTransform> Result;
@@ -2648,13 +2648,48 @@ namespace AGX_WireComponent_helpers
 
 		return Result;
 	}
+
+	TArray<FTransform> CreateSphereMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius)
+	{
+		TArray<FTransform> Result;
+
+		// 0.01 because the mesh is 100 units large.
+		// 2.0 to go from radius to diameter.
+		const double ScaleXY = Radius * 0.01 * 2.0;
+		FTransform SphereTransform {FTransform::Identity};
+		SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));
+
+		for (auto& P : Points)
+		{
+			SphereTransform.SetLocation(P);
+			Result.Add(SphereTransform);
+		}
+
+		return Result;
+	}
+
+	enum class EAGX_WireRenderMeshType
+	{
+		Cylinder,
+		Sphere
+	};
+
+	TArray<FTransform> CreateMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius, EAGX_WireRenderMeshType Type)
+	{
+		if (Type == EAGX_WireRenderMeshType::Sphere)
+			return CreateSphereMeshInstanceTransformsFromPoints(Points, Radius);
+		else
+			return CreateCylinderMeshInstanceTransformsFromPoints(Points, Radius);
+	}
 }
 
 void UAGX_WireComponent::RenderSelf()
 {
-	using namespace AGX_WireComponent_helpers;
+	using namespace AGX_WireComponent_render_helpers;
 	TArray<FVector> AGXNodes = GetNodesForRendering();
-	if (AGXNodes.Num() <= 1)
+	if (AGXNodes.Num() < 2)
 		return;
 
 	VisualCylinders->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
@@ -2671,28 +2706,48 @@ void UAGX_WireComponent::RenderSelf()
 	// calling the BatchUpdateInstancesTransforms function further below.
 	const TArray<FVector> PositionsPrev = SampleSpline(RenderSplinePrev, SampleDistances);
 
-	const TArray<FTransform> SegmentsNew =
-		CreateMeshInstanceTransformsFromPoints(PositionsNew, Radius * RenderRadiusScale);
+	SetVisualsInstanceCount(PositionsNew.Num() - 1, PositionsNew.Num());
+	const double RenderRadius = Radius * RenderRadiusScale;
 
-	const TArray<FTransform> SegmentsPrev =
-		CreateMeshInstanceTransformsFromPoints(PositionsPrev, Radius * RenderRadiusScale);
+	// Visual Cylinders.
+	{
+		const TArray<FTransform> CylinderTransformsNew = CreateMeshInstanceTransformsFromPoints(
+			PositionsNew, RenderRadius, EAGX_WireRenderMeshType::Cylinder);
+		const TArray<FTransform> CylinderTransformsPrev = CreateMeshInstanceTransformsFromPoints(
+			PositionsPrev, RenderRadius, EAGX_WireRenderMeshType::Cylinder);
 
-	SetVisualsInstanceCount(SegmentsNew.Num());
+		AGX_CHECK(CylinderTransformsNew.Num() == CylinderTransformsPrev.Num());
+		if (VisualCylinders->PerInstancePrevTransform.Num() != CylinderTransformsNew.Num())
+			VisualCylinders->PerInstancePrevTransform.SetNum(CylinderTransformsNew.Num());
 
-	AGX_CHECK(SegmentsNew.Num() == SegmentsPrev.Num());
-	if (VisualCylinders->PerInstancePrevTransform.Num() != SegmentsNew.Num())
-		VisualCylinders->PerInstancePrevTransform.SetNum(SegmentsNew.Num());
+		VisualCylinders->UpdateComponentToWorld();
+		VisualCylinders->BatchUpdateInstancesTransforms(
+			0, CylinderTransformsNew, CylinderTransformsPrev, /*bWorldSpace*/ true);
+	}
 
-	VisualCylinders->UpdateComponentToWorld();
-	VisualCylinders->BatchUpdateInstancesTransforms(
-		0, SegmentsNew, SegmentsPrev, /*bWorldSpace*/ true);
+	// Visual Spheres.
+	{
+		const TArray<FTransform> SphereTransformsNew = CreateMeshInstanceTransformsFromPoints(
+			PositionsNew, RenderRadius, EAGX_WireRenderMeshType::Sphere);
+		const TArray<FTransform> SphereTransformsPrev = CreateMeshInstanceTransformsFromPoints(
+			PositionsPrev, RenderRadius, EAGX_WireRenderMeshType::Sphere);
+
+		AGX_CHECK(SphereTransformsNew.Num() == SphereTransformsPrev.Num());
+		if (VisualSpheres->PerInstancePrevTransform.Num() != SphereTransformsNew.Num())
+			VisualSpheres->PerInstancePrevTransform.SetNum(SphereTransformsNew.Num());
+
+		VisualSpheres->UpdateComponentToWorld();
+		VisualSpheres->BatchUpdateInstancesTransforms(
+			0, SphereTransformsNew, SphereTransformsPrev, /*bWorldSpace*/ true);
+	}
 
 	RenderSplinePrev = RenderSpline;
 }
 
-void UAGX_WireComponent::SetVisualsInstanceCount(int32 Num)
+void UAGX_WireComponent::SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres)
 {
-	Num = std::max(0, Num);
+	NumCylinders = std::max(0, NumCylinders);
+	NumSpheres = std::max(0, NumSpheres);
 
 	auto SetNum = [](UInstancedStaticMeshComponent& C, int32 N)
 	{
@@ -2707,10 +2762,10 @@ void UAGX_WireComponent::SetVisualsInstanceCount(int32 Num)
 	};
 
 	if (VisualCylinders != nullptr)
-		SetNum(*VisualCylinders, Num);
+		SetNum(*VisualCylinders, NumCylinders);
 
 	if (VisualSpheres != nullptr)
-		SetNum(*VisualSpheres, Num);
+		SetNum(*VisualSpheres, NumSpheres);
 }
 
 #if WITH_EDITOR

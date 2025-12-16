@@ -152,7 +152,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	void SetRenderMaterial(UMaterialInterface* Material);
 
-
+	/**
+	* This effects the rendering algorithm used when rendering this Wire Component.
+	* During rendering, a spline is generated from the underlying AGX Dynamics wire nodes.
+	* This spline is then sampled and the RenderSamplingDeviationMax property determines
+	* the maximum allowed deviation of the final render mesh from the spline.
+	* Lower values will increase accuracy but at a performance cost.
+	*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Wire", AdvancedDisplay)
 	double RenderSamplingDeviationMax {1.0};
 
@@ -1001,7 +1007,7 @@ private:
 	bool ShouldRenderSelf() const;
 	void UpdateVisuals();
 	void RenderSelf();
-	void SetVisualsInstanceCount(int32 Num);
+	void SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres);
 
 	friend class UAGX_LidarSurfaceMaterialComponent;
 
