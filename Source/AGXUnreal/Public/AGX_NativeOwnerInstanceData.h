@@ -9,8 +9,7 @@
 
 
 /**
- * Component Instance Data for the OpenPLX Signal Handler Component. Will store the address of the
- * any native object referenced by the FOpenPLXSignalHandler barrier class.
+ * Component Instance Data for Actor Components.
  */
 USTRUCT()
 struct AGXUNREAL_API FAGX_NativeOwnerInstanceData : public FActorComponentInstanceData
@@ -29,8 +28,6 @@ struct AGXUNREAL_API FAGX_NativeOwnerInstanceData : public FActorComponentInstan
 
 	virtual bool ContainsData() const override;
 	//~ End FComponentInstanceData interface.
-
-	bool HasAddresses() const;
 
 private:
 	UPROPERTY()
