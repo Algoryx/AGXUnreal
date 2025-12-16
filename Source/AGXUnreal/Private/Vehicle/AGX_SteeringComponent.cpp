@@ -398,7 +398,6 @@ void UAGX_SteeringComponent::CreateNative()
 			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
 	}
 	else if (SteeringParameters->IsA<UAGX_BellCrankSteeringParameters>())
-
 	{
 		NativeBarrier.AllocateBellCrank(
 			*LeftWheelBarrier, *RightWheelBarrier, SteeringParameters->SteeringData);
