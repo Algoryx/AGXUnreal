@@ -37,6 +37,9 @@
 #include "Wire/WireWinchBarrier.h"
 
 class FTerrainBarrier;
+class FWheelJointBarrier;
+
+struct FSteeringBarrier;
 
 namespace agx
 {
@@ -95,7 +98,9 @@ namespace agxWire
 
 namespace agxVehicle
 {
+	class Steering;
 	class Track;
+	class WheelJoint;
 }
 
 /**
@@ -141,6 +146,8 @@ namespace AGXBarrierFactories
 	FSingleControllerConstraint1DOFBarrier CreateSingleControllerConstraint1DOFBarrier(
 		agx::SingleControllerConstraint1DOF* Constraint);
 
+	FWheelJointBarrier CreateWheelJointBarrier(agxVehicle::WheelJoint* WJ);
+
 	FTwistRangeControllerBarrier CreateTwistRangeControllerBarrier(
 		agx::TwistRangeController* Controller);
 
@@ -168,6 +175,8 @@ namespace AGXBarrierFactories
 	FWireWinchBarrier CreateWireWinchBarrier(agxWire::WireWinchController* Winch);
 
 	FShovelBarrier CreateShovelBarrier(agxTerrain::Shovel* Shovel);
+
+	FSteeringBarrier CreateSteeringBarrier(agxVehicle::Steering* Steering);
 
 	FTrackBarrier CreateTrackBarrier(agxVehicle::Track* Track);
 }

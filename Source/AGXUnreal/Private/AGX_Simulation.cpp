@@ -25,14 +25,15 @@
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Tires/AGX_TireComponent.h"
-#include "Vehicle/AGX_TrackComponent.h"
-#include "Vehicle/AGX_TrackInternalMergeProperties.h"
-#include "Vehicle/AGX_TrackProperties.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_Stats.h"
+#include "Vehicle/AGX_SteeringComponent.h"
+#include "Vehicle/AGX_TrackComponent.h"
+#include "Vehicle/AGX_TrackInternalMergeProperties.h"
+#include "Vehicle/AGX_TrackProperties.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/AGX_WireController.h"
 
@@ -298,6 +299,12 @@ bool UAGX_Simulation::Add(UAGX_StaticMeshComponent& Body)
 	return AGX_Simulation_helpers::Add(*this, Body);
 }
 
+bool UAGX_Simulation::Add(UAGX_SteeringComponent& Steering)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Steering);
+}
+
 bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 {
 	EnsureStepperCreated();
@@ -377,6 +384,11 @@ bool UAGX_Simulation::Remove(UAGX_ShapeMaterial& Material)
 bool UAGX_Simulation::Remove(UAGX_ShovelComponent& Shovel)
 {
 	return AGX_Simulation_helpers::Remove(*this, Shovel);
+}
+
+bool UAGX_Simulation::Remove(UAGX_SteeringComponent& Steering)
+{
+	return AGX_Simulation_helpers::Remove(*this, Steering);
 }
 
 bool UAGX_Simulation::Remove(UAGX_StaticMeshComponent& Body)
@@ -655,6 +667,7 @@ void UAGX_Simulation::Deinitialize()
 		CloseInstancedAssetEditors<UAGX_TrackProperties>();
 
 		CloseInstancedAssetEditors<UAGX_ShovelProperties>();
+		CloseInstancedAssetEditors<UAGX_SteeringParameters>();
 	}
 #endif
 

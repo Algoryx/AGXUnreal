@@ -19,6 +19,7 @@
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Vehicle/AGX_SteeringParameters.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackBarrier.h"
@@ -226,6 +227,11 @@ FString FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName()
 	return FString("ShovelProperties");
 }
 
+FString FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName()
+{
+	return FString("SteeringParameters");
+}
+
 FString FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName()
 {
 	return FString("TrackProperties");
@@ -295,6 +301,13 @@ AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_ShovelProperties>()
 {
 	return GetImportShovelPropertiesDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_SteeringParameters>()
+{
+	return GetImportSteeringParametersDirectoryName();
 }
 
 FString FAGX_ImportUtilities::GetContactMaterialRegistrarDefaultName()

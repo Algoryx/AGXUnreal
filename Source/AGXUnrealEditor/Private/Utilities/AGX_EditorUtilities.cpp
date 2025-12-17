@@ -423,7 +423,11 @@ namespace
 		bs->AggGeom.BoxElems.Add(BoxElem);
 
 		// Mark the static mesh for collision customization
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		StaticMesh->bCustomizedCollision = true;
+#else
+		StaticMesh->SetCustomizedCollision(true);
+#endif
 	}
 }
 

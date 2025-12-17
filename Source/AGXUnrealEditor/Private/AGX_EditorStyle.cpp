@@ -205,6 +205,10 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+	// Steering
+	Style->Set(
+		"ClassIcon.AGX_SteeringComponent",
+		new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));
 	// Tire.
 	Style->Set(
 		"ClassIcon.AGX_TwoBodyTireComponent",
@@ -309,6 +313,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassThumbnail.AGX_ShovelProperties",
 		new IMAGE_BRUSH("Thumbnails/shovel_properties_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_SteeringParameters",
+		new IMAGE_BRUSH("Thumbnails/steering_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));
