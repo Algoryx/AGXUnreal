@@ -3,8 +3,8 @@
 #include "AGX_NativeOwnerInstanceData.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_NativeOwner.h"
 #include "AGX_LogCategory.h"
+#include "AGX_NativeOwner.h"
 
 FAGX_NativeOwnerInstanceData::FAGX_NativeOwnerInstanceData(
 	const IAGX_NativeOwner* NativeOwner, const UActorComponent* SourceComponent,

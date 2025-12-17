@@ -97,6 +97,10 @@ private:
 	virtual void CreateNativeImpl() override;
 	virtual void UpdateNativeProperties() override;
 
+	// ~Begin IAGX_NativeOwner interface.
+	virtual void SetNativeAddress(uint64 NativeAddress) override;
+	// ~End IAGX_NativeOwner interface.
+
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
