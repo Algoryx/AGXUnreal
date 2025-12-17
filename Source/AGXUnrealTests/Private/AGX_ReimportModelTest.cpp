@@ -41,7 +41,7 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/EngineVersionComparison.h"
 
-#if UE_VERSION_OLDER_THAN(5, 6, 0)
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 #include "MaterialTypes.h"
 #else
 #include "Materials/MaterialParameters.h"
