@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using UnrealBuildTool; 
+using UnrealBuildTool;
 
 
 /// AGXDynamicsLibrary is the portal from AGXUnrealBarrier to AGX Dynamics. This
@@ -882,7 +882,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		}
 
 		// Copy AGX Web Debugger files.
-		{
+		// TODO Currently only supported on Windows.
+		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
 
@@ -1611,6 +1612,7 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
 			));
+			/// TODO Add LibSource.WebDebugger once we support that on Linux.
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
 				Path.Combine(SourceDir, "data", "openplx", "agxBundle")
@@ -1666,6 +1668,7 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
 			));
+			/// TODO Add LibSource.WebDebugger once we support that on Linux.
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
@@ -1720,6 +1723,7 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
 			));
+			/// TODO Add LibSource.WebDebugger once we support that on Linux.
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "openplx", "agxBundle")
