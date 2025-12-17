@@ -7,6 +7,7 @@
 
 #include "AGX_NativeOwnerInstanceData.generated.h"
 
+class IAGX_NativeOwner;
 
 /**
  * Component Instance Data for Actor Components.
