@@ -312,6 +312,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassThumbnail.AGX_ShovelProperties",
 		new IMAGE_BRUSH("Thumbnails/shovel_properties_128x128", IconSize128));
 	Style->Set(
+		"ClassThumbnail.AGX_SteeringParameters",
+		new IMAGE_BRUSH("Thumbnails/steering_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));
 	Style->Set(
