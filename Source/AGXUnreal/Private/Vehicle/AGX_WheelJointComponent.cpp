@@ -145,6 +145,15 @@ void UAGX_WheelJointComponent::UpdateNativeProperties()
 	SuspensionTargetSpeedController.UpdateNativeProperties();
 }
 
+void UAGX_WheelJointComponent::SetNativeAddress(uint64 NativeAddress)
+{
+	Super::SetNativeAddress(NativeAddress);
+	if (!HasNative())
+		return;
+
+	AGX_WheelJointComponent_helpers::InitializeControllerBarriers(*this);
+}
+
 #if WITH_EDITOR
 void UAGX_WheelJointComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
