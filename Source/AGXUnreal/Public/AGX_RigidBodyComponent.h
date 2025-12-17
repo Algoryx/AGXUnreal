@@ -12,7 +12,6 @@
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
-#include "Misc/EngineVersionComparison.h"
 
 #include "AGX_RigidBodyComponent.generated.h"
 

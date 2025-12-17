@@ -21,7 +21,6 @@
 #include "GameFramework/Actor.h"
 #include "Math/Rotator.h"
 #include "Math/Quat.h"
-#include "Misc/EngineVersionComparison.h"
 
 // Sets default values for this component's properties
 UAGX_RigidBodyComponent::UAGX_RigidBodyComponent()
