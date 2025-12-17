@@ -3,9 +3,9 @@
 #include "Constraints/AGX_HingeConstraintComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_LogCategory.h"
 #include "Constraints/HingeBarrier.h"
 #include "Utilities/AGX_ConstraintUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 struct FRigidBodyBarrier;
 
