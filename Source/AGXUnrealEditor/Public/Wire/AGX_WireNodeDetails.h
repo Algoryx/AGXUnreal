@@ -8,6 +8,7 @@
 
 // Unreal Engine includes.
 #include "IDetailCustomNodeBuilder.h"
+#include "Misc/EngineVersionComparison.h"
 #include "SceneOutlinerFilters.h"
 #include "Widgets/Input/SComboBox.h"
 
