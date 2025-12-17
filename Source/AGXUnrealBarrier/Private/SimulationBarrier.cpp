@@ -279,6 +279,12 @@ bool FSimulationBarrier::WriteAGXArchive(const FString& Filename) const
 	return true; /// \todo How do we determine if all objects were successfully written?
 }
 
+void FSimulationBarrier::SetEnableWebDebugger(bool Enabled, uint16 Port)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableWebDebugger(Enabled, Port);
+}
+
 void FSimulationBarrier::EnableRemoteDebugging(int16 Port)
 {
 	check(HasNative());

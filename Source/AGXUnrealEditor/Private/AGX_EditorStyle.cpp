@@ -15,6 +15,7 @@ TSharedPtr<FSlateStyleSet> FAGX_EditorStyle::StyleInstance = nullptr;
 const FName FAGX_EditorStyle::AgxIcon("AgxIcon");
 const FName FAGX_EditorStyle::AgxIconSmall("AgxIcon.Small");
 const FName FAGX_EditorStyle::AgxIconTiny("AgxIcon.Tiny");
+const FName FAGX_EditorStyle::DebugRenderingIcon("DebugRenderingIcon");
 const FName FAGX_EditorStyle::GrabIcon("GrabIcon");
 const FName FAGX_EditorStyle::FileIcon("FileIcon");
 const FName FAGX_EditorStyle::FileIconSmall("FileIcon.Small");
@@ -100,6 +101,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/Terrain_64x64", IconSize64));
 	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/Terrain_32x32", IconSize32));
 	Style->Set(LicenseKeyIcon, new IMAGE_BRUSH("Icons/license_key_16x16", IconSize16));
+	Style->Set(DebugRenderingIcon, new IMAGE_BRUSH("Icons/debug_rendering_32x32", IconSize16));
 	Style->Set(GrabIcon, new IMAGE_BRUSH("Icons/grab_32x32", IconSize16));
 
 	// Component icons, visible in the Components list/hierarchy of an Actor and in the Add

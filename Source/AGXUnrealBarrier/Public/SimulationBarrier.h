@@ -85,6 +85,7 @@ public:
 
 	bool WriteAGXArchive(const FString& Filename) const;
 
+	void SetEnableWebDebugger(bool Enabled, uint16 Port);
 	void EnableRemoteDebugging(int16 Port);
 
 	void SetEnableAMOR(bool bEnable);
