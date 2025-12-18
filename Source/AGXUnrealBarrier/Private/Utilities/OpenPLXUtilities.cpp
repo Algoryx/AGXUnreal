@@ -95,14 +95,31 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 {
 	// Ensure consistent formatting of / and \\ in the path.
 	Filepath = FPaths::ConvertRelativePathToFull(Filepath);
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+	// First, we backup any existing file so that we can restore it if this operation fails.
+	FString BackupDir("");
+	if (FPaths::DirectoryExists(Destination))
+	{
+		const FString DestParentDir = FPaths::GetPath(Destination);
+		BackupDir =
+			FPaths::Combine(DestParentDir, FPaths::GetBaseFilename(Filepath) + FString("_backup_"));
+		if (FPaths::DirectoryExists(BackupDir))
+			PlatformFile.DeleteDirectoryRecursively(*BackupDir);
+
+		PlatformFile.CopyDirectoryTree(*BackupDir, *Destination, true);
+
+		// Delete any old files.
+		PlatformFile.DeleteDirectoryRecursively(*Destination);
+	}
 
 	bool Result = false;
 	try
 	{
+		const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
 		Result = agxopenplx::bake_file(
-			Convert(Filepath), Convert(Destination), /*bake_imports*/ false, ToStdStringVector(BundlePaths));
+			Convert(Filepath), Convert(Destination), /*bake_imports*/ false,
+			ToStdStringVector(BundlePaths));
 	}
 	catch (const std::exception& Ex)
 	{
@@ -117,12 +134,21 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 	if (!Result || !FPaths::FileExists(OutputFile))
 	{
 		// Clean up any partial result from bake_file before returning.
-		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 		if (PlatformFile.DirectoryExists(*Destination))
 			PlatformFile.DeleteDirectoryRecursively(*Destination);
 
+		// Restore (and then remove) backup if it exists.
+		if (FPaths::DirectoryExists(BackupDir))
+		{
+			PlatformFile.CopyDirectoryTree(*Destination, *BackupDir, true);
+			PlatformFile.DeleteDirectoryRecursively(*BackupDir);
+		}
+
 		return "";
 	}
+
+	if (FPaths::DirectoryExists(BackupDir))
+		PlatformFile.DeleteDirectoryRecursively(*BackupDir);
 
 	return OutputFile;
 }
