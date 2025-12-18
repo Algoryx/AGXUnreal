@@ -455,10 +455,12 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		if (Result.Actor == nullptr)
 		{
+			const FString Path =
+				Settings.FilePath.IsEmpty() ? Settings.SourceFilePath : Settings.FilePath;
 			const FString Text = FString::Printf(
 				TEXT("Errors occurred during import. The file '%s' could not be imported. Log "
 					 "category LogAGX in the Output Log may contain more information."),
-				*Settings.FilePath);
+				*Path);
 			FAGX_NotificationUtilities::ShowDialogBoxWithError(Text, "Import Model to Blueprint");
 			return false;
 		}
