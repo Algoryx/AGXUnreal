@@ -1173,7 +1173,7 @@ void AAGX_Terrain::CreateNativeShovels()
 			*GetName());
 	}
 
-	auto AddShovel =
+	auto AddLegacyShovel =
 		[this](FShovelBarrier& ShovelBarrier, double RequiredRadius, double PreloadRadius) -> bool
 	{
 		if (bEnableTerrainPaging)
@@ -1244,7 +1244,7 @@ void AAGX_Terrain::CreateNativeShovels()
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 
-		bool Added = AddShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
+		bool Added = AddLegacyShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
 		if (!Added)
 		{
 			UE_LOG(
@@ -1256,7 +1256,7 @@ void AAGX_Terrain::CreateNativeShovels()
 			std::swap(CuttingEdgeLine.v1, CuttingEdgeLine.v2);
 			ShovelBarrier.SetTopEdge(TopEdgeLine);
 			ShovelBarrier.SetCuttingEdge(CuttingEdgeLine);
-			Added = AddShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
+			Added = AddLegacyShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
 			if (!Added)
 			{
 				UE_LOG(
@@ -1310,17 +1310,7 @@ void AAGX_Terrain::CreateNativeShovels()
 
 			const double RequiredRadius = ShovelRef.RequiredRadius;
 			const double PreloadRadius = ShovelRef.PreloadRadius;
-
-			bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-			if (!Added)
-			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Terrain '%s' rejected shovel '%s' in '%s'. The Output Log may contain "
-						 "more details."),
-					*GetLabelSafe(this), *ShovelComponent->GetName(),
-					*GetLabelSafe(ShovelComponent->GetOwner()));
-			}
+			NativeTerrainPagerBarrier.AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
 		}
 	}
 }
