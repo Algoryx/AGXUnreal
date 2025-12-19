@@ -156,7 +156,7 @@ void UAGX_IMUSensorComponent::UpdateNativeProperties()
 	if (!HasNative())
 	{
 		UE_LOG(
-			LogTemp, Warning,
+			LogAGX, Warning,
 			TEXT("UpdateNativeProperties called on IMU Sensor Component '%s' in '%s' which does "
 				 "not have a Native object. Nothing will be done."),
 			*GetName(), *GetLabelSafe(GetOwner()));

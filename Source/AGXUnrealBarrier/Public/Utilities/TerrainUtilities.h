@@ -40,6 +40,12 @@ public:
 		const FTerrainBarrier& Terrain, TArray<FQuat>& OutRotations);
 
 	/**
+	 * Writes the mass of all particles known to the passed Terrain to OutMasses.
+	 */
+	static void AppendParticleMasses(
+		const FTerrainBarrier& Terrain, TArray<float>& OutMasses);
+
+	/**
 	 * Writes the data indicated by the ToInclude bit set flags of all particles in the given
 	 * Terrain to OutParticleData.
 	 */
@@ -59,6 +65,9 @@ public:
 
 	static void GetParticleRotationsById(
 		const FTerrainBarrier& Terrain, TArray<FQuat>& OutRotation);
+
+	static void GetParticleMassesById(
+		const FTerrainBarrier& Terrain, TArray<float>& OutMasses);
 
 	/**
 	 * Writes the data indicated by the ToInclude bit set flags of all particles known to the passed

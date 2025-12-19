@@ -7,7 +7,7 @@
 #include "AGX_Check.h"
 #include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
-#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Constraints/AGX_ConstraintComponent.h"
@@ -994,7 +994,7 @@ void UAGX_ConstraintComponent::CreateMergeSplitProperties()
 TStructOnScope<FActorComponentInstanceData> UAGX_ConstraintComponent::GetComponentInstanceData()
 	const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{

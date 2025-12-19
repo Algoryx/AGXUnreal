@@ -15,13 +15,8 @@
 // Standard library includes.
 #include <memory>
 
-struct FSimulationRef;
-
-struct FRigidBodyBarrier;
 class FConstraintBarrier;
 class FContactMaterialBarrier;
-struct FObserverFrameBarrier;
-struct FShapeBarrier;
 class FShapeMaterialBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;
@@ -29,6 +24,12 @@ class FTerrainPagerBarrier;
 class FTireBarrier;
 class FTrackBarrier;
 class FWireBarrier;
+
+struct FObserverFrameBarrier;
+struct FRigidBodyBarrier;
+struct FShapeBarrier;
+struct FSimulationRef;
+struct FSteeringBarrier;
 
 class AGXUNREALBARRIER_API FSimulationBarrier
 {
@@ -52,6 +53,7 @@ public:
 	bool Add(FShapeBarrier& Shape);
 	bool Add(FShapeMaterialBarrier& Material);
 	bool Add(FShovelBarrier& Shovel);
+	bool Add(FSteeringBarrier& Steering);
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Terrain);
 	bool Add(FTireBarrier& Tire);
@@ -70,6 +72,7 @@ public:
 	bool Remove(FShapeBarrier& Shape);
 	bool Remove(FShapeMaterialBarrier& Material);
 	bool Remove(FShovelBarrier& Shovel);
+	bool Remove(FSteeringBarrier& Steering);
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Terrain);
 	bool Remove(FTireBarrier& Tire);
@@ -82,6 +85,7 @@ public:
 
 	bool WriteAGXArchive(const FString& Filename) const;
 
+	void SetEnableWebDebugger(bool Enabled, uint16 Port);
 	void EnableRemoteDebugging(int16 Port);
 
 	void SetEnableAMOR(bool bEnable);

@@ -4,8 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_EditorStyle.h"
+#include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
+#include "AGX_Simulation.h"
 #include "AgxEdMode/AGX_AgxEdModeFile.h"
 #include "AgxEdMode/AGX_GrabMode.h"
 #include "AGXUnrealEditor.h"
@@ -17,7 +19,6 @@
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
 #include "Utilities/AGX_EditorUtilities.h"
-#include "AGX_Environment.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Widgets/AGX_GenerateRuntimeActivationDialog.h"
 #include "Widgets/AGX_LicenseDialog.h"
@@ -216,6 +217,20 @@ FAGX_TopMenu::~FAGX_TopMenu()
 	Builder.AddMenuSeparator();
 
 	{
+		const FSlateIcon DebugIcon(
+			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::DebugRenderingIcon,
+			FAGX_EditorStyle::DebugRenderingIcon);
+		Builder.AddSubMenu(
+			LOCTEXT("DebuggingMenuLabel", "Debugging"),
+			LOCTEXT(
+				"DebuggingMenuTooltip",
+				"Manage Debugging features."),
+			FNewMenuDelegate::CreateRaw(this, &FAGX_TopMenu::FillDebuggingMenu), false, DebugIcon);
+	}
+
+	Builder.AddMenuSeparator();
+
+	{
 		const FSlateIcon AgxIcon(
 			FAGX_EditorStyle::GetStyleSetName(), FAGX_EditorStyle::AgxIconSmall,
 			FAGX_EditorStyle::AgxIconSmall);
@@ -368,6 +383,21 @@ void FAGX_TopMenu::FillGrabModeMenu(FMenuBuilder& Builder)
 		Builder, LOCTEXT("StopGrabModeMenuLabel", "Stop"),
 		LOCTEXT("StopGrabModeMenuLabelToolTip", "Deactivate the Grab mode."),
 		[&]() { FAGX_TopMenu::OnStopGrabModeDialogClicked(); });
+}
+
+void FAGX_TopMenu::FillDebuggingMenu(FMenuBuilder& Builder)
+{
+	AddFileMenuEntry(
+		Builder, LOCTEXT("ToggleWebDebuggerLabel", "Toggle Web Debugger"),
+		LOCTEXT("ToggleWebDebuggerToolTip", "Enable or disable the AGX Web Debugger."),
+		[&]() { FAGX_TopMenu::OnToggleWebDebuggerClicked(); });
+
+	AddFileMenuEntry(
+		Builder, LOCTEXT("ToggleDrawShapeContactsLabel", "Toggle Draw Shape Contacts"),
+		LOCTEXT(
+			"ToggleDrawShapeContactsToolTip",
+			"Enable or disable drawing of shape contacts in the viewport."),
+		[&]() { FAGX_TopMenu::OnToggleDrawShapeContactsClicked(); });
 }
 
 void FAGX_TopMenu::OnCreateConstraintClicked(UClass* ConstraintClass)
@@ -548,6 +578,46 @@ void FAGX_TopMenu::OnStartGrabModeDialogClicked()
 void FAGX_TopMenu::OnStopGrabModeDialogClicked()
 {
 	FAGX_GrabMode::Deactivate();
+}
+
+void FAGX_TopMenu::OnToggleWebDebuggerClicked()
+{
+	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
+	if (World == nullptr || !World->IsGameWorld())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			"Web Debugger can only be toggled during Play.", SNotificationItem::CS_Fail);
+		return;
+	}
+
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(World);
+	if (Sim->IsWebDebuggingActive())
+		Sim->StopWebDebugging();
+	else
+		Sim->StartWebDebugging(/*OpenBrowser*/ true);
+
+	const TCHAR* State = Sim->IsWebDebuggingActive() ? TEXT("ON") : TEXT("OFF");
+	FAGX_NotificationUtilities::ShowNotification(
+		FString::Printf(TEXT("Web debugging is %s."), State), SNotificationItem::CS_Success,
+		3.f);
+}
+
+void FAGX_TopMenu::OnToggleDrawShapeContactsClicked()
+{
+	UWorld* World = FAGX_EditorUtilities::GetCurrentWorld();
+	if (World == nullptr || !World->IsGameWorld())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			"Web Debugger can only be toggled during Play.", SNotificationItem::CS_Fail);
+		return;
+	}
+
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(World);
+	Sim->bDrawShapeContacts = !Sim->bDrawShapeContacts;
+
+	const TCHAR* State = Sim->bDrawShapeContacts ? TEXT("ON") : TEXT("OFF");
+	FAGX_NotificationUtilities::ShowNotification(
+		FString::Printf(TEXT("Draw Shape Contacts is %s."), State), SNotificationItem::CS_Success, 3.f);
 }
 
 #undef LOCTEXT_NAMESPACE

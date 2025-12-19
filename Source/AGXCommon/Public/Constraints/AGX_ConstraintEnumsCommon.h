@@ -36,5 +36,16 @@ enum class EAGX_ConstraintControllerType : uint8
 
 	/// Corresponds to agx::FrictionController type.
 	ConstraintFrictionController
+};
 
+/**
+ * Corresponds to the agxVehicle::WheelJoint::SecondaryConstraint enum.
+ */
+UENUM(BlueprintType)
+enum class EAGX_WheelJointSecondaryConstraint : uint8
+{
+	Steering = 0,
+	Wheel = 1,
+	Suspension = 2,
+	SteeringBounds = 3,
 };
