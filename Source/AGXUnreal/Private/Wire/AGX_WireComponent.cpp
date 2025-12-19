@@ -2446,27 +2446,6 @@ bool UAGX_WireComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyNa
 }
 #endif
 
-TArray<FVector> UAGX_WireComponent::GetNodesForRendering() const
-{
-	TArray<FVector> NodeLocations;
-	if (HasRenderNodes())
-	{
-		NodeLocations = GetRenderNodeLocations();
-	}
-	else
-	{
-		NodeLocations.Reserve(RouteNodes.Num());
-		const FTransform& ComponentTransform = GetComponentTransform();
-		for (const auto& Node : RouteNodes)
-		{
-			const FVector WorldLocation = Node.Frame.GetWorldLocation(*this);
-			NodeLocations.Add(WorldLocation);
-		}
-	}
-
-	return NodeLocations;
-}
-
 bool UAGX_WireComponent::ShouldRenderSelf() const
 {
 	return VisualCylinders != nullptr && VisualSpheres != nullptr && ShouldRender();
@@ -2500,7 +2479,44 @@ void UAGX_WireComponent::UpdateVisuals()
 
 namespace AGX_WireComponent_render_helpers
 {
-	FInterpCurveVector BuildWireSpline(const TArray<FVector>& AGXNodes)
+	struct FAGX_WireRenderNode
+	{
+		FAGX_WireRenderNode(const FVector& InLocation, EWireNodeType InType)
+			: Location(InLocation)
+			, Type(InType)
+		{
+		}
+
+		FVector Location;
+		EWireNodeType Type;
+	};
+
+	TArray<FAGX_WireRenderNode> GetNodesForRendering(const UAGX_WireComponent& Wire)
+	{
+		TArray<FAGX_WireRenderNode> Nodes;
+		if (Wire.HasRenderNodes())
+		{
+			for (auto It = Wire.GetRenderBeginIterator(), End = Wire.GetRenderEndIterator();
+				 It != End; It.Inc())
+			{
+				const FAGX_WireNode Node = It.Get();
+				Nodes.Add(FAGX_WireRenderNode(Node.GetWorldLocation(), Node.GetType()));
+			}
+		}
+		else
+		{
+			Nodes.Reserve(Wire.RouteNodes.Num());
+			for (const auto& Node : Wire.RouteNodes)
+			{
+				const FVector WorldLocation = Node.Frame.GetWorldLocation(Wire);
+				Nodes.Add(FAGX_WireRenderNode(WorldLocation, Node.NodeType));
+			}
+		}
+
+		return Nodes;
+	}
+
+	FInterpCurveVector BuildWireSpline(const TArray<FAGX_WireRenderNode>& AGXNodes)
 	{
 		FInterpCurveVector Spline;
 
@@ -2512,9 +2528,9 @@ namespace AGX_WireComponent_render_helpers
 		for (int32 i = 0; i < NumPoints; ++i)
 		{
 			if (i > 0)
-				Distance += FVector::Distance(AGXNodes[i - 1], AGXNodes[i]);
+				Distance += FVector::Distance(AGXNodes[i - 1].Location, AGXNodes[i].Location);
 
-			const int32 Index = Spline.AddPoint(Distance, AGXNodes[i]);
+			const int32 Index = Spline.AddPoint(Distance, AGXNodes[i].Location);
 			Spline.Points[Index].InterpMode = CIM_CurveAuto;
 		}
 
@@ -2595,10 +2611,13 @@ namespace AGX_WireComponent_render_helpers
 
 	/// Generates an array of distances along the spline based on the spline curvature and a maximum
 	/// deviation.
-	TArray<float> GenerateSampleDistances(const FInterpCurveVector& Spline, double DeviationMax)
+	TArray<float> GenerateSampleDistances(
+		const FInterpCurveVector& Spline, const TArray<FAGX_WireRenderNode>& Nodes,
+		double DeviationMax)
 	{
 		AGX_CHECK(Spline.Points.Num() >= 2);
 		TArray<float> Distances;
+		Distances.Reserve(Nodes.Num()); // A decent starting point.
 
 		const float DistMax = Spline.Points.Last().InVal;
 		float DistNext = 0.f;
@@ -2611,8 +2630,20 @@ namespace AGX_WireComponent_render_helpers
 			DistNext = SolveSplineDist(Spline, LowerBound, LowerBound + 1, DistNext, DeviationMax);
 		}
 
-		// Lastly, we add the last point.
+		// We always add the last point.
 		Distances.Add(DistMax);
+
+		// Force any Node that is a contact node to be a sample point. This helps with stability in
+		// the rendering.
+		AGX_CHECK(Spline.Points.Num() == Nodes.Num()); // These should be 1:1.
+		for (int32 I = 0; I < Nodes.Num(); I++)
+		{
+			if (Nodes[I].Type == EWireNodeType::ShapeContact)
+				Distances.Add(Spline.Points[I].InVal);
+		}
+
+		// The contact nodes above was added at the end, so we need to sort.
+		Distances.Sort();
 		return Distances;
 	}
 
@@ -2707,7 +2738,7 @@ void UAGX_WireComponent::RenderSelf()
 	// Meshes.
 
 	using namespace AGX_WireComponent_render_helpers;
-	TArray<FVector> AGXNodes = GetNodesForRendering();
+	TArray<FAGX_WireRenderNode> AGXNodes = GetNodesForRendering(*this);
 	if (AGXNodes.Num() < 2)
 		return;
 
@@ -2716,8 +2747,8 @@ void UAGX_WireComponent::RenderSelf()
 	if (RenderSplinePrev.Points.Num() == 0)
 		RenderSplinePrev = RenderSpline;
 
-	const TArray<float> SampleDistances =
-		GenerateSampleDistances(RenderSpline, RenderSamplingDeviationMax);
+	const TArray<float> SampleDistances = GenerateSampleDistances(
+		RenderSpline, AGXNodes, RenderSamplingDeviationMultiplierMax * Radius);
 	const TArray<FVector> PositionsNew = SampleSpline(RenderSpline, SampleDistances);
 
 	// This is the clever part: we sample the cached spline from the previous tick in the same
