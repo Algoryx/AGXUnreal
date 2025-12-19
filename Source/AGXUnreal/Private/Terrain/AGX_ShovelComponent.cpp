@@ -478,11 +478,16 @@ void UAGX_ShovelComponent::BeginPlay()
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
 	if (Sim != nullptr && HasNative())
 	{
-		if (!Sim->Add(*this))
+		// TerrainPager::add(shovel) in AGX will add the shovel to the simulation, so we check here
+		// if our native has already been added before doing it ourselves.
+		if (!NativeBarrier.IsAddedToSimulation(*Sim->GetNative()))
 		{
-			UE_LOG(
-				LogAGX, Warning, TEXT("Simulation add returned false for shovel '%s' in '%s'."),
-				*GetName(), *GetLabelSafe(GetOwner()));
+			if (!Sim->Add(*this))
+			{
+				UE_LOG(
+					LogAGX, Warning, TEXT("Simulation add returned false for shovel '%s' in '%s'."),
+					*GetName(), *GetLabelSafe(GetOwner()));
+			}
 		}
 	}
 
@@ -524,7 +529,8 @@ void UAGX_ShovelComponent::EndPlay(const EEndPlayReason::Type Reason)
 
 TStructOnScope<FActorComponentInstanceData> UAGX_ShovelComponent::GetComponentInstanceData() const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
+	return MakeStructOnScope<
+		FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{
@@ -655,8 +661,9 @@ void UAGX_ShovelComponent::AllocateNative()
 	const FTwoVectors CuttingEdgeInBody = CuttingEdge.GetLocationsRelativeTo(*BodyComponent, *this);
 	const FRotator ToothRotation = ToothDirection.GetRotationRelativeTo(*BodyComponent, *this);
 	const FVector ToothDirectionInBody = ToothRotation.RotateVector(FVector::ForwardVector);
-	const double ToothLength =
-		ShovelProperties != nullptr ? ShovelProperties->ToothLength.GetValue() : 0.15 /*AGX default*/;
+	const double ToothLength = ShovelProperties != nullptr
+								   ? ShovelProperties->ToothLength.GetValue()
+								   : 0.15 /*AGX default*/;
 
 	NativeBarrier.AllocateNative(
 		*BodyBarrier, TopEdgeInBody, CuttingEdgeInBody, ToothDirectionInBody, ToothLength);
