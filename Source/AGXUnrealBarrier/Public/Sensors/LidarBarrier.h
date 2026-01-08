@@ -18,12 +18,16 @@ class FLidarOutputBarrier;
 class UAGX_LidarModelParameters;
 
 struct FAGX_RealInterval;
+struct FRigidBodyBarrier;
 
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 {
 	GENERATED_BODY()
 
+	FLidarBarrier() = default;
+	FLidarBarrier(
+		std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride);
 	virtual ~FLidarBarrier() override = default;
 
 	void AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params);
@@ -54,6 +58,9 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void EnableOrUpdateRayAngleGaussianNoise(const FAGX_RayAngleGaussianNoiseSettings& Settings);
 	void DisableRayAngleGaussianNoise();
 	bool GetEnableRayAngleGaussianNoise() const;
+
+	/// Returns the Rigid Body this Lidar is attached to, if it exists.
+	FRigidBodyBarrier GetRigidBody() const;
 
 	void AddOutput(FLidarOutputBarrier& Output);
 

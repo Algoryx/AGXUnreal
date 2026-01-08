@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/SensorRef.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 
@@ -138,4 +139,16 @@ bool FSensorBarrier::RemoveFromEnvironment(FSensorEnvironmentBarrier& Environmen
 
 	// See also AddToEnvironment.
 	return Environment.GetNative()->Native->remove(StepStrideRef->Native);
+}
+
+FGuid FSensorBarrier::GetGuid() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getUuid());
+}
+
+FString FSensorBarrier::GetName() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getName());
 }

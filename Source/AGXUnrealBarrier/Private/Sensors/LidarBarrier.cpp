@@ -5,7 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "AGX_RealInterval.h"
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "RigidBodyBarrier.h"
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
@@ -96,6 +98,12 @@ namespace LidarBarrier_helpers
 		AGX_CHECK(Lidar.HasNative());
 		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
 	}
+}
+
+FLidarBarrier::FLidarBarrier(
+	std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride)
+	: FSensorBarrier(std::move(Native), std::move(StepStride))
+{
 }
 
 void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params)
@@ -342,6 +350,18 @@ bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 	return GetRayAngleNoise(*GetLidarNative(*this)) != nullptr;
 }
 
+FRigidBodyBarrier FLidarBarrier::GetRigidBody() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	agx::RigidBody* Body = nullptr;
+	if (auto Frame = GetLidarNative(*this)->getFrame())
+		Body = Frame->getRigidBody();
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
+}
+
 void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)
 {
 	check(HasNative());
@@ -358,8 +378,5 @@ void FLidarBarrier::MarkOutputAsRead()
 	using namespace LidarBarrier_helpers;
 
 	GetLidarNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::RtOutput>(
-		[](agxSensor::RtOutput& Output)
-		{
-			Output.hasUnreadData(/*markAsRead*/ true);
-		});
+		[](agxSensor::RtOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
 }

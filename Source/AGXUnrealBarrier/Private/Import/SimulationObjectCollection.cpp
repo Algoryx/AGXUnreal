@@ -341,6 +341,16 @@ const TArray<FTrackBarrier>& FSimulationObjectCollection::GetTracks() const
 	return Tracks;
 }
 
+TArray<FLidarBarrier>& FSimulationObjectCollection::GetLidars()
+{
+	return Lidars;
+}
+
+const TArray<FLidarBarrier>& FSimulationObjectCollection::GetLidars() const
+{
+	return Lidars;
+}
+
 std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimulation()
 {
 	return Simulation;

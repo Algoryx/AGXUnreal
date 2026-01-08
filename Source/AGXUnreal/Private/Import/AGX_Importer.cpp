@@ -31,6 +31,8 @@
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/LidarBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_CapsuleShapeComponent.h"
@@ -194,6 +196,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_TrackComponent, T>)
 			return *Context.Tracks.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_SensorComponentBase, T>)
+			return *Context.Sensors.Get();
+
 		// Unsupported types will yield compile errors.
 	}
 
@@ -286,6 +291,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
+	Context.Sensors = MakeUnique<TMap<FGuid, UAGX_SensorComponentBase*>>();
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
@@ -703,6 +709,16 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		}
 	}
 
+	{
+		FScopedSlowTask T((float) SimObjects.GetLidars().Num(), FText::FromString("Lidar"));
+		for (const auto& Lidar : SimObjects.GetLidars())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Lidar.GetName())));
+			Res |= AddLidar(Lidar, OutActor);
+		}
+	}
+
 	if (SimObjects.GetContactMaterials().Num() > 0)
 	{
 		Res |= AddContactMaterialRegistrarComponent(SimObjects, OutActor);
@@ -775,6 +791,13 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	using namespace AGX_Importer_helpers;
 	auto Parent = GetOwningRigidBodyOrRoot(Shovel, Context, OutActor);
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
+}
+
+EAGX_ImportResult FAGX_Importer::AddLidar(const FLidarBarrier& Lidar, AActor& OutActor)
+{
+	using namespace AGX_Importer_helpers;
+	auto Parent = GetOwningRigidBodyOrRoot(Lidar, Context, OutActor);
+	return AddComponent<UAGX_LidarSensorComponent, FLidarBarrier>(Lidar, *Parent, OutActor);
 }
 
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(

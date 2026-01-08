@@ -64,6 +64,9 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 	bool AddToEnvironment(FSensorEnvironmentBarrier& Environment);
 	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
 
+	FGuid GetGuid() const;
+	FString GetName() const;
+
 protected:
 	std::shared_ptr<FSensorRef> NativeRef;
 	std::shared_ptr<FSensorGroupStepStrideRef> StepStrideRef;

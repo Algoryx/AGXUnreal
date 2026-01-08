@@ -11,6 +11,8 @@
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/LidarBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
@@ -38,6 +40,8 @@
 #include <agx/Prismatic.h>
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
+#include <agxSensor/Environment.h>
+#include <agxSensor/Lidar.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -361,8 +365,7 @@ namespace
 			}
 			else if (agxVehicle::Steering* S = Constraint->asSafe<agxVehicle::Steering>())
 			{
-				OutSimObjects.GetSteerings().Add(
-					AGXBarrierFactories::CreateSteeringBarrier(S));
+				OutSimObjects.GetSteerings().Add(AGXBarrierFactories::CreateSteeringBarrier(S));
 			}
 			else if (agxVehicle::WheelJoint* WJ = Constraint->asSafe<agxVehicle::WheelJoint>())
 			{
@@ -557,6 +560,23 @@ namespace
 		}
 	}
 
+	void ReadLidars(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxSensor::Environment* Env = agxSensor::Environment::get(&Simulation);
+		if (Env == nullptr)
+			return;
+
+		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
+		OutSimObjects.GetLidars().Reserve(Lidars.size());
+		for (agxSensor::Lidar* LidarAGX : Lidars)
+		{
+			FLidarBarrier Lidar(
+				std::make_shared<FSensorRef>(LidarAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(nullptr));
+			OutSimObjects.GetLidars().Add(Lidar);
+		}
+	}
+
 	void ReadAll(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
 	{
 		// These contain objects that are not free-standing but owned by something else and will
@@ -583,6 +603,7 @@ namespace
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
+		ReadLidars(Simulation, OutSimObjects);
 	}
 }
 

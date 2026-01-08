@@ -41,6 +41,7 @@ class FSimulationBarrier;
 class FTwoBodyTireBarrier;
 class FTrackBarrier;
 
+struct FLidarBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
 
@@ -125,6 +126,9 @@ public:
 	TArray<FTrackBarrier>& GetTracks();
 	const TArray<FTrackBarrier>& GetTracks() const;
 
+	TArray<FLidarBarrier>& GetLidars();
+	const TArray<FLidarBarrier>& GetLidars() const;
+
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
 
@@ -171,6 +175,7 @@ private:
 	TArray<FShovelBarrier> Shovels;
 	TArray<FSteeringBarrier> Steerings;
 	TArray<FTrackBarrier> Tracks;
+	TArray<FLidarBarrier> Lidars;
 
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;
