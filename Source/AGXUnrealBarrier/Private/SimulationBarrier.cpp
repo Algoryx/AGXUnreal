@@ -7,9 +7,11 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/Cable/CableRef.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Cable/CableBarrier.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
@@ -59,6 +61,13 @@ FSimulationBarrier::~FSimulationBarrier()
 	// Must provide a destructor implementation in the .cpp file because the
 	// std::unique_ptr NativeRef's destructor must be able to see the definition,
 	// not just the forward declaration, of FSimulationRef.
+}
+
+bool FSimulationBarrier::Add(FCableBarrier& Cable)
+{
+	check(HasNative());
+	check(Cable.HasNative());
+	return NativeRef->Native->add(Cable.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Add(FConstraintBarrier& Constraint)
@@ -150,6 +159,13 @@ bool FSimulationBarrier::Add(FWireBarrier& Wire)
 	check(HasNative());
 	check(Wire.HasNative());
 	return NativeRef->Native->add(Wire.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FCableBarrier& Cable)
+{
+	check(HasNative());
+	check(Cable.HasNative());
+	return NativeRef->Native->add(Cable.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FConstraintBarrier& Constraint)

@@ -25,6 +25,7 @@ class FTireBarrier;
 class FTrackBarrier;
 class FWireBarrier;
 
+struct FCableBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
 struct FShapeBarrier;
@@ -39,6 +40,7 @@ public:
 	FSimulationBarrier(FSimulationBarrier&& Other);
 	~FSimulationBarrier();
 
+	bool Add(FCableBarrier& Cable);
 	bool Add(FConstraintBarrier& Constraint);
 	bool Add(FContactMaterialBarrier& ContactMaterial);
 	bool Add(FObserverFrameBarrier& Frame);
@@ -60,6 +62,7 @@ public:
 	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
 
+	bool Remove(FCableBarrier& Cable);
 	bool Remove(FConstraintBarrier& Constraint);
 	bool Remove(FContactMaterialBarrier& ContactMaterial);
 	bool Remove(FObserverFrameBarrier& Frame);
