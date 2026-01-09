@@ -2453,6 +2453,9 @@ bool UAGX_WireComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyNa
 	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, Radius))
 		return true;
 
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, RenderRadiusScale))
+		return true;
+
 	return false;
 }
 #endif

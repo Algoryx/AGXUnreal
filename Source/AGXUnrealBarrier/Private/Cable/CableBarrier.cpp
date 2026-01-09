@@ -6,6 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Cable/CableRef.h"
+#include "Cable/AGX_CableNodeInfo.h"
 #include "Cable/CableNodeBarrier.h"
 
 FCableBarrier::FCableBarrier()
@@ -32,6 +33,36 @@ bool FCableBarrier::Add(FCableNodeBarrier& Node)
 	check(HasNative());
 	check(Node.HasNative());
 	return NativeRef->Native->add(Node.GetNative()->Native);
+}
+
+TArray<FAGX_CableNodeInfo> FCableBarrier::GetNodeInfo() const
+{
+	check(HasNative());
+	TArray<FAGX_CableNodeInfo> Nodes;
+	agxCable::CableIterator Iterator = NativeRef->Native->begin();
+
+	auto GetNodeType = [](agxCable::CableIterator It)
+	{
+		return It->is<agxCable::FreeNode>() ? EAGX_CableNodeType::Free
+											: EAGX_CableNodeType::BodyFixed;
+	};
+
+	while (!Iterator.isEnd())
+	{
+		if (Iterator == NativeRef->Native->begin())
+		{
+			// TODO: figure out locked or not.
+			Nodes.Add(FAGX_CableNodeInfo(
+				GetNodeType(Iterator), ConvertDisplacement(Iterator->getBeginPosition()), false));
+		}
+
+		// TODO: figure out locked or not.
+		Nodes.Add(FAGX_CableNodeInfo(
+			GetNodeType(Iterator), ConvertDisplacement(Iterator->getEndPosition()), false));
+		Iterator++;
+	}
+
+	return Nodes;
 }
 
 double FCableBarrier::GetRadius() const

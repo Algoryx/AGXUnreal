@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "Cable/AGX_CableNodeInfo.h"
 #include "Cable/AGX_CableRouteNode.h"
 #include "Cable/CableBarrier.h"
 
@@ -38,6 +39,17 @@ public:
 	double Radius {3.0};
 
 	/**
+	 * Scale to apply to the radius when rendering the Cable.
+	 * By increasing the Rander Radius Scale it is possible to make the Cable larger on-screen
+	 * without affecting the simulation behavior.
+	 *
+	 * This setting affects rendering only, it does not change the simulation behavior or collision
+	 * shape of the Cable.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
+	double RenderRadiusScale {1.0};
+
+	/**
 	 * The resolution of the Cable, i.e. the number of lumped elements per centimeter.
 	 */
 	UPROPERTY(
@@ -65,6 +77,12 @@ public:
 	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
 	FString ImportName;
+
+	/**
+	 * Returns an array of Node Info structs containing information about each Node in the Cable.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	TArray<FAGX_CableNodeInfo> GetNodeInfo() const;
 
 	FCableBarrier* GetNative();
 	const FCableBarrier* GetNative() const;
@@ -97,17 +115,21 @@ public:
 private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
+	bool DoesPropertyAffectVisuals(const FName& MemberPropertyName) const;
 #endif
 	void UpdateNativeProperties();
 	void CreateNative();
 	void CreateVisuals();
 	bool ShouldRenderSelf() const;
 	void UpdateVisuals();
-	void SetVisualsInstanceCount(int32 Num);
+	void SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres);
+	void RenderSelf();
 
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
+	TArray<FTransform> VisualCylinderTransformsPrev;
+	TArray<FTransform> VisualSphereTransformsPrev;
 
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;

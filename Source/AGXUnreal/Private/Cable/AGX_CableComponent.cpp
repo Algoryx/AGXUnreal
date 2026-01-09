@@ -17,7 +17,7 @@
 
 // Unreal Engine includes.
 #include "Components/InstancedStaticMeshComponent.h"
-
+#include "Kismet/KismetMathLibrary.h"
 
 UAGX_CableComponent::UAGX_CableComponent()
 {
@@ -67,6 +67,26 @@ FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
 	}
 
 	return GetNative();
+}
+
+TArray<FAGX_CableNodeInfo> UAGX_CableComponent::GetNodeInfo() const
+{
+	TArray<FAGX_CableNodeInfo> Nodes;
+	if (HasNative())
+	{
+		return NativeBarrier.GetNodeInfo();
+	}
+	else
+	{
+		for (auto& RouteNode : RouteNodes)
+		{
+			const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+			Nodes.Add(FAGX_CableNodeInfo(
+				RouteNode.NodeType, WorldLocation, RouteNode.LockRotationToBody));
+		}
+	}
+
+	return Nodes;
 }
 
 FCableBarrier* UAGX_CableComponent::GetNative()
@@ -282,6 +302,27 @@ void UAGX_CableComponent::InitPropertyDispatcher()
 
 	// TODO: add properties here.
 }
+
+bool UAGX_CableComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyName) const
+{
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, VisualCylinders))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, VisualSpheres))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, RouteNodes))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, Radius))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, RenderRadiusScale))
+		return true;
+
+	return false;
+}
+
 #endif // WITH_EDITOR
 
 void UAGX_CableComponent::UpdateNativeProperties()
@@ -302,6 +343,15 @@ void UAGX_CableComponent::PostInitProperties()
 void UAGX_CableComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+
+	FEditPropertyChain::TDoubleLinkedListNode* const PropertyNode = Event.PropertyChain.GetHead();
+	if (PropertyNode != nullptr)
+	{
+		const FName Member = PropertyNode->GetValue()->GetFName();
+		if (DoesPropertyAffectVisuals(Member))
+			UpdateVisuals();
+	}
+
 	Super::PostEditChangeChainProperty(Event);
 }
 
@@ -358,7 +408,7 @@ void UAGX_CableComponent::UpdateVisuals()
 			VisualSpheres != nullptr && VisualSpheres->GetInstanceCount() > 0;
 
 		if (bHasVisualCylinders || bHasVisualSpheres)
-			SetVisualsInstanceCount(0);
+			SetVisualsInstanceCount(0, 0);
 
 		return;
 	}
@@ -371,14 +421,13 @@ void UAGX_CableComponent::UpdateVisuals()
 	if (VisualSpheres->GetMaterial(0) != RenderMaterial)
 		VisualSpheres->SetMaterial(0, RenderMaterial);
 
-	// TODO:
-	// TArray<FVector> NodeLocations = GetNodesForRendering();
-	// RenderSelf(NodeLocations);
+	RenderSelf();
 }
 
-void UAGX_CableComponent::SetVisualsInstanceCount(int32 Num)
+void UAGX_CableComponent::SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres)
 {
-	Num = std::max(0, Num);
+	NumCylinders = std::max(0, NumCylinders);
+	NumSpheres = std::max(0, NumSpheres);
 
 	auto SetNum = [](UInstancedStaticMeshComponent& C, int32 N)
 	{
@@ -393,8 +442,103 @@ void UAGX_CableComponent::SetVisualsInstanceCount(int32 Num)
 	};
 
 	if (VisualCylinders != nullptr)
-		SetNum(*VisualCylinders, Num);
+		SetNum(*VisualCylinders, NumCylinders);
 
 	if (VisualSpheres != nullptr)
-		SetNum(*VisualSpheres, Num);
+		SetNum(*VisualSpheres, NumSpheres);
+}
+
+namespace AGX_CableComponent_helpers
+{
+	TArray<FTransform> CreateCylinderMeshInstanceTransformsFromNodes(
+		const TArray<FAGX_CableNodeInfo>& Nodes, double Radius)
+	{
+		TArray<FTransform> Result;
+
+		// 0.01 because the mesh is 100 units large.
+		// 2.0 to go from radius to diameter.
+		const double ScaleXY = Radius * 0.01 * 2.0;
+		const int32 NumSegments = Nodes.Num() - 1;
+		Result.Reserve(NumSegments);
+		for (int i = 0; i < NumSegments; i++)
+		{
+			const FVector& StartLocation = Nodes[i].WorldLocation;
+			const FVector& EndLocation = Nodes[i + 1].WorldLocation;
+			const FVector MidPoint = (StartLocation + EndLocation) * 0.5;
+			const FVector DeltaVec = EndLocation - StartLocation;
+			const FRotator Rot = UKismetMathLibrary::MakeRotFromZ(DeltaVec);
+			FTransform Curr;
+			Curr.SetLocation(MidPoint);
+			Curr.SetRotation(Rot.Quaternion());
+			const auto Distance = (DeltaVec).Length();
+			Curr.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
+			Result.Add(Curr);
+		}
+
+		return Result;
+	}
+
+	TArray<FTransform> CreateSphereMeshInstanceTransformsFromNodes(
+		const TArray<FAGX_CableNodeInfo>& Nodes, double Radius)
+	{
+		TArray<FTransform> Result;
+
+		// 0.01 because the mesh is 100 units large.
+		// 2.0 to go from radius to diameter.
+		const double ScaleXY = Radius * 0.01 * 2.0;
+		FTransform SphereTransform {FTransform::Identity};
+		SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));
+		Result.Reserve(Nodes.Num());
+		for (auto& N : Nodes)
+		{
+			SphereTransform.SetLocation(N.WorldLocation);
+			Result.Add(SphereTransform);
+		}
+
+		return Result;
+	}
+}
+
+void UAGX_CableComponent::RenderSelf()
+{
+	using namespace AGX_CableComponent_helpers;
+	const TArray<FAGX_CableNodeInfo> Nodes = GetNodeInfo();
+	if (Nodes.Num() <= 1)
+		return;
+
+	const int32 NumSegments = Nodes.Num() - 1;
+	SetVisualsInstanceCount(NumSegments, NumSegments + 1);
+	const double RenderRadius = Radius * RenderRadiusScale;
+
+	// Visual Cylinders.
+	{
+		const TArray<FTransform> CylinderTransformsNew =
+			CreateCylinderMeshInstanceTransformsFromNodes(Nodes, RenderRadius);
+		if (VisualCylinderTransformsPrev.Num() != CylinderTransformsNew.Num())
+			VisualCylinderTransformsPrev.SetNum(CylinderTransformsNew.Num());
+
+		if (VisualCylinders->PerInstancePrevTransform.Num() != CylinderTransformsNew.Num())
+			VisualCylinders->PerInstancePrevTransform.SetNum(CylinderTransformsNew.Num());
+
+		VisualCylinders->UpdateComponentToWorld();
+		VisualCylinders->BatchUpdateInstancesTransforms(
+			0, CylinderTransformsNew, VisualCylinderTransformsPrev, /*bWorldSpace*/ true);
+		VisualCylinderTransformsPrev = CylinderTransformsNew;
+	}
+
+	// Visual Spheres.
+	{
+		const TArray<FTransform> SphereTransformsNew =
+			CreateSphereMeshInstanceTransformsFromNodes(Nodes, RenderRadius);
+		if (VisualSphereTransformsPrev.Num() != SphereTransformsNew.Num())
+			VisualSphereTransformsPrev.SetNum(SphereTransformsNew.Num());
+
+		if (VisualSpheres->PerInstancePrevTransform.Num() != SphereTransformsNew.Num())
+			VisualSpheres->PerInstancePrevTransform.SetNum(SphereTransformsNew.Num());
+
+		VisualSpheres->UpdateComponentToWorld();
+		VisualSpheres->BatchUpdateInstancesTransforms(
+			0, SphereTransformsNew, VisualSphereTransformsPrev, /*bWorldSpace*/ true);
+		VisualSphereTransformsPrev = SphereTransformsNew;
+	}
 }

@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
-UENUM()
+UENUM(BlueprintType)
 enum class EAGX_CableNodeType : uint8
 {
   Free,

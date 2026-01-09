@@ -10,6 +10,7 @@
 
 #include "CableBarrier.generated.h"
 
+struct FAGX_CableNodeInfo;
 struct FCableNodeBarrier;
 struct FCableRef;
 
@@ -22,7 +23,9 @@ struct AGXUNREALBARRIER_API FCableBarrier
 	FCableBarrier(std::shared_ptr<FCableRef> Native);
 
 	void AllocateNative(double Radius, double ResolutionPerUnitLength);
-	bool Add(FCableNodeBarrier& Node); 
+	bool Add(FCableNodeBarrier& Node);
+
+	TArray<FAGX_CableNodeInfo> GetNodeInfo() const;
 
 	double GetRadius() const;
 
