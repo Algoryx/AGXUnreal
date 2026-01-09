@@ -12,6 +12,7 @@
 #include "AGX_Simulation.h"
 #include "Cable/CableNodeBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
@@ -136,6 +137,13 @@ namespace AGX_CableComponent_helpers
 			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, WireTransform);
 		return {NativeBody, LocalLocation};
 	}
+
+	void SetLocalScope(UAGX_CableComponent& Component)
+	{
+		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		for (auto& Node : Component.RouteNodes)
+			Node.RigidBody.LocalScope = Owner;
+	}
 }
 
 void UAGX_CableComponent::CreateNative()
@@ -162,7 +170,7 @@ void UAGX_CableComponent::CreateNative()
 			}
 			case EAGX_CableNodeType::BodyFixed:
 			{
-				FRigidBodyBarrier* Body;
+				FRigidBodyBarrier* Body {nullptr};
 				FVector Location;
 				std::tie(Body, Location) = AGX_CableComponent_helpers::GetBodyAndLocalLocation(
 					Node, GetComponentTransform());
@@ -268,5 +276,11 @@ void UAGX_CableComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
 	Super::PostEditChangeChainProperty(Event);
+}
+
+void UAGX_CableComponent::OnRegister()
+{
+	Super::OnRegister();
+	AGX_CableComponent_helpers::SetLocalScope(*this);
 }
 #endif // WITH_EDITOR

@@ -76,6 +76,7 @@ public:
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	virtual void OnRegister() override;
 	// ~End UObject interface.
 #endif
 
