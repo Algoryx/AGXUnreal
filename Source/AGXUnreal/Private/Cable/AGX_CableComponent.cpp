@@ -151,7 +151,7 @@ void UAGX_CableComponent::TickComponent(
 namespace AGX_CableComponent_helpers
 {
 	std::tuple<FRigidBodyBarrier*, FVector> GetBodyAndLocalLocation(
-		const FAGX_CableNode& RouteNode, const FTransform& CableTransform)
+		const FAGX_CableRouteNode& RouteNode, const FTransform& CableTransform)
 	{
 		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
 		if (BodyComponent == nullptr)
@@ -184,7 +184,7 @@ void UAGX_CableComponent::CreateNative()
 	TArray<FString> ErrorMessages;
 	for (int32 I = 0; I < RouteNodes.Num(); ++I)
 	{
-		FAGX_CableNode& Node = RouteNodes[I];
+		FAGX_CableRouteNode& Node = RouteNodes[I];
 		FCableNodeBarrier NodeBarrier;
 
 		switch (Node.NodeType)
@@ -372,8 +372,8 @@ void UAGX_CableComponent::UpdateVisuals()
 		VisualSpheres->SetMaterial(0, RenderMaterial);
 
 	// TODO:
-	//TArray<FVector> NodeLocations = GetNodesForRendering();
-	//RenderSelf(NodeLocations);
+	// TArray<FVector> NodeLocations = GetNodesForRendering();
+	// RenderSelf(NodeLocations);
 }
 
 void UAGX_CableComponent::SetVisualsInstanceCount(int32 Num)

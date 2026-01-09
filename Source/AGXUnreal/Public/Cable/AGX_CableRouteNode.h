@@ -10,7 +10,7 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
-#include "AGX_CableNode.generated.h"
+#include "AGX_CableRouteNode.generated.h"
 
 /**
  * Cable nodes are used to specify the route of a cable. Each node has a location and
@@ -18,7 +18,7 @@
  * used for some node types, such as RigidBody which is only used by BodyFixed nodes.
  */
 USTRUCT(BlueprintType)
-struct AGXUNREAL_API FAGX_CableNode
+struct AGXUNREAL_API FAGX_CableRouteNode
 {
 	GENERATED_BODY();
 
@@ -42,16 +42,25 @@ struct AGXUNREAL_API FAGX_CableNode
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
 	FAGX_RigidBodyReference RigidBody;
 
-	FAGX_CableNode()
+	/**
+	 * Whether or not this node should lock its rotation in relation to the attached Body.
+	 * Only relevant for 'BodyFixed' Node Type.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Cable",
+		Meta = (EditCondition = "NodeType == EAGX_CableNodeType::BodyFixed"))
+	bool LockRotationToBody {false};
+
+	FAGX_CableRouteNode()
 	{
 	}
 
-	FAGX_CableNode(EAGX_CableNodeType InNodeType)
+	FAGX_CableRouteNode(EAGX_CableNodeType InNodeType)
 		: NodeType(InNodeType)
 	{
 	}
 
-	FAGX_CableNode(const FVector& InLocation)
+	FAGX_CableRouteNode(const FVector& InLocation)
 	{
 		Frame.LocalLocation = InLocation;
 	}

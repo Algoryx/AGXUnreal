@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
-#include "Cable/AGX_CableNode.h"
+#include "Cable/AGX_CableRouteNode.h"
 #include "Cable/CableBarrier.h"
 
 // Unreal Engine includes.
@@ -52,12 +52,12 @@ public:
 	void SetRenderMaterial(UMaterialInterface* Material);
 
 	/**
-	 * An array of nodes that are used to initialize the Cable.
+	 * An array of route nodes that are used to initialize the Cable.
 	 * At BeginPlay these nodes are used to create simulation nodes, after that these nodes are not
 	 * used and will not be updated during Play.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Route")
-	TArray<FAGX_CableNode> RouteNodes;
+	TArray<FAGX_CableRouteNode> RouteNodes;
 
 	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
