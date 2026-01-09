@@ -13,6 +13,9 @@
 
 #include "AGX_CableComponent.generated.h"
 
+class UInstancedStaticMeshComponent;
+class UMaterialInterface;
+
 /**
  * A frame attached to a RigidBody with an optional relative transform.
  * During runtime, it is possible to get its position, velocity, angular velocity, acceleration
@@ -24,6 +27,8 @@ class AGXUNREAL_API UAGX_CableComponent : public USceneComponent, public IAGX_Na
 	GENERATED_BODY()
 
 public:
+	UAGX_CableComponent();
+
 	/**
 	 * The radius of the Cable [cm].
 	 */
@@ -39,6 +44,12 @@ public:
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
 		Meta = (ClampMin = "0", UIMin = "0"))
 	double ResolutionPerUnitLength {0.01};
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
+	UMaterialInterface* RenderMaterial {nullptr};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetRenderMaterial(UMaterialInterface* Material);
 
 	/**
 	 * An array of nodes that are used to initialize the Cable.
@@ -70,6 +81,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType,
+		FActorComponentTickFunction* ThisTickFunction) override;
 	//~ End UActorComponent interface
 
 #if WITH_EDITOR
@@ -86,10 +100,16 @@ private:
 #endif
 	void UpdateNativeProperties();
 	void CreateNative();
+	void CreateVisuals();
+	bool ShouldRenderSelf() const;
+	void UpdateVisuals();
+	void SetVisualsInstanceCount(int32 Num);
 
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
 
+	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
+	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;
 	FCableBarrier NativeBarrier;
 };

@@ -15,6 +15,26 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
+// Unreal Engine includes.
+#include "Components/InstancedStaticMeshComponent.h"
+
+
+UAGX_CableComponent::UAGX_CableComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
+void UAGX_CableComponent::SetRenderMaterial(UMaterialInterface* Material)
+{
+	RenderMaterial = Material;
+
+	if (VisualCylinders != nullptr)
+		VisualCylinders->SetMaterial(0, RenderMaterial);
+
+	if (VisualSpheres != nullptr)
+		VisualSpheres->SetMaterial(0, RenderMaterial);
+}
+
 FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
 {
 	if (!HasNative())
@@ -121,10 +141,17 @@ TStructOnScope<FActorComponentInstanceData> UAGX_CableComponent::GetComponentIns
 		});
 }
 
+void UAGX_CableComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	UpdateVisuals();
+}
+
 namespace AGX_CableComponent_helpers
 {
 	std::tuple<FRigidBodyBarrier*, FVector> GetBodyAndLocalLocation(
-		const FAGX_CableNode& RouteNode, const FTransform& WireTransform)
+		const FAGX_CableNode& RouteNode, const FTransform& CableTransform)
 	{
 		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
 		if (BodyComponent == nullptr)
@@ -134,7 +161,7 @@ namespace AGX_CableComponent_helpers
 		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
 		check(NativeBody);
 		const FVector LocalLocation =
-			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, WireTransform);
+			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, CableTransform);
 		return {NativeBody, LocalLocation};
 	}
 
@@ -194,7 +221,7 @@ void UAGX_CableComponent::CreateNative()
 	if (ErrorMessages.Num() > 0)
 	{
 		FString Message = FString::Printf(
-			TEXT("Errors detected during initialization of wire '%s' in '%s':\n"), *GetName(),
+			TEXT("Errors detected during initialization of Cable '%s' in '%s':\n"), *GetName(),
 			*GetLabelSafe(GetOwner()));
 		for (const FString& Line : ErrorMessages)
 		{
@@ -282,5 +309,92 @@ void UAGX_CableComponent::OnRegister()
 {
 	Super::OnRegister();
 	AGX_CableComponent_helpers::SetLocalScope(*this);
+
+	if (VisualCylinders == nullptr || VisualSpheres == nullptr)
+		CreateVisuals();
+
+	UpdateVisuals();
 }
 #endif // WITH_EDITOR
+
+void UAGX_CableComponent::CreateVisuals()
+{
+	VisualCylinders =
+		NewObject<UInstancedStaticMeshComponent>(this, FName(TEXT("VisualCylinders")));
+	VisualCylinders->SetCanEverAffectNavigation(false);
+	VisualCylinders->RegisterComponent();
+	VisualCylinders->AttachToComponent(
+		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	static const TCHAR* CylinderAssetPath =
+		TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualCylinder.SM_WireVisualCylinder'");
+	VisualCylinders->SetStaticMesh(
+		FAGX_ObjectUtilities::GetAssetFromPath<UStaticMesh>(CylinderAssetPath));
+	VisualCylinders->SetMaterial(0, RenderMaterial);
+
+	VisualSpheres = NewObject<UInstancedStaticMeshComponent>(this, FName(TEXT("VisualSpheres")));
+	VisualSpheres->SetCanEverAffectNavigation(false);
+	VisualSpheres->RegisterComponent();
+	VisualSpheres->AttachToComponent(
+		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	static const TCHAR* SphereAssetPath =
+		TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualSphere.SM_WireVisualSphere'");
+	VisualSpheres->SetStaticMesh(
+		FAGX_ObjectUtilities::GetAssetFromPath<UStaticMesh>(SphereAssetPath));
+	VisualSpheres->SetMaterial(0, RenderMaterial);
+}
+
+bool UAGX_CableComponent::ShouldRenderSelf() const
+{
+	return VisualCylinders != nullptr && VisualSpheres != nullptr && ShouldRender();
+}
+
+void UAGX_CableComponent::UpdateVisuals()
+{
+	if (!ShouldRenderSelf())
+	{
+		const bool bHasVisualCylinders =
+			VisualCylinders != nullptr && VisualCylinders->GetInstanceCount() > 0;
+		const bool bHasVisualSpheres =
+			VisualSpheres != nullptr && VisualSpheres->GetInstanceCount() > 0;
+
+		if (bHasVisualCylinders || bHasVisualSpheres)
+			SetVisualsInstanceCount(0);
+
+		return;
+	}
+
+	// Workaround, the RenderMaterial does not propagate properly in SetRenderMaterial() in
+	// Blueprints, so we assign it here.
+	if (VisualCylinders->GetMaterial(0) != RenderMaterial)
+		VisualCylinders->SetMaterial(0, RenderMaterial);
+
+	if (VisualSpheres->GetMaterial(0) != RenderMaterial)
+		VisualSpheres->SetMaterial(0, RenderMaterial);
+
+	// TODO:
+	//TArray<FVector> NodeLocations = GetNodesForRendering();
+	//RenderSelf(NodeLocations);
+}
+
+void UAGX_CableComponent::SetVisualsInstanceCount(int32 Num)
+{
+	Num = std::max(0, Num);
+
+	auto SetNum = [](UInstancedStaticMeshComponent& C, int32 N)
+	{
+		while (C.GetInstanceCount() < N)
+		{
+			C.AddInstance(FTransform());
+		}
+		while (C.GetInstanceCount() > N)
+		{
+			C.RemoveInstance(C.GetInstanceCount() - 1);
+		}
+	};
+
+	if (VisualCylinders != nullptr)
+		SetNum(*VisualCylinders, Num);
+
+	if (VisualSpheres != nullptr)
+		SetNum(*VisualSpheres, Num);
+}
