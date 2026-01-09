@@ -17,6 +17,7 @@
 
 // Unreal Engine includes.
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Engine/World.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UAGX_CableComponent::UAGX_CableComponent()
