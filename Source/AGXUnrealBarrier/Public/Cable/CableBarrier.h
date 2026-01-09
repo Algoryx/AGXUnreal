@@ -10,6 +10,7 @@
 
 #include "CableBarrier.generated.h"
 
+struct FCableNodeBarrier;
 struct FCableRef;
 
 USTRUCT(BlueprintType)
@@ -21,6 +22,7 @@ struct AGXUNREALBARRIER_API FCableBarrier
 	FCableBarrier(std::shared_ptr<FCableRef> Native);
 
 	void AllocateNative(double Radius, double ResolutionPerUnitLength);
+	bool Add(FCableNodeBarrier& Node); 
 
 	double GetRadius() const;
 

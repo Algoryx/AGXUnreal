@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "Cable/AGX_CableNode.h"
 #include "Cable/CableBarrier.h"
 
 // Unreal Engine includes.
@@ -38,6 +39,14 @@ public:
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
 		Meta = (ClampMin = "0", UIMin = "0"))
 	double ResolutionPerUnitLength {0.01};
+
+	/**
+	 * An array of nodes that are used to initialize the Cable.
+	 * At BeginPlay these nodes are used to create simulation nodes, after that these nodes are not
+	 * used and will not be updated during Play.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Route")
+	TArray<FAGX_CableNode> RouteNodes;
 
 	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
@@ -77,7 +86,7 @@ private:
 	void UpdateNativeProperties();
 	void CreateNative();
 
-	#if WITH_EDITOR
+#if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
 

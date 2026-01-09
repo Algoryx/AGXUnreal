@@ -6,6 +6,7 @@
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Cable/CableRef.h"
+#include "Cable/CableNodeBarrier.h"
 
 FCableBarrier::FCableBarrier()
 	: NativeRef {new FCableRef}
@@ -24,6 +25,13 @@ void FCableBarrier::AllocateNative(double Radius, double ResolutionPerUnitLength
 	agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
 	agx::Real ResolutionPerUnitLengthAGX = ConvertDistanceInvToAGX(ResolutionPerUnitLength);
 	NativeRef->Native = new agxCable::Cable(RadiusAGX, ResolutionPerUnitLengthAGX);
+}
+
+bool FCableBarrier::Add(FCableNodeBarrier& Node)
+{
+	check(HasNative());
+	check(Node.HasNative());
+	return NativeRef->Native->add(Node.GetNative()->Native);
 }
 
 double FCableBarrier::GetRadius() const

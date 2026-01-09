@@ -8,7 +8,10 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Cable/CableNodeBarrier.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
@@ -117,6 +120,24 @@ TStructOnScope<FActorComponentInstanceData> UAGX_CableComponent::GetComponentIns
 		});
 }
 
+namespace AGX_CableComponent_helpers
+{
+	std::tuple<FRigidBodyBarrier*, FVector> GetBodyAndLocalLocation(
+		const FAGX_CableNode& RouteNode, const FTransform& WireTransform)
+	{
+		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
+		if (BodyComponent == nullptr)
+		{
+			return {nullptr, FVector::ZeroVector};
+		}
+		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
+		check(NativeBody);
+		const FVector LocalLocation =
+			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, WireTransform);
+		return {NativeBody, LocalLocation};
+	}
+}
+
 void UAGX_CableComponent::CreateNative()
 {
 	if (HasNative())
@@ -124,6 +145,56 @@ void UAGX_CableComponent::CreateNative()
 
 	check(!GIsReconstructingBlueprintInstances);
 	NativeBarrier.AllocateNative(Radius, ResolutionPerUnitLength);
+
+	TArray<FString> ErrorMessages;
+	for (int32 I = 0; I < RouteNodes.Num(); ++I)
+	{
+		FAGX_CableNode& Node = RouteNodes[I];
+		FCableNodeBarrier NodeBarrier;
+
+		switch (Node.NodeType)
+		{
+			case EAGX_CableNodeType::Free:
+			{
+				const FVector WorldLocation = Node.Frame.GetWorldLocation(*this);
+				NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+				break;
+			}
+			case EAGX_CableNodeType::BodyFixed:
+			{
+				FRigidBodyBarrier* Body;
+				FVector Location;
+				std::tie(Body, Location) = AGX_CableComponent_helpers::GetBodyAndLocalLocation(
+					Node, GetComponentTransform());
+				if (Body == nullptr)
+				{
+					ErrorMessages.Add(FString::Printf(
+						TEXT("Cable node at index %d has invalid body. Creating Free Node "
+							 "instead of Body Fixed Node."),
+						I));
+					const FVector WorldLocation = Node.Frame.GetWorldLocation(*this);
+					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+					break;
+				}
+				NodeBarrier.AllocateNativeBodyFixedNode(*Body, Location);
+				break;
+			}
+		}
+		NativeBarrier.Add(NodeBarrier);
+	}
+
+	if (ErrorMessages.Num() > 0)
+	{
+		FString Message = FString::Printf(
+			TEXT("Errors detected during initialization of wire '%s' in '%s':\n"), *GetName(),
+			*GetLabelSafe(GetOwner()));
+		for (const FString& Line : ErrorMessages)
+		{
+			Message += Line + '\n';
+		}
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+	}
+
 	UpdateNativeProperties();
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
@@ -157,7 +228,8 @@ bool UAGX_CableComponent::CanEditChange(const FProperty* InProperty) const
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(ThisClass, Radius),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ResolutionPerUnitLength)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, ResolutionPerUnitLength),
+			GET_MEMBER_NAME_CHECKED(ThisClass, RouteNodes)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;

@@ -4,7 +4,19 @@
 
 #include "BeginAGXIncludes.h"
 #include <agxCable/Cable.h>
+#include <agxCable/Node.h>
 #include "EndAGXIncludes.h"
+
+struct FCableNodeRef
+{
+	agxCable::RoutingNodeRef Native;
+
+	FCableNodeRef() = default;
+	FCableNodeRef(agxCable::RoutingNode* InNative)
+		: Native(InNative)
+	{
+	}
+};
 
 struct FCableRef
 {
@@ -17,3 +29,4 @@ struct FCableRef
 	{
 	}
 };
+
