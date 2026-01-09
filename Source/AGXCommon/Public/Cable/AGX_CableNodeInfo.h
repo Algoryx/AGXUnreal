@@ -20,9 +20,9 @@ struct AGXCOMMON_API FAGX_CableNodeInfo
 	FAGX_CableNodeInfo() = default;
 
 	FAGX_CableNodeInfo(
-		EAGX_CableNodeType InNodeType, const FVector& InWorldLocation, bool bInLockRotationToBody)
+		EAGX_CableNodeType InNodeType, const FTransform& InWorldTransform, bool bInLockRotationToBody)
 		: NodeType(InNodeType)
-		, WorldLocation(InWorldLocation)
+		, WorldTransform(InWorldTransform)
 		, LockRotationToBody(bInLockRotationToBody)
 	{
 	}
@@ -34,7 +34,7 @@ struct AGXCOMMON_API FAGX_CableNodeInfo
 	EAGX_CableNodeType NodeType {EAGX_CableNodeType::Free};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Node Info")
-	FVector WorldLocation;
+	FTransform WorldTransform;
 
 	/**
 	 * Whether or not this node has locked rotation in relation to the attached Body.

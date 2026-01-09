@@ -27,7 +27,8 @@ struct AGXUNREALBARRIER_API FCableNodeBarrier
 
 	bool HasNative() const;
 	void AllocateNativeFreeNode(const FVector& WorldLocation);
-	void AllocateNativeBodyFixedNode(FRigidBodyBarrier& RigidBody, const FVector& LocalLocation);
+	void AllocateNativeBodyFixedNode(
+		FRigidBodyBarrier& RigidBody, const FTransform& LocalTransform, bool LockRotationToBody);
 	FCableNodeRef* GetNative();
 	const FCableNodeRef* GetNative() const;
 	void ReleaseNative();

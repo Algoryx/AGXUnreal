@@ -35,30 +35,58 @@ bool FCableBarrier::Add(FCableNodeBarrier& Node)
 	return NativeRef->Native->add(Node.GetNative()->Native);
 }
 
+namespace CableBarrier_helpers
+{
+	struct CableAttachmenInfo
+	{
+		FQuat Orientation;
+		EAGX_CableNodeType Type {EAGX_CableNodeType::Free};
+		bool LockRotationToBody {false};
+	};
+}
+
 TArray<FAGX_CableNodeInfo> FCableBarrier::GetNodeInfo() const
 {
+	using namespace CableBarrier_helpers;
 	check(HasNative());
 	TArray<FAGX_CableNodeInfo> Nodes;
 	agxCable::CableIterator Iterator = NativeRef->Native->begin();
 
-	auto GetNodeType = [](agxCable::CableIterator It)
+	auto GetAttachmentInfo = [](agxCable::CableIterator It) -> CableAttachmenInfo
 	{
-		return It->is<agxCable::FreeNode>() ? EAGX_CableNodeType::Free
-											: EAGX_CableNodeType::BodyFixed;
+		CableAttachmenInfo Info;
+		Info.Type =
+			It->is<agxCable::FreeNode>() ? EAGX_CableNodeType::Free : EAGX_CableNodeType::BodyFixed;
+
+		if (Info.Type == EAGX_CableNodeType::BodyFixed && It->getAttachments().size() > 0 &&
+			It->getAttachments()[0]->is<agxCable::RigidSegmentAttachment>())
+		{
+			Info.LockRotationToBody = true;
+			Info.Orientation = Convert(It->getAttachments()[0]->getWorldMatrix().getRotate());
+		}
+		else
+		{
+			Info.LockRotationToBody = false;
+			Info.Orientation = FQuat::Identity;
+		}
+
+		return Info;
 	};
 
 	while (!Iterator.isEnd())
 	{
 		if (Iterator == NativeRef->Native->begin())
 		{
-			// TODO: figure out locked or not.
-			Nodes.Add(FAGX_CableNodeInfo(
-				GetNodeType(Iterator), ConvertDisplacement(Iterator->getBeginPosition()), false));
+			CableAttachmenInfo AttachInfo = GetAttachmentInfo(Iterator);
+			const FTransform Trans(
+				AttachInfo.Orientation, ConvertDisplacement(Iterator->getBeginPosition()));
+			Nodes.Add(FAGX_CableNodeInfo(AttachInfo.Type, Trans, AttachInfo.LockRotationToBody));
 		}
 
-		// TODO: figure out locked or not.
-		Nodes.Add(FAGX_CableNodeInfo(
-			GetNodeType(Iterator), ConvertDisplacement(Iterator->getEndPosition()), false));
+		CableAttachmenInfo AttachInfo = GetAttachmentInfo(Iterator);
+		const FTransform Trans(
+			AttachInfo.Orientation, ConvertDisplacement(Iterator->getEndPosition()));
+		Nodes.Add(FAGX_CableNodeInfo(AttachInfo.Type, Trans, AttachInfo.LockRotationToBody));
 		Iterator++;
 	}
 

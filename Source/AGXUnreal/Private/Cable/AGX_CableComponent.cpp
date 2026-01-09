@@ -80,9 +80,10 @@ TArray<FAGX_CableNodeInfo> UAGX_CableComponent::GetNodeInfo() const
 	{
 		for (auto& RouteNode : RouteNodes)
 		{
-			const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+			const FTransform WorldTransform(
+				RouteNode.Frame.GetWorldRotation(), RouteNode.Frame.GetWorldLocation(*this));
 			Nodes.Add(FAGX_CableNodeInfo(
-				RouteNode.NodeType, WorldLocation, RouteNode.LockRotationToBody));
+				RouteNode.NodeType, WorldTransform, RouteNode.LockRotationToBody));
 		}
 	}
 
@@ -170,19 +171,20 @@ void UAGX_CableComponent::TickComponent(
 
 namespace AGX_CableComponent_helpers
 {
-	std::tuple<FRigidBodyBarrier*, FVector> GetBodyAndLocalLocation(
+	std::tuple<FRigidBodyBarrier*, FTransform> GetBodyAndLocalTransform(
 		const FAGX_CableRouteNode& RouteNode, const FTransform& CableTransform)
 	{
 		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
 		if (BodyComponent == nullptr)
 		{
-			return {nullptr, FVector::ZeroVector};
+			return {nullptr, FTransform::Identity};
 		}
 		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
 		check(NativeBody);
 		const FVector LocalLocation =
 			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, CableTransform);
-		return {NativeBody, LocalLocation};
+		const FRotator LocalRotator = RouteNode.Frame.GetRotationRelativeTo(*BodyComponent);
+		return {NativeBody, {LocalRotator, LocalLocation}};
 	}
 
 	void SetLocalScope(UAGX_CableComponent& Component)
@@ -190,6 +192,19 @@ namespace AGX_CableComponent_helpers
 		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
 		for (auto& Node : Component.RouteNodes)
 			Node.RigidBody.LocalScope = Owner;
+	}
+
+	void SetVisualsInstanceCount(UInstancedStaticMeshComponent& Mesh, int32 Count)
+	{
+		const int32 N = std::max(0, Count);
+		while (Mesh.GetInstanceCount() < N)
+		{
+			Mesh.AddInstance(FTransform());
+		}
+		while (Mesh.GetInstanceCount() > N)
+		{
+			Mesh.RemoveInstance(Mesh.GetInstanceCount() - 1);
+		}
 	}
 }
 
@@ -218,9 +233,10 @@ void UAGX_CableComponent::CreateNative()
 			case EAGX_CableNodeType::BodyFixed:
 			{
 				FRigidBodyBarrier* Body {nullptr};
-				FVector Location;
-				std::tie(Body, Location) = AGX_CableComponent_helpers::GetBodyAndLocalLocation(
-					Node, GetComponentTransform());
+				FTransform LocalTransform;
+				std::tie(Body, LocalTransform) =
+					AGX_CableComponent_helpers::GetBodyAndLocalTransform(
+						Node, GetComponentTransform());
 				if (Body == nullptr)
 				{
 					ErrorMessages.Add(FString::Printf(
@@ -231,7 +247,8 @@ void UAGX_CableComponent::CreateNative()
 					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
 					break;
 				}
-				NodeBarrier.AllocateNativeBodyFixedNode(*Body, Location);
+				NodeBarrier.AllocateNativeBodyFixedNode(
+					*Body, LocalTransform, Node.LockRotationToBody);
 				break;
 			}
 		}
@@ -408,7 +425,10 @@ void UAGX_CableComponent::UpdateVisuals()
 			VisualSpheres != nullptr && VisualSpheres->GetInstanceCount() > 0;
 
 		if (bHasVisualCylinders || bHasVisualSpheres)
-			SetVisualsInstanceCount(0, 0);
+		{
+			AGX_CableComponent_helpers::SetVisualsInstanceCount(*VisualCylinders, 0);
+			AGX_CableComponent_helpers::SetVisualsInstanceCount(*VisualSpheres, 0);
+		}
 
 		return;
 	}
@@ -424,30 +444,6 @@ void UAGX_CableComponent::UpdateVisuals()
 	RenderSelf();
 }
 
-void UAGX_CableComponent::SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres)
-{
-	NumCylinders = std::max(0, NumCylinders);
-	NumSpheres = std::max(0, NumSpheres);
-
-	auto SetNum = [](UInstancedStaticMeshComponent& C, int32 N)
-	{
-		while (C.GetInstanceCount() < N)
-		{
-			C.AddInstance(FTransform());
-		}
-		while (C.GetInstanceCount() > N)
-		{
-			C.RemoveInstance(C.GetInstanceCount() - 1);
-		}
-	};
-
-	if (VisualCylinders != nullptr)
-		SetNum(*VisualCylinders, NumCylinders);
-
-	if (VisualSpheres != nullptr)
-		SetNum(*VisualSpheres, NumSpheres);
-}
-
 namespace AGX_CableComponent_helpers
 {
 	TArray<FTransform> CreateCylinderMeshInstanceTransformsFromNodes(
@@ -460,10 +456,10 @@ namespace AGX_CableComponent_helpers
 		const double ScaleXY = Radius * 0.01 * 2.0;
 		const int32 NumSegments = Nodes.Num() - 1;
 		Result.Reserve(NumSegments);
-		for (int i = 0; i < NumSegments; i++)
+
+		auto AppendResult =
+			[&ScaleXY, &Result](const FVector& StartLocation, const FVector& EndLocation)
 		{
-			const FVector& StartLocation = Nodes[i].WorldLocation;
-			const FVector& EndLocation = Nodes[i + 1].WorldLocation;
 			const FVector MidPoint = (StartLocation + EndLocation) * 0.5;
 			const FVector DeltaVec = EndLocation - StartLocation;
 			const FRotator Rot = UKismetMathLibrary::MakeRotFromZ(DeltaVec);
@@ -473,6 +469,13 @@ namespace AGX_CableComponent_helpers
 			const auto Distance = (DeltaVec).Length();
 			Curr.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
 			Result.Add(Curr);
+		};
+
+		for (int i = 0; i < NumSegments; i++)
+		{
+			const FVector StartLocation = Nodes[i].WorldTransform.GetLocation();
+			const FVector EndLocation = Nodes[i + 1].WorldTransform.GetLocation();
+			AppendResult(StartLocation, EndLocation);
 		}
 
 		return Result;
@@ -491,7 +494,7 @@ namespace AGX_CableComponent_helpers
 		Result.Reserve(Nodes.Num());
 		for (auto& N : Nodes)
 		{
-			SphereTransform.SetLocation(N.WorldLocation);
+			SphereTransform.SetLocation(N.WorldTransform.GetLocation());
 			Result.Add(SphereTransform);
 		}
 
@@ -506,14 +509,13 @@ void UAGX_CableComponent::RenderSelf()
 	if (Nodes.Num() <= 1)
 		return;
 
-	const int32 NumSegments = Nodes.Num() - 1;
-	SetVisualsInstanceCount(NumSegments, NumSegments + 1);
 	const double RenderRadius = Radius * RenderRadiusScale;
 
 	// Visual Cylinders.
 	{
 		const TArray<FTransform> CylinderTransformsNew =
 			CreateCylinderMeshInstanceTransformsFromNodes(Nodes, RenderRadius);
+		SetVisualsInstanceCount(*VisualCylinders, CylinderTransformsNew.Num());
 		if (VisualCylinderTransformsPrev.Num() != CylinderTransformsNew.Num())
 			VisualCylinderTransformsPrev.SetNum(CylinderTransformsNew.Num());
 
@@ -530,6 +532,7 @@ void UAGX_CableComponent::RenderSelf()
 	{
 		const TArray<FTransform> SphereTransformsNew =
 			CreateSphereMeshInstanceTransformsFromNodes(Nodes, RenderRadius);
+		SetVisualsInstanceCount(*VisualSpheres, SphereTransformsNew.Num());
 		if (VisualSphereTransformsPrev.Num() != SphereTransformsNew.Num())
 			VisualSphereTransformsPrev.SetNum(SphereTransformsNew.Num());
 

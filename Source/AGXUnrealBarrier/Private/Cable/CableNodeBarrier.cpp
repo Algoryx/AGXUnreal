@@ -33,13 +33,19 @@ void FCableNodeBarrier::AllocateNativeFreeNode(const FVector& WorldLocation)
 }
 
 void FCableNodeBarrier::AllocateNativeBodyFixedNode(
-	FRigidBodyBarrier& RigidBody, const FVector& LocalLocation)
+	FRigidBodyBarrier& RigidBody, const FTransform& LocalTransform, bool LockRotationToBody)
 {
 	check(!HasNative());
 	check(RigidBody.HasNative());
-	const agx::Vec3 LocalLocationAGX = ConvertDisplacement(LocalLocation);
+	const agx::AffineMatrix4x4 LocalTransformAGX = Convert(LocalTransform);
 	agx::RigidBody* Body = RigidBody.GetNative()->Native;
-	NativeRef->Native = new agxCable::BodyFixedNode(Body, LocalLocationAGX);
+
+	// For BodyFixedNodes in AGX, a lockjoint or a balljoint is created depending on which
+	// constructor is called, see below.
+	if (LockRotationToBody)
+		NativeRef->Native = new agxCable::BodyFixedNode(Body, LocalTransformAGX);
+	else
+		NativeRef->Native = new agxCable::BodyFixedNode(Body, LocalTransformAGX.getTranslate());
 }
 
 FCableNodeRef* FCableNodeBarrier::GetNative()

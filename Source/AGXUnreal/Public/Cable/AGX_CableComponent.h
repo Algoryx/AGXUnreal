@@ -39,6 +39,14 @@ public:
 	double Radius {3.0};
 
 	/**
+	 * The resolution of the Cable, i.e. the number of lumped elements per centimeter.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
+		Meta = (ClampMin = "0", UIMin = "0"))
+	double ResolutionPerUnitLength {0.03};
+
+	/**
 	 * Scale to apply to the radius when rendering the Cable.
 	 * By increasing the Rander Radius Scale it is possible to make the Cable larger on-screen
 	 * without affecting the simulation behavior.
@@ -48,14 +56,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
 	double RenderRadiusScale {1.0};
-
-	/**
-	 * The resolution of the Cable, i.e. the number of lumped elements per centimeter.
-	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
-		Meta = (ClampMin = "0", UIMin = "0"))
-	double ResolutionPerUnitLength {0.01};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
 	UMaterialInterface* RenderMaterial {nullptr};
@@ -122,7 +122,6 @@ private:
 	void CreateVisuals();
 	bool ShouldRenderSelf() const;
 	void UpdateVisuals();
-	void SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres);
 	void RenderSelf();
 
 #if WITH_EDITOR
