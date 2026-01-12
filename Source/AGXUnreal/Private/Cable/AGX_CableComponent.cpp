@@ -20,9 +20,73 @@
 #include "Engine/World.h"
 #include "Kismet/KismetMathLibrary.h"
 
+namespace AGX_CableComponent_helpers
+{
+	std::tuple<FRigidBodyBarrier*, FTransform> GetBodyAndLocalTransform(
+		const FAGX_CableRouteNode& RouteNode, const FTransform& CableTransform)
+	{
+		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
+		if (BodyComponent == nullptr)
+		{
+			return {nullptr, FTransform::Identity};
+		}
+		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
+		check(NativeBody);
+		const FVector LocalLocation =
+			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, CableTransform);
+		const FRotator LocalRotator = RouteNode.Frame.GetRotationRelativeTo(*BodyComponent);
+		return {NativeBody, {LocalRotator, LocalLocation}};
+	}
+
+	void SetLocalScope(UAGX_CableComponent& Component)
+	{
+		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		for (auto& Node : Component.RouteNodes)
+			Node.RigidBody.LocalScope = Owner;
+	}
+
+	void SetLocalScope(FAGX_CableRouteNode& Node, AActor* Owner)
+	{
+		Node.RigidBody.LocalScope = Owner;
+		Node.Frame.Parent.LocalScope = Owner;
+	}
+
+	void SetVisualsInstanceCount(UInstancedStaticMeshComponent& Mesh, int32 Count)
+	{
+		const int32 N = std::max(0, Count);
+		while (Mesh.GetInstanceCount() < N)
+		{
+			Mesh.AddInstance(FTransform());
+		}
+		while (Mesh.GetInstanceCount() > N)
+		{
+			Mesh.RemoveInstance(Mesh.GetInstanceCount() - 1);
+		}
+	}
+
+	void PrintNodeModifiedAlreadyInitializedWarning()
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Route node modification to already initialized Cable. This route node will be "
+				 "ignored."));
+	}
+}
+
 UAGX_CableComponent::UAGX_CableComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	// Add a pair of default nodes to make initial editing easier.
+	AddNodeAtLocation(FVector::ZeroVector);
+	AddNodeAtLocation(FVector(100.0f, 0.0f, 0.0f));
+
+	AGX_CableComponent_helpers::SetLocalScope(*this);
+
+	// Setup default visuals.
+	static const TCHAR* CableMatAssetPath =
+		TEXT("Material'/AGXUnreal/Cable/MI_GrayCable.MI_GrayCable'");
+	RenderMaterial = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CableMatAssetPath);
 }
 
 void UAGX_CableComponent::SetRenderMaterial(UMaterialInterface* Material)
@@ -34,6 +98,129 @@ void UAGX_CableComponent::SetRenderMaterial(UMaterialInterface* Material)
 
 	if (VisualSpheres != nullptr)
 		VisualSpheres->SetMaterial(0, RenderMaterial);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNode()
+{
+	int32 _;
+	return AddNode(_);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNode(int32& OutIndex)
+{
+	return AddNode(FAGX_CableRouteNode(), OutIndex);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::CreateNode(int32& OutIndex)
+{
+	return AddNode(OutIndex);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNode(const FAGX_CableRouteNode& InNode)
+{
+	int32 _;
+	return AddNode(InNode, _);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNode(const FAGX_CableRouteNode& InNode, int32& OutIndex)
+{
+	const int32 Index = RouteNodes.Num();
+	OutIndex = Index;
+	return AddNodeAtIndex(InNode, Index);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocation(FVector InLocation)
+{
+	int32 _;
+	return AddNodeAtLocation(InLocation, _);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocation(FVector InLocation, int32& OutIndex)
+{
+	return AddNode(FAGX_CableRouteNode(InLocation), OutIndex);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocationAtIndex(FVector InLocation, int32 InIndex)
+{
+	return AddNodeAtIndex(FAGX_CableRouteNode(InLocation), InIndex);
+}
+
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtIndex(const FAGX_CableRouteNode& InNode, int32 InIndex)
+{
+	if (HasNative())
+	{
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+	}
+	if (!RouteNodes.IsValidIndex(InIndex) && InIndex != RouteNodes.Num())
+	{
+		// Nodes may only be added at an index where there already is a node, or one-past-end.
+		return InvalidRoutingNode;
+	}
+	RouteNodes.Insert(InNode, InIndex);
+	FAGX_CableRouteNode& NewNode = RouteNodes[InIndex];
+	AActor* LocalScope = FAGX_ObjectUtilities::GetRootParentActor(this);
+	AGX_CableComponent_helpers::SetLocalScope(NewNode, LocalScope);
+	return NewNode;
+}
+
+void UAGX_CableComponent::SetNode(const int32 InIndex, const FAGX_CableRouteNode InNode)
+{
+	if (HasNative())
+	{
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+	}
+	if (!RouteNodes.IsValidIndex(InIndex))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Out-of-bounds index %d for route nodes array was passed to Set Node in Cable "
+				 "Component '%s' in Actor '%s'"),
+			InIndex, *GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+	RouteNodes[InIndex] = InNode;
+	AActor* LocalScope = FAGX_ObjectUtilities::GetRootParentActor(this);
+	AGX_CableComponent_helpers::SetLocalScope(RouteNodes[InIndex], LocalScope);
+}
+
+void UAGX_CableComponent::RemoveNode(int32 InIndex)
+{
+	if (HasNative())
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+
+	RouteNodes.RemoveAt(InIndex);
+}
+
+void UAGX_CableComponent::SetNodeLocalLocation(int32 InIndex, FVector InLocation)
+{
+	if (HasNative())
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+
+	RouteNodes[InIndex].Frame.LocalLocation = InLocation;
+}
+
+void UAGX_CableComponent::SetNodeLocation(int32 InIndex, const FVector InLocation)
+{
+	if (HasNative())
+	{
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+	}
+	USceneComponent* Parent = RouteNodes[InIndex].Frame.GetParentComponent();
+	if (Parent == nullptr)
+	{
+		// No parent means the LocalLocation is relative to the Cable Component and thus InLocation
+		// can be used as-is.
+		RouteNodes[InIndex].Frame.LocalLocation = InLocation;
+		return;
+	}
+
+	// Compute a local location relative to the parent that has the same world location as
+	// InLocation in the Cable Component.
+	const FTransform& ParentTransform = Parent->GetComponentTransform();
+	const FTransform& CableTransform = GetComponentTransform();
+	const FTransform& CableToParent = CableTransform.GetRelativeTransform(ParentTransform);
+	const FVector LocationInParent = CableToParent.TransformPosition(InLocation);
+	RouteNodes[InIndex].Frame.LocalLocation = LocationInParent;
 }
 
 FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
@@ -89,6 +276,11 @@ TArray<FAGX_CableNodeInfo> UAGX_CableComponent::GetNodeInfo() const
 	}
 
 	return Nodes;
+}
+
+void UAGX_CableComponent::MarkVisualsDirty()
+{
+	UpdateVisuals();
 }
 
 FCableBarrier* UAGX_CableComponent::GetNative()
@@ -170,45 +362,6 @@ void UAGX_CableComponent::TickComponent(
 	UpdateVisuals();
 }
 
-namespace AGX_CableComponent_helpers
-{
-	std::tuple<FRigidBodyBarrier*, FTransform> GetBodyAndLocalTransform(
-		const FAGX_CableRouteNode& RouteNode, const FTransform& CableTransform)
-	{
-		UAGX_RigidBodyComponent* BodyComponent = RouteNode.RigidBody.GetRigidBody();
-		if (BodyComponent == nullptr)
-		{
-			return {nullptr, FTransform::Identity};
-		}
-		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
-		check(NativeBody);
-		const FVector LocalLocation =
-			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, CableTransform);
-		const FRotator LocalRotator = RouteNode.Frame.GetRotationRelativeTo(*BodyComponent);
-		return {NativeBody, {LocalRotator, LocalLocation}};
-	}
-
-	void SetLocalScope(UAGX_CableComponent& Component)
-	{
-		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
-		for (auto& Node : Component.RouteNodes)
-			Node.RigidBody.LocalScope = Owner;
-	}
-
-	void SetVisualsInstanceCount(UInstancedStaticMeshComponent& Mesh, int32 Count)
-	{
-		const int32 N = std::max(0, Count);
-		while (Mesh.GetInstanceCount() < N)
-		{
-			Mesh.AddInstance(FTransform());
-		}
-		while (Mesh.GetInstanceCount() > N)
-		{
-			Mesh.RemoveInstance(Mesh.GetInstanceCount() - 1);
-		}
-	}
-}
-
 void UAGX_CableComponent::CreateNative()
 {
 	if (HasNative())
@@ -253,7 +406,9 @@ void UAGX_CableComponent::CreateNative()
 				break;
 			}
 		}
-		NativeBarrier.Add(NodeBarrier);
+
+		if (NodeBarrier.HasNative())
+			NativeBarrier.Add(NodeBarrier);
 	}
 
 	if (ErrorMessages.Num() > 0)
@@ -394,7 +549,7 @@ void UAGX_CableComponent::CreateVisuals()
 	VisualCylinders->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	static const TCHAR* CylinderAssetPath =
-		TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualCylinder.SM_WireVisualCylinder'");
+		TEXT("StaticMesh'/AGXUnreal/Cable/SM_CableVisualCylinder.SM_CableVisualCylinder'");
 	VisualCylinders->SetStaticMesh(
 		FAGX_ObjectUtilities::GetAssetFromPath<UStaticMesh>(CylinderAssetPath));
 	VisualCylinders->SetMaterial(0, RenderMaterial);
@@ -405,7 +560,7 @@ void UAGX_CableComponent::CreateVisuals()
 	VisualSpheres->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	static const TCHAR* SphereAssetPath =
-		TEXT("StaticMesh'/AGXUnreal/Wire/SM_WireVisualSphere.SM_WireVisualSphere'");
+		TEXT("StaticMesh'/AGXUnreal/Cable/SM_CableVisualSphere.SM_CableVisualSphere'");
 	VisualSpheres->SetStaticMesh(
 		FAGX_ObjectUtilities::GetAssetFromPath<UStaticMesh>(SphereAssetPath));
 	VisualSpheres->SetMaterial(0, RenderMaterial);

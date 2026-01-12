@@ -5,6 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_RigidBodyComponent.h"
 
+
+FAGX_CableRouteNode InvalidRoutingNode(EAGX_CableNodeType::Invalid);
+
 void FAGX_CableRouteNode::SetBody(UAGX_RigidBodyComponent* Body)
 {
 	RigidBody.SetComponent(Body);
