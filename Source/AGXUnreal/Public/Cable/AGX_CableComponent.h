@@ -137,7 +137,8 @@ public:
 	 * @param InIndex The place in the route node array to add the node at.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable Route")
-	UPARAM(Ref) FAGX_CableRouteNode& AddNodeAtIndex(const FAGX_CableRouteNode& InNode, int32 InIndex);
+	UPARAM(Ref)
+	FAGX_CableRouteNode& AddNodeAtIndex(const FAGX_CableRouteNode& InNode, int32 InIndex);
 
 	/**
 	 * Add a default-constructed route node, placed at the given local location, at the designated

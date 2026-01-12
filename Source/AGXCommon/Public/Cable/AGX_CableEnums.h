@@ -9,7 +9,7 @@
 UENUM(BlueprintType)
 enum class EAGX_CableNodeType : uint8
 {
-  Free,
-  BodyFixed,
-  Invalid
+	Free,
+	BodyFixed,
+	NumNodeTypes
 };

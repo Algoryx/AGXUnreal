@@ -122,7 +122,8 @@ FAGX_CableRouteNode& UAGX_CableComponent::AddNode(const FAGX_CableRouteNode& InN
 	return AddNode(InNode, _);
 }
 
-FAGX_CableRouteNode& UAGX_CableComponent::AddNode(const FAGX_CableRouteNode& InNode, int32& OutIndex)
+FAGX_CableRouteNode& UAGX_CableComponent::AddNode(
+	const FAGX_CableRouteNode& InNode, int32& OutIndex)
 {
 	const int32 Index = RouteNodes.Num();
 	OutIndex = Index;
@@ -140,12 +141,14 @@ FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocation(FVector InLocation, 
 	return AddNode(FAGX_CableRouteNode(InLocation), OutIndex);
 }
 
-FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocationAtIndex(FVector InLocation, int32 InIndex)
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtLocationAtIndex(
+	FVector InLocation, int32 InIndex)
 {
 	return AddNodeAtIndex(FAGX_CableRouteNode(InLocation), InIndex);
 }
 
-FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtIndex(const FAGX_CableRouteNode& InNode, int32 InIndex)
+FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtIndex(
+	const FAGX_CableRouteNode& InNode, int32 InIndex)
 {
 	if (HasNative())
 	{

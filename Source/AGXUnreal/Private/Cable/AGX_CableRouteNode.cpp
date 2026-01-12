@@ -6,7 +6,7 @@
 #include "AGX_RigidBodyComponent.h"
 
 
-FAGX_CableRouteNode InvalidCableRoutingNode(EAGX_CableNodeType::Invalid);
+FAGX_CableRouteNode InvalidCableRoutingNode(EAGX_CableNodeType::NumNodeTypes);
 
 void FAGX_CableRouteNode::SetBody(UAGX_RigidBodyComponent* Body)
 {
