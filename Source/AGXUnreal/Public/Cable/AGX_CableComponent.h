@@ -39,12 +39,12 @@ public:
 	double Radius {3.0};
 
 	/**
-	 * The resolution of the Cable, i.e. the number of lumped elements per centimeter.
+	 * The length of each Cable segments, or lumped elements [cm].
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
-		Meta = (ClampMin = "0", UIMin = "0"))
-	double ResolutionPerUnitLength {0.03};
+		Meta = (ClampMin = "0.1", UIMin = "0.1"))
+	double SegmentLength {30.0};
 
 	/**
 	 * Scale to apply to the radius when rendering the Cable.

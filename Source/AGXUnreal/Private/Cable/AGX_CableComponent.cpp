@@ -371,7 +371,7 @@ void UAGX_CableComponent::CreateNative()
 		return;
 
 	check(!GIsReconstructingBlueprintInstances);
-	NativeBarrier.AllocateNative(Radius, ResolutionPerUnitLength);
+	NativeBarrier.AllocateNative(Radius, SegmentLength);
 
 	TArray<FString> ErrorMessages;
 	for (int32 I = 0; I < RouteNodes.Num(); ++I)
@@ -459,7 +459,7 @@ bool UAGX_CableComponent::CanEditChange(const FProperty* InProperty) const
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(ThisClass, Radius),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ResolutionPerUnitLength),
+			GET_MEMBER_NAME_CHECKED(ThisClass, SegmentLength),
 			GET_MEMBER_NAME_CHECKED(ThisClass, RouteNodes)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))

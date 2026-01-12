@@ -9,6 +9,9 @@
 #include "Cable/AGX_CableNodeInfo.h"
 #include "Cable/CableNodeBarrier.h"
 
+// Standard library inludes.
+#include <algorithm>
+
 FCableBarrier::FCableBarrier()
 	: NativeRef {new FCableRef}
 {
@@ -20,11 +23,12 @@ FCableBarrier::FCableBarrier(std::shared_ptr<FCableRef> Native)
 	check(NativeRef);
 }
 
-void FCableBarrier::AllocateNative(double Radius, double ResolutionPerUnitLength)
+void FCableBarrier::AllocateNative(double Radius, double SegmentLength)
 {
 	check(!HasNative());
 	agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
-	agx::Real ResolutionPerUnitLengthAGX = ConvertDistanceInvToAGX(ResolutionPerUnitLength);
+	const double SegmentLengthSafe = std::max(0.1, SegmentLength);
+	agx::Real ResolutionPerUnitLengthAGX = ConvertDistanceInvToAGX(1.0 / SegmentLengthSafe);
 	NativeRef->Native = new agxCable::Cable(RadiusAGX, ResolutionPerUnitLengthAGX);
 }
 

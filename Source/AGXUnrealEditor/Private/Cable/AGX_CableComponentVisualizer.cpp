@@ -24,7 +24,7 @@ namespace AGX_CableComponentVisualizer_helpers
 	void DrawBodyFixedNodesWithLockedRotation(
 		const UAGX_CableComponent& Cable, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 	{
-		if (Cable.ResolutionPerUnitLength <= 0.0)
+		if (Cable.SegmentLength <= 0.0)
 			return;
 
 		UWorld* World = Cable.GetWorld();
@@ -32,7 +32,6 @@ namespace AGX_CableComponentVisualizer_helpers
 			return;
 
 		const static FColor Color = FAGX_SlateUtilities::GetAGXColorOrange();
-		const double SegLen = 1.0 / Cable.ResolutionPerUnitLength;
 		for (auto& Node : Cable.RouteNodes)
 		{
 			if (Node.NodeType == EAGX_CableNodeType::BodyFixed && Node.LockRotationToBody)
@@ -42,7 +41,7 @@ namespace AGX_CableComponentVisualizer_helpers
 
 				const FVector Start = WorldTransform.GetLocation();
 				const FVector Direction = WorldTransform.GetUnitAxis(EAxis::Z);
-				const FVector End = Start + Direction * SegLen;
+				const FVector End = Start + Direction * Cable.SegmentLength;
 				PDI->DrawLine(Start, End, Color, SDPG_Foreground, 1.5f);
 			}
 		}
