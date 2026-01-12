@@ -67,4 +67,4 @@ struct AGXUNREAL_API FAGX_CableRouteNode
 
 /// A globally accessible Routing Node that is used when a function with a node reference return
 /// type need to signal a failure.
-extern FAGX_CableRouteNode InvalidRoutingNode;
+extern FAGX_CableRouteNode InvalidCableRoutingNode;

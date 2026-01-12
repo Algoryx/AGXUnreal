@@ -154,7 +154,7 @@ FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtIndex(const FAGX_CableRouteNo
 	if (!RouteNodes.IsValidIndex(InIndex) && InIndex != RouteNodes.Num())
 	{
 		// Nodes may only be added at an index where there already is a node, or one-past-end.
-		return InvalidRoutingNode;
+		return InvalidCableRoutingNode;
 	}
 	RouteNodes.Insert(InNode, InIndex);
 	FAGX_CableRouteNode& NewNode = RouteNodes[InIndex];
