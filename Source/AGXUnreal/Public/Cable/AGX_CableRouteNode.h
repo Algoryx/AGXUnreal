@@ -62,20 +62,6 @@ struct AGXUNREAL_API FAGX_CableRouteNode
 		Meta = (EditCondition = "NodeType == EAGX_CableNodeType::BodyFixed"))
 	bool LockRotationToBody {false};
 
-	FAGX_CableRouteNode()
-	{
-	}
-
-	FAGX_CableRouteNode(EAGX_CableNodeType InNodeType)
-		: NodeType(InNodeType)
-	{
-	}
-
-	FAGX_CableRouteNode(const FVector& InLocation)
-	{
-		Frame.LocalLocation = InLocation;
-	}
-
 	void SetBody(UAGX_RigidBodyComponent* Body);
 };
 
