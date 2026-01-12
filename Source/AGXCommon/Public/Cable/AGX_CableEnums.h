@@ -11,5 +11,5 @@ enum class EAGX_CableNodeType : uint8
 {
 	Free,
 	BodyFixed,
-	NumNodeTypes
+	NumNodeTypes UMETA(HIDDEN)
 };
