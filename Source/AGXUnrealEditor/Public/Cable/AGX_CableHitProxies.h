@@ -2,10 +2,11 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Cable/AGX_CableComponent.h"
+
 // Unreal Engine includes.
 #include "ComponentVisualizer.h"
-
-class UAGX_CableComponent;
 
 /**
  * Data associated with clickable node visualization elements.
