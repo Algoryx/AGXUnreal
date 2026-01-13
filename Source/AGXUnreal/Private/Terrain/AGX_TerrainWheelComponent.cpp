@@ -1,0 +1,220 @@
+// Copyright 2025, Algoryx Simulation AB.
+
+#include "Terrain/AGX_TerrainWheelComponent.h"
+
+// AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
+#include "AGX_NativeOwnerInstanceData.h"
+#include "AGX_PropertyChangedDispatcher.h"
+#include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
+
+#define LOCTEXT_NAMESPACE "AGX_TerrainWheelComponent"
+
+namespace AGX_TerrainWheelComponent_helpers
+{
+	void SetLocalScope(UAGX_TerrainWheelComponent& TerrainWheel)
+	{
+		// TODO
+	}
+}
+
+UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
+}
+
+
+
+void UAGX_TerrainWheelComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	// This code is run after the constructor and after Init Properties, where property values are
+	// copied from the Class Default Object, but before deserialization in cases where this object
+	// is created from another, such as at the start of a Play-in-Editor session or when loading
+	// a map in a cooked build (I hope).
+	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
+
+#if WITH_EDITOR
+	InitPropertyDispatcher();
+#endif
+}
+
+#if WITH_EDITOR
+void UAGX_TerrainWheelComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+
+	// If we are part of a Blueprint then this will trigger a RerunConstructionScript on the owning
+	// Actor. That means that this object will be removed from the Actor and destroyed. We want to
+	// apply all our changes before that so that they are carried over to the copy.
+	Super::PostEditChangeChainProperty(Event);
+}
+#endif
+
+void UAGX_TerrainWheelComponent::OnRegister()
+{
+	Super::OnRegister();
+	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
+}
+
+void UAGX_TerrainWheelComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNative();
+
+	if (!HasNative())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Unable to create Native TerrainWheel for '%s' in '%s', Output Log may contain more "
+					 "information."),
+				*GetName(), *GetNameSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+		return;
+	}
+}
+
+void UAGX_TerrainWheelComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	Super::EndPlay(Reason);
+
+	if (GIsReconstructingBlueprintInstances)
+	{
+		// Another UAGX_TerrainWheelComponent will inherit this one's Native, so don't wreck it.
+		// The call to NativeBarrier.ReleaseNative below is safe because the AGX Dynamics
+		// Simulation will retain a reference counted pointer to the AGX Dynamics Observer
+		// Frame.
+	}
+	else if (
+		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	{
+		// TODO: Remove from Simulation.
+	}
+
+	if (HasNative())
+		NativeBarrier.ReleaseNative();
+}
+
+TStructOnScope<FActorComponentInstanceData> UAGX_TerrainWheelComponent::GetComponentInstanceData() const
+{
+	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
+		this, this,
+		[](UActorComponent* Component)
+		{
+			ThisClass* AsThisClass = Cast<ThisClass>(Component);
+			return static_cast<IAGX_NativeOwner*>(AsThisClass);
+		});
+}
+
+bool UAGX_TerrainWheelComponent::HasNative() const
+{
+	return NativeBarrier.HasNative();
+}
+
+uint64 UAGX_TerrainWheelComponent::GetNativeAddress() const
+{
+	if (!HasNative())
+	{
+		return 0;
+	}
+	NativeBarrier.IncrementRefCount();
+	return NativeBarrier.GetNativeAddress();
+}
+
+void UAGX_TerrainWheelComponent::SetNativeAddress(uint64 NativeAddress)
+{
+	check(!HasNative());
+	NativeBarrier.SetNativeAddress(NativeAddress);
+	NativeBarrier.DecrementRefCount();
+}
+
+FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetOrCreateNative()
+{
+	if (!HasNative())
+	{
+		if (GIsReconstructingBlueprintInstances)
+		{
+			// We're in a very bad situation. Someone need this Component's native but if we're
+			// in the middle of a RerunConstructionScripts and this Component haven't been given
+			// its Native yet then there isn't much we can do. We can't create a new one since
+			// we will be given the actual Native soon, but we also can't return the actual
+			// Native right now because it hasn't been restored from the Component Instance Data
+			// yet.
+			//
+			// For now we simply die in non-shipping (checkNoEntry is active) so unit tests will
+			// detect this situation, and log error and return nullptr otherwise, so that the
+			// application can at least keep running. It is unlikely that the simulation will
+			// behave as intended.
+			checkNoEntry();
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("A request for the AGX Dynamics instance for TerrainWheel '%s' in '%s' was made "
+					 "but we are in the middle of a Blueprint Reconstruction and the requested "
+					 "instance has not yet been restored. The instance cannot be returned, "
+					 "which may lead to incorrect scene configuration."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+			return nullptr;
+		}
+		CreateNative();
+	}
+	
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("'%s' in '%s': Could not allocate AGX Dynamics TerrainWheel in "
+				 "UAGX_TerrainWheelComponent::GetOrCreateNative, nullptr will be returned to caller."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+	}
+
+	return GetNative();
+}
+
+FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetNative()
+{
+	if (!HasNative())
+	{
+		return nullptr;
+	}
+
+	return &NativeBarrier;
+}
+
+const FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetNative() const
+{
+	if (!HasNative())
+	{
+		return nullptr;
+	}
+	return &NativeBarrier;
+}
+
+#if WITH_EDITOR
+void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+	{
+		return;
+	}
+
+	// TODO: add properties here.
+}
+#endif
+
+void UAGX_TerrainWheelComponent::CreateNative()
+{
+	// TODO
+}
+
+#undef LOCTEXT_NAMESPACE
