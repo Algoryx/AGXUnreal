@@ -111,6 +111,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_StaticMeshComponent",
 		new IMAGE_BRUSH("Icons/static_mesh_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_CableComponent",
+		new IMAGE_BRUSH("Icons/cable_32x32", IconSize16));
 	// Collisions
 	Style->Set(
 		"ClassIcon.AGX_CollisionGroupAdderComponent",
