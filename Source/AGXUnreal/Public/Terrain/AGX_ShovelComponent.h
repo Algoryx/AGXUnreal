@@ -2,7 +2,7 @@
 
 #pragma once
 
-// AGX Dynamics for Unreal include.s
+// AGX Dynamics for Unreal includes.
 #include "AGX_Edge.h"
 #include "AGX_Frame.h"
 #include "AGX_NativeOwner.h"
