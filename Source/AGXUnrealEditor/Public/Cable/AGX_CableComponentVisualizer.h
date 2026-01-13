@@ -10,6 +10,7 @@
 class FPrimitiveDrawInterface;
 class FSceneView;
 class UActorComponent;
+class UAGX_CableComponent;
 
 class AGXUNREALEDITOR_API FAGX_CableComponentVisualizer : public FComponentVisualizer
 {
