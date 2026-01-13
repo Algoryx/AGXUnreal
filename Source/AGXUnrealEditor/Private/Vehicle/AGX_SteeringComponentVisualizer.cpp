@@ -53,7 +53,11 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		const UAGX_SteeringParameters& Params, FVector& OutLeft, FVector& OutRight)
 	{
 		const FVector WheelBase = AttachmentLeft.GetLocation() - AttachmentRight.GetLocation();
-		const FVector WheelBaseDir = WheelBase.GetSafeNormal();
+		const FVector WheelBaseDir = [&WheelBase, &AttachmentLeft]()
+		{
+			auto V = WheelBase.GetSafeNormal();
+			return V.Length() > 0 ? V : AttachmentLeft.GetUnitAxis(EAxis::Y);
+		}();
 
 		const double Angle = Params.SteeringData.Phi0;
 		FVector KingpinDirLeft =
