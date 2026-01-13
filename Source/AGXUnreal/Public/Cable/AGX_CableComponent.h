@@ -35,7 +35,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
-		Meta = (ClampMin = "0", UIMin = "0"))
+		Meta = (ClampMin = "0", UIMin = "0", ExposeOnSpawn))
 	double Radius {3.0};
 
 	/**
@@ -43,7 +43,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
-		Meta = (ClampMin = "0.1", UIMin = "0.1"))
+		Meta = (ClampMin = "0.1", UIMin = "0.1", ExposeOnSpawn))
 	double SegmentLength {30.0};
 
 	/**
@@ -68,7 +68,8 @@ public:
 	 * At BeginPlay these nodes are used to create simulation nodes, after that these nodes are not
 	 * used and will not be updated during Play.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Route")
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Route", Meta = (ExposeOnSpawn))
 	TArray<FAGX_CableRouteNode> RouteNodes;
 
 	/**
