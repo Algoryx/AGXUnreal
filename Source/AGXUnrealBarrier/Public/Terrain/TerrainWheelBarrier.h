@@ -20,6 +20,8 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	FTerrainWheelBarrier();
 	FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> Native);
 
+	void AllocateNative(double Radius, double Width);
+
 	FGuid GetGuid() const;
 
 	bool HasNative() const;

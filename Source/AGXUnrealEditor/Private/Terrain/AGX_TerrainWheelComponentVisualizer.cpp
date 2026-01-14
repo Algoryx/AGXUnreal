@@ -15,22 +15,22 @@
 namespace
 {
 	void DrawTerrainWheelPrimitive(
-		const FTransform& TerrainWheelTransform, float OuterRadius, const FSceneView* View,
+		const FTransform& TerrainWheelTransform, float Radius, float Wdith, const FSceneView* View,
 		FPrimitiveDrawInterface* PDI, FColor Color)
 	{
-		if (OuterRadius <= 0.f)
+		if (Radius <= 0.f)
 			return;
 
 		constexpr int32 NUM_SIDES {64};
-		const float OuterCylinderHalfHeight = 0.1f * OuterRadius;
+		const float OuterCylinderHalfHeight = 0.5f * Wdith;
 
 		DrawWireCylinder(
 			PDI, TerrainWheelTransform.GetLocation(), TerrainWheelTransform.GetUnitAxis(EAxis::Z),
 			TerrainWheelTransform.GetUnitAxis(EAxis::X),
-			TerrainWheelTransform.GetUnitAxis(EAxis::Y), Color, OuterRadius,
-			OuterCylinderHalfHeight, NUM_SIDES, SDPG_Foreground);
+			TerrainWheelTransform.GetUnitAxis(EAxis::Y), Color, Radius, OuterCylinderHalfHeight,
+			NUM_SIDES, SDPG_Foreground);
 
-		const float HalfLineLength = OuterRadius * 0.4;
+		const float HalfLineLength = Radius * 0.4f;
 		const float LineThickness = 1.f;
 		const FVector LineStart = TerrainWheelTransform.GetLocation() +
 								  TerrainWheelTransform.GetUnitAxis(EAxis::Y) * HalfLineLength;
@@ -55,7 +55,8 @@ namespace
 		const FColor TerrainWheelPrimitiveColor(140, 230, 50);
 		const FTransform Transform(Body->GetRotation(), Body->GetPosition());
 		DrawTerrainWheelPrimitive(
-			Transform, TerrainWheel->Radius, View, PDI, TerrainWheelPrimitiveColor);
+			Transform, static_cast<float>(TerrainWheel->Radius),
+			static_cast<float>(TerrainWheel->Width), View, PDI, TerrainWheelPrimitiveColor);
 	}
 }
 

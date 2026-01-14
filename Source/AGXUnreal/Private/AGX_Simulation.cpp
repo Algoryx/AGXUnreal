@@ -24,6 +24,7 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -338,6 +339,12 @@ bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	return Result;
 }
 
+bool UAGX_Simulation::Add(UAGX_TerrainWheelComponent& Wheel)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Wheel);
+}
+
 bool UAGX_Simulation::Add(UAGX_TireComponent& Tire)
 {
 	EnsureStepperCreated();
@@ -427,6 +434,11 @@ bool UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	}();
 
 	return Result;
+}
+
+bool UAGX_Simulation::Remove(UAGX_TerrainWheelComponent& Wheel)
+{
+	return AGX_Simulation_helpers::Remove(*this, Wheel);
 }
 
 bool UAGX_Simulation::Remove(UAGX_TireComponent& Tire)

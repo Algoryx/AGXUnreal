@@ -17,6 +17,14 @@ FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InN
 {
 }
 
+void FTerrainWheelBarrier::AllocateNative(double Radius, double Width)
+{
+	check(!HasNative());
+	const double RadiusAGX = ConvertDistanceToAGX(Radius);
+	const double WidthAGX = ConvertDistanceToAGX(Width);
+	NativeRef->Native = new agxTerrain::TerrainWheel(RadiusAGX, WidthAGX);
+}
+
 FGuid FTerrainWheelBarrier::GetGuid() const
 {
 	check(HasNative());

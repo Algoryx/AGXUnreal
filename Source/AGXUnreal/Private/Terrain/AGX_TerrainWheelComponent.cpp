@@ -6,6 +6,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -26,8 +27,6 @@ UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
 }
-
-
 
 void UAGX_TerrainWheelComponent::PostInitProperties()
 {
@@ -76,8 +75,8 @@ void UAGX_TerrainWheelComponent::BeginPlay()
 	{
 		FAGX_NotificationUtilities::ShowNotification(
 			FString::Printf(
-				TEXT("Unable to create Native TerrainWheel for '%s' in '%s', Output Log may contain more "
-					 "information."),
+				TEXT("Unable to create Native TerrainWheel for '%s' in '%s', Output Log may "
+					 "contain more information."),
 				*GetName(), *GetNameSafe(GetOwner())),
 			SNotificationItem::CS_Fail);
 		return;
@@ -99,14 +98,16 @@ void UAGX_TerrainWheelComponent::EndPlay(const EEndPlayReason::Type Reason)
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
-		// TODO: Remove from Simulation.
+		if (UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this))
+			Sim->Remove(*this);
 	}
 
 	if (HasNative())
 		NativeBarrier.ReleaseNative();
 }
 
-TStructOnScope<FActorComponentInstanceData> UAGX_TerrainWheelComponent::GetComponentInstanceData() const
+TStructOnScope<FActorComponentInstanceData> UAGX_TerrainWheelComponent::GetComponentInstanceData()
+	const
 {
 	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerInstanceData>(
 		this, this,
@@ -159,7 +160,8 @@ FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetOrCreateNative()
 			checkNoEntry();
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("A request for the AGX Dynamics instance for TerrainWheel '%s' in '%s' was made "
+				TEXT("A request for the AGX Dynamics instance for TerrainWheel '%s' in '%s' was "
+					 "made "
 					 "but we are in the middle of a Blueprint Reconstruction and the requested "
 					 "instance has not yet been restored. The instance cannot be returned, "
 					 "which may lead to incorrect scene configuration."),
@@ -168,13 +170,14 @@ FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetOrCreateNative()
 		}
 		CreateNative();
 	}
-	
+
 	if (!HasNative())
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("'%s' in '%s': Could not allocate AGX Dynamics TerrainWheel in "
-				 "UAGX_TerrainWheelComponent::GetOrCreateNative, nullptr will be returned to caller."),
+				 "UAGX_TerrainWheelComponent::GetOrCreateNative, nullptr will be returned to "
+				 "caller."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 	}
 
@@ -184,9 +187,7 @@ FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetOrCreateNative()
 FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetNative()
 {
 	if (!HasNative())
-	{
 		return nullptr;
-	}
 
 	return &NativeBarrier;
 }
@@ -194,9 +195,8 @@ FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetNative()
 const FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetNative() const
 {
 	if (!HasNative())
-	{
 		return nullptr;
-	}
+
 	return &NativeBarrier;
 }
 
@@ -228,8 +228,7 @@ bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) cons
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, Radius),
-			GET_MEMBER_NAME_CHECKED(ThisClass, Width),
+			GET_MEMBER_NAME_CHECKED(ThisClass, Radius), GET_MEMBER_NAME_CHECKED(ThisClass, Width),
 			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
@@ -243,7 +242,24 @@ bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) cons
 
 void UAGX_TerrainWheelComponent::CreateNative()
 {
-	// TODO
+	if (HasNative())
+		return;
+
+	// TOODO: validate body + cylinder and use the correct constructor in the Barrier!
+
+	NativeBarrier.AllocateNative(Radius, Width);
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create Native Terrain Wheel for '%s' in '%s'. The Output Log may "
+				 "contain more details."),
+			*GetName(), *GetNameSafe(GetOwner()));
+		return;
+	}
+
+	if (auto Sim = UAGX_Simulation::GetFrom(this))
+		Sim->Add(*this);
 }
 
 #undef LOCTEXT_NAMESPACE
