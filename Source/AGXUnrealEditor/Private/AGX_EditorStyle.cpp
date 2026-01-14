@@ -225,6 +225,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_TerrainWheelComponent",
+		new IMAGE_BRUSH("Icons/two_wheel_tire_32x32", IconSize16));
 	// Track.
 	Style->Set("ClassIcon.AGX_TrackComponent", new IMAGE_BRUSH("Icons/track_32x32", IconSize16));
 	Style->Set(

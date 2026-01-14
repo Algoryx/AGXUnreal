@@ -96,6 +96,8 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelComponentVisualizer.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentVisualizer.h"
@@ -723,6 +725,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_SteeringComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_TerrainWheelComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_TerrainWheelComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_TireComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_TireComponentVisualizer));
 
@@ -750,6 +756,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_LidarSensorLineTraceComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_SteeringComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_TerrainWheelComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TireComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TrackComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireComponent::StaticClass()->GetFName());

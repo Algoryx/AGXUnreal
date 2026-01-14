@@ -7,6 +7,7 @@
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 #define LOCTEXT_NAMESPACE "AGX_TerrainWheelComponent"
@@ -15,7 +16,8 @@ namespace AGX_TerrainWheelComponent_helpers
 {
 	void SetLocalScope(UAGX_TerrainWheelComponent& TerrainWheel)
 	{
-		// TODO
+		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(TerrainWheel);
+		TerrainWheel.RigidBody.LocalScope = Owner;
 	}
 }
 
@@ -210,7 +212,34 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	// TODO: add properties here.
 }
-#endif
+bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+	{
+		return SuperCanEditChange;
+	}
+
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
+	{
+		// List of names of properties that does not support editing after initialization.
+		static const TArray<FName> PropertiesNotEditableDuringPlay = {
+			GET_MEMBER_NAME_CHECKED(ThisClass, Radius),
+			GET_MEMBER_NAME_CHECKED(ThisClass, Width),
+			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+		{
+			return false;
+		}
+	}
+	return SuperCanEditChange;
+}
+#endif // WITH_EDITOR
 
 void UAGX_TerrainWheelComponent::CreateNative()
 {

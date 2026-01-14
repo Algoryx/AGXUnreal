@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "AGX_RigidBodyReference.h"
 #include "Terrain/TerrainWheelBarrier.h"
 
 // Unreal Engine includes.
@@ -12,7 +13,6 @@
 
 #include "AGX_TerrainWheelComponent.generated.h"
 
-
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_TerrainWheelComponent : public UActorComponent, public IAGX_NativeOwner
 {
@@ -20,6 +20,30 @@ class AGXUNREAL_API UAGX_TerrainWheelComponent : public UActorComponent, public 
 
 public:
 	UAGX_TerrainWheelComponent();
+
+	/**
+	 * The radius of this Terrain Wheel [cm].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
+	double Radius {30.0};
+
+	/**
+	 * The width of this Terrain Wheel [cm].
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
+	double Width {20.0};
+
+	/**
+	 * Reference to the Rigid Body to be used for this Terrain Wheel Component.
+	 * This Rigid Body must contain a Cylinder Shape to act as the contacting Shape of this wheel.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
+	FAGX_RigidBodyReference RigidBody;
+
+	UPROPERTY(EditAnywhere, Category = "Rendering")
+	bool Visible {true};
 
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
@@ -53,6 +77,7 @@ public:
 private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
 
 	void CreateNative();
