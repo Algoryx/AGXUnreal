@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Cable/AGX_CableProperties.h"
 #include "Cable/CableNodeBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -87,6 +88,29 @@ UAGX_CableComponent::UAGX_CableComponent()
 	static const TCHAR* CableMatAssetPath =
 		TEXT("Material'/AGXUnreal/Cable/MI_GrayCable.MI_GrayCable'");
 	RenderMaterial = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CableMatAssetPath);
+}
+
+bool UAGX_CableComponent::SetCableProperties(UAGX_CableProperties* Properties)
+{
+	UAGX_CableProperties* CablePropertiesOrig = CableProperties;
+	CableProperties = Properties;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeCableProperties())
+	{
+		// Something went wrong, restore original CableProperties.
+		CableProperties = CablePropertiesOrig;
+		return false;
+	}
+
+	return true;
 }
 
 void UAGX_CableComponent::SetRenderMaterial(UMaterialInterface* Material)
@@ -427,6 +451,7 @@ void UAGX_CableComponent::CreateNative()
 	}
 
 	UpdateNativeProperties();
+	UpdateNativeCableProperties();
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
 	if (Simulation == nullptr)
@@ -476,7 +501,9 @@ void UAGX_CableComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	// TODO: add properties here.
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, CableProperties),
+		[](ThisClass* Self) { Self->UpdateNativeCableProperties(); });
 }
 
 bool UAGX_CableComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyName) const
@@ -703,4 +730,31 @@ void UAGX_CableComponent::RenderSelf()
 			0, SphereTransformsNew, VisualSphereTransformsPrev, /*bWorldSpace*/ true);
 		VisualSphereTransformsPrev = SphereTransformsNew;
 	}
+}
+
+bool UAGX_CableComponent::UpdateNativeCableProperties()
+{
+	if (!HasNative())
+		return false;
+
+	if (CableProperties == nullptr)
+	{
+		if (HasNative())
+			GetNative()->SetCablePropertiesToDefault();
+
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	UAGX_CableProperties* Instance =
+		static_cast<UAGX_CableProperties*>(CableProperties->GetOrCreateInstance(World));
+	check(Instance);
+
+	if (CableProperties != Instance)
+		CableProperties = Instance;
+
+	FCablePropertiesBarrier* MaterialBarrier = Instance->GetOrCreateNative();
+	check(MaterialBarrier);
+	GetNative()->SetCableProperties(*MaterialBarrier);
+	return true;
 }

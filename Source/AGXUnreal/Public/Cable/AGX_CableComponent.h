@@ -14,6 +14,7 @@
 
 #include "AGX_CableComponent.generated.h"
 
+class UAGX_CableProperties;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 
@@ -56,6 +57,12 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
 	double RenderRadiusScale {1.0};
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
+	UAGX_CableProperties* CableProperties;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	bool SetCableProperties(UAGX_CableProperties* Properties);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
 	UMaterialInterface* RenderMaterial {nullptr};
@@ -248,6 +255,7 @@ private:
 	bool DoesPropertyAffectVisuals(const FName& MemberPropertyName) const;
 #endif
 	void UpdateNativeProperties();
+	bool UpdateNativeCableProperties();
 	void CreateNative();
 	void CreateVisuals();
 	bool ShouldRenderSelf() const;

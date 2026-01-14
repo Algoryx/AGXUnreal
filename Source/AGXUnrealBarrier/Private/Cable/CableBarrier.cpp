@@ -8,6 +8,7 @@
 #include "BarrierOnly/Cable/CableRef.h"
 #include "Cable/AGX_CableNodeInfo.h"
 #include "Cable/CableNodeBarrier.h"
+#include "Cable/CablePropertiesBarrier.h"
 
 // Standard library inludes.
 #include <algorithm>
@@ -37,6 +38,30 @@ bool FCableBarrier::Add(FCableNodeBarrier& Node)
 	check(HasNative());
 	check(Node.HasNative());
 	return NativeRef->Native->add(Node.GetNative()->Native);
+}
+
+void FCableBarrier::SetCableProperties(FCablePropertiesBarrier& Properties)
+{
+	check(HasNative());
+	check(Properties.HasNative());
+	NativeRef->Native->setCableProperties(Properties.GetNative()->Native);
+}
+
+FCablePropertiesBarrier FCableBarrier::GetCableProperties() const
+{
+	check(HasNative());
+	return FCablePropertiesBarrier(
+		std::make_shared<FCablePropertiesRef>(NativeRef->Native->getCableProperties()));
+}
+
+void FCableBarrier::SetCablePropertiesToDefault()
+{
+	check(HasNative());
+
+	// Setting nullptr is not allowed in AGX.
+	FCablePropertiesBarrier Default;
+	Default.AllocateNative();
+	NativeRef->Native->setCableProperties(Default.GetNative()->Native);
 }
 
 namespace CableBarrier_helpers

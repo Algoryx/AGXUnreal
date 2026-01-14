@@ -4,6 +4,7 @@
 
 #include "BeginAGXIncludes.h"
 #include <agxCable/Cable.h>
+#include <agxCable/CableProperties.h>
 #include <agxCable/Node.h>
 #include "EndAGXIncludes.h"
 
@@ -18,9 +19,19 @@ struct FCableNodeRef
 	}
 };
 
+struct FCablePropertiesRef
+{
+	agxCable::CablePropertiesRef Native;
+
+	FCablePropertiesRef() = default;
+	FCablePropertiesRef(agxCable::CableProperties* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
 struct FCableRef
 {
-	using NativeType = agxCable::Cable;
 	agxCable::CableRef Native;
 
 	FCableRef() = default;

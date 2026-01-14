@@ -12,6 +12,7 @@
 
 struct FAGX_CableNodeInfo;
 struct FCableNodeBarrier;
+struct FCablePropertiesBarrier;
 struct FCableRef;
 
 USTRUCT(BlueprintType)
@@ -24,6 +25,11 @@ struct AGXUNREALBARRIER_API FCableBarrier
 
 	void AllocateNative(double Radius, double SegmentLength);
 	bool Add(FCableNodeBarrier& Node);
+
+	void SetCableProperties(FCablePropertiesBarrier& Properties);
+	FCablePropertiesBarrier GetCableProperties() const;
+
+	void SetCablePropertiesToDefault();
 
 	TArray<FAGX_CableNodeInfo> GetNodeInfo() const;
 
