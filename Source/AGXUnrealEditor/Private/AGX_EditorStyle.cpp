@@ -290,6 +290,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 
 	// Thumbnails (assets etc).
 	Style->Set(
+		"ClassThumbnail.AGX_CableProperties",
+		new IMAGE_BRUSH("Thumbnails/cable_properties_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_ConstraintMergeSplitThresholds",
 		new IMAGE_BRUSH("Thumbnails/constraint_mergesplit_128x128", IconSize128));
 	Style->Set(
