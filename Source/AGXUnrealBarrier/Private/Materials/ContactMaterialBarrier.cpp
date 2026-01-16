@@ -11,9 +11,11 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agx/FingerFrictionModel.h>
 #include <agx/FrictionModel.h>
 #include <agx/OrientedFrictionModels.h>
 #include <agx/RigidBody.h>
+#include <agxVehicle/GTire.h>
 #include "EndAGXIncludes.h"
 
 #include <Misc/AssertionMacros.h>
@@ -35,6 +37,8 @@ namespace
 				return nullptr; // "not defined"
 			case EAGX_FrictionModel::BoxFriction:
 				return new agx::BoxFrictionModel();
+			case EAGX_FrictionModel::PatchFingerFriction:
+				return new agx::PatchFingerFrictionModel();
 			case EAGX_FrictionModel::ScaledBoxFriction:
 				return new agx::ScaleBoxFrictionModel();
 			case EAGX_FrictionModel::IterativeProjectedConeFriction:
@@ -82,6 +86,10 @@ namespace
 		else if (dynamic_cast<const agx::IterativeProjectedConeFriction*>(FrictionModel))
 		{
 			return EAGX_FrictionModel::IterativeProjectedConeFriction;
+		}
+		else if (dynamic_cast<const agx::PatchFingerFrictionModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::PatchFingerFriction;
 		}
 		else if (dynamic_cast<const agx::ScaleBoxFrictionModel*>(FrictionModel))
 		{
@@ -216,7 +224,7 @@ void FContactMaterialBarrier::SetFrictionModel(EAGX_FrictionModel FrictionModel)
 
 	agx::FrictionModelRef NativeFrictionModel = ConvertFrictionModelToAgx(FrictionModel);
 
-	if (NativeFrictionModel)
+	if (NativeFrictionModel != nullptr)
 	{
 		if (agx::FrictionModel* PreviousModel = NativeRef->Native->getFrictionModel())
 		{
@@ -226,6 +234,11 @@ void FContactMaterialBarrier::SetFrictionModel(EAGX_FrictionModel FrictionModel)
 	}
 
 	NativeRef->Native->setFrictionModel(NativeFrictionModel); // seems friction model can be null
+
+	// This is a bit ugly to have here, but there was no obvious clean solution for this.
+	// This call is required when using the PatchFingerFriction model.
+	if (FrictionModel == EAGX_FrictionModel::PatchFingerFriction)
+		agxVehicle::GTire::configureContactMaterial(NativeRef->Native);
 }
 
 EAGX_FrictionModel FContactMaterialBarrier::GetFrictionModel() const

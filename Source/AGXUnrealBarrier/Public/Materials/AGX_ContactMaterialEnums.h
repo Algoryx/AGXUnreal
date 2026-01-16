@@ -98,6 +98,12 @@ enum class EAGX_FrictionModel : uint8
 	 */
 	OrientedConstantNormalForceBoxFriction = 7,
 
+	/**
+	 * Patch Finger Friction model, used for TerrainWheel and GTire only.
+	 * When using this, some properties in the Contact Material such as bUseContactAreaApproach will
+	 * be overridden in AGX.
+	 */
+	PatchFingerFriction = 8,
 };
 
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)

@@ -73,11 +73,7 @@ bool FSimulationBarrier::Add(FContactMaterialBarrier& ContactMaterial)
 {
 	check(HasNative());
 	check(ContactMaterial.HasNative());
-	bool Res = NativeRef->Native->add(ContactMaterial.GetNative()->Native);
-
-	// TODO: this will not live here of course, just a quick hack to get it to work.
-	agxTerrain::TerrainWheel::configureContactMaterial(ContactMaterial.GetNative()->Native);
-	return Res;
+	return NativeRef->Native->add(ContactMaterial.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
