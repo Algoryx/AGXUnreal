@@ -3,6 +3,7 @@
 #include "Cable/AGX_CableProperties.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Import/AGX_ImportContext.h"
@@ -13,6 +14,98 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
+
+
+void UAGX_CableProperties::SetSpookDampingBend(double SpookDamping)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingBend, SpookDamping, SetSpookDampingBend);
+}
+
+double UAGX_CableProperties::GetSpookDampingBend() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingBend, GetSpookDampingBend);
+}
+
+void UAGX_CableProperties::SetSpookDampingTwist(double SpookDamping)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingTwist, SpookDamping, SetSpookDampingTwist);
+}
+
+double UAGX_CableProperties::GetSpookDampingTwist() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingTwist, GetSpookDampingTwist);
+}
+
+void UAGX_CableProperties::SetSpookDampingStretch(double SpookDamping)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingStretch, SpookDamping, SetSpookDampingStretch);
+}
+
+double UAGX_CableProperties::GetSpookDampingStretch() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingStretch, GetSpookDampingStretch);
+}
+
+void UAGX_CableProperties::SetPoissonsRatioBend(double PoissonsRatio)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(PoissonsRatioBend, PoissonsRatio, SetPoissonsRatioBend);
+}
+
+double UAGX_CableProperties::GetPoissonsRatioBend() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(PoissonsRatioBend, GetPoissonsRatioBend);
+}
+
+void UAGX_CableProperties::SetPoissonsRatioTwist(double PoissonsRatio)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(PoissonsRatioTwist, PoissonsRatio, SetPoissonsRatioTwist);
+}
+
+double UAGX_CableProperties::GetPoissonsRatioTwist() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(PoissonsRatioTwist, GetPoissonsRatioTwist);
+}
+
+void UAGX_CableProperties::SetPoissonsRatioStretch(double PoissonsRatio)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(PoissonsRatioStretch, PoissonsRatio, SetPoissonsRatioStretch);
+}
+
+double UAGX_CableProperties::GetPoissonsRatioStretch() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(PoissonsRatioStretch, GetPoissonsRatioStretch);
+}
+
+void UAGX_CableProperties::SetYoungsModulusBend(double YoungsModulus)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(YoungsModulusBend, YoungsModulus, SetYoungsModulusBend);
+}
+
+double UAGX_CableProperties::GetYoungsModulusBend() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(YoungsModulusBend, GetYoungsModulusBend);
+}
+
+void UAGX_CableProperties::SetYoungsModulusTwist(double YoungsModulus)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(YoungsModulusTwist, YoungsModulus, SetYoungsModulusTwist);
+}
+
+double UAGX_CableProperties::GetYoungsModulusTwist() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(YoungsModulusTwist, GetYoungsModulusTwist);
+}
+
+void UAGX_CableProperties::SetYoungsModulusStretch(double YoungsModulus)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(YoungsModulusStretch, YoungsModulus, SetYoungsModulusStretch);
+}
+
+double UAGX_CableProperties::GetYoungsModulusStretch() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(YoungsModulusStretch, GetYoungsModulusStretch);
+}
+
 
 UAGX_CableProperties* UAGX_CableProperties::GetOrCreateInstance(UWorld* PlayingWorld)
 {
@@ -164,11 +257,19 @@ FCablePropertiesBarrier* UAGX_CableProperties::GetOrCreateNative()
 void UAGX_CableProperties::UpdateNativeProperties()
 {
 	if (!IsInstance() || !HasNative())
-	{
 		return;
-	}
 
-	// TODO
+	NativeBarrier.SetSpookDampingBend(SpookDampingBend);
+	NativeBarrier.SetSpookDampingTwist(SpookDampingTwist);
+	NativeBarrier.SetSpookDampingStretch(SpookDampingStretch);
+
+	NativeBarrier.SetPoissonsRatioBend(PoissonsRatioBend);
+	NativeBarrier.SetPoissonsRatioTwist(PoissonsRatioTwist);
+	NativeBarrier.SetPoissonsRatioStretch(PoissonsRatioStretch);
+
+	NativeBarrier.SetYoungsModulusBend(YoungsModulusBend);
+	NativeBarrier.SetYoungsModulusTwist(YoungsModulusTwist);
+	NativeBarrier.SetYoungsModulusStretch(YoungsModulusStretch);
 }
 
 void UAGX_CableProperties::PostInitProperties()
@@ -195,7 +296,17 @@ void UAGX_CableProperties::InitPropertyDispatcher()
 		return;
 	}
 
-	// TODO
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingBend);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingTwist);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingStretch);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(PoissonsRatioBend);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(PoissonsRatioTwist);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(PoissonsRatioStretch);
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(YoungsModulusBend);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(YoungsModulusTwist);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(YoungsModulusStretch);
 }
 #endif // WITH_EDITOR
 

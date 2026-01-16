@@ -4,6 +4,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Cable/CablePropertiesBarrier.h"
 #include "UObject/Object.h"
 
 // AGX Dynamics for Unreal includes.
@@ -25,6 +26,124 @@ class AGXUNREAL_API UAGX_CableProperties : public UObject
 
 public:
 	UAGX_CableProperties() = default;
+
+	/**
+	 * Spook Damping when bending the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double SpookDampingBend {0.0333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetSpookDampingBend(double SpookDamping);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetSpookDampingBend() const;
+
+	/**
+	 * Spook Damping when twisting the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double SpookDampingTwist {0.0333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetSpookDampingTwist(double SpookDamping);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetSpookDampingTwist() const;
+
+	/**
+	 * Spook Damping when stretching the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double SpookDampingStretch {0.0333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetSpookDampingStretch(double SpookDamping);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetSpookDampingStretch() const;
+
+	/**
+	 * Poisson's Ratio when bending the Cable.
+	 * Defines the ratio of transverse strain to axial strain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double PoissonsRatioBend {0.333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetPoissonsRatioBend(double PoissonsRatio);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetPoissonsRatioBend() const;
+
+	/**
+	 * Poisson's Ratio when twisting the Cable.
+	 * Defines the ratio of transverse strain to axial strain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double PoissonsRatioTwist {0.333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetPoissonsRatioTwist(double PoissonsRatio);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetPoissonsRatioTwist() const;
+
+	/**
+	 * Poisson's Ratio when stretching the Cable.
+	 * Defines the ratio of transverse strain to axial strain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double PoissonsRatioStretch {0.333};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetPoissonsRatioStretch(double PoissonsRatio);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetPoissonsRatioStretch() const;
+
+	/**
+	 * Young's Modulus when bending the Cable [Pa].
+	 * Controls the stiffness of the Cable during bending.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double YoungsModulusBend {1.0e9};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetYoungsModulusBend(double YoungsModulus);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetYoungsModulusBend() const;
+
+	/**
+	 * Young's Modulus when twisting the Cable [Pa].
+	 * Controls the stiffness of the Cable during twisting.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double YoungsModulusTwist {1.0e9};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetYoungsModulusTwist(double YoungsModulus);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetYoungsModulusTwist() const;
+
+	/**
+	 * Young's Modulus when stretching the Cable [Pa].
+	 * Controls the stiffness of the Cable during stretching.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	double YoungsModulusStretch {1.0e9};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SetYoungsModulusStretch(double YoungsModulus);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	double GetYoungsModulusStretch() const;
+
 
 	UAGX_CableProperties* GetOrCreateInstance(UWorld* PlayingWorld);
 	bool IsInstance() const;
