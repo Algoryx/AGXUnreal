@@ -22,6 +22,12 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	FTerrainWheelBarrier();
 	FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> Native);
 
+	void SetEnableTerrainDeformation(bool InEnable);
+	bool GetEnableTerrainDeformation() const;
+
+	void SetEnableTerrainDisplacement(bool InEnable);
+	bool GetEnableTerrainDisplacement() const;
+
 	void AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder);
 
 	FGuid GetGuid() const;

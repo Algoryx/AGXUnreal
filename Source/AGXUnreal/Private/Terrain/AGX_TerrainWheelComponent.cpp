@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainWheelComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -28,6 +29,48 @@ UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
+}
+
+void UAGX_TerrainWheelComponent::SetTerrainDeformationEnabled(bool InEnable)
+{
+	bEnableTerrainDeformation = InEnable;
+
+	if (HasNative())
+		NativeBarrier.SetEnableTerrainDeformation(InEnable);
+}
+
+bool UAGX_TerrainWheelComponent::IsTerrainDeformationEnabled() const
+{
+	if (HasNative())
+		return NativeBarrier.GetEnableTerrainDeformation();
+
+	return bEnableTerrainDeformation;
+}
+
+void UAGX_TerrainWheelComponent::SetTerrainDisplacementEnabled(bool InEnable)
+{
+	bEnableTerrainDisplacement = InEnable;
+
+	if (HasNative())
+		NativeBarrier.SetEnableTerrainDisplacement(InEnable);
+}
+
+bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
+{
+	if (HasNative())
+		return NativeBarrier.GetEnableTerrainDisplacement();
+
+	return bEnableTerrainDisplacement;
+}
+
+void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
+{
+	SetTerrainDeformationEnabled(InEnable);
+}
+
+void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
+{
+	SetTerrainDisplacementEnabled(InEnable);
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()
@@ -212,7 +255,8 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 		return;
 	}
 
-	// TODO: add properties here.
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
 }
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
@@ -299,8 +343,6 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		return;
 	}
 
-
-
 	NativeBarrier.AllocateNative(*BodyBarrier, *CylinderBarrier);
 	if (!HasNative())
 	{
@@ -313,10 +355,11 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		return;
 	}
 
+	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
+	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
+
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
-	{
 		Sim->Add(*this);
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

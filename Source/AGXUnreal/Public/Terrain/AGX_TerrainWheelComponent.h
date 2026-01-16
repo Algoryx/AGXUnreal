@@ -25,8 +25,33 @@ public:
 	 * Reference to the Rigid Body to be used for this Terrain Wheel Component.
 	 * This Rigid Body must contain a Cylinder Shape to act as the contacting Shape of this wheel.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
 	FAGX_RigidBodyReference RigidBody;
+
+	/**
+	 * Determines whether this Terrain Wheeel will deform the Terrain it is in contact with.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	bool bEnableTerrainDeformation {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetTerrainDeformationEnabled(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	bool IsTerrainDeformationEnabled() const;
+
+	/**
+	 * Determines whether this Terrain Wheeel will displace Terrain soil (to create ridges) or not.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	bool bEnableTerrainDisplacement {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetTerrainDisplacementEnabled(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	bool IsTerrainDisplacementEnabled() const;
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
 	bool Visible {true};
@@ -65,6 +90,10 @@ private:
 	void InitPropertyDispatcher();
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
+
+	// To allow usage of Dispatcher macro.
+	void SetEnableTerrainDisplacement(bool InEnable);
+	void SetEnableTerrainDeformation(bool InEnable);
 
 	void CreateNative();
 

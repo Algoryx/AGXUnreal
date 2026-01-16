@@ -24,6 +24,30 @@ FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InN
 {
 }
 
+void FTerrainWheelBarrier::SetEnableTerrainDeformation(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setOption(agxTerrain::TerrainWheel::ModelOptions::DEFORMATION, InEnable);
+}
+
+bool FTerrainWheelBarrier::GetEnableTerrainDeformation() const
+{
+	check(HasNative());
+	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DEFORMATION);
+}
+
+void FTerrainWheelBarrier::SetEnableTerrainDisplacement(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT, InEnable);
+}
+
+bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
+{
+	check(HasNative());
+	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT);
+}
+
 void FTerrainWheelBarrier::AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder)
 {
 	check(!HasNative());
