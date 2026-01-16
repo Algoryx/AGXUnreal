@@ -42,7 +42,7 @@ public:
 	bool IsTerrainDeformationEnabled() const;
 
 	/**
-	 * Determines whether this Terrain Wheeel will displace Terrain soil (to create ridges) or not.
+	 * Determines whether this Terrain Wheeel will displace Terrain soil (to create ridges).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	bool bEnableTerrainDisplacement {true};
@@ -52,6 +52,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	bool IsTerrainDisplacementEnabled() const;
+
+	/**
+	 * Determines whether detailed debug rendering in AGX for this Terrain Wheel is active. This
+	 * will be visible in the AGX Web Debugger.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel", AdvancedDisplay)
+	bool bEnableAGXDebugRendering {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetAGXDebugRenderingEnabled(bool InEnable);
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
 	bool Visible {true};
@@ -94,6 +104,7 @@ private:
 	// To allow usage of Dispatcher macro.
 	void SetEnableTerrainDisplacement(bool InEnable);
 	void SetEnableTerrainDeformation(bool InEnable);
+	void SetEnableAGXDebugRendering(bool InEnable);
 
 	void CreateNative();
 

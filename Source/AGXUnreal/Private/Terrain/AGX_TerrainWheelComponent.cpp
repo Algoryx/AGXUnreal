@@ -63,6 +63,13 @@ bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
 	return bEnableTerrainDisplacement;
 }
 
+void UAGX_TerrainWheelComponent::SetAGXDebugRenderingEnabled(bool InEnable)
+{
+	bEnableAGXDebugRendering = InEnable;
+	if (HasNative())
+		NativeBarrier.SetEnableAGXDebugRendering(InEnable);
+}
+
 void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
 {
 	SetTerrainDeformationEnabled(InEnable);
@@ -71,6 +78,11 @@ void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
 void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
 {
 	SetTerrainDisplacementEnabled(InEnable);
+}
+
+void UAGX_TerrainWheelComponent::SetEnableAGXDebugRendering(bool InEnable)
+{
+	SetAGXDebugRenderingEnabled(InEnable);
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()
@@ -257,6 +269,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
@@ -357,6 +370,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
+	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
 		Sim->Add(*this);

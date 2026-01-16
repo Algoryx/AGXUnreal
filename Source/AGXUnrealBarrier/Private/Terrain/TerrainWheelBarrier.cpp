@@ -48,6 +48,12 @@ bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
 	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT);
 }
 
+void FTerrainWheelBarrier::SetEnableAGXDebugRendering(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableDebugRegressionPlanes(InEnable);
+}
+
 void FTerrainWheelBarrier::AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder)
 {
 	check(!HasNative());
