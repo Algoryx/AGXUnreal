@@ -3,9 +3,16 @@
 #include "Terrain/TerrainWheelBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "RigidBodyBarrier.h"
+#include "Shapes/CylinderShapeBarrier.h"
 
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include "agxCollide/Cylinder.h"
+#include "EndAGXIncludes.h"
 
 FTerrainWheelBarrier::FTerrainWheelBarrier()
 	: NativeRef {new FTerrainWheelRef}
@@ -17,12 +24,21 @@ FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InN
 {
 }
 
-void FTerrainWheelBarrier::AllocateNative(double Radius, double Width)
+void FTerrainWheelBarrier::AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder)
 {
 	check(!HasNative());
-	const double RadiusAGX = ConvertDistanceToAGX(Radius);
-	const double WidthAGX = ConvertDistanceToAGX(Width);
-	NativeRef->Native = new agxTerrain::TerrainWheel(RadiusAGX, WidthAGX);
+	check(Body.HasNative());
+	check(Cylinder.HasNative());
+	agx::RigidBody* BodyAGX = Body.GetNative()->Native;
+	agxCollide::Cylinder* CylinderAGX =
+		dynamic_cast<agxCollide::Cylinder*>(Cylinder.GetNative()->NativeShape.get());
+	AGX_CHECK(BodyAGX != nullptr);
+	AGX_CHECK(CylinderAGX != nullptr);
+	NativeRef->Native = new agxTerrain::TerrainWheel(BodyAGX, CylinderAGX);
+
+	// TODO: this should not be needed (should be handled in AGX).
+	auto Mat = Cylinder.GetNative()->NativeGeometry->getMaterial();
+	NativeRef->Native->setMaterial(Mat);
 }
 
 FGuid FTerrainWheelBarrier::GetGuid() const

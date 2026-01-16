@@ -6,7 +6,9 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Shapes/AGX_CylinderShapeComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -228,7 +230,6 @@ bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) cons
 	{
 		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, Radius), GET_MEMBER_NAME_CHECKED(ThisClass, Width),
 			GET_MEMBER_NAME_CHECKED(ThisClass, RigidBody)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
@@ -245,11 +246,65 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	if (HasNative())
 		return;
 
-	// TOODO: validate body + cylinder and use the correct constructor in the Barrier!
+	auto ShowFailNotification = [this]()
+	{
+		const FString Msg = FString::Printf(
+			TEXT("Unable to create Terrain Wheel for '%s' in '%s'. The Output Log "
+				 "may contain more details."),
+			*GetName(), *GetNameSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Msg, SNotificationItem::CS_Fail);
+	};
 
-	NativeBarrier.AllocateNative(Radius, Width);
+	UAGX_RigidBodyComponent* Body = RigidBody.GetRigidBody();
+	if (Body == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning, TEXT("Invalid Rigid Body selected for '%s' in '%s'."), *GetName(),
+			*GetNameSafe(GetOwner()));
+		ShowFailNotification;
+		return;
+	}
+
+	const TArray<UAGX_CylinderShapeComponent*> Cylinders =
+		FAGX_ObjectUtilities::GetChildrenOfType<UAGX_CylinderShapeComponent>(*Body, false);
+	if (Cylinders.Num() != 1)
+	{
+		UE_LOG(
+			LogAGX, Warning, TEXT("Expected excactly 1 Cylinder Shape in RigidBody for '%s' in '%s', but found %d."), *GetName(),
+			*GetNameSafe(GetOwner()), Cylinders.Num());
+		ShowFailNotification;
+		return;
+	}
+
+	FRigidBodyBarrier* BodyBarrier = Body->GetOrCreateNative();
+	if (BodyBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to get Rigid Body Barrier for RigidBody in '%s' in '%s'."),
+			*GetName(), *GetNameSafe(GetOwner()));
+		ShowFailNotification;
+		return;
+	}
+
+	FCylinderShapeBarrier* CylinderBarrier =
+		static_cast<FCylinderShapeBarrier*>(Cylinders[0]->GetNative());
+	if (CylinderBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to get Cylinder Shape Barrier from Cylinder in Body selected in '%s' in '%s'."), *GetName(),
+			*GetNameSafe(GetOwner()));
+		ShowFailNotification;
+		return;
+	}
+
+
+
+	NativeBarrier.AllocateNative(*BodyBarrier, *CylinderBarrier);
 	if (!HasNative())
 	{
+		ShowFailNotification;
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Unable to create Native Terrain Wheel for '%s' in '%s'. The Output Log may "
@@ -259,7 +314,9 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	}
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
+	{
 		Sim->Add(*this);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

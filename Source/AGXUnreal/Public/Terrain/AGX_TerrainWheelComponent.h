@@ -22,20 +22,6 @@ public:
 	UAGX_TerrainWheelComponent();
 
 	/**
-	 * The radius of this Terrain Wheel [cm].
-	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
-	double Radius {30.0};
-
-	/**
-	 * The width of this Terrain Wheel [cm].
-	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
-	double Width {20.0};
-
-	/**
 	 * Reference to the Rigid Body to be used for this Terrain Wheel Component.
 	 * This Rigid Body must contain a Cylinder Shape to act as the contacting Shape of this wheel.
 	 */

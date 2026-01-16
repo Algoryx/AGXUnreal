@@ -10,6 +10,8 @@
 
 #include "TerrainWheelBarrier.generated.h"
 
+struct FCylinderShapeBarrier;
+struct FRigidBodyBarrier;
 struct FTerrainWheelRef;
 
 USTRUCT(BlueprintType)
@@ -20,7 +22,7 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	FTerrainWheelBarrier();
 	FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> Native);
 
-	void AllocateNative(double Radius, double Width);
+	void AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder);
 
 	FGuid GetGuid() const;
 
