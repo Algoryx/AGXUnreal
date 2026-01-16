@@ -8,6 +8,7 @@
 #include "UObject/Object.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Real.h"
 #include "Cable/CablePropertiesBarrier.h"
 
 #include "AGX_CableProperties.generated.h"
@@ -110,7 +111,7 @@ public:
 	 * Controls the stiffness of the Cable during bending.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double YoungsModulusBend {1.0e9};
+	FAGX_Real YoungsModulusBend {1.0e9};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	void SetYoungsModulusBend(double YoungsModulus);
@@ -123,7 +124,7 @@ public:
 	 * Controls the stiffness of the Cable during twisting.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double YoungsModulusTwist {1.0e9};
+	FAGX_Real YoungsModulusTwist {1.0e9};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	void SetYoungsModulusTwist(double YoungsModulus);
@@ -136,7 +137,7 @@ public:
 	 * Controls the stiffness of the Cable during stretching.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double YoungsModulusStretch {1.0e9};
+	FAGX_Real YoungsModulusStretch {1.0e9};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	void SetYoungsModulusStretch(double YoungsModulus);
