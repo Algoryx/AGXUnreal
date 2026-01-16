@@ -3,8 +3,10 @@
 #include "Terrain/AGX_TerrainWheelComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Terrain/AGX_TerrainWheelComponent.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Shapes/AGX_CylinderShapeComponent.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "SceneView.h"
@@ -47,16 +49,23 @@ namespace
 		if (TerrainWheel == nullptr)
 			return;
 
-		// We assume the body transform to allign with the Terrain Wheel transform in AGX.
 		const UAGX_RigidBodyComponent* Body = TerrainWheel->RigidBody.GetRigidBody();
 		if (Body == nullptr)
 			return;
 
 		const FColor TerrainWheelPrimitiveColor(140, 230, 50);
-		const FTransform Transform(Body->GetRotation(), Body->GetPosition());
+
+		const TArray<UAGX_CylinderShapeComponent*> Cylinders =
+			FAGX_ObjectUtilities::GetChildrenOfType<UAGX_CylinderShapeComponent>(*Body, false);
+		if (Cylinders.Num() != 1)
+			return;
+
+		auto Cylinder = Cylinders[0];
+		const FTransform Transform(Cylinder->GetComponentTransform());
+
 		DrawTerrainWheelPrimitive(
-			Transform, static_cast<float>(TerrainWheel->Radius),
-			static_cast<float>(TerrainWheel->Width), View, PDI, TerrainWheelPrimitiveColor);
+			Transform, static_cast<float>(Cylinder->GetRadius()),
+			static_cast<float>(Cylinder->GetHeight()), View, PDI, TerrainWheelPrimitiveColor);
 	}
 }
 
