@@ -310,6 +310,11 @@ void UAGX_CableComponent::MarkVisualsDirty()
 	UpdateVisuals();
 }
 
+void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	// TODO
+}
+
 FCableBarrier* UAGX_CableComponent::GetNative()
 {
 	if (!HasNative())

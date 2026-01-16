@@ -7,6 +7,7 @@
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
+#include "Cable/AGX_CableComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Import/AGX_ImportContext.h"
@@ -1444,6 +1445,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Steerings)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Steerings, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.Cables != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.Cables)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Cables, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else

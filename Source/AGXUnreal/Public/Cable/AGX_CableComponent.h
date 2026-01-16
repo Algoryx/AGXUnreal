@@ -18,6 +18,8 @@ class UAGX_CableProperties;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 
+struct FAGX_ImportContext;
+
 /**
  * A frame attached to a RigidBody with an optional relative transform.
  * During runtime, it is possible to get its position, velocity, angular velocity, acceleration
@@ -202,6 +204,13 @@ public:
 	void SetNodeLocation(int32 InIndex, FVector InLocation);
 
 	/*
+	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	FGuid ImportGuid;
+
+	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
@@ -220,6 +229,8 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	void MarkVisualsDirty();
+
+	void CopyFrom(const FCableBarrier& Barrier, FAGX_ImportContext* Context);
 
 	FCableBarrier* GetNative();
 	const FCableBarrier* GetNative() const;

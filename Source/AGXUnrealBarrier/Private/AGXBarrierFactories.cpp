@@ -4,9 +4,11 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Cable/CableRef.h"
 #include "BarrierOnly/Contacts/ShapeContactEntity.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
+#include "Cable/CableBarrier.h"
 #include "Contacts/ContactPointEntity.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Vehicle/SteeringBarrier.h"
@@ -181,6 +183,11 @@ FTerrainMaterialBarrier AGXBarrierFactories::CreateTerrainMaterialBarrier(
 	agxTerrain::TerrainMaterial* Material)
 {
 	return {std::make_unique<FTerrainMaterialRef>(Material)};
+}
+
+FCableBarrier AGXBarrierFactories::CreateCableBarrier(agxCable::Cable* Cable)
+{
+	return {std::make_shared<FCableRef>(Cable)};
 }
 
 FWireBarrier AGXBarrierFactories::CreateWireBarrier(agxWire::Wire* Wire)
