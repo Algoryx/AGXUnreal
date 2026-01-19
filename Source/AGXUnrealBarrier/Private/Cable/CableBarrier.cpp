@@ -28,7 +28,7 @@ void FCableBarrier::AllocateNative(double Radius, double SegmentLength)
 {
 	check(!HasNative());
 	agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
-	const double SegmentLengthSafe = std::max(0.1, SegmentLength);
+	const double SegmentLengthSafe = std::max(0.01, SegmentLength);
 	agx::Real ResolutionPerUnitLengthAGX = ConvertDistanceInvToAGX(1.0 / SegmentLengthSafe);
 	NativeRef->Native = new agxCable::Cable(RadiusAGX, ResolutionPerUnitLengthAGX);
 }
@@ -66,12 +66,42 @@ void FCableBarrier::SetCablePropertiesToDefault()
 
 namespace CableBarrier_helpers
 {
-	struct CableAttachmenInfo
+	FAGX_CableNodeInfo GetCableNodeInfoFrom(
+		agxCable::CableIterator It, const agx::Vec3& AttachLocation)
 	{
-		FQuat Orientation;
-		EAGX_CableNodeType Type {EAGX_CableNodeType::Free};
-		bool LockRotationToBody {false};
-	};
+		FAGX_CableNodeInfo Info;
+		Info.NodeType = EAGX_CableNodeType::Free;
+		Info.LockRotationToBody = false;
+		Info.WorldTransform.SetLocation(ConvertDisplacement(AttachLocation));
+		for (agxCable::SegmentAttachment* Attachment : It->getAttachments())
+		{
+			agx::RigidBody* Body = Attachment->getRigidBody();
+			agx::Constraint* Constraint = Attachment->getConstraint();
+			if (Body == nullptr || Constraint == nullptr)
+				continue;
+
+			for (agx::UInt I = 0; I < 2; I++)
+			{
+				if (auto ConstraintAttachment = Constraint->getAttachment(I))
+				{
+					agx::Vec3 OutWorld;
+					agx::Vec3 AttachmentWorld = Body->getFrame()->transformPointToWorld(
+						ConstraintAttachment->getFrame()->getTranslate(), OutWorld);
+					if (agx::equivalent(OutWorld, AttachLocation))
+					{
+						Info.NodeType = EAGX_CableNodeType::BodyFixed;
+						Info.WorldTransform.SetRotation(
+							Convert(It->getAttachments()[0]->getWorldMatrix().getRotate()));
+						Info.BodyGuid = Convert(Body->getUuid());
+						Info.LockRotationToBody =
+							Attachment->is<agxCable::RigidSegmentAttachment>();
+					}
+				}
+			}
+		}
+
+		return Info;
+	}
 }
 
 TArray<FAGX_CableNodeInfo> FCableBarrier::GetNodeInfo() const
@@ -79,43 +109,14 @@ TArray<FAGX_CableNodeInfo> FCableBarrier::GetNodeInfo() const
 	using namespace CableBarrier_helpers;
 	check(HasNative());
 	TArray<FAGX_CableNodeInfo> Nodes;
+
 	agxCable::CableIterator Iterator = NativeRef->Native->begin();
-
-	auto GetAttachmentInfo = [](agxCable::CableIterator It) -> CableAttachmenInfo
-	{
-		CableAttachmenInfo Info;
-		Info.Type =
-			It->is<agxCable::FreeNode>() ? EAGX_CableNodeType::Free : EAGX_CableNodeType::BodyFixed;
-
-		if (Info.Type == EAGX_CableNodeType::BodyFixed && It->getAttachments().size() > 0 &&
-			It->getAttachments()[0]->is<agxCable::RigidSegmentAttachment>())
-		{
-			Info.LockRotationToBody = true;
-			Info.Orientation = Convert(It->getAttachments()[0]->getWorldMatrix().getRotate());
-		}
-		else
-		{
-			Info.LockRotationToBody = false;
-			Info.Orientation = FQuat::Identity;
-		}
-
-		return Info;
-	};
-
 	while (!Iterator.isEnd())
 	{
 		if (Iterator == NativeRef->Native->begin())
-		{
-			CableAttachmenInfo AttachInfo = GetAttachmentInfo(Iterator);
-			const FTransform Trans(
-				AttachInfo.Orientation, ConvertDisplacement(Iterator->getBeginPosition()));
-			Nodes.Add(FAGX_CableNodeInfo(AttachInfo.Type, Trans, AttachInfo.LockRotationToBody));
-		}
+			Nodes.Add(GetCableNodeInfoFrom(Iterator, Iterator->getBeginPosition()));
 
-		CableAttachmenInfo AttachInfo = GetAttachmentInfo(Iterator);
-		const FTransform Trans(
-			AttachInfo.Orientation, ConvertDisplacement(Iterator->getEndPosition()));
-		Nodes.Add(FAGX_CableNodeInfo(AttachInfo.Type, Trans, AttachInfo.LockRotationToBody));
+		Nodes.Add(GetCableNodeInfoFrom(Iterator, Iterator->getEndPosition()));
 		Iterator++;
 	}
 
@@ -128,6 +129,14 @@ double FCableBarrier::GetRadius() const
 	const agx::Real RadiusAGX = NativeRef->Native->getRadius();
 	const double Radius = ConvertDistanceToUnreal<double>(RadiusAGX);
 	return Radius;
+}
+
+double FCableBarrier::GetSegmentLength() const
+{
+	check(HasNative());
+
+	// The get resolution in AGX returns length per segment here.
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getResolution());
 }
 
 FGuid FCableBarrier::GetGuid() const

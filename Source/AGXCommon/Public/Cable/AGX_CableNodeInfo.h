@@ -11,7 +11,6 @@
 
 #include "AGX_CableNodeInfo.generated.h"
 
-
 USTRUCT(BlueprintType)
 struct AGXCOMMON_API FAGX_CableNodeInfo
 {
@@ -20,7 +19,8 @@ struct AGXCOMMON_API FAGX_CableNodeInfo
 	FAGX_CableNodeInfo() = default;
 
 	FAGX_CableNodeInfo(
-		EAGX_CableNodeType InNodeType, const FTransform& InWorldTransform, bool bInLockRotationToBody)
+		EAGX_CableNodeType InNodeType, const FTransform& InWorldTransform,
+		bool bInLockRotationToBody)
 		: NodeType(InNodeType)
 		, WorldTransform(InWorldTransform)
 		, LockRotationToBody(bInLockRotationToBody)
@@ -44,4 +44,13 @@ struct AGXCOMMON_API FAGX_CableNodeInfo
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Node Info",
 		Meta = (EditCondition = "NodeType == EAGX_CableNodeType::BodyFixed"))
 	bool LockRotationToBody {false};
+
+	/**
+	 * AGX Native uuid of attached Rigid Body. Only assigned in some contexts, for example during
+	 * Play.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Cable Node Info",
+		Meta = (EditCondition = "NodeType == EAGX_CableNodeType::BodyFixed"))
+	FGuid BodyGuid;
 };

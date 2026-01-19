@@ -34,6 +34,7 @@ struct AGXUNREALBARRIER_API FCableBarrier
 	TArray<FAGX_CableNodeInfo> GetNodeInfo() const;
 
 	double GetRadius() const;
+	double GetSegmentLength() const;
 
 	FGuid GetGuid() const;
 

@@ -363,8 +363,7 @@ namespace
 			}
 			else if (agxVehicle::Steering* S = Constraint->asSafe<agxVehicle::Steering>())
 			{
-				OutSimObjects.GetSteerings().Add(
-					AGXBarrierFactories::CreateSteeringBarrier(S));
+				OutSimObjects.GetSteerings().Add(AGXBarrierFactories::CreateSteeringBarrier(S));
 			}
 			else if (agxVehicle::WheelJoint* WJ = Constraint->asSafe<agxVehicle::WheelJoint>())
 			{
@@ -421,7 +420,9 @@ namespace
 		}
 	}
 
-	void ReadCables(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	void ReadCables(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::Constraint*>& NonFreeConstraint)
 	{
 		agxCable::CablePtrVector Cables = agxCable::Cable::getAll(&Simulation);
 		OutSimObjects.GetCables().Reserve(Cables.size());
@@ -431,6 +432,9 @@ namespace
 				continue;
 
 			OutSimObjects.GetCables().Add(AGXBarrierFactories::CreateCableBarrier(Cable));
+
+			for (auto C : Cable->getConstraints())
+				NonFreeConstraint.Add(C);
 		}
 	}
 
@@ -594,9 +598,9 @@ namespace
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
+		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);
-		ReadCables(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
 	}

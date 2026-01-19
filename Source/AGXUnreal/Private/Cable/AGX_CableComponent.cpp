@@ -12,6 +12,8 @@
 #include "AGX_Simulation.h"
 #include "Cable/AGX_CableProperties.h"
 #include "Cable/CableNodeBarrier.h"
+#include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -43,7 +45,10 @@ namespace AGX_CableComponent_helpers
 	{
 		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
 		for (auto& Node : Component.RouteNodes)
+		{
 			Node.RigidBody.LocalScope = Owner;
+			Node.Frame.Parent.LocalScope = Owner;
+		}
 	}
 
 	void SetLocalScope(FAGX_CableRouteNode& Node, AActor* Owner)
@@ -312,7 +317,64 @@ void UAGX_CableComponent::MarkVisualsDirty()
 
 void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportContext* Context)
 {
-	// TODO
+	if (!Barrier.HasNative())
+		return;
+
+	ImportName = Barrier.GetName();
+	ImportGuid = Barrier.GetGuid();
+	Radius = Barrier.GetRadius();
+	SegmentLength = Barrier.GetSegmentLength();
+
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), CleanBarrierName, UAGX_CableComponent::StaticClass());
+	Rename(*Name);
+
+	RouteNodes.Empty();
+	const TArray<FAGX_CableNodeInfo> NodeInfosAGX = Barrier.GetNodeInfo();
+	FTransform CableTransform = FTransform::Identity;
+	if (NodeInfosAGX.Num() > 0)
+	{
+		CableTransform.SetLocation(NodeInfosAGX[0].WorldTransform.GetLocation());
+		SetWorldTransform(CableTransform);
+	}
+
+	if (Context == nullptr || Context->Cables == nullptr || Context->RigidBodies == nullptr)
+		return; // We are done.
+
+	for (auto& NodeInfoAGX : NodeInfosAGX)
+	{
+		FAGX_CableRouteNode NewNode;
+		NewNode.NodeType = NodeInfoAGX.NodeType;
+		NewNode.LockRotationToBody = NodeInfoAGX.LockRotationToBody;
+		const FTransform& NodeTransformAGX = NodeInfoAGX.WorldTransform;
+		if (NodeInfoAGX.NodeType == EAGX_CableNodeType::Free)
+		{
+			NewNode.Frame.LocalLocation =
+				CableTransform.InverseTransformPositionNoScale(NodeTransformAGX.GetLocation());
+			NewNode.Frame.LocalRotation =
+				CableTransform.InverseTransformRotation(NodeTransformAGX.GetRotation()).Rotator();
+			NewNode.Frame.Parent.SetComponent(this);
+		}
+		else if (NodeInfoAGX.NodeType == EAGX_CableNodeType::BodyFixed)
+		{
+			if (auto BodyComponent = Context->RigidBodies->FindRef(NodeInfoAGX.BodyGuid))
+			{
+				NewNode.RigidBody.Name = *BodyComponent->GetName();
+				NewNode.Frame.Parent.SetComponent(BodyComponent);
+				NewNode.Frame.LocalLocation =
+					BodyComponent->GetComponentTransform().InverseTransformPositionNoScale(
+						NodeInfoAGX.WorldTransform.GetLocation());
+				NewNode.Frame.LocalRotation =
+					BodyComponent->GetComponentTransform()
+						.InverseTransformRotation(NodeInfoAGX.WorldTransform.GetRotation())
+						.Rotator();
+			}
+		}
+
+		AddNode(NewNode);
+	}
 }
 
 FCableBarrier* UAGX_CableComponent::GetNative()
