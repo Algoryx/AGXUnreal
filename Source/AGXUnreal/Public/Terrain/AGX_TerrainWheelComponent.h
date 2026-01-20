@@ -13,6 +13,8 @@
 
 #include "AGX_TerrainWheelComponent.generated.h"
 
+class UAGX_TerrainWheelMaterial;
+
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_TerrainWheelComponent : public UActorComponent, public IAGX_NativeOwner
 {
@@ -28,6 +30,15 @@ public:
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel", Meta = (ExposeOnSpawn))
 	FAGX_RigidBodyReference RigidBody;
+
+	/**
+	 * The Terrain Wheel Material used, affects the phyiscal behaviour of the Terrain Wheel.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel")
+	UAGX_TerrainWheelMaterial* TerrainWheelMaterial;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	bool SetTerrainWheelMaterial(UAGX_TerrainWheelMaterial* Material);
 
 	/**
 	 * Determines whether this Terrain Wheeel will deform the Terrain it is in contact with.
@@ -107,6 +118,8 @@ private:
 	void SetEnableAGXDebugRendering(bool InEnable);
 
 	void CreateNative();
+
+	bool UpdateNativeTerrainWheelMaterial();
 
 private:
 	FTerrainWheelBarrier NativeBarrier;

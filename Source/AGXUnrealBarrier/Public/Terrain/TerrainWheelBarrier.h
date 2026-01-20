@@ -13,6 +13,7 @@
 struct FCylinderShapeBarrier;
 struct FRigidBodyBarrier;
 struct FTerrainWheelRef;
+struct FTerrainWheelMaterialBarrier;
 
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FTerrainWheelBarrier
@@ -21,6 +22,10 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 
 	FTerrainWheelBarrier();
 	FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> Native);
+
+	void SetTerrainWheelMaterial(FTerrainWheelMaterialBarrier& Material);
+	FTerrainWheelMaterialBarrier GetTerrainWheelMaterial() const;
+	void SetTerrainWheelMaterialToDefault();
 
 	void SetEnableTerrainDeformation(bool InEnable);
 	bool GetEnableTerrainDeformation() const;
