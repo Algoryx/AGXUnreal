@@ -344,13 +344,31 @@ void UAGX_CableComponent::MarkVisualsDirty()
 	UpdateVisuals();
 }
 
+namespace AGX_CableComponent_helpers
+{
+	UAGX_CableProperties* CreateCableProperties(
+		const FCableBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FCablePropertiesBarrier PropBarrier = Barrier.GetCableProperties();
+		if (!PropBarrier.HasNative())
+			return nullptr;
+
+		AGX_CHECK(!Context.CableProperties->Contains(PropBarrier.GetGuid()));
+
+		auto Properties =
+			NewObject<UAGX_CableProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
+		Properties->CopyFrom(Barrier, &Context);
+		return Properties;
+	}
+}
+
 void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	using namespace AGX_CableComponent_helpers;
 	if (!Barrier.HasNative())
 		return;
 
-	ImportName = Barrier.GetName();
-	ImportGuid = Barrier.GetGuid();
 	Radius = Barrier.GetRadius();
 	SegmentLength = Barrier.GetSegmentLength();
 
@@ -375,6 +393,8 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 	if (Context == nullptr || Context->Cables == nullptr || Context->RigidBodies == nullptr)
 		return; // We are done.
 
+	ImportName = Barrier.GetName();
+	ImportGuid = Barrier.GetGuid();
 	for (auto& NodeInfoAGX : NodeInfosAGX)
 	{
 		FAGX_CableRouteNode NewNode;
@@ -407,6 +427,10 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 
 		AddNode(NewNode);
 	}
+
+	AGX_CHECK(!Context->Cables->Contains(ImportGuid));
+	Context->Cables->Add(ImportGuid, this);
+	CableProperties = CreateCableProperties(Barrier, *Context);
 }
 
 FCableBarrier* UAGX_CableComponent::GetNative()

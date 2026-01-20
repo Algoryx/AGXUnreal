@@ -8,6 +8,7 @@
 #include "AGX_RigidBodyComponent.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
 #include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Import/AGX_ImportContext.h"
@@ -146,6 +147,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_ShapeMaterial>)
 			return FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_CableProperties>)
+			return FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_ContactMaterial>)
 			return FAGX_ImportUtilities::GetImportContactMaterialDirectoryName();
@@ -554,6 +558,9 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ShapeMaterial>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName())));
 
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_CableProperties>(FPaths::Combine(
+			RootDirectory, FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ContactMaterial>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportContactMaterialDirectoryName())));
 
@@ -670,6 +677,15 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, Sm] : *Context->ShapeMaterials)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Sm, *Context);
+			}
+		}
+
+		if (Context->CableProperties != nullptr)
+		{
+			const FString AssetType = FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
+			for (const auto& [Guid, Cp] : *Context->CableProperties)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Cp, *Context);
 			}
 		}
 
@@ -808,6 +824,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.RenderStaticMeshes != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.RenderStaticMeshes)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.CableProperties != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.CableProperties)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1309,6 +1331,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		for (const auto& [Guid, Sm] : *Context.ShapeMaterials)
 		{
 			const auto A = UpdateOrCreateAsset(*Sm, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
+	if (Context.CableProperties != nullptr)
+	{
+		for (const auto& [Guid, Cp] : *Context.CableProperties)
+		{
+			const auto A = UpdateOrCreateAsset(*Cp, Context);
 			AGX_CHECK(A != nullptr);
 			if (A == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;

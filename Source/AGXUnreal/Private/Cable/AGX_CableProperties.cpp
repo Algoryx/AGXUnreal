@@ -4,8 +4,11 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/CableBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -175,7 +178,7 @@ void UAGX_CableProperties::CommitToAsset()
 #if WITH_EDITOR
 			Asset->Modify();
 #endif
-			Asset->CopyFrom(*Barrier, nullptr);
+			Asset->CopyFrom(*Barrier);
 #if WITH_EDITOR
 			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
 #endif
@@ -187,10 +190,67 @@ void UAGX_CableProperties::CommitToAsset()
 	}
 }
 
-void UAGX_CableProperties::CopyFrom(
-	const FCablePropertiesBarrier& Source, FAGX_ImportContext* Context)
+namespace AGX_CableProperties_helpers
 {
-	// TODO
+	FString CreatePropertiesName(const FCableBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		auto Cable = Context.Cables->FindRef(Barrier.GetGuid());
+		const FString BaseName = Cable != nullptr ? Cable->GetName() : "Unknown";
+		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("AGX_CP_%s"), *BaseName),
+			UAGX_CableProperties::StaticClass());
+
+		if (Cable == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to get Cable from FAGX_ImportContext in "
+					 "AGX_CableProperties_helpers::CreatePropertiesName. The CableProperties "
+					 "will get the name '%s'."),
+				*Name);
+		}
+
+		return Name;
+	}
+}
+
+void UAGX_CableProperties::CopyFrom(
+	const FCableBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	FCablePropertiesBarrier PropBarrier = Source.GetCableProperties();
+	if (!PropBarrier.HasNative())
+		return;
+
+	CopyFrom(PropBarrier);
+
+	if (Context == nullptr || Context->Cables == nullptr || Context->CableProperties == nullptr)
+		return; // We are done.
+
+	ImportGuid = Source.GetGuid();
+	Rename(*AGX_CableProperties_helpers::CreatePropertiesName(Source, *Context));
+	AGX_CHECK(!Context->CableProperties->Contains(ImportGuid));
+	Context->CableProperties->Add(ImportGuid, this);
+}
+
+void UAGX_CableProperties::CopyFrom(const FCablePropertiesBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	SpookDampingBend = Source.GetSpookDampingBend();
+	SpookDampingTwist = Source.GetSpookDampingTwist();
+	SpookDampingStretch = Source.GetSpookDampingStretch();
+
+	PoissonsRatioBend = Source.GetPoissonsRatioBend();
+	PoissonsRatioTwist = Source.GetPoissonsRatioTwist();
+	PoissonsRatioStretch = Source.GetPoissonsRatioStretch();
+
+	YoungsModulusBend = Source.GetYoungsModulusBend();
+	YoungsModulusTwist = Source.GetYoungsModulusTwist();
+	YoungsModulusStretch = Source.GetYoungsModulusStretch();
 }
 
 void UAGX_CableProperties::CopyFrom(const UAGX_CableProperties* Source)
@@ -198,8 +258,19 @@ void UAGX_CableProperties::CopyFrom(const UAGX_CableProperties* Source)
 	if (Source == nullptr)
 		return;
 
-	// TODO
+	SpookDampingBend = Source->SpookDampingBend;
+	SpookDampingTwist = Source->SpookDampingTwist;
+	SpookDampingStretch = Source->SpookDampingStretch;
+
+	PoissonsRatioBend = Source->PoissonsRatioBend;
+	PoissonsRatioTwist = Source->PoissonsRatioTwist;
+	PoissonsRatioStretch = Source->PoissonsRatioStretch;
+
+	YoungsModulusBend = Source->YoungsModulusBend;
+	YoungsModulusTwist = Source->YoungsModulusTwist;
+	YoungsModulusStretch = Source->YoungsModulusStretch;
 }
+
 bool UAGX_CableProperties::HasNative() const
 {
 	if (IsInstance())

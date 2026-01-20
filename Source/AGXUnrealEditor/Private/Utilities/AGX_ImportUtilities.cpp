@@ -197,6 +197,11 @@ FString FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName()
 	return FString("ShapeMaterial");
 }
 
+FString FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName()
+{
+	return FString("CableProperties");
+}
+
 FString FAGX_ImportUtilities::GetImportContactMaterialDirectoryName()
 {
 	return FString("ContactMaterial");

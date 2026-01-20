@@ -7,6 +7,7 @@
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
 #include "Cable/CableBarrier.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_BallConstraintComponent.h"
@@ -289,6 +290,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
 	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
 	Context.Cables = MakeUnique<TMap<FGuid, UAGX_CableComponent*>>();
+	Context.CableProperties = MakeUnique<TMap<FGuid, UAGX_CableProperties*>>();
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();

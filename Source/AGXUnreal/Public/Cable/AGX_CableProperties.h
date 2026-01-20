@@ -16,6 +16,7 @@
 class UWorld;
 
 struct FAGX_ImportContext;
+struct FCableBarrier;
 
 /**
  * An asset used to hold properties defining the physical behaviour of a Cable.
@@ -146,6 +147,13 @@ public:
 	double GetYoungsModulusStretch() const;
 
 
+	/**
+	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
+
 	UAGX_CableProperties* GetOrCreateInstance(UWorld* PlayingWorld);
 	bool IsInstance() const;
 	UAGX_CableProperties* CreateInstanceFromAsset(
@@ -156,7 +164,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	void CommitToAsset();
 
-	void CopyFrom(const FCablePropertiesBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FCableBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FCablePropertiesBarrier& Source);
 	void CopyFrom(const UAGX_CableProperties* Source);
 
 	bool HasNative() const;

@@ -8,6 +8,7 @@
 struct FAGX_ImportSettings;
 
 class UAGX_CableComponent;
+class UAGX_CableProperties;
 class UAGX_CollisionGroupDisablerComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
@@ -46,6 +47,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_ShovelComponent*>> Shovels;
 	TUniquePtr<TMap<FGuid, UAGX_SteeringComponent*>> Steerings;
 	TUniquePtr<TMap<FGuid, UAGX_CableComponent*>> Cables;
+	TUniquePtr<TMap<FGuid, UAGX_CableProperties*>> CableProperties;
 	TUniquePtr<TMap<FGuid, UAGX_WireComponent*>> Wires;
 	TUniquePtr<TMap<FGuid, UAGX_TrackComponent*>> Tracks;
 	TUniquePtr<TMap<FGuid, UAGX_ObserverFrameComponent*>> ObserverFrames;
