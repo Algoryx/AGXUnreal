@@ -7,6 +7,8 @@
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "AgxAutomationCommon.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Import/AGX_ImporterToEditor.h"
@@ -3836,8 +3838,7 @@ bool FCheckShovelImportedCommand::Update()
 		TEXT("Cutting Edge End Parent Name"), Shovel->CuttingEdge.End.Parent.Name,
 		FName(TEXT("ShovelBody")));
 	Test.TestEqual(
-		TEXT("Tooth Direction"), Shovel->ToothDirection.LocalRotation,
-		FRotator(ForceInitToZero));
+		TEXT("Tooth Direction"), Shovel->ToothDirection.LocalRotation, FRotator(ForceInitToZero));
 
 	Test.TestNotNull(TEXT("Shovel Properties"), Shovel->ShovelProperties);
 	if (Shovel->ShovelProperties == nullptr)
@@ -4030,7 +4031,6 @@ bool FCheckNestedAssembliesImportedCommand::Update()
 	UAGX_RigidBodyComponent* SphereBody = GetByName<UAGX_RigidBodyComponent>(
 		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("SphereBody"));
 
-
 	// Position, base_assembly (1,0,0) -> sub_assembly (1,0,0) -> body (1,0,0)
 	{
 		FVector Actual = FAGX_BlueprintUtilities::GetTemplateComponentWorldLocation(SphereBody);
@@ -4069,6 +4069,114 @@ bool FClearNestedAssembliesImportedCommand::Update()
 	ExpectedFiles.Add(*BaseBlueprintName);
 
 	AgxAutomationCommon::DeleteImportDirectory(TEXT("nested_assemblies_build"), ExpectedFiles);
+
+	return true;
+}
+
+//
+// Cable test starts here.
+//
+
+class FImporterToBlueprint_CableTest;
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
+	FCheckCableImportedCommand, FImporterToBlueprint_CableTest&, Test);
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
+	FClearCableImportedCommand, FImporterToBlueprint_CableTest&, Test);
+
+class FImporterToBlueprint_CableTest final : public AgxAutomationCommon::FAgxAutomationTest
+{
+public:
+	FImporterToBlueprint_CableTest()
+		: AgxAutomationCommon::FAgxAutomationTest(
+			  TEXT("FImporterToBlueprint_CableTest"),
+			  TEXT("AGXUnreal.Editor.ImporterToBlueprint.Cable"))
+	{
+	}
+
+	UBlueprint* Contents = nullptr;
+
+protected:
+	virtual bool RunTest(const FString&) override
+	{
+		BAIL_TEST_IF_NOT_EDITOR(false)
+		ADD_LATENT_AUTOMATION_COMMAND(
+			FImportArchiveBlueprintCommand(TEXT("cable_build.agx"), Contents, *this));
+		ADD_LATENT_AUTOMATION_COMMAND(FCheckCableImportedCommand(*this));
+		ADD_LATENT_AUTOMATION_COMMAND(FClearCableImportedCommand(*this));
+		return true;
+	}
+};
+
+namespace
+{
+	FImporterToBlueprint_CableTest ImporterToBlueprint_CableTest;
+}
+
+bool FCheckCableImportedCommand::Update()
+{
+	using namespace AgxAutomationCommon;
+	if (Test.Contents == nullptr)
+	{
+		Test.AddError(TEXT("Could not import Cable test scene: No content created."));
+		return true;
+	}
+
+	// Get all the imported Components.
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+	// Two Rigid Bodies (2), two Shapes (4), one Cable (5), one Model Source (6), one
+	// CollisionGroupDisabler (7) and one default scene root (8).
+	const int32 ExpectedNumComponents {8};
+	Test.TestEqual(TEXT("Number of imported Components"), Components.Num(), ExpectedNumComponents);
+
+	UAGX_CableComponent* Cable = GetByName<UAGX_CableComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("Cable"));
+	Test.TestNotNull(TEXT("Cable Component"), Cable);
+	if (Cable == nullptr)
+		return true;
+
+	Test.TestTrue("Cable route nodes num", Cable->RouteNodes.Num() > 2);
+	if (Cable->RouteNodes.Num() == 0)
+		return true;
+
+	Test.TestTrue(
+		"First node is body fixed", Cable->RouteNodes[0].NodeType == EAGX_CableNodeType::BodyFixed);
+	Test.TestTrue(
+		"Last node is body fixed", Cable->RouteNodes.Last().NodeType == EAGX_CableNodeType::BodyFixed);
+
+	Test.TestEqual("Cable radius", Cable->Radius, 5.0);
+
+	UAGX_CableProperties* Properties = Cable->CableProperties;
+	Test.TestNotNull(TEXT("Cable Properties"), Properties);
+	if (Properties == nullptr)
+		return true;
+
+	Test.TestEqual("YoungsModulusBend", Properties->YoungsModulusBend, 3e12);
+
+	return true;
+}
+
+bool FClearCableImportedCommand::Update()
+{
+	if (Test.Contents == nullptr)
+	{
+		return true;
+	}
+
+	// clang-format off
+	const FString BaseBlueprintName = Test.Contents->GetName() + FString(".uasset");
+	TArray<const TCHAR*> ExpectedFiles = {
+		TEXT("BP_cable_build.uasset"),
+			*BaseBlueprintName,
+		TEXT("Blueprint"),
+		TEXT("CableProperties"),
+			TEXT("AGX_CP_Cable.uasset")
+	};
+	// clang-format on
+
+	AgxAutomationCommon::DeleteImportDirectory(TEXT("cable_build"), ExpectedFiles);
 
 	return true;
 }
