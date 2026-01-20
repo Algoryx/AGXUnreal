@@ -255,6 +255,35 @@ void UAGX_CableComponent::SetNodeLocation(int32 InIndex, const FVector InLocatio
 	RouteNodes[InIndex].Frame.LocalLocation = LocationInParent;
 }
 
+void UAGX_CableComponent::AddCollisionGroup(FName GroupName)
+{
+	if (GroupName.IsNone())
+	{
+		return;
+	}
+
+	if (CollisionGroups.Contains(GroupName))
+		return;
+
+	CollisionGroups.Add(GroupName);
+	if (HasNative())
+		NativeBarrier.AddCollisionGroup(GroupName);
+}
+
+void UAGX_CableComponent::RemoveCollisionGroupIfExists(FName GroupName)
+{
+	if (GroupName.IsNone())
+		return;
+
+	auto Index = CollisionGroups.IndexOfByKey(GroupName);
+	if (Index == INDEX_NONE)
+		return;
+
+	CollisionGroups.RemoveAt(Index);
+	if (HasNative())
+		NativeBarrier.RemoveCollisionGroup(GroupName);
+}
+
 FCableBarrier* UAGX_CableComponent::GetOrCreateNative()
 {
 	if (!HasNative())
@@ -330,6 +359,9 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_CableComponent::StaticClass());
 	Rename(*Name);
+
+	for (const FName& Group : Barrier.GetCollisionGroups())
+		AddCollisionGroup(Group);
 
 	RouteNodes.Empty();
 	const TArray<FAGX_CableNodeInfo> NodeInfosAGX = Barrier.GetNodeInfo();
@@ -601,6 +633,7 @@ void UAGX_CableComponent::UpdateNativeProperties()
 		return;
 
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
+	NativeBarrier.AddCollisionGroups(CollisionGroups);
 }
 
 #if WITH_EDITOR

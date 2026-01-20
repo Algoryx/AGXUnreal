@@ -203,6 +203,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable Route")
 	void SetNodeLocation(int32 InIndex, FVector InLocation);
 
+	/**
+	 * List of collision groups that this Cable Component is part of.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	TArray<FName> CollisionGroups;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void AddCollisionGroup(FName GroupName);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void RemoveCollisionGroupIfExists(FName GroupName);
+
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.

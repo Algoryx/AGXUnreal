@@ -160,6 +160,51 @@ FString FCableBarrier::GetName() const
 	return NameUnreal;
 }
 
+void FCableBarrier::AddCollisionGroup(const FName& GroupName)
+{
+	check(HasNative());
+
+	// Add collision group as (hashed) unsigned int.
+	NativeRef->Native->addGroup(
+		StringTo32BitFnvHash(GroupName.ToString()));
+}
+
+void FCableBarrier::AddCollisionGroups(const TArray<FName>& GroupNames)
+{
+	for (auto& GroupName : GroupNames)
+	{
+		AddCollisionGroup(GroupName);
+	}
+}
+
+void FCableBarrier::RemoveCollisionGroup(const FName& GroupName)
+{
+	check(HasNative());
+
+	// Remove collision group as (hashed) unsigned int.
+	NativeRef->Native->removeGroup(
+		StringTo32BitFnvHash(GroupName.ToString()));
+}
+
+TArray<FName> FCableBarrier::GetCollisionGroups() const
+{
+	check(HasNative());
+
+	const auto Collection = NativeRef->Native->findGroupIdCollection();
+	TArray<FName> Result;
+	for (const agx::Name& Name : Collection.getNames())
+	{
+		Result.Add(FName(*Convert(Name)));
+	}
+
+	for (const agx::UInt32 Id : Collection.getIds())
+	{
+		Result.Add(FName(*FString::FromInt(Id)));
+	}
+
+	return Result;
+}
+
 bool FCableBarrier::HasNative() const
 {
 	return NativeRef->Native != nullptr;

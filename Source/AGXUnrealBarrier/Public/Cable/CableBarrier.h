@@ -41,6 +41,11 @@ struct AGXUNREALBARRIER_API FCableBarrier
 	void SetName(const FString& NewName);
 	FString GetName() const;
 
+	void AddCollisionGroup(const FName& GroupName);
+	void AddCollisionGroups(const TArray<FName>& GroupNames);
+	TArray<FName> GetCollisionGroups() const;
+	void RemoveCollisionGroup(const FName& GroupName);
+
 	bool HasNative() const;
 	FCableRef* GetNative();
 	const FCableRef* GetNative() const;
