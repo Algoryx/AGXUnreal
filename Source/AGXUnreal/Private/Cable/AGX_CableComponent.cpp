@@ -407,14 +407,16 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 				CableTransform.InverseTransformPositionNoScale(NodeTransformAGX.GetLocation());
 			NewNode.Frame.LocalRotation =
 				CableTransform.InverseTransformRotation(NodeTransformAGX.GetRotation()).Rotator();
-			NewNode.Frame.Parent.SetComponent(this);
+			NewNode.Frame.Parent.Name = GetFName();
 		}
 		else if (NodeInfoAGX.NodeType == EAGX_CableNodeType::BodyFixed)
 		{
 			if (auto BodyComponent = Context->RigidBodies->FindRef(NodeInfoAGX.BodyGuid))
 			{
-				NewNode.RigidBody.Name = *BodyComponent->GetName();
-				NewNode.Frame.Parent.SetComponent(BodyComponent);
+				// Note: avoid setting component ptrs here since both them and their owners may get
+				// destroyed if we are doing an import. Instead we just set the Name.
+				NewNode.RigidBody.Name = BodyComponent->GetFName();
+				NewNode.Frame.Parent.Name = BodyComponent->GetFName();
 				NewNode.Frame.LocalLocation =
 					BodyComponent->GetComponentTransform().InverseTransformPositionNoScale(
 						NodeInfoAGX.WorldTransform.GetLocation());
