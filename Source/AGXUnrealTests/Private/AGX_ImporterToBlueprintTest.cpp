@@ -4153,7 +4153,17 @@ bool FCheckCableImportedCommand::Update()
 	if (Properties == nullptr)
 		return true;
 
+	Test.TestEqual("DampingBend", Properties->SpookDampingBend, 0.034);
+	Test.TestEqual("DampingTwist", Properties->SpookDampingTwist, 0.032);
+	Test.TestEqual("DampingStretch", Properties->SpookDampingStretch, 0.035);
+
+	Test.TestEqual("PoissonsRatioBend", Properties->PoissonsRatioBend, 0.34);
+	Test.TestEqual("PoissonsRatioTwist", Properties->PoissonsRatioTwist, 0.325);
+	Test.TestEqual("PoissonsRatioStretch", Properties->PoissonsRatioStretch, 0.345);
+
 	Test.TestEqual("YoungsModulusBend", Properties->YoungsModulusBend, 3e12);
+	Test.TestEqual("YoungsModulusTwist", Properties->YoungsModulusTwist, 9.5e8);
+	Test.TestEqual("YoungsModulusStretch", Properties->YoungsModulusStretch, 1.05e9);
 
 	return true;
 }
