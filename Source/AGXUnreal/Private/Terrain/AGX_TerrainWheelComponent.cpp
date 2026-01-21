@@ -9,6 +9,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
 #include "Terrain/AGX_TerrainWheelMaterial.h"
 #include "Utilities/AGX_NotificationUtilities.h"

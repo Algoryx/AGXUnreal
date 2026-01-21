@@ -12,6 +12,25 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
+bool UAGX_TerrainWheelMaterial::operator==(const UAGX_TerrainWheelMaterial& Other) const
+{
+	return Other.SinkageExponentParameterA == SinkageExponentParameterA &&
+		   Other.SinkageExponentParameterB == SinkageExponentParameterB &&
+		   Other.Cohesion == Cohesion && Other.AngleOfInternalFriction == AngleOfInternalFriction &&
+		   Other.ShearModulusXParameterA == ShearModulusXParameterA &&
+		   Other.ShearModulusXParameterB == ShearModulusXParameterB &&
+		   Other.ShearModulusYParameterA == ShearModulusYParameterA &&
+		   Other.ShearModulusYParameterB == ShearModulusYParameterB &&
+		   Other.CohesiveModulusBekker == CohesiveModulusBekker &&
+		   Other.FrictionalModulusBekker == FrictionalModulusBekker &&
+		   Other.CohesiveModulusReece == CohesiveModulusReece &&
+		   Other.FrictionalModulusReece == FrictionalModulusReece &&
+		   Other.MassDensity == MassDensity &&
+		   Other.MaximumNormalStressAngleParameterA == MaximumNormalStressAngleParameterA &&
+		   Other.MaximumNormalStressAngleParameterB == MaximumNormalStressAngleParameterB &&
+		   Other.RearAngleParameterA == RearAngleParameterA &&
+		   Other.RearAngleParameterB == RearAngleParameterB;
+}
 
 void UAGX_TerrainWheelMaterial::SetSinkageExponentParameterA(double Value)
 {
@@ -186,7 +205,6 @@ double UAGX_TerrainWheelMaterial::GetRearAngleParameterB() const
 {
 	AGX_ASSET_GETTER_IMPL_VALUE(RearAngleParameterB, GetRearAngleParameterB);
 }
-
 
 bool UAGX_TerrainWheelMaterial::HasNative() const
 {
@@ -378,6 +396,14 @@ void UAGX_TerrainWheelMaterial::CopyFrom(const FTerrainWheelMaterialBarrier& Sou
 	MaximumNormalStressAngleParameterB = Source.GetMaximumNormalStressAngleParameterB();
 	RearAngleParameterA = Source.GetRearAngleParameterA();
 	RearAngleParameterB = Source.GetRearAngleParameterB();
+}
+
+void UAGX_TerrainWheelMaterial::CopyFrom(
+	const FTerrainWheelMaterialBarrier& Source, FAGX_ImportContext* Context)
+{
+	CopyFrom(Source);
+
+	// TODO: add to import context
 }
 
 void UAGX_TerrainWheelMaterial::CopyProperties(const UAGX_TerrainWheelMaterial& Source)

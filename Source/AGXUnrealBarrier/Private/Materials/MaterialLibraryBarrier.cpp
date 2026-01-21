@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGXBarrierFactories.h"
+#include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
@@ -13,11 +14,15 @@
 #include <agx/MaterialReaderWriter.h>
 #include <agxTerrain/TerrainMaterial.h>
 #include <agxTerrain/TerrainMaterialLibrary.h>
+#include <agxTerrain/TerrainWheelTerrainMaterialParameters.h>
 #include <agxUtil/agxUtil.h>
 #include <EndAGXIncludes.h>
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
+
+// Standard libary includes.
+#include <memory>
 
 namespace MaterialLibraryBarrier_helpers
 {
@@ -111,4 +116,37 @@ AGX_MaterialLibraryBarrier::LoadTerrainMaterialProfile(const FString& MaterialNa
 		return {};
 
 	return AGXBarrierFactories::CreateTerrainMaterialBarrier(Material);
+}
+
+AGXUNREALBARRIER_API TArray<FString>
+AGX_MaterialLibraryBarrier::GetAvailableLibraryTerrainWheelMaterials()
+{
+	// TODO: call the AGX Dynamics MaterialLibrary once added to AGX.
+	return TArray<FString> {
+		"terrain_wheel_test_material", "terrain_wheel_test_material_ishigami",
+		"terrain_wheel_test_material_low_n"};
+}
+
+AGXUNREALBARRIER_API TOptional<FTerrainWheelMaterialBarrier>
+AGX_MaterialLibraryBarrier::LoadTerrainWheelMaterialProfile(const FString& MaterialName)
+{
+	/*const FString MaterialNameWExtension = MaterialName + FString(".json");
+	const FString Path = FPaths::Combine(
+		FAGX_Environment::GetAGXDynamicsResourcesPath(), "data", "MaterialLibrary",
+		"TerrainWheelTerrainMaterials", MaterialNameWExtension);
+	if (!FPaths::FileExists(Path))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to find Terrain Wheel Material at '%s' but the file does not exist. The "
+				 "material will not be loaded."), *Path);
+		return {};
+	}*/
+
+	auto ParamPtr = std::make_shared<FTerrainWheelMaterialPtr>(
+		new agxTerrain::TerrainWheelTerrainMaterialParameters);
+	if (!ParamPtr->Native->loadFromLibrary(Convert(MaterialName)))
+		return {};
+
+	return FTerrainWheelMaterialBarrier(ParamPtr);
 }

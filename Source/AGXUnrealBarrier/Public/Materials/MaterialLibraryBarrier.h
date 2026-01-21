@@ -6,6 +6,7 @@
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Materials/TerrainMaterialBarrier.h"
+#include "Terrain/TerrainWheelMaterialBarrier.h"
 
 // Unreal Engine includes.
 #include "Containers/Array.h"
@@ -23,4 +24,9 @@ namespace AGX_MaterialLibraryBarrier
 	AGXUNREALBARRIER_API TArray<FString> GetAvailableLibraryTerrainMaterials();
 	AGXUNREALBARRIER_API TOptional<FTerrainMaterialBarrier> LoadTerrainMaterialProfile(
 		const FString& MaterialName);
+
+	AGXUNREALBARRIER_API TArray<FString> GetAvailableLibraryTerrainWheelMaterials();
+	AGXUNREALBARRIER_API TOptional<FTerrainWheelMaterialBarrier> LoadTerrainWheelMaterialProfile(
+		const FString& MaterialName);
+	
 }

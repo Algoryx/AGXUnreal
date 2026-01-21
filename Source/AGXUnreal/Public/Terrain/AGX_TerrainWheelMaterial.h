@@ -10,6 +10,8 @@
 
 #include "AGX_TerrainWheelMaterial.generated.h"
 
+struct FAGX_ImportContext;
+
 /**
  * Terrain Wheel Material that can be assigned to a Terrain Wheel Component.
  * Affects the phyiscal behaviour of the Terrain Wheel.
@@ -20,6 +22,8 @@ class AGXUNREAL_API UAGX_TerrainWheelMaterial : public UObject
 	GENERATED_BODY()
 
 public:
+
+	bool operator==(const UAGX_TerrainWheelMaterial& Other) const;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double SinkageExponentParameterA {1.0};
@@ -194,6 +198,7 @@ public:
 	bool IsInstance() const;
 
 	void CopyFrom(const FTerrainWheelMaterialBarrier& Source);
+	void CopyFrom(const FTerrainWheelMaterialBarrier& Source, FAGX_ImportContext* Context);
 	void CopyProperties(const UAGX_TerrainWheelMaterial& Source);
 
 private:
