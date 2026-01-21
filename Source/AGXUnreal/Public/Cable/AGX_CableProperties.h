@@ -2,14 +2,13 @@
 
 #pragma once
 
-// Unreal Engine includes.
-#include "CoreMinimal.h"
-#include "Cable/CablePropertiesBarrier.h"
-#include "UObject/Object.h"
-
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "Cable/CablePropertiesBarrier.h"
+
+// Unreal Engine includes.
+#include "CoreMinimal.h"
+#include "UObject/Object.h"
 
 #include "AGX_CableProperties.generated.h"
 
@@ -146,7 +145,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	double GetYoungsModulusStretch() const;
 
-
 	/**
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
@@ -180,7 +178,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
-	
+
 private:
 #if WITH_EDITOR
 	virtual void InitPropertyDispatcher();
