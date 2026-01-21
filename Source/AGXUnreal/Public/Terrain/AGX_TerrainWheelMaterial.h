@@ -22,9 +22,11 @@ class AGXUNREAL_API UAGX_TerrainWheelMaterial : public UObject
 	GENERATED_BODY()
 
 public:
-
 	bool operator==(const UAGX_TerrainWheelMaterial& Other) const;
 
+	/**
+	 * The 'n_0' in n = n_0 + n_1 * slip_ratio, where 'n' is sinkage exponent.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double SinkageExponentParameterA {1.0};
 
@@ -34,6 +36,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetSinkageExponentParameterA() const;
 
+	/**
+	 * The 'n_1' in n = n_0 + n_1 * slip_ratio, where 'n' is sinkage exponent.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double SinkageExponentParameterB {0.0};
 
@@ -43,6 +48,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetSinkageExponentParameterB() const;
 
+	/**
+	 * The 'c' in tau_max = c + sigma*tan(phi).
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double Cohesion {800.0};
 
@@ -52,6 +60,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetCohesion() const;
 
+	/**
+	 * The 'phi' in tau = c + sigma*tan(phi).
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double AngleOfInternalFriction {0.611};
 
@@ -61,6 +72,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetAngleOfInternalFriction() const;
 
+	/**
+	 * The 'a_0' in K_x = a_0 + slip_angle * a_1, where
+	 * tau_x = [c + sigma*tan(phi)][1-exp(-j_x/K_x)].
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double ShearModulusXParameterA {0.036};
 
@@ -70,6 +85,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetShearModulusXParameterA() const;
 
+	/**
+	 * The 'a_1' in K_x = a_0 + slip_angle * a_1.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double ShearModulusXParameterB {0.043};
 
@@ -79,6 +97,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetShearModulusXParameterB() const;
 
+	/**
+	 * The 'a_0' in K_y = a_0 + slip_angle * a_1, where
+	 * tau_y = [c + sigma*tan(phi)][1-exp(-j_y/K_y)].
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double ShearModulusYParameterA {0.013};
 
@@ -88,6 +110,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetShearModulusYParameterA() const;
 
+	/**
+	 * The 'a_1' in K_y = a_0 + slip_angle * a_1.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double ShearModulusYParameterB {0.020};
 
@@ -97,6 +122,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetShearModulusYParameterB() const;
 
+	/**
+	 * The 'k_c' in p = (k_c/b + k_phi)z^n.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double CohesiveModulusBekker {1000.0};
 
@@ -106,6 +134,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetCohesiveModulusBekker() const;
 
+	/**
+	 * The 'k_phi' in p = (k_c/b + k_phi)z^n.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double FrictionalModulusBekker {800000.0};
 
@@ -115,6 +146,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetFrictionalModulusBekker() const;
 
+	/**
+	 * The 'k_c_prime' in
+	 * p = (c*k_c_prime + rho*g*b*k_phi_prime)(z/b)^n.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double CohesiveModulusReece {670.0};
 
@@ -124,6 +159,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetCohesiveModulusReece() const;
 
+	/**
+	 * The 'k_phi_prime' in
+	 * p = (c*k_c_prime + rho*g*b*k_phi_prime)(z/b)^n.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double FrictionalModulusReece {200.0};
 
@@ -133,6 +172,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetFrictionalModulusReece() const;
 
+	/**
+	 * The 'rho' in
+	 * p = (c*k_c_prime + rho*g*b*k_phi_prime)z^n.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double MassDensity {1500.0};
 
@@ -142,6 +185,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetMassDensity() const;
 
+	/**
+	 * The 'a_0' in theta_m = (a_0 + a_1*slip_ratio) * theta_f.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double MaximumNormalStressAngleParameterA {0.4};
 
@@ -151,6 +197,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetMaximumNormalStressAngleParameterA() const;
 
+	/**
+	 * The 'a_1' in theta_m = (a_0 + a_1*slip_ratio) * theta_f.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double MaximumNormalStressAngleParameterB {0.15};
 
@@ -160,6 +209,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetMaximumNormalStressAngleParameterB() const;
 
+	/**
+	 * The 'a_0' in theta_r = (a_0 + a_1*slip_ratio) * theta_f.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double RearAngleParameterA {-0.12};
 
@@ -169,6 +221,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetRearAngleParameterA() const;
 
+	/**
+	 * The 'a_1' in theta_r = (a_0 + a_1*slip_ratio) * theta_f.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
 	double RearAngleParameterB {0.0};
 
@@ -177,7 +232,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	double GetRearAngleParameterB() const;
-
 
 	bool HasNative() const;
 	FTerrainWheelMaterialBarrier* GetNative();
