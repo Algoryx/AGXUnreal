@@ -139,12 +139,17 @@ public:
 
 	static void NodeProxyDragged(
 		FAGX_CableComponentVisualizer& Visualizer, UAGX_CableComponent& Cable,
-		FEditorViewportClient& ViewportClient, const FVector& DeltaTranslate)
+		FEditorViewportClient& ViewportClient, const FVector& DeltaTranslate,
+		const FRotator& DeltaRotate)
 	{
-		if (DeltaTranslate.IsZero() || ViewportClient.GetWidgetMode() != UE::Widget::WM_Translate)
+		const UE::Widget::EWidgetMode Mode = ViewportClient.GetWidgetMode();
+
+		const bool bWantsTranslate = (Mode == UE::Widget::WM_Translate) && !DeltaTranslate.IsZero();
+		const bool bWantsRotate = (Mode == UE::Widget::WM_Rotate) && !DeltaRotate.IsZero();
+
+		if (!bWantsTranslate && !bWantsRotate)
 			return;
 
-		// TODO Is this Modify necessary? Compare with SplineComponentVisualizer.
 		Cable.Modify();
 
 		if (ViewportClient.IsAltPressed())
@@ -161,13 +166,21 @@ public:
 			{
 				// This is a continuation of a previously started duplication drag. Move the
 				// selected node, i.e., the copy.
-				MoveNode(Visualizer, Cable, DeltaTranslate);
+				if (bWantsTranslate)
+					MoveNode(Visualizer, Cable, DeltaTranslate);
+
+				if (bWantsRotate)
+					RotateNode(Visualizer, Cable, DeltaRotate);
 			}
 		}
 		else
 		{
 			// This is a regular drag, move the selected node.
-			MoveNode(Visualizer, Cable, DeltaTranslate);
+			if (bWantsTranslate)
+				MoveNode(Visualizer, Cable, DeltaTranslate);
+
+			if (bWantsRotate)
+				RotateNode(Visualizer, Cable, DeltaRotate);
 		}
 	}
 
@@ -190,6 +203,24 @@ public:
 		const FVector CurrentWorldLocation = SelectedNode.Frame.GetWorldLocation(Cable);
 		const FVector NewWorldLocation = CurrentWorldLocation + DeltaTranslate;
 		SelectedNode.Frame.SetWorldLocation(NewWorldLocation, Cable);
+
+		Visualizer.NotifyPropertyModified(&Cable, Visualizer.RouteNodesProperty);
+		Cable.MarkVisualsDirty();
+	}
+
+	static void RotateNode(
+		FAGX_CableComponentVisualizer& Visualizer, UAGX_CableComponent& Cable,
+		const FRotator& DeltaRotate)
+	{
+		FAGX_CableRouteNode& SelectedNode = Cable.RouteNodes[Visualizer.EditNodeIndex];
+
+		const FQuat CurrentWorldRot = SelectedNode.Frame.GetWorldRotation(Cable).Quaternion();
+		const FQuat DeltaQ = DeltaRotate.Quaternion();
+
+		// Apply delta in world-space. (Order matters!)
+		const FQuat NewWorldRot = DeltaQ * CurrentWorldRot;
+
+		SelectedNode.Frame.SetWorldRotation(NewWorldRot.Rotator(), Cable);
 
 		Visualizer.NotifyPropertyModified(&Cable, Visualizer.RouteNodesProperty);
 		Cable.MarkVisualsDirty();
@@ -473,15 +504,12 @@ bool FAGX_CableComponentVisualizer::HandleInputDelta(
 		return false;
 
 	if (Cable->HasNative())
-	{
-		// Currently only allow direct node editing at edit time, i.e., when not having a native.
 		return false;
-	}
 
 	if (HasValidEditNode())
 	{
 		FCableVisualizerOperations::NodeProxyDragged(
-			*this, *Cable, *ViewportClient, DeltaTranslate);
+			*this, *Cable, *ViewportClient, DeltaTranslate, DeltaRotate);
 	}
 	else
 	{

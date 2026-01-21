@@ -81,6 +81,11 @@ struct AGXUNREAL_API FAGX_Frame
 	void SetWorldLocation(const FVector& InLocation, const USceneComponent& FallbackParent);
 
 	/**
+	* Set LocalRotation so that this Frames rotation matches the given world rotation.
+	*/
+	void SetWorldRotation(const FRotator& InRotation, const USceneComponent& FallbackParent);
+
+	/**
 	 * Get the world rotation of this Frame.
 	 *
 	 * That is, the result of transforming this Frame's Local Rotation with the Parent's world
