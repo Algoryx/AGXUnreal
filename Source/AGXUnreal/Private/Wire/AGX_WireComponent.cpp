@@ -2451,27 +2451,6 @@ bool UAGX_WireComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyNa
 }
 #endif
 
-TArray<FVector> UAGX_WireComponent::GetNodesForRendering() const
-{
-	TArray<FVector> NodeLocations;
-	if (HasRenderNodes())
-	{
-		NodeLocations = GetRenderNodeLocations();
-	}
-	else
-	{
-		NodeLocations.Reserve(RouteNodes.Num());
-		const FTransform& ComponentTransform = GetComponentTransform();
-		for (const auto& Node : RouteNodes)
-		{
-			const FVector WorldLocation = Node.Frame.GetWorldLocation(*this);
-			NodeLocations.Add(WorldLocation);
-		}
-	}
-
-	return NodeLocations;
-}
-
 bool UAGX_WireComponent::ShouldRenderSelf() const
 {
 	return VisualCylinders != nullptr && VisualSpheres != nullptr && ShouldRender();
@@ -2487,7 +2466,7 @@ void UAGX_WireComponent::UpdateVisuals()
 			VisualSpheres != nullptr && VisualSpheres->GetInstanceCount() > 0;
 
 		if (bHasVisualCylinders || bHasVisualSpheres)
-			SetVisualsInstanceCount(0);
+			SetVisualsInstanceCount(0, 0);
 
 		return;
 	}
@@ -2500,49 +2479,330 @@ void UAGX_WireComponent::UpdateVisuals()
 	if (VisualSpheres->GetMaterial(0) != RenderMaterial)
 		VisualSpheres->SetMaterial(0, RenderMaterial);
 
-	TArray<FVector> NodeLocations = GetNodesForRendering();
-	RenderSelf(NodeLocations);
+	RenderSelf();
 }
 
-void UAGX_WireComponent::RenderSelf(const TArray<FVector>& Points)
+namespace AGX_WireComponent_render_helpers
 {
-	if (Points.Num() <= 1)
-		return;
-
-	const int32 NumSegments = Points.Num() - 1;
-	SetVisualsInstanceCount(NumSegments);
-
-	VisualCylinders->UpdateComponentToWorld();
-	VisualSpheres->UpdateComponentToWorld();
-
-	// 0.01 because the mesh is 100 units large.
-	// 2.0 to go from radius to diameter.
-	const double ScaleXY = RenderRadiusScale * Radius * 0.01 * 2.0;
-	FTransform SphereTransform {FTransform::Identity};
-	FTransform CylTransform {FTransform::Identity};
-	SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));
-	for (int i = 0; i < NumSegments; i++)
+	struct FAGX_WireRenderNode
 	{
-		const FVector& StartLocation = Points[i];
-		const FVector& EndLocation = Points[i + 1];
-		const FVector MidPoint = (StartLocation + EndLocation) * 0.5;
-		const FVector DeltaVec = EndLocation - StartLocation;
-		const FRotator Rot = UKismetMathLibrary::MakeRotFromZ(DeltaVec);
+		FAGX_WireRenderNode(const FVector& InLocation, EWireNodeType InType)
+			: Location(InLocation)
+			, Type(InType)
+		{
+		}
 
-		CylTransform.SetLocation(MidPoint);
-		CylTransform.SetRotation(Rot.Quaternion());
-		const auto Distance = (DeltaVec).Length();
-		CylTransform.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
-		VisualCylinders->UpdateInstanceTransform(i, CylTransform, true, true);
+		FVector Location;
+		EWireNodeType Type;
+	};
 
-		SphereTransform.SetLocation(StartLocation);
-		VisualSpheres->UpdateInstanceTransform(i, SphereTransform, true, true);
+	TArray<FAGX_WireRenderNode> GetNodesForRendering(const UAGX_WireComponent& Wire)
+	{
+		TArray<FAGX_WireRenderNode> Nodes;
+		if (Wire.HasRenderNodes())
+		{
+			for (auto It = Wire.GetRenderBeginIterator(), End = Wire.GetRenderEndIterator();
+				 It != End; It.Inc())
+			{
+				const FAGX_WireNode Node = It.Get();
+				Nodes.Add(FAGX_WireRenderNode(Node.GetWorldLocation(), Node.GetType()));
+			}
+		}
+		else
+		{
+			Nodes.Reserve(Wire.RouteNodes.Num());
+			for (const auto& Node : Wire.RouteNodes)
+			{
+				const FVector WorldLocation = Node.Frame.GetWorldLocation(Wire);
+				Nodes.Add(FAGX_WireRenderNode(WorldLocation, Node.NodeType));
+			}
+		}
+
+		return Nodes;
+	}
+
+	FInterpCurveVector BuildWireSpline(const TArray<FAGX_WireRenderNode>& AGXNodes)
+	{
+		FInterpCurveVector Spline;
+
+		const int32 NumPoints = AGXNodes.Num();
+		if (NumPoints < 2)
+			return Spline;
+
+		float Distance = 0.f;
+		for (int32 i = 0; i < NumPoints; ++i)
+		{
+			if (i > 0)
+				Distance += FVector::Distance(AGXNodes[i - 1].Location, AGXNodes[i].Location);
+
+			const int32 Index = Spline.AddPoint(Distance, AGXNodes[i].Location);
+			Spline.Points[Index].InterpMode = CIM_CurveAuto;
+		}
+
+		Spline.AutoSetTangents(/*Tension=*/0.0f, /*bStationaryEndpoints=*/false);
+		return Spline;
+	}
+
+	// Returns the spline point index that is the closes index below the distance "point" we are
+	// interested in.
+	int32 GetClosestLowerBoundIndex(
+		const FInterpCurveVector& Spline, int32 StartLowerBundIndex, float StartDist,
+		double DeviationMax)
+	{
+		const int32 LastIndex = Spline.Points.Num() - 1;
+		if (StartLowerBundIndex + 1 >= LastIndex)
+			return StartLowerBundIndex;
+
+		const FVector StartPos = Spline.Eval(StartDist);
+		const FVector Tangent = Spline.EvalDerivative(StartDist);
+		double Deviation = 0.0;
+		int32 UpperBoundIndex = StartLowerBundIndex + 1;
+		while (Deviation < DeviationMax && UpperBoundIndex <= LastIndex)
+		{
+			const float Step = Spline.Points[UpperBoundIndex].InVal - StartDist;
+			const FVector Pos = StartPos + Tangent * Step;
+
+			Deviation = (Spline.Points[UpperBoundIndex].OutVal - Pos).Length();
+			UpperBoundIndex++;
+		}
+
+		return UpperBoundIndex - 2; // Minus 2 since we incremented one too many in the while loop.
+	}
+
+	/// Finds a distance value such that if walking from the starting point along the tangent at
+	/// that point, we deviate with DeviationMax from the spline at that distance.
+	float SolveSplineDist(
+		const FInterpCurveVector& Spline, int32 LowerBoundIndex, int32 UpperBoundIndex,
+		float StartDist, double DeviationMax)
+	{
+		AGX_CHECK(UpperBoundIndex - LowerBoundIndex == 1);
+
+		const FVector StartPos = Spline.Eval(StartDist);
+		const FVector Tangent = Spline.EvalDerivative(StartDist);
+		auto CalcDeviation = [&](float Step)
+		{ return (StartPos + Tangent * Step - Spline.Eval(StartDist + Step)).Length(); };
+
+		// Check if the solution lies beyond the UpperBoundIndex (the last point on the Spline).
+		{
+			const float DistToEnd = Spline.Points[UpperBoundIndex].InVal - StartDist;
+			if (CalcDeviation(DistToEnd) < DeviationMax)
+				return Spline.Points[UpperBoundIndex].InVal;
+		}
+
+		float StepLen = (Spline.Points[UpperBoundIndex].InVal - StartDist) / 2.f;
+		float Offs = StepLen;
+		float Err = DeviationMax - CalcDeviation(Offs);
+		const float ErrMax =
+			0.05 * DeviationMax; // Within 5% is good enough for rendering, while being fast.
+
+		// This is only for safety, we should never get remotely close to this.
+		static constexpr size_t IterMax = 1000;
+		size_t Iter = 0;
+
+		while (FMath::Abs(Err) > ErrMax && (Iter++) < IterMax)
+		{
+			StepLen *= 0.5f;
+			if (Err > 0)
+				Offs += StepLen;
+			else
+				Offs -= StepLen;
+
+			Err = DeviationMax - CalcDeviation(Offs);
+		}
+
+		AGX_CHECK(Iter < IterMax);
+		return StartDist + Offs;
+	}
+
+	/// Generates an array of distances along the spline based on the spline curvature and a maximum
+	/// deviation.
+	TArray<float> GenerateSampleDistances(
+		const FInterpCurveVector& Spline, const TArray<FAGX_WireRenderNode>& Nodes,
+		double DeviationMax)
+	{
+		AGX_CHECK(Spline.Points.Num() >= 2);
+		TArray<float> Distances;
+		Distances.Reserve(Nodes.Num()); // A decent starting point.
+
+		const float DistMax = Spline.Points.Last().InVal;
+		float DistNext = 0.f;
+		int32 LowerBound = 0;
+
+		while (DistNext < DistMax)
+		{
+			Distances.Add(DistNext);
+			LowerBound = GetClosestLowerBoundIndex(Spline, LowerBound, DistNext, DeviationMax);
+			DistNext = SolveSplineDist(Spline, LowerBound, LowerBound + 1, DistNext, DeviationMax);
+		}
+
+		// We always add the last point.
+		Distances.Add(DistMax);
+
+		// Force any Node that is a contact node to be a sample point. This helps with stability in
+		// the rendering.
+		AGX_CHECK(Spline.Points.Num() == Nodes.Num()); // These should be 1:1.
+		for (int32 I = 0; I < Nodes.Num(); I++)
+		{
+			if (Nodes[I].Type == EWireNodeType::ShapeContact)
+				Distances.Add(Spline.Points[I].InVal);
+		}
+
+		// The contact nodes above was added at the end, so we need to sort.
+		Distances.Sort();
+		return Distances;
+	}
+
+	TArray<FVector> SampleSpline(
+		const FInterpCurveVector& Spline, const TArray<float> SampleDistances)
+	{
+		const float DistanceMax = Spline.Points.Last().InVal;
+		TArray<FVector> Positions;
+		Positions.Reserve(SampleDistances.Num());
+		for (float InDistance : SampleDistances)
+		{
+			const float Distance = FMath::Min(DistanceMax, InDistance);
+			Positions.Add(Spline.Eval(Distance));
+		}
+
+		return Positions;
+	}
+
+	TArray<FTransform> CreateCylinderMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius)
+	{
+		TArray<FTransform> Result;
+
+		// 0.01 because the mesh is 100 units large.
+		// 2.0 to go from radius to diameter.
+		const double ScaleXY = Radius * 0.01 * 2.0;
+		const int32 NumSegments = Points.Num() - 1;
+		for (int i = 0; i < NumSegments; i++)
+		{
+			const FVector& StartLocation = Points[i];
+			const FVector& EndLocation = Points[i + 1];
+			const FVector MidPoint = (StartLocation + EndLocation) * 0.5;
+			const FVector DeltaVec = EndLocation - StartLocation;
+			const FRotator Rot = UKismetMathLibrary::MakeRotFromZ(DeltaVec);
+			FTransform Curr;
+			Curr.SetLocation(MidPoint);
+			Curr.SetRotation(Rot.Quaternion());
+			const auto Distance = (DeltaVec).Length();
+			Curr.SetScale3D(FVector(ScaleXY, ScaleXY, Distance * 0.01));
+			Result.Add(Curr);
+		}
+
+		return Result;
+	}
+
+	TArray<FTransform> CreateSphereMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius)
+	{
+		TArray<FTransform> Result;
+
+		// 0.01 because the mesh is 100 units large.
+		// 2.0 to go from radius to diameter.
+		const double ScaleXY = Radius * 0.01 * 2.0;
+		FTransform SphereTransform {FTransform::Identity};
+		SphereTransform.SetScale3D(FVector(ScaleXY, ScaleXY, ScaleXY));
+
+		for (auto& P : Points)
+		{
+			SphereTransform.SetLocation(P);
+			Result.Add(SphereTransform);
+		}
+
+		return Result;
+	}
+
+	enum class EAGX_WireRenderMeshType
+	{
+		Cylinder,
+		Sphere
+	};
+
+	TArray<FTransform> CreateMeshInstanceTransformsFromPoints(
+		const TArray<FVector>& Points, double Radius, EAGX_WireRenderMeshType Type)
+	{
+		if (Type == EAGX_WireRenderMeshType::Sphere)
+			return CreateSphereMeshInstanceTransformsFromPoints(Points, Radius);
+		else
+			return CreateCylinderMeshInstanceTransformsFromPoints(Points, Radius);
 	}
 }
 
-void UAGX_WireComponent::SetVisualsInstanceCount(int32 Num)
+void UAGX_WireComponent::RenderSelf()
 {
-	Num = std::max(0, Num);
+	// The strategy for rendering the Wire is the following:
+	// In each step, we generate a spline from the AGX Dynamics Wire nodes. This spline is also
+	// cached so that we always have the current and previous spline. Then we generate a number of
+	// "sample distances", i.e. a collection of distances along the spline that is de-coupled from
+	// the AGX nodes, according to an algorithm that will generate sample distances based on the
+	// curvature of the spline (more curvature yields sample points that are more densly packed, and
+	// vice versa). Lastly, we sample the current and previous spline given those distances, and
+	// from those create cylinder and sphere transforms that are given to the Instanced Static
+	// Meshes.
+
+	using namespace AGX_WireComponent_render_helpers;
+	TArray<FAGX_WireRenderNode> AGXNodes = GetNodesForRendering(*this);
+	if (AGXNodes.Num() < 2)
+		return;
+
+	VisualCylinders->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+	FInterpCurveVector RenderSpline = BuildWireSpline(AGXNodes);
+	if (RenderSplinePrev.Points.Num() == 0)
+		RenderSplinePrev = RenderSpline;
+
+	const TArray<float> SampleDistances = GenerateSampleDistances(
+		RenderSpline, AGXNodes, RenderSamplingDeviationMultiplierMax * Radius);
+	const TArray<FVector> PositionsNew = SampleSpline(RenderSpline, SampleDistances);
+
+	// This is the clever part: we sample the cached spline from the previous tick in the same
+	// locations (distances) as the new spline to ensure nicely matching Transforms and Previous
+	// Transforms when calling the BatchUpdateInstancesTransforms function further below.
+	const TArray<FVector> PositionsPrev = SampleSpline(RenderSplinePrev, SampleDistances);
+
+	SetVisualsInstanceCount(PositionsNew.Num() - 1, PositionsNew.Num());
+	const double RenderRadius = Radius * RenderRadiusScale;
+
+	// Visual Cylinders.
+	{
+		const TArray<FTransform> CylinderTransformsNew = CreateMeshInstanceTransformsFromPoints(
+			PositionsNew, RenderRadius, EAGX_WireRenderMeshType::Cylinder);
+		const TArray<FTransform> CylinderTransformsPrev = CreateMeshInstanceTransformsFromPoints(
+			PositionsPrev, RenderRadius, EAGX_WireRenderMeshType::Cylinder);
+
+		AGX_CHECK(CylinderTransformsNew.Num() == CylinderTransformsPrev.Num());
+		if (VisualCylinders->PerInstancePrevTransform.Num() != CylinderTransformsNew.Num())
+			VisualCylinders->PerInstancePrevTransform.SetNum(CylinderTransformsNew.Num());
+
+		VisualCylinders->UpdateComponentToWorld();
+		VisualCylinders->BatchUpdateInstancesTransforms(
+			0, CylinderTransformsNew, CylinderTransformsPrev, /*bWorldSpace*/ true);
+	}
+
+	// Visual Spheres.
+	{
+		const TArray<FTransform> SphereTransformsNew = CreateMeshInstanceTransformsFromPoints(
+			PositionsNew, RenderRadius, EAGX_WireRenderMeshType::Sphere);
+		const TArray<FTransform> SphereTransformsPrev = CreateMeshInstanceTransformsFromPoints(
+			PositionsPrev, RenderRadius, EAGX_WireRenderMeshType::Sphere);
+
+		AGX_CHECK(SphereTransformsNew.Num() == SphereTransformsPrev.Num());
+		if (VisualSpheres->PerInstancePrevTransform.Num() != SphereTransformsNew.Num())
+			VisualSpheres->PerInstancePrevTransform.SetNum(SphereTransformsNew.Num());
+
+		VisualSpheres->UpdateComponentToWorld();
+		VisualSpheres->BatchUpdateInstancesTransforms(
+			0, SphereTransformsNew, SphereTransformsPrev, /*bWorldSpace*/ true);
+	}
+
+	RenderSplinePrev = RenderSpline;
+}
+
+void UAGX_WireComponent::SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres)
+{
+	NumCylinders = std::max(0, NumCylinders);
+	NumSpheres = std::max(0, NumSpheres);
 
 	auto SetNum = [](UInstancedStaticMeshComponent& C, int32 N)
 	{
@@ -2557,10 +2817,10 @@ void UAGX_WireComponent::SetVisualsInstanceCount(int32 Num)
 	};
 
 	if (VisualCylinders != nullptr)
-		SetNum(*VisualCylinders, Num);
+		SetNum(*VisualCylinders, NumCylinders);
 
 	if (VisualSpheres != nullptr)
-		SetNum(*VisualSpheres, Num);
+		SetNum(*VisualSpheres, NumSpheres);
 }
 
 #if WITH_EDITOR

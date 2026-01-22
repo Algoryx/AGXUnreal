@@ -539,14 +539,14 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FString ImportName;
 
 private: // Deprecated functions.
