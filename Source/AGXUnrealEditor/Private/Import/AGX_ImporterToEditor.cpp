@@ -1699,8 +1699,8 @@ void FAGX_ImporterToEditor::PostImport(
 		{
 			FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
 				TEXT("OpenPLX model files were copied to: \n\n'%s'. \n\nThese files are needed "
-					 "during "
-					 "runtime and should not be removed as long as the imported model is used."),
+					 "during runtime and should not be removed as long as the imported model is "
+					 "used."),
 				*FPaths::GetPath(Settings.FilePath)));
 		}
 		else

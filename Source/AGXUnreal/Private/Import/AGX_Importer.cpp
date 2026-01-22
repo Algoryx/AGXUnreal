@@ -286,11 +286,10 @@ namespace AGX_Importer_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"FAGX_Importer::AddComponent was given object '%s' with GUID '%s' which "
-					"collides "
-					"with a previous object GUID. The model is invalid and this object will not be "
-					"imported."),
+				TEXT("FAGX_Importer::AddComponent was given object '%s' with GUID '%s' which "
+					 "collides with a previous object GUID. The model is invalid and this object "
+					 "will not be "
+					 "imported."),
 				*Barrier.GetName(), *Guid.ToString());
 		}
 		else
