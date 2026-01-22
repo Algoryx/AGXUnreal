@@ -43,14 +43,14 @@ struct AGXUNREAL_API FAGX_CableRouteNode
 	 * The location of the Cable node. Relative to the Cable by default but any parent Scene
 	 * Component may be set.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
 	FAGX_Frame Frame;
 
 	/**
 	 * The Rigid Body that a Body Fixed node should be attached to.
 	 * Ignored for other node types.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Cable")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
 	FAGX_RigidBodyReference RigidBody;
 
 	/**
