@@ -14,6 +14,7 @@
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 #include "Engine/EngineTypes.h"
+#include "Math/InterpCurve.h"
 #include "UObject/UObjectGlobals.h"
 
 #include "AGX_WireComponent.generated.h"
@@ -101,7 +102,8 @@ public:
 	FAGX_WireParameterController WireParameterController;
 
 	/**
-	 * Copy all properties from the given Parameter Controller into this Wire's Parameter Controller.
+	 * Copy all properties from the given Parameter Controller into this Wire's Parameter
+	 * Controller.
 	 *
 	 * The underlying native Parameter Controller object is not replaced, only modified. It is not
 	 * possible to use this functions to make multiple Wires share the same Parameter Controller.
@@ -150,6 +152,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Wire")
 	void SetRenderMaterial(UMaterialInterface* Material);
+
+	/**
+	 * This effects the rendering algorithm used when rendering this Wire Component.
+	 * During rendering, a spline is generated from the underlying AGX Dynamics wire nodes.
+	 * This spline is then sampled and the RenderSamplingDeviationMax property determines
+	 * the maximum allowed deviation (as a multiple of the Radius) of the final render mesh from the
+	 * spline. Lower values will increase accuracy but at a performance cost.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Wire", AdvancedDisplay)
+	double RenderSamplingDeviationMultiplierMax {1.0};
 
 	/*
 	 * Begin winch.
@@ -223,7 +235,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX AMOR")
@@ -992,11 +1004,10 @@ private:
 	bool DoesPropertyAffectVisuals(const FName& MemberPropertyName) const;
 #endif
 
-	TArray<FVector> GetNodesForRendering() const;
 	bool ShouldRenderSelf() const;
 	void UpdateVisuals();
-	void RenderSelf(const TArray<FVector>& Points);
-	void SetVisualsInstanceCount(int32 Num);
+	void RenderSelf();
+	void SetVisualsInstanceCount(int32 NumCylinders, int32 NumSpheres);
 
 	friend class UAGX_LidarSurfaceMaterialComponent;
 
@@ -1004,6 +1015,7 @@ private:
 	FWireBarrier NativeBarrier;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;
+	FInterpCurveVector RenderSplinePrev;
 
 	/**
 	 * Keep track which node frame parents we have registered a callback with. Note that a single

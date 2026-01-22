@@ -2,7 +2,7 @@
 
 #pragma once
 
-// AGX Dynamics for Unreal include.s
+// AGX Dynamics for Unreal includes.
 #include "AGX_Edge.h"
 #include "AGX_Frame.h"
 #include "AGX_NativeOwner.h"
@@ -117,7 +117,7 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 	/**

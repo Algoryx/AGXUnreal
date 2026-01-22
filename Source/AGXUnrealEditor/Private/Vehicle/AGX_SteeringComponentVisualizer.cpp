@@ -52,20 +52,26 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		const FTransform& AttachmentLeft, const FTransform& AttachmentRight,
 		const UAGX_SteeringParameters& Params, FVector& OutLeft, FVector& OutRight)
 	{
-		const double WheelBaseLen =
-			(AttachmentLeft.GetLocation() - AttachmentRight.GetLocation()).Length();
-		const double Angle = Params.SteeringData.Phi0;
-		const FVector KingpinDirLocalLeft =
-			FVector::RightVector.RotateAngleAxis(Angle, FVector::UpVector);
-		const FVector KingpinDirLocalRight =
-			(-FVector::RightVector).RotateAngleAxis(-Angle, FVector::UpVector);
-		const FVector KingpinLeftDir = AttachmentLeft.TransformVectorNoScale(KingpinDirLocalLeft);
-		const FVector KingpinRightDir =
-			AttachmentRight.TransformVectorNoScale(KingpinDirLocalRight);
+		const FVector WheelBase = AttachmentLeft.GetLocation() - AttachmentRight.GetLocation();
+		const FVector WheelBaseDir = [&WheelBase, &AttachmentLeft]()
+		{
+			auto V = WheelBase.GetSafeNormal();
+			return V.Length() > 0 ? V : AttachmentLeft.GetUnitAxis(EAxis::Y);
+		}();
 
+		const double Angle = Params.SteeringData.Phi0;
+		FVector KingpinDirLeft =
+			WheelBaseDir.RotateAngleAxis(Angle, AttachmentLeft.GetUnitAxis(EAxis::Z))
+				.GetSafeNormal();
+		FVector KingpinDirRight =
+			(-WheelBaseDir)
+				.RotateAngleAxis(-Angle, AttachmentRight.GetUnitAxis(EAxis::Z))
+				.GetSafeNormal();
+
+		const double WheelBaseLen = WheelBase.Length();
 		const double KingpinLength = Params.SteeringData.L * WheelBaseLen;
-		OutLeft = AttachmentLeft.GetLocation() + KingpinLeftDir * KingpinLength;
-		OutRight = AttachmentRight.GetLocation() + KingpinRightDir * KingpinLength;
+		OutLeft = AttachmentLeft.GetLocation() + KingpinDirLeft * KingpinLength;
+		OutRight = AttachmentRight.GetLocation() + KingpinDirRight * KingpinLength;
 	}
 
 	bool VerifyValidAttachments(
