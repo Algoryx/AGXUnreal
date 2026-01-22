@@ -470,6 +470,10 @@ void UAGX_CableComponent::SetNativeAddress(uint64 NativeAddress)
 void UAGX_CableComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (VisualCylinders == nullptr || VisualSpheres == nullptr)
+		CreateVisuals();
+
 	if (!HasNative() && !GIsReconstructingBlueprintInstances)
 		CreateNative();
 }
@@ -520,6 +524,7 @@ void UAGX_CableComponent::CreateNative()
 		return;
 
 	check(!GIsReconstructingBlueprintInstances);
+	AGX_CableComponent_helpers::SetLocalScope(*this);
 	NativeBarrier.AllocateNative(Radius, SegmentLength);
 
 	TArray<FString> ErrorMessages;
