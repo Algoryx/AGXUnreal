@@ -1654,7 +1654,7 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
 	const FString DestinationDir =
-		FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+		FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 	const FString NewLocation =
 		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))

@@ -47,7 +47,7 @@ FString FOpenPLXUtilities::GetModelsDirectory()
 	return FPaths::Combine(ProjectPath, TEXT("OpenPLXModels"));
 }
 
-FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
+FString FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(const FString& Filepath)
 {
 	const FString ModelName = FPaths::GetBaseFilename(Filepath);
 	const FString BaseModelDir = FPaths::Combine(GetModelsDirectory(), ModelName);
@@ -59,15 +59,7 @@ FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
 		UniqueModelDir = FString::Printf(TEXT("%s_%d"), *BaseModelDir, Suffix++);
 	}
 
-	if (IFileManager::Get().MakeDirectory(*UniqueModelDir, true))
-	{
-		return UniqueModelDir;
-	}
-
-	UE_LOG(
-		LogAGX, Error, TEXT("CreateUniqueModelDirectory: Failed to create directory: %s"),
-		*UniqueModelDir);
-	return "";
+	return UniqueModelDir;
 }
 
 FString FOpenPLXUtilities::RebuildOpenPLXFilePath(FString Path)
@@ -95,11 +87,22 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 {
 	// Ensure consistent formatting of / and \\ in the path.
 	Filepath = FPaths::ConvertRelativePathToFull(Filepath);
+
+	if (!FPaths::FileExists(Filepath))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FOpenPLXUtilities::CopyAllDependenciesToProject was called with Filepath that "
+				 "does not exist: '%s'"),
+			*Filepath);
+		return "";
+	}
+
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
 	// First, we backup any existing file so that we can restore it if this operation fails.
 	FString BackupDir("");
-	if (FPaths::DirectoryExists(Destination))
+	if (!Destination.IsEmpty() && FPaths::DirectoryExists(Destination))
 	{
 		const FString DestParentDir = FPaths::GetPath(Destination);
 		BackupDir =
@@ -116,6 +119,8 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 	bool Result = false;
 	try
 	{
+		AGX_CHECK(!FPaths::DirectoryExists(Destination)); // Deleted above.
+		PlatformFile.CreateDirectory(*Destination);
 		const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
 		Result = agxopenplx::bake_file(
 			Convert(Filepath), Convert(Destination), /*bake_imports*/ false,
@@ -138,7 +143,8 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 			PlatformFile.DeleteDirectoryRecursively(*Destination);
 
 		// Restore (and then remove) backup if it exists.
-		if (FPaths::DirectoryExists(BackupDir))
+		// Note:: DirectoryExists returns true for empty string.
+		if (!BackupDir.IsEmpty() && FPaths::DirectoryExists(BackupDir))
 		{
 			PlatformFile.CopyDirectoryTree(*Destination, *BackupDir, true);
 			PlatformFile.DeleteDirectoryRecursively(*BackupDir);
