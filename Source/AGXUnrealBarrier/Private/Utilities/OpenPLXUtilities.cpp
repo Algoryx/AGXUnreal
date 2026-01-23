@@ -98,6 +98,15 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 		return "";
 	}
 
+	if (Destination.IsEmpty())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FOpenPLXUtilities::CopyAllDependenciesToProject was called with empty "
+				 "Destination."));
+		return "";
+	}
+
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
 	// First, we backup any existing file so that we can restore it if this operation fails.
@@ -120,7 +129,7 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 	try
 	{
 		AGX_CHECK(!FPaths::DirectoryExists(Destination)); // Deleted above.
-		PlatformFile.CreateDirectory(*Destination);
+		IFileManager::Get().MakeDirectory(*Destination, true);
 		const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
 		Result = agxopenplx::bake_file(
 			Convert(Filepath), Convert(Destination), /*bake_imports*/ false,
@@ -153,7 +162,7 @@ FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 		return "";
 	}
 
-	if (FPaths::DirectoryExists(BackupDir))
+	if (!BackupDir.IsEmpty() && FPaths::DirectoryExists(BackupDir))
 		PlatformFile.DeleteDirectoryRecursively(*BackupDir);
 
 	return OutputFile;
