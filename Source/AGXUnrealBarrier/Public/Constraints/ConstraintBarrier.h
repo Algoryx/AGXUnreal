@@ -114,6 +114,8 @@ public:
 
 	bool IsRotational() const;
 
+	bool IsAllElementaryConstraintsDisabled() const;
+
 private:
 	FConstraintBarrier(const FConstraintBarrier&) = delete;
 	void operator=(const FConstraintBarrier&) = delete;

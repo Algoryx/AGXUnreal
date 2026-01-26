@@ -397,3 +397,15 @@ bool FConstraintBarrier::IsRotational() const
 
 	return true;
 }
+
+bool FConstraintBarrier::IsAllElementaryConstraintsDisabled() const
+{
+	check(HasNative());
+	bool AnyEnabled = false;
+
+	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
+	for (decltype(NumEc) I = 0; I < NumEc; ++I)
+		AnyEnabled |= NativeRef->Native->getElementaryConstraint(I)->getEnable();
+
+	return !AnyEnabled;
+}
