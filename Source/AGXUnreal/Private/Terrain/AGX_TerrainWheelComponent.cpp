@@ -11,7 +11,6 @@
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
-#include "Terrain/AGX_TerrainWheelMaterial.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -31,29 +30,6 @@ UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
-}
-
-bool UAGX_TerrainWheelComponent::SetTerrainWheelMaterial(UAGX_TerrainWheelMaterial* Material)
-{
-	UAGX_TerrainWheelMaterial* TerrainWheelMaterialOrig = TerrainWheelMaterial;
-	TerrainWheelMaterial = Material;
-
-	if (!HasNative())
-	{
-		// Not in play, we are done.
-		return true;
-	}
-
-	// UpdateNativeMaterial is responsible to create an instance if none exists and do the
-	// asset/instance swap.
-	if (!UpdateNativeTerrainWheelMaterial())
-	{
-		// Something went wrong, restore original TerrainWheelMaterial.
-		TerrainWheelMaterial = TerrainWheelMaterialOrig;
-		return false;
-	}
-
-	return true;
 }
 
 void UAGX_TerrainWheelComponent::SetTerrainDeformationEnabled(bool InEnable)
@@ -295,10 +271,6 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_TerrainWheelComponent, TerrainWheelMaterial),
-		[](ThisClass* Self) { Self->UpdateNativeTerrainWheelMaterial(); });
 }
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
@@ -400,37 +372,9 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
-	UpdateNativeTerrainWheelMaterial();
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
 		Sim->Add(*this);
-}
-
-bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelMaterial()
-{
-	if (!HasNative())
-		return false;
-
-	if (TerrainWheelMaterial == nullptr)
-	{
-		if (HasNative())
-			GetNative()->SetTerrainWheelMaterialToDefault();
-
-		return true;
-	}
-
-	UWorld* World = GetWorld();
-	UAGX_TerrainWheelMaterial* Instance =
-		static_cast<UAGX_TerrainWheelMaterial*>(TerrainWheelMaterial->GetOrCreateInstance(World));
-	check(Instance);
-
-	if (TerrainWheelMaterial != Instance)
-		TerrainWheelMaterial = Instance;
-
-	FTerrainWheelMaterialBarrier* MaterialBarrier = Instance->GetOrCreateNative();
-	check(MaterialBarrier);
-	GetNative()->SetTerrainWheelMaterial(*MaterialBarrier);
-	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

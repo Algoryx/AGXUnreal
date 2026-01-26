@@ -11,8 +11,6 @@
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/RtAmbientMaterialBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
-#include "Terrain/AGX_TerrainWheelMaterial.h"
-#include "Terrain/TerrainWheelMaterialBarrier.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -37,7 +35,6 @@ namespace AGX_MaterialLibrary_helpers
 		ContactMaterial,
 		ShapeMaterial,
 		TerrainMaterial,
-		TerrainWheelMaterial
 	};
 
 	FString ToAssetName(const FString& NameAGX, LibraryMaterialType Type)
@@ -50,8 +47,6 @@ namespace AGX_MaterialLibrary_helpers
 				return FString::Printf(TEXT("AGX_SM_%s"), *NameAGX);
 			case LibraryMaterialType::TerrainMaterial:
 				return FString::Printf(TEXT("AGX_TM_%s"), *NameAGX);
-			case LibraryMaterialType::TerrainWheelMaterial:
-				return FString::Printf(TEXT("AGX_TW_%s"), *NameAGX);
 		}
 
 		UE_LOG(
@@ -71,8 +66,6 @@ namespace AGX_MaterialLibrary_helpers
 				return FString(TEXT("/AGXUnreal/Shape/ShapeMaterialLibrary"));
 			case LibraryMaterialType::TerrainMaterial:
 				return FString(TEXT("/AGXUnreal/Terrain/TerrainMaterialLibrary"));
-			case LibraryMaterialType::TerrainWheelMaterial:
-				return FString(TEXT("/AGXUnreal/Terrain/TerrainWheelMaterialLibrary"));
 		}
 
 		UE_LOG(
@@ -407,27 +400,8 @@ bool AGX_MaterialLibrary::UpdateLidarAmbientMaterialAssetLibrary()
 	return Result;
 }
 
-bool AGX_MaterialLibrary::UpdateTerrainWheelMaterialAssetLibrary()
-{
-	using namespace AGX_MaterialLibrary_helpers;
-	using namespace AGX_MaterialLibraryBarrier;
-
-	bool IssuesEncountered = false;
-	const TArray<FString> Names = GetAvailableLibraryTerrainWheelMaterials();
-	for (const FString& NameAGX : Names)
-	{
-		auto mat = EnsureMaterialImported<UAGX_TerrainWheelMaterial, FTerrainWheelMaterialBarrier>(
-			NameAGX, LibraryMaterialType::TerrainWheelMaterial, LoadTerrainWheelMaterialProfile);
-		if (mat == nullptr)
-			IssuesEncountered = true;
-	}
-
-	return !IssuesEncountered;
-}
-
 bool AGX_MaterialLibrary::UpdateAllMaterialAssetLibraries()
 {
 	return UpdateShapeMaterialAssetLibrary() && UpdateContactMaterialAssetLibrary() &&
-		   UpdateTerrainMaterialAssetLibrary() && UpdateLidarAmbientMaterialAssetLibrary() &&
-		   UpdateTerrainWheelMaterialAssetLibrary();
+		   UpdateTerrainMaterialAssetLibrary() && UpdateLidarAmbientMaterialAssetLibrary();
 }

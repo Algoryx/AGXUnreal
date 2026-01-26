@@ -8,7 +8,6 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
-#include "Terrain/TerrainWheelMaterialBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -23,28 +22,6 @@ FTerrainWheelBarrier::FTerrainWheelBarrier()
 FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InNativeRef)
 	: NativeRef {std::move(InNativeRef)}
 {
-}
-
-void FTerrainWheelBarrier::SetTerrainWheelMaterialToDefault()
-{
-	// TODO
-}
-
-void FTerrainWheelBarrier::SetTerrainWheelMaterial(FTerrainWheelMaterialBarrier& Material)
-{
-	check(HasNative());
-	check(Material.HasNative());
-
-	// TODO: should take ptr!
-	NativeRef->Native->setTerrainWheelTerrainMaterialParameters(*Material.GetNative()->Native);
-}
-
-FTerrainWheelMaterialBarrier FTerrainWheelBarrier::GetTerrainWheelMaterial() const
-{
-	check(HasNative());
-
-	// TODO: need getter in AGX.
-	return FTerrainWheelMaterialBarrier();
 }
 
 void FTerrainWheelBarrier::SetEnableTerrainDeformation(bool InEnable)

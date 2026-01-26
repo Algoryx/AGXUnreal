@@ -27,7 +27,6 @@
 #include <agxTerrain/TerrainPager.h>
 #include <agxTerrain/TerrainProperties.h>
 #include <agxTerrain/TerrainWheel.h>
-#include <agxTerrain/TerrainWheelTerrainMaterialParameters.h>
 #include "EndAGXIncludes.h"
 
 struct FElementaryConstraintRef
@@ -289,17 +288,6 @@ struct FTerrainWheelRef
 
 	FTerrainWheelRef() = default;
 	FTerrainWheelRef(agxTerrain::TerrainWheel* InNative)
-		: Native(InNative)
-	{
-	}
-};
-
-struct FTerrainWheelMaterialPtr
-{
-	std::shared_ptr<agxTerrain::TerrainWheelTerrainMaterialParameters> Native;
-
-	FTerrainWheelMaterialPtr() = default;
-	FTerrainWheelMaterialPtr(agxTerrain::TerrainWheelTerrainMaterialParameters* InNative)
 		: Native(InNative)
 	{
 	}
