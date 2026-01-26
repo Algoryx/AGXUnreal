@@ -438,14 +438,14 @@ namespace AGX_ImporterToEditor_helpers
 			return false;
 		}
 
+		// Recoverable.
 		if (Result != EAGX_ImportResult::Success)
 		{
 			const FString Text = FString::Printf(
 				TEXT("Some issues occurred during import and the result may not be the "
 					 "expected result. Log category LogAGX in the Output Log may "
 					 "contain more information."));
-			FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_Fail);
-			return false;
+			FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_None);
 		}
 
 		return true;
@@ -1067,7 +1067,7 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	if (Settings.bOpenBlueprintEditorAfterImport)
 		GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(ChildBlueprint);
 
-	PostImport(Settings);
+	PostImport(Settings, Result.Result);
 
 	return ChildBlueprint;
 }
@@ -1690,13 +1690,28 @@ void FAGX_ImporterToEditor::PreReimport(
 	OutSettings.FilePath = NewLocation;
 }
 
-void FAGX_ImporterToEditor::PostImport(const FAGX_ImportSettings& Settings)
+void FAGX_ImporterToEditor::PostImport(
+	const FAGX_ImportSettings& Settings, EAGX_ImportResult Result)
 {
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
-			TEXT("OpenPLX model files were copied to: \n\n'%s'. \n\nThese files are needed during "
-				 "runtime and should not be removed as long as the imported model is used."),
-			*FPaths::GetPath(Settings.FilePath)));
+		if (Result == EAGX_ImportResult::Success)
+		{
+			FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
+				TEXT("OpenPLX model files were copied to: \n\n'%s'. \n\nThese files are needed "
+					 "during runtime and should not be removed as long as the imported model is "
+					 "used."),
+				*FPaths::GetPath(Settings.FilePath)));
+		}
+		else
+		{
+			FAGX_NotificationUtilities::ShowDialogBoxWithWarning(FString::Printf(
+				TEXT("Warnings occured during Import, check the Output Log for more "
+					 "details. The result may be usable, but it cannot be guaranteed.\n\nOpenPLX "
+					 "model files were copied to: \n\n'%s'. \n\nThese files are needed "
+					 "during runtime and should not be removed as long as the imported model is "
+					 "used."),
+				*FPaths::GetPath(Settings.FilePath)));
+		}
 	}
 }

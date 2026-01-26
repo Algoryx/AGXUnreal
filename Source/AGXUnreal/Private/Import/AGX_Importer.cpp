@@ -273,6 +273,36 @@ namespace AGX_Importer_helpers
 			}
 		}
 	}
+
+	template <typename T>
+	concept HasGetName = requires(const T& t) {
+		{ t.GetName() };
+	};
+
+	template <typename TBarrier>
+	void PrintAddComponentGuidCollisionWarning(const TBarrier& Barrier, const FGuid& Guid)
+	{
+		if constexpr (HasGetName<TBarrier>)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("FAGX_Importer::AddComponent was given object '%s' with GUID '%s' which "
+					 "collides with a previous object GUID. The model is invalid and this object "
+					 "will not be "
+					 "imported."),
+				*Barrier.GetName(), *Guid.ToString());
+		}
+		else
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"FAGX_Importer::AddComponent was given an object with GUID '%s' which collides "
+					"with a previous object GUID. The model is invalid and this object will not be "
+					"imported."),
+				*Guid.ToString());
+		}
+	}
 }
 
 FAGX_Importer::FAGX_Importer()
@@ -361,8 +391,14 @@ EAGX_ImportResult FAGX_Importer::AddComponent(
 	}
 
 	const FGuid Guid = Barrier.GetGuid();
-	AGX_CHECK(
-		AGX_Importer_helpers::GetComponentsMapFrom<TComponent>(Context).FindRef(Guid) == nullptr);
+	const bool GuidCollision =
+		AGX_Importer_helpers::GetComponentsMapFrom<TComponent>(Context).FindRef(Guid) != nullptr;
+	AGX_CHECK(!GuidCollision);
+	if (GuidCollision)
+	{
+		AGX_Importer_helpers::PrintAddComponentGuidCollisionWarning(Barrier, Guid);
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
 
 	TComponent* Component = NewObject<TComponent>(&OutActor);
 	FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, OutActor, Context.SessionGuid);
