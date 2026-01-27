@@ -66,7 +66,6 @@ void FTerrainWheelBarrier::AllocateNative(FRigidBodyBarrier& Body, FCylinderShap
 	AGX_CHECK(CylinderAGX != nullptr);
 	NativeRef->Native = new agxTerrain::TerrainWheel(BodyAGX, CylinderAGX);
 
-	// TODO: this should not be needed (should be handled in AGX).
 	auto Mat = Cylinder.GetNative()->NativeGeometry->getMaterial();
 	NativeRef->Native->setMaterial(Mat);
 }
