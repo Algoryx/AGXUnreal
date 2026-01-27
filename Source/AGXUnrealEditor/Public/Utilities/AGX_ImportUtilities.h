@@ -102,6 +102,7 @@ public:
 
 	static FString GetImportRootDirectoryName();
 	static FString GetImportShapeMaterialDirectoryName();
+	static FString GetImportCablePropertiesDirectoryName();
 	static FString GetImportContactMaterialDirectoryName();
 	static FString GetImportRenderMaterialDirectoryName();
 	static FString GetImportMergeSplitThresholdsDirectoryName();

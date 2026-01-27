@@ -50,6 +50,20 @@ void FAGX_Frame::SetWorldLocation(const FVector& InLocation, const USceneCompone
 	LocalLocation = ParentToWorld.InverseTransformPosition(InLocation);
 }
 
+void FAGX_Frame::SetWorldRotation(const FRotator& InRotation, const USceneComponent& FallbackParent)
+{
+	const FTransform& ParentToWorld = GetParentTransform(FallbackParent);
+
+	const FQuat ParentWorldQuat = ParentToWorld.GetRotation();
+	const FQuat WorldQuat = InRotation.Quaternion();
+
+	// Convert world rotation to local rotation relative to parent:
+	// World = Parent * Local  =>  Local = Parent^-1 * World
+	const FQuat LocalQuat = ParentWorldQuat.Inverse() * WorldQuat;
+
+	LocalRotation = LocalQuat.Rotator();
+}
+
 FRotator FAGX_Frame::GetWorldRotation() const
 {
 	const USceneComponent* ActualParent = GetParentComponent();

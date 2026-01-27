@@ -1429,15 +1429,17 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 				Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
 			if (BodyComponent != nullptr)
 			{
-				RouteNode.SetBody(BodyComponent);
-				RouteNode.Frame.SetParentComponent(BodyComponent);
+				// Note: avoid setting component ptrs here since both them and their owners may get
+				// destroyed if we are doing an import. Instead we just set the Name.
+				RouteNode.RigidBody.Name = BodyComponent->GetFName();
+				RouteNode.Frame.Parent.Name = BodyComponent->GetFName();
 				RouteNode.Frame.LocalLocation = NodeAGX.GetLocalLocation();
 			}
 		}
 		else
 		{
 			// All other node types are placed relative to the Wire Component.
-			RouteNode.Frame.SetParentComponent(nullptr);
+			RouteNode.Frame.Parent.Name = GetFName();
 			RouteNode.Frame.LocalLocation = NodeAGX.GetWorldLocation();
 		}
 
@@ -2440,6 +2442,9 @@ bool UAGX_WireComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyNa
 		return true;
 
 	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, Radius))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, RenderRadiusScale))
 		return true;
 
 	return false;

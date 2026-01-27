@@ -22,6 +22,7 @@
 
 class AAGX_Stepper;
 class AAGX_Terrain;
+class UAGX_CableComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ObserverFrameComponent;
@@ -493,6 +494,7 @@ public: // Member functions.
 	UPROPERTY(BlueprintAssignable, Category = "Simulation")
 	FOnSeparation OnSeparation;
 
+	bool Add(UAGX_CableComponent& Cable);
 	bool Add(UAGX_ConstraintComponent& Constraint);
 	bool Add(UAGX_ObserverFrameComponent& Frame);
 
@@ -511,6 +513,7 @@ public: // Member functions.
 	bool Add(UAGX_TrackComponent& Track);
 	bool Add(UAGX_WireComponent& Wire);
 
+	bool Remove(UAGX_CableComponent& Cable);
 	bool Remove(UAGX_ConstraintComponent& Constraint);
 	bool Remove(UAGX_ObserverFrameComponent& Frame);
 	bool Remove(UAGX_RigidBodyComponent& Body);
