@@ -36,6 +36,30 @@ public:
 
 	FGuid GetGuid() const;
 
+	void SetBendingStiffnessAttenuationLateral(double Stiffness, double Attenuation);
+	double GetBendingStiffnessLateral() const;
+	double GetBendingAttenuationLateral() const;
+
+	void SetBendingStiffnessAttenuationVertical(double Stiffness, double Attenuation);
+	double GetBendingStiffnessVertical() const;
+	double GetBendingAttenuationVertical() const;
+
+	void SetShearStiffnessAttenuationLateral(double Stiffness, double Attenuation);
+	double GetShearStiffnessLateral() const;
+	double GetShearAttenuationLateral() const;
+
+	void SetShearStiffnessAttenuationVertical(double Stiffness, double Attenuation);
+	double GetShearStiffnessVertical() const;
+	double GetShearAttenuationVertical() const;
+
+	void SetTensileStiffnessAttenuation(double Stiffness, double Attenuation);
+	double GetTensileStiffness() const;
+	double GetTensileAttenuation() const;
+
+	void SetTorsionalStiffnessAttenuation(double Stiffness, double Attenuation);
+	double GetTorsionalStiffness() const;
+	double GetTorsionalAttenuation() const;
+
 	void SetHingeRangeEnabled(bool bEnable);
 	bool GetHingeRangeEnabled() const;
 

@@ -25,6 +25,78 @@ class AGXUNREAL_API UAGX_TrackProperties : public UObject
 	GENERATED_BODY()
 
 public:
+	/**
+	 * Lateral bending stiffness (resists sagging).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real BendingStiffnessLateral = 50.0;
+
+	/**
+	 * Lateral bending attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double BendingAttenuationLateral = 2.0;
+
+	/**
+	 * Vertical bending stiffness (resists side-to-side bending).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real BendingStiffnessVertical = 1.1e9;
+
+	/**
+	 * Vertical bending attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double BendingAttenuationVertical = 2.0;
+
+	/**
+	 * Lateral shear stiffness.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real ShearStiffnessLateral = 1.1e9;
+
+	/**
+	 * Lateral shear attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double ShearAttenuationLateral = 2.0;
+
+	/**
+	 * Vertical shear stiffness.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real ShearStiffnessVertical = 1.1e9;
+
+	/**
+	 * Vertical shear attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double ShearAttenuationVertical = 2.0;
+
+	/**
+	 * Tensile stiffness (resists stretching).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real TensileStiffness = 1.1e9;
+
+	/**
+	 * Tensile attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double TensileAttenuation = 2.0;
+
+	/**
+	 * Torsional stiffness (resists twisting).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real TorsionalStiffness = 1.1e9;
+
+	/**
+	 * Torsional attenuation.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double TorsionalAttenuation = 2.0;
+
 
 	/**
 	 * Whether to enable the range in the hinges between the track nodes
@@ -312,7 +384,6 @@ private:
 	static constexpr double DefaultHingeSpookDamping = 2.0 / 60.0;
 
 private:
-
 	UPROPERTY()
 	FAGX_Real HingeComplianceTranslational_X_DEPRECATED = DefaultHingeCompliance;
 
