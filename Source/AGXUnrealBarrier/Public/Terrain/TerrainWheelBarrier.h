@@ -34,6 +34,9 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 
 	FGuid GetGuid() const;
 
+	void SetName(const FString& Name);
+	FString GetName() const;
+
 	bool HasNative() const;
 	FTerrainWheelRef* GetNative();
 	const FTerrainWheelRef* GetNative() const;

@@ -76,6 +76,20 @@ FGuid FTerrainWheelBarrier::GetGuid() const
 	return Convert(NativeRef->Native->getUuid());
 }
 
+void FTerrainWheelBarrier::SetName(const FString& NameUnreal)
+{
+	check(HasNative());
+	agx::String NameAGX = Convert(NameUnreal);
+	NativeRef->Native->setName(NameAGX);
+}
+
+FString FTerrainWheelBarrier::GetName() const
+{
+	check(HasNative());
+	FString NameUnreal(Convert(NativeRef->Native->getName()));
+	return NameUnreal;
+}
+
 bool FTerrainWheelBarrier::HasNative() const
 {
 	return NativeRef->Native != nullptr;

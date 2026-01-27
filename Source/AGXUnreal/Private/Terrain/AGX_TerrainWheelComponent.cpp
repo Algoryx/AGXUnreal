@@ -12,6 +12,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -84,6 +85,22 @@ void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
 void UAGX_TerrainWheelComponent::SetEnableAGXDebugRendering(bool InEnable)
 {
 	SetAGXDebugRenderingEnabled(InEnable);
+}
+
+void UAGX_TerrainWheelComponent::CopyFrom(
+	const FTerrainWheelBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	const FString CleanBarrierName =
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOwner(), CleanBarrierName, UAGX_TerrainWheelComponent::StaticClass());
+	Rename(*Name);
+
+	ImportGuid = Barrier.GetGuid();
+	ImportName = Barrier.GetName();
+
+	if (Context != nullptr)
+		return; // We are done.
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()
@@ -372,6 +389,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
+	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
 		Sim->Add(*this);

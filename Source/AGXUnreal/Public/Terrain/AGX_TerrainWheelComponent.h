@@ -13,6 +13,8 @@
 
 #include "AGX_TerrainWheelComponent.generated.h"
 
+struct FAGX_ImportContext;
+
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_TerrainWheelComponent : public UActorComponent, public IAGX_NativeOwner
 {
@@ -65,6 +67,22 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
 	bool Visible {true};
+
+	/*
+	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
+
+	/*
+	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FString ImportName;
+
+	void CopyFrom(const FTerrainWheelBarrier& Barrier, FAGX_ImportContext* Context);
 
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
