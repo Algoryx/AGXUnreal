@@ -21,6 +21,7 @@
 #include <agx/Quat.h>
 #include <agxCollide/Box.h>
 #include <agxVehicle/Track.h>
+#include <agxVehicle/TrackRoute.h>
 #include <agxVehicle/TrackNodeOnInitializeCallback.h>
 #include "EndAGXIncludes.h"
 
@@ -284,8 +285,23 @@ double FTrackBarrier::GetInitialDistanceTension() const
 		return -1.0;
 	}
 
-	return ConvertDistanceToUnreal<double>(
-		NativeRef->Native->getRoute()->getInitialDistanceTension());
+	if (!NativeRef->Native->getInitialTension().isDistance)
+	{
+		agxVehicle::TrackPropertiesRef PropertiesAGX = NativeRef->Native->getProperties();
+		
+		// Fallback on default, best we can do.
+		if (PropertiesAGX == nullptr)
+			PropertiesAGX = new agxVehicle::TrackProperties();
+
+		const auto NodeLenAGX = NativeRef->Native->getRoute()->getNodeLength();
+		return ConvertDistanceToUnreal<double>(
+			NativeRef->Native->getInitialTension().getTensionDistancePerNode(
+				*PropertiesAGX, NodeLenAGX));
+	}
+	else
+	{
+		return ConvertDistanceToUnreal<double>(NativeRef->Native->getInitialTension().value);
+	}
 }
 
 FRigidBodyBarrier FTrackBarrier::GetNodeBody(int index) const

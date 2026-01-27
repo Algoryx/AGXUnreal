@@ -36,40 +36,6 @@ public:
 
 	FGuid GetGuid() const;
 
-	// Hinge properties.
-
-	void SetHingeCompliance(double Compliance, int32 DOF);
-	void SetHingeComplianceTranslational(double Compliance);
-	void SetHingeComplianceTranslationalX(double Compliance);
-	void SetHingeComplianceTranslationalY(double Compliance);
-	void SetHingeComplianceTranslationalZ(double Compliance);
-	void SetHingeComplianceRotational(double Compliance);
-	void SetHingeComplianceRotationalX(double Compliance);
-	void SetHingeComplianceRotationalY(double Compliance);
-
-	double GetHingeCompliance(int32 DOF) const;
-	double GetHingeComplianceTranslationalX() const;
-	double GetHingeComplianceTranslationalY() const;
-	double GetHingeComplianceTranslationalZ() const;
-	double GetHingeComplianceRotationalX() const;
-	double GetHingeComplianceRotationalY() const;
-
-	void SetHingeSpookDamping(double Damping, int32 DOF);
-	void SetHingeSpookDampingTranslational(double Damping);
-	void SetHingeSpookDampingTranslationalX(double Damping);
-	void SetHingeSpookDampingTranslationalY(double Damping);
-	void SetHingeSpookDampingTranslationalZ(double Damping);
-	void SetHingeSpookDampingRotational(double Damping);
-	void SetHingeSpookDampingRotationalX(double Damping);
-	void SetHingeSpookDampingRotationalY(double Damping);
-
-	double GetHingeSpookDamping(int32 DOF) const;
-	double GetHingeSpookDampingTranslationalX() const;
-	double GetHingeSpookDampingTranslationalY() const;
-	double GetHingeSpookDampingTranslationalZ() const;
-	double GetHingeSpookDampingRotationalX() const;
-	double GetHingeSpookDampingRotationalY() const;
-
 	void SetHingeRangeEnabled(bool bEnable);
 	bool GetHingeRangeEnabled() const;
 
