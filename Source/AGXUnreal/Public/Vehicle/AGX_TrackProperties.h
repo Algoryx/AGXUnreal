@@ -12,6 +12,8 @@
 
 #include "AGX_TrackProperties.generated.h"
 
+class UAGX_TrackComponent;
+
 /**
  * Contains configuration properties of an AGX Track Component. It is an asset that is created from
  * the Content Browser. Several Tracks can share the same Track Properties asset. Default values for
@@ -26,136 +28,148 @@ class AGXUNREAL_API UAGX_TrackProperties : public UObject
 
 public:
 	/**
-	 * Compliance of the hinges between track nodes, along the axis pointing vertically
-	 * out from the track node [m/N].
+	 * Lateral bending stiffness (resists sagging).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeComplianceTranslational_X = DefaultHingeCompliance;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real BendingStiffnessLateral = 50.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingStiffnessLateral(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingStiffnessLateral() const;
 
 	/**
-	 * Compliance of the hinges between track nodes, along the track direction [m/N].
+	 * Lateral bending attenuation (sagging).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeComplianceTranslational_Y = DefaultHingeCompliance;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double BendingAttenuationLateral = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingAttenuationLateral(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingAttenuationLateral() const;
 
 	/**
-	 * Compliance of the hinges between track nodes, along the axis pointing sideways
-	 * (i.e. the rotation axis) [m/N].
+	 * Vertical bending stiffness (resists side-to-side bending).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeComplianceTranslational_Z = DefaultHingeCompliance;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real BendingStiffnessVertical = 1.1e9;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceTranslational(
-		double ComplianceX, double ComplianceY, double ComplianceZ);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceTranslationalX(double ComplianceX);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceTranslationalY(double ComplianceY);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceTranslationalZ(double ComplianceZ);
+	void SetBendingStiffnessVertical(double Stiffness);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void GetHingeComplianceTranslational(double& X, double& Y, double& Z) const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeComplianceTranslationalX() const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeComplianceTranslationalY() const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeComplianceTranslationalZ() const;
+	double GetBendingStiffnessVertical() const;
 
 	/**
-	 * Compliance of the hinges between track nodes, around the axis pointing vertically
-	 * out from the track node [rad/Nm].
+	 * Vertical bending attenuation (side-to-side bending).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeComplianceRotational_X = DefaultHingeCompliance;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double BendingAttenuationVertical = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingAttenuationVertical(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingAttenuationVertical() const;
 
 	/**
-	 * Compliance of the hinges between track nodes, around the track direction [rad/Nm].
+	 * Lateral shear stiffness (resists lateral shear deformation).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Compliance", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeComplianceRotational_Y = DefaultHingeCompliance;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real ShearStiffnessLateral = 1.1e9;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceRotational(double ComplianceX, double ComplianceY);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceRotationalX(double Compliance);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeComplianceRotationalY(double Compliance);
+	void SetShearStiffnessLateral(double Stiffness);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void GetHingeComplianceRotational(double& X, double& Y) const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeComplianceRotationalX() const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeComplianceRotationalY() const;
+	double GetShearStiffnessLateral() const;
 
 	/**
-	 * Spook damping of the hinges between track nodes, along the axis pointing vertically
-	 * out from the track node [s].
+	 * Lateral shear attenuation.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeSpookDampingTranslational_X = DefaultHingeSpookDamping;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double ShearAttenuationLateral = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearAttenuationLateral(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearAttenuationLateral() const;
 
 	/**
-	 * Spook damping of the hinges between track nodes, along the track direction [s].
+	 * Vertical shear stiffness (resists vertical shear deformation).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeSpookDampingTranslational_Y = DefaultHingeSpookDamping;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real ShearStiffnessVertical = 1.1e9;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearStiffnessVertical(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearStiffnessVertical() const;
 
 	/**
-	 * Spook damping of the hinges between track nodes, along the axis pointing sideways
-	 * (i.e. the rotation axis) [s].
+	 * Vertical shear attenuation.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeSpookDampingTranslational_Z = DefaultHingeSpookDamping;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double ShearAttenuationVertical = 2.0;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingTranslational(double DampingX, double DampingY, double DampingZ);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingTranslationalX(double Damping);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingTranslationalY(double Damping);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingTranslationalZ(double Damping);
+	void SetShearAttenuationVertical(double Attenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void GetHingeSpookDampingTranslational(
-		double& DampingX, double& DampingY, double& DampingZ) const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeSpookDampingTranslationalX() const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeSpookDampingTranslationalY() const;
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeSpookDampingTranslationalZ() const;
+	double GetShearAttenuationVertical() const;
 
 	/**
-	 * Spook damping of the hinges between track nodes, around the axis pointing vertically
-	 * out from the track node [s].
+	 * Tensile stiffness (resists stretching).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeSpookDampingRotational_X = DefaultHingeSpookDamping;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real TensileStiffness = 1.1e9;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTensileStiffness(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTensileStiffness() const;
 
 	/**
-	 * Spook damping of the hinges between track nodes, around the track direction [s].
+	 * Tensile attenuation (stretching).
 	 */
-	UPROPERTY(EditAnywhere, Category = "Hinge Spook Damping", Meta = (ClampMin = "0.0"))
-	FAGX_Real HingeSpookDampingRotational_Y = DefaultHingeSpookDamping;
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double TensileAttenuation = 2.0;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingRotational(double DampingX, double DampingY);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingRotationalX(double Damping);
-	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void SetHingeSpookDampingRotationalY(double Damping);
+	void SetTensileAttenuation(double Attenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	void GetHingeSpookDampingRotational(double& X, double& Y) const;
+	double GetTensileAttenuation() const;
+
+	/**
+	 * Torsional stiffness (resists twisting).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	FAGX_Real TorsionalStiffness = 1.1e9;
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeSpookDampingRotationalX() const;
+	void SetTorsionalStiffness(double Stiffness);
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
-	double GetHingeSpookDampingRotationalY() const;
+	double GetTorsionalStiffness() const;
+
+	/**
+	 * Torsional attenuation (twisting).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
+	double TorsionalAttenuation = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTorsionalAttenuation(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTorsionalAttenuation() const;
 
 	/**
 	 * Whether to enable the range in the hinges between the track nodes
@@ -301,7 +315,7 @@ public:
 	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 public:
@@ -357,8 +371,9 @@ public:
 	FTrackPropertiesBarrier* GetOrCreateNative();
 
 	void UpdateNativeProperties();
+	void SerializeInternal(const UAGX_TrackComponent& Track, FArchive& Archive);
 
-	// ~Begin UObject interface.
+	// ~Begin UObject interface.	
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
@@ -367,71 +382,6 @@ public:
 
 public: // Deprecated functions.
 	// clang-format off
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (
-			DeprecatedFunction,
-			DeprecationMessage =
-				"Use SetHingeComplianceTranslational instead of SetHingeComplianceTranslational_BP"))
-	void SetHingeComplianceTranslational_BP(float X, float Y, float Z);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (
-			DeprecatedFunction,
-			DeprecationMessage =
-				"Use GetHingeComplianceTranslational instead of GetHingeComplianceTranslational_BP"))
-	void GetHingeComplianceTranslational_BP(float& X, float& Y, float& Z);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage =
-				 "Use SetHingeComplianceRotational instead of SetHingeComplianceRotational_BP"))
-	void SetHingeComplianceRotational_BP(float X, float Y);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage =
-				 "Use GetHingeComplianceRotational instead of GetHingeComplianceRotational_BP"))
-	void GetHingeComplianceRotational_BP(float& X, float& Y);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (
-			DeprecatedFunction,
-			DeprecationMessage =
-				"Use SetHingeSpookDampingTranslational instead of SetHingeSpookDampingTranslational_BP"))
-	void SetHingeSpookDampingTranslational_BP(float DampingX, float DampingY, float DampingZ);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta = (
-			DeprecatedFunction,
-			DeprecationMessage =
-				"Use GetHingeSpookDampingTranslational instead of GetHingeSpookDampingTranslational_BP"))
-	void GetHingeSpookDampingTranslational_BP(float& DampingX, float& DampingY, float& DampingZ);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage =
-				 "Use SetHingeSpookDampingRotational instead of SetHingeSpookDampingRotational_BP"))
-	void SetHingeSpookDampingRotational_BP(float X, float Y);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Track Properties",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage =
-				 "Use GetHingeSpookDampingRotational instead of GetHingeSpookDampingRotational_BP"))
-	void GetHingeSpookDampingRotational_BP(float& X, float& Y);
-
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Track Properties",
 		Meta =
@@ -508,6 +458,36 @@ private:
 	static constexpr double DefaultHingeSpookDamping = 2.0 / 60.0;
 
 private:
+	UPROPERTY()
+	FAGX_Real HingeComplianceTranslational_X_DEPRECATED = DefaultHingeCompliance;
+
+	UPROPERTY()
+	FAGX_Real HingeComplianceTranslational_Y_DEPRECATED = DefaultHingeCompliance;
+
+	UPROPERTY()
+	FAGX_Real HingeComplianceTranslational_Z_DEPRECATED = DefaultHingeCompliance;
+
+	UPROPERTY()
+	FAGX_Real HingeComplianceRotational_X_DEPRECATED = DefaultHingeCompliance;
+
+	UPROPERTY()
+	FAGX_Real HingeComplianceRotational_Y_DEPRECATED = DefaultHingeCompliance;
+
+	UPROPERTY()
+	FAGX_Real HingeSpookDampingTranslational_X_DEPRECATED = DefaultHingeSpookDamping;
+
+	UPROPERTY()
+	FAGX_Real HingeSpookDampingTranslational_Y_DEPRECATED = DefaultHingeSpookDamping;
+
+	UPROPERTY()
+	FAGX_Real HingeSpookDampingTranslational_Z_DEPRECATED = DefaultHingeSpookDamping;
+
+	UPROPERTY()
+	FAGX_Real HingeSpookDampingRotational_X_DEPRECATED = DefaultHingeSpookDamping;
+
+	UPROPERTY()
+	FAGX_Real HingeSpookDampingRotational_Y_DEPRECATED = DefaultHingeSpookDamping;
+
 	TWeakObjectPtr<UAGX_TrackProperties> Asset;
 	TWeakObjectPtr<UAGX_TrackProperties> Instance;
 	FTrackPropertiesBarrier NativeBarrier;

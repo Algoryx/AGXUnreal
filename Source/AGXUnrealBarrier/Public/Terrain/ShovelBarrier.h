@@ -13,8 +13,9 @@
 // Standard library includes.
 #include <memory>
 
-struct FRigidBodyBarrier;
+class FSimulationBarrier;
 
+struct FRigidBodyBarrier;
 struct FShovelRef;
 
 /**
@@ -44,6 +45,8 @@ public:
 
 	void SetToothLength(double ToothLength);
 	double GetToothLength() const;
+
+	bool IsAddedToSimulation(const FSimulationBarrier& Simulation) const;
 
 	void SetToothMinimumRadius(double MinimumToothRadius);
 	double GetToothMinimumRadius() const;

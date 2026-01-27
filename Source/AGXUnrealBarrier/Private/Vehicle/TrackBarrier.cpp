@@ -21,6 +21,7 @@
 #include <agx/Quat.h>
 #include <agxCollide/Box.h>
 #include <agxVehicle/Track.h>
+#include <agxVehicle/TrackRoute.h>
 #include <agxVehicle/TrackNodeOnInitializeCallback.h>
 #include "EndAGXIncludes.h"
 
@@ -91,37 +92,13 @@ FTrackBarrier::~FTrackBarrier()
 	// not just the forward declaration, of FTrackRef.
 }
 
-void FTrackBarrier::AddTrackWheel(
-	uint8 Model, double Radius, const FRigidBodyBarrier& RigidBody, const FVector& RelativePosition,
-	const FQuat& RelativeRotation, bool bSplitSegments, bool bMoveNodesToRotationPlane,
-	bool bMoveNodesToWheel)
+void FTrackBarrier::AddTrackWheel(const FTrackWheelCreationData& Data)
 {
 	check(HasNative());
-	check(RigidBody.HasNative()); // \todo More gentle check and return false?
 
-	// Convert to AGX Dynamics types.
-	agxVehicle::TrackWheel::Model ModelAGX = static_cast<agxVehicle::TrackWheel::Model>(Model);
-	agx::Real RadiusAGX = ConvertDistanceToAGX<agx::Real>(Radius);
-	agx::RigidBody* RigidBodyAGX = FAGX_AgxDynamicsObjectsAccess::GetFrom(&RigidBody);
-	agx::AffineMatrix4x4 RelTransformAGX = ConvertMatrix(RelativePosition, RelativeRotation);
-
-	// Create AGX Dynamics TrackWheel
-	agxVehicle::TrackWheelRef WheelAGX =
-		new agxVehicle::TrackWheel(ModelAGX, RadiusAGX, RigidBodyAGX, RelTransformAGX);
-
-	// Set properties.
-	// \remark MERGE_NODES seems to be automatically set by AGX Dynamics depending on Model
-	//         (set to true for Sprocket and Idler). Not sure if there is any purpose for letting
-	//         the user override it, so ignoring it for now..
-	// WheelAGX->setEnableProperty(agxVehicle::TrackWheel::Property::MERGE_NODES, ...);
-	WheelAGX->setEnableProperty(agxVehicle::TrackWheel::Property::SPLIT_SEGMENTS, bSplitSegments);
-	WheelAGX->setEnableProperty(
-		agxVehicle::TrackWheel::Property::MOVE_NODES_TO_ROTATION_PLANE, bMoveNodesToRotationPlane);
-	WheelAGX->setEnableProperty(
-		agxVehicle::TrackWheel::Property::MOVE_NODES_TO_WHEEL, bMoveNodesToWheel);
-
-	// Add to Track
-	NativeRef->Native->add(WheelAGX);
+	FTrackWheelBarrier WheelBarrier;
+	WheelBarrier.AllocateNative(Data);
+	NativeRef->Native->add(WheelBarrier.GetNative()->Native);
 }
 
 void FTrackBarrier::SetName(const FString& Name)
@@ -284,8 +261,23 @@ double FTrackBarrier::GetInitialDistanceTension() const
 		return -1.0;
 	}
 
-	return ConvertDistanceToUnreal<double>(
-		NativeRef->Native->getRoute()->getInitialDistanceTension());
+	if (!NativeRef->Native->getInitialTension().isDistance)
+	{
+		agxVehicle::TrackPropertiesRef PropertiesAGX = NativeRef->Native->getProperties();
+		
+		// Fallback on default, best we can do.
+		if (PropertiesAGX == nullptr)
+			PropertiesAGX = new agxVehicle::TrackProperties();
+
+		const auto NodeLenAGX = NativeRef->Native->getRoute()->getNodeLength();
+		return ConvertDistanceToUnreal<double>(
+			NativeRef->Native->getInitialTension().getTensionDistancePerNode(
+				*PropertiesAGX, NodeLenAGX));
+	}
+	else
+	{
+		return ConvertDistanceToUnreal<double>(NativeRef->Native->getInitialTension().value);
+	}
 }
 
 FRigidBodyBarrier FTrackBarrier::GetNodeBody(int index) const

@@ -9,6 +9,7 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "agxTerrain/Shovel.h"
 #include "RigidBodyBarrier.h"
+#include "SimulationBarrier.h"
 
 // Unreal Engine includes.
 #include "Math/TwoVectors.h"
@@ -110,6 +111,16 @@ double FShovelBarrier::GetToothLength() const
 	const agx::Real LengthAGX = NativeRef->Native->getSettings()->getToothLength();
 	const double LengthUnreal = ConvertDistanceToUnreal<double>(LengthAGX);
 	return LengthUnreal;
+}
+
+bool FShovelBarrier::IsAddedToSimulation(const FSimulationBarrier& Simulation) const
+{
+	check(HasNative());
+
+	if (!Simulation.HasNative())
+		return false;
+
+	return Simulation.GetNative()->Native.get() == NativeRef->Native->getSimulation();
 }
 
 void FShovelBarrier::SetToothMinimumRadius(double MinimumToothRadius)
