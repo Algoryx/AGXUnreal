@@ -476,6 +476,13 @@ void UAGX_TrackComponent::SetNativeAddress(uint64 NativeAddress)
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 }
 
+void UAGX_TrackComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	if (TrackProperties != nullptr)
+		TrackProperties->SerializeInternal(*this, Archive);
+}
+
 void UAGX_TrackComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -867,9 +874,17 @@ void UAGX_TrackComponent::CreateNative()
 		check(transformOK);
 
 		// Add native wheel to native Track.
-		NativeBarrier.AddTrackWheel(
-			static_cast<uint8>(Wheel.Model), Wheel.Radius, *Body->GetOrCreateNative(), RelPos,
-			RelRot, Wheel.bSplitSegments, Wheel.bMoveNodesToRotationPlane, Wheel.bMoveNodesToWheel);
+		FTrackWheelCreationData WheelData {};
+		WheelData.Model = static_cast<uint8>(Wheel.Model);
+		WheelData.Radius = Wheel.Radius;
+		WheelData.RigidBody = *Body->GetOrCreateNative();
+		WheelData.RelativePosition = RelPos;
+		WheelData.RelativeRotation = RelRot;
+		WheelData.bSplitSegments = Wheel.bSplitSegments;
+		WheelData.bMoveNodesToRotationPlane = Wheel.bMoveNodesToRotationPlane;
+		WheelData.bMoveNodesToWheel = Wheel.bMoveNodesToWheel;
+
+		NativeBarrier.AddTrackWheel(WheelData);
 	}
 
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),

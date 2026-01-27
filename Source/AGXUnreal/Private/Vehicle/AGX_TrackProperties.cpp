@@ -9,6 +9,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Vehicle/AGX_TrackComponent.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -570,15 +571,13 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
 }
 
-void UAGX_TrackProperties::Serialize(FArchive& Archive)
+void UAGX_TrackProperties::SerializeInternal(const UAGX_TrackComponent& Track, FArchive& Archive)
 {
-	Super::Serialize(Archive);
-
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
 	{
-		//HingeComplianceTranslational_X_DEPRECATED
+		// TODO
 	}
 }
 

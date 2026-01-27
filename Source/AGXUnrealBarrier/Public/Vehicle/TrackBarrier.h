@@ -17,6 +17,7 @@ struct FRigidBodyBarrier;
 class FShapeMaterialBarrier;
 class FTrackPropertiesBarrier;
 class FTrackWheelBarrier;
+struct FTrackWheelCreationData;
 struct FTrackRef;
 
 /**
@@ -48,10 +49,7 @@ public:
 	FTrackBarrier(FTrackBarrier&& Other);
 	~FTrackBarrier();
 
-	void AddTrackWheel(
-		uint8 Model, double Radius, const FRigidBodyBarrier& RigidBody,
-		const FVector& RelativePosition, const FQuat& RelativeRotation, bool bSplitSegments,
-		bool bMoveNodesToRotationPlane, bool bMoveNodesToWheel);
+	void AddTrackWheel(const FTrackWheelCreationData& Data);
 
 	void SetName(const FString& Name);
 	FString GetName() const;

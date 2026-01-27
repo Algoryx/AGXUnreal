@@ -393,6 +393,7 @@ public:
 	// ~End IAGX_NativeOwner interface.
 
 	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
