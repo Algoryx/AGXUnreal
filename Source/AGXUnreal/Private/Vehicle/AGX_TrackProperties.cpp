@@ -13,6 +13,16 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
+void UAGX_TrackProperties::SetBendingStiffnessLateral(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(BendingStiffnessLateral, Stiffness, SetBendingStiffnessLateral);
+}
+
+double UAGX_TrackProperties::GetBendingStiffnessLateral() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingStiffnessLateral, GetBendingStiffnessLateral);
+}
+
 void UAGX_TrackProperties::SetBendingAttenuationLateral(double Attenuation)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(
