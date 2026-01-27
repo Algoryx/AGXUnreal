@@ -31,11 +31,23 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real BendingStiffnessLateral = 50.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingStiffnessLateral(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingStiffnessLateral() const;
+
 	/**
-	 * Lateral bending attenuation.
+	 * Lateral bending attenuation (sagging).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double BendingAttenuationLateral = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingAttenuationLateral(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingAttenuationLateral() const;
 
 	/**
 	 * Vertical bending stiffness (resists side-to-side bending).
@@ -43,17 +55,35 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real BendingStiffnessVertical = 1.1e9;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingStiffnessVertical(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingStiffnessVertical() const;
+
 	/**
-	 * Vertical bending attenuation.
+	 * Vertical bending attenuation (side-to-side bending).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double BendingAttenuationVertical = 2.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetBendingAttenuationVertical(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetBendingAttenuationVertical() const;
+
 	/**
-	 * Lateral shear stiffness.
+	 * Lateral shear stiffness (resists lateral shear deformation).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real ShearStiffnessLateral = 1.1e9;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearStiffnessLateral(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearStiffnessLateral() const;
 
 	/**
 	 * Lateral shear attenuation.
@@ -61,11 +91,23 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double ShearAttenuationLateral = 2.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearAttenuationLateral(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearAttenuationLateral() const;
+
 	/**
-	 * Vertical shear stiffness.
+	 * Vertical shear stiffness (resists vertical shear deformation).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real ShearStiffnessVertical = 1.1e9;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearStiffnessVertical(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearStiffnessVertical() const;
 
 	/**
 	 * Vertical shear attenuation.
@@ -73,17 +115,35 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double ShearAttenuationVertical = 2.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetShearAttenuationVertical(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetShearAttenuationVertical() const;
+
 	/**
 	 * Tensile stiffness (resists stretching).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real TensileStiffness = 1.1e9;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTensileStiffness(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTensileStiffness() const;
+
 	/**
-	 * Tensile attenuation.
+	 * Tensile attenuation (stretching).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double TensileAttenuation = 2.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTensileAttenuation(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTensileAttenuation() const;
 
 	/**
 	 * Torsional stiffness (resists twisting).
@@ -91,12 +151,23 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real TorsionalStiffness = 1.1e9;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTorsionalStiffness(double Stiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTorsionalStiffness() const;
+
 	/**
-	 * Torsional attenuation.
+	 * Torsional attenuation (twisting).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double TorsionalAttenuation = 2.0;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	void SetTorsionalAttenuation(double Attenuation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track Properties")
+	double GetTorsionalAttenuation() const;
 
 	/**
 	 * Whether to enable the range in the hinges between the track nodes

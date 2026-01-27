@@ -13,6 +13,117 @@
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
+void UAGX_TrackProperties::SetBendingAttenuationLateral(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		BendingAttenuationLateral, Attenuation, SetBendingAttenuationLateral);
+}
+
+double UAGX_TrackProperties::GetBendingAttenuationLateral() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingAttenuationLateral, GetBendingAttenuationLateral);
+}
+
+void UAGX_TrackProperties::SetBendingStiffnessVertical(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(BendingStiffnessVertical, Stiffness, SetBendingStiffnessVertical);
+}
+
+double UAGX_TrackProperties::GetBendingStiffnessVertical() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingStiffnessVertical, GetBendingStiffnessVertical);
+}
+
+void UAGX_TrackProperties::SetBendingAttenuationVertical(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		BendingAttenuationVertical, Attenuation, SetBendingAttenuationVertical);
+}
+
+double UAGX_TrackProperties::GetBendingAttenuationVertical() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(BendingAttenuationVertical, GetBendingAttenuationVertical);
+}
+
+void UAGX_TrackProperties::SetShearStiffnessLateral(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ShearStiffnessLateral, Stiffness, SetShearStiffnessLateral);
+}
+
+double UAGX_TrackProperties::GetShearStiffnessLateral() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ShearStiffnessLateral, GetShearStiffnessLateral);
+}
+
+void UAGX_TrackProperties::SetShearAttenuationLateral(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ShearAttenuationLateral, Attenuation, SetShearAttenuationLateral);
+}
+
+double UAGX_TrackProperties::GetShearAttenuationLateral() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ShearAttenuationLateral, GetShearAttenuationLateral);
+}
+
+void UAGX_TrackProperties::SetShearStiffnessVertical(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ShearStiffnessVertical, Stiffness, SetShearStiffnessVertical);
+}
+
+double UAGX_TrackProperties::GetShearStiffnessVertical() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ShearStiffnessVertical, GetShearStiffnessVertical);
+}
+
+void UAGX_TrackProperties::SetShearAttenuationVertical(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(ShearAttenuationVertical, Attenuation, SetShearAttenuationVertical);
+}
+
+double UAGX_TrackProperties::GetShearAttenuationVertical() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(ShearAttenuationVertical, GetShearAttenuationVertical);
+}
+
+void UAGX_TrackProperties::SetTensileStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(TensileStiffness, Stiffness, SetTensileStiffness);
+}
+
+double UAGX_TrackProperties::GetTensileStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(TensileStiffness, GetTensileStiffness);
+}
+
+void UAGX_TrackProperties::SetTensileAttenuation(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(TensileAttenuation, Attenuation, SetTensileAttenuation);
+}
+
+double UAGX_TrackProperties::GetTensileAttenuation() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(TensileAttenuation, GetTensileAttenuation);
+}
+
+void UAGX_TrackProperties::SetTorsionalStiffness(double Stiffness)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(TorsionalStiffness, Stiffness, SetTorsionalStiffness);
+}
+
+double UAGX_TrackProperties::GetTorsionalStiffness() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(TorsionalStiffness, GetTorsionalStiffness);
+}
+
+void UAGX_TrackProperties::SetTorsionalAttenuation(double Attenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(TorsionalAttenuation, Attenuation, SetTorsionalAttenuation);
+}
+
+double UAGX_TrackProperties::GetTorsionalAttenuation() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(TorsionalAttenuation, GetTorsionalAttenuation);
+}
 
 //
 // Hinge range.
@@ -214,6 +325,19 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 		return;
 	}
 
+	BendingStiffnessLateral = Source->BendingStiffnessLateral;
+	BendingAttenuationLateral = Source->BendingAttenuationLateral;
+	BendingStiffnessVertical = Source->BendingStiffnessVertical;
+	BendingAttenuationVertical = Source->BendingAttenuationVertical;
+	ShearStiffnessLateral = Source->ShearStiffnessLateral;
+	ShearAttenuationLateral = Source->ShearAttenuationLateral;
+	ShearStiffnessVertical = Source->ShearStiffnessVertical;
+	ShearAttenuationVertical = Source->ShearAttenuationVertical;
+	TensileStiffness = Source->TensileStiffness;
+	TensileAttenuation = Source->TensileAttenuation;
+	TorsionalStiffness = Source->TorsionalStiffness;
+	TorsionalAttenuation = Source->TorsionalAttenuation;
+
 	bEnableHingeRange = Source->bEnableHingeRange;
 	HingeRange = Source->HingeRange;
 	bEnableOnInitializeMergeNodesToWheels = Source->bEnableOnInitializeMergeNodesToWheels;
@@ -230,6 +354,19 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 
 void UAGX_TrackProperties::CopyFrom(const FTrackPropertiesBarrier& Source)
 {
+	BendingStiffnessLateral = Source.GetBendingStiffnessLateral();
+	BendingAttenuationLateral = Source.GetBendingAttenuationLateral();
+	BendingStiffnessVertical = Source.GetBendingStiffnessVertical();
+	BendingAttenuationVertical = Source.GetBendingAttenuationVertical();
+	ShearStiffnessLateral = Source.GetShearStiffnessLateral();
+	ShearAttenuationLateral = Source.GetShearAttenuationLateral();
+	ShearStiffnessVertical = Source.GetShearStiffnessVertical();
+	ShearAttenuationVertical = Source.GetShearAttenuationVertical();
+	TensileStiffness = Source.GetTensileStiffness();
+	TensileAttenuation = Source.GetTensileAttenuation();
+	TorsionalStiffness = Source.GetTorsionalStiffness();
+	TorsionalAttenuation = Source.GetTorsionalAttenuation();
+
 	bEnableHingeRange = Source.GetHingeRangeEnabled();
 	HingeRange = Source.GetHingeRangeRange();
 	bEnableOnInitializeMergeNodesToWheels = Source.GetOnInitializeMergeNodesToWheelsEnabled();
@@ -389,6 +526,19 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 		return;
 	}
 
+	NativeBarrier.SetBendingStiffnessLateral(BendingStiffnessLateral);
+	NativeBarrier.SetBendingAttenuationLateral(BendingAttenuationLateral);
+	NativeBarrier.SetBendingStiffnessVertical(BendingStiffnessVertical);
+	NativeBarrier.SetBendingAttenuationVertical(BendingAttenuationVertical);
+	NativeBarrier.SetShearStiffnessLateral(ShearStiffnessLateral);
+	NativeBarrier.SetShearAttenuationLateral(ShearAttenuationLateral);
+	NativeBarrier.SetShearStiffnessVertical(ShearStiffnessVertical);
+	NativeBarrier.SetShearAttenuationVertical(ShearAttenuationVertical);
+	NativeBarrier.SetTensileStiffness(TensileStiffness);
+	NativeBarrier.SetTensileAttenuation(TensileAttenuation);
+	NativeBarrier.SetTorsionalStiffness(TorsionalStiffness);
+	NativeBarrier.SetTorsionalAttenuation(TorsionalAttenuation);
+
 	// Hinge parameters.
 	NativeBarrier.SetHingeRangeEnabled(bEnableHingeRange);
 	NativeBarrier.SetHingeRangeRange(HingeRange);
@@ -464,13 +614,15 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 		});
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, NodesToWheelsMergeThreshold),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				NodesToWheelsMergeThreshold, SetNodesToWheelsMergeThreshold)
 		});
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, NodesToWheelsSplitThreshold),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				NodesToWheelsSplitThreshold, SetNodesToWheelsSplitThreshold)
 		});
@@ -495,6 +647,19 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				StabilizingHingeFrictionParameter, SetStabilizingHingeFrictionParameter)
 		});
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffnessLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingAttenuationLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffnessVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingAttenuationVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffnessLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearAttenuationLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffnessVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearAttenuationVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TensileStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TensileAttenuation);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TorsionalStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TorsionalAttenuation);
 }
 
 #endif

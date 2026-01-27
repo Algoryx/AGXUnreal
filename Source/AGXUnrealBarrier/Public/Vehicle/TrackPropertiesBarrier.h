@@ -36,28 +36,40 @@ public:
 
 	FGuid GetGuid() const;
 
-	void SetBendingStiffnessAttenuationLateral(double Stiffness, double Attenuation);
+	void SetBendingStiffnessLateral(double Stiffness);
 	double GetBendingStiffnessLateral() const;
+
+	void SetBendingAttenuationLateral(double Attenuation);
 	double GetBendingAttenuationLateral() const;
 
-	void SetBendingStiffnessAttenuationVertical(double Stiffness, double Attenuation);
+	void SetBendingStiffnessVertical(double Stiffness);
 	double GetBendingStiffnessVertical() const;
+
+	void SetBendingAttenuationVertical(double Attenuation);
 	double GetBendingAttenuationVertical() const;
 
-	void SetShearStiffnessAttenuationLateral(double Stiffness, double Attenuation);
+	void SetShearStiffnessLateral(double Stiffness);
 	double GetShearStiffnessLateral() const;
+
+	void SetShearAttenuationLateral(double Attenuation);
 	double GetShearAttenuationLateral() const;
 
-	void SetShearStiffnessAttenuationVertical(double Stiffness, double Attenuation);
+	void SetShearStiffnessVertical(double Stiffness);
 	double GetShearStiffnessVertical() const;
+
+	void SetShearAttenuationVertical(double Attenuation);
 	double GetShearAttenuationVertical() const;
 
-	void SetTensileStiffnessAttenuation(double Stiffness, double Attenuation);
+	void SetTensileStiffness(double Stiffness);
 	double GetTensileStiffness() const;
+
+	void SetTensileAttenuation(double Attenuation);
 	double GetTensileAttenuation() const;
 
-	void SetTorsionalStiffnessAttenuation(double Stiffness, double Attenuation);
+	void SetTorsionalStiffness(double Stiffness);
 	double GetTorsionalStiffness() const;
+
+	void SetTorsionalAttenuation(double Attenuation);
 	double GetTorsionalAttenuation() const;
 
 	void SetHingeRangeEnabled(bool bEnable);
