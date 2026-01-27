@@ -144,6 +144,50 @@ public:
 	void SetMaximumContactDepth(double MaximumContactDepth);
 	double GetMaximumContactDepth() const;
 
+	// Terrain Terramechanics Properties
+	void SetSinkageExponentParameterA(double Value);
+	double GetSinkageExponentParameterA() const;
+
+	void SetSinkageExponentParameterB(double Value);
+	double GetSinkageExponentParameterB() const;
+
+	void SetShearModulusXParameterA(double Value);
+	double GetShearModulusXParameterA() const;
+
+	void SetShearModulusXParameterB(double Value);
+	double GetShearModulusXParameterB() const;
+
+	void SetShearModulusYParameterA(double Value);
+	double GetShearModulusYParameterA() const;
+
+	void SetShearModulusYParameterB(double Value);
+	double GetShearModulusYParameterB() const;
+
+	void SetCohesiveModulusBekker(double Value);
+	double GetCohesiveModulusBekker() const;
+
+	void SetFrictionalModulusBekker(double Value);
+	double GetFrictionalModulusBekker() const;
+
+	void SetCohesiveModulusReece(double Value);
+	double GetCohesiveModulusReece() const;
+
+	void SetFrictionalModulusReece(double Value);
+	double GetFrictionalModulusReece() const;
+
+	void SetMaximumNormalStressAngleParameterA(double Value);
+	double GetMaximumNormalStressAngleParameterA() const;
+
+	void SetMaximumNormalStressAngleParameterB(double Value);
+	double GetMaximumNormalStressAngleParameterB() const;
+
+	void SetRearAngleParameterA(double Value);
+	double GetRearAngleParameterA() const;
+
+	void SetRearAngleParameterB(double Value);
+	double GetRearAngleParameterB() const;
+
+
 private:
 	FTerrainMaterialBarrier(const FTerrainMaterialBarrier&) = delete;
 	void operator=(const FTerrainMaterialBarrier&) = delete;

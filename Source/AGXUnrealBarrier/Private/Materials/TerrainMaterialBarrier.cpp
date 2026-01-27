@@ -554,3 +554,173 @@ double FTerrainMaterialBarrier::GetMaximumContactDepth() const
 		NativeRef->Native->getExcavationContactProperties()->getMaximumDepth());
 #endif
 }
+
+void FTerrainMaterialBarrier::SetSinkageExponentParameterA(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setSinkageExponentParameterA(Value);
+}
+
+double FTerrainMaterialBarrier::GetSinkageExponentParameterA() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getSinkageExponentParameterA();
+}
+
+void FTerrainMaterialBarrier::SetSinkageExponentParameterB(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setSinkageExponentParameterB(Value);
+}
+
+double FTerrainMaterialBarrier::GetSinkageExponentParameterB() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getSinkageExponentParameterB();
+}
+
+void FTerrainMaterialBarrier::SetShearModulusXParameterA(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusXParameterA(Value);
+}
+
+double FTerrainMaterialBarrier::GetShearModulusXParameterA() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusXParameterA();
+}
+
+void FTerrainMaterialBarrier::SetShearModulusXParameterB(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusXParameterB(Value);
+}
+
+double FTerrainMaterialBarrier::GetShearModulusXParameterB() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusXParameterB();
+}
+
+void FTerrainMaterialBarrier::SetShearModulusYParameterA(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusYParameterA(Value);
+}
+
+double FTerrainMaterialBarrier::GetShearModulusYParameterA() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusYParameterA();
+}
+
+void FTerrainMaterialBarrier::SetShearModulusYParameterB(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusYParameterB(Value);
+}
+
+double FTerrainMaterialBarrier::GetShearModulusYParameterB() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusYParameterB();
+}
+
+void FTerrainMaterialBarrier::SetCohesiveModulusBekker(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setCohesiveModulusBekker(Value);
+}
+
+double FTerrainMaterialBarrier::GetCohesiveModulusBekker() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getCohesiveModulusBekker();
+}
+
+void FTerrainMaterialBarrier::SetFrictionalModulusBekker(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setFrictionalModulusBekker(Value);
+}
+
+double FTerrainMaterialBarrier::GetFrictionalModulusBekker() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getFrictionalModulusBekker();
+}
+
+void FTerrainMaterialBarrier::SetCohesiveModulusReece(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setCohesiveModulusReece(Value);
+}
+
+double FTerrainMaterialBarrier::GetCohesiveModulusReece() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getCohesiveModulusReece();
+}
+
+void FTerrainMaterialBarrier::SetFrictionalModulusReece(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setFrictionalModulusReece(Value);
+}
+
+double FTerrainMaterialBarrier::GetFrictionalModulusReece() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getFrictionalModulusReece();
+}
+
+void FTerrainMaterialBarrier::SetMaximumNormalStressAngleParameterA(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setMaximumNormalStressAngleParameterA(Value);
+}
+
+double FTerrainMaterialBarrier::GetMaximumNormalStressAngleParameterA() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()
+		->getMaximumNormalStressAngleParameterA();
+}
+
+void FTerrainMaterialBarrier::SetMaximumNormalStressAngleParameterB(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setMaximumNormalStressAngleParameterB(Value);
+}
+
+double FTerrainMaterialBarrier::GetMaximumNormalStressAngleParameterB() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()
+		->getMaximumNormalStressAngleParameterB();
+}
+
+void FTerrainMaterialBarrier::SetRearAngleParameterA(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setRearAngleParameterA(Value);
+}
+
+double FTerrainMaterialBarrier::GetRearAngleParameterA() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getRearAngleParameterA();
+}
+
+void FTerrainMaterialBarrier::SetRearAngleParameterB(double Value)
+{
+	check(HasNative());
+	NativeRef->Native->getTerramechanicsProperties()->setRearAngleParameterB(Value);
+}
+
+double FTerrainMaterialBarrier::GetRearAngleParameterB() const
+{
+	check(HasNative());
+	return NativeRef->Native->getTerramechanicsProperties()->getRearAngleParameterB();
+}

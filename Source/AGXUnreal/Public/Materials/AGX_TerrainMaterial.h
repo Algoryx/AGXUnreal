@@ -11,6 +11,7 @@
 #include "Materials/AGX_TerrainCompactionProperties.h"
 #include "Materials/AGX_TerrainExcavationContactProperties.h"
 #include "Materials/AGX_TerrainParticleProperties.h"
+#include "Materials/AGX_TerrainTerramechanicsProperties.h"
 #include "Materials/TerrainMaterialBarrier.h"
 
 // Unreal Engine includes.
@@ -277,6 +278,96 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Excavation Contact")
 	double GetMaximumContactDepth() const;
+
+	// Terrain Terramechanics properties.
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material")
+	FAGX_TerrainTerramechanicsProperties TerrainTerramechanics;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetSinkageExponentParameterA(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetSinkageExponentParameterA() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetSinkageExponentParameterB(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetSinkageExponentParameterB() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetShearModulusXParameterA(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetShearModulusXParameterA() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetShearModulusXParameterB(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetShearModulusXParameterB() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetShearModulusYParameterA(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetShearModulusYParameterA() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetShearModulusYParameterB(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetShearModulusYParameterB() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetCohesiveModulusBekker(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetCohesiveModulusBekker() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetFrictionalModulusBekker(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetFrictionalModulusBekker() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetCohesiveModulusReece(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetCohesiveModulusReece() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetFrictionalModulusReece(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetFrictionalModulusReece() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetMaximumNormalStressAngleParameterA(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetMaximumNormalStressAngleParameterA() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetMaximumNormalStressAngleParameterB(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetMaximumNormalStressAngleParameterB() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetRearAngleParameterA(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetRearAngleParameterA() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	void SetRearAngleParameterB(double Value);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
+	double GetRearAngleParameterB() const;
+
 
 	virtual void Serialize(FArchive& Archive) override;
 
