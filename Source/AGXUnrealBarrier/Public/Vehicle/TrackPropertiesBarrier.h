@@ -109,6 +109,21 @@ public:
 	void SetStabilizingHingeFrictionParameter(double FrictionParameter);
 	double GetStabilizingHingeFrictionParameter() const;
 
+	/**
+	 * Helper function for creating TrackProperites using the old (deprecated) Hinge data
+	 * (compliance/damping), which will then enable reading out the new, migrated data such as
+	 * stiffness/attenuation values.
+	 * Compliance - this must be a vector of length 5 where the compliance is defined in this order:
+	 *      TRANSLATIONAL_1, lateral shear stiffness
+	 *      TRANSLATIONAL_2, tensile stiffness
+	 *      TRANSLATIONAL_3, vertical shear stiffness
+	 *      ROTATIONAL_1, vertical bending stiffness
+	 *      ROTATIONAL_2, torsional stiffness
+	 * Damping - this must be a vector of length 5 with damping. Same order as stiffness.
+	 */
+	FTrackPropertiesBarrier CreateFromComplianceAndDamping(
+		const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength, double SimulationTimeStep);
+
 private:
 	FTrackPropertiesBarrier(const FTrackPropertiesBarrier&) = delete;
 	void operator=(const FTrackPropertiesBarrier&) = delete;

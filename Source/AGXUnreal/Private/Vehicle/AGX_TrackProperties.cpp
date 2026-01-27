@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -567,6 +568,18 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	// Stabilization parameters.
 	NativeBarrier.SetMinStabilizingHingeNormalForce(MinStabilizingHingeNormalForce);
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
+}
+
+void UAGX_TrackProperties::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	{
+		//HingeComplianceTranslational_X_DEPRECATED
+	}
 }
 
 void UAGX_TrackProperties::PostInitProperties()

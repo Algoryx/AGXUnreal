@@ -74,7 +74,8 @@ FGuid FTrackPropertiesBarrier::GetGuid() const
 void FTrackPropertiesBarrier::SetBendingStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
+	// NativeRef->Native->setBendingStiffness(Stiffness,
+	// agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
 double FTrackPropertiesBarrier::GetBendingStiffnessLateral() const
@@ -99,7 +100,8 @@ double FTrackPropertiesBarrier::GetBendingAttenuationLateral() const
 void FTrackPropertiesBarrier::SetBendingStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
+	// NativeRef->Native->setBendingStiffness(Stiffness,
+	// agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
 double FTrackPropertiesBarrier::GetBendingStiffnessVertical() const
@@ -124,7 +126,7 @@ double FTrackPropertiesBarrier::GetBendingAttenuationVertical() const
 void FTrackPropertiesBarrier::SetShearStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
+	// NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
 double FTrackPropertiesBarrier::GetShearStiffnessLateral() const
@@ -148,7 +150,7 @@ double FTrackPropertiesBarrier::GetShearAttenuationLateral() const
 void FTrackPropertiesBarrier::SetShearStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
+	// NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
 double FTrackPropertiesBarrier::GetShearStiffnessVertical() const
@@ -173,7 +175,7 @@ double FTrackPropertiesBarrier::GetShearAttenuationVertical() const
 void FTrackPropertiesBarrier::SetTensileStiffness(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setTensileStiffness(Stiffness);
+	// NativeRef->Native->setTensileStiffness(Stiffness);
 }
 
 double FTrackPropertiesBarrier::GetTensileStiffness() const
@@ -197,7 +199,7 @@ double FTrackPropertiesBarrier::GetTensileAttenuation() const
 void FTrackPropertiesBarrier::SetTorsionalStiffness(double Stiffness)
 {
 	check(HasNative());
-	//NativeRef->Native->setTorsionalStiffness(Stiffness);
+	// NativeRef->Native->setTorsionalStiffness(Stiffness);
 }
 
 double FTrackPropertiesBarrier::GetTorsionalStiffness() const
@@ -349,4 +351,20 @@ double FTrackPropertiesBarrier::GetStabilizingHingeFrictionParameter() const
 {
 	check(HasNative());
 	return NativeRef->Native->getStabilizingHingeFrictionParameter();
+}
+
+FTrackPropertiesBarrier FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
+	const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength,
+	double SimulationTimeStep)
+{
+	const agx::RealVector ComplianceAGX = ConvertArray<double, double>(Compliance);
+	const agx::RealVector DampingAGX = ConvertArray<double, double>(Damping);
+	const agx::Real NodeLengthAGX = ConvertDistanceToAGX(NodeLength);
+
+	agxVehicle::TrackPropertiesRef Properties =
+		agxVehicle::TrackProperties::createFromComplianceAndDamping(
+			ComplianceAGX, DampingAGX, NodeLengthAGX, SimulationTimeStep);
+	FTrackPropertiesBarrier Barrier(std::make_unique<FTrackPropertiesRef>(Properties.get()));
+
+	return Barrier;
 }

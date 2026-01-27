@@ -371,6 +371,7 @@ public:
 	void UpdateNativeProperties();
 
 	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
