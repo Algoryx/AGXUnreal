@@ -19,9 +19,6 @@
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
-#include "NiagaraComponent.h"
-#include "NiagaraDataInterfaceArrayFunctionLibrary.h"
-#include "NiagaraFunctionLibrary.h"
 #include "TimerManager.h"
 
 UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
@@ -29,7 +26,7 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	: UProceduralMeshComponent(ObjectInitializer)
 {
 	bAllowConcurrentTick = false;
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetCanEverAffectNavigation(false);
 
 	auto AssignDefault = [](auto*& AssetRefProperty, const TCHAR* Path)
@@ -50,12 +47,8 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	};
 
 	AssignDefault(
-		Material, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/HeightField/"
+		Material, TEXT("Material'/AGXUnreal/Terrain/Rendering/HeightField/"
 					   "MI_MovableTerrain.MI_MovableTerrain'"));
-
-	AssignDefault(
-		ParticleSystemAsset, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/"
-								  "PS_SoilParticleSystem.PS_SoilParticleSystem'"));
 }
 
 void UAGX_MovableTerrainComponent::SetEnabled(bool InEnabled)
@@ -418,14 +411,6 @@ void UAGX_MovableTerrainComponent::OnComponentCreated()
 		RecreateMeshesEditor();
 }
 
-void UAGX_MovableTerrainComponent::DestroyComponent(bool bPromoteChildren)
-{
-	if (ParticleSystemComponent != nullptr)
-		ParticleSystemComponent->DestroyComponent();
-
-	Super::DestroyComponent(bPromoteChildren);
-}
-
 void UAGX_MovableTerrainComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -441,8 +426,6 @@ void UAGX_MovableTerrainComponent::BeginPlay()
 	// Fetch native heights (as a fail safe).
 	if (FetchNativeHeights())
 		RecreateMeshes();
-
-	InitializeParticles();
 
 	this->SetCollisionEnabled(AdditionalUnrealCollision);
 }
@@ -532,16 +515,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
 	PropertyDispatcher.Add(
-		AGX_MEMBER_NAME(ParticleSystemAsset),
-		[](ThisClass* This)
-		{
-			if (This->ParticleSystemAsset != nullptr)
-			{
-				This->ParticleSystemAsset->RequestCompile(true);
-			}
-		});
-
-	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
 		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
 
@@ -621,8 +594,7 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 			GET_MEMBER_NAME_CHECKED(ThisClass, BedZOffset),
 			GET_MEMBER_NAME_CHECKED(ThisClass, InitialHeight),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bUseInitialNoise),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise),
-			GET_MEMBER_NAME_CHECKED(ThisClass, ParticleSystemAsset)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialNoise)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -631,19 +603,7 @@ bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) co
 	}
 	return SuperCanEditChange;
 }
-
-#endif
-
-void UAGX_MovableTerrainComponent::TickComponent(
-	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_MovableTerrain::Tick"));
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (bEnableParticleRendering)
-	{
-		UpdateParticles();
-	}
-}
+#endif // WITH_EDITOR
 
 void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 {
@@ -1160,118 +1120,6 @@ bool UAGX_MovableTerrainComponent::GetNoMerge() const
 		return NativeBarrier.GetNoMerge();
 
 	return bIsNoMerge;
-}
-
-UNiagaraComponent* UAGX_MovableTerrainComponent::GetSpawnedParticleSystemComponent()
-{
-	return ParticleSystemComponent;
-}
-
-int32 UAGX_MovableTerrainComponent::GetNumParticles() const
-{
-	if (!HasNative())
-		return 0;
-
-	check(HasNative());
-	return static_cast<int32>(NativeBarrier.GetNumParticles());
-}
-
-bool UAGX_MovableTerrainComponent::InitializeParticles()
-{
-	if (!bEnableParticleRendering || !ParticleSystemAsset)
-	{
-		return false;
-	}
-
-	// It is important that we attach the ParticleSystemComponent using "KeepRelativeOffset" so that
-	// it's world position becomes the same as the Terrain's. Otherwise it will be spawned at
-	// the world origin which in turn may result in particles being culled and not rendered if the
-	// terrain is located far away from the world origin (see Fixed Bounds in the Particle System).
-	ParticleSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
-		ParticleSystemAsset, this, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
-		FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
-#if UE_VERSION_OLDER_THAN(4, 24, 0)
-		EPSCPoolMethod::None
-#else
-		ENCPoolMethod::None
-#endif
-	);
-#if WITH_EDITORONLY_DATA
-	// Must check for nullptr here because no particle system component is created with running
-	// as a unit test without graphics, i.e. with our run_unit_tests script in GitLab CI.
-	if (ParticleSystemComponent != nullptr)
-	{
-		ParticleSystemComponent->bVisualizeComponent = true;
-	}
-#endif
-
-	if (ParticleSystemComponent == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("AGX MovableTerrain '%s' in '%s' failed to create ParticleSystemComponent. "
-				 "Ensure the selected Niagara System is valid."),
-			*GetName(), *GetLabelSafe(GetOwner()));
-	}
-
-	return ParticleSystemComponent != nullptr;
-}
-
-void UAGX_MovableTerrainComponent::UpdateParticles()
-{
-	if (!NativeBarrier.HasNative())
-	{
-		return;
-	}
-	if (ParticleSystemComponent == nullptr)
-	{
-		return;
-	}
-
-	// Copy data with holes.
-	EParticleDataFlags ToInclude = EParticleDataFlags::Positions | EParticleDataFlags::Rotations |
-								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities;
-	const FParticleDataById ParticleData = NativeBarrier.GetParticleDataById(ToInclude);
-
-	const TArray<FVector>& Positions = ParticleData.Positions;
-	const TArray<FQuat>& Rotations = ParticleData.Rotations;
-	const TArray<float>& Radii = ParticleData.Radii;
-	const TArray<bool>& Exists = ParticleData.Exists;
-	const TArray<FVector>& Velocities = ParticleData.Velocities;
-
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
-	ParticleSystemComponent->SetNiagaraVariableInt("User.Target Particle Count", Exists.Num());
-#else
-	ParticleSystemComponent->SetVariableInt(FName("User.Target Particle Count"), Exists.Num());
-#endif
-
-	const int32 NumParticles = Positions.Num();
-
-	TArray<FVector4> PositionsAndScale;
-	PositionsAndScale.SetNum(NumParticles);
-	TArray<FVector4> Orientations;
-	Orientations.SetNum(NumParticles);
-
-	for (int32 I = 0; I < NumParticles; ++I)
-	{
-		// The particle size slot in the PositionAndScale buffer is a scale and not the
-		// actual size. The scale is relative to a SI unit cube, meaning that a
-		// scale of 1.0 should render a particle that is 1x1x1 m large, or
-		// 100x100x100 Unreal units. We multiply by 2.0 to convert from radius
-		// to full width.
-		float UnitCubeScale = (Radii[I] * 2.0f) / 100.0f;
-		PositionsAndScale[I] = FVector4(Positions[I], UnitCubeScale);
-		Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
-	}
-
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Positions And Scales", PositionsAndScale);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Orientations", Orientations);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayBool(
-		ParticleSystemComponent, "Exists", Exists);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(
-		ParticleSystemComponent, TEXT("Velocities"), Velocities);
 }
 
 void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMaterial)

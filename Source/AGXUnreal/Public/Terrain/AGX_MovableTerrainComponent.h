@@ -16,8 +16,6 @@
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
-class UNiagaraSystem;
-class UNiagaraComponent;
 
 /**
  * The Movable Terrain Components represents an AGX Terrain similar to the AGX Terrain Actor, but
@@ -66,7 +64,6 @@ public:
 
 	//~ Begin UActorComponent Interface
 	virtual void OnComponentCreated() override;
-	virtual void DestroyComponent(bool bPromoteChildren) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
@@ -85,8 +82,6 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	void InitPropertyDispatcher();
 #endif
-	virtual void TickComponent(
-		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 	// ~End UObject interface.
 
 	void RecreateMeshesEditor();
@@ -304,31 +299,6 @@ public:
 	void SetShowUnrealCollision(bool bShow);
 	void SetUnrealCollisionLOD(int Lod);
 	void SetUnrealCollisionType(TEnumAsByte<enum ECollisionEnabled::Type> CollisionType);
-
-	// AGX Terrain Rendering
-	//--------------------------
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
-	UNiagaraComponent* GetSpawnedParticleSystemComponent();
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Rendering")
-	int32 GetNumParticles() const;
-
-	/** Whether soil particles should be rendered or not. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableParticleRendering = true;
-
-	/**
-	 * Niagara System used to render soil particles.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableParticleRendering"))
-	UNiagaraSystem* ParticleSystemAsset = nullptr;
-	UNiagaraComponent* ParticleSystemComponent = nullptr;
-
-	bool InitializeParticles();
-	void UpdateParticles();
 
 	// Terrain Mesh
 	// --------------------
