@@ -21,6 +21,7 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
@@ -1408,6 +1409,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Constraints)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Constraints, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.TerrainWheels != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.TerrainWheels)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TerrainWheels, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else

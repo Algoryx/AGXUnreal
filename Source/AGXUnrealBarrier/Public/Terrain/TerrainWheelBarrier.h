@@ -44,6 +44,8 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetNativeAddress(uint64 Address);
 	void ReleaseNative();
 
+	FRigidBodyBarrier GetRigidBody() const;
+
 	void IncrementRefCount() const;
 	void DecrementRefCount() const;
 

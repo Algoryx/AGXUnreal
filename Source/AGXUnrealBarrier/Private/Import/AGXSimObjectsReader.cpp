@@ -15,6 +15,7 @@
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -38,6 +39,7 @@
 #include <agx/Prismatic.h>
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -241,6 +243,22 @@ namespace
 				continue;
 			}
 			OutSimObjects.GetRigidBodies().Add(AGXBarrierFactories::CreateRigidBodyBarrier(Body));
+		}
+	}
+
+	void ReadTerrainWheels(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxTerrain::TerrainWheelPtrVector Wheels;
+
+		const auto& Assemblies = Simulation.getAssemblies();
+		for (auto Assembly : Assemblies)
+		{
+			if (auto Wheel = Assembly.first->asSafe<agxTerrain::TerrainWheel>())
+			{
+				OutSimObjects.GetTerrainWheels().Add(
+					AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
+			}
 		}
 	}
 
@@ -578,6 +596,7 @@ namespace
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
+		ReadTerrainWheels(Simulation, OutSimObjects);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);

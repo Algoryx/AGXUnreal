@@ -17,6 +17,7 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
@@ -122,6 +123,12 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 		{
 			AGX_CHECK(CollisionGroupDisablerComponent == nullptr);
 			CollisionGroupDisablerComponent = Node;
+		}
+		else if (auto Trw = Cast<UAGX_TerrainWheelComponent>(Component))
+		{
+			AGX_CHECK(!TerrainWheels.Contains(Trw->ImportGuid));
+			if (Trw->ImportGuid.IsValid())
+				TerrainWheels.Add(Trw->ImportGuid, Node);
 		}
 		else if (auto Tw = Cast<UAGX_TwoBodyTireComponent>(Component))
 		{

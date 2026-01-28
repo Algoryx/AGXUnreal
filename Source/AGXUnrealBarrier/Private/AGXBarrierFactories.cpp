@@ -9,6 +9,7 @@
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "Contacts/ContactPointEntity.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/WheelJointBarrier.h"
 
@@ -31,6 +32,7 @@
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/TerrainMaterial.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxVehicle/Steering.h>
 #include <agxVehicle/WheelJoint.h>
 #include <agxWire/Wire.h>
@@ -206,6 +208,11 @@ FShovelBarrier AGXBarrierFactories::CreateShovelBarrier(agxTerrain::Shovel* Shov
 FSteeringBarrier AGXBarrierFactories::CreateSteeringBarrier(agxVehicle::Steering* Steering)
 {
 	return {std::make_shared<FSteeringRef>(Steering)};
+}
+
+FTerrainWheelBarrier AGXBarrierFactories::CreateTerrainWheelBarrier(agxTerrain::TerrainWheel* Wheel)
+{
+	return {std::make_shared<FTerrainWheelRef>(Wheel)};
 }
 
 FTrackBarrier AGXBarrierFactories::CreateTrackBarrier(agxVehicle::Track* Track)

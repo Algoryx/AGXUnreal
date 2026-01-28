@@ -18,6 +18,7 @@
 #include "Shapes/AnyShapeBarrier.h"
 #include "SimulationBarrier.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Vehicle/TrackBarrier.h"
 
@@ -329,6 +330,16 @@ TArray<FShovelBarrier>& FSimulationObjectCollection::GetShovels()
 const TArray<FShovelBarrier>& FSimulationObjectCollection::GetShovels() const
 {
 	return Shovels;
+}
+
+TArray<FTerrainWheelBarrier>& FSimulationObjectCollection::GetTerrainWheels()
+{
+	return TerrainWheels;
+}
+
+const TArray<FTerrainWheelBarrier>& FSimulationObjectCollection::GetTerrainWheels() const
+{
+	return TerrainWheels;
 }
 
 TArray<FTrackBarrier>& FSimulationObjectCollection::GetTracks()

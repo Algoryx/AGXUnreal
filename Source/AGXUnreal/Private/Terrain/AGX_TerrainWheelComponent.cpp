@@ -99,8 +99,20 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName();
 
-	if (Context != nullptr)
+	if (Context == nullptr || Context->TerrainWheels == nullptr || Context->RigidBodies == nullptr)
 		return; // We are done.
+
+	const FRigidBodyBarrier BodyBarrier = Barrier.GetRigidBody();
+	if (BodyBarrier.HasNative())
+	{
+		if (auto Body = Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
+		{
+			RigidBody.Name = Body->GetFName();
+		}
+	}
+
+	AGX_CHECK(!Context->TerrainWheels->Contains(ImportGuid));
+	Context->TerrainWheels->Add(ImportGuid, this);
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()
@@ -345,8 +357,9 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	if (Cylinders.Num() != 1)
 	{
 		UE_LOG(
-			LogAGX, Warning, TEXT("Expected excactly 1 Cylinder Shape in RigidBody for '%s' in '%s', but found %d."), *GetName(),
-			*GetNameSafe(GetOwner()), Cylinders.Num());
+			LogAGX, Warning,
+			TEXT("Expected excactly 1 Cylinder Shape in RigidBody for '%s' in '%s', but found %d."),
+			*GetName(), *GetNameSafe(GetOwner()), Cylinders.Num());
 		ShowFailNotification;
 		return;
 	}
@@ -356,8 +369,8 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get Rigid Body Barrier for RigidBody in '%s' in '%s'."),
-			*GetName(), *GetNameSafe(GetOwner()));
+			TEXT("Unable to get Rigid Body Barrier for RigidBody in '%s' in '%s'."), *GetName(),
+			*GetNameSafe(GetOwner()));
 		ShowFailNotification;
 		return;
 	}
@@ -368,8 +381,9 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get Cylinder Shape Barrier from Cylinder in Body selected in '%s' in '%s'."), *GetName(),
-			*GetNameSafe(GetOwner()));
+			TEXT("Unable to get Cylinder Shape Barrier from Cylinder in Body selected in '%s' in "
+				 "'%s'."),
+			*GetName(), *GetNameSafe(GetOwner()));
 		ShowFailNotification;
 		return;
 	}

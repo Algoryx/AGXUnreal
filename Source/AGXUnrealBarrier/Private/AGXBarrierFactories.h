@@ -40,6 +40,7 @@ class FTerrainBarrier;
 class FWheelJointBarrier;
 
 struct FSteeringBarrier;
+struct FTerrainWheelBarrier;
 
 namespace agx
 {
@@ -77,6 +78,7 @@ namespace agxTerrain
 	class Shovel;
 	class Terrain;
 	class TerrainMaterial;
+	class TerrainWheel;
 }
 
 namespace agxSDK
@@ -177,6 +179,8 @@ namespace AGXBarrierFactories
 	FShovelBarrier CreateShovelBarrier(agxTerrain::Shovel* Shovel);
 
 	FSteeringBarrier CreateSteeringBarrier(agxVehicle::Steering* Steering);
+
+	FTerrainWheelBarrier CreateTerrainWheelBarrier(agxTerrain::TerrainWheel* Wheel);
 
 	FTrackBarrier CreateTrackBarrier(agxVehicle::Track* Track);
 }
