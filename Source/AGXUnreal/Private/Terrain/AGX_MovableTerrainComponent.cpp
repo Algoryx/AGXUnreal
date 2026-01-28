@@ -124,6 +124,8 @@ void UAGX_MovableTerrainComponent::ConnectMeshToNative()
 						if (!HasNative())
 							return;
 
+						UpdateParticleData();
+
 						if (!bHeightsInitialized && FetchNativeHeights())
 							RecreateMeshes();
 
@@ -1069,6 +1071,45 @@ bool UAGX_MovableTerrainComponent::UpdateNativeShapeMaterial()
 
 	GetNative()->SetShapeMaterial(*MaterialBarrier);
 	return true;
+}
+
+void UAGX_MovableTerrainComponent::UpdateParticleData()
+{
+	if (!HasNative() || !OnParticleData.IsBound())
+		return;
+
+	EParticleDataFlags ToInclude = EParticleDataFlags::Positions | EParticleDataFlags::Rotations |
+								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities |
+								   EParticleDataFlags::Masses;
+	const FParticleDataById ParticleData = NativeBarrier.GetParticleDataById(ToInclude);
+
+	const TArray<FVector>& Positions = ParticleData.Positions;
+	const TArray<FQuat>& Rotations = ParticleData.Rotations;
+	const TArray<float>& Radii = ParticleData.Radii;
+	const TArray<bool>& Exists = ParticleData.Exists;
+	const TArray<FVector>& Velocities = ParticleData.Velocities;
+	const TArray<float>& Masses = ParticleData.Masses;
+
+	const int32 NumParticles = Positions.Num();
+
+	FDelegateParticleData data;
+	data.PositionsAndRadii.SetNum(NumParticles);
+	data.Orientations.SetNum(NumParticles);
+	data.VelocitiesAndMasses.SetNum(NumParticles);
+	data.Exists.SetNum(NumParticles);
+	data.ParticleCount = NumParticles;
+
+	for (int32 I = 0; I < NumParticles; ++I)
+	{
+		data.PositionsAndRadii[I] = FVector4(Positions[I], Radii[I]);
+		data.Orientations[I] =
+			FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.VelocitiesAndMasses[I] =
+			FVector4(Velocities[I].X, Velocities[I].Y, Velocities[I].Z, Masses[I]);
+		data.Exists[I] = Exists[I];
+	}
+
+	OnParticleData.Broadcast(data);
 }
 
 void UAGX_MovableTerrainComponent::AddCollisionGroup(FName GroupName)

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
+#include "Terrain/AGX_DelegateParticleData.h"
 #include "Terrain/AGX_TerrainMeshUtilities.h"
 #include "Terrain/TerrainBarrier.h"
 
@@ -16,6 +17,9 @@
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FParticleDataMovableMulticastDelegate, FDelegateParticleData&, ParticleData);
 
 /**
  * The Movable Terrain Components represents an AGX Terrain similar to the AGX Terrain Actor, but
@@ -51,6 +55,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool WriteTransformToNative();
+
+	UPROPERTY(BlueprintAssignable, Category = "AGX Movable Terrain")
+	FParticleDataMovableMulticastDelegate OnParticleData;
 
 	virtual FTerrainBarrier* GetNative();
 	virtual const FTerrainBarrier* GetNative() const;
@@ -402,6 +409,7 @@ private:
 	bool UpdateNativeTerrainProperties();
 	bool UpdateNativeTerrainMaterial();
 	bool UpdateNativeShapeMaterial();
+	void UpdateParticleData();
 
 	void RecreateMeshes();
 

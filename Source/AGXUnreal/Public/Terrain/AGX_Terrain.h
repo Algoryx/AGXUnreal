@@ -4,11 +4,12 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
-#include "Terrain/TerrainBarrier.h"
-#include "Terrain/TerrainPagerBarrier.h"
+#include "Terrain/AGX_DelegateParticleData.h"
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainPagingSettings.h"
 #include "Terrain/AGX_Shovel.h"
+#include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainPagerBarrier.h"
 #include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
@@ -58,27 +59,6 @@ class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
-
-USTRUCT(BlueprintType)
-struct AGXUNREAL_API FDelegateParticleData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> PositionsAndRadii;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> VelocitiesAndMasses;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> Orientations;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<bool> Exists;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	int32 ParticleCount {0};
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 

@@ -3,11 +3,11 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_DelegateParticleData.h"
 #include "Terrain/TerrainParticleTypes.h"
-#include "Terrain/AGX_Terrain.h"
 
 // Unreal Engine includes.
-#include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "CoreTypes.h"
 #include "AGX_UpsamplingParticleRendererComponent.generated.h"
@@ -29,15 +29,12 @@ class UAGX_ParticleUpsamplingDI;
  * a velocity grid. The finer particles then interpolate their motion linearly based on this grid,
  * resulting in smoother and more realistic particle movement.
  */
-UCLASS(
-	ClassGroup = "AGX_Terrain_Particle_Rendering",
-	meta = (BlueprintSpawnableComponent, ShortToolTip = "Uses the particle data from AGX_Terrain to upsample the rendered particles, significantly increasing particle count."))
-class AGXUNREAL_API UAGX_UpsamplingParticleRendererComponent : public UActorComponent
+UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
+class AGXUNREAL_API UAGX_UpsamplingParticleRendererComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:
-
 	UAGX_UpsamplingParticleRendererComponent();
 
 	/** Whether soil particles should be rendered or not. */
@@ -89,7 +86,7 @@ public:
 	UNiagaraComponent* GetParticleSystemComponent();
 
 	const UNiagaraComponent* GetParticleSystemComponent() const;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Upsampling Particle Rendering")
 	void SetUpsampling(int32 InUpsampling);
 
@@ -101,7 +98,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Upsampling Particle Rendering")
 	bool GetOverrideVoxelSize() const;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Upsampling Particle Rendering")
 	void SetVoxelSize(double InVoxelSize);
 
@@ -113,9 +110,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Upsampling Particle Rendering")
 	double GetEaseStepSize() const;
-	
-protected:
 
+protected:
 	// ~Begin UActorComponent interface.
 	virtual void BeginPlay() override;
 	// ~End UActorComponent interface.
@@ -127,9 +123,7 @@ protected:
 #endif
 	// ~End UObject interface.
 
-
 private:
-
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
@@ -142,7 +136,7 @@ private:
 	UFUNCTION()
 	void HandleParticleData(FDelegateParticleData& data);
 
-	/** 
+	/**
 	 * Appends the voxel indices that a coarse particle intersects with to the given array.
 	 * The Position and Radius refers to the position and radius of a coarse particle in the
 	 * simulation.
@@ -150,8 +144,8 @@ private:
 	void AppendIfActiveVoxel(
 		TSet<FIntVector>& ActiveVoxelIndices, FVector Position, float Radius, float SizeOfVoxel);
 
-	/** 
-	 * Converts the active voxels from the set to a TArray 
+	/**
+	 * Converts the active voxels from the set to a TArray
 	 */
 	TArray<FIntVector4> GetActiveVoxelsFromSet(TSet<FIntVector> VoxelSet);
 };
