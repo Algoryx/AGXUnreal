@@ -8,7 +8,7 @@
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_Stepper.h"
 #include "AMOR/AGX_ConstraintMergeSplitThresholds.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
