@@ -16,7 +16,7 @@ void FAGX_ContactMaterialRegistrarComponentCustomization::CustomizeDetails(
 	IDetailLayoutBuilder& DetailBuilder)
 {
 	DetailBuilder.EditCategory(
-		"AGX Contact Material Registrar", FText::GetEmpty(), ECategoryPriority::Variable);
+		"AGX Contact Material Registrar", FText::GetEmpty(), ECategoryPriority::Important);
 }
 
 #undef LOCTEXT_NAMESPACE

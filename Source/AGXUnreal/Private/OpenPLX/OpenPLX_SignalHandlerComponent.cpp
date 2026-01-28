@@ -18,6 +18,7 @@
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Vehicle/AGX_SteeringComponent.h"
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
@@ -539,6 +540,8 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
+	Barriers.Steerings =
+		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
 
 	// Initialize SignalHandler in Barrier module.
 	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);

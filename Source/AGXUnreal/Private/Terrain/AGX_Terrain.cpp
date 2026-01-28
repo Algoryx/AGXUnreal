@@ -27,6 +27,7 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Terrain/ParticleRendering/AGX_SoilParticleRendererComponent.h"
 
 // Unreal Engine includes.
 #include "Containers/Ticker.h"
@@ -65,6 +66,10 @@ AAGX_Terrain::AAGX_Terrain()
 	RootComponent = SpriteComponent;
 
 	TerrainBounds = CreateDefaultSubobject<UAGX_HeightFieldBoundsComponent>(TEXT("TerrainBounds"));
+	
+	DefaultParticleRenderer =
+		CreateDefaultSubobject<UAGX_SoilParticleRendererComponent>(
+		TEXT("DefaultParticleRenderer"));
 
 	// Set render targets and niagara system from plugin by default to reduce manual steps when
 	// using Terrain.
@@ -89,10 +94,6 @@ AAGX_Terrain::AAGX_Terrain()
 		LandscapeDisplacementMap,
 		TEXT("TextureRenderTarget2D'/AGXUnreal/Terrain/Rendering/HeightField/"
 			 "RT_LandscapeDisplacementMap.RT_LandscapeDisplacementMap'"));
-
-	AssignDefault(
-		ParticleSystemAsset, TEXT("NiagaraSystem'/AGXUnreal/Terrain/Rendering/Particles/"
-								  "PS_SoilParticleSystem.PS_SoilParticleSystem'"));
 }
 
 void AAGX_Terrain::SetEnabled(bool InEnabled)
@@ -245,7 +246,7 @@ void AAGX_Terrain::RemoveCollisionGroupIfExists(FName GroupName)
 
 UNiagaraComponent* AAGX_Terrain::GetSpawnedParticleSystemComponent()
 {
-	return ParticleSystemComponent;
+	return DefaultParticleRenderer->GetParticleSystemComponent();
 }
 
 int32 AAGX_Terrain::GetNumParticles() const
@@ -488,8 +489,6 @@ bool AAGX_Terrain::CanEditChange(const FProperty* InProperty) const
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, Shovels))
 		return false;
-	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, ParticleSystemAsset))
-		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, LandscapeDisplacementMap))
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bEnableTerrainPaging))
@@ -585,16 +584,6 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		[](ThisClass* This) { AGX_Terrain_helpers::EnsureUseDynamicMaterialInstance(*This); });
 
 	PropertyDispatcher.Add(
-		AGX_MEMBER_NAME(ParticleSystemAsset),
-		[](ThisClass* This)
-		{
-			if (This->ParticleSystemAsset != nullptr)
-			{
-				This->ParticleSystemAsset->RequestCompile(true);
-			}
-		});
-
-	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(bEnableTerrainPaging),
 		[](ThisClass* This) { This->SetEnableTerrainPaging(This->bEnableTerrainPaging); });
 }
@@ -684,10 +673,8 @@ void AAGX_Terrain::Tick(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:AAGX_Terrain::Tick"));
 	Super::Tick(DeltaTime);
-	if (bEnableParticleRendering)
-	{
-		UpdateParticlesArrays();
-	}
+
+	UpdateParticlesArrays();
 }
 
 bool AAGX_Terrain::FetchHeights(
@@ -1207,7 +1194,7 @@ void AAGX_Terrain::CreateNativeShovels()
 			*GetName());
 	}
 
-	auto AddShovel =
+	auto AddLegacyShovel =
 		[this](FShovelBarrier& ShovelBarrier, double RequiredRadius, double PreloadRadius) -> bool
 	{
 		if (bEnableTerrainPaging)
@@ -1278,7 +1265,7 @@ void AAGX_Terrain::CreateNativeShovels()
 
 		FAGX_Shovel::UpdateNativeShovelProperties(ShovelBarrier, Shovel);
 
-		bool Added = AddShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
+		bool Added = AddLegacyShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
 		if (!Added)
 		{
 			UE_LOG(
@@ -1290,7 +1277,7 @@ void AAGX_Terrain::CreateNativeShovels()
 			std::swap(CuttingEdgeLine.v1, CuttingEdgeLine.v2);
 			ShovelBarrier.SetTopEdge(TopEdgeLine);
 			ShovelBarrier.SetCuttingEdge(CuttingEdgeLine);
-			Added = AddShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
+			Added = AddLegacyShovel(ShovelBarrier, Shovel.RequiredRadius, Shovel.PreloadRadius);
 			if (!Added)
 			{
 				UE_LOG(
@@ -1344,17 +1331,7 @@ void AAGX_Terrain::CreateNativeShovels()
 
 			const double RequiredRadius = ShovelRef.RequiredRadius;
 			const double PreloadRadius = ShovelRef.PreloadRadius;
-
-			bool Added = AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
-			if (!Added)
-			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Terrain '%s' rejected shovel '%s' in '%s'. The Output Log may contain "
-						 "more details."),
-					*GetLabelSafe(this), *ShovelComponent->GetName(),
-					*GetLabelSafe(ShovelComponent->GetOwner()));
-			}
+			NativeTerrainPagerBarrier.AddShovel(*ShovelBarrier, RequiredRadius, PreloadRadius);
 		}
 	}
 }
@@ -1384,10 +1361,6 @@ void AAGX_Terrain::InitializeRendering()
 	if (bEnableDisplacementRendering)
 	{
 		InitializeDisplacementMap();
-	}
-	if (bEnableParticleRendering)
-	{
-		InitializeParticleSystem();
 	}
 
 	UpdateLandscapeMaterialParameters();
@@ -1624,67 +1597,29 @@ void AAGX_Terrain::ClearDisplacementMap()
 	{
 		Displacement = FFloat16();
 	}
+
 	uint8* PixelData = reinterpret_cast<uint8*>(DisplacementData.GetData());
 	FAGX_RenderUtilities::UpdateRenderTextureRegions(
 		*LandscapeDisplacementMap, 1, DisplacementMapRegions.GetData(),
 		NumVerticesX * BytesPerPixel, BytesPerPixel, PixelData, false);
 }
 
-bool AAGX_Terrain::InitializeParticleSystem()
-{
-	return InitializeParticleSystemComponent();
-}
-
-bool AAGX_Terrain::InitializeParticleSystemComponent()
-{
-	if (!ParticleSystemAsset)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Terrain '%s' does not have a particle system, cannot render particles"),
-			*GetName());
-		return false;
-	}
-
-	// It is important that we attach the ParticleSystemComponent using "KeepRelativeOffset" so that
-	// it's world position becomes the same as the Terrain's. Otherwise it will be spawned at
-	// the world origin which in turn may result in particles being culled and not rendered if the
-	// terrain is located far away from the world origin (see Fixed Bounds in the Particle System).
-	ParticleSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
-		ParticleSystemAsset, RootComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
-		FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
-#if UE_VERSION_OLDER_THAN(4, 24, 0)
-		EPSCPoolMethod::None
-#else
-		ENCPoolMethod::None
-#endif
-	);
-#if WITH_EDITORONLY_DATA
-	// Must check for nullptr here because no particle system component is created with running
-	// as a unit test without graphics, i.e. with our run_unit_tests script in GitLab CI.
-	if (ParticleSystemComponent != nullptr)
-	{
-		ParticleSystemComponent->bVisualizeComponent = true;
-	}
-#endif
-
-	return ParticleSystemComponent != nullptr;
-}
-
 void AAGX_Terrain::UpdateParticlesArrays()
 {
-	if (!NativeBarrier.HasNative())
-	{
-		return;
-	}
-	if (ParticleSystemComponent == nullptr)
+	if (!NativeBarrier.HasNative() || !OnParticleData.IsBound())
 	{
 		return;
 	}
 
+
 	// Copy data with holes.
+	// 
+	// TODO: Change the way this data broadcasting is done by letting the user
+	// request only the subset of data that the user wants.This is to avoid fetching, 
+	// converting, packing, and passing data that will never be looked at. Right now
+	// we fetch everything but may not look at everything. 
 	EParticleDataFlags ToInclude = EParticleDataFlags::Positions | EParticleDataFlags::Rotations |
-								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities;
+								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities | EParticleDataFlags::Masses;
 	const FParticleDataById ParticleData =
 		bEnableTerrainPaging ? NativeTerrainPagerBarrier.GetParticleDataById(ToInclude)
 							 : NativeBarrier.GetParticleDataById(ToInclude);
@@ -1694,40 +1629,27 @@ void AAGX_Terrain::UpdateParticlesArrays()
 	const TArray<float>& Radii = ParticleData.Radii;
 	const TArray<bool>& Exists = ParticleData.Exists;
 	const TArray<FVector>& Velocities = ParticleData.Velocities;
-
-#if UE_VERSION_OLDER_THAN(5, 3, 0)
-	ParticleSystemComponent->SetNiagaraVariableInt("User.Target Particle Count", Exists.Num());
-#else
-	ParticleSystemComponent->SetVariableInt(FName("User.Target Particle Count"), Exists.Num());
-#endif
+	const TArray<float>& Masses = ParticleData.Masses;
 
 	const int32 NumParticles = Positions.Num();
 
-	TArray<FVector4> PositionsAndScale;
-	PositionsAndScale.SetNum(NumParticles);
-	TArray<FVector4> Orientations;
-	Orientations.SetNum(NumParticles);
+	FDelegateParticleData data;
+	data.PositionsAndRadii.SetNum(NumParticles);
+	data.Orientations.SetNum(NumParticles);
+	data.VelocitiesAndMasses.SetNum(NumParticles);
+	data.Exists.SetNum(NumParticles);
+	data.ParticleCount = NumParticles;
 
 	for (int32 I = 0; I < NumParticles; ++I)
 	{
-		// The particle size slot in the PositionAndScale buffer is a scale and not the
-		// actual size. The scale is relative to a SI unit cube, meaning that a
-		// scale of 1.0 should render a particle that is 1x1x1 m large, or
-		// 100x100x100 Unreal units. We multiply by 2.0 to convert from radius
-		// to full width.
-		float UnitCubeScale = (Radii[I] * 2.0f) / 100.0f;
-		PositionsAndScale[I] = FVector4(Positions[I], UnitCubeScale);
-		Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.PositionsAndRadii[I] = FVector4(Positions[I], Radii[I]);
+		data.Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.VelocitiesAndMasses[I] =
+			FVector4(Velocities[I].X, Velocities[I].Y, Velocities[I].Z, Masses[I]);
+		data.Exists[I] = Exists[I];
 	}
 
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Positions And Scales", PositionsAndScale);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector4(
-		ParticleSystemComponent, "Orientations", Orientations);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayBool(
-		ParticleSystemComponent, "Exists", Exists);
-	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayVector(
-		ParticleSystemComponent, TEXT("Velocities"), Velocities);
+	OnParticleData.Broadcast(data);
 }
 
 void AAGX_Terrain::UpdateLandscapeMaterialParameters()
@@ -1825,11 +1747,21 @@ void AAGX_Terrain::Serialize(FArchive& Archive)
 			TerrainPagingSettings.TrackedShovels.Add(Shovel);
 		}
 	}
-	
+
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesAsset) &&
 		TerrainProperties == nullptr)
 	{
 		TerrainProperties = GetOrCreateTerrainPropertiesForOldTerrain();
+	}
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::ParticleRenderingByRenderingComponents))
+	{
+		if (DefaultParticleRenderer != nullptr)
+		{
+			DefaultParticleRenderer->bEnableParticleRendering = bEnableParticleRendering_DEPRECATED;
+			if (ParticleSystemAsset_DEPRECATED != nullptr)
+				DefaultParticleRenderer->ParticleSystemAsset = ParticleSystemAsset_DEPRECATED;
+		}
 	}
 }
 

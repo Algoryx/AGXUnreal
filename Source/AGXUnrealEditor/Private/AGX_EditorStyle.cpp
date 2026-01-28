@@ -15,6 +15,7 @@ TSharedPtr<FSlateStyleSet> FAGX_EditorStyle::StyleInstance = nullptr;
 const FName FAGX_EditorStyle::AgxIcon("AgxIcon");
 const FName FAGX_EditorStyle::AgxIconSmall("AgxIcon.Small");
 const FName FAGX_EditorStyle::AgxIconTiny("AgxIcon.Tiny");
+const FName FAGX_EditorStyle::DebugRenderingIcon("DebugRenderingIcon");
 const FName FAGX_EditorStyle::GrabIcon("GrabIcon");
 const FName FAGX_EditorStyle::FileIcon("FileIcon");
 const FName FAGX_EditorStyle::FileIconSmall("FileIcon.Small");
@@ -104,6 +105,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(MovableTerrainIcon, new IMAGE_BRUSH("Icons/movable_terrain_64x64", IconSize64));
 	Style->Set(MovableTerrainIconSmall, new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize32));
 	Style->Set(LicenseKeyIcon, new IMAGE_BRUSH("Icons/license_key_16x16", IconSize16));
+	Style->Set(DebugRenderingIcon, new IMAGE_BRUSH("Icons/debug_rendering_32x32", IconSize16));
 	Style->Set(GrabIcon, new IMAGE_BRUSH("Icons/grab_32x32", IconSize16));
 
 	// Component icons, visible in the Components list/hierarchy of an Actor and in the Add
@@ -153,6 +155,13 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_ObserverFrameComponent",
 		new IMAGE_BRUSH("Icons/observer_frame_32x32", IconSize16));
+	// Particle Renderer.
+	Style->Set(
+		"ClassIcon.AGX_SoilParticleRendererComponent",
+		new IMAGE_BRUSH("Icons/particle_renderer_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_UpsamplingParticleRendererComponent",
+		new IMAGE_BRUSH("Icons/particle_renderer_32x32", IconSize16));
 	// Plots.
 	Style->Set("ClassIcon.AGX_PlotComponent", new IMAGE_BRUSH("Icons/plot_32x32", IconSize16));
 	// ROS2.
@@ -200,6 +209,10 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+	// Steering
+	Style->Set(
+		"ClassIcon.AGX_SteeringComponent",
+		new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));
 	// Tire.
 	Style->Set(
 		"ClassIcon.AGX_TwoBodyTireComponent",
@@ -306,6 +319,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassThumbnail.AGX_ShovelProperties",
 		new IMAGE_BRUSH("Thumbnails/shovel_properties_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_SteeringParameters",
+		new IMAGE_BRUSH("Thumbnails/steering_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_TerrainMaterial",
 		new IMAGE_BRUSH("Thumbnails/terrain_material_128x128", IconSize128));

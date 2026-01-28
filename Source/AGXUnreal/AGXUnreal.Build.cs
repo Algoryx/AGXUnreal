@@ -28,8 +28,8 @@ public class AGXUnreal : ModuleRules
 
 		// TODO: Determine which of these are really need and why.
 		PublicDependencyModuleNames.AddRange(new string[] {
-			"AGXCommon", "AGXUnrealBarrier", "RHI", "RenderCore", "Core", "CoreUObject", "Engine",
-			"InputCore", "Niagara", "ProceduralMeshComponent"});
+			"AGXCommon", "AGXUnrealBarrier", "AGXUnrealShaders", "RHI", "RenderCore", "Core", "CoreUObject",
+			"Engine", "InputCore", "Niagara", "ProceduralMeshComponent"});
 
 
 		// TODO: Determine which of these are really needed and why.

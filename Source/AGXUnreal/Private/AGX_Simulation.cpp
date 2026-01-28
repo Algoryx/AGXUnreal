@@ -26,14 +26,15 @@
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
-#include "Vehicle/AGX_TrackComponent.h"
-#include "Vehicle/AGX_TrackInternalMergeProperties.h"
-#include "Vehicle/AGX_TrackProperties.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_Stats.h"
+#include "Vehicle/AGX_SteeringComponent.h"
+#include "Vehicle/AGX_TrackComponent.h"
+#include "Vehicle/AGX_TrackInternalMergeProperties.h"
+#include "Vehicle/AGX_TrackProperties.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/AGX_WireController.h"
 
@@ -190,7 +191,8 @@ namespace AGX_Simulation_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the Simulation."),
+				TEXT("Tried to remove '%s' in '%s' that does not have a native, from the "
+					 "Simulation."),
 				*ActorOrComponent.GetName(), *GetLabelSafe(ActorOrComponent.GetOwner()));
 			return false;
 		}
@@ -296,6 +298,12 @@ bool UAGX_Simulation::Add(UAGX_StaticMeshComponent& Body)
 {
 	EnsureStepperCreated();
 	return AGX_Simulation_helpers::Add(*this, Body);
+}
+
+bool UAGX_Simulation::Add(UAGX_SteeringComponent& Steering)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Steering);
 }
 
 bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
@@ -411,6 +419,11 @@ bool UAGX_Simulation::Remove(UAGX_ShapeMaterial& Material)
 bool UAGX_Simulation::Remove(UAGX_ShovelComponent& Shovel)
 {
 	return AGX_Simulation_helpers::Remove(*this, Shovel);
+}
+
+bool UAGX_Simulation::Remove(UAGX_SteeringComponent& Steering)
+{
+	return AGX_Simulation_helpers::Remove(*this, Steering);
 }
 
 bool UAGX_Simulation::Remove(UAGX_StaticMeshComponent& Body)
@@ -724,8 +737,12 @@ void UAGX_Simulation::Deinitialize()
 		CloseInstancedAssetEditors<UAGX_TrackProperties>();
 
 		CloseInstancedAssetEditors<UAGX_ShovelProperties>();
+		CloseInstancedAssetEditors<UAGX_SteeringParameters>();
 	}
 #endif
+
+	if (DebuggerBarrier.HasNative())
+		StopWebDebugging();
 
 	Super::Deinitialize();
 	if (HasNative())
@@ -849,9 +866,13 @@ void UAGX_Simulation::CreateNative()
 
 	SetGlobalNativeMergeSplitThresholds();
 
-	if (bRemoteDebugging)
+	if (DebuggingMode == EAGX_DebuggingMode::RemoteDebugger)
 	{
-		NativeBarrier.EnableRemoteDebugging(RemoteDebuggingPort);
+		NativeBarrier.EnableRemoteDebugging(DebuggingPort);
+	}
+	else if (DebuggingMode == EAGX_DebuggingMode::WebDebugger)
+	{
+		StartWebDebugging(bOpenWebDebuggerViewInBrowserOnPlay);
 	}
 
 	if (bEnableGlobalContactEventListener)
@@ -1537,6 +1558,51 @@ void UAGX_Simulation::ReleaseNative()
 	PreStepForwardInternal.Clear();
 	PostStepForward.Clear();
 	PostStepForwardInternal.Clear();
+}
+
+void UAGX_Simulation::StartWebDebugging(bool OpenViewInBrowser)
+{
+#if PLATFORM_LINUX
+	UE_LOG(LogAGX, Warning, TEXT("WebDebugger is currently not supported on Linux."));
+	return;
+#endif
+
+	if (!DebuggerBarrier.HasNative())
+		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
+
+	if (!DebuggerBarrier.IsRunning())
+		DebuggerBarrier.Start();
+
+	NativeBarrier.SetEnableWebDebugger(true, DebuggingPort);
+
+	if (OpenViewInBrowser)
+	{
+		const FString DebuggerPageUrl =
+			FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
+		FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
+	}
+}
+
+void UAGX_Simulation::StopWebDebugging()
+{
+	if (!DebuggerBarrier.HasNative())
+		return;
+
+	if (DebuggerBarrier.IsRunning())
+	{
+		DebuggerBarrier.Stop();
+		DebuggerBarrier.Join();
+	}
+
+	DebuggerBarrier.ReleaseNative();
+
+	if (HasNative())
+		NativeBarrier.SetEnableWebDebugger(false, DebuggingPort);
+}
+
+bool UAGX_Simulation::IsWebDebuggingActive() const
+{
+	return DebuggerBarrier.HasNative() && DebuggerBarrier.IsRunning();
 }
 
 void UAGX_Simulation::PreStep()

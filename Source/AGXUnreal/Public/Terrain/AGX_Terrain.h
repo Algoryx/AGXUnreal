@@ -9,6 +9,7 @@
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainPagingSettings.h"
 #include "Terrain/AGX_Shovel.h"
+#include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
@@ -49,6 +50,7 @@
 
 class UAGX_HeightFieldBoundsComponent;
 class UAGX_LidarSurfaceMaterial;
+class UAGX_SoilParticleRendererComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
@@ -56,6 +58,29 @@ class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
+
+USTRUCT(BlueprintType)
+struct AGXUNREAL_API FDelegateParticleData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
+	TArray<FVector4> PositionsAndRadii;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
+	TArray<FVector4> VelocitiesAndMasses;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
+	TArray<FVector4> Orientations;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
+	TArray<bool> Exists;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
+	int32 ParticleCount {0};
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 
 UCLASS(ClassGroup = "AGX_Terrain", Blueprintable, Category = "AGX")
 class AGXUNREAL_API AAGX_Terrain : public AActor
@@ -83,6 +108,9 @@ public:
 
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_HeightFieldBoundsComponent* TerrainBounds;
+
+	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
+	UAGX_SoilParticleRendererComponent* DefaultParticleRenderer;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCanCollide {true};
@@ -232,26 +260,6 @@ public:
 		Meta = (EditCondition = "bEnableDisplacementRendering"))
 	UTextureRenderTarget2D* LandscapeDisplacementMap;
 
-	/** Whether soil particles should be rendered or not. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableParticleRendering = true;
-
-	/**
-	 * Rough estimation of number of particles that will exist at once. Should not be too low,
-	 * or some particles might not be rendered.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta =
-			(EditCondition = "bEnableParticleRendering", ClampMin = "1", UIMin = "1",
-			 UIMax = "4096"))
-	int32 MaxNumRenderParticles = 2048;
-
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableParticleRendering"))
-	UNiagaraSystem* ParticleSystemAsset;
-
 	/** Whether shovel active zone should be rendered or not. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Debug Rendering")
 	bool bEnableActiveZoneRendering = false;
@@ -294,6 +302,9 @@ public:
 	FTerrainPagerBarrier* GetNativeTerrainPager();
 	const FTerrainPagerBarrier* GetNativeTerrainPager() const;
 
+	UPROPERTY(BlueprintAssignable, Category = "AGX Terrain Particles")
+	FParticleDataMulticastDelegate OnParticleData;
+
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
@@ -321,8 +332,6 @@ private:
 	void UpdateLandscapeMaterialParameters();
 	void UpdateDisplacementMap();
 	void ClearDisplacementMap();
-	bool InitializeParticleSystem();
-	bool InitializeParticleSystemComponent();
 	void UpdateParticlesArrays();
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
@@ -335,9 +344,6 @@ private:
 private:
 	UPROPERTY(Transient)
 	bool bNeedsShapeMaterialWarning {false};
-
-	UPROPERTY()
-	TArray<FShovelReferenceWithSettings> ShovelComponents_DEPRECATED;
 
 	UPROPERTY()
 	bool bCreateParticles_DEPRECATED {true};
@@ -353,6 +359,18 @@ private:
 
 	UPROPERTY()
 	float SoilParticleSizeScaling_DEPRECATED {1.f};
+
+	UPROPERTY()
+	TArray<FShovelReferenceWithSettings> ShovelComponents_DEPRECATED;
+
+	/// Deprecated, see UAGX_SoilParticleRendererComponent.
+	UPROPERTY()
+	bool bEnableParticleRendering_DEPRECATED {true};
+
+	/// Deprecated, see UAGX_SoilParticleRendererComponent.
+	UPROPERTY()
+	UNiagaraSystem* ParticleSystemAsset_DEPRECATED;
+
 
 #if WITH_EDITOR
 	void ShowShapeMaterialWarning() const;
@@ -379,9 +397,6 @@ private:
 	int32 NumVerticesX = 0;
 	int32 NumVerticesY = 0;
 	bool DisplacementMapInitialized = false;
-
-	// Particle related variables.
-	UNiagaraComponent* ParticleSystemComponent = nullptr;
 
 	/**
 	 * Thread safe convenience function for reading heights from the source Landscape.

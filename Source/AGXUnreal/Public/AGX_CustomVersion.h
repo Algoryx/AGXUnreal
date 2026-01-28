@@ -71,7 +71,12 @@ struct AGXUNREAL_API FAGX_CustomVersion
 
 		// TerrainProperties Asset introduced, to hold Terrain Properties for the AGX Terrain.
 		TerrainPropertiesAsset,
-		
+
+		// Particle rendering is performed by specialized rendering Components, either built-in in
+		// AGX Dynamics for Unreal or provided by a user. AGX Terrain does not render particles
+		// created by it, anymore, and instead uses one or several rendering Components to do that.
+		ParticleRenderingByRenderingComponents,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

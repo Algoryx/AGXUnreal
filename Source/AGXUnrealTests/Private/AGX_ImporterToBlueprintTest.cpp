@@ -38,7 +38,14 @@
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
 #include "HAL/FileManager.h"
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 #include "MaterialTypes.h"
+#else
+#include "Materials/MaterialParameters.h"
+#endif
+
 #include "Materials/MaterialInterface.h"
 #include "Misc/AutomationTest.h"
 #include "Tests/AutomationCommon.h"

@@ -208,6 +208,33 @@ namespace TerrainUtilities_helpers
 			[](const agx::Physics::GranularBodyPtr& Particle) { return Particle.rotation(); },
 			[](const agx::Quat& ValueAgx) { return Convert(ValueAgx); });
 	}
+
+	// Masses getter
+
+	void AppendMasses(
+		const agx::Physics::GranularBodyPtrArray& GranularParticles, TArray<float>& OutMasses)
+	{
+		if (GranularParticles.size() > OutMasses.GetSlack())
+		{
+			OutMasses.Reserve(OutMasses.Num() + GranularParticles.size());
+		}
+
+		for (size_t i = 0; i < GranularParticles.size(); ++i)
+		{
+			const agx::Real MassAGX = GranularParticles[i].mass();
+			const float Mass = ConvertToUnreal<float>(MassAGX);
+			OutMasses.Add(Mass);
+		}
+	}
+
+	void GetMassesById(const FParticlesWithIdToIndex& Particles, TArray<float>& OutMasses)
+	{
+		constexpr float InvalidMarker = std::numeric_limits<float>::quiet_NaN();
+		GetParticleDataById(
+			Particles, OutMasses, InvalidMarker,
+			[](const agx::Physics::GranularBodyPtr& Particle) { return Particle.mass(); }, 
+			[](float ValueAgx) { return ConvertToUnreal<float>(ValueAgx); });
+	}
 }
 
 void FTerrainUtilities::AppendParticlePositions(
@@ -253,6 +280,17 @@ void FTerrainUtilities::AppendParticleRotations(
 	AppendRotations(GranularParticles, OutRotations);
 }
 
+void FTerrainUtilities::AppendParticleMasses(
+	const FTerrainBarrier& Terrain, TArray<float>& OutMasses)
+{
+	AGX_CHECK(Terrain.HasNative());
+	if (!Terrain.HasNative())
+		return;
+	using namespace TerrainUtilities_helpers;
+	const agx::Physics::GranularBodyPtrArray GranularParticles = GetGranularParticles(Terrain);
+	AppendMasses(GranularParticles, OutMasses);
+}
+
 void FTerrainUtilities::AppendParticleData(
 	const FTerrainBarrier& Terrain, FParticleData& OutParticleData, EParticleDataFlags ToInclude)
 {
@@ -270,6 +308,8 @@ void FTerrainUtilities::AppendParticleData(
 		AppendRadii(GranularParticles, OutParticleData.Radii);
 	if (ToInclude & EParticleDataFlags::Rotations)
 		AppendRotations(GranularParticles, OutParticleData.Rotations);
+	if (ToInclude & EParticleDataFlags::Masses)
+		AppendMasses(GranularParticles, OutParticleData.Masses);
 }
 
 void FTerrainUtilities::GetParticleExistsById(
@@ -327,6 +367,17 @@ void FTerrainUtilities::GetParticleRadiiById(
 	GetRadiiById(ParticlesWithIdToIndex, OutRadii);
 }
 
+void FTerrainUtilities::GetParticleMassesById(
+	const FTerrainBarrier& Terrain, TArray<float>& OutMasses)
+{
+	AGX_CHECK(Terrain.HasNative())
+	if (!Terrain.HasNative())
+		return;
+	using namespace TerrainUtilities_helpers;
+	const FParticlesWithIdToIndex ParticlesWithIdToIndex = GetParticlesWithIdToIndex(Terrain);
+	GetMassesById(ParticlesWithIdToIndex, OutMasses);
+}
+
 void FTerrainUtilities::GetParticleDataById(
 	const FTerrainBarrier& Terrain, FParticleDataById& OutParticleData,
 	EParticleDataFlags ToInclude)
@@ -346,6 +397,8 @@ void FTerrainUtilities::GetParticleDataById(
 		GetRadiiById(ParticlesWithIdToIndex, OutParticleData.Radii);
 	if (ToInclude & EParticleDataFlags::Rotations)
 		GetRotationsById(ParticlesWithIdToIndex, OutParticleData.Rotations);
+	if (ToInclude & EParticleDataFlags::Masses)
+		GetMassesById(ParticlesWithIdToIndex, OutParticleData.Masses);
 }
 
 size_t FTerrainUtilities::GetNumParticles(const FTerrainBarrier& Terrain)

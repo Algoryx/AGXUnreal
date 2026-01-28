@@ -7,6 +7,7 @@
 #include "Contacts/AGX_ShapeContact.h"
 #include "Contacts/AGX_ContactEnums.h"
 #include "Contacts/ShapeContactBarrier.h"
+#include "Net/WebDebuggerServerBarrier.h"
 #include "SimulationBarrier.h"
 
 // Unreal Engine includes.
@@ -28,8 +29,10 @@ class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
+class UAGX_SteeringComponent;
 class UAGX_StaticMeshComponent;
 class UAGX_ShapeComponent;
+class UAGX_SteeringComponent;
 class UAGX_TireComponent;
 class UAGX_TrackComponent;
 class UAGX_WireComponent;
@@ -295,23 +298,35 @@ public: // Properties.
 		Meta = (EditCondition = "bOverrideDynamicWireContacts"))
 	bool bEnableDynamicWireContacts {false};
 
-	/**
-	 * Remote debugging allows agxViewer, the default scene viewer in AGX
-	 * Dynamics, to connect to the AGX_Simulation running inside Unreal Engine
-	 * and render the internal simulation state using its built-in debug
-	 * rendering capabilities.
-	 *
-	 * To connect to a running Unreal Engine instance launch agxViewer with
-	 *    agxViewer -p --connect localhost:<PORT>
-	 * where <PORT> is the port number configured in Project Settings > Plugins >  AGX Dynamics >
-	 * Debug > RemoteDebuggingPort.
-	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Debug")
-	uint8 bRemoteDebugging : 1;
+	EAGX_DebuggingMode DebuggingMode {EAGX_DebuggingMode::None};
 
-	/** Network port to use for remote debugging. */
-	UPROPERTY(Config, EditAnywhere, Category = "Debug", Meta = (EditCondition = "bRemoteDebugging"))
-	int16 RemoteDebuggingPort;
+	/**
+	 * Network port to use for debugging.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "DebuggingMode != EAGX_DebuggingMode::None", ClampMin = "0"))
+	int16 DebuggingPort {9001};
+
+	/**
+	 * Network port to use for debugging.
+	 * Open http://localhost:<WebDebuggerServerPort>/ to see the debugging UI.
+	 * Only relevant with DebuggingMode set to WebDebugger.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "DebuggingMode == EAGX_DebuggingMode::WebDebugger", ClampMin = "0"))
+	int32 WebDebuggerServerPort {5173};
+
+	/**
+	 * If enabled, the Web Debugger view will automatically open in the web browser on Play.
+	 * Only relevant with DebuggingMode set to WebDebugger.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, Category = "Debug",
+		Meta = (EditCondition = "DebuggingMode == EAGX_DebuggingMode::WebDebugger"))
+	bool bOpenWebDebuggerViewInBrowserOnPlay {true};
 
 	/**
 	 * Draws all Shape Contacts to the screen each Simulation time step.
@@ -491,6 +506,7 @@ public: // Member functions.
 	bool Add(UAGX_ShapeMaterial& Material);
 	bool Add(UAGX_ShovelComponent& Shovel);
 	bool Add(UAGX_StaticMeshComponent& Body);
+	bool Add(UAGX_SteeringComponent& Steering);
 	bool Add(AAGX_Terrain& Terrain);
 	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Add(UAGX_TireComponent& Tire);
@@ -503,6 +519,7 @@ public: // Member functions.
 	bool Remove(UAGX_ShapeComponent& Shape);
 	bool Remove(UAGX_ShapeMaterial& Material);
 	bool Remove(UAGX_ShovelComponent& Shovel);
+	bool Remove(UAGX_SteeringComponent& Steering);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
 	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
@@ -589,6 +606,15 @@ public: // Member functions.
 	 */
 	void EnsureStepperCreated();
 
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	void StartWebDebugging(bool OpenViewInBrowser);
+
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	void StopWebDebugging();
+
+	UFUNCTION(BlueprintCallable, Category = "Simulation")
+	bool IsWebDebuggingActive() const;
+
 	friend class AAGX_Stepper;
 
 private:
@@ -663,6 +689,7 @@ private:
 
 private:
 	FSimulationBarrier NativeBarrier;
+	FWebDebuggerServerBarrier DebuggerBarrier;
 
 	/// Time that we couldn't step because DeltaTime was not an even multiple
 	/// of the AGX Dynamics step size. That fraction of a time step is carried

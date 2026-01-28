@@ -39,7 +39,14 @@
 #include "Components/StaticMeshComponent.h"
 #include "HAL/FileManager.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 #include "MaterialTypes.h"
+#else
+#include "Materials/MaterialParameters.h"
+#endif
+
 #include "Materials/MaterialInterface.h"
 #include "Tests/AutomationCommon.h"
 #include "Tests/AutomationEditorCommon.h"

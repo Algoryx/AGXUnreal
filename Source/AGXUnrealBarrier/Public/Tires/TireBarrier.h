@@ -38,6 +38,9 @@ public:
 
 	void ReleaseNative();
 
+	void SetNativeAddress(uintptr_t NativeAddress);
+	uintptr_t GetNativeAddress() const;
+
 	FGuid GetGuid() const;
 
 private:
