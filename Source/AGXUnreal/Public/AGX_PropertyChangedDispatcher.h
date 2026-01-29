@@ -215,6 +215,10 @@ private:
 		AGX_MEMBER_NAME(b##PropertyName),                   \
 		[](ThisClass* This) { This->Set##PropertyName(This->b##PropertyName); })
 
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component for a non-bool
+ * property where the Set function isn't named according to the property being set.
+ */
 #define AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(PropertyName, Func) \
 	PropertyDispatcher.Add(                                       \
 		AGX_MEMBER_NAME(PropertyName), [](ThisClass* This) { This->Func(This->PropertyName); })
