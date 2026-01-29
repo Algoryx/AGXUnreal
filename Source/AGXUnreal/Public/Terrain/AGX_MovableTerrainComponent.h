@@ -153,7 +153,7 @@ public:
 	// ______________________
 
 	/**
-	 * Enables use of Bed Shapes—meshes that influence the initial "bottom" shape
+	 * Enables use of Bed Shapes meshes that influence the initial "bottom" shape
 	 * (minimum heights) of the terrain.
 	 * Commonly used to match the contour of a dumper bed or other underlying geometry.
 	 */
@@ -281,13 +281,13 @@ public:
 	bool GetNoMerge() const;
 
 	/**
-	 * Shows Unreal Engine’s internal collision mesh for debugging.
+	 * Shows Unreal Engine's internal collision mesh for debugging.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
 	bool bShowUnrealCollision = false;
 
 	/**
-	 * Level of detail used for generating Unreal’s built-in collision mesh.
+	 * Level of detail used for generating Unreal's built-in collision mesh.
 	 * Higher values reduce resolution but improve performance.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain", AdvancedDisplay)
