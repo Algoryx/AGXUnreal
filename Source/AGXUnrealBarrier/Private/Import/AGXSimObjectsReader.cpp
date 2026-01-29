@@ -216,8 +216,9 @@ namespace
 				continue;
 			}
 
-			for (auto C : Tire->getConstraints())
-				NonFreeConstraint.Add(C);
+			// Add the Tire owned Hinge to the list of non-free Constraints. These are used later to
+			// avoid duplicate imports of those Constraints.
+			NonFreeConstraint.Add(Tire->getHinge());
 
 			OutSimObjects.GetTwoBodyTires().Add(
 				AGXBarrierFactories::CreateTwoBodyTireBarrier(Tire));
@@ -361,8 +362,7 @@ namespace
 			}
 			else if (agxVehicle::Steering* S = Constraint->asSafe<agxVehicle::Steering>())
 			{
-				OutSimObjects.GetSteerings().Add(
-					AGXBarrierFactories::CreateSteeringBarrier(S));
+				OutSimObjects.GetSteerings().Add(AGXBarrierFactories::CreateSteeringBarrier(S));
 			}
 			else if (agxVehicle::WheelJoint* WJ = Constraint->asSafe<agxVehicle::WheelJoint>())
 			{

@@ -18,7 +18,7 @@
 #include "AGX_RuntimeStyle.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_StaticMeshComponentCustomization.h"
 #include "AGX_TopMenu.h"
 #include "AgxEdMode/AGX_AgxEdMode.h"

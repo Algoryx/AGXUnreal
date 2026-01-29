@@ -5,7 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 // #include "Utilities/AGX_EditorUtilities.h"
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 
 // Unreal Engine includes.
 #include "PhysicsEngine/AggregateGeom.h"
