@@ -508,72 +508,32 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		this->GetAbsoluteRotationPropertyName(),
 		[](ThisClass* This) { This->WriteTransformToNative(); });
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(Enabled);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(ShowDebugPlane);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainProperties);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(Size);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ElementSize);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(NoMerge);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(ShowDebugPlane);
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
-		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowDebugPlane),
-		[](ThisClass* This) { This->SetShowDebugPlane(This->bShowDebugPlane); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, TerrainProperties),
-		[](ThisClass* This) { This->SetTerrainProperties(This->TerrainProperties); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Size),
-		[](ThisClass* This) { This->SetSize(This->Size); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, ElementSize),
-		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
-
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bNoMerge),
-		[](ThisClass* This) { This->SetNoMerge(This->bNoMerge); });
 
 	// Unreal collision.
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bShowUnrealCollision),
-		[](ThisClass* This) { This->SetShowUnrealCollision(This->bShowUnrealCollision); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, UnrealCollisionLOD),
-		[](ThisClass* This) { This->SetUnrealCollisionLOD(This->UnrealCollisionLOD); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, AdditionalUnrealCollision),
-		[](ThisClass* This) { This->SetUnrealCollisionType(This->AdditionalUnrealCollision); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(ShowUnrealCollision);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(UnrealCollisionLOD);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(AdditionalUnrealCollision, SetUnrealCollisionType);
 
 	// Mesh.
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, Material),
-		[](ThisClass* This) { This->SetMeshMaterial(This->Material); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bAutoMeshResolution),
-		[](ThisClass* This) { This->SetAutoMeshResolution(This->bAutoMeshResolution); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshLevelOfDetail),
-		[](ThisClass* This) { This->SetMeshLOD(This->MeshLevelOfDetail); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshResolution),
-		[](ThisClass* This) { This->SetMeshResolution(This->MeshResolution); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshZOffset),
-		[](ThisClass* This) { This->SetMeshZOffset(This->MeshZOffset); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bCloseMesh),
-		[](ThisClass* This) { This->SetCloseMesh(This->bCloseMesh); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTileScale),
-		[](ThisClass* This) { This->SetMeshTileScale(This->MeshTileScale); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, MeshTilingPattern),
-		[](ThisClass* This) { This->SetMeshTilingPattern(This->MeshTilingPattern); });
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bFixMeshSeams),
-		[](ThisClass* This) { This->SetFixMeshSeams(This->bFixMeshSeams); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(Material, SetMeshMaterial);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(AutoMeshResolution);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(MeshLevelOfDetail, SetMeshLOD);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MeshResolution);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MeshZOffset);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CloseMesh);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MeshTileScale);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(MeshTilingPattern);
+	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(FixMeshSeams);
 }
 
 bool UAGX_MovableTerrainComponent::CanEditChange(const FProperty* InProperty) const
