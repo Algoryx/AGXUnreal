@@ -215,6 +215,14 @@ private:
 		AGX_MEMBER_NAME(b##PropertyName),                   \
 		[](ThisClass* This) { This->Set##PropertyName(This->b##PropertyName); })
 
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(PropertyName, Func) \
+	PropertyDispatcher.Add(                                       \
+		AGX_MEMBER_NAME(PropertyName), [](ThisClass* This) { This->Func(This->PropertyName); })
+
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC_BOOL(PropertyName, Func) \
+	PropertyDispatcher.Add(                                            \
+		AGX_MEMBER_NAME(b##PropertyName),                              \
+		[](ThisClass* This) { This->Func(This->b##PropertyName); })
 
 // Property Dispatcher member function definitions.
 
