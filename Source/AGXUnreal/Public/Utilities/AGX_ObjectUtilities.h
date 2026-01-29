@@ -4,12 +4,15 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "Utilities/AGX_BlueprintUtilities.h"
 
 // Unreal Engine includes.
 #include "Containers/Array.h"
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 #include "Engine/EngineTypes.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -93,6 +96,8 @@ public:
 	template <typename T>
 	static T* FindFirstAncestorOfType(const USceneComponent& Start);
 
+	template <typename T>
+	static TArray<FName> GetChildComponentNamesOfType(UObject* Outer);
 	/**
 	 * Returns the number children of type T of the actor.
 	 */
@@ -350,6 +355,49 @@ T* FAGX_ObjectUtilities::FindFirstAncestorOfType(const USceneComponent& Start)
 		Parent = Parent->GetAttachParent();
 	}
 	return nullptr;
+}
+
+template <typename ComponentT>
+TArray<FName> FAGX_ObjectUtilities::GetChildComponentNamesOfType(UObject* Outer)
+{
+	TArray<FName> Names;
+
+	// If Outer is an Actor, we are in the World Editor.
+	AActor* Actor = Cast<AActor>(Outer);
+	if (Actor)
+	{
+		// Loop through all actor components.
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
+		{
+			// Try casting each component to the type ComponentT.
+			ComponentT* CastComponent = Cast<ComponentT>(Component);
+			if (CastComponent != nullptr)
+			{
+				// Get the component's variable name and add it to the list.
+				Names.Add(Component->GetFName());
+			}
+		}
+	}
+#if WITH_EDITOR
+	// If Outer is a Blueprint Generated Class, we are in the Blueprint Editor.
+	UBlueprintGeneratedClass* OwningGenClass = Cast<UBlueprintGeneratedClass>(Outer);
+	if (OwningGenClass != nullptr)
+	{
+		UBlueprint* Blueprint = OwningGenClass->SimpleConstructionScript->GetBlueprint();
+		for (USCS_Node* Node : FAGX_BlueprintUtilities::GetSCSNodes(
+				 *Blueprint, EAGX_Inherited::Include, ComponentT::StaticClass()))
+		{
+			Names.Add(Node->GetVariableName());
+		}
+	}
+#endif // WITH_EDITOR
+
+	Names.Sort([](const FName& Lhs, const FName& Rhs) { return Lhs.FastLess(Rhs); });
+
+	return Names;
 }
 
 template <typename UDerived, typename UBaseContainer>

@@ -20,6 +20,8 @@ public: // Names of common resources
 	static const FName JointIcon;
 	static const FName JointIconSmall;
 	static const FName LicenseKeyIcon;
+	static const FName MovableTerrainIcon;
+	static const FName MovableTerrainIconSmall;
 	static const FName TerrainIcon;
 	static const FName TerrainIconSmall;
 
