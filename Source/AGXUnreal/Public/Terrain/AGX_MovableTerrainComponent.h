@@ -272,13 +272,13 @@ public:
 	 * If true, prevents dynamic mass (particles)to merge into the terrain.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
-	bool bIsNoMerge = false;
+	bool bNoMerge = false;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
-	void SetNoMerge(bool IsNoMerge);
+	void SetNoMerge(bool bInNoMerge);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
-	bool GetNoMerge() const;
+	bool IsNoMerge() const;
 
 	/**
 	 * Shows Unreal Engine's internal collision mesh for debugging.

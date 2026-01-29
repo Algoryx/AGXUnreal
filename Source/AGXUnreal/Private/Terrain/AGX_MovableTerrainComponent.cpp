@@ -532,8 +532,8 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetElementSize(This->ElementSize); });
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bIsNoMerge),
-		[](ThisClass* This) { This->SetNoMerge(This->bIsNoMerge); });
+		GET_MEMBER_NAME_CHECKED(UAGX_MovableTerrainComponent, bNoMerge),
+		[](ThisClass* This) { This->SetNoMerge(This->bNoMerge); });
 
 	// Unreal collision.
 	PropertyDispatcher.Add(
@@ -771,7 +771,7 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 {
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
-	NativeBarrier.SetNoMerge(bIsNoMerge);
+	NativeBarrier.SetNoMerge(bNoMerge);
 	NativeBarrier.SetEnabled(bEnabled);
 	UpdateNativeTerrainProperties();
 	UpdateNativeTerrainMaterial();
@@ -1147,20 +1147,20 @@ void UAGX_MovableTerrainComponent::ConvertToDynamicMassInShape(UAGX_ShapeCompone
 		NativeBarrier.ConvertToDynamicMassInShape(Shape->GetNative());
 }
 
-void UAGX_MovableTerrainComponent::SetNoMerge(bool IsNoMerge)
+void UAGX_MovableTerrainComponent::SetNoMerge(bool bInNoMerge)
 {
 	if (HasNative())
-		NativeBarrier.SetNoMerge(IsNoMerge);
+		NativeBarrier.SetNoMerge(bInNoMerge);
 
-	bIsNoMerge = IsNoMerge;
+	bNoMerge = bInNoMerge;
 }
 
-bool UAGX_MovableTerrainComponent::GetNoMerge() const
+bool UAGX_MovableTerrainComponent::IsNoMerge() const
 {
 	if (HasNative())
 		return NativeBarrier.GetNoMerge();
 
-	return bIsNoMerge;
+	return bNoMerge;
 }
 
 void UAGX_MovableTerrainComponent::SetMeshMaterial(UMaterialInterface* NewMaterial)
