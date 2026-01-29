@@ -97,10 +97,10 @@ public:
 	 * Enable or disable Terrrain computations.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Movable Terrain")
-	bool bIsEnabled = true;
+	bool bEnabled = true;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
-	void SetEnabled(bool InEnabled);
+	void SetEnabled(bool bInEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool IsEnabled() const;

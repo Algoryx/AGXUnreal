@@ -51,12 +51,12 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 					   "MI_MovableTerrain.MI_MovableTerrain'"));
 }
 
-void UAGX_MovableTerrainComponent::SetEnabled(bool InEnabled)
+void UAGX_MovableTerrainComponent::SetEnabled(bool bInEnabled)
 {
 	if (HasNative())
-		NativeBarrier.SetEnabled(InEnabled);
+		NativeBarrier.SetEnabled(bInEnabled);
 
-	bIsEnabled = InEnabled;
+	bEnabled = bInEnabled;
 }
 
 bool UAGX_MovableTerrainComponent::IsEnabled() const
@@ -64,7 +64,7 @@ bool UAGX_MovableTerrainComponent::IsEnabled() const
 	if (HasNative())
 		return NativeBarrier.GetEnabled();
 
-	return bIsEnabled;
+	return bEnabled;
 }
 
 void UAGX_MovableTerrainComponent::CreateNative()
@@ -509,8 +509,8 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->WriteTransformToNative(); });
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, bIsEnabled),
-		[](ThisClass* This) { This->SetEnabled(This->bIsEnabled); });
+		GET_MEMBER_NAME_CHECKED(ThisClass, bEnabled),
+		[](ThisClass* This) { This->SetEnabled(This->bEnabled); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
@@ -772,7 +772,7 @@ void UAGX_MovableTerrainComponent::UpdateNativeProperties()
 	NativeBarrier.SetCanCollide(bCanCollide);
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
 	NativeBarrier.SetNoMerge(bIsNoMerge);
-	NativeBarrier.SetEnabled(bIsEnabled);
+	NativeBarrier.SetEnabled(bEnabled);
 	UpdateNativeTerrainProperties();
 	UpdateNativeTerrainMaterial();
 	UpdateNativeShapeMaterial();
