@@ -574,6 +574,8 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 
 void UAGX_TrackProperties::Serialize(FArchive& Archive)
 {
+	Super::Serialize(Archive);
+
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
