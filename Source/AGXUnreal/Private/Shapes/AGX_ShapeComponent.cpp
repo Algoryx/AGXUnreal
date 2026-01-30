@@ -270,6 +270,16 @@ void UAGX_ShapeComponent::EndPlay(const EEndPlayReason::Type Reason)
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
+		// Someone explicitly destroyed this Component, we need to remove ourselves from any owning
+		// Rigid Body, otherwise the Rigid Body will keep the Native object alive since it holds it
+		// by ref_ptr.
+		if (Reason == EEndPlayReason::Destroyed)
+		{
+			auto OwningBody = GetRigidBody();
+			if (OwningBody != nullptr && HasNative() && OwningBody->HasNative())
+				OwningBody->GetNative()->RemoveShape(GetNative());
+		}
+
 		// @todo Figure out how to handle removal of Shape Materials from the Simulation. They can
 		// be shared between many Shape Components, so some kind of reference counting might be
 		// needed.
