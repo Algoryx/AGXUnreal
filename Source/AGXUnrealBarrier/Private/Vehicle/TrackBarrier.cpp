@@ -669,8 +669,8 @@ void FTrackBarrier::AllocateNative(
 		}
 	}();
 
-	NativeRef->Native =
-		new agxVehicle::Track(nullptr, NumberOfNodes, WidthAGX, ThicknessAGX, TensionAGX);
+	NativeRef->Native = new agxVehicle::Track(
+		new agxVehicle::TrackRoute(NumberOfNodes, WidthAGX, ThicknessAGX), TensionAGX);
 }
 
 void FTrackBarrier::ReleaseNative()
