@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Vehicle/AGX_TrackComponent.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -571,13 +572,38 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
 }
 
-void UAGX_TrackProperties::SerializeInternal(const UAGX_TrackComponent& Track, FArchive& Archive)
+void UAGX_TrackProperties::Serialize(FArchive& Archive)
 {
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
 	{
-		// TODO
+		TArray<double> Compliance {
+			HingeComplianceTranslational_X_DEPRECATED, HingeComplianceTranslational_Y_DEPRECATED,
+			HingeComplianceTranslational_Z_DEPRECATED, HingeComplianceRotational_X_DEPRECATED,
+			HingeComplianceRotational_Y_DEPRECATED};
+
+		TArray<double> Damping {
+			HingeSpookDampingTranslational_X_DEPRECATED,
+			HingeSpookDampingTranslational_Y_DEPRECATED,
+			HingeSpookDampingTranslational_Z_DEPRECATED, HingeSpookDampingRotational_X_DEPRECATED,
+			HingeSpookDampingRotational_Y_DEPRECATED};
+
+		// Best guess. We cannot know this value at this time.
+		// Even if we re-created the Track owning this TrackProperties it would not be enough since
+		// multiple tracks can share TrackProperties, so the node length cannot be known.
+		const double NodeLength = 10.0;
+
+		auto Sim = Cast<UAGX_Simulation>(UAGX_Simulation::StaticClass()->GetDefaultObject());
+		const double StepForwardTime = Sim != nullptr ? Sim->TimeStep : (1.0 / 60.0);
+
+		FTrackPropertiesBarrier Barrier = FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
+			Compliance, Damping, NodeLength, StepForwardTime);
+		CopyFrom(Barrier);
+
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
 	}
 }
 

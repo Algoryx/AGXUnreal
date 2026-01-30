@@ -110,25 +110,7 @@ FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) c
 		}
 
 		// Create AGX barrier wheel descs.
-		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
-		WheelDescs.Reserve(Wheels.Num());
-		for (const auto& Wheel : Wheels)
-		{
-			UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
-			if (!Body)
-				continue;
-
-			// Make sure the world transform is up-to-date.
-			Body->ConditionalUpdateComponentToWorld();
-
-			// Create wheel data.
-			FTrackBarrier::FTrackWheelDescription Desc;
-			Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
-			Desc.Radius = Wheel.Radius;
-			Desc.RigidBodyTransform = Body->GetComponentTransform();
-			Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
-			WheelDescs.Add(Desc);
-		}
+		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs = GetTrackWheelDescription();
 
 		// Let AGX generate track nodes preview data.
 		FTrackBarrier::GetPreviewData(
@@ -218,13 +200,14 @@ namespace AGX_TrackComponent_helpers
 		if (auto Existing = Context.TrackProperties->FindRef(PropertiesBarrier.GetGuid()))
 			return Existing;
 
-		auto Properties = NewObject<UAGX_TrackProperties>(
-			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		auto Properties =
+			NewObject<UAGX_TrackProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(PropertiesBarrier);
 
 		const FString CleanTrackBarrierName =
-			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackProperties::StaticClass());
@@ -409,6 +392,31 @@ FVector UAGX_TrackComponent::GetNodeSize(int32 Index) const
 	return GetNative()->GetNodeSize(Index);
 }
 
+TArray<FTrackBarrier::FTrackWheelDescription> UAGX_TrackComponent::GetTrackWheelDescription() const
+{
+	TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
+	WheelDescs.Reserve(Wheels.Num());
+	for (const auto& Wheel : Wheels)
+	{
+		UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
+		if (!Body)
+			continue;
+
+		// Make sure the world transform is up-to-date.
+		Body->ConditionalUpdateComponentToWorld();
+
+		// Create wheel data.
+		FTrackBarrier::FTrackWheelDescription Desc;
+		Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
+		Desc.Radius = Wheel.Radius;
+		Desc.RigidBodyTransform = Body->GetComponentTransform();
+		Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
+		WheelDescs.Add(Desc);
+	}
+
+	return WheelDescs;
+}
+
 FTrackBarrier* UAGX_TrackComponent::GetOrCreateNative()
 {
 	if (!HasNative() && bEnabled)
@@ -474,13 +482,6 @@ void UAGX_TrackComponent::SetNativeAddress(uint64 NativeAddress)
 {
 	check(!HasNative());
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
-}
-
-void UAGX_TrackComponent::Serialize(FArchive& Archive)
-{
-	Super::Serialize(Archive);
-	if (TrackProperties != nullptr)
-		TrackProperties->SerializeInternal(*this, Archive);
 }
 
 void UAGX_TrackComponent::PostInitProperties()

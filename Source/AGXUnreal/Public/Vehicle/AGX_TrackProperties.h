@@ -371,7 +371,7 @@ public:
 	FTrackPropertiesBarrier* GetOrCreateNative();
 
 	void UpdateNativeProperties();
-	void SerializeInternal(const UAGX_TrackComponent& Track, FArchive& Archive);
+	virtual void Serialize(FArchive& Archive) override;
 
 	// ~Begin UObject interface.	
 	virtual void PostInitProperties() override;

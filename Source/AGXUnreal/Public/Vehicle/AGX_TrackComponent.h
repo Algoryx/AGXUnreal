@@ -378,6 +378,11 @@ public:
 	 */
 	void RaiseTrackPreviewNeedsUpdate(bool bDoNotBroadcastIfAlreadyRaised = true);
 
+	/**
+	 * Returns description about this Track's wheels given the current configuration.
+	 */
+	TArray<FTrackBarrier::FTrackWheelDescription> GetTrackWheelDescription() const;
+
 	/// Get the native AGX Dynamics representation of this track. Create it if necessary.
 	FTrackBarrier* GetOrCreateNative();
 
@@ -393,7 +398,6 @@ public:
 	// ~End IAGX_NativeOwner interface.
 
 	// ~Begin UObject interface.
-	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
@@ -490,10 +494,12 @@ private:
  * This struct's only purpose is to inform UAGX_TrackComponent when a Blueprint Reconstruction is
  * complete, i.e. when properties have been deserialized and instance data applied.
  *
- * It inherits FAGX_NativeOwnerSceneComponentInstanceData because UAGX_TrackComponent is a native owner.
+ * It inherits FAGX_NativeOwnerSceneComponentInstanceData because UAGX_TrackComponent is a native
+ * owner.
  */
 USTRUCT()
-struct AGXUNREAL_API FAGX_TrackComponentInstanceData : public FAGX_NativeOwnerSceneComponentInstanceData
+struct AGXUNREAL_API FAGX_TrackComponentInstanceData
+	: public FAGX_NativeOwnerSceneComponentInstanceData
 {
 	GENERATED_BODY()
 
