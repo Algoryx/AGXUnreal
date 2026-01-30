@@ -5,7 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
+#include "Vehicle/AGX_TrackEnums.h"
 #include "Vehicle/AGX_TrackWheel.h"
+#include "Vehicle/AGX_VehicleTypes.h"
 #include "Vehicle/TrackBarrier.h"
 
 // Unreal Engine includes.
@@ -73,14 +75,11 @@ public:
 	float Thickness = 15.0f;
 
 	/**
-	 * Value (distance) of how much shorter each node should be which causes tension
-	 * in the system of tracks and wheels [cm].
-	 *
-	 * Since contacts and other factors are included it's not possible to know the exact
-	 * tension after the system has been created.
+	 * Initial tension of the Track that is used on creation.
+	 * Can either be expressed as a tension force in newtons, or a node distance offset in cm.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
-	float InitialDistanceTension = 0.01f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track", Meta = (ExposeOnSpawn))
+	FAGX_TrackInitialTension InitialTension;
 
 	/**
 	 * Define the bulk and surface properties of each generated shoe.
@@ -398,6 +397,7 @@ public:
 	// ~End IAGX_NativeOwner interface.
 
 	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
@@ -474,6 +474,9 @@ private:
 #endif
 
 private:
+	UPROPERTY()
+	float InitialDistanceTension_DEPRECATED = 0.01f;
+
 	// The AGX Dynamics object only exists while simulating.
 	// Initialized in BeginPlay and released in EndPlay.
 	FTrackBarrier NativeBarrier;

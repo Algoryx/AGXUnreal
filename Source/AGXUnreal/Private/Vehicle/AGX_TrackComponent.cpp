@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -113,6 +114,9 @@ FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) c
 		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs = GetTrackWheelDescription();
 
 		// Let AGX generate track nodes preview data.
+		const double InitialDistanceTension =
+			InitialTension.Mode == EAGX_TrackInitialTensionMode::Distance ? InitialTension.Value
+																		  : 0.0;
 		FTrackBarrier::GetPreviewData(
 			TrackPreview->NodeTransforms, TrackPreview->NodeHalfExtents, NumberOfNodes, Width,
 			Thickness, InitialDistanceTension, WheelDescs);
@@ -248,7 +252,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	NumberOfNodes = Barrier.GetNumNodes();
 	Width = static_cast<float>(Barrier.GetWidth());
 	Thickness = static_cast<float>(Barrier.GetThickness());
-	InitialDistanceTension = static_cast<float>(Barrier.GetInitialDistanceTension());
+	InitialTension = Barrier.GetInitialTension();
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
@@ -484,6 +488,18 @@ void UAGX_TrackComponent::SetNativeAddress(uint64 NativeAddress)
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 }
 
+void UAGX_TrackComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	{
+		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
+		InitialTension.Value = InitialDistanceTension_DEPRECATED;
+	}
+}
+
 void UAGX_TrackComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -516,7 +532,7 @@ bool UAGX_TrackComponent::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, NumberOfNodes),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Width),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Thickness),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialDistanceTension)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialTension)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -831,7 +847,7 @@ void UAGX_TrackComponent::CreateNative()
 		return;
 	}
 
-	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialDistanceTension);
+	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialTension);
 	if (!HasNative())
 	{
 		UE_LOG(

@@ -3243,7 +3243,7 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual("Number Of Nodes", Track->NumberOfNodes, 120);
 		Test.TestEqual("Width", Track->Width, 35.f);
 		Test.TestEqual("Thickness", Track->Thickness, 2.5f);
-		Test.TestEqual("Initial Distance Tension", Track->InitialDistanceTension, 0.1f);
+		Test.TestEqual("Initial Distance Tension", Track->InitialTension.Value, 0.1);
 		Test.TestNotNull("Shape Material", Track->ShapeMaterial);
 
 		// Track Properties.

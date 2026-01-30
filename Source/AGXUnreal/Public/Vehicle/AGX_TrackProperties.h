@@ -12,8 +12,6 @@
 
 #include "AGX_TrackProperties.generated.h"
 
-class UAGX_TrackComponent;
-
 /**
  * Contains configuration properties of an AGX Track Component. It is an asset that is created from
  * the Content Browser. Several Tracks can share the same Track Properties asset. Default values for
@@ -371,9 +369,9 @@ public:
 	FTrackPropertiesBarrier* GetOrCreateNative();
 
 	void UpdateNativeProperties();
-	virtual void Serialize(FArchive& Archive) override;
 
-	// ~Begin UObject interface.	
+	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;

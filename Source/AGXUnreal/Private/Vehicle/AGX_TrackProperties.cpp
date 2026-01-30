@@ -9,7 +9,6 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
-#include "Vehicle/AGX_TrackComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
@@ -575,7 +574,6 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 void UAGX_TrackProperties::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);
-
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
