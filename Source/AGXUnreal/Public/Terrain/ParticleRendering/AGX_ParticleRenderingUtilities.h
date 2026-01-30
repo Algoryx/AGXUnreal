@@ -10,6 +10,7 @@ class UAGX_MovableTerrainComponent;
 class UActorComponent;
 class UNiagaraSystem;
 class UNiagaraComponent;
+class USceneComponent;
 
 class AGXUNREAL_API AGX_ParticleRenderingUtilities
 {

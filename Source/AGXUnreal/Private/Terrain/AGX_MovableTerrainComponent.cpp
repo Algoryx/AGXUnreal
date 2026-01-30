@@ -19,7 +19,8 @@
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
-#include "TimerManager.h"
+#include "Containers/Ticker.h"
+#include "Materials/MaterialInterface.h"
 
 UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	const FObjectInitializer& ObjectInitializer)
@@ -29,26 +30,11 @@ UAGX_MovableTerrainComponent::UAGX_MovableTerrainComponent(
 	PrimaryComponentTick.bCanEverTick = false;
 	SetCanEverAffectNavigation(false);
 
-	auto AssignDefault = [](auto*& AssetRefProperty, const TCHAR* Path)
-	{
-		if (AssetRefProperty != nullptr)
-			return;
-
-		using Type = typename std::remove_reference<decltype(*AssetRefProperty)>::type;
-		auto AssetFinder = ConstructorHelpers::FObjectFinder<Type>(Path);
-		if (!AssetFinder.Succeeded())
-		{
-			UE_LOG(
-				LogAGX, Warning, TEXT("Expected to find asset '%s' but it was not found."), Path);
-			return;
-		}
-
-		AssetRefProperty = AssetFinder.Object;
-	};
-
-	AssignDefault(
-		Material, TEXT("Material'/AGXUnreal/Terrain/Rendering/HeightField/"
-					   "MI_MovableTerrain.MI_MovableTerrain'"));
+	static const TCHAR* DefaultMaterial = TEXT(
+		"Material'/AGXUnreal/Terrain/Rendering/HeightField/"
+		"MI_MovableTerrain.MI_MovableTerrain'");
+	if (Material == nullptr)
+		Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(DefaultMaterial);
 }
 
 void UAGX_MovableTerrainComponent::SetEnabled(bool bInEnabled)
@@ -517,7 +503,6 @@ void UAGX_MovableTerrainComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(NoMerge);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(CanCollide);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(ShowDebugPlane);
-
 
 	// Unreal collision.
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(ShowUnrealCollision);

@@ -10,6 +10,7 @@
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "UObject/ConstructorHelpers.h"

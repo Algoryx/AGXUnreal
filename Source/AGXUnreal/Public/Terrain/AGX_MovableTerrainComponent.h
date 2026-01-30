@@ -17,6 +17,7 @@
 class UAGX_ShapeComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
+class UMaterialInterface;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FParticleDataMovableMulticastDelegate, FDelegateParticleData&, ParticleData);
@@ -246,7 +247,7 @@ public:
 	 * If left unspecified, default Terrain properties will be used.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Movable Terrain")
-	UAGX_TerrainProperties* TerrainProperties;
+	UAGX_TerrainProperties* TerrainProperties {nullptr};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Movable Terrain")
 	bool SetTerrainProperties(UAGX_TerrainProperties* InTerrainProperties);
