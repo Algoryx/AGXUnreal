@@ -50,7 +50,9 @@ struct AGXUNREAL_API FAGX_CableRouteNode
 	 * The Rigid Body that a Body Fixed node should be attached to.
 	 * Ignored for other node types.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Cable")
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Cable",
+		Meta = (EditCondition = "NodeType == EAGX_CableNodeType::BodyFixed"))
 	FAGX_RigidBodyReference RigidBody;
 
 	/**
