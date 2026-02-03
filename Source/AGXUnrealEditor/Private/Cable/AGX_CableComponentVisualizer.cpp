@@ -36,9 +36,7 @@ namespace AGX_CableComponentVisualizer_helpers
 		{
 			if (Node.NodeType == EAGX_CableNodeType::BodyFixed && Node.LockRotationToBody)
 			{
-				const FTransform WorldTransform(
-					Node.Frame.GetWorldRotation(), Node.Frame.GetWorldLocation(Cable));
-
+				const FTransform WorldTransform = Node.Frame.GetWorldTransform(Cable);
 				const FVector Start = WorldTransform.GetLocation();
 				const FVector Direction = WorldTransform.GetUnitAxis(EAxis::Z);
 				const FVector End = Start + Direction * Cable.SegmentLength;
