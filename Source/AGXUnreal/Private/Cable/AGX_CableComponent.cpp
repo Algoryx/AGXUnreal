@@ -35,10 +35,8 @@ namespace AGX_CableComponent_helpers
 		}
 		FRigidBodyBarrier* NativeBody = BodyComponent->GetOrCreateNative();
 		check(NativeBody);
-		const FVector LocalLocation =
-			RouteNode.Frame.GetLocationRelativeTo(*BodyComponent, CableTransform);
-		const FRotator LocalRotator = RouteNode.Frame.GetRotationRelativeTo(*BodyComponent);
-		return {NativeBody, {LocalRotator, LocalLocation}};
+		const FTransform Transform = RouteNode.Frame.GetRelativeTo(*BodyComponent, CableTransform);
+		return {NativeBody, Transform};
 	}
 
 	void SetLocalScope(UAGX_CableComponent& Component)
