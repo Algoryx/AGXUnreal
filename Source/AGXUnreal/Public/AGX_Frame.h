@@ -150,6 +150,11 @@ struct AGXUNREAL_API FAGX_Frame
 		const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
 		const FTransform& FallbackTransform) const;
 
+	FTransform GetRelativeTo(
+		const USceneComponent& Component, const USceneComponent& FallbackParent) const;
+	FTransform GetRelativeTo(
+		const USceneComponent& Component, const FTransform& FallbackTransform) const;
+
 	const FTransform& GetParentTransform() const;
 	const FTransform& GetParentTransform(const USceneComponent& FallbackParent) const;
 	const FTransform& GetParentTransform(const FTransform& FallbackTransform) const;

@@ -36,7 +36,6 @@ const USceneComponent* FAGX_Frame::GetParentComponent(const USceneComponent& Fal
 	return Parent != nullptr ? Parent : &Fallback;
 }
 
-
 /*
  * Functions for setting / getting the frame's location and/or rotation relative to the world.
  */
@@ -153,6 +152,14 @@ namespace AGX_Frame_helpers
 		OutLocation = RelativeTransform.TransformPosition(LocalLocation);
 		OutRotator = RelativeTransform.TransformRotation(LocalRotator.Quaternion()).Rotator();
 	}
+
+	FTransform GetRelativeTo(
+		const FTransform& ParentTransform, const FTransform& TargetTransform,
+		const FVector& LocalLocation, const FRotator& LocalRotator)
+	{
+		const FTransform RelativeTransform = ParentTransform.GetRelativeTransform(TargetTransform);
+		return FTransform(LocalRotator, LocalLocation) * RelativeTransform;
+	}
 }
 
 // Location.
@@ -254,9 +261,25 @@ void FAGX_Frame::GetRelativeTo(
 	const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
 	const FTransform& FallbackTransform) const
 {
-	return AGX_Frame_helpers::GetRelativeTo(
+	AGX_Frame_helpers::GetRelativeTo(
 		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalLocation,
 		LocalRotation, OutLocation, OutRotation);
+}
+
+FTransform FAGX_Frame::GetRelativeTo(
+	const USceneComponent& Component, const USceneComponent& FallbackParent) const
+{
+	return AGX_Frame_helpers::GetRelativeTo(
+		GetParentTransform(FallbackParent), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation);
+}
+
+FTransform FAGX_Frame::GetRelativeTo(
+	const USceneComponent& Component, const FTransform& FallbackTransform) const
+{
+	return AGX_Frame_helpers::GetRelativeTo(
+		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation);
 }
 
 /*
