@@ -253,7 +253,7 @@ FAGX_TrackInitialTension FTrackBarrier::GetInitialTension() const
 	check(HasNative());
 	FAGX_TrackInitialTension InitialTension;
 
-	if (!NativeRef->Native->getInitialTension().isDistance)
+	if (NativeRef->Native->getInitialTension().isDistance)
 	{
 		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
 		InitialTension.Value =
