@@ -46,6 +46,7 @@ struct AGXUNREAL_API FAGX_Frame
 	void SetParentComponent(USceneComponent* Component);
 
 	USceneComponent* GetParentComponent() const;
+	const USceneComponent* GetParentComponent(const USceneComponent& Fallback) const;
 	USceneComponent* GetParentComponent(USceneComponent& Fallback) const;
 
 	/**

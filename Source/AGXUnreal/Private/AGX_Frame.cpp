@@ -30,6 +30,12 @@ USceneComponent* FAGX_Frame::GetParentComponent(USceneComponent& Fallback) const
 	return Parent != nullptr ? Parent : &Fallback;
 }
 
+const USceneComponent* FAGX_Frame::GetParentComponent(const USceneComponent& Fallback) const
+{
+	USceneComponent* Parent = GetParentComponent();
+	return Parent != nullptr ? Parent : &Fallback;
+}
+
 
 /*
  * Functions for setting / getting the frame's location and/or rotation relative to the world.
