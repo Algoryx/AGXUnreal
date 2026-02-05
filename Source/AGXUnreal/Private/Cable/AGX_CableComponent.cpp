@@ -68,12 +68,13 @@ namespace AGX_CableComponent_helpers
 		}
 	}
 
-	void PrintNodeModifiedAlreadyInitializedWarning()
+	void PrintNodeModifiedAlreadyInitializedWarning(const UAGX_CableComponent& Cable)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Route node modification to already initialized Cable. This route node will be "
-				 "ignored."));
+			TEXT("Route node modification to already initialized Cable '%s' in '%s'. This route "
+				 "node will be ignored."),
+			*Cable.GetName(), *GetLabelSafe(Cable.GetOwner()));
 	}
 }
 
@@ -179,7 +180,7 @@ FAGX_CableRouteNode& UAGX_CableComponent::AddNodeAtIndex(
 {
 	if (HasNative())
 	{
-		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning(*this);
 	}
 	if (!RouteNodes.IsValidIndex(InIndex) && InIndex != RouteNodes.Num())
 	{
@@ -197,7 +198,7 @@ void UAGX_CableComponent::SetNode(const int32 InIndex, const FAGX_CableRouteNode
 {
 	if (HasNative())
 	{
-		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning(*this);
 	}
 	if (!RouteNodes.IsValidIndex(InIndex))
 	{
@@ -216,7 +217,7 @@ void UAGX_CableComponent::SetNode(const int32 InIndex, const FAGX_CableRouteNode
 void UAGX_CableComponent::RemoveNode(int32 InIndex)
 {
 	if (HasNative())
-		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning(*this);
 
 	RouteNodes.RemoveAt(InIndex);
 }
@@ -224,7 +225,7 @@ void UAGX_CableComponent::RemoveNode(int32 InIndex)
 void UAGX_CableComponent::SetNodeLocalLocation(int32 InIndex, FVector InLocation)
 {
 	if (HasNative())
-		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning(*this);
 
 	RouteNodes[InIndex].Frame.LocalLocation = InLocation;
 }
@@ -233,7 +234,7 @@ void UAGX_CableComponent::SetNodeLocation(int32 InIndex, const FVector InLocatio
 {
 	if (HasNative())
 	{
-		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning();
+		AGX_CableComponent_helpers::PrintNodeModifiedAlreadyInitializedWarning(*this);
 	}
 	USceneComponent* Parent = RouteNodes[InIndex].Frame.GetParentComponent();
 	if (Parent == nullptr)
