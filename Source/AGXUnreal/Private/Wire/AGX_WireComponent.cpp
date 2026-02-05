@@ -1003,7 +1003,11 @@ FWireRoutingNode& UAGX_WireComponent::AddNodeAtIndex(const FWireRoutingNode& InN
 	}
 	if (!RouteNodes.IsValidIndex(InIndex) && InIndex != RouteNodes.Num())
 	{
-		// Nodes may only be added at an index where there already is a node, or one-past-end.
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddNodeAtIndex called on Wire '%s' in '%s' with Index %d which is invalid. Nodes "
+				 "may only be added at an index where there already is a node, or one-past-end."),
+			*GetName(), *GetLabelSafe(GetOwner()), InIndex);
 		return InvalidRoutingNode;
 	}
 	RouteNodes.Insert(InNode, InIndex);
