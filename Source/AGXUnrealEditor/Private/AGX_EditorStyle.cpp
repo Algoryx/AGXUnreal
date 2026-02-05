@@ -110,7 +110,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_RigidBodyComponent", new IMAGE_BRUSH("Icons/rigid_body_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_StaticMeshComponent",
-		new IMAGE_BRUSH("Icons/static_mesh_32x32", IconSize16));
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_CableComponent",
 		new IMAGE_BRUSH("Icons/cable_32x32", IconSize16));
