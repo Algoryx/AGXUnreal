@@ -16,6 +16,7 @@
 
 class AAGX_Terrain;
 class UAGX_LidarAmbientMaterial;
+class UAGX_MovableTerrainComponent;
 class UAGX_SimpleMeshComponent;
 class UAGX_WireComponent;
 class UInstancedStaticMeshComponent;
@@ -187,6 +188,14 @@ public:
 	bool AddTerrain(AAGX_Terrain* Terrain);
 
 	/**
+	 * Manually add a Movable Terrain Componentso that it can be detected by sensors handled by this
+	 * Sensor Environment.
+	 * Only valid to call during Play.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain);
+
+	/**
 	 * Manually add a Wire so that it can be detected by sensors handled by this Sensor
 	 * Environment.
 	 * When using this function instead of letting the Sensor Environment 'Auto Add' the Wire, the
@@ -236,6 +245,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveTerrain(AAGX_Terrain* Terrain);
+
+	/**
+	 * Manually remove a Movable Terrain Component from this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain);
 
 	/**
 	 * Manually remove a Wire from this Sensor Environment.

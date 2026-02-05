@@ -7,7 +7,10 @@
 #include "AGX_ParticleUpsamplingDI.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "ParticleUpsamplingDataHandler.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
+#include "Terrain/AGX_Terrain.h"
 #include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
@@ -31,19 +34,44 @@ void UAGX_UpsamplingParticleRendererComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AAGX_Terrain* ParentTerrainActor = AGX_ParticleRenderingUtilities::GetParentTerrainActor(this);
-	if (!ParentTerrainActor)
+	// Bind to terrain data delegate from either a Terrain Actor or Movable Terrain Component.
+	bool IsTerrainDataBound = false;
+	if (auto ParentTerrainActor =
+			AGX_ParticleRenderingUtilities::GetParentTerrainActor(this, /*SkipWarnings*/ true))
 	{
+		ParentTerrainActor->OnParticleData.AddDynamic(
+			this, &UAGX_UpsamplingParticleRendererComponent::HandleParticleData);
+		ElementSize = ParentTerrainActor->SourceLandscape->GetActorScale().X;
+		IsTerrainDataBound = true;
+	}
+	else // No Terrain Actor found.
+	{
+		if (auto ParentMovableTerrain =
+				AGX_ParticleRenderingUtilities::GetParentMovableTerrainComponent(
+					*this, /*SkipWarnings*/ true))
+		{
+			ParentMovableTerrain->OnParticleData.AddDynamic(
+				this, &UAGX_UpsamplingParticleRendererComponent::HandleParticleData);
+			ElementSize = ParentMovableTerrain->ElementSize;
+			IsTerrainDataBound = true;
+		}
+	}
+
+	if (!IsTerrainDataBound)
+	{
+		const FString Msg = FString::Printf(
+			TEXT("UAGX_UpsamplingParticleRendererComponent '%s' in '%s' was unable to "
+				 "find a Terrain parent to get particle data from."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Msg, SNotificationItem::CS_Fail);
 		return;
 	}
 
 	ParticleSystemComponent =
 		AGX_ParticleRenderingUtilities::InitializeNiagaraParticleSystemComponent(
 			ParticleSystemAsset, this);
-	if (!ParticleSystemComponent)
-	{
+	if (ParticleSystemComponent == nullptr)
 		return;
-	}
 
 	ParticleSystemComponent->SetActive(bEnableParticleRendering);
 
@@ -52,22 +80,16 @@ void UAGX_UpsamplingParticleRendererComponent::BeginPlay()
 		static_cast<UAGX_ParticleUpsamplingDI*>(UNiagaraFunctionLibrary::GetDataInterface(
 			UAGX_ParticleUpsamplingDI::StaticClass(), ParticleSystemComponent, "PUDI"));
 
-	if (!UpsamplingDataInterface)
+	if (UpsamplingDataInterface == nullptr)
 	{
 		UE_LOG(
 			LogTemp, Warning,
-			TEXT("Particle renderer '%s' in Actor '%s', unable to to find Niagara Data Interface "
-				 "with name 'PUDI' "
-				 "in loaded Niagara system with name '%s'. No particles will be rendered."),
-			*GetName(), *GetLabelSafe(ParentTerrainActor), *ParticleSystemComponent->GetName());
+			TEXT("Particle renderer '%s', unable to to find Niagara Data Interface "
+				 "with name 'PUDI' in loaded Niagara system with name '%s'. No particles will be "
+				 "rendered."),
+			*GetName(), *ParticleSystemComponent->GetName());
 		return;
 	}
-
-	ElementSize = ParentTerrainActor->SourceLandscape->GetActorScale().X;
-
-	// Bind function to terrain delegate to handle particle data.
-	ParentTerrainActor->OnParticleData.AddDynamic(
-		this, &UAGX_UpsamplingParticleRendererComponent::HandleParticleData);
 }
 
 void UAGX_UpsamplingParticleRendererComponent::SetEnableParticleRendering(bool bEnabled)

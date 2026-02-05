@@ -25,6 +25,7 @@ class AAGX_Terrain;
 class UAGX_CableComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
+class UAGX_MovableTerrainComponent;
 class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
@@ -509,6 +510,7 @@ public: // Member functions.
 	bool Add(UAGX_StaticMeshComponent& Body);
 	bool Add(UAGX_SteeringComponent& Steering);
 	bool Add(AAGX_Terrain& Terrain);
+	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Add(UAGX_TireComponent& Tire);
 	bool Add(UAGX_TrackComponent& Track);
 	bool Add(UAGX_WireComponent& Wire);
@@ -523,6 +525,7 @@ public: // Member functions.
 	bool Remove(UAGX_SteeringComponent& Steering);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
+	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Remove(UAGX_TireComponent& Tire);
 	bool Remove(UAGX_TrackComponent& Track);
 	bool Remove(UAGX_WireComponent& Wire);
