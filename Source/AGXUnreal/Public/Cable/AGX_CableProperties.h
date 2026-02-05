@@ -154,7 +154,7 @@ public:
 
 	UAGX_CableProperties* GetOrCreateInstance(UWorld* PlayingWorld);
 	bool IsInstance() const;
-	UAGX_CableProperties* CreateInstanceFromAsset(
+	static UAGX_CableProperties* CreateInstanceFromAsset(
 		const UWorld* PlayingWorld, UAGX_CableProperties* Source);
 	UAGX_CableProperties* GetInstance();
 	UAGX_CableProperties* GetAsset();
