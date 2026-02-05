@@ -135,8 +135,10 @@ double FCableBarrier::GetSegmentLength() const
 {
 	check(HasNative());
 
-	// The get resolution in AGX returns length per segment here.
-	return ConvertDistanceToUnreal<double>(NativeRef->Native->getResolution());
+	const agx::Real ResolutionPerUnitLengthAGXSafe =
+		std::max(DOUBLE_SMALL_NUMBER, NativeRef->Native->getResolution());
+
+	return ConvertDistanceToUnreal<double>(1.0 / ResolutionPerUnitLengthAGXSafe);
 }
 
 FGuid FCableBarrier::GetGuid() const
@@ -165,8 +167,7 @@ void FCableBarrier::AddCollisionGroup(const FName& GroupName)
 	check(HasNative());
 
 	// Add collision group as (hashed) unsigned int.
-	NativeRef->Native->addGroup(
-		StringTo32BitFnvHash(GroupName.ToString()));
+	NativeRef->Native->addGroup(StringTo32BitFnvHash(GroupName.ToString()));
 }
 
 void FCableBarrier::AddCollisionGroups(const TArray<FName>& GroupNames)
@@ -182,8 +183,7 @@ void FCableBarrier::RemoveCollisionGroup(const FName& GroupName)
 	check(HasNative());
 
 	// Remove collision group as (hashed) unsigned int.
-	NativeRef->Native->removeGroup(
-		StringTo32BitFnvHash(GroupName.ToString()));
+	NativeRef->Native->removeGroup(StringTo32BitFnvHash(GroupName.ToString()));
 }
 
 TArray<FName> FCableBarrier::GetCollisionGroups() const
