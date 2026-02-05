@@ -9,6 +9,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "AGX_CableRouteNode.generated.h"
 
@@ -70,3 +71,22 @@ struct AGXUNREAL_API FAGX_CableRouteNode
 /// A globally accessible Routing Node that is used when a function with a node reference return
 /// type need to signal a failure.
 extern FAGX_CableRouteNode InvalidCableRoutingNode;
+
+/**
+ * This class acts as an API that exposes functions of FAGX_CableRouteNode in Blueprints.
+ */
+UCLASS()
+class AGXUNREAL_API UAGX_CableRouteNode_FL : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+	/**
+	 * Sets the Rigid Body for this Route Node. Will only have effect Node has the NodeType Body
+	 * Fixed. Will not have any effect if called during Play.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	static void SetBody(UPARAM(ref) FAGX_CableRouteNode& Node, UAGX_RigidBodyComponent* Body)
+	{
+		Node.SetBody(Body);
+	}
+};
