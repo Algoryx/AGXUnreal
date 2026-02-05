@@ -416,9 +416,9 @@ void FAGX_CableComponentVisualizer::DrawVisualization(
 	{
 		if (!FAGX_EditorUtilities::IsSelected(*GetEditCable()))
 		{
-			// Do not maintain a node or winch selection if the selected Cable isn't selected
+			// Do not maintain a node selection if the selected Cable isn't selected
 			// anymore. This is so that the transform widget is placed at the newly selected
-			// Component instead of at the now no longer selected node or winch.
+			// Component instead of at the now no longer selected node.
 			ClearEdit();
 		}
 	}
@@ -457,7 +457,7 @@ bool FAGX_CableComponentVisualizer::VisProxyHandleClick(
 }
 
 // Called by Unreal Editor to decide where the transform widget should be rendered. We place it on
-// the selected edit node, if there is one, or on the selected edit winch handle, if there is one.
+// the selected edit node, if there is one.
 bool FAGX_CableComponentVisualizer::GetWidgetLocation(
 	const FEditorViewportClient* ViewportClient, FVector& OutLocation) const
 {
@@ -480,14 +480,6 @@ bool FAGX_CableComponentVisualizer::GetWidgetLocation(
 	}
 
 	return false;
-}
-
-bool FAGX_CableComponentVisualizer::GetCustomInputCoordinateSystem(
-	const FEditorViewportClient* ViewportClient, FMatrix& OutMatrix) const
-{
-	// TODO Implement FAGX_CableComponentVisualizer::GetCustomInputCoordinateSystem.
-	// See AGX_ShovelComponentVisualizer.cpp for an example.
-	return FComponentVisualizer::GetCustomInputCoordinateSystem(ViewportClient, OutMatrix);
 }
 
 // Called by Unreal Editor when the transform widget is moved, rotated, or scaled.
