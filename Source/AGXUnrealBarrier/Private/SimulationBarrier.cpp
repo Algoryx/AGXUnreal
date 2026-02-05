@@ -165,7 +165,7 @@ bool FSimulationBarrier::Remove(FCableBarrier& Cable)
 {
 	check(HasNative());
 	check(Cable.HasNative());
-	return NativeRef->Native->add(Cable.GetNative()->Native);
+	return NativeRef->Native->remove(Cable.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FConstraintBarrier& Constraint)

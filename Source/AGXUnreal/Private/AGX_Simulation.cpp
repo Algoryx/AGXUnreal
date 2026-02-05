@@ -366,7 +366,7 @@ bool UAGX_Simulation::Add(UAGX_WireComponent& Wire)
 bool UAGX_Simulation::Remove(UAGX_CableComponent& Cable)
 {
 	EnsureStepperCreated();
-	return AGX_Simulation_helpers::Add(*this, Cable);
+	return AGX_Simulation_helpers::Remove(*this, Cable);
 }
 
 bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
