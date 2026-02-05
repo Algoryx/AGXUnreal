@@ -21,9 +21,12 @@ class UMaterialInterface;
 struct FAGX_ImportContext;
 
 /**
- * A frame attached to a RigidBody with an optional relative transform.
- * During runtime, it is possible to get its position, velocity, angular velocity, acceleration
- * etc.
+ * Instances of the AGX Cable Component class can be used to simulate cables, hoses, ropes, short
+ * wires and dress packs. It is a lumped element structure with a circular cross section that can be
+ * bent, stretched and twisted.
+ *
+ * Cable supports modeling of plasticity and torsion, and parts of the Cable can be attached to
+ * Rigid Bodies in the same Simulation.
  */
 UCLASS(ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_CableComponent : public USceneComponent, public IAGX_NativeOwner
