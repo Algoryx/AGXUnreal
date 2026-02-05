@@ -178,6 +178,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
+// ~End UObject interface.
 
 private:
 #if WITH_EDITOR
