@@ -4126,7 +4126,7 @@ bool FCheckCableImportedCommand::Update()
 
 	// Get all the imported Components.
 	TArray<UActorComponent*> Components =
-		FAGX_BlueprintUtilities::GetTemplateComponents(Test.Contents);
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
 	// Two Rigid Bodies (2), two Shapes (4), one Cable (5), one Model Source (6), one
 	// CollisionGroupDisabler (7) and one default scene root (8).
 	const int32 ExpectedNumComponents {8};

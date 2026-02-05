@@ -84,10 +84,9 @@ namespace CableBarrier_helpers
 			{
 				if (auto ConstraintAttachment = Constraint->getAttachment(I))
 				{
-					agx::Vec3 OutWorld;
-					[[maybe_unused]] const agx::Vec3& _ = Body->getFrame()->transformPointToWorld(
-						ConstraintAttachment->getFrame()->getTranslate(), OutWorld);
-					if (agx::equivalent(OutWorld, AttachLocation))
+					const agx::Vec3 WorldPos = Body->getFrame()->transformPointToWorld(
+						ConstraintAttachment->getFrame()->getTranslate());
+					if (agx::equivalent(WorldPos, AttachLocation))
 					{
 						Info.NodeType = EAGX_CableNodeType::BodyFixed;
 						Info.WorldTransform.SetRotation(
