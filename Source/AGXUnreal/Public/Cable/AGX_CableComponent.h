@@ -49,7 +49,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, BlueprintReadOnly, Category = "AGX Cable",
-		Meta = (ClampMin = "0.1", UIMin = "0.1", ExposeOnSpawn))
+		Meta = (ClampMin = "0.0", UIMin = "0.1", ExposeOnSpawn))
 	double SegmentLength {30.0};
 
 	/**
