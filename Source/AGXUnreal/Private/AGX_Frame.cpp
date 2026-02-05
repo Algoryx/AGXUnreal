@@ -26,14 +26,14 @@ USceneComponent* FAGX_Frame::GetParentComponent() const
 
 USceneComponent* FAGX_Frame::GetParentComponent(USceneComponent& Fallback) const
 {
-	USceneComponent* Parent = GetParentComponent();
-	return Parent != nullptr ? Parent : &Fallback;
+	USceneComponent* ParentComp = GetParentComponent();
+	return ParentComp != nullptr ? ParentComp : &Fallback;
 }
 
 const USceneComponent* FAGX_Frame::GetParentComponent(const USceneComponent& Fallback) const
 {
-	USceneComponent* Parent = GetParentComponent();
-	return Parent != nullptr ? Parent : &Fallback;
+	USceneComponent* ParentComp = GetParentComponent();
+	return ParentComp != nullptr ? ParentComp : &Fallback;
 }
 
 /*
