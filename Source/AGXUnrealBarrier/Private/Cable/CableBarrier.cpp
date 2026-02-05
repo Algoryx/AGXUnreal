@@ -28,7 +28,7 @@ void FCableBarrier::AllocateNative(double Radius, double SegmentLength)
 {
 	check(!HasNative());
 	agx::Real RadiusAGX = ConvertDistanceToAGX(Radius);
-	const double SegmentLengthSafe = std::max(0.01, SegmentLength);
+	const double SegmentLengthSafe = std::max(DOUBLE_SMALL_NUMBER, SegmentLength);
 	agx::Real ResolutionPerUnitLengthAGX = ConvertDistanceInvToAGX(1.0 / SegmentLengthSafe);
 	NativeRef->Native = new agxCable::Cable(RadiusAGX, ResolutionPerUnitLengthAGX);
 }
