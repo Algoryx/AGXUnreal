@@ -3,6 +3,7 @@
 // AGX Dynamics for Unreal includes.
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "AGX_UE4Compatibility.h"
+#include "Utilities/AGX_MeshUtilities.h"
 
 // Unreal Engine includes.
 #include "Misc/EngineVersionComparison.h"
@@ -448,4 +449,18 @@ FBoxSphereBounds UAGX_SimpleMeshComponent::CalcBounds(const FTransform& LocalToW
 	NewBounds.SphereRadius = NewBounds.BoxExtent.Size();
 
 	return NewBounds;
+}
+
+bool UAGX_SimpleMeshComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop)
+{
+	if (MeshData.Get())
+	{
+		auto& Data = *MeshData.Get();
+		return AGX_MeshUtilities::LineTraceMesh<FVector3f, uint32>(
+			OutHit, Start, Stop, GetComponentTransform(), Data.Vertices, Data.Indices);
+	}
+	else
+	{
+		return false;
+	}
 }

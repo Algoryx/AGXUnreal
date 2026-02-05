@@ -96,6 +96,22 @@ AAGX_Terrain::AAGX_Terrain()
 			 "RT_LandscapeDisplacementMap.RT_LandscapeDisplacementMap'"));
 }
 
+void AAGX_Terrain::SetEnabled(bool InEnabled)
+{
+	if (HasNative())
+		NativeBarrier.SetEnabled(InEnabled);
+
+	bIsEnabled = InEnabled;
+}
+
+bool AAGX_Terrain::IsEnabled() const
+{
+	if (HasNative())
+		return NativeBarrier.GetEnabled();
+
+	return bIsEnabled;
+}
+
 void AAGX_Terrain::SetCanCollide(bool bInCanCollide)
 {
 	// CanCollide is set on the Terrain Pager native if using Terrain Paging, otherwise set on the
@@ -552,6 +568,10 @@ void AAGX_Terrain::InitPropertyDispatcher()
 	}
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(ThisClass, bIsEnabled),
+		[](ThisClass* This) { This->SetEnabled(This->bIsEnabled); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, bCanCollide),
 		[](ThisClass* This) { This->SetCanCollide(This->bCanCollide); });
 
@@ -956,6 +976,7 @@ void AAGX_Terrain::InitializeNative()
 	}
 
 	SetCanCollide(bCanCollide);
+	SetEnabled(bIsEnabled);
 	CreateNativeShovels();
 	AddTerrainPagerBodies();
 	InitializeRendering();

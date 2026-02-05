@@ -24,6 +24,7 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -338,6 +339,40 @@ bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	return Result;
 }
 
+void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	EnsureStepperCreated();
+
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' to Simulation that does not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' that does not have a native to Simulation."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	bool result = GetNative()->Add(*MovableTerrain.GetNative());
+
+	if (!result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Failed to add '%s' to Simulation. FSimulationBarrier::Add returned "
+				 "false. The Log category AGXDynamicsLog may contain more information about "
+				 "the failure."),
+			*MovableTerrain.GetName());
+	}
+}
+
 bool UAGX_Simulation::Add(UAGX_TireComponent& Tire)
 {
 	EnsureStepperCreated();
@@ -427,6 +462,41 @@ bool UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	}();
 
 	return Result;
+}
+
+void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from a Simulation that does not have a "
+				 "native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but the Terrain does "
+				 "not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	const bool Result = GetNative()->Remove(*MovableTerrain.GetNative());
+
+	if (!Result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but "
+				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
+				 "contain more information about the failure."),
+			*MovableTerrain.GetName());
+	}
 }
 
 bool UAGX_Simulation::Remove(UAGX_TireComponent& Tire)

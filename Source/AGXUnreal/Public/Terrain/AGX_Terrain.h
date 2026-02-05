@@ -4,12 +4,12 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
-#include "Sensors/AGX_LidarSurfaceMaterial.h"
-#include "Terrain/TerrainBarrier.h"
-#include "Terrain/TerrainPagerBarrier.h"
+#include "Terrain/AGX_DelegateParticleData.h"
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainPagingSettings.h"
 #include "Terrain/AGX_Shovel.h"
+#include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainPagerBarrier.h"
 #include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
@@ -50,6 +50,7 @@
 #include "AGX_Terrain.generated.h"
 
 class UAGX_HeightFieldBoundsComponent;
+class UAGX_LidarSurfaceMaterial;
 class UAGX_SoilParticleRendererComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
@@ -58,27 +59,6 @@ class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
-
-USTRUCT(BlueprintType)
-struct AGXUNREAL_API FDelegateParticleData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> PositionsAndRadii;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> VelocitiesAndMasses;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<FVector4> Orientations;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	TArray<bool> Exists;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Particle Data")
-	int32 ParticleCount {0};
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 
@@ -90,6 +70,18 @@ class AGXUNREAL_API AAGX_Terrain : public AActor
 public:
 	// Sets default values for this actor's properties
 	AAGX_Terrain();
+
+	/**
+	 * Enable or disable Terrrain computations.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
+	bool bIsEnabled = true;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	void SetEnabled(bool InEnabled);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain")
+	bool IsEnabled() const;
 
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_TerrainSpriteComponent* SpriteComponent;

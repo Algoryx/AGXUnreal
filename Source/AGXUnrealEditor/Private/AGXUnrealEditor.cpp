@@ -99,6 +99,8 @@
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentVisualizer.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
+#include "Terrain/AGX_MovableTerrainCustomization.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelComponentVisualizer.h"
 #include "Terrain/AGX_ShovelPropertiesActions.h"
@@ -513,6 +515,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_ModelSourceComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_MovableTerrainCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_PlotComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_PlotComponentCustomization::MakeInstance));
@@ -654,6 +661,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_ModelSourceComponent::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_PlotComponent::StaticClass()->GetFName());
 

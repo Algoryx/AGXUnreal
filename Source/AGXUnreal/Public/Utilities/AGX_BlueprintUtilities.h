@@ -2,15 +2,18 @@
 
 #pragma once
 
-// AGX Dynamics for Unreal includes.
-#include "Utilities/AGX_ObjectUtilities.h"
-
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "Engine/Blueprint.h"
 #include "Engine/SCS_Node.h"
 
 #if WITH_EDITOR
+
+enum struct EAGX_Inherited
+{
+	Include,
+	Exclude
+};
 
 /**
  * A collection of utility functions for working with Blueprints.
@@ -92,21 +95,57 @@ public:
 	static FRotator GetTemplateComponentWorldRotation(USceneComponent* Component);
 
 	/**
-	 * Returns a list of all template Components in a Blueprint. Does not include template
-	 * Components in inherited Blueprints.
+	 * Returns a list of all template Components in a Blueprint,  optionally including inherited
+	 * Components, optionally with type filtering.
+	 *
+	 * If ComponentType is provided then only Component of that type, and subclasses, are included.
+	 *
+	 * @param Blueprint The Blueprint to get Components from.
+	 * @param Inherited Whether to search up the Blueprint inheritance tree.
+	 * @param ComponentType Optional. If provided only include templates of that type.
 	 */
-	static TArray<UActorComponent*> GetTemplateComponents(UBlueprint* Bp);
-	static TArray<UActorComponent*> GetTemplateComponents(UBlueprintGeneratedClass* Bp);
+	static TArray<UActorComponent*> GetTemplateComponents(
+		UBlueprint& Blueprint, EAGX_Inherited Inherited, const UClass* ComponentType = nullptr);
 
 	/**
-	 * Get a list of all template Components, including from parent Blueprints, of the given type.
+	 * Returns a list of all template Components in the Blueprint that are of, or inherits from, the
+	 * given Component type.
 	 *
-	 * @tparam ComponentT The type of Component to get templates for.
-	 * @param Blueprint The Blueprint to get templates from.
-	 * @return A list of template Components of the given type.
+	 * @tparam ComponentT The type of Component to get.
+	 * @param Blueprint The Blueprint to get Components from.
+	 * @param Inherited Whether to search up the Blueprint inheritance tree.
+	 * @return List of template Components with the requested type.
 	 */
 	template <typename ComponentT>
-	static TArray<ComponentT*> GetAllTemplateComponents(UBlueprint& Blueprint);
+	static TArray<ComponentT*> GetTemplateComponents(
+		UBlueprint& Blueprint, EAGX_Inherited Inherited);
+
+	/**
+	 * Returns a list of a SCS Nodes in a Blueprint, optionally including inherited SCS Nodes,
+	 * optionally with type filtering.
+	 *
+	 * If ComponentType is provided then only SCS Nodes for Components of that type, and subclasses,
+	 * are included.
+	 *
+	 * @param Blueprint The Blueprint to get SCS Nodes from.
+	 * @param Inherited Whether to search up the Blueprint inheritance tree.
+	 * @param ComponentType Optional. If provided only include SCS Nodes for that type.
+	 * @return A list of SCS Nodes.
+	 */
+	static TArray<USCS_Node*> GetSCSNodes(
+		UBlueprint& Blueprint, EAGX_Inherited Inherited, const UClass* ComponentType = nullptr);
+
+	/**
+	 * Returns a list of SCS Nodes in a Blueprint that represent Components of the given type,
+	 * optionally including inherited SCS Nodes.
+	 *
+	 * @tparam ComponentT The type of Component get get SCS Nodes for.
+	 * @param Blueprint The Blueprint to get SCS Nodes from.
+	 * @param Inherited Whether to search up the Blueprint inheritance tree.
+	 * @return List of SCS Nodes.
+	 */
+	template <typename ComponentT>
+	static TArray<USCS_Node*> GetSCSNodes(UBlueprint& Blueprint, EAGX_Inherited Inherited);
 
 	/**
 	 * Returns the default template component name given a regular name.
@@ -124,6 +163,18 @@ public:
 	 * exists.
 	 */
 	static UBlueprint* GetParent(const UBlueprint& Child);
+
+	/**
+	 * Get a list of Blueprints to operate on.
+	 *
+	 * If inherited are excluded then only Child is returned. If inherited are included then Child
+	 * and all ancestor Blueprints are returned.
+	 *
+	 * @param Child The Blueprint to optionally get the ancestors of.
+	 * @param Inherited Whether to include or exclude inheritance.
+	 * @return List of Blueprints. Always with Child, possibly including inherited ones as well.
+	 */
+	static TArray<UBlueprint*> GetSelfOrAncestors(UBlueprint& Child, EAGX_Inherited Inherited);
 
 	/**
 	 * Walks up the Blueprint inheritance chain and returns the "root" or outermost parent if it
@@ -170,36 +221,40 @@ public:
 };
 
 template <typename ComponentT>
-TArray<ComponentT*> FAGX_BlueprintUtilities::GetAllTemplateComponents(UBlueprint& Blueprint)
+TArray<ComponentT*> FAGX_BlueprintUtilities::GetTemplateComponents(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited)
 {
-	TArray<ComponentT*> Templates;
-
-	// Iterate over the inheritance chain, starting at the given Blueprint.
-	for (UBlueprint* Parent = &Blueprint; Parent != nullptr; Parent = GetParent(*Parent))
+	UClass* Class = ComponentT::StaticClass();
+	TArray<ComponentT*> Components;
+	for (UActorComponent* Component : GetTemplateComponents(Blueprint, Inherited, Class))
 	{
-		// Iterate over all SCS nodes in the Blueprint.
-		for (auto Node : Parent->SimpleConstructionScript->GetAllNodes())
-		{
-			if (Node == nullptr)
-				continue;
-
-			// Only interested in Components or a particular type.
-			ComponentT* Component = Cast<ComponentT>(Node->ComponentTemplate);
-			if (Component == nullptr)
-				continue;
-
-			// We want the template owned by the given Blueprint, not the one owned by a parent
-			// Blueprint.
-			Component =
-				FAGX_ObjectUtilities::GetMatchedInstance(Component, Blueprint.GeneratedClass);
-			if (Component == nullptr)
-				continue;
-
-			Templates.Add(Component);
-		}
+		Components.Add(Cast<ComponentT>(Component));
 	}
+	return Components;
+}
 
-	return Templates;
+// Fast path for the base class case.
+template <>
+inline TArray<UActorComponent*> FAGX_BlueprintUtilities::GetTemplateComponents(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited)
+{
+	return GetTemplateComponents(Blueprint, Inherited, nullptr);
+}
+
+template <typename ComponentT>
+TArray<USCS_Node*> FAGX_BlueprintUtilities::GetSCSNodes(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited)
+{
+	UClass* Class = ComponentT::StaticClass();
+	return GetSCSNodes(Blueprint, Inherited, Class);
+}
+
+// Fast path for the base class case.
+template <>
+inline TArray<USCS_Node*> FAGX_BlueprintUtilities::GetSCSNodes<UActorComponent>(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited)
+{
+	return GetSCSNodes(Blueprint, Inherited, nullptr);
 }
 
 template <typename ParentComponentT>
