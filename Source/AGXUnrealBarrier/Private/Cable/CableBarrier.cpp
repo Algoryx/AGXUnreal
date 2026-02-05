@@ -85,7 +85,7 @@ namespace CableBarrier_helpers
 				if (auto ConstraintAttachment = Constraint->getAttachment(I))
 				{
 					agx::Vec3 OutWorld;
-					agx::Vec3 AttachmentWorld = Body->getFrame()->transformPointToWorld(
+					[[maybe_unused]] const agx::Vec3& _ = Body->getFrame()->transformPointToWorld(
 						ConstraintAttachment->getFrame()->getTranslate(), OutWorld);
 					if (agx::equivalent(OutWorld, AttachLocation))
 					{
