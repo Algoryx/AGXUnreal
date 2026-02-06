@@ -36,39 +36,41 @@ public:
 
 	FGuid GetGuid() const;
 
-	// Hinge properties.
+	void SetBendingStiffnessLateral(double Stiffness);
+	double GetBendingStiffnessLateral() const;
 
-	void SetHingeCompliance(double Compliance, int32 DOF);
-	void SetHingeComplianceTranslational(double Compliance);
-	void SetHingeComplianceTranslationalX(double Compliance);
-	void SetHingeComplianceTranslationalY(double Compliance);
-	void SetHingeComplianceTranslationalZ(double Compliance);
-	void SetHingeComplianceRotational(double Compliance);
-	void SetHingeComplianceRotationalX(double Compliance);
-	void SetHingeComplianceRotationalY(double Compliance);
+	void SetBendingAttenuationLateral(double Attenuation);
+	double GetBendingAttenuationLateral() const;
 
-	double GetHingeCompliance(int32 DOF) const;
-	double GetHingeComplianceTranslationalX() const;
-	double GetHingeComplianceTranslationalY() const;
-	double GetHingeComplianceTranslationalZ() const;
-	double GetHingeComplianceRotationalX() const;
-	double GetHingeComplianceRotationalY() const;
+	void SetBendingStiffnessVertical(double Stiffness);
+	double GetBendingStiffnessVertical() const;
 
-	void SetHingeSpookDamping(double Damping, int32 DOF);
-	void SetHingeSpookDampingTranslational(double Damping);
-	void SetHingeSpookDampingTranslationalX(double Damping);
-	void SetHingeSpookDampingTranslationalY(double Damping);
-	void SetHingeSpookDampingTranslationalZ(double Damping);
-	void SetHingeSpookDampingRotational(double Damping);
-	void SetHingeSpookDampingRotationalX(double Damping);
-	void SetHingeSpookDampingRotationalY(double Damping);
+	void SetBendingAttenuationVertical(double Attenuation);
+	double GetBendingAttenuationVertical() const;
 
-	double GetHingeSpookDamping(int32 DOF) const;
-	double GetHingeSpookDampingTranslationalX() const;
-	double GetHingeSpookDampingTranslationalY() const;
-	double GetHingeSpookDampingTranslationalZ() const;
-	double GetHingeSpookDampingRotationalX() const;
-	double GetHingeSpookDampingRotationalY() const;
+	void SetShearStiffnessLateral(double Stiffness);
+	double GetShearStiffnessLateral() const;
+
+	void SetShearAttenuationLateral(double Attenuation);
+	double GetShearAttenuationLateral() const;
+
+	void SetShearStiffnessVertical(double Stiffness);
+	double GetShearStiffnessVertical() const;
+
+	void SetShearAttenuationVertical(double Attenuation);
+	double GetShearAttenuationVertical() const;
+
+	void SetTensileStiffness(double Stiffness);
+	double GetTensileStiffness() const;
+
+	void SetTensileAttenuation(double Attenuation);
+	double GetTensileAttenuation() const;
+
+	void SetTorsionalStiffness(double Stiffness);
+	double GetTorsionalStiffness() const;
+
+	void SetTorsionalAttenuation(double Attenuation);
+	double GetTorsionalAttenuation() const;
 
 	void SetHingeRangeEnabled(bool bEnable);
 	bool GetHingeRangeEnabled() const;
@@ -106,6 +108,21 @@ public:
 
 	void SetStabilizingHingeFrictionParameter(double FrictionParameter);
 	double GetStabilizingHingeFrictionParameter() const;
+
+	/**
+	 * Helper function for creating TrackProperites using the old (deprecated) Hinge data
+	 * (compliance/damping), which will then enable reading out the new, migrated data such as
+	 * stiffness/attenuation values.
+	 * Compliance - this must be a vector of length 5 where the compliance is defined in this order:
+	 *      TRANSLATIONAL_1, lateral shear stiffness
+	 *      TRANSLATIONAL_2, tensile stiffness
+	 *      TRANSLATIONAL_3, vertical shear stiffness
+	 *      ROTATIONAL_1, vertical bending stiffness
+	 *      ROTATIONAL_2, torsional stiffness
+	 * Damping - this must be a vector of length 5 with damping. Same order as stiffness.
+	 */
+	static FTrackPropertiesBarrier CreateFromComplianceAndDamping(
+		const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength, double SimulationTimeStep);
 
 private:
 	FTrackPropertiesBarrier(const FTrackPropertiesBarrier&) = delete;

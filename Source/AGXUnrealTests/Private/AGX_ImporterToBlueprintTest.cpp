@@ -3244,7 +3244,6 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual("Number Of Nodes", Track->NumberOfNodes, 120);
 		Test.TestEqual("Width", Track->Width, 35.f);
 		Test.TestEqual("Thickness", Track->Thickness, 2.5f);
-		Test.TestEqual("Initial Distance Tension", Track->InitialDistanceTension, 0.1f);
 		Test.TestNotNull("Shape Material", Track->ShapeMaterial);
 
 		// Track Properties.
@@ -3259,36 +3258,42 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual(
 			"Track Properties Name", Track->TrackProperties->GetName(),
 			FString("AGX_TP_") + BeautifiedTrackName);
+
 		Test.TestEqual(
-			"Hinge Compliance Translational X",
-			Track->TrackProperties->HingeComplianceTranslational_X, 2e-10);
+			"Bending Stiffness Lateral", Track->TrackProperties->GetBendingStiffnessLateral(),
+			2e10);
+
 		Test.TestEqual(
-			"Hinge Compliance Translational Y",
-			Track->TrackProperties->HingeComplianceTranslational_Y, 3e-10);
+			"Bending Attenuation Lateral", Track->TrackProperties->GetBendingAttenuationLateral(),
+			3e10);
+
 		Test.TestEqual(
-			"Hinge Compliance Translational Z",
-			Track->TrackProperties->HingeComplianceTranslational_Z, 4e-10);
+			"Bending Stiffness Vertical", Track->TrackProperties->GetBendingStiffnessVertical(),
+			4e10);
+
 		Test.TestEqual(
-			"Hinge Compliance Rotational X", Track->TrackProperties->HingeComplianceRotational_X,
-			5e-10);
+			"Bending Attenuation Vertical", Track->TrackProperties->GetBendingAttenuationVertical(),
+			5e10);
+
 		Test.TestEqual(
-			"Hinge Compliance Rotational Y", Track->TrackProperties->HingeComplianceRotational_Y,
-			6e-10);
+			"Shear Stiffness Lateral", Track->TrackProperties->GetShearStiffnessLateral(), 6e10);
+
 		Test.TestEqual(
-			"Hinge Damping Translational X",
-			Track->TrackProperties->HingeSpookDampingTranslational_X, 0.01);
+			"Shear Attenuation Lateral", Track->TrackProperties->GetShearAttenuationLateral(),
+			0.01);
+
 		Test.TestEqual(
-			"Hinge Damping Translational Y",
-			Track->TrackProperties->HingeSpookDampingTranslational_Y, 0.02);
+			"Shear Stiffness Vertical", Track->TrackProperties->GetShearStiffnessVertical(), 7e10);
+
 		Test.TestEqual(
-			"Hinge Damping Translational Z",
-			Track->TrackProperties->HingeSpookDampingTranslational_Z, 0.03);
+			"Shear Attenuation Vertical", Track->TrackProperties->GetShearAttenuationVertical(),
+			0.03);
+
+		Test.TestEqual("Tensile Stiffness", Track->TrackProperties->GetTensileStiffness(), 8e10);
+
 		Test.TestEqual(
-			"Hinge Damping Rotational X", Track->TrackProperties->HingeSpookDampingRotational_X,
-			0.04);
-		Test.TestEqual(
-			"Hinge Damping Rotational Y", Track->TrackProperties->HingeSpookDampingRotational_Y,
-			0.05);
+			"Tensile Attenuation", Track->TrackProperties->GetTensileAttenuation(), 0.05);
+
 		Test.TestEqual("Hinge Range Enabled", Track->TrackProperties->bEnableHingeRange, false);
 		Test.TestEqual("Hinge Range Min", Track->TrackProperties->HingeRange.Min, -120.0);
 		Test.TestEqual("Hinge Range Max", Track->TrackProperties->HingeRange.Max, 20.0);

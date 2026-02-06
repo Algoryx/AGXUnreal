@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -110,27 +111,12 @@ FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) c
 		}
 
 		// Create AGX barrier wheel descs.
-		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
-		WheelDescs.Reserve(Wheels.Num());
-		for (const auto& Wheel : Wheels)
-		{
-			UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
-			if (!Body)
-				continue;
-
-			// Make sure the world transform is up-to-date.
-			Body->ConditionalUpdateComponentToWorld();
-
-			// Create wheel data.
-			FTrackBarrier::FTrackWheelDescription Desc;
-			Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
-			Desc.Radius = Wheel.Radius;
-			Desc.RigidBodyTransform = Body->GetComponentTransform();
-			Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
-			WheelDescs.Add(Desc);
-		}
+		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs = GetTrackWheelDescription();
 
 		// Let AGX generate track nodes preview data.
+		const double InitialDistanceTension =
+			InitialTension.Mode == EAGX_TrackInitialTensionMode::Distance ? InitialTension.Value
+																		  : 0.0;
 		FTrackBarrier::GetPreviewData(
 			TrackPreview->NodeTransforms, TrackPreview->NodeHalfExtents, NumberOfNodes, Width,
 			Thickness, InitialDistanceTension, WheelDescs);
@@ -218,13 +204,14 @@ namespace AGX_TrackComponent_helpers
 		if (auto Existing = Context.TrackProperties->FindRef(PropertiesBarrier.GetGuid()))
 			return Existing;
 
-		auto Properties = NewObject<UAGX_TrackProperties>(
-			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		auto Properties =
+			NewObject<UAGX_TrackProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(PropertiesBarrier);
 
 		const FString CleanTrackBarrierName =
-			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackProperties::StaticClass());
@@ -265,7 +252,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	NumberOfNodes = Barrier.GetNumNodes();
 	Width = static_cast<float>(Barrier.GetWidth());
 	Thickness = static_cast<float>(Barrier.GetThickness());
-	InitialDistanceTension = static_cast<float>(Barrier.GetInitialDistanceTension());
+	InitialTension = Barrier.GetInitialTension();
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
@@ -409,6 +396,31 @@ FVector UAGX_TrackComponent::GetNodeSize(int32 Index) const
 	return GetNative()->GetNodeSize(Index);
 }
 
+TArray<FTrackBarrier::FTrackWheelDescription> UAGX_TrackComponent::GetTrackWheelDescription() const
+{
+	TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
+	WheelDescs.Reserve(Wheels.Num());
+	for (const auto& Wheel : Wheels)
+	{
+		UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
+		if (!Body)
+			continue;
+
+		// Make sure the world transform is up-to-date.
+		Body->ConditionalUpdateComponentToWorld();
+
+		// Create wheel data.
+		FTrackBarrier::FTrackWheelDescription Desc;
+		Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
+		Desc.Radius = Wheel.Radius;
+		Desc.RigidBodyTransform = Body->GetComponentTransform();
+		Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
+		WheelDescs.Add(Desc);
+	}
+
+	return WheelDescs;
+}
+
 FTrackBarrier* UAGX_TrackComponent::GetOrCreateNative()
 {
 	if (!HasNative() && bEnabled)
@@ -476,6 +488,18 @@ void UAGX_TrackComponent::SetNativeAddress(uint64 NativeAddress)
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 }
 
+void UAGX_TrackComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	{
+		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
+		InitialTension.Value = InitialDistanceTension_DEPRECATED;
+	}
+}
+
 void UAGX_TrackComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -508,7 +532,7 @@ bool UAGX_TrackComponent::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, NumberOfNodes),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Width),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Thickness),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialDistanceTension)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialTension)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -823,7 +847,7 @@ void UAGX_TrackComponent::CreateNative()
 		return;
 	}
 
-	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialDistanceTension);
+	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialTension);
 	if (!HasNative())
 	{
 		UE_LOG(
@@ -867,9 +891,17 @@ void UAGX_TrackComponent::CreateNative()
 		check(transformOK);
 
 		// Add native wheel to native Track.
-		NativeBarrier.AddTrackWheel(
-			static_cast<uint8>(Wheel.Model), Wheel.Radius, *Body->GetOrCreateNative(), RelPos,
-			RelRot, Wheel.bSplitSegments, Wheel.bMoveNodesToRotationPlane, Wheel.bMoveNodesToWheel);
+		FTrackWheelCreationData WheelData {};
+		WheelData.Model = static_cast<uint8>(Wheel.Model);
+		WheelData.Radius = Wheel.Radius;
+		WheelData.RigidBody = *Body->GetOrCreateNative();
+		WheelData.RelativePosition = RelPos;
+		WheelData.RelativeRotation = RelRot;
+		WheelData.bSplitSegments = Wheel.bSplitSegments;
+		WheelData.bMoveNodesToRotationPlane = Wheel.bMoveNodesToRotationPlane;
+		WheelData.bMoveNodesToWheel = Wheel.bMoveNodesToWheel;
+
+		NativeBarrier.AddTrackWheel(WheelData);
 	}
 
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),
