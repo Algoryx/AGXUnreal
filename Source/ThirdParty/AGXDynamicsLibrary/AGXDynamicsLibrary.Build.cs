@@ -238,7 +238,10 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Math", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Physics", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
@@ -290,8 +293,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Math", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Physics", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
@@ -376,8 +382,11 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-DriveTrain", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-MachineModeling", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Math", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Control", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-controlinterface", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-urdfplugin", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Physics", LibSource.Dependencies);
