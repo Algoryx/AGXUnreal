@@ -261,6 +261,7 @@ public:
 	//~ Begin UActorComponent interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void DestroyComponent(bool bPromoteChildren) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	virtual void TickComponent(
 		float DeltaTime, ELevelTick TickType,
@@ -271,8 +272,22 @@ public:
 	// ~Begin UObject interface.
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	virtual void PostLoad() override;
 	virtual void OnRegister() override;
 	// ~End UObject interface.
+
+	/**
+	 * Find all route node parents and setup a Transform Updated callback on each so that the Cable
+	 * rendering is updated automatically when the parent is moved in the editor.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	void SynchronizeParentMovedCallbacks();
+
+	// Callback functions related to route node parents.
+	void OnRouteNodeParentMoved(
+		USceneComponent* Component, EUpdateTransformFlags UpdateTransformFlags,
+		ETeleportType Teleport);
+	void OnRouteNodeParentReplaced(const FCoreUObjectDelegates::FReplacementObjectMap& OldToNew);
 #endif
 
 private:
@@ -296,5 +311,30 @@ private:
 
 	TObjectPtr<UInstancedStaticMeshComponent> VisualCylinders;
 	TObjectPtr<UInstancedStaticMeshComponent> VisualSpheres;
+
+	/**
+	 * Keep track which node frame parents we have registered a callback with. Note that a single
+	 * entry here may correspond to multiple routing nodes. Must use a raw-pointer key to a
+	 * weak-pointer values since TMap require that keys don't change, which a weak-pointer may do
+	 * during garbage collection. We keep the weak pointer because the parent may be destroyed at
+	 * any time and we need to be able to detect that.
+	 */
+	struct FParentDelegate
+	{
+		TWeakObjectPtr<USceneComponent> Parent;
+		FDelegateHandle DelegateHandle;
+	};
+	TMap<USceneComponent*, FParentDelegate> DelegateHandles;
+
+#if WITH_EDITOR
+	/// Handle to the delegate registered with the engine Map Changed event to update visuals
+	/// after load.
+	FDelegateHandle MapLoadDelegateHandle;
+
+	/// Handle to the delegate registered with the engine Objects Replaced event. Used to update
+	/// Transform Updated callbacks on Scene Components that are a parent of a routing node.
+	FDelegateHandle ObjectsReplacedDelegateHandle;
+#endif
+
 	FCableBarrier NativeBarrier;
 };

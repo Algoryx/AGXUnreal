@@ -503,6 +503,31 @@ void UAGX_CableComponent::EndPlay(const EEndPlayReason::Type Reason)
 		NativeBarrier.ReleaseNative();
 }
 
+void UAGX_CableComponent::DestroyComponent(bool bPromoteChildren)
+{
+	if (VisualCylinders != nullptr)
+		VisualCylinders->DestroyComponent();
+
+	if (VisualSpheres != nullptr)
+		VisualSpheres->DestroyComponent();
+
+#if WITH_EDITOR
+	if (MapLoadDelegateHandle.IsValid())
+		FEditorDelegates::MapChange.Remove(MapLoadDelegateHandle);
+
+	if (ObjectsReplacedDelegateHandle.IsValid())
+		FCoreUObjectDelegates::OnObjectsReplaced.Remove(ObjectsReplacedDelegateHandle);
+
+	for (TTuple<USceneComponent*, FParentDelegate>& Entry : DelegateHandles)
+	{
+		if (Entry.Value.Parent.IsValid())
+			Entry.Value.Parent->TransformUpdated.Remove(Entry.Value.DelegateHandle);
+	}
+#endif
+
+	Super::DestroyComponent(bPromoteChildren);
+}
+
 TStructOnScope<FActorComponentInstanceData> UAGX_CableComponent::GetComponentInstanceData() const
 {
 	return MakeStructOnScope<
@@ -676,6 +701,13 @@ void UAGX_CableComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
 	InitPropertyDispatcher();
+
+	// See UAGX_WireComponent::PostInitProperties.
+	if (!ObjectsReplacedDelegateHandle.IsValid())
+	{
+		ObjectsReplacedDelegateHandle = FCoreUObjectDelegates::OnObjectsReplaced.AddUObject(
+			this, &UAGX_CableComponent::OnRouteNodeParentReplaced);
+	}
 }
 
 void UAGX_CableComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
@@ -688,9 +720,39 @@ void UAGX_CableComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent
 		const FName Member = PropertyNode->GetValue()->GetFName();
 		if (DoesPropertyAffectVisuals(Member))
 			UpdateVisuals();
+
+		if (Member == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, RouteNodes))
+		{
+			// See UAGX_WireComponent::PostEditChangeChainProperty.
+			SynchronizeParentMovedCallbacks();
+		}
 	}
 
 	Super::PostEditChangeChainProperty(Event);
+}
+
+void UAGX_CableComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	AGX_CableComponent_helpers::SetLocalScope(*this);
+
+#if WITH_EDITOR
+	if (GetWorld() != nullptr && !GetWorld()->IsGameWorld() && !HasAnyFlags(RF_ClassDefaultObject))
+	{
+		if (!MapLoadDelegateHandle.IsValid())
+		{
+			MapLoadDelegateHandle = FEditorDelegates::MapChange.AddWeakLambda(
+				this,
+				[this](uint32)
+				{
+					FEditorDelegates::MapChange.RemoveAll(this);
+					SynchronizeParentMovedCallbacks();
+					UpdateVisuals();
+				});
+		}
+	}
+#endif
 }
 
 void UAGX_CableComponent::OnRegister()
@@ -701,6 +763,64 @@ void UAGX_CableComponent::OnRegister()
 	if (VisualCylinders == nullptr || VisualSpheres == nullptr)
 		CreateVisuals();
 
+	UpdateVisuals();
+}
+
+void UAGX_CableComponent::SynchronizeParentMovedCallbacks()
+{
+	// See comment in UAGX_WireComponent::SynchronizeParentMovedCallbacks.
+
+	// Remove all old callbacks.
+	for (TTuple<USceneComponent*, FParentDelegate>& ParentHandle : DelegateHandles)
+	{
+		if (ParentHandle.Value.Parent.IsValid())
+			ParentHandle.Value.Parent->TransformUpdated.Remove(ParentHandle.Value.DelegateHandle);
+	}
+
+	DelegateHandles.Empty(RouteNodes.Num());
+
+	// Add callbacks for the current parents.
+	for (FAGX_CableRouteNode& RouteNode : RouteNodes)
+	{
+		USceneComponent* Parent = RouteNode.Frame.Parent.GetComponent<USceneComponent>();
+		if (!IsValid(Parent) || DelegateHandles.Contains(Parent))
+		{
+			continue;
+		}
+		DelegateHandles.Add(
+			Parent, {Parent, Parent->TransformUpdated.AddUObject(
+								 this, &UAGX_CableComponent::OnRouteNodeParentMoved)});
+	}
+}
+
+void UAGX_CableComponent::OnRouteNodeParentMoved(
+	USceneComponent* Component, EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	// If this is a callback from a parent we are no longer a child of, then unsubscribe.
+	FAGX_CableRouteNode* Node =
+		RouteNodes.FindByPredicate([Component](const FAGX_CableRouteNode& Node)
+								   { return Node.Frame.GetParentComponent() == Component; });
+	if (Node == nullptr)
+	{
+		// Component is not the parent of any node, unsubscribe.
+		const FParentDelegate* Handle = DelegateHandles.Find(Component);
+		if (Handle != nullptr && Handle->Parent.IsValid())
+		{
+			Component->TransformUpdated.Remove(Handle->DelegateHandle);
+			DelegateHandles.Remove(Component);
+		}
+		return;
+	}
+
+	// At least one Routing Node has the moved Component as its parent.
+	UpdateVisuals();
+}
+
+void UAGX_CableComponent::OnRouteNodeParentReplaced(
+	const FCoreUObjectDelegates::FReplacementObjectMap& /*OldToNew*/)
+{
+	// See UAGX_WireComponent::OnRouteNodeParentReplaced.
+	SynchronizeParentMovedCallbacks();
 	UpdateVisuals();
 }
 #endif // WITH_EDITOR
