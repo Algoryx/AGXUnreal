@@ -1,3 +1,5 @@
+// Copyright 2026, Algoryx Simulation AB.
+
 #include "ROS2/AGX_ROS2AnyMessageBuilderComponent.h"
 
 // AGX Dynamics for Unreal includes.
