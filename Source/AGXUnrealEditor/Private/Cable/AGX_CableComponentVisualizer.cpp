@@ -16,7 +16,10 @@
 #include "Engine/World.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "Misc/EngineVersionComparison.h"
+#if !UE_VERSION_OLDER_THAN(5, 6, 0)
 #include "PrimitiveDrawInterface.h"
+#endif
 #include "Selection.h"
 #include "SSubobjectEditor.h"
 
