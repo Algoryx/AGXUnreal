@@ -364,6 +364,8 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		return;
 	}
 
+	// We need to ensure the Native Body has been created since the Native Terrain Wheel will use
+	// it upon creation.
 	FRigidBodyBarrier* BodyBarrier = Body->GetOrCreateNative();
 	if (BodyBarrier == nullptr)
 	{
@@ -388,7 +390,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		return;
 	}
 
-	NativeBarrier.AllocateNative(*BodyBarrier, *CylinderBarrier);
+	NativeBarrier.AllocateNative(*CylinderBarrier);
 	if (!HasNative())
 	{
 		ShowFailNotification;

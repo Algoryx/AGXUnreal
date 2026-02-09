@@ -30,7 +30,7 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 
 	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
 
-	void AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder);
+	void AllocateNative(FCylinderShapeBarrier& Cylinder);
 
 	FGuid GetGuid() const;
 

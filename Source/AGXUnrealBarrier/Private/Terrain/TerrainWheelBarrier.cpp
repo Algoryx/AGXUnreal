@@ -54,17 +54,14 @@ void FTerrainWheelBarrier::SetEnableAGXDebugRendering(bool InEnable)
 	NativeRef->Native->setEnableDebugRegressionPlanes(InEnable);
 }
 
-void FTerrainWheelBarrier::AllocateNative(FRigidBodyBarrier& Body, FCylinderShapeBarrier& Cylinder)
+void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)
 {
 	check(!HasNative());
-	check(Body.HasNative());
 	check(Cylinder.HasNative());
-	agx::RigidBody* BodyAGX = Body.GetNative()->Native;
 	agxCollide::Cylinder* CylinderAGX =
 		dynamic_cast<agxCollide::Cylinder*>(Cylinder.GetNative()->NativeShape.get());
-	AGX_CHECK(BodyAGX != nullptr);
 	AGX_CHECK(CylinderAGX != nullptr);
-	NativeRef->Native = new agxTerrain::TerrainWheel(BodyAGX, CylinderAGX);
+	NativeRef->Native = new agxTerrain::TerrainWheel(CylinderAGX);
 
 	auto Mat = Cylinder.GetNative()->NativeGeometry->getMaterial();
 	NativeRef->Native->setMaterial(Mat);
