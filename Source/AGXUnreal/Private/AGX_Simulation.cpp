@@ -13,6 +13,7 @@
 #include "AMOR/AGX_ConstraintMergeSplitThresholds.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
 #include "AMOR/AGX_WireMergeSplitThresholds.h"
+#include "Cable/AGX_CableComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Contacts/ContactListenerBarrier.h"
 #include "Materials/AGX_ContactMaterial.h"
@@ -258,6 +259,12 @@ namespace AGX_Simulation_helpers
 #endif
 }
 
+bool UAGX_Simulation::Add(UAGX_CableComponent& Cable)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Cable);
+}
+
 bool UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
 {
 	EnsureStepperCreated();
@@ -389,6 +396,12 @@ bool UAGX_Simulation::Add(UAGX_WireComponent& Wire)
 {
 	EnsureStepperCreated();
 	return AGX_Simulation_helpers::Add(*this, Wire);
+}
+
+bool UAGX_Simulation::Remove(UAGX_CableComponent& Cable)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Remove(*this, Cable);
 }
 
 bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)

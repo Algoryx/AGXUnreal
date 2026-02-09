@@ -31,6 +31,7 @@ struct AGXUNREALEDITOR_API FAGX_SCSNodeCollection
 	TMap<FGuid, USCS_Node*> Shovels;
 	TMap<FGuid, USCS_Node*> Steerings;
 	TMap<FGuid, USCS_Node*> Tracks;
+	TMap<FGuid, USCS_Node*> Cables;
 	TMap<FGuid, USCS_Node*> Wires;
 	
 

@@ -40,6 +40,7 @@
 class FTerrainBarrier;
 class FWheelJointBarrier;
 
+struct FCableBarrier;
 struct FSteeringBarrier;
 
 namespace agx
@@ -53,6 +54,11 @@ namespace agx
 	class DistanceJoint;
 	class SingleControllerConstraint1DOF;
 	class TwistRangeController;
+}
+
+namespace agxCable
+{
+	class Cable;
 }
 
 namespace agxCollide
@@ -171,6 +177,8 @@ namespace AGXBarrierFactories
 	FTerrainBarrier CreateTerrainBarrier(agxTerrain::Terrain* Terrain);
 
 	FTerrainMaterialBarrier CreateTerrainMaterialBarrier(agxTerrain::TerrainMaterial* Material);
+
+	FCableBarrier CreateCableBarrier(agxCable::Cable* Cable);
 
 	FWireBarrier CreateWireBarrier(agxWire::Wire* Wire);
 
