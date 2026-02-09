@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #if __has_include("AGX_BuildInfo.generated.h")
 
