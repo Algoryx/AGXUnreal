@@ -706,7 +706,6 @@ void UAGX_CableComponent::PostInitProperties()
 	Super::PostInitProperties();
 	InitPropertyDispatcher();
 
-	// See UAGX_WireComponent::PostInitProperties.
 	if (!ObjectsReplacedDelegateHandle.IsValid())
 	{
 		ObjectsReplacedDelegateHandle = FCoreUObjectDelegates::OnObjectsReplaced.AddUObject(
@@ -727,7 +726,6 @@ void UAGX_CableComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent
 
 		if (Member == GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, RouteNodes))
 		{
-			// See UAGX_WireComponent::PostEditChangeChainProperty.
 			SynchronizeParentMovedCallbacks();
 		}
 	}
@@ -772,8 +770,6 @@ void UAGX_CableComponent::OnRegister()
 
 void UAGX_CableComponent::SynchronizeParentMovedCallbacks()
 {
-	// See comment in UAGX_WireComponent::SynchronizeParentMovedCallbacks.
-
 	// Remove all old callbacks.
 	for (TTuple<USceneComponent*, FParentDelegate>& ParentHandle : DelegateHandles)
 	{
@@ -823,7 +819,6 @@ void UAGX_CableComponent::OnRouteNodeParentMoved(
 void UAGX_CableComponent::OnRouteNodeParentReplaced(
 	const FCoreUObjectDelegates::FReplacementObjectMap& /*OldToNew*/)
 {
-	// See UAGX_WireComponent::OnRouteNodeParentReplaced.
 	SynchronizeParentMovedCallbacks();
 	UpdateVisuals();
 }
