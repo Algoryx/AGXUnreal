@@ -12,8 +12,11 @@
 // Unreal Engine includes.
 #include "ActorEditorUtils.h"
 #include "Editor.h"
+#include "EditorViewportClient.h"
 #include "Engine/World.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "PrimitiveDrawInterface.h"
 #include "Selection.h"
 #include "SSubobjectEditor.h"
 

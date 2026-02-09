@@ -20,6 +20,10 @@
 
 // Unreal Engine includes.
 #include "Components/InstancedStaticMeshComponent.h"
+#if WITH_EDITOR
+#include "Editor.h"
+#endif
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "Kismet/KismetMathLibrary.h"
 
