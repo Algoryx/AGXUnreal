@@ -2,6 +2,9 @@
 
 #include "AGX_Frame.h"
 
+// AGX Dynamics for Unreal includes.
+#include <AGX_LogCategory.h>
+
 // Unreal Engine includes.
 #include "Math/Transform.h"
 #include "Components/SceneComponent.h"
@@ -21,27 +24,61 @@ USceneComponent* FAGX_Frame::GetParentComponent() const
 	return Parent.GetComponent<USceneComponent>();
 }
 
+USceneComponent* FAGX_Frame::GetParentComponent(USceneComponent& Fallback) const
+{
+	USceneComponent* ParentComp = GetParentComponent();
+	return ParentComp != nullptr ? ParentComp : &Fallback;
+}
+
+const USceneComponent* FAGX_Frame::GetParentComponent(const USceneComponent& Fallback) const
+{
+	USceneComponent* ParentComp = GetParentComponent();
+	return ParentComp != nullptr ? ParentComp : &Fallback;
+}
+
+/*
+ * Functions for setting / getting the frame's location and/or rotation relative to the world.
+ */
+
+// Both.
+
+FTransform FAGX_Frame::GetWorldTransform() const
+{
+	const FTransform& Transform = GetParentTransform();
+	return FTransform(LocalRotation, LocalLocation) * Transform;
+}
+
+FTransform FAGX_Frame::GetWorldTransform(const USceneComponent& FallbackParent) const
+{
+	const FTransform& Transform = GetParentTransform(FallbackParent);
+	return FTransform(LocalRotation, LocalLocation) * Transform;
+}
+
+FTransform FAGX_Frame::GetWorldTransform(const FTransform& FallbackTransform) const
+{
+	const FTransform& Transform = GetParentTransform(FallbackTransform);
+	return FTransform(LocalRotation, LocalLocation) * Transform;
+}
+
+void FAGX_Frame::GetWorldLocationAndRotation(FVector& OutLocation, FRotator& OutRotation) const
+{
+	const FTransform& Transform = GetParentTransform();
+	OutLocation = Transform.TransformPosition(LocalLocation);
+	OutRotation = Transform.TransformRotation(LocalRotation.Quaternion()).Rotator();
+}
+
+// Location.
+
 FVector FAGX_Frame::GetWorldLocation() const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		// If there is no parent then the frame origin is the world origin.
-		return LocalLocation;
-	}
-
-	return ActualParent->GetComponentTransform().TransformPosition(LocalLocation);
+	const FTransform& Transform = GetParentTransform();
+	return Transform.TransformPosition(LocalLocation);
 }
 
 FVector FAGX_Frame::GetWorldLocation(const USceneComponent& FallbackParent) const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		ActualParent = &FallbackParent;
-	}
-
-	return ActualParent->GetComponentTransform().TransformPosition(LocalLocation);
+	const FTransform& Transform = GetParentTransform(FallbackParent);
+	return Transform.TransformPosition(LocalLocation);
 }
 
 void FAGX_Frame::SetWorldLocation(const FVector& InLocation, const USceneComponent& FallbackParent)
@@ -50,51 +87,82 @@ void FAGX_Frame::SetWorldLocation(const FVector& InLocation, const USceneCompone
 	LocalLocation = ParentToWorld.InverseTransformPosition(InLocation);
 }
 
+// Rotation.
+
 FRotator FAGX_Frame::GetWorldRotation() const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		// If there is no parent then the frame origin is the world origin.
-		return LocalRotation;
-	}
-
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat WorldQuat = ActualParent->GetComponentTransform().TransformRotation(LocalQuat);
-	const FRotator WorldRotator = WorldQuat.Rotator();
-	return WorldRotator;
+	const FTransform& Transform = GetParentTransform();
+	return Transform.TransformRotation(LocalRotation.Quaternion()).Rotator();
 }
 
 FRotator FAGX_Frame::GetWorldRotation(const USceneComponent& FallbackParent) const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		ActualParent = &FallbackParent;
-	}
-
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat WorldQuat = ActualParent->GetComponentTransform().TransformRotation(LocalQuat);
-	const FRotator WorldRotator = WorldQuat.Rotator();
-	return WorldRotator;
+	const FTransform& Transform = GetParentTransform(FallbackParent);
+	return Transform.TransformRotation(LocalRotation.Quaternion()).Rotator();
 }
 
-void FAGX_Frame::GetWorldLocationAndRotation(FVector& OutLocation, FRotator& OutRotation) const
+void FAGX_Frame::SetWorldRotation(const FRotator& InRotation, const USceneComponent& FallbackParent)
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
+	const FTransform& ParentToWorld = GetParentTransform(FallbackParent);
+
+	const FQuat ParentWorldQuat = ParentToWorld.GetRotation();
+	const FQuat WorldQuat = InRotation.Quaternion();
+
+	// Convert world rotation to local rotation relative to parent:
+	// World = Parent * Local  =>  Local = Parent^-1 * World
+	const FQuat LocalQuat = ParentWorldQuat.Inverse() * WorldQuat;
+
+	LocalRotation = LocalQuat.Rotator();
+}
+
+/*
+ * Functions for getting the frame's location and/or rotation relative to something else.
+ */
+
+namespace AGX_Frame_helpers
+{
+	FVector GetLocationRelativeTo(
+		const FTransform& ParentTransform, const FTransform& TargetTransform,
+		const FVector& LocalLocation)
 	{
-		OutLocation = LocalLocation;
-		OutRotation = LocalRotation;
-		return;
+		// Construct the transformation that takes us from our Component's coordinate system to the
+		// given Component's.
+		const FTransform RelativeTransform = ParentTransform.GetRelativeTransform(TargetTransform);
+		const FVector RelativeLocation = RelativeTransform.TransformPosition(LocalLocation);
+		return RelativeLocation;
 	}
 
-	const FTransform& Transform = ActualParent->GetComponentTransform();
-	OutLocation = Transform.TransformPosition(LocalLocation);
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat WorldQuat = Transform.TransformRotation(LocalQuat);
-	OutRotation = WorldQuat.Rotator();
+	FRotator GetRotationRelativeTo(
+		const FTransform& ParentTransform, const FTransform& TargetTransform,
+		const FRotator& LocalRotation)
+	{
+		const FTransform RelativeTransform = ParentTransform.GetRelativeTransform(TargetTransform);
+		const FQuat LocalQuat = LocalRotation.Quaternion();
+		const FQuat RelativeQuat = RelativeTransform.TransformRotation(LocalQuat);
+		const FRotator RelativeRotator = RelativeQuat.Rotator();
+		return RelativeRotator;
+	}
+
+	void GetRelativeTo(
+		const FTransform& ParentTransform, const FTransform& TargetTransform,
+		const FVector& LocalLocation, const FRotator& LocalRotator, FVector& OutLocation,
+		FRotator& OutRotator)
+	{
+		const FTransform RelativeTransform = ParentTransform.GetRelativeTransform(TargetTransform);
+		OutLocation = RelativeTransform.TransformPosition(LocalLocation);
+		OutRotator = RelativeTransform.TransformRotation(LocalRotator.Quaternion()).Rotator();
+	}
+
+	FTransform GetRelativeTo(
+		const FTransform& ParentTransform, const FTransform& TargetTransform,
+		const FVector& LocalLocation, const FRotator& LocalRotator)
+	{
+		const FTransform RelativeTransform = ParentTransform.GetRelativeTransform(TargetTransform);
+		return FTransform(LocalRotator, LocalLocation) * RelativeTransform;
+	}
 }
+
+// Location.
 
 FVector FAGX_Frame::GetLocationRelativeTo(const USceneComponent& Component) const
 {
@@ -105,39 +173,26 @@ FVector FAGX_Frame::GetLocationRelativeTo(const USceneComponent& Component) cons
 		return Component.GetComponentTransform().InverseTransformPosition(LocalLocation);
 	}
 
-	// Construct the transformation that takes us from our Component's coordinate system to the
-	// given Component's.
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	return Transform.TransformPosition(LocalLocation);
+	return AGX_Frame_helpers::GetLocationRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalLocation);
 }
 
 FVector FAGX_Frame::GetLocationRelativeTo(
 	const USceneComponent& Component, const USceneComponent& FallbackParent) const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		ActualParent = &FallbackParent;
-	}
-
-	// Construct the transformation that takes us from the parent's coordinate system to the
-	// given Component's.
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	return Transform.TransformPosition(LocalLocation);
+	const USceneComponent* ActualParent = GetParentComponent(FallbackParent);
+	return AGX_Frame_helpers::GetLocationRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalLocation);
 }
 
 FVector FAGX_Frame::GetLocationRelativeTo(
 	const USceneComponent& Component, const FTransform& FallbackTransform) const
 {
-	const FTransform& ParentTransform = GetParentTransform(FallbackTransform);
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform ParentToTarget = ParentTransform.GetRelativeTransform(TargetTransform);
-	return ParentToTarget.TransformPosition(LocalLocation);
+	return AGX_Frame_helpers::GetLocationRelativeTo(
+		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalLocation);
 }
+
+// Rotation.
 
 FRotator FAGX_Frame::GetRotationRelativeTo(const USceneComponent& Component) const
 {
@@ -151,30 +206,26 @@ FRotator FAGX_Frame::GetRotationRelativeTo(const USceneComponent& Component) con
 		return RelativeQuat.Rotator();
 	}
 
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat RelativeQuat = Transform.TransformRotation(LocalQuat);
-	return RelativeQuat.Rotator();
+	return AGX_Frame_helpers::GetRotationRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalRotation);
 }
 
 FRotator FAGX_Frame::GetRotationRelativeTo(
 	const USceneComponent& Component, const USceneComponent& FallbackParent) const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		ActualParent = &FallbackParent;
-	}
-
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat RelativeQuat = Transform.TransformRotation(LocalQuat);
-	return RelativeQuat.Rotator();
+	const USceneComponent* ActualParent = GetParentComponent(FallbackParent);
+	return AGX_Frame_helpers::GetRotationRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalRotation);
 }
+
+FRotator FAGX_Frame::GetRotationRelativeTo(
+	const USceneComponent& Component, const FTransform& FallbackTransform) const
+{
+	return AGX_Frame_helpers::GetRotationRelativeTo(
+		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalRotation);
+}
+
+// Both.
 
 void FAGX_Frame::GetRelativeTo(
 	const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation) const
@@ -191,32 +242,53 @@ void FAGX_Frame::GetRelativeTo(
 		return;
 	}
 
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	OutLocation = Transform.TransformPosition(LocalLocation);
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat RelativeQuat = Transform.TransformRotation(LocalQuat);
-	OutRotation = RelativeQuat.Rotator();
+	AGX_Frame_helpers::GetRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation, OutLocation, OutRotation);
 }
 
 void FAGX_Frame::GetRelativeTo(
 	const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
 	const USceneComponent& FallbackParent) const
 {
-	const USceneComponent* ActualParent = GetParentComponent();
-	if (ActualParent == nullptr)
-	{
-		ActualParent = &FallbackParent;
-	}
+	const USceneComponent* ActualParent = GetParentComponent(FallbackParent);
+	AGX_Frame_helpers::GetRelativeTo(
+		ActualParent->GetComponentTransform(), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation, OutLocation, OutRotation);
+}
 
-	const FTransform& ParentTransform = ActualParent->GetComponentTransform();
-	const FTransform& TargetTransform = Component.GetComponentTransform();
-	const FTransform Transform = ParentTransform.GetRelativeTransform(TargetTransform);
-	OutLocation = Transform.TransformPosition(LocalLocation);
-	const FQuat LocalQuat = LocalRotation.Quaternion();
-	const FQuat RelativeQuat = Transform.TransformRotation(LocalQuat);
-	OutRotation = RelativeQuat.Rotator();
+void FAGX_Frame::GetRelativeTo(
+	const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
+	const FTransform& FallbackTransform) const
+{
+	AGX_Frame_helpers::GetRelativeTo(
+		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation, OutLocation, OutRotation);
+}
+
+FTransform FAGX_Frame::GetRelativeTo(
+	const USceneComponent& Component, const USceneComponent& FallbackParent) const
+{
+	return AGX_Frame_helpers::GetRelativeTo(
+		GetParentTransform(FallbackParent), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation);
+}
+
+FTransform FAGX_Frame::GetRelativeTo(
+	const USceneComponent& Component, const FTransform& FallbackTransform) const
+{
+	return AGX_Frame_helpers::GetRelativeTo(
+		GetParentTransform(FallbackTransform), Component.GetComponentTransform(), LocalLocation,
+		LocalRotation);
+}
+
+/*
+ * End of functions for getting the frame's location and/or rotation relative to something else.
+ */
+
+const FTransform& FAGX_Frame::GetParentTransform() const
+{
+	return GetParentTransform(FTransform::Identity);
 }
 
 const FTransform& FAGX_Frame::GetParentTransform(const USceneComponent& FallbackParent) const

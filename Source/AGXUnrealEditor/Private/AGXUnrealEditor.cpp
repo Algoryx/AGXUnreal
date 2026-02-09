@@ -32,6 +32,9 @@
 #include "AMOR/AGX_ConstraintMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_WireMergeSplitThresholdsTypeActions.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableComponentVisualizer.h"
+#include "Cable/AGX_CablePropertiesAssetTypeActions.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerActor.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponentCustomization.h"
@@ -296,6 +299,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_BellCrankSteeringParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_CablePropertiesAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_ConstraintMergeSplitThresholdsTypeActions(AgxAssetCategoryBit)));
@@ -697,6 +702,10 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 {
 	RegisterComponentVisualizer(
+		UAGX_CableComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_CableComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_CameraSensorComponentVisualizer));
 
@@ -751,6 +760,7 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 
 void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 {
+	UnregisterComponentVisualizer(UAGX_CableComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_CameraSensorBase::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());

@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Cable/AGX_CableComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Import/AGX_ModelSourceComponent.h"
@@ -157,6 +158,12 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 			AGX_CHECK(!Tracks.Contains(Track->ImportGuid))
 			if (Track->ImportGuid.IsValid())
 				Tracks.Add(Track->ImportGuid, Node);
+		}
+		else if (auto Cable = Cast<UAGX_CableComponent>(Component))
+		{
+			AGX_CHECK(!Cables.Contains(Cable->ImportGuid))
+			if (Cable->ImportGuid.IsValid())
+				Cables.Add(Cable->ImportGuid, Node);
 		}
 		else if (auto Wire = Cast<UAGX_WireComponent>(Component))
 		{
