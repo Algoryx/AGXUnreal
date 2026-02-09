@@ -160,7 +160,17 @@ namespace AGX_SteeringComponentVisualizer_helpers
 			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * KnuckleToKnucleDist /
 								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
 		const double KingpinLen = (AttachmentLeft.GetLocation() - KnuckleLeftPos).Length();
-		const FVector SteeringArmDir = -AttachmentLeft.GetRotation().GetAxisX();
+
+		const FVector WheelBase = AttachmentLeft.GetLocation() - AttachmentRight.GetLocation();
+		const FVector WheelBaseDir = [&WheelBase, &AttachmentLeft]()
+		{
+			auto V = WheelBase.GetSafeNormal();
+			return V.Length() > 0 ? V : AttachmentLeft.GetUnitAxis(EAxis::Y);
+		}();
+
+		const FVector SteeringArmDir =
+			WheelBaseDir.RotateAngleAxis(90.0, AttachmentLeft.GetUnitAxis(EAxis::Z))
+				.GetSafeNormal();
 		const FVector SteeringArmEnd =
 			SteeringArmStart + SteeringArmDir * KingpinLen * Params.SteeringData.Lc;
 
@@ -214,7 +224,7 @@ namespace AGX_SteeringComponentVisualizer_helpers
 		const FVector RackStart =
 			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * (KnuckleToKnucleDist - RackLen) /
 								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
-		const FVector RackEnd = RackStart - RackLen * AttachmentLeft.GetUnitAxis(EAxis::Y);
+		const FVector RackEnd = RackStart + RackLen * KnuckleToSteeringArmStartDir;
 
 		// Draw kingpins.
 		PDI->DrawLine(
@@ -252,19 +262,30 @@ namespace AGX_SteeringComponentVisualizer_helpers
 										   FMath::DegreesToRadians(-Params.SteeringData.Alpha0))
 										   .RotateVector(KnuckleToSteeringArmStartDir);
 		const double KnuckleToKnucleDist = (KnuckleLeftPos - KnuckleRightPos).Length();
-		const double WheelBaseLen =
-			(AttachmentLeft.GetLocation() - AttachmentRight.GetLocation()).Length();
+		const FVector WheelBase = AttachmentLeft.GetLocation() - AttachmentRight.GetLocation();
+		const double WheelBaseLen = WheelBase.Length();
 		const double RackLen = WheelBaseLen * Params.SteeringData.Lr;
 
 		const FVector RackStart =
 			KnuckleLeftPos + KnuckleToSteeringArmStartDir * 0.5 * (KnuckleToKnucleDist - RackLen) /
 								 FMath::Cos(FMath::DegreesToRadians(Params.SteeringData.Alpha0));
-		const FVector RackEnd = RackStart - RackLen * AttachmentLeft.GetUnitAxis(EAxis::Y);
+		const FVector RackEnd = RackStart + RackLen * KnuckleToSteeringArmStartDir;
 
 		const double KingpinLen = (AttachmentLeft.GetLocation() - KnuckleLeftPos).Length();
 		const FVector SteeringArmStart = (RackStart + RackEnd) * 0.5;
-		const FVector SteeringArmEnd = SteeringArmStart - AttachmentLeft.GetUnitAxis(EAxis::X) *
-															  KingpinLen * Params.SteeringData.Lc;
+
+		const FVector WheelBaseDir = [&WheelBase, &AttachmentLeft]()
+		{
+			auto V = WheelBase.GetSafeNormal();
+			return V.Length() > 0 ? V : AttachmentLeft.GetUnitAxis(EAxis::Y);
+		}();
+
+		const FVector SteeringArmDir =
+			WheelBaseDir.RotateAngleAxis(90.0, AttachmentLeft.GetUnitAxis(EAxis::Z))
+				.GetSafeNormal();
+
+		const FVector SteeringArmEnd =
+			SteeringArmStart + SteeringArmDir * KingpinLen * Params.SteeringData.Lc;
 
 		// Draw kingpins.
 		PDI->DrawLine(
