@@ -114,6 +114,7 @@ public:
 
 	bool IsRotational() const;
 
+	// Returns false if no elementary constraints exists.
 	bool IsAllElementaryConstraintsDisabled() const;
 
 private:
