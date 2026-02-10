@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -114,6 +114,7 @@ public:
 
 	bool IsRotational() const;
 
+	// Returns false if no elementary constraints exists.
 	bool IsAllElementaryConstraintsDisabled() const;
 
 private:

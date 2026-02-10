@@ -1,3 +1,5 @@
+// Copyright 2026, Algoryx Simulation AB.
+
 #pragma once
 
 // OpenPLX includes.

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Utilities/AGX_ImportUtilities.h"
 
@@ -195,6 +195,11 @@ FString FAGX_ImportUtilities::GetImportRootDirectoryName()
 FString FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName()
 {
 	return FString("ShapeMaterial");
+}
+
+FString FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName()
+{
+	return FString("CableProperties");
 }
 
 FString FAGX_ImportUtilities::GetImportContactMaterialDirectoryName()

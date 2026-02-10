@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Utilities/AGX_BlueprintUtilities.h"
 
@@ -20,26 +20,6 @@ namespace AGX_BlueprintUtilities_helpers
 			return nullptr;
 		}
 		return Cast<UBlueprintGeneratedClass>(Component->GetOuter());
-	}
-
-	template <typename T>
-	TArray<UActorComponent*> GetTemplateComponents(T* Bp)
-	{
-		TArray<UActorComponent*> Components;
-		if (Bp == nullptr)
-		{
-			return Components;
-		}
-
-		for (USCS_Node* Node : Bp->SimpleConstructionScript->GetAllNodes())
-		{
-			if (UActorComponent* Component = Node->ComponentTemplate)
-			{
-				Components.Add(Component);
-			}
-		}
-
-		return Components;
 	}
 }
 
@@ -338,15 +318,129 @@ void FAGX_BlueprintUtilities::SetTemplateComponentRelativeTransform(
 	}
 }
 
-TArray<UActorComponent*> FAGX_BlueprintUtilities::GetTemplateComponents(
-	UBlueprintGeneratedClass* Bp)
+namespace AGX_BlueprintUtilities_helpers
 {
-	return AGX_BlueprintUtilities_helpers::GetTemplateComponents(Bp);
+	/**
+	 * For each Component template in the given Blueprint, find the matching Component template in
+	 * OwningBlueprint and return them as a list.
+	 *
+	 * Blueprint must be either be a parent Blueprint of OwningBlueprint, or an alias for that
+	 * Blueprint.
+	 *
+	 * If ComponentType is provided then only Component templates of that type, or subtypes, are
+	 * included.
+	 *
+	 * @param Blueprint The Blueprint to search through.
+	 * @param OwningBlueprint The Blueprint to find Component templates in.
+	 * @param ComponentType Optional. The type of Components to find.
+	 * @param OutComponents List to be populated.
+	 */
+	void GetTemplateComponents(
+		const UBlueprint& Blueprint, const UBlueprint& OwningBlueprint, const UClass* ComponentType,
+		TArray<UActorComponent*>& OutComponents)
+	{
+		for (const USCS_Node* Node : Blueprint.SimpleConstructionScript->GetAllNodes())
+		{
+			UActorComponent* Component = Node->ComponentTemplate;
+			if (Component == nullptr)
+				continue;
+
+			// We only want templates of the wanted type, if a type was given.
+			if (ComponentType != nullptr && !Component->GetClass()->IsChildOf(ComponentType))
+				continue;
+
+			// We want the template owned by 'Owning Blueprint', not the one owned by a parent
+			// Blueprint.
+			Component =
+				FAGX_ObjectUtilities::GetMatchedInstance(Component, OwningBlueprint.GeneratedClass);
+			if (Component == nullptr)
+				continue;
+
+			OutComponents.Add(Component);
+		}
+	}
+
+	/**
+	 * Add all SCS Nodes in the given Blueprint to OutNodes.
+	 *
+	 * If ComponentType is given then only include SCS Nodes that represent a Component of that
+	 * type or subtypes.
+	 *
+	 * @param Blueprint The Blueprint to search through.
+	 * @param ComponentType Optional. The type of Component to find SCS Nodes for.
+	 * @param OutNodes List to be populated.
+	 */
+	void GetSCSNodes(
+		const UBlueprint& Blueprint, const UClass* ComponentType, TArray<USCS_Node*>& OutNodes)
+	{
+		for (USCS_Node* Node : Blueprint.SimpleConstructionScript->GetAllNodes())
+		{
+			if (ComponentType != nullptr && !Node->ComponentClass->IsChildOf(ComponentType))
+				continue;
+
+			OutNodes.Add(Node);
+		}
+	}
+
+	/**
+	 * For each Component template in Blueprints, find the matching Component template in
+	 * OwningBlueprint and return a list of those.
+	 *
+	 * Blueprints must only contain Blueprints that are either a parent Blueprint of
+	 * OwningBlueprint, or a pointer to that Blueprint.
+	 *
+	 * If ComponentType is provided then only Component templates of that type, or subtypes, are
+	 * included.
+	 *
+	 * @param Blueprints Blueprint inheritance hierarchy of 'Owning Blueprint'.
+	 * @param OwningBlueprint The Blueprint to find Component templates in.
+	 * @param ComponentType The type of Components to find.
+	 * @return List of Component templates in 'Owning Blueprint'.
+	 */
+	TArray<UActorComponent*> GetTemplateComponents(
+		const TArray<UBlueprint*>& Blueprints, const UBlueprint& OwningBlueprint,
+		const UClass* ComponentType)
+	{
+		TArray<UActorComponent*> Components;
+		for (UBlueprint* Blueprint : Blueprints)
+		{
+			GetTemplateComponents(*Blueprint, OwningBlueprint, ComponentType, Components);
+		}
+		return Components;
+	}
+
+	/**
+	 * Collect SCS Nodes from the given Blueprints. If ComponentType is given then only collect SCS
+	 * Nodes that represent a Component of that type.
+	 *
+	 * @param Blueprints List of Blueprints to collect SCS Nodes from.
+	 * @param ComponentType Optional. The type of Components to find.
+	 * @return List of matching SCS Nodes in the Blueprints.
+	 */
+	TArray<USCS_Node*> GetSCSNodes(
+		const TArray<UBlueprint*>& Blueprints, const UClass* ComponentType)
+	{
+		TArray<USCS_Node*> Nodes;
+		for (UBlueprint* Blueprint : Blueprints)
+		{
+			GetSCSNodes(*Blueprint, ComponentType, Nodes);
+		}
+		return Nodes;
+	}
 }
 
-TArray<UActorComponent*> FAGX_BlueprintUtilities::GetTemplateComponents(UBlueprint* Bp)
+TArray<UActorComponent*> FAGX_BlueprintUtilities::GetTemplateComponents(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited, const UClass* ComponentType)
 {
-	return AGX_BlueprintUtilities_helpers::GetTemplateComponents(Bp);
+	return AGX_BlueprintUtilities_helpers::GetTemplateComponents(
+		GetSelfOrAncestors(Blueprint, Inherited), Blueprint, ComponentType);
+}
+
+TArray<USCS_Node*> FAGX_BlueprintUtilities::GetSCSNodes(
+	UBlueprint& Blueprint, EAGX_Inherited Inherited, const UClass* ComponentType)
+{
+	return AGX_BlueprintUtilities_helpers::GetSCSNodes(
+		GetSelfOrAncestors(Blueprint, Inherited), ComponentType);
 }
 
 FString FAGX_BlueprintUtilities::ToTemplateComponentName(const FString& RegularName)
@@ -380,6 +474,21 @@ UBlueprint* FAGX_BlueprintUtilities::GetParent(const UBlueprint& Child)
 	}
 
 	return Parents[1];
+}
+
+TArray<UBlueprint*> FAGX_BlueprintUtilities::GetSelfOrAncestors(
+	UBlueprint& Child, EAGX_Inherited Inherited)
+{
+	TArray<UBlueprint*> Blueprints;
+	if (Inherited == EAGX_Inherited::Include)
+	{
+		UBlueprint::GetBlueprintHierarchyFromClass(Child.GeneratedClass, Blueprints);
+	}
+	else
+	{
+		Blueprints.Add(&Child);
+	}
+	return Blueprints;
 }
 
 UBlueprint* FAGX_BlueprintUtilities::GetOutermostParent(UBlueprint* Child)

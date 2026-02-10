@@ -1,10 +1,11 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/SimulationObjectCollection.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AgxDynamicsObjectsAccess.h"
 #include "AGXBarrierFactories.h"
+#include "Cable/CableBarrier.h"
 #include "Constraints/AnyConstraintBarrier.h"
 #include "Constraints/BallJointBarrier.h"
 #include "Constraints/CylindricalJointBarrier.h"
@@ -380,6 +381,16 @@ TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs()
 const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() const
 {
 	return PLXOutputs;
+}
+
+TArray<FCableBarrier>& FSimulationObjectCollection::GetCables()
+{
+	return Cables;
+}
+
+const TArray<FCableBarrier>& FSimulationObjectCollection::GetCables() const
+{
+	return Cables;
 }
 
 void FSimulationObjectCollection::SetModelName(const FString& Name)

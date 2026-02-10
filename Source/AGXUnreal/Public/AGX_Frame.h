@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -46,6 +46,8 @@ struct AGXUNREAL_API FAGX_Frame
 	void SetParentComponent(USceneComponent* Component);
 
 	USceneComponent* GetParentComponent() const;
+	const USceneComponent* GetParentComponent(const USceneComponent& Fallback) const;
+	USceneComponent* GetParentComponent(USceneComponent& Fallback) const;
 
 	/**
 	 * The location of the origin of this Frame, specified in the Parent's local coordinate system.
@@ -58,6 +60,10 @@ struct AGXUNREAL_API FAGX_Frame
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Frame")
 	FRotator LocalRotation {FRotator::ZeroRotator};
+
+	FTransform GetWorldTransform() const;
+	FTransform GetWorldTransform(const USceneComponent& FallbackParent) const;
+	FTransform GetWorldTransform(const FTransform& FallbackTransform) const;
 
 	/**
 	 * Get the world location of this Frame.
@@ -79,6 +85,11 @@ struct AGXUNREAL_API FAGX_Frame
 	 * set.
 	 */
 	void SetWorldLocation(const FVector& InLocation, const USceneComponent& FallbackParent);
+
+	/**
+	 * Set LocalRotation so that this Frames rotation matches the given world rotation.
+	 */
+	void SetWorldRotation(const FRotator& InRotation, const USceneComponent& FallbackParent);
 
 	/**
 	 * Get the world rotation of this Frame.
@@ -120,10 +131,13 @@ struct AGXUNREAL_API FAGX_Frame
 	FRotator GetRotationRelativeTo(const USceneComponent& Component) const;
 
 	/**
-	 * Same as Get Rotation Relative To, but use Fallback Parent is Parent is not set.
+	 * Same as Get Rotation Relative To, but use Fallback Parent if Parent is not set.
 	 */
 	FRotator GetRotationRelativeTo(
 		const USceneComponent& Component, const USceneComponent& FallbackParent) const;
+
+	FRotator GetRotationRelativeTo(
+		const USceneComponent& Component, const FTransform& FallbackTransform) const;
 
 	void GetRelativeTo(
 		const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation) const;
@@ -132,6 +146,16 @@ struct AGXUNREAL_API FAGX_Frame
 		const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
 		const USceneComponent& FallbackParent) const;
 
+	void GetRelativeTo(
+		const USceneComponent& Component, FVector& OutLocation, FRotator& OutRotation,
+		const FTransform& FallbackTransform) const;
+
+	FTransform GetRelativeTo(
+		const USceneComponent& Component, const USceneComponent& FallbackParent) const;
+	FTransform GetRelativeTo(
+		const USceneComponent& Component, const FTransform& FallbackTransform) const;
+
+	const FTransform& GetParentTransform() const;
 	const FTransform& GetParentTransform(const USceneComponent& FallbackParent) const;
 	const FTransform& GetParentTransform(const FTransform& FallbackTransform) const;
 };

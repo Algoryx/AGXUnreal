@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -41,6 +41,7 @@ class FSimulationBarrier;
 class FTwoBodyTireBarrier;
 class FTrackBarrier;
 
+struct FCableBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
 struct FTerrainWheelBarrier;
@@ -138,6 +139,9 @@ public:
 	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
 	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
 
+	TArray<FCableBarrier>& GetCables();
+	const TArray<FCableBarrier>& GetCables() const;
+
 	void SetModelName(const FString& Name);
 	FString GetModelName() const;
 
@@ -166,6 +170,7 @@ private:
 	TArray<FWheelJointBarrier> WheelJoints;
 
 	TArray<FRigidBodyBarrier> RigidBodies;
+	TArray<FCableBarrier> Cables;
 	TArray<FContactMaterialBarrier> ContactMaterials;
 	TArray<std::pair<FString, FString>> DisabledCollisionGroups;
 	TArray<FObserverFrameBarrier> ObserverFrames;

@@ -1,18 +1,19 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Terrain/TerrainBarrier.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/TerrainMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/ShapeBarrierImpl.h"
-#include "Terrain/TerrainPropertiesBarrier.h"
 #include "Terrain/ShovelBarrier.h"
+#include "Terrain/TerrainPropertiesBarrier.h"
 #include "Utilities/TerrainUtilities.h"
 
 // AGX Dynamics includes.
@@ -57,6 +58,36 @@ void FTerrainBarrier::AllocateNative(FHeightFieldShapeBarrier& SourceHeightField
 	NativeRef->Native = agxTerrain::Terrain::createFromHeightField(HeightFieldAGX, MaxDepthAGX);
 }
 
+void FTerrainBarrier::AllocateNative(
+	int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+	const TArray<float>& MinimumHeights)
+{
+	check(!HasNative());
+
+	size_t ResX = static_cast<size_t>(ResolutionX);
+	size_t ResY = static_cast<size_t>(ResolutionY);
+	check(ResX < static_cast<size_t>(std::numeric_limits<int>::max()));
+	check(ResY < static_cast<size_t>(std::numeric_limits<int>::max()));
+
+	agx::VectorPOD<agx::Real> InitialHeightsAGX, MinimumHeightsAGX;
+	InitialHeightsAGX.reserve(static_cast<size_t>(InitialHeights.Num()));
+	MinimumHeightsAGX.reserve(static_cast<size_t>(MinimumHeights.Num()));
+
+	// Flip along Y-axis
+	for (size_t y = 0; y < ResY; ++y)
+	{
+		for (size_t x = 0; x < ResX; ++x)
+		{
+			size_t sourceIndex = x + (ResY - 1 - y) * ResX;
+			InitialHeightsAGX.push_back(ConvertDistanceToAGX(InitialHeights[sourceIndex]));
+			MinimumHeightsAGX.push_back(ConvertDistanceToAGX(MinimumHeights[sourceIndex]));
+		}
+	}
+
+	NativeRef->Native = new agxTerrain::Terrain(
+		ResX, ResY, ConvertDistanceToAGX(ElementSize), InitialHeightsAGX, MinimumHeightsAGX);
+}
+
 FTerrainRef* FTerrainBarrier::GetNative()
 {
 	check(HasNative());
@@ -73,6 +104,43 @@ void FTerrainBarrier::ReleaseNative()
 {
 	check(HasNative());
 	NativeRef->Native = nullptr;
+}
+
+uintptr_t FTerrainBarrier::GetNativeAddress() const
+{
+	if (!HasNative())
+	{
+		return 0;
+	}
+
+	return reinterpret_cast<uintptr_t>(NativeRef->Native.get());
+}
+
+void FTerrainBarrier::SetNativeAddress(uintptr_t NativeAddress)
+{
+	if (NativeAddress == GetNativeAddress())
+	{
+		return;
+	}
+
+	if (HasNative())
+	{
+		this->ReleaseNative();
+	}
+
+	NativeRef->Native = reinterpret_cast<agxTerrain::Terrain*>(NativeAddress);
+}
+
+void FTerrainBarrier::SetEnabled(bool Enabled)
+{
+	check(HasNative());
+	NativeRef->Native->setEnable(Enabled);
+}
+
+bool FTerrainBarrier::GetEnabled() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnable();
 }
 
 void FTerrainBarrier::SetCanCollide(bool bCanCollide)
@@ -216,6 +284,38 @@ int32 FTerrainBarrier::GetGridSizeY() const
 	return static_cast<int32>(GridSize);
 }
 
+FVector2D FTerrainBarrier::GetSize() const
+{
+	check(HasNative());
+	return ConvertDistance(NativeRef->Native->getSize());
+}
+
+double FTerrainBarrier::GetElementSize() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getElementSize());
+}
+
+void FTerrainBarrier::ConvertToDynamicMassInShape(FShapeBarrier* Shape)
+{
+	check(HasNative());
+	check(Shape->HasNative());
+	auto shapeNative = Shape->GetNative();
+	NativeRef->Native->convertToDynamicMassInShape(shapeNative->NativeShape);
+}
+
+void FTerrainBarrier::SetNoMerge(bool bNoMerge)
+{
+	check(HasNative());
+	NativeRef->Native->setNoMerge(bNoMerge);
+}
+
+bool FTerrainBarrier::GetNoMerge() const
+{
+	check(HasNative());
+	return NativeRef->Native->getNoMerge();
+}
+
 TArray<std::tuple<int32, int32>> FTerrainBarrier::GetModifiedVertices() const
 {
 	check(HasNative());
@@ -311,6 +411,50 @@ void FTerrainBarrier::GetHeights(TArray<float>& Heights, bool bChangesOnly) cons
 			}
 		}
 	}
+}
+void FTerrainBarrier::GetMinimumHeights(TArray<float>& MinimumHeights) const
+{
+	check(HasNative());
+	const agxCollide::HeightField* HeightField = NativeRef->Native->getHeightField();
+	const size_t SizeXAGX = HeightField->getResolutionX();
+	const size_t SizeYAGX = HeightField->getResolutionY();
+
+	if (SizeXAGX == 0 || SizeYAGX == 0)
+	{
+		/// \todo Unclear if this really should be a warning or not. When would
+		/// zero-sized terrains be used?
+		UE_LOG(LogAGX, Warning, TEXT("Cannot get minimum heights from terrain with zero size."));
+		return;
+	}
+	if (SizeXAGX * SizeYAGX > static_cast<size_t>(std::numeric_limits<int32>::max()))
+	{
+		UE_LOG(LogAGX, Error, TEXT("Cannot get minimum heights, terrain has too many vertices."));
+		return;
+	}
+
+	const int32 SizeX = static_cast<int32>(SizeXAGX);
+	const int32 SizeY = static_cast<int32>(SizeYAGX);
+
+	auto NativeMinumumHeights = NativeRef->Native->getMinimumHeights();
+	MinimumHeights.Reset(SizeX * SizeY);
+	MinimumHeights.SetNumZeroed(SizeX * SizeY);
+	for (size_t y = 0; y < SizeY; ++y)
+	{
+		for (size_t x = 0; x < SizeX; ++x)
+		{
+			size_t SourceIndex = y * SizeX + x; // Regular row-major order for source
+			size_t NativeIndex = x * SizeY + (SizeY - 1 - y); // Transpose with correct axis flip
+			MinimumHeights[SourceIndex] =
+				ConvertDistanceToUnreal<float>(NativeMinumumHeights[NativeIndex]);
+		}
+	}
+}
+
+FHeightFieldShapeBarrier FTerrainBarrier::GetHeightField() const
+{
+	// Terrain should expose a non-const getter.
+	return AGXBarrierFactories::CreateHeightFieldShapeBarrier(
+		const_cast<agxCollide::HeightField*>(NativeRef->Native->getHeightField()));
 }
 
 TArray<FVector> FTerrainBarrier::GetParticlePositions() const

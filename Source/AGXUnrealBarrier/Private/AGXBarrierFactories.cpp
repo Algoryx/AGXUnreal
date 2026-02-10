@@ -1,12 +1,14 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGXBarrierFactories.h"
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/Cable/CableRef.h"
 #include "BarrierOnly/Contacts/ShapeContactEntity.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
+#include "Cable/CableBarrier.h"
 #include "Contacts/ContactPointEntity.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainWheelBarrier.h"
@@ -81,6 +83,12 @@ FCapsuleShapeBarrier AGXBarrierFactories::CreateCapsuleShapeBarrier(agxCollide::
 FTrimeshShapeBarrier AGXBarrierFactories::CreateTrimeshShapeBarrier(agxCollide::Trimesh* Trimesh)
 {
 	return {std::make_unique<FGeometryAndShapeRef>(Trimesh->getGeometry(), Trimesh)};
+}
+
+FHeightFieldShapeBarrier AGXBarrierFactories::CreateHeightFieldShapeBarrier(
+	agxCollide::HeightField* HeightField)
+{
+	return {std::make_unique<FGeometryAndShapeRef>(HeightField->getGeometry(), HeightField)};
 }
 
 FAnyConstraintBarrier AGXBarrierFactories::CreateAnyConstraintBarrier(agx::Constraint* Constraint)
@@ -183,6 +191,11 @@ FTerrainMaterialBarrier AGXBarrierFactories::CreateTerrainMaterialBarrier(
 	agxTerrain::TerrainMaterial* Material)
 {
 	return {std::make_unique<FTerrainMaterialRef>(Material)};
+}
+
+FCableBarrier AGXBarrierFactories::CreateCableBarrier(agxCable::Cable* Cable)
+{
+	return {std::make_shared<FCableRef>(Cable)};
 }
 
 FWireBarrier AGXBarrierFactories::CreateWireBarrier(agxWire::Wire* Wire)

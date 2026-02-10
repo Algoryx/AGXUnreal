@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGXSimObjectsReader.h"
 
@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "Cable/CableBarrier.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
@@ -39,6 +40,7 @@
 #include <agx/Prismatic.h>
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
+#include <agxCable/Cable.h>
 #include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
@@ -437,6 +439,24 @@ namespace
 		}
 	}
 
+	void ReadCables(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::Constraint*>& NonFreeConstraint)
+	{
+		agxCable::CablePtrVector Cables = agxCable::Cable::getAll(&Simulation);
+		OutSimObjects.GetCables().Reserve(Cables.size());
+		for (agxCable::Cable* Cable : Cables)
+		{
+			if (Cable == nullptr)
+				continue;
+
+			OutSimObjects.GetCables().Add(AGXBarrierFactories::CreateCableBarrier(Cable));
+
+			for (auto C : Cable->getConstraints())
+				NonFreeConstraint.Add(C);
+		}
+	}
+
 	void ReadTerrainMaterials(
 		agxSDK::Simulation& Simulation, TSet<const agx::Material*>& NonFreeMaterials,
 		TSet<const agx::ContactMaterial*>& NonFreeContactMaterials)
@@ -598,6 +618,7 @@ namespace
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
 		ReadTerrainWheels(Simulation, OutSimObjects);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
+		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);

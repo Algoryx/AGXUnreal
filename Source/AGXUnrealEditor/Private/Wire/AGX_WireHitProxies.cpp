@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireHitProxies.h"
 
@@ -14,7 +14,7 @@
 #define LOCTEXT_NAMESPACE "AGX_WireHitProxies"
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_HIT_PROXY(HNodeProxy, HComponentVisProxy);
+IMPLEMENT_HIT_PROXY(HAGX_WireNodeProxy, HComponentVisProxy);
 IMPLEMENT_HIT_PROXY(HWinchLocationProxy, HComponentVisProxy);
 IMPLEMENT_HIT_PROXY(HWinchDirectionProxy, HComponentVisProxy);
 

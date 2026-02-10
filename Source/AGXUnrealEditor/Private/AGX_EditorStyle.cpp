@@ -1,5 +1,4 @@
-
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGX_EditorStyle.h"
 
@@ -22,6 +21,8 @@ const FName FAGX_EditorStyle::FileIconSmall("FileIcon.Small");
 const FName FAGX_EditorStyle::JointIcon("JointIcon");
 const FName FAGX_EditorStyle::JointIconSmall("JointIcon.Small");
 const FName FAGX_EditorStyle::LicenseKeyIcon("LicenseKey");
+const FName FAGX_EditorStyle::MovableTerrainIcon("MovableTerrainIcon");
+const FName FAGX_EditorStyle::MovableTerrainIconSmall("MovableTerrainIcon.Small");
 const FName FAGX_EditorStyle::TerrainIcon("TerrainIcon");
 const FName FAGX_EditorStyle::TerrainIconSmall("TerrainIcon.Small");
 
@@ -98,8 +99,10 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(JointIconSmall, new IMAGE_BRUSH("Icons/constraint_32x32", IconSize32));
 	Style->Set(FileIcon, new IMAGE_BRUSH("Icons/file_64x64", IconSize64));
 	Style->Set(FileIconSmall, new IMAGE_BRUSH("Icons/file_32x32", IconSize32));
-	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/Terrain_64x64", IconSize64));
-	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/Terrain_32x32", IconSize32));
+	Style->Set(TerrainIcon, new IMAGE_BRUSH("Icons/terrain_64x64", IconSize64));
+	Style->Set(TerrainIconSmall, new IMAGE_BRUSH("Icons/terrain_32x32", IconSize32));
+	Style->Set(MovableTerrainIcon, new IMAGE_BRUSH("Icons/movable_terrain_64x64", IconSize64));
+	Style->Set(MovableTerrainIconSmall, new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize32));
 	Style->Set(LicenseKeyIcon, new IMAGE_BRUSH("Icons/license_key_16x16", IconSize16));
 	Style->Set(DebugRenderingIcon, new IMAGE_BRUSH("Icons/debug_rendering_32x32", IconSize16));
 	Style->Set(GrabIcon, new IMAGE_BRUSH("Icons/grab_32x32", IconSize16));
@@ -110,7 +113,10 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_RigidBodyComponent", new IMAGE_BRUSH("Icons/rigid_body_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_StaticMeshComponent",
-		new IMAGE_BRUSH("Icons/static_mesh_32x32", IconSize16));
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_CableComponent",
+		new IMAGE_BRUSH("Icons/cable_32x32", IconSize16));
 	// Collisions
 	Style->Set(
 		"ClassIcon.AGX_CollisionGroupAdderComponent",
@@ -226,6 +232,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
+		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize16));
+	Style->Set(
 		"ClassIcon.AGX_TerrainWheelComponent",
 		new IMAGE_BRUSH("Icons/terrain_wheel_32x32", IconSize16));
 	// Track.
@@ -289,6 +297,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	////////////////////////
 
 	// Thumbnails (assets etc).
+	Style->Set(
+		"ClassThumbnail.AGX_CableProperties",
+		new IMAGE_BRUSH("Thumbnails/cable_properties_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_ConstraintMergeSplitThresholds",
 		new IMAGE_BRUSH("Thumbnails/constraint_mergesplit_128x128", IconSize128));

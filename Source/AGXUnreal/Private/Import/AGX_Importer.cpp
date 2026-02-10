@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGX_Importer.h"
 
@@ -6,6 +6,9 @@
 #include "AGX_LogCategory.h"
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
+#include "Cable/CableBarrier.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_BallConstraintComponent.h"
 #include "Constraints/AGX_CylindricalConstraintComponent.h"
@@ -193,6 +196,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_SteeringComponent, T>)
 			return *Context.Steerings.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_CableComponent, T>)
+			return *Context.Cables.Get();
+
 		if constexpr (std::is_base_of_v<UAGX_WireComponent, T>)
 			return *Context.Wires.Get();
 
@@ -346,6 +352,8 @@ FAGX_Importer::FAGX_Importer()
 	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
 	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
+	Context.Cables = MakeUnique<TMap<FGuid, UAGX_CableComponent*>>();
+	Context.CableProperties = MakeUnique<TMap<FGuid, UAGX_CableProperties*>>();
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
@@ -761,6 +769,16 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 			T.EnterProgressFrame(
 				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *S.GetName())));
 			Res |= AddComponent<UAGX_SteeringComponent, FSteeringBarrier>(S, *Root, OutActor);
+		}
+	}
+
+	{
+		FScopedSlowTask T((float) SimObjects.GetCables().Num(), FText::FromString("Cables"));
+		for (const auto& Cable : SimObjects.GetCables())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Cable.GetName())));
+			Res |= AddComponent<UAGX_CableComponent, FCableBarrier>(Cable, *Root, OutActor);
 		}
 	}
 

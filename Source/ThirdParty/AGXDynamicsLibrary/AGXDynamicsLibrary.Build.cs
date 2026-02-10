@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 
 using System;
@@ -253,8 +253,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-Urdf", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
-		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
@@ -293,9 +293,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
-		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Control", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Math", LibSource.Dependencies);
@@ -385,9 +385,9 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("openplx-MachineModeling", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Math", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Control", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-controlinterface", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-urdfplugin", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Physics", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Physics1D", LibSource.Dependencies);

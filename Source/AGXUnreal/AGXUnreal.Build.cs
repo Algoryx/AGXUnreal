@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 using System; // For Console, Environment.
 using System.IO; // For Path.
@@ -29,7 +29,7 @@ public class AGXUnreal : ModuleRules
 		// TODO: Determine which of these are really need and why.
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"AGXCommon", "AGXUnrealBarrier", "AGXUnrealShaders", "RHI", "RenderCore", "Core", "CoreUObject",
-			"Engine", "InputCore", "Niagara"});
+			"Engine", "InputCore", "Niagara", "ProceduralMeshComponent"});
 
 
 		// TODO: Determine which of these are really needed and why.

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -95,6 +95,8 @@ public:
 	) const override;
 #endif
 	// ~End UObject interface.
+
+	virtual bool LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop) override;
 
 protected:
 	// ~Begin UAGX_ShapeComponent interface.

@@ -1,14 +1,16 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "Components/ActorComponent.h"
+#include "Components/SceneComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "UObject/ConstructorHelpers.h"
@@ -31,17 +33,22 @@ void AGX_ParticleRenderingUtilities::AssignDefaultNiagaraAsset(
 	AssetRefProperty = AssetFinder.Object;
 }
 
-AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(UActorComponent* ActorComponent)
+AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(
+	UActorComponent* ActorComponent, bool SkipWarnings)
 {
 	// First get parent actor.
 	AActor* Owner = ActorComponent->GetOwner();
 	if (!Owner)
 	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Particle Renderer '%s', unable to fetch the parent actor. "
-				 "No particles will be rendered."),
-			*ActorComponent->GetName());
+		if (!SkipWarnings)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Particle Renderer '%s', unable to fetch the parent actor. "
+					 "No particles will be rendered."),
+				*ActorComponent->GetName());
+		}
+		
 		return nullptr;
 	}
 
@@ -49,15 +56,42 @@ AAGX_Terrain* AGX_ParticleRenderingUtilities::GetParentTerrainActor(UActorCompon
 	AAGX_Terrain* ParentTerrainActor = Cast<AAGX_Terrain>(Owner);
 	if (!ParentTerrainActor)
 	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Particle Renderer '%s', unable to cast its parent '%s' to a 'AGX Terrain' actor. "
-				 "No particles will be rendered."),
-			*ActorComponent->GetName(), *GetLabelSafe(ActorComponent->GetOwner()));
+		if (!SkipWarnings)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Particle Renderer '%s', unable to cast its parent '%s' to a 'AGX Terrain' "
+					 "actor. "
+					 "No particles will be rendered."),
+				*ActorComponent->GetName(), *GetLabelSafe(ActorComponent->GetOwner()));
+		}
+
 		return nullptr;
 	}
 
 	return ParentTerrainActor;
+}
+
+UAGX_MovableTerrainComponent* AGX_ParticleRenderingUtilities::GetParentMovableTerrainComponent(
+	const USceneComponent& SceneComponent, bool SkipWarnings)
+{
+	auto MovableTerrainComponent =
+		Cast<UAGX_MovableTerrainComponent>(SceneComponent.GetAttachParent());
+	if (MovableTerrainComponent == nullptr)
+	{
+		if (!SkipWarnings)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Particle Renderer '%s', unable to cast its attach parent to a 'Movable "
+					 "Terrain' component. No particles will be rendered."),
+				*SceneComponent.GetName());
+		}
+
+		return nullptr;
+	}
+
+	return MovableTerrainComponent;
 }
 
 UNiagaraComponent* AGX_ParticleRenderingUtilities::InitializeNiagaraParticleSystemComponent(
