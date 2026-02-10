@@ -385,7 +385,6 @@ void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
 				 "the failure."),
 			*MovableTerrain.GetName());
 	}
-bool UAGX_Simulation::Add(UAGX_TerrainWheelComponent& Wheel)
 }
 
 bool UAGX_Simulation::Add(UAGX_TireComponent& Tire)
