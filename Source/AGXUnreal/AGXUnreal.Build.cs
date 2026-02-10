@@ -218,6 +218,8 @@ public class AGXUnreal : ModuleRules
 	private void WriteBuildInfo(PluginDescriptor PluginDescriptor, GitInfo GitInfo)
 	{
 		List<string> BuildInfo = new List<string>();
+		int year = DateTime.Now.Year;
+		BuildInfo.Add(String.Format("// Copyright {0}, Algoryx Simulation AB.", year));
 
 		bool bWroteVersion = false;
 		if (PluginDescriptor != null)
