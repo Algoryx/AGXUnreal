@@ -220,11 +220,13 @@ public class AGXUnreal : ModuleRules
 		List<string> BuildInfo = new List<string>();
 		int year = DateTime.Now.Year;
 		BuildInfo.Add(String.Format("// Copyright {0}, Algoryx Simulation AB.", year));
+		BuildInfo.Add("#pragma once");
 
 		bool bWroteVersion = false;
 		if (PluginDescriptor != null)
 		{
-			string VersionName = PluginDescriptor.VersionName;
+			bool IsDev = PluginDescriptor.VersionName.EndsWith("-dev");
+			string VersionName = PluginDescriptor.VersionName.Replace("-dev", "");
 			string[] Versions = VersionName.Split(".");
 			int VersionNumber = PluginDescriptor.Version;
 			if (Versions.Length == 3)
@@ -237,6 +239,8 @@ public class AGXUnreal : ModuleRules
 				BuildInfo.Add(String.Format("#define AGXUNREAL_MINOR_VERSION {0}", Versions[1]));
 				BuildInfo.Add(String.Format("#define AGXUNREAL_PATCH_VERSION {0}", Versions[2]));
 				BuildInfo.Add(String.Format("#define AGXUNREAL_VERSION {0}", VersionNumber));
+				BuildInfo.Add("// 1 for local / intermediate builds, 0 for officially released versions.");
+				BuildInfo.Add(String.Format("#define AGXUNREAL_IS_DEV {0}", (IsDev ? 1 : 0)));
 				bWroteVersion = true;
 			}
 			else
