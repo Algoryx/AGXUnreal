@@ -1789,6 +1789,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
 			));
+			LibSources.Add(LibSource.WebDebugger, new LibSourceInfo(
+				null, null,
+				Path.Combine(InstalledDir, "bin", "x64", "WebDebugger")
+			));
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "openplx", "agxBundle")
