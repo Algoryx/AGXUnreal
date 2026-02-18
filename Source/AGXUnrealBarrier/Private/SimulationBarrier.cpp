@@ -274,6 +274,18 @@ bool FSimulationBarrier::Remove(FWireBarrier& Wire)
 	return NativeRef->Native->remove(Wire.GetNative()->Native);
 }
 
+void FSimulationBarrier::EnableThreadTimeline()
+{
+	check(HasNative());
+	NativeRef->Native->enableThreadTimeline();
+}
+
+bool FSimulationBarrier::DisableThreadTimeline(const FString& FileType)
+{
+	check(HasNative());
+	return NativeRef->Native->disableThreadTimeline(Convert(FileType));
+}
+
 void FSimulationBarrier::SetEnableCollisionGroupPair(
 	const FName& Group1, const FName& Group2, bool CanCollide)
 {
