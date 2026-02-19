@@ -314,56 +314,54 @@ void ApplyParticleMass_{ParameterName}(in float3 In_ParticlePosition, in float I
     out float Out_ParticleEaseNew, out bool Out_IsAlive)
 {
     Out_IsAlive = true;
-    if (!isnan(In_ParticleEase))
+    Out_ParticleEaseNew = 0.0;
+
+    // Compiler seems to guarantee the assert below, unfortuantely we have no assert available here.
+    // assert(!isnan(In_ParticleEase))
+
+    int Result;
+    int3 VoxelIndex = GetVoxelIndexFromWorldPosition(In_ParticlePosition, VOXEL_SIZE);
+    float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
+    ADD_TO_ROOM_AT_INDEX(VoxelIndex, -1, Result);
+    if (Result < -EXTRA_PARTICLES_IN_VOXEL)
     {
-        int Result;
-        int3 VoxelIndex = GetVoxelIndexFromWorldPosition(In_ParticlePosition, VOXEL_SIZE);
-        float3 VoxelPos = float3(VoxelIndex * VOXEL_SIZE);
-        ADD_TO_ROOM_AT_INDEX(VoxelIndex, -1, Result);
-        if (Result < -EXTRA_PARTICLES_IN_VOXEL)
+        if (abs(In_ParticleEase) < 2 * ANIMATION_SPEED)
         {
-            if (abs(In_ParticleEase) < 2 * ANIMATION_SPEED)
-            {
-                // Remove particle
-                Out_ParticleEaseNew = NAN;
-                Out_IsAlive = false;
-            }
-            else if (In_ParticleEase > 0.0f)
-            {
-                // Ease out particle
-                Out_ParticleEaseNew = -In_ParticleEase;
-            }
+            // Remove particle
+            Out_ParticleEaseNew = NAN;
+            Out_IsAlive = false;
         }
         else
         {
-            int Unused;
-            float3 MaxBounds = float3(0.0, 0.0, 0.0);
-            float3 MinBounds = float3(0.0, 0.0, 0.0);
-            LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, Unused, MaxBounds, MinBounds);
-
-            float3 R = float3(NOMINAL_RADIUS, NOMINAL_RADIUS, NOMINAL_RADIUS);
-            float3 InnerMaxBounds = MaxBounds - (MaxBounds < (VoxelPos + VOXEL_SIZE / 2)) * R;
-            float3 InnerMinBounds = MinBounds + (MinBounds > (VoxelPos - VOXEL_SIZE / 2)) * R;
-
-            float3 InnerBoundsSizeHalf = (InnerMaxBounds - InnerMinBounds) / 2;
-            float3 InnerBoundsCenter = InnerMinBounds + InnerBoundsSizeHalf;
-
-            float3 InnerBoundsDist = 
-                abs(In_ParticlePosition - InnerBoundsCenter) - InnerBoundsSizeHalf;
-            if (length(max(InnerBoundsDist, float3(0, 0, 0))) >= NOMINAL_RADIUS)
-            {
-                // Ease out particle
-                Out_ParticleEaseNew = -In_ParticleEase;
-            }
-            else
-            {
-                Out_ParticleEaseNew = In_ParticleEase;
-            }
+            // Ease out particle
+            Out_ParticleEaseNew = -abs(In_ParticleEase);
         }
     }
     else
     {
-        Out_IsAlive = false;
+        int Unused;
+        float3 MaxBounds = float3(0.0, 0.0, 0.0);
+        float3 MinBounds = float3(0.0, 0.0, 0.0);
+        LOOKUP_ROOM_AND_BOUNDS(VoxelIndex, Unused, MaxBounds, MinBounds);
+
+        float3 R = float3(NOMINAL_RADIUS, NOMINAL_RADIUS, NOMINAL_RADIUS);
+        float3 InnerMaxBounds = MaxBounds - (MaxBounds < (VoxelPos + VOXEL_SIZE / 2)) * R;
+        float3 InnerMinBounds = MinBounds + (MinBounds > (VoxelPos - VOXEL_SIZE / 2)) * R;
+
+        float3 InnerBoundsSizeHalf = (InnerMaxBounds - InnerMinBounds) / 2;
+        float3 InnerBoundsCenter = InnerMinBounds + InnerBoundsSizeHalf;
+
+        float3 InnerBoundsDist = 
+            abs(In_ParticlePosition - InnerBoundsCenter) - InnerBoundsSizeHalf;
+        if (length(max(InnerBoundsDist, float3(0, 0, 0))) >= NOMINAL_RADIUS)
+        {
+            // Ease out particle
+            Out_ParticleEaseNew = -In_ParticleEase;
+        }
+        else
+        {
+            Out_ParticleEaseNew = In_ParticleEase;
+        }
     }
 }
 

@@ -1,11 +1,15 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Terrain/ParticleRendering/AGX_SoilParticleRendererComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
-#include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_LogCategory.h"
+#include "AGX_PropertyChangedDispatcher.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
+#include "Terrain/AGX_Terrain.h"
+#include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
 #include "NiagaraComponent.h"
@@ -28,9 +32,34 @@ void UAGX_SoilParticleRendererComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AAGX_Terrain* ParentTerrainActor = AGX_ParticleRenderingUtilities::GetParentTerrainActor(this);
-	if (!ParentTerrainActor)
+	// Bind to terrain data delegate from either a Terrain Actor or Movable Terrain Component.
+	bool IsTerrainDataBound = false;
+	if (auto ParentTerrainActor =
+			AGX_ParticleRenderingUtilities::GetParentTerrainActor(this, /*SkipWarnings*/ true))
 	{
+		ParentTerrainActor->OnParticleData.AddDynamic(
+			this, &UAGX_SoilParticleRendererComponent::HandleParticleData);
+		IsTerrainDataBound = true;
+	}
+	else // No Terrain Actor found.
+	{
+		if (auto ParentMovableTerrain =
+				AGX_ParticleRenderingUtilities::GetParentMovableTerrainComponent(
+					*this, /*SkipWarnings*/ true))
+		{
+			ParentMovableTerrain->OnParticleData.AddDynamic(
+				this, &UAGX_SoilParticleRendererComponent::HandleParticleData);
+			IsTerrainDataBound = true;
+		}
+	}
+
+	if (!IsTerrainDataBound)
+	{
+		const FString Msg = FString::Printf(
+			TEXT("UAGX_SoilParticleRendererComponent '%s' in '%s' was unable to "
+				 "find a Terrain parent to get particle data from."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Msg, SNotificationItem::CS_Fail);
 		return;
 	}
 
@@ -43,10 +72,6 @@ void UAGX_SoilParticleRendererComponent::BeginPlay()
 	}
 
 	ParticleSystemComponent->SetActive(bEnableParticleRendering);
-
-	// Bind function to terrain delegate to handle particle data.
-	ParentTerrainActor->OnParticleData.AddDynamic(
-		this, &UAGX_SoilParticleRendererComponent::HandleParticleData);
 }
 
 void UAGX_SoilParticleRendererComponent::SetEnableParticleRendering(bool bEnabled)
@@ -171,10 +196,10 @@ void UAGX_SoilParticleRendererComponent::InitPropertyDispatcher()
 			if (This->ParticleSystemAsset != nullptr)
 			{
 				This->ParticleSystemAsset->RequestCompile(true);
-				// TODO If we are in Play, replace the `ParticleSystemComponent` with a new one that uses the new particle system asset.
+				// TODO If we are in Play, replace the `ParticleSystemComponent` with a new one that
+				// uses the new particle system asset.
 			}
 		});
-
 }
 
 #endif

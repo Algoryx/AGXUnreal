@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 /*
  * This file contains a number of Play In Editor unit tests.
@@ -417,18 +417,28 @@ bool FCheckPlaygroundStateCommand::Update()
 			GetComponentByName<UAGX_RigidBodyComponent>(TestWorld, "Slide", "SlideBody");
 		Test.TestNotNull("SlideBody", SlideBody);
 
-		if (FallDynamicBody == nullptr || ConstrainedBody == nullptr || SlideBody == nullptr)
+		// MovableTerrainBoxBody
+		auto MovableTerrainFallBody =
+			GetComponentByName<UAGX_RigidBodyComponent>(TestWorld, "MovableTerrainTest", "MovableTerrainBoxBody");
+		Test.TestNotNull("MovableTerrainFallBody", MovableTerrainFallBody);
+
+		if (FallDynamicBody == nullptr || ConstrainedBody == nullptr || SlideBody == nullptr ||
+			MovableTerrainFallBody == nullptr)
 			return true;
 
 		ComponentsOfInterest.Add("FallDynamicBody", FallDynamicBody);
 		ComponentsOfInterest.Add("ConstrainedBody", ConstrainedBody);
 		ComponentsOfInterest.Add("SlideBody", SlideBody);
+		ComponentsOfInterest.Add("MovableTerrainFallBody", MovableTerrainFallBody);
 
 		Test.TestTrue(
 			"FallDynamicBody initial z pos", FallDynamicBody->GetComponentLocation().Z > 0.0);
 		Test.TestTrue(
 			"ConstrainedBody initial z pos", ConstrainedBody->GetComponentLocation().Z > 0.0);
 		Test.TestTrue("SlideBody initial z pos", SlideBody->GetComponentLocation().Z > 0.0);
+		Test.TestTrue(
+			"MovableTerrainFallBody initial z pos",
+			MovableTerrainFallBody->GetComponentLocation().Z > 100.0);
 	}
 
 	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(TestWorld);
@@ -458,11 +468,16 @@ bool FCheckPlaygroundStateCommand::Update()
 	auto FallDynamicBody = Cast<UAGX_RigidBodyComponent>(ComponentsOfInterest["FallDynamicBody"]);
 	auto ConstrainedBody = Cast<UAGX_RigidBodyComponent>(ComponentsOfInterest["ConstrainedBody"]);
 	auto SlideBody = Cast<UAGX_RigidBodyComponent>(ComponentsOfInterest["SlideBody"]);
+	auto MovableTerrainFallBody = Cast<UAGX_RigidBodyComponent>(ComponentsOfInterest["MovableTerrainFallBody"]);
 	Test.TestTrue(
 		"FallDynamicBody final z pos", FallDynamicBody->GetComponentLocation().Z < -100.0);
 	Test.TestTrue(
 		"ConstrainedBody final z pos", ConstrainedBody->GetComponentLocation().Z < -100.0);
 	Test.TestTrue("SlideBody final z pos", SlideBody->GetComponentLocation().Z < -100.0);
+	Test.TestTrue(
+		"MovableTerrainFallBody final z pos",
+		MovableTerrainFallBody->GetComponentLocation().Z > 0.0 &&
+			MovableTerrainFallBody->GetComponentLocation().Z < 100.0);
 	return true;
 }
 

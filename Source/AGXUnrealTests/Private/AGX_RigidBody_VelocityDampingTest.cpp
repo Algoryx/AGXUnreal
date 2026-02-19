@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 /*
  * This file contains unit tests for Rigid Body Component.

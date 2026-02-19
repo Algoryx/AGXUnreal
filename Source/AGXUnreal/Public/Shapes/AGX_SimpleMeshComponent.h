@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -42,6 +42,9 @@ class AGXUNREAL_API UAGX_SimpleMeshComponent : public UMeshComponent
 
 	/** Removes all geometry from this triangle mesh. */
 	void ClearMeshData();
+
+	virtual bool LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop);
+
 
 protected:
 	TSharedPtr<FAGX_SimpleMeshData> MeshData;

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -26,6 +26,7 @@
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
+#include "Shapes/HeightFieldShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "SimulationBarrier.h"
@@ -39,6 +40,7 @@
 class FTerrainBarrier;
 class FWheelJointBarrier;
 
+struct FCableBarrier;
 struct FSteeringBarrier;
 
 namespace agx
@@ -54,6 +56,11 @@ namespace agx
 	class TwistRangeController;
 }
 
+namespace agxCable
+{
+	class Cable;
+}
+
 namespace agxCollide
 {
 	class Box;
@@ -62,6 +69,7 @@ namespace agxCollide
 	class Shape;
 	class Sphere;
 	class Trimesh;
+	class HeightField;
 
 	class GeometryContact;
 	class ContactPoint;
@@ -129,6 +137,8 @@ namespace AGXBarrierFactories
 
 	FTrimeshShapeBarrier CreateTrimeshShapeBarrier(agxCollide::Trimesh* Trimesh);
 
+	FHeightFieldShapeBarrier CreateHeightFieldShapeBarrier(agxCollide::HeightField* HeightField);
+
 	FAnyConstraintBarrier CreateAnyConstraintBarrier(agx::Constraint* Constraint);
 
 	FHingeBarrier CreateHingeBarrier(agx::Hinge* Hinge);
@@ -167,6 +177,8 @@ namespace AGXBarrierFactories
 	FTerrainBarrier CreateTerrainBarrier(agxTerrain::Terrain* Terrain);
 
 	FTerrainMaterialBarrier CreateTerrainMaterialBarrier(agxTerrain::TerrainMaterial* Material);
+
+	FCableBarrier CreateCableBarrier(agxCable::Cable* Cable);
 
 	FWireBarrier CreateWireBarrier(agxWire::Wire* Wire);
 

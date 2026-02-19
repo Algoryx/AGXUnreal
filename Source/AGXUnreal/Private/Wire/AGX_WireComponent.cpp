@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireComponent.h"
 
@@ -1003,7 +1003,11 @@ FWireRoutingNode& UAGX_WireComponent::AddNodeAtIndex(const FWireRoutingNode& InN
 	}
 	if (!RouteNodes.IsValidIndex(InIndex) && InIndex != RouteNodes.Num())
 	{
-		// Nodes may only be added at an index where there already is a node, or one-past-end.
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddNodeAtIndex called on Wire '%s' in '%s' with Index %d which is invalid. Nodes "
+				 "may only be added at an index where there already is a node, or one-past-end."),
+			*GetName(), *GetLabelSafe(GetOwner()), InIndex);
 		return InvalidRoutingNode;
 	}
 	RouteNodes.Insert(InNode, InIndex);
@@ -1429,15 +1433,17 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 				Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
 			if (BodyComponent != nullptr)
 			{
-				RouteNode.SetBody(BodyComponent);
-				RouteNode.Frame.SetParentComponent(BodyComponent);
+				// Note: avoid setting component ptrs here since both them and their owners may get
+				// destroyed if we are doing an import. Instead we just set the Name.
+				RouteNode.RigidBody.Name = BodyComponent->GetFName();
+				RouteNode.Frame.Parent.Name = BodyComponent->GetFName();
 				RouteNode.Frame.LocalLocation = NodeAGX.GetLocalLocation();
 			}
 		}
 		else
 		{
 			// All other node types are placed relative to the Wire Component.
-			RouteNode.Frame.SetParentComponent(nullptr);
+			RouteNode.Frame.Parent.Name = GetFName();
 			RouteNode.Frame.LocalLocation = NodeAGX.GetWorldLocation();
 		}
 
@@ -2440,6 +2446,9 @@ bool UAGX_WireComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyNa
 		return true;
 
 	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, Radius))
+		return true;
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UAGX_WireComponent, RenderRadiusScale))
 		return true;
 
 	return false;

@@ -1,3 +1,4 @@
+AGX Dynamics for Unreal 2.1.0   Version 27, AGX Dynamics 2.41.2.0    Unreal Engine 5.5,5.6,5.7  
 AGX Dynamics for Unreal 2.0.0   Version 26, AGX Dynamics 2.41.1.0    Unreal Engine 5.5,5.6,5.7  
 AGX Dynamics for Unreal 1.17.0  Version 25, AGX Dynamics 2.40.1.3    Unreal Engine 5.4,5.5,5.6  
 AGX Dynamics for Unreal 1.16.1  Version 24, AGX Dynamics 2.39.0.1    Unreal Engine 5.3,5.4,5.5  

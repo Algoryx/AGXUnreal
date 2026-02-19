@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -87,7 +87,7 @@ private:
 	EAGX_ImportResult AddSignalHandlerComponent(
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
 
-	void PostImport();
+	void PostImport(const FSimulationObjectCollection& SimObjects);
 
 	FAGX_ImportContext Context;
 };

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 
@@ -406,4 +406,17 @@ bool UAGX_TrimeshShapeComponent::GetStaticMeshCollisionData(
 
 	return AGX_MeshUtilities::GetStaticMeshCollisionData(
 		Mesh, ComponentTransformNoScale, OutVertices, OutIndices, LodIndex);
+}
+
+bool UAGX_TrimeshShapeComponent::LineTraceMesh(FHitResult& OutHit, FVector Start, FVector Stop)
+{
+	TArray<FVector> Vertices;
+	TArray<FTriIndices> Indices;
+	if (GetStaticMeshCollisionData(Vertices, Indices))
+	{
+		return AGX_MeshUtilities::LineTraceMesh(
+			OutHit, Start, Stop, GetComponentTransform(), Vertices, Indices);
+	}
+
+	return false;
 }

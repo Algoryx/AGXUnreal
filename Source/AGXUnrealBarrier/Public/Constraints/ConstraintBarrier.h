@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -113,6 +113,9 @@ public:
 	void SetNativeAddress(uintptr_t NativeAddress);
 
 	bool IsRotational() const;
+
+	// Returns false if no elementary constraints exists.
+	bool IsAllElementaryConstraintsDisabled() const;
 
 private:
 	FConstraintBarrier(const FConstraintBarrier&) = delete;

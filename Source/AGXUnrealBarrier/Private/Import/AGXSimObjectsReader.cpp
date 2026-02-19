@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGXSimObjectsReader.h"
 
@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "Cable/CableBarrier.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
@@ -38,6 +39,7 @@
 #include <agx/Prismatic.h>
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
+#include <agxCable/Cable.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -216,8 +218,9 @@ namespace
 				continue;
 			}
 
-			for (auto C : Tire->getConstraints())
-				NonFreeConstraint.Add(C);
+			// Add the Tire owned Hinge to the list of non-free Constraints. These are used later to
+			// avoid duplicate imports of those Constraints.
+			NonFreeConstraint.Add(Tire->getHinge());
 
 			OutSimObjects.GetTwoBodyTires().Add(
 				AGXBarrierFactories::CreateTwoBodyTireBarrier(Tire));
@@ -361,8 +364,7 @@ namespace
 			}
 			else if (agxVehicle::Steering* S = Constraint->asSafe<agxVehicle::Steering>())
 			{
-				OutSimObjects.GetSteerings().Add(
-					AGXBarrierFactories::CreateSteeringBarrier(S));
+				OutSimObjects.GetSteerings().Add(AGXBarrierFactories::CreateSteeringBarrier(S));
 			}
 			else if (agxVehicle::WheelJoint* WJ = Constraint->asSafe<agxVehicle::WheelJoint>())
 			{
@@ -416,6 +418,24 @@ namespace
 			}
 
 			OutSimObjects.GetWires().Add(AGXBarrierFactories::CreateWireBarrier(Wire));
+		}
+	}
+
+	void ReadCables(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects,
+		TSet<const agx::Constraint*>& NonFreeConstraint)
+	{
+		agxCable::CablePtrVector Cables = agxCable::Cable::getAll(&Simulation);
+		OutSimObjects.GetCables().Reserve(Cables.size());
+		for (agxCable::Cable* Cable : Cables)
+		{
+			if (Cable == nullptr)
+				continue;
+
+			OutSimObjects.GetCables().Add(AGXBarrierFactories::CreateCableBarrier(Cable));
+
+			for (auto C : Cable->getConstraints())
+				NonFreeConstraint.Add(C);
 		}
 	}
 
@@ -579,6 +599,7 @@ namespace
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
+		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
