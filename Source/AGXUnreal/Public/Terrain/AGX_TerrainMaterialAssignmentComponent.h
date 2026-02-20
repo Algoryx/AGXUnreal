@@ -19,9 +19,6 @@ struct AGXUNREAL_API FAGX_TerrainMaterialAssignmentData
 	UPROPERTY(VisibleAnywhere, Category = "AGX Terrain Material Assignment")
 	FName ShapeComponentName;
 
-	UPROPERTY()
-	UAGX_ShapeComponent* ShapeComponent = nullptr;
-
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
 	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
 };

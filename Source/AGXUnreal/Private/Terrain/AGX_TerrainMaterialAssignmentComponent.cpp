@@ -3,8 +3,10 @@
 #include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Materials/AGX_TerrainMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
+#if WITH_EDITOR
+#include "Utilities/AGX_BlueprintUtilities.h"
+#endif
 
 UAGX_TerrainMaterialAssignmentComponent::UAGX_TerrainMaterialAssignmentComponent()
 {
@@ -25,38 +27,68 @@ UAGX_TerrainMaterialAssignmentComponent::GetTerrainMaterialAssignments() const
 
 void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 {
-	TMap<UAGX_ShapeComponent*, UAGX_TerrainMaterial*> ExistingMaterials;
+	TMap<FName, UAGX_TerrainMaterial*> ExistingMaterials;
 	ExistingMaterials.Reserve(TerrainMaterialAssignments.Num());
 	for (const FAGX_TerrainMaterialAssignmentData& Assignment : TerrainMaterialAssignments)
 	{
-		if (Assignment.ShapeComponent == nullptr)
+		if (Assignment.ShapeComponentName.IsNone())
 		{
 			continue;
 		}
 
-		ExistingMaterials.Add(Assignment.ShapeComponent, Assignment.TerrainMaterial);
+		ExistingMaterials.Add(Assignment.ShapeComponentName, Assignment.TerrainMaterial);
 	}
 
 	TArray<FAGX_TerrainMaterialAssignmentData> UpdatedAssignments;
 	UpdatedAssignments.Reserve(GetAttachChildren().Num());
-	for (USceneComponent* Child : GetAttachChildren())
+	TSet<FName> AddedShapeNames;
+	AddedShapeNames.Reserve(GetAttachChildren().Num());
+
+	auto AddShapeAssignment = [&](UAGX_ShapeComponent* ShapeComponent)
 	{
-		UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child);
 		if (ShapeComponent == nullptr)
 		{
-			continue;
+			return;
 		}
 
 		ExcludeShapeFromSimulation(ShapeComponent);
 
+		const FName ShapeName = ShapeComponent->GetFName();
+		if (ShapeName.IsNone() || AddedShapeNames.Contains(ShapeName))
+		{
+			return;
+		}
+		AddedShapeNames.Add(ShapeName);
+
 		FAGX_TerrainMaterialAssignmentData& NewAssignment = UpdatedAssignments.AddDefaulted_GetRef();
-		NewAssignment.ShapeComponent = ShapeComponent;
-		NewAssignment.ShapeComponentName = ShapeComponent->GetFName();
-		if (UAGX_TerrainMaterial* const* ExistingMaterial = ExistingMaterials.Find(ShapeComponent))
+		NewAssignment.ShapeComponentName = ShapeName;
+		if (UAGX_TerrainMaterial* const* ExistingMaterial = ExistingMaterials.Find(ShapeName))
 		{
 			NewAssignment.TerrainMaterial = *ExistingMaterial;
 		}
+	};
+
+	for (USceneComponent* Child : GetAttachChildren())
+	{
+		AddShapeAssignment(Cast<UAGX_ShapeComponent>(Child));
 	}
+
+#if WITH_EDITOR
+	if (UBlueprint* Blueprint = FAGX_BlueprintUtilities::GetBlueprintFrom(*this))
+	{
+		for (UAGX_ShapeComponent* ShapeComponent :
+			 FAGX_BlueprintUtilities::GetTemplateComponents<UAGX_ShapeComponent>(
+				 *Blueprint, EAGX_Inherited::Include))
+		{
+			UActorComponent* Parent =
+				FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
+			if (Parent == this)
+			{
+				AddShapeAssignment(ShapeComponent);
+			}
+		}
+	}
+#endif
 
 	TerrainMaterialAssignments = MoveTemp(UpdatedAssignments);
 }
