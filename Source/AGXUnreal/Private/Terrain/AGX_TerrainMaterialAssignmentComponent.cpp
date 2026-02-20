@@ -27,60 +27,16 @@ UAGX_TerrainMaterialAssignmentComponent::GetTerrainMaterialAssignments() const
 
 void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 {
-	TMap<FName, FAGX_TerrainMaterialAssignmentData> ExistingAssignments;
-	ExistingAssignments.Reserve(TerrainMaterialAssignments.Num());
-	for (const FAGX_TerrainMaterialAssignmentData& Assignment : TerrainMaterialAssignments)
-	{
-		if (Assignment.ShapeComponentName.IsNone())
-		{
-			continue;
-		}
-
-		ExistingAssignments.Add(Assignment.ShapeComponentName, Assignment);
-	}
-
-	TArray<FAGX_TerrainMaterialAssignmentData> UpdatedAssignments;
-	UpdatedAssignments.Reserve(GetAttachChildren().Num());
-	TSet<FName> AddedShapeNames;
-	AddedShapeNames.Reserve(GetAttachChildren().Num());
-
-	auto AddShapeAssignment = [&](UAGX_ShapeComponent* ShapeComponent)
-	{
-		if (ShapeComponent == nullptr)
-		{
-			return;
-		}
-
-		ExcludeShapeFromSimulation(ShapeComponent);
-
-		const FName ShapeName = [&]()
-		{
-#if WITH_EDITOR
-			return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
-				ShapeComponent->GetName()));
-#else
-			return ShapeComponent->GetFName();
-#endif
-		}();
-		if (ShapeName.IsNone() || AddedShapeNames.Contains(ShapeName))
-		{
-			return;
-		}
-		AddedShapeNames.Add(ShapeName);
-
-		FAGX_TerrainMaterialAssignmentData& NewAssignment = UpdatedAssignments.AddDefaulted_GetRef();
-		NewAssignment.ShapeComponentName = ShapeName;
-		if (const FAGX_TerrainMaterialAssignmentData* ExistingAssignment =
-				ExistingAssignments.Find(ShapeName))
-		{
-			NewAssignment.TerrainMaterial = ExistingAssignment->TerrainMaterial;
-			NewAssignment.ShapeMaterial = ExistingAssignment->ShapeMaterial;
-		}
-	};
+	TSet<FName> CurrentShapeNames;
 
 	for (USceneComponent* Child : GetAttachChildren())
 	{
-		AddShapeAssignment(Cast<UAGX_ShapeComponent>(Child));
+		if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
+		{
+			ExcludeShapeFromSimulation(ShapeComponent);
+			CurrentShapeNames.Add(GetShapeComponentName(*ShapeComponent));
+			AddAssignmentDataIfMissing(*ShapeComponent);
+		}
 	}
 
 #if WITH_EDITOR
@@ -94,19 +50,65 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 				FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
 			if (Parent == this)
 			{
-				AddShapeAssignment(ShapeComponent);
+				ExcludeShapeFromSimulation(ShapeComponent);
+				CurrentShapeNames.Add(GetShapeComponentName(*ShapeComponent));
+				AddAssignmentDataIfMissing(*ShapeComponent);
 			}
 		}
 	}
 #endif
 
-	TerrainMaterialAssignments = MoveTemp(UpdatedAssignments);
+	TerrainMaterialAssignments.RemoveAll(
+		[&CurrentShapeNames](const FAGX_TerrainMaterialAssignmentData& Assignment)
+		{
+			return Assignment.ShapeComponentName.IsNone() ||
+				   !CurrentShapeNames.Contains(Assignment.ShapeComponentName);
+		});
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::OnRegister()
+FName UAGX_TerrainMaterialAssignmentComponent::GetShapeComponentName(
+	const UAGX_ShapeComponent& ShapeComponent) const
 {
-	Super::OnRegister();
-	UpdateTerrainMaterialAssignments();
+#if WITH_EDITOR
+	return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
+		ShapeComponent.GetName()));
+#else
+	return ShapeComponent.GetFName();
+#endif
+}
+
+void UAGX_TerrainMaterialAssignmentComponent::AddAssignmentDataIfMissing(
+	const UAGX_ShapeComponent& ShapeComponent)
+{
+	const FName ShapeName = GetShapeComponentName(ShapeComponent);
+	if (ShapeName.IsNone())
+	{
+		return;
+	}
+
+	if (TerrainMaterialAssignments.FindByPredicate(
+			[ShapeName](const FAGX_TerrainMaterialAssignmentData& Assignment)
+			{ return Assignment.ShapeComponentName == ShapeName; }) != nullptr)
+	{
+		return;
+	}
+
+	FAGX_TerrainMaterialAssignmentData& NewAssignment = TerrainMaterialAssignments.AddDefaulted_GetRef();
+	NewAssignment.ShapeComponentName = ShapeName;
+}
+
+void UAGX_TerrainMaterialAssignmentComponent::RemoveAssignmentDataIfPresent(
+	const UAGX_ShapeComponent& ShapeComponent)
+{
+	const FName ShapeName = GetShapeComponentName(ShapeComponent);
+	if (ShapeName.IsNone())
+	{
+		return;
+	}
+
+	TerrainMaterialAssignments.RemoveAll(
+		[ShapeName](const FAGX_TerrainMaterialAssignmentData& Assignment)
+		{ return Assignment.ShapeComponentName == ShapeName; });
 }
 
 #if WITH_EDITOR
@@ -114,13 +116,19 @@ void UAGX_TerrainMaterialAssignmentComponent::OnChildAttached(USceneComponent* C
 {
 	Super::OnChildAttached(Child);
 	ExcludeShapeFromSimulation(Child);
-	UpdateTerrainMaterialAssignments();
+	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
+	{
+		AddAssignmentDataIfMissing(*ShapeComponent);
+	}
 }
 
 void UAGX_TerrainMaterialAssignmentComponent::OnChildDetached(USceneComponent* Child)
 {
 	Super::OnChildDetached(Child);
-	UpdateTerrainMaterialAssignments();
+	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
+	{
+		RemoveAssignmentDataIfPresent(*ShapeComponent);
+	}
 }
 #endif
 

@@ -8,6 +8,7 @@
 
 #include "AGX_TerrainMaterialAssignmentComponent.generated.h"
 
+class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TerrainMaterial;
 
@@ -42,10 +43,6 @@ public:
 
 	void UpdateTerrainMaterialAssignments();
 
-	// ~Begin UActorComponent interface.
-	virtual void OnRegister() override;
-	// ~End UActorComponent interface.
-
 #if WITH_EDITOR
 	// ~Begin USceneComponent interface.
 	virtual void OnChildAttached(USceneComponent* Child) override;
@@ -54,6 +51,12 @@ public:
 #endif
 
 private:
+	FName GetShapeComponentName(const UAGX_ShapeComponent& ShapeComponent) const;
+
+	void AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
+
+	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
+
 	void ExcludeShapeFromSimulation(USceneComponent* Component);
 
 	UPROPERTY()
