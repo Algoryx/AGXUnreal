@@ -34,6 +34,14 @@ public:
 	UAGX_ShapeComponent();
 
 	/**
+	 * If set to true, this Component will be added to the Simulation on BeginPlay.
+	 * If set to false, it will not be added to the Simulation and will thus not interact with other
+	 * objects in the Simulation.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Unreal")
+	bool bIncludeInSimulation {true};
+
+	/**
 	 * Defines physical properties of both the surface and the bulk of this shape.
 	 *
 	 * Surface properties do for example greatly affect frictional forces.

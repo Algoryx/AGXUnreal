@@ -1665,7 +1665,8 @@ namespace AGX_Simulation_helpers
 {
 	bool IsMatch(UAGX_ShapeComponent* Shape, const FGuid& Guid)
 	{
-		return Shape->GetNative()->GetGeometryGuid() == Guid;
+		return Shape != nullptr && Shape->HasNative() &&
+			   Shape->GetNative()->GetGeometryGuid() == Guid;
 	}
 
 	template <typename UComponent>
