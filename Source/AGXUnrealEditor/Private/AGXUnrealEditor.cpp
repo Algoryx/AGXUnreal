@@ -98,7 +98,6 @@
 #include "Sensors/AGX_SensorEnvironment.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
-#include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentVisualizer.h"
@@ -108,6 +107,9 @@
 #include "Terrain/AGX_ShovelComponentVisualizer.h"
 #include "Terrain/AGX_ShovelPropertiesActions.h"
 #include "Terrain/AGX_ShovelReference.h"
+#include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
+#include "Terrain/AGX_TerrainMaterialAssignmentComponentCustomization.h"
 #include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
@@ -560,6 +562,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_TerrainMaterialCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_TerrainMaterialAssignmentComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_TerrainMaterialAssignmentComponentCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_TrackComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(&FAGX_TrackComponentDetails::MakeInstance));
 
@@ -681,6 +688,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_SteeringComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_TerrainMaterialAssignmentComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TrackComponent::StaticClass()->GetFName());
 
