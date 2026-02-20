@@ -8,7 +8,7 @@
 
 #include "AGX_TerrainMaterialAssignmentComponent.generated.h"
 
-class UAGX_ShapeComponent;
+class UAGX_ShapeMaterial;
 class UAGX_TerrainMaterial;
 
 USTRUCT(BlueprintType)
@@ -21,6 +21,9 @@ struct AGXUNREAL_API FAGX_TerrainMaterialAssignmentData
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
 	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
+	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 };
 
 UCLASS(

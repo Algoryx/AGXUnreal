@@ -27,8 +27,8 @@ UAGX_TerrainMaterialAssignmentComponent::GetTerrainMaterialAssignments() const
 
 void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 {
-	TMap<FName, UAGX_TerrainMaterial*> ExistingMaterials;
-	ExistingMaterials.Reserve(TerrainMaterialAssignments.Num());
+	TMap<FName, FAGX_TerrainMaterialAssignmentData> ExistingAssignments;
+	ExistingAssignments.Reserve(TerrainMaterialAssignments.Num());
 	for (const FAGX_TerrainMaterialAssignmentData& Assignment : TerrainMaterialAssignments)
 	{
 		if (Assignment.ShapeComponentName.IsNone())
@@ -36,7 +36,7 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 			continue;
 		}
 
-		ExistingMaterials.Add(Assignment.ShapeComponentName, Assignment.TerrainMaterial);
+		ExistingAssignments.Add(Assignment.ShapeComponentName, Assignment);
 	}
 
 	TArray<FAGX_TerrainMaterialAssignmentData> UpdatedAssignments;
@@ -53,7 +53,15 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 
 		ExcludeShapeFromSimulation(ShapeComponent);
 
-		const FName ShapeName = ShapeComponent->GetFName();
+		const FName ShapeName = [&]()
+		{
+#if WITH_EDITOR
+			return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
+				ShapeComponent->GetName()));
+#else
+			return ShapeComponent->GetFName();
+#endif
+		}();
 		if (ShapeName.IsNone() || AddedShapeNames.Contains(ShapeName))
 		{
 			return;
@@ -62,9 +70,11 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 
 		FAGX_TerrainMaterialAssignmentData& NewAssignment = UpdatedAssignments.AddDefaulted_GetRef();
 		NewAssignment.ShapeComponentName = ShapeName;
-		if (UAGX_TerrainMaterial* const* ExistingMaterial = ExistingMaterials.Find(ShapeName))
+		if (const FAGX_TerrainMaterialAssignmentData* ExistingAssignment =
+				ExistingAssignments.Find(ShapeName))
 		{
-			NewAssignment.TerrainMaterial = *ExistingMaterial;
+			NewAssignment.TerrainMaterial = ExistingAssignment->TerrainMaterial;
+			NewAssignment.ShapeMaterial = ExistingAssignment->ShapeMaterial;
 		}
 	};
 

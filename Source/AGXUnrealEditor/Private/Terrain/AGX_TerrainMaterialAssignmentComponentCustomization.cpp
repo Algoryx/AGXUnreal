@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainMaterialAssignmentComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
+#include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
 #include "Utilities/AGX_EditorUtilities.h"
@@ -12,6 +13,7 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "FAGX_TerrainMaterialAssignmentComponentCustomization"
@@ -57,61 +59,107 @@ void FAGX_TerrainMaterialAssignmentComponentCustomization::CustomizeDetails(
 		const FName ShapeName = Assignments[Index].ShapeComponentName;
 		const FText ShapeNameText = ShapeName.IsNone() ? LOCTEXT("UnnamedShape", "Unnamed Shape")
 													   : FText::FromName(ShapeName);
-		// clang-format off
 		Category.AddCustomRow(ShapeNameText)
-			.NameContent()[SNew(STextBlock)
-							   .Font(IDetailLayoutBuilder::GetDetailFont())
-							   .Text(ShapeNameText)]
-			.ValueContent()[SNew(SObjectPropertyEntryBox)
-								.AllowedClass(UAGX_TerrainMaterial::StaticClass())
-								.ObjectPath_Lambda(
-									[WeakAssignmentComponent, Index]()
-									{
-										const UAGX_TerrainMaterialAssignmentComponent* Component =
-											WeakAssignmentComponent.Get();
-										if (Component == nullptr)
-										{
-											return FString();
-										}
+			.NameContent()
+				[SNew(STextBlock).Font(IDetailLayoutBuilder::GetDetailFont()).Text(ShapeNameText)]
+			.ValueContent()
+				[SNew(SVerticalBox) +
+				 SVerticalBox::Slot().AutoHeight()
+					 [SNew(SObjectPropertyEntryBox)
+						  .AllowedClass(UAGX_TerrainMaterial::StaticClass())
+						  .ObjectPath_Lambda(
+							  [WeakAssignmentComponent, Index]()
+							  {
+								  const UAGX_TerrainMaterialAssignmentComponent* Component =
+									  WeakAssignmentComponent.Get();
+								  if (Component == nullptr)
+								  {
+									  return FString();
+								  }
 
-										const TArray<FAGX_TerrainMaterialAssignmentData>&
-											CurrentAssignments =
-												Component->GetTerrainMaterialAssignments();
-										if (!CurrentAssignments.IsValidIndex(Index))
-										{
-											return FString();
-										}
+								  const TArray<FAGX_TerrainMaterialAssignmentData>&
+									  CurrentAssignments =
+										  Component->GetTerrainMaterialAssignments();
+								  if (!CurrentAssignments.IsValidIndex(Index))
+								  {
+									  return FString();
+								  }
 
-										const UAGX_TerrainMaterial* TerrainMaterial =
-											CurrentAssignments[Index].TerrainMaterial;
-										return TerrainMaterial != nullptr
-												   ? TerrainMaterial->GetPathName()
-												   : FString();
-									})
-								.OnObjectChanged_Lambda(
-									[WeakAssignmentComponent, Index](const FAssetData& AssetData)
-									{
-										UAGX_TerrainMaterialAssignmentComponent* Component =
-											WeakAssignmentComponent.Get();
-										if (Component == nullptr)
-										{
-											return;
-										}
+								  const UAGX_TerrainMaterial* TerrainMaterial =
+									  CurrentAssignments[Index].TerrainMaterial;
+								  return TerrainMaterial != nullptr ? TerrainMaterial->GetPathName()
+																	: FString();
+							  })
+						  .OnObjectChanged_Lambda(
+							  [WeakAssignmentComponent, Index](const FAssetData& AssetData)
+							  {
+								  UAGX_TerrainMaterialAssignmentComponent* Component =
+									  WeakAssignmentComponent.Get();
+								  if (Component == nullptr)
+								  {
+									  return;
+								  }
 
-										TArray<FAGX_TerrainMaterialAssignmentData>&
-											CurrentAssignments =
-												Component->GetTerrainMaterialAssignments();
-										if (!CurrentAssignments.IsValidIndex(Index))
-										{
-											return;
-										}
+								  TArray<FAGX_TerrainMaterialAssignmentData>& CurrentAssignments =
+									  Component->GetTerrainMaterialAssignments();
+								  if (!CurrentAssignments.IsValidIndex(Index))
+								  {
+									  return;
+								  }
 
-										Component->Modify();
-										CurrentAssignments[Index].TerrainMaterial =
-											Cast<UAGX_TerrainMaterial>(AssetData.GetAsset());
-										Component->MarkPackageDirty();
-									})];
-		// clang-format on
+								  Component->Modify();
+								  CurrentAssignments[Index].TerrainMaterial =
+									  Cast<UAGX_TerrainMaterial>(AssetData.GetAsset());
+								  Component->MarkPackageDirty();
+							  })] +
+				 SVerticalBox::Slot().AutoHeight()
+					 [SNew(SObjectPropertyEntryBox)
+						  .AllowedClass(UAGX_ShapeMaterial::StaticClass())
+						  .ObjectPath_Lambda(
+							  [WeakAssignmentComponent, Index]()
+							  {
+								  const UAGX_TerrainMaterialAssignmentComponent* Component =
+									  WeakAssignmentComponent.Get();
+								  if (Component == nullptr)
+								  {
+									  return FString();
+								  }
+
+								  const TArray<FAGX_TerrainMaterialAssignmentData>&
+									  CurrentAssignments =
+										  Component->GetTerrainMaterialAssignments();
+								  if (!CurrentAssignments.IsValidIndex(Index))
+								  {
+									  return FString();
+								  }
+
+								  const UAGX_ShapeMaterial* ShapeMaterial =
+									  CurrentAssignments[Index].ShapeMaterial;
+								  return ShapeMaterial != nullptr ? ShapeMaterial->GetPathName()
+																  : FString();
+							  })
+						  .OnObjectChanged_Lambda(
+							  [WeakAssignmentComponent, Index](const FAssetData& AssetData)
+							  {
+								  UAGX_TerrainMaterialAssignmentComponent* Component =
+									  WeakAssignmentComponent.Get();
+								  if (Component == nullptr)
+								  {
+									  return;
+								  }
+
+								  TArray<FAGX_TerrainMaterialAssignmentData>& CurrentAssignments =
+									  Component->GetTerrainMaterialAssignments();
+								  if (!CurrentAssignments.IsValidIndex(Index))
+								  {
+									  return;
+								  }
+
+								  Component->Modify();
+								  CurrentAssignments[Index].ShapeMaterial =
+									  Cast<UAGX_ShapeMaterial>(AssetData.GetAsset());
+								  Component->MarkPackageDirty();
+							  })]];
 	}
 }
 
