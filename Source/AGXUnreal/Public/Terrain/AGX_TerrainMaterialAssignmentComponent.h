@@ -43,6 +43,10 @@ public:
 
 	void UpdateTerrainMaterialAssignments();
 
+	// ~Begin UActorComponent interface.
+	virtual void BeginPlay() override;
+	// ~End UActorComponent interface.
+
 #if WITH_EDITOR
 	// ~Begin USceneComponent interface.
 	virtual void OnChildAttached(USceneComponent* Child) override;
@@ -51,8 +55,6 @@ public:
 #endif
 
 private:
-	FName GetShapeComponentName(const UAGX_ShapeComponent& ShapeComponent) const;
-
 	void AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
 
 	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
