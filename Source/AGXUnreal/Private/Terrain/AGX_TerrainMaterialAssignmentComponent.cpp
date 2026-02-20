@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
@@ -197,6 +198,20 @@ void UAGX_TerrainMaterialAssignmentComponent::BeginPlay()
 			continue;
 
 		TerrainBarrier->SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+
+		if (AssignmentData.ShapeMaterial != nullptr)
+		{
+			auto ShapeMaterialInstance = AssignmentData.ShapeMaterial->GetOrCreateInstance(GetWorld());
+			if (ShapeMaterialInstance == nullptr)
+				continue;
+
+			FShapeMaterialBarrier* ShapeMaterialBarrier =
+				ShapeMaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
+			if (ShapeMaterialBarrier == nullptr)
+				continue;
+
+			TerrainBarrier->SetAssociatedMaterial(*TerrainMaterialBarrier, *ShapeMaterialBarrier);
+		}
 	}
 }
 

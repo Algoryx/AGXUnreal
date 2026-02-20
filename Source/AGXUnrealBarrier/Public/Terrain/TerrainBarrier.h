@@ -60,6 +60,8 @@ public:
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
+	void SetAssociatedMaterial(
+		FTerrainMaterialBarrier& TerrainMaterial, FShapeMaterialBarrier& ShapeMaterial);
 
 	// Assign Terrain Material for voxels overlapped by the given Shape.
 	int32 SetTerrainMaterial(FTerrainMaterialBarrier& TerrainMaterial, FShapeBarrier& Shape);
