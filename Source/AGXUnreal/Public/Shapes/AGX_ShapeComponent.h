@@ -275,6 +275,9 @@ public:
 #endif
 	// ~End UObject interface.
 
+	static void ApplySensorMaterial(UMeshComponent& Mesh);
+	static void RemoveSensorMaterial(UMeshComponent& Mesh);
+
 protected:
 	/**
 	 * Get a pointer to the actual member Barrier object. This will never return nullptr. The
@@ -343,9 +346,6 @@ protected:
 	 * is the world coordinate system.
 	 */
 	virtual void UpdateNativeGlobalTransform();
-
-	static void ApplySensorMaterial(UMeshComponent& Mesh);
-	static void RemoveSensorMaterial(UMeshComponent& Mesh);
 
 	/** Description of Unreal collision, used by e.g. Line Trace. */
 	UPROPERTY(Transient, Duplicatetransient)

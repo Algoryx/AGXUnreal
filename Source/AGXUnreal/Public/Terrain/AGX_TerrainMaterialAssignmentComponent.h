@@ -59,7 +59,9 @@ private:
 
 	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
 
-	void ExcludeShapeFromSimulation(USceneComponent* Component);
+	void PrepareShapeForTerrainMaterialAssignment(UAGX_ShapeComponent& ShapeComponent);
+
+	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
 
 	UPROPERTY()
 	TArray<FAGX_TerrainMaterialAssignmentData> TerrainMaterialAssignments;

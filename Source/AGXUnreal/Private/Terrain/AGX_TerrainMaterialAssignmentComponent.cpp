@@ -91,7 +91,7 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 	{
 		if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 		{
-			ExcludeShapeFromSimulation(ShapeComponent);
+			PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
 			CurrentShapeNames.Add(
 				AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(
 					*ShapeComponent));
@@ -110,7 +110,7 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 				FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
 			if (Parent == this)
 			{
-				ExcludeShapeFromSimulation(ShapeComponent);
+				PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
 				CurrentShapeNames.Add(
 					AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(
 						*ShapeComponent));
@@ -204,9 +204,9 @@ void UAGX_TerrainMaterialAssignmentComponent::BeginPlay()
 void UAGX_TerrainMaterialAssignmentComponent::OnChildAttached(USceneComponent* Child)
 {
 	Super::OnChildAttached(Child);
-	ExcludeShapeFromSimulation(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 	{
+		PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
 		AddAssignmentDataIfMissing(*ShapeComponent);
 	}
 }
@@ -216,15 +216,23 @@ void UAGX_TerrainMaterialAssignmentComponent::OnChildDetached(USceneComponent* C
 	Super::OnChildDetached(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 	{
+		RestoreShape(*ShapeComponent);
 		RemoveAssignmentDataIfPresent(*ShapeComponent);
 	}
 }
 #endif
 
-void UAGX_TerrainMaterialAssignmentComponent::ExcludeShapeFromSimulation(USceneComponent* Component)
+void UAGX_TerrainMaterialAssignmentComponent::PrepareShapeForTerrainMaterialAssignment(
+	UAGX_ShapeComponent& ShapeComponent)
 {
-	if (UAGX_ShapeComponent* Shape = Cast<UAGX_ShapeComponent>(Component))
-	{
-		Shape->bIncludeInSimulation = false;
-	}
+	ShapeComponent.bIncludeInSimulation = false;
+	ShapeComponent.SetHiddenInGame(true);
+	UAGX_ShapeComponent::ApplySensorMaterial(ShapeComponent);
+}
+
+void UAGX_TerrainMaterialAssignmentComponent::RestoreShape(UAGX_ShapeComponent& ShapeComponent)
+{
+	ShapeComponent.bIncludeInSimulation = true;
+	ShapeComponent.SetHiddenInGame(false);
+	UAGX_ShapeComponent::RemoveSensorMaterial(ShapeComponent);
 }
