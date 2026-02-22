@@ -1,9 +1,9 @@
-// Copyright 2026, Algoryx Simulation AB.
+﻿// Copyright 2026, Algoryx Simulation AB.
 
-#include "Terrain/AGX_TerrainMaterialAssignmentComponentCustomization.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponent.h"
 #include "Utilities/AGX_EditorUtilities.h"
 
 // Unreal Engine includes.
@@ -11,9 +11,9 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailLayoutBuilder.h"
 
-#define LOCTEXT_NAMESPACE "FAGX_TerrainMaterialAssignmentComponentCustomization"
+#define LOCTEXT_NAMESPACE "FAGX_TerrainMaterialPatchComponentCustomization"
 
-namespace AGX_TerrainMaterialAssignmentComponentCustomization_helpers
+namespace AGX_TerrainMaterialPatchComponentCustomization_helpers
 {
 	const FText TerrainMaterialTooltip = LOCTEXT(
 		"TerrainMaterialTooltip",
@@ -25,22 +25,23 @@ namespace AGX_TerrainMaterialAssignmentComponentCustomization_helpers
 }
 
 TSharedRef<IDetailCustomization>
-FAGX_TerrainMaterialAssignmentComponentCustomization::MakeInstance()
+FAGX_TerrainMaterialPatchComponentCustomization::MakeInstance()
 {
-	return MakeShareable(new FAGX_TerrainMaterialAssignmentComponentCustomization);
+	return MakeShareable(new FAGX_TerrainMaterialPatchComponentCustomization);
 }
 
-void FAGX_TerrainMaterialAssignmentComponentCustomization::CustomizeDetails(
+void FAGX_TerrainMaterialPatchComponentCustomization::CustomizeDetails(
 	IDetailLayoutBuilder& InDetailBuilder)
 {
-	UAGX_TerrainMaterialAssignmentComponent* AssignmentComponent =
+	UAGX_TerrainMaterialPatchComponent* AssignmentComponent =
 		FAGX_EditorUtilities::GetSingleObjectBeingCustomized<
-			UAGX_TerrainMaterialAssignmentComponent>(InDetailBuilder, false);
+			UAGX_TerrainMaterialPatchComponent>(InDetailBuilder, false);
 
 	if (AssignmentComponent == nullptr)
 		return;
 
-	AssignmentComponent->UpdateTerrainMaterialAssignments();
+	AssignmentComponent->UpdateTerrainMaterialPatches();
 }
 
 #undef LOCTEXT_NAMESPACE
+

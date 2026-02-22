@@ -1,4 +1,4 @@
-// Copyright 2026, Algoryx Simulation AB.
+﻿// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGXUnrealEditor.h"
 
@@ -108,8 +108,8 @@
 #include "Terrain/AGX_ShovelPropertiesActions.h"
 #include "Terrain/AGX_ShovelReference.h"
 #include "Terrain/AGX_Terrain.h"
-#include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
-#include "Terrain/AGX_TerrainMaterialAssignmentComponentCustomization.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponent.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponentCustomization.h"
 #include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
@@ -562,9 +562,9 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_TerrainMaterialCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
-		UAGX_TerrainMaterialAssignmentComponent::StaticClass()->GetFName(),
+		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FAGX_TerrainMaterialAssignmentComponentCustomization::MakeInstance));
+			&FAGX_TerrainMaterialPatchComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_TrackComponent::StaticClass()->GetFName(),
@@ -690,7 +690,7 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(
-		UAGX_TerrainMaterialAssignmentComponent::StaticClass()->GetFName());
+		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TrackComponent::StaticClass()->GetFName());
 
@@ -916,3 +916,4 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FAGXUnrealEditorModule, AGXUnrealEditor);
+

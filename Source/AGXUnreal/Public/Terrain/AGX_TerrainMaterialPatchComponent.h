@@ -1,4 +1,4 @@
-// Copyright 2026, Algoryx Simulation AB.
+﻿// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -6,32 +6,32 @@
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
 
-#include "AGX_TerrainMaterialAssignmentComponent.generated.h"
+#include "AGX_TerrainMaterialPatchComponent.generated.h"
 
 class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TerrainMaterial;
 
 USTRUCT(BlueprintType)
-struct AGXUNREAL_API FAGX_TerrainMaterialAssignmentData
+struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 {
 	GENERATED_BODY()
 
-	FAGX_TerrainMaterialAssignmentData()
+	FAGX_TerrainMaterialPatchData()
 	{
 		InstanceTransforms.Add(FTransform::Identity);
 	}
 
-	UPROPERTY(VisibleAnywhere, Category = "AGX Terrain Material Assignment")
+	UPROPERTY(VisibleAnywhere, Category = "AGX Terrain Material Patch")
 	FName ShapeComponentName;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment", AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch", AdvancedDisplay)
 	TArray<FTransform> InstanceTransforms;
 };
 
@@ -48,25 +48,25 @@ struct AGXUNREAL_API FAGX_TerrainMaterialAssignmentData
 UCLASS(
 	ClassGroup = "AGX_Terrain", Category = "AGX", Meta = (BlueprintSpawnableComponent),
 	HideCategories = (Cooking, LOD, Replication))
-class AGXUNREAL_API UAGX_TerrainMaterialAssignmentComponent : public USceneComponent
+class AGXUNREAL_API UAGX_TerrainMaterialPatchComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:
-	UAGX_TerrainMaterialAssignmentComponent();
+	UAGX_TerrainMaterialPatchComponent();
 
 	/**
-	 * Terrain Material Assignment data that is used to assign Terrain Materials to patches of the
+	 * Terrain Material Patch data that is used to assign Terrain Materials to patches of the
 	 * Terrain overlapped by the Shapes.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Assignment")
-	TArray<FAGX_TerrainMaterialAssignmentData> TerrainMaterialAssignments;
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
+	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
 
-	TArray<FAGX_TerrainMaterialAssignmentData>& GetTerrainMaterialAssignments();
+	TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches();
 
-	const TArray<FAGX_TerrainMaterialAssignmentData>& GetTerrainMaterialAssignments() const;
+	const TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches() const;
 
-	void UpdateTerrainMaterialAssignments();
+	void UpdateTerrainMaterialPatches();
 
 	// ~Begin UActorComponent interface.
 	virtual void BeginPlay() override;
@@ -84,7 +84,8 @@ private:
 
 	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
 
-	void PrepareShapeForTerrainMaterialAssignment(UAGX_ShapeComponent& ShapeComponent);
+	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 
 	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
 };
+

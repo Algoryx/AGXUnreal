@@ -1,4 +1,4 @@
-// Copyright 2026, Algoryx Simulation AB.
+﻿// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -9,9 +9,9 @@
 class IDetailLayoutBuilder;
 
 /**
- * Defines the design of the Terrain Material Assignment Component in the Editor.
+ * Defines the design of the Terrain Material Patch Component in the Editor.
  */
-class AGXUNREALEDITOR_API FAGX_TerrainMaterialAssignmentComponentCustomization
+class AGXUNREALEDITOR_API FAGX_TerrainMaterialPatchComponentCustomization
 	: public IDetailCustomization
 {
 public:
@@ -19,3 +19,4 @@ public:
 
 	virtual void CustomizeDetails(IDetailLayoutBuilder& InDetailBuilder) override;
 };
+

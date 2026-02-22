@@ -1,6 +1,6 @@
-// Copyright 2026, Algoryx Simulation AB.
+﻿// Copyright 2026, Algoryx Simulation AB.
 
-#include "Terrain/AGX_TerrainMaterialAssignmentComponent.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "Materials/AGX_ShapeMaterial.h"
@@ -13,7 +13,7 @@
 #include "Utilities/AGX_BlueprintUtilities.h"
 #endif
 
-namespace AGX_TerrainMaterialAssignmentComponent_helpers
+namespace AGX_TerrainMaterialPatchComponent_helpers
 {
 	FName GetShapeComponentName(const UAGX_ShapeComponent& ShapeComponent)
 	{
@@ -25,7 +25,7 @@ namespace AGX_TerrainMaterialAssignmentComponent_helpers
 #endif
 	}
 
-	FTerrainBarrier* GetTerrainBarrier(UAGX_TerrainMaterialAssignmentComponent& Component)
+	FTerrainBarrier* GetTerrainBarrier(UAGX_TerrainMaterialPatchComponent& Component)
 	{
 		if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(Component.GetOwner()))
 		{
@@ -45,7 +45,7 @@ namespace AGX_TerrainMaterialAssignmentComponent_helpers
 	}
 
 	UAGX_ShapeComponent* GetAttachedShapeByName(
-		UAGX_TerrainMaterialAssignmentComponent& Component, const FName& ShapeName)
+		UAGX_TerrainMaterialPatchComponent& Component, const FName& ShapeName)
 	{
 		if (ShapeName.IsNone())
 		{
@@ -67,24 +67,24 @@ namespace AGX_TerrainMaterialAssignmentComponent_helpers
 	}
 }
 
-UAGX_TerrainMaterialAssignmentComponent::UAGX_TerrainMaterialAssignmentComponent()
+UAGX_TerrainMaterialPatchComponent::UAGX_TerrainMaterialPatchComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-TArray<FAGX_TerrainMaterialAssignmentData>&
-UAGX_TerrainMaterialAssignmentComponent::GetTerrainMaterialAssignments()
+TArray<FAGX_TerrainMaterialPatchData>&
+UAGX_TerrainMaterialPatchComponent::GetTerrainMaterialPatches()
 {
-	return TerrainMaterialAssignments;
+	return TerrainMaterialPatches;
 }
 
-const TArray<FAGX_TerrainMaterialAssignmentData>&
-UAGX_TerrainMaterialAssignmentComponent::GetTerrainMaterialAssignments() const
+const TArray<FAGX_TerrainMaterialPatchData>&
+UAGX_TerrainMaterialPatchComponent::GetTerrainMaterialPatches() const
 {
-	return TerrainMaterialAssignments;
+	return TerrainMaterialPatches;
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
+void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 {
 	TSet<FName> CurrentShapeNames;
 
@@ -92,9 +92,9 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 	{
 		if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 		{
-			PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
+			PrepareShapeForTerrainMaterialPatch(*ShapeComponent);
 			CurrentShapeNames.Add(
-				AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(
+				AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(
 					*ShapeComponent));
 			AddAssignmentDataIfMissing(*ShapeComponent);
 		}
@@ -111,9 +111,9 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 				FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
 			if (Parent == this)
 			{
-				PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
+				PrepareShapeForTerrainMaterialPatch(*ShapeComponent);
 				CurrentShapeNames.Add(
-					AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(
+					AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(
 						*ShapeComponent));
 				AddAssignmentDataIfMissing(*ShapeComponent);
 			}
@@ -121,67 +121,67 @@ void UAGX_TerrainMaterialAssignmentComponent::UpdateTerrainMaterialAssignments()
 	}
 #endif
 
-	TerrainMaterialAssignments.RemoveAll(
-		[&CurrentShapeNames](const FAGX_TerrainMaterialAssignmentData& Assignment)
+	TerrainMaterialPatches.RemoveAll(
+		[&CurrentShapeNames](const FAGX_TerrainMaterialPatchData& Assignment)
 		{
 			return Assignment.ShapeComponentName.IsNone() ||
 				   !CurrentShapeNames.Contains(Assignment.ShapeComponentName);
 		});
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::AddAssignmentDataIfMissing(
+void UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
-		AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(ShapeComponent);
+		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
 		return;
 	}
 
-	if (TerrainMaterialAssignments.FindByPredicate(
-			[ShapeName](const FAGX_TerrainMaterialAssignmentData& Assignment)
+	if (TerrainMaterialPatches.FindByPredicate(
+			[ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 			{ return Assignment.ShapeComponentName == ShapeName; }) != nullptr)
 	{
 		return;
 	}
 
-	FAGX_TerrainMaterialAssignmentData& NewAssignment = TerrainMaterialAssignments.AddDefaulted_GetRef();
+	FAGX_TerrainMaterialPatchData& NewAssignment = TerrainMaterialPatches.AddDefaulted_GetRef();
 	NewAssignment.ShapeComponentName = ShapeName;
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::RemoveAssignmentDataIfPresent(
+void UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
-		AGX_TerrainMaterialAssignmentComponent_helpers::GetShapeComponentName(ShapeComponent);
+		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
 		return;
 	}
 
-	TerrainMaterialAssignments.RemoveAll(
-		[ShapeName](const FAGX_TerrainMaterialAssignmentData& Assignment)
+	TerrainMaterialPatches.RemoveAll(
+		[ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 		{ return Assignment.ShapeComponentName == ShapeName; });
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::BeginPlay()
+void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	UpdateTerrainMaterialAssignments();
+	UpdateTerrainMaterialPatches();
 
 	FTerrainBarrier* TerrainBarrier =
-		AGX_TerrainMaterialAssignmentComponent_helpers::GetTerrainBarrier(*this);
+		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
 	if (TerrainBarrier == nullptr)
 		return;
 
-	for (const FAGX_TerrainMaterialAssignmentData& AssignmentData : TerrainMaterialAssignments)
+	for (const FAGX_TerrainMaterialPatchData& AssignmentData : TerrainMaterialPatches)
 	{
 		if (AssignmentData.TerrainMaterial == nullptr)
 			continue;
 
 		UAGX_ShapeComponent* ShapeComponent =
-			AGX_TerrainMaterialAssignmentComponent_helpers::GetAttachedShapeByName(
+			AGX_TerrainMaterialPatchComponent_helpers::GetAttachedShapeByName(
 				*this, AssignmentData.ShapeComponentName);
 		if (ShapeComponent == nullptr)
 			continue;
@@ -216,17 +216,17 @@ void UAGX_TerrainMaterialAssignmentComponent::BeginPlay()
 }
 
 #if WITH_EDITOR
-void UAGX_TerrainMaterialAssignmentComponent::OnChildAttached(USceneComponent* Child)
+void UAGX_TerrainMaterialPatchComponent::OnChildAttached(USceneComponent* Child)
 {
 	Super::OnChildAttached(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 	{
-		PrepareShapeForTerrainMaterialAssignment(*ShapeComponent);
+		PrepareShapeForTerrainMaterialPatch(*ShapeComponent);
 		AddAssignmentDataIfMissing(*ShapeComponent);
 	}
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::OnChildDetached(USceneComponent* Child)
+void UAGX_TerrainMaterialPatchComponent::OnChildDetached(USceneComponent* Child)
 {
 	Super::OnChildDetached(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
@@ -237,7 +237,7 @@ void UAGX_TerrainMaterialAssignmentComponent::OnChildDetached(USceneComponent* C
 }
 #endif
 
-void UAGX_TerrainMaterialAssignmentComponent::PrepareShapeForTerrainMaterialAssignment(
+void UAGX_TerrainMaterialPatchComponent::PrepareShapeForTerrainMaterialPatch(
 	UAGX_ShapeComponent& ShapeComponent)
 {
 	ShapeComponent.bIncludeInSimulation = false;
@@ -245,9 +245,10 @@ void UAGX_TerrainMaterialAssignmentComponent::PrepareShapeForTerrainMaterialAssi
 	UAGX_ShapeComponent::ApplySensorMaterial(ShapeComponent);
 }
 
-void UAGX_TerrainMaterialAssignmentComponent::RestoreShape(UAGX_ShapeComponent& ShapeComponent)
+void UAGX_TerrainMaterialPatchComponent::RestoreShape(UAGX_ShapeComponent& ShapeComponent)
 {
 	ShapeComponent.bIncludeInSimulation = true;
 	ShapeComponent.SetHiddenInGame(false);
 	UAGX_ShapeComponent::RemoveSensorMaterial(ShapeComponent);
 }
+
