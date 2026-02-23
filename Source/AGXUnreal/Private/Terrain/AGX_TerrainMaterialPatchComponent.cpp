@@ -68,6 +68,43 @@ namespace AGX_TerrainMaterialPatchComponent_helpers
 
 		return nullptr;
 	}
+
+	FTerrainMaterialBarrier* GetTerrainMaterialBarrier(
+		const FAGX_TerrainMaterialPatchData& PatchData, UWorld* World)
+	{
+		if (PatchData.TerrainMaterial == nullptr || World == nullptr)
+			return nullptr;
+
+		auto TerrainMaterialInstance = PatchData.TerrainMaterial->GetOrCreateInstance(World);
+		if (TerrainMaterialInstance == nullptr)
+			return nullptr;
+
+		return TerrainMaterialInstance->GetOrCreateTerrainMaterialNative(World);
+	}
+
+	FShapeBarrier* GetShapeBarrier(
+		UAGX_TerrainMaterialPatchComponent& Component,
+		const FAGX_TerrainMaterialPatchData& PatchData, UAGX_ShapeComponent*& OutShapeComponent)
+	{
+		OutShapeComponent = GetAttachedShapeByName(Component, PatchData.ShapeComponentName);
+		if (OutShapeComponent == nullptr)
+			return nullptr;
+
+		return OutShapeComponent->GetOrCreateNative();
+	}
+
+	FShapeMaterialBarrier* GetShapeMaterialBarrier(
+		const FAGX_TerrainMaterialPatchData& PatchData, UWorld* World)
+	{
+		if (PatchData.ShapeMaterial == nullptr || World == nullptr)
+			return nullptr;
+
+		auto ShapeMaterialInstance = PatchData.ShapeMaterial->GetOrCreateInstance(World);
+		if (ShapeMaterialInstance == nullptr)
+			return nullptr;
+
+		return ShapeMaterialInstance->GetOrCreateShapeMaterialNative(World);
+	}
 }
 
 UAGX_TerrainMaterialPatchComponent::UAGX_TerrainMaterialPatchComponent()
@@ -214,37 +251,18 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 
 	for (const FAGX_TerrainMaterialPatchData& AssignmentData : TerrainMaterialPatches)
 	{
-		if (AssignmentData.TerrainMaterial == nullptr)
-			continue; // Todo: is it OK to assign nullptr?
-
-		UAGX_ShapeComponent* ShapeComponent =
-			AGX_TerrainMaterialPatchComponent_helpers::GetAttachedShapeByName(
-				*this, AssignmentData.ShapeComponentName);
-		if (ShapeComponent == nullptr)
-			continue;
-
-		auto TerrainMaterialInstance =
-			AssignmentData.TerrainMaterial->GetOrCreateInstance(GetWorld());
-		if (TerrainMaterialInstance == nullptr)
-			continue;
-
 		FTerrainMaterialBarrier* TerrainMaterialBarrier =
-			TerrainMaterialInstance->GetOrCreateTerrainMaterialNative(GetWorld());
-		FShapeBarrier* ShapeBarrier = ShapeComponent->GetOrCreateNative();
+			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainMaterialBarrier(
+				AssignmentData, GetWorld());
+		UAGX_ShapeComponent* ShapeComponent = nullptr;
+		FShapeBarrier* ShapeBarrier = AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(
+			*this, AssignmentData, ShapeComponent);
 		if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
 			continue;
 
-		FShapeMaterialBarrier* ShapeMaterialBarrier = nullptr;
-		if (AssignmentData.ShapeMaterial != nullptr)
-		{
-			auto ShapeMaterialInstance =
-				AssignmentData.ShapeMaterial->GetOrCreateInstance(GetWorld());
-			if (ShapeMaterialInstance == nullptr)
-				continue;
-
-			ShapeMaterialBarrier =
-				ShapeMaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
-		}
+		FShapeMaterialBarrier* ShapeMaterialBarrier =
+			AGX_TerrainMaterialPatchComponent_helpers::GetShapeMaterialBarrier(
+				AssignmentData, GetWorld());
 
 		const FTransform OriginalRelativeTransform = ShapeComponent->GetRelativeTransform();
 		for (const FTransform& InstanceTransform : AssignmentData.InstanceTransforms)
@@ -259,7 +277,8 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 					*TerrainMaterialBarrier, *ShapeMaterialBarrier);
 		}
 
-		// Finally, we restore the Shapes Transform.
+		// Finally, we restore the original Shapes Transform since we moved it during "stamping"
+		// above.
 		ShapeComponent->SetRelativeTransform(OriginalRelativeTransform);
 		ShapeComponent->UpdateComponentToWorld();
 	}
