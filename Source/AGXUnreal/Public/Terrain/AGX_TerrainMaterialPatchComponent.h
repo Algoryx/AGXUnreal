@@ -91,7 +91,7 @@ public:
 	 * Details Panel.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	void ApplyPatch(
+	void AddPatch(
 		UAGX_ShapeComponent* ShapeComponent, UAGX_TerrainMaterial* TerrainMaterial,
 		UAGX_ShapeMaterial* ShapeMaterial);
 
@@ -121,4 +121,9 @@ private:
 
 	void ApplyTerrainMaterialPatch(
 		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
+
+	void ApplyTerrainMaterialPatch(
+		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
+		UAGX_ShapeMaterial* ShapeMaterial, const TArray<FTransform>& Transforms,
+		FTerrainBarrier& TerrainBarrier);
 };

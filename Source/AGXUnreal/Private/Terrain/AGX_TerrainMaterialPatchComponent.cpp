@@ -78,36 +78,32 @@ namespace AGX_TerrainMaterialPatchComponent_helpers
 	}
 
 	FTerrainMaterialBarrier* GetTerrainMaterialBarrier(
-		const FAGX_TerrainMaterialPatchData& PatchData, UWorld* World)
+		UAGX_TerrainMaterial* TerrainMaterial, UWorld* World)
 	{
-		if (PatchData.TerrainMaterial == nullptr || World == nullptr)
+		if (TerrainMaterial == nullptr || World == nullptr)
 			return nullptr;
 
-		auto TerrainMaterialInstance = PatchData.TerrainMaterial->GetOrCreateInstance(World);
+		auto TerrainMaterialInstance = TerrainMaterial->GetOrCreateInstance(World);
 		if (TerrainMaterialInstance == nullptr)
 			return nullptr;
 
 		return TerrainMaterialInstance->GetOrCreateTerrainMaterialNative(World);
 	}
 
-	FShapeBarrier* GetShapeBarrier(
-		UAGX_TerrainMaterialPatchComponent& Component,
-		const FAGX_TerrainMaterialPatchData& PatchData, UAGX_ShapeComponent*& OutShapeComponent)
+	FShapeBarrier* GetShapeBarrier(UAGX_ShapeComponent* ShapeComponent)
 	{
-		OutShapeComponent = GetAttachedShapeByName(Component, PatchData.ShapeComponentName);
-		if (OutShapeComponent == nullptr)
+		if (ShapeComponent == nullptr)
 			return nullptr;
 
-		return OutShapeComponent->GetOrCreateNative();
+		return ShapeComponent->GetOrCreateNative();
 	}
 
-	FShapeMaterialBarrier* GetShapeMaterialBarrier(
-		const FAGX_TerrainMaterialPatchData& PatchData, UWorld* World)
+	FShapeMaterialBarrier* GetShapeMaterialBarrier(UAGX_ShapeMaterial* ShapeMaterial, UWorld* World)
 	{
-		if (PatchData.ShapeMaterial == nullptr || World == nullptr)
+		if (ShapeMaterial == nullptr || World == nullptr)
 			return nullptr;
 
-		auto ShapeMaterialInstance = PatchData.ShapeMaterial->GetOrCreateInstance(World);
+		auto ShapeMaterialInstance = ShapeMaterial->GetOrCreateInstance(World);
 		if (ShapeMaterialInstance == nullptr)
 			return nullptr;
 
@@ -210,7 +206,7 @@ void UAGX_TerrainMaterialPatchComponent::AddShapeInstance(
 	}
 }
 
-void UAGX_TerrainMaterialPatchComponent::ApplyPatch(
+void UAGX_TerrainMaterialPatchComponent::AddPatch(
 	UAGX_ShapeComponent* ShapeComponent, UAGX_TerrainMaterial* TerrainMaterial,
 	UAGX_ShapeMaterial* ShapeMaterial)
 {
@@ -226,19 +222,15 @@ void UAGX_TerrainMaterialPatchComponent::ApplyPatch(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("ApplyPatch called on Terrain Material Patch Component '%s' in '%s'. Unable to "
+			TEXT("AddPatch called on Terrain Material Patch Component '%s' in '%s'. Unable to "
 				 "find a Terrain parent, doing nothing."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
 
-	FAGX_TerrainMaterialPatchData PatchData;
-	PatchData.ShapeComponentName =
-		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(*ShapeComponent);
-	PatchData.TerrainMaterial = TerrainMaterial;
-	PatchData.ShapeMaterial = ShapeMaterial;
-
-	ApplyTerrainMaterialPatch(PatchData, *TerrainBarrier);
+	TArray<FTransform> Transform {FTransform::Identity};
+	ApplyTerrainMaterialPatch(
+		ShapeComponent, TerrainMaterial, ShapeMaterial, Transform, *TerrainBarrier);
 }
 
 bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProperty) const
@@ -325,23 +317,35 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier)
 {
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
+
+	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData.ShapeComponentName);
+	ApplyTerrainMaterialPatch(
+		Shape, PatchData.TerrainMaterial, PatchData.ShapeMaterial, PatchData.InstanceTransforms,
+		TerrainBarrier);
+}
+
+void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
+	UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
+	UAGX_ShapeMaterial* ShapeMaterial, const TArray<FTransform>& Transforms,
+	FTerrainBarrier& TerrainBarrier)
+{
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	FTerrainMaterialBarrier* TerrainMaterialBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainMaterialBarrier(PatchData, GetWorld());
-	UAGX_ShapeComponent* ShapeComponent = nullptr;
-	FShapeBarrier* ShapeBarrier = AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(
-		*this, PatchData, ShapeComponent);
+		GetTerrainMaterialBarrier(TerrainMaterial, GetWorld());
+	FShapeBarrier* ShapeBarrier = GetShapeBarrier(Shape);
 	if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
 		return;
 
 	FShapeMaterialBarrier* ShapeMaterialBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetShapeMaterialBarrier(PatchData, GetWorld());
+		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
 
-	const FTransform OriginalRelativeTransform = ShapeComponent->GetRelativeTransform();
-	for (const FTransform& InstanceTransform : PatchData.InstanceTransforms)
+	const FTransform OriginalRelativeTransform = Shape->GetRelativeTransform();
+	for (const FTransform& Transform : Transforms)
 	{
 		// Instance transforms are interpreted relative to the shape's original transform.
-		ShapeComponent->SetRelativeTransform(OriginalRelativeTransform * InstanceTransform);
-		ShapeComponent->UpdateComponentToWorld();
+		Shape->SetRelativeTransform(OriginalRelativeTransform * Transform);
+		Shape->UpdateComponentToWorld();
 
 		TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
 		if (ShapeMaterialBarrier != nullptr)
@@ -350,8 +354,8 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 
 	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
 	// above.
-	ShapeComponent->SetRelativeTransform(OriginalRelativeTransform);
-	ShapeComponent->UpdateComponentToWorld();
+	Shape->SetRelativeTransform(OriginalRelativeTransform);
+	Shape->UpdateComponentToWorld();
 }
 
 #if WITH_EDITOR
