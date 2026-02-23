@@ -77,11 +77,23 @@ public:
 
 	/**
 	 * Add an Instance of an existing Shape.
-	 * If the ShapeName does not match an existing Shape Component's name, this function has no
+	 * If the ShapeName does not match an
+	 * existing Shape Component's name, this function has no
 	 * effect.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
 	void AddShapeInstance(FName ShapeName, FTransform InstanceTransform);
+
+	/**
+	 * Apply a Terrain Material patch during Play.
+	 * This function should only be called during Play and will not modify the
+	 * TerrainMaterialPatches property, i.e. calling this function will not be reflected in the
+	 * Details Panel.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	void ApplyPatch(
+		UAGX_ShapeComponent* ShapeComponent, UAGX_TerrainMaterial* TerrainMaterial,
+		UAGX_ShapeMaterial* ShapeMaterial);
 
 	// ~Begin UObject interface.
 	virtual bool CanEditChange(const FProperty* InProperty) const override;

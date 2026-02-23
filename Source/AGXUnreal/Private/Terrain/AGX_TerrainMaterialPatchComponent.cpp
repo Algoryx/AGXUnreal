@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainMaterialPatchComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
@@ -20,12 +21,19 @@ namespace AGX_TerrainMaterialPatchComponent_helpers
 {
 	FName GetShapeComponentName(const UAGX_ShapeComponent& ShapeComponent)
 	{
+		if (ShapeComponent.IsInBlueprint())
+		{
 #if WITH_EDITOR
-		return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
-			ShapeComponent.GetName()));
+			return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
+				ShapeComponent.GetName()));
 #else
-		return ShapeComponent.GetFName();
+			return ShapeComponent.GetFName();
 #endif
+		}
+		else
+		{
+			return ShapeComponent.GetFName();
+		}
 	}
 
 	FTerrainBarrier* GetTerrainBarrier(UAGX_TerrainMaterialPatchComponent& Component)
@@ -180,9 +188,9 @@ void UAGX_TerrainMaterialPatchComponent::AddShapeInstance(
 	if (ShapeName.IsNone())
 		return;
 
-	FAGX_TerrainMaterialPatchData* PatchData =
-		TerrainMaterialPatches.FindByPredicate([ShapeName](const FAGX_TerrainMaterialPatchData& Data)
-											   { return Data.ShapeComponentName == ShapeName; });
+	FAGX_TerrainMaterialPatchData* PatchData = TerrainMaterialPatches.FindByPredicate(
+		[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
+		{ return Data.ShapeComponentName == ShapeName; });
 	if (PatchData == nullptr)
 		return;
 
@@ -192,11 +200,45 @@ void UAGX_TerrainMaterialPatchComponent::AddShapeInstance(
 	{
 		FTerrainBarrier* TerrainBarrier =
 			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
+		if (TerrainBarrier == nullptr)
+			return;
+
 		FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
 		SingleInstancePatch.InstanceTransforms.Reset(1);
 		SingleInstancePatch.InstanceTransforms.Add(InstanceTransform);
 		ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
 	}
+}
+
+void UAGX_TerrainMaterialPatchComponent::ApplyPatch(
+	UAGX_ShapeComponent* ShapeComponent, UAGX_TerrainMaterial* TerrainMaterial,
+	UAGX_ShapeMaterial* ShapeMaterial)
+{
+	if (ShapeComponent == nullptr || TerrainMaterial == nullptr)
+		return;
+
+	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
+		return;
+
+	FTerrainBarrier* TerrainBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
+	if (TerrainBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ApplyPatch called on Terrain Material Patch Component '%s' in '%s'. Unable to "
+				 "find a Terrain parent, doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	FAGX_TerrainMaterialPatchData PatchData;
+	PatchData.ShapeComponentName =
+		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(*ShapeComponent);
+	PatchData.TerrainMaterial = TerrainMaterial;
+	PatchData.ShapeMaterial = ShapeMaterial;
+
+	ApplyTerrainMaterialPatch(PatchData, *TerrainBarrier);
 }
 
 bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProperty) const
@@ -286,8 +328,8 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	FTerrainMaterialBarrier* TerrainMaterialBarrier =
 		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainMaterialBarrier(PatchData, GetWorld());
 	UAGX_ShapeComponent* ShapeComponent = nullptr;
-	FShapeBarrier* ShapeBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(*this, PatchData, ShapeComponent);
+	FShapeBarrier* ShapeBarrier = AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(
+		*this, PatchData, ShapeComponent);
 	if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
 		return;
 
