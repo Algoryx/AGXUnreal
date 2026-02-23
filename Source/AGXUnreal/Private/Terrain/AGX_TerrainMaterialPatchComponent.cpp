@@ -174,6 +174,31 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 		});
 }
 
+void UAGX_TerrainMaterialPatchComponent::AddShapeInstance(
+	FName ShapeName, FTransform InstanceTransform)
+{
+	if (ShapeName.IsNone())
+		return;
+
+	FAGX_TerrainMaterialPatchData* PatchData =
+		TerrainMaterialPatches.FindByPredicate([ShapeName](const FAGX_TerrainMaterialPatchData& Data)
+											   { return Data.ShapeComponentName == ShapeName; });
+	if (PatchData == nullptr)
+		return;
+
+	PatchData->InstanceTransforms.Add(InstanceTransform);
+
+	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
+	{
+		FTerrainBarrier* TerrainBarrier =
+			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
+		FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
+		SingleInstancePatch.InstanceTransforms.Reset(1);
+		SingleInstancePatch.InstanceTransforms.Add(InstanceTransform);
+		ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
+	}
+}
+
 bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
@@ -251,37 +276,40 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 
 	for (const FAGX_TerrainMaterialPatchData& AssignmentData : TerrainMaterialPatches)
 	{
-		FTerrainMaterialBarrier* TerrainMaterialBarrier =
-			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainMaterialBarrier(
-				AssignmentData, GetWorld());
-		UAGX_ShapeComponent* ShapeComponent = nullptr;
-		FShapeBarrier* ShapeBarrier = AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(
-			*this, AssignmentData, ShapeComponent);
-		if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
-			continue;
-
-		FShapeMaterialBarrier* ShapeMaterialBarrier =
-			AGX_TerrainMaterialPatchComponent_helpers::GetShapeMaterialBarrier(
-				AssignmentData, GetWorld());
-
-		const FTransform OriginalRelativeTransform = ShapeComponent->GetRelativeTransform();
-		for (const FTransform& InstanceTransform : AssignmentData.InstanceTransforms)
-		{
-			// Instance transforms are interpreted relative to the shape's original transform.
-			ShapeComponent->SetRelativeTransform(OriginalRelativeTransform * InstanceTransform);
-			ShapeComponent->UpdateComponentToWorld();
-
-			TerrainBarrier->SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
-			if (ShapeMaterialBarrier != nullptr)
-				TerrainBarrier->SetAssociatedMaterial(
-					*TerrainMaterialBarrier, *ShapeMaterialBarrier);
-		}
-
-		// Finally, we restore the original Shapes Transform since we moved it during "stamping"
-		// above.
-		ShapeComponent->SetRelativeTransform(OriginalRelativeTransform);
-		ShapeComponent->UpdateComponentToWorld();
+		ApplyTerrainMaterialPatch(AssignmentData, *TerrainBarrier);
 	}
+}
+
+void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
+	const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier)
+{
+	FTerrainMaterialBarrier* TerrainMaterialBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainMaterialBarrier(PatchData, GetWorld());
+	UAGX_ShapeComponent* ShapeComponent = nullptr;
+	FShapeBarrier* ShapeBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetShapeBarrier(*this, PatchData, ShapeComponent);
+	if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
+		return;
+
+	FShapeMaterialBarrier* ShapeMaterialBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetShapeMaterialBarrier(PatchData, GetWorld());
+
+	const FTransform OriginalRelativeTransform = ShapeComponent->GetRelativeTransform();
+	for (const FTransform& InstanceTransform : PatchData.InstanceTransforms)
+	{
+		// Instance transforms are interpreted relative to the shape's original transform.
+		ShapeComponent->SetRelativeTransform(OriginalRelativeTransform * InstanceTransform);
+		ShapeComponent->UpdateComponentToWorld();
+
+		TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+		if (ShapeMaterialBarrier != nullptr)
+			TerrainBarrier.SetAssociatedMaterial(*TerrainMaterialBarrier, *ShapeMaterialBarrier);
+	}
+
+	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
+	// above.
+	ShapeComponent->SetRelativeTransform(OriginalRelativeTransform);
+	ShapeComponent->UpdateComponentToWorld();
 }
 
 #if WITH_EDITOR

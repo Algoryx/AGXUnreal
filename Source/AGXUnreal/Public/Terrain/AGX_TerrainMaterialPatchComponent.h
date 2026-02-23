@@ -8,6 +8,7 @@
 
 #include "AGX_TerrainMaterialPatchComponent.generated.h"
 
+class FTerrainBarrier;
 class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TerrainMaterial;
@@ -70,6 +71,9 @@ public:
 
 	void UpdateTerrainMaterialPatches();
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	void AddShapeInstance(FName ShapeName, FTransform InstanceTransform);
+
 	// ~Begin UObject interface.
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 	// ~End UObject interface.
@@ -93,4 +97,7 @@ private:
 	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 
 	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
+
+	void ApplyTerrainMaterialPatch(
+		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
 };
