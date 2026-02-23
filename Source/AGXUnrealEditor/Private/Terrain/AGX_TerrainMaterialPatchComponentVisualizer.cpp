@@ -154,9 +154,7 @@ void FAGX_TerrainMaterialPatchComponentVisualizer::DrawVisualization(
 	const UAGX_TerrainMaterialPatchComponent* PatchComponent =
 		Cast<const UAGX_TerrainMaterialPatchComponent>(Component);
 	if (PatchComponent == nullptr)
-	{
 		return;
-	}
 
 	for (const FAGX_TerrainMaterialPatchData& PatchData :
 		 PatchComponent->GetTerrainMaterialPatches())
