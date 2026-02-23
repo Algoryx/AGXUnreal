@@ -33,8 +33,7 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 			if (ShapeComponent == nullptr)
 				continue;
 
-			if (
-				GetShapeComponentName(*ShapeComponent) == ShapeName ||
+			if (GetShapeComponentName(*ShapeComponent) == ShapeName ||
 				ShapeComponent->GetFName() == ShapeName)
 				return ShapeComponent;
 		}
@@ -67,8 +66,7 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 		FPrimitiveDrawInterface* PDI)
 	{
 		DrawWireCylinder(
-			PDI, InstanceWorldTransform.GetLocation(),
-			InstanceWorldTransform.GetUnitAxis(EAxis::Z),
+			PDI, InstanceWorldTransform.GetLocation(), InstanceWorldTransform.GetUnitAxis(EAxis::Z),
 			InstanceWorldTransform.GetUnitAxis(EAxis::X),
 			InstanceWorldTransform.GetUnitAxis(EAxis::Y), FLinearColor::Yellow,
 			CylinderShape.GetRadius(), 0.5f * CylinderShape.GetHeight(), 24, SDPG_Foreground);
@@ -82,8 +80,7 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 		const float HalfHeight = 0.5f * CapsuleShape.GetHeight();
 
 		DrawWireCylinder(
-			PDI, InstanceWorldTransform.GetLocation(),
-			InstanceWorldTransform.GetUnitAxis(EAxis::Z),
+			PDI, InstanceWorldTransform.GetLocation(), InstanceWorldTransform.GetUnitAxis(EAxis::Z),
 			InstanceWorldTransform.GetUnitAxis(EAxis::X),
 			InstanceWorldTransform.GetUnitAxis(EAxis::Y), FLinearColor::Yellow, Radius, HalfHeight,
 			24, SDPG_Foreground);
@@ -92,8 +89,8 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 		const FVector Top = InstanceWorldTransform.GetLocation() + Axis * HalfHeight;
 		const FVector Bottom = InstanceWorldTransform.GetLocation() - Axis * HalfHeight;
 		DrawWireSphere(
-			PDI, FTransform(InstanceWorldTransform.GetRotation(), Top), FLinearColor::Yellow, Radius,
-			20, SDPG_Foreground, 1.5f);
+			PDI, FTransform(InstanceWorldTransform.GetRotation(), Top), FLinearColor::Yellow,
+			Radius, 20, SDPG_Foreground, 1.5f);
 		DrawWireSphere(
 			PDI, FTransform(InstanceWorldTransform.GetRotation(), Bottom), FLinearColor::Yellow,
 			Radius, 20, SDPG_Foreground, 1.5f);
@@ -139,8 +136,8 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 	}
 
 	void DrawCapsuleInstances(
-		const UAGX_CapsuleShapeComponent& CapsuleShape, const TArray<FTransform>& InstanceTransforms,
-		FPrimitiveDrawInterface* PDI)
+		const UAGX_CapsuleShapeComponent& CapsuleShape,
+		const TArray<FTransform>& InstanceTransforms, FPrimitiveDrawInterface* PDI)
 	{
 		for (const FTransform& InstanceTransform : InstanceTransforms)
 		{
@@ -161,7 +158,8 @@ void FAGX_TerrainMaterialPatchComponentVisualizer::DrawVisualization(
 		return;
 	}
 
-	for (const FAGX_TerrainMaterialPatchData& PatchData : PatchComponent->GetTerrainMaterialPatches())
+	for (const FAGX_TerrainMaterialPatchData& PatchData :
+		 PatchComponent->GetTerrainMaterialPatches())
 	{
 		if (!PatchData.bDebugRenderInstances)
 			continue;
