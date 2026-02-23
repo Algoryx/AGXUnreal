@@ -76,13 +76,12 @@ public:
 	void UpdateTerrainMaterialPatches();
 
 	/**
-	 * Add an Instance of an existing Shape.
-	 * If the ShapeName does not match an
-	 * existing Shape Component's name, this function has no
-	 * effect.
+	 * Add a Shape instance of an existing patch.
+	 * If the ShapeName does not match an existing Shape Component's name, this
+	 * function has no effect.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	void AddShapeInstance(FName ShapeName, FTransform InstanceTransform);
+	void AddPatchShapeInstance(FName ShapeName, FTransform InstanceTransform);
 
 	/**
 	 * Apply a Terrain Material patch during Play.

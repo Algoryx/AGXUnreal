@@ -178,7 +178,7 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 		});
 }
 
-void UAGX_TerrainMaterialPatchComponent::AddShapeInstance(
+void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	FName ShapeName, FTransform InstanceTransform)
 {
 	if (ShapeName.IsNone())
