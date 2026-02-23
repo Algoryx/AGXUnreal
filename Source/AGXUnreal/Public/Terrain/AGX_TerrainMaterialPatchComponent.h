@@ -58,6 +58,8 @@ public:
 	/**
 	 * Terrain Material Patch data that is used to assign Terrain Materials to patches of the
 	 * Terrain overlapped by the Shapes.
+	 * This data is applied at BeginPlay and changes to it durint Play will generally not havee any
+	 * effect. One exception is when adding instances through the AddShapeInstance function.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
@@ -67,6 +69,10 @@ public:
 	const TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches() const;
 
 	void UpdateTerrainMaterialPatches();
+
+	// ~Begin UObject interface.
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+	// ~End UObject interface.
 
 	// ~Begin UActorComponent interface.
 	virtual void BeginPlay() override;
@@ -88,4 +94,3 @@ private:
 
 	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
 };
-
