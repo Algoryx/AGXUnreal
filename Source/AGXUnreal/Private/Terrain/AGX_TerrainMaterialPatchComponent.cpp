@@ -150,7 +150,7 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 }
 
 void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
-	FName ShapeName, FTransform InstanceTransform)
+	FName ShapeName, const FAGX_Placement& Placement)
 {
 	if (ShapeName.IsNone())
 		return;
@@ -161,7 +161,7 @@ void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	if (PatchData == nullptr)
 		return;
 
-	PatchData->InstanceTransforms.Add(InstanceTransform);
+	PatchData->InstancePlacements.Add(Placement);
 
 	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
 	{
@@ -171,8 +171,8 @@ void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 			return;
 
 		FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
-		SingleInstancePatch.InstanceTransforms.Reset(1);
-		SingleInstancePatch.InstanceTransforms.Add(InstanceTransform);
+		SingleInstancePatch.InstancePlacements.Reset(1);
+		SingleInstancePatch.InstancePlacements.Add(Placement);
 		ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
 	}
 }
@@ -199,9 +199,9 @@ void UAGX_TerrainMaterialPatchComponent::AddPatch(
 		return;
 	}
 
-	TArray<FTransform> Transform {FTransform::Identity};
+	TArray<FAGX_Placement> Placement {FAGX_Placement()};
 	ApplyTerrainMaterialPatch(
-		ShapeComponent, TerrainMaterial, ShapeMaterial, Transform, *TerrainBarrier);
+		ShapeComponent, TerrainMaterial, ShapeMaterial, Placement, *TerrainBarrier);
 }
 
 bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProperty) const
@@ -326,13 +326,13 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 
 	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData.ShapeComponentName);
 	ApplyTerrainMaterialPatch(
-		Shape, PatchData.TerrainMaterial, PatchData.ShapeMaterial, PatchData.InstanceTransforms,
+		Shape, PatchData.TerrainMaterial, PatchData.ShapeMaterial, PatchData.InstancePlacements,
 		TerrainBarrier);
 }
 
 void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-	UAGX_ShapeMaterial* ShapeMaterial, const TArray<FTransform>& Transforms,
+	UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
 	FTerrainBarrier& TerrainBarrier)
 {
 	using namespace AGX_TerrainMaterialPatchComponent_helpers;
@@ -346,8 +346,10 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
 
 	const FTransform OriginalRelativeTransform = Shape->GetRelativeTransform();
-	for (const FTransform& Transform : Transforms)
+	for (const FAGX_Placement& Placement: Placements)
 	{
+		const FTransform Transform = Placement.ToTransform();
+
 		// Instance transforms are interpreted relative to the shape's original transform.
 		Shape->SetRelativeTransform(OriginalRelativeTransform * Transform);
 		Shape->UpdateComponentToWorld();

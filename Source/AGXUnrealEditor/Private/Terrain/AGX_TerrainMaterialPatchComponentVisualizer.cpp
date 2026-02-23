@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainMaterialPatchComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Placement.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_CapsuleShapeComponent.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
@@ -97,12 +98,14 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 	}
 
 	void DrawBoxInstances(
-		const UAGX_BoxShapeComponent& BoxShape, const TArray<FTransform>& InstanceTransforms,
+		const UAGX_BoxShapeComponent& BoxShape,
+		const TArray<FAGX_Placement>& Placements,
 		FPrimitiveDrawInterface* PDI)
 	{
 		const FBox LocalBounds(-BoxShape.GetHalfExtent(), BoxShape.GetHalfExtent());
-		for (const FTransform& InstanceTransform : InstanceTransforms)
+		for (const FAGX_Placement& Placement : Placements)
 		{
+			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(BoxShape, InstanceTransform);
 			DrawWireBox(
@@ -112,11 +115,13 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 	}
 
 	void DrawSphereInstances(
-		const UAGX_SphereShapeComponent& SphereShape, const TArray<FTransform>& InstanceTransforms,
+		const UAGX_SphereShapeComponent& SphereShape,
+		const TArray<FAGX_Placement>& Placements,
 		FPrimitiveDrawInterface* PDI)
 	{
-		for (const FTransform& InstanceTransform : InstanceTransforms)
+		for (const FAGX_Placement& Placement : Placements)
 		{
+			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(SphereShape, InstanceTransform);
 			DrawSphere(SphereShape, InstanceWorldTransform, PDI);
@@ -125,10 +130,11 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 
 	void DrawCylinderInstances(
 		const UAGX_CylinderShapeComponent& CylinderShape,
-		const TArray<FTransform>& InstanceTransforms, FPrimitiveDrawInterface* PDI)
+		const TArray<FAGX_Placement>& Placements, FPrimitiveDrawInterface* PDI)
 	{
-		for (const FTransform& InstanceTransform : InstanceTransforms)
+		for (const FAGX_Placement& Placement : Placements)
 		{
+			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(CylinderShape, InstanceTransform);
 			DrawCylinder(CylinderShape, InstanceWorldTransform, PDI);
@@ -136,11 +142,12 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 	}
 
 	void DrawCapsuleInstances(
-		const UAGX_CapsuleShapeComponent& CapsuleShape,
-		const TArray<FTransform>& InstanceTransforms, FPrimitiveDrawInterface* PDI)
+		const UAGX_CapsuleShapeComponent& CapsuleShape, const TArray<FAGX_Placement>& Placements,
+		FPrimitiveDrawInterface* PDI)
 	{
-		for (const FTransform& InstanceTransform : InstanceTransforms)
+		for (const FAGX_Placement& Placement : Placements)
 		{
+			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(CapsuleShape, InstanceTransform);
 			DrawCapsule(CapsuleShape, InstanceWorldTransform, PDI);
@@ -171,28 +178,28 @@ void FAGX_TerrainMaterialPatchComponentVisualizer::DrawVisualization(
 		if (const UAGX_BoxShapeComponent* BoxShape = Cast<const UAGX_BoxShapeComponent>(Shape))
 		{
 			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawBoxInstances(
-				*BoxShape, PatchData.InstanceTransforms, PDI);
+				*BoxShape, PatchData.InstancePlacements, PDI);
 		}
 		else if (
 			const UAGX_SphereShapeComponent* SphereShape =
 				Cast<const UAGX_SphereShapeComponent>(Shape))
 		{
 			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawSphereInstances(
-				*SphereShape, PatchData.InstanceTransforms, PDI);
+				*SphereShape, PatchData.InstancePlacements, PDI);
 		}
 		else if (
 			const UAGX_CylinderShapeComponent* CylinderShape =
 				Cast<const UAGX_CylinderShapeComponent>(Shape))
 		{
 			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawCylinderInstances(
-				*CylinderShape, PatchData.InstanceTransforms, PDI);
+				*CylinderShape, PatchData.InstancePlacements, PDI);
 		}
 		else if (
 			const UAGX_CapsuleShapeComponent* CapsuleShape =
 				Cast<const UAGX_CapsuleShapeComponent>(Shape))
 		{
 			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawCapsuleInstances(
-				*CapsuleShape, PatchData.InstanceTransforms, PDI);
+				*CapsuleShape, PatchData.InstancePlacements, PDI);
 		}
 	}
 }

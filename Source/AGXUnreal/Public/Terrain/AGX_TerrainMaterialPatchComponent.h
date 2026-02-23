@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "AGX_Placement.h"
+
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
@@ -20,7 +23,7 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 
 	FAGX_TerrainMaterialPatchData()
 	{
-		InstanceTransforms.Add(FTransform::Identity);
+		InstancePlacements.AddDefaulted();
 	}
 
 	/** Name of the attached AGX Shape Component that defines this patch area. */
@@ -35,12 +38,9 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
-	/**
-	 * Per-shape local transforms used to create one or more patch instances.
-	 * Note that Scale is currently not supported and changes to it will have no effect.
-	 */
+	/** Per-shape local location/rotation values used to create one or more patch instances. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch Advanced", AdvancedDisplay)
-	TArray<FTransform> InstanceTransforms;
+	TArray<FAGX_Placement> InstancePlacements;
 
 	/**
 	 * If set to true, the Shape instances are debug rendered.
@@ -97,7 +97,7 @@ public:
 	 * function has no effect.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	void AddPatchShapeInstance(FName ShapeName, FTransform InstanceTransform);
+	void AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
 
 	/**
 	 * Apply a Terrain Material patch during Play.
@@ -145,6 +145,6 @@ private:
 
 	void ApplyTerrainMaterialPatch(
 		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-		UAGX_ShapeMaterial* ShapeMaterial, const TArray<FTransform>& Transforms,
+		UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
 		FTerrainBarrier& TerrainBarrier);
 };
