@@ -130,46 +130,17 @@ UAGX_TerrainMaterialPatchComponent::GetTerrainMaterialPatches() const
 
 void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 {
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	TSet<FName> CurrentShapeNames;
-
-	if (IsInBlueprint())
+	const auto AttachedShapes = GetAttachedShapes();
+	for (const auto AttachedShape : AttachedShapes)
 	{
-#if WITH_EDITOR
-		if (UBlueprint* Blueprint = FAGX_BlueprintUtilities::GetBlueprintFrom(*this))
-		{
-			for (UAGX_ShapeComponent* ShapeComponent :
-				 FAGX_BlueprintUtilities::GetTemplateComponents<UAGX_ShapeComponent>(
-					 *Blueprint, EAGX_Inherited::Include))
-			{
-				UActorComponent* Parent =
-					FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
-				if (Parent == this)
-				{
-					PrepareShapeForTerrainMaterialPatch(*ShapeComponent);
-					CurrentShapeNames.Add(
-						AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(
-							*ShapeComponent));
-					AddAssignmentDataIfMissing(*ShapeComponent);
-				}
-			}
-		}
-#endif // WITH_EDITOR
-	}
-	else
-	{
-		for (USceneComponent* Child : GetAttachChildren())
-		{
-			if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
-			{
-				PrepareShapeForTerrainMaterialPatch(*ShapeComponent);
-				CurrentShapeNames.Add(
-					AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(
-						*ShapeComponent));
-				AddAssignmentDataIfMissing(*ShapeComponent);
-			}
-		}
+		PrepareShapeForTerrainMaterialPatch(*AttachedShape);
+		CurrentShapeNames.Add(GetShapeComponentName(*AttachedShape));
+		AddAssignmentDataIfMissing(*AttachedShape);
 	}
 
+	// Remove patch data for Shapes no longer attached.
 	TerrainMaterialPatches.RemoveAll(
 		[&CurrentShapeNames](const FAGX_TerrainMaterialPatchData& Assignment)
 		{
@@ -254,6 +225,40 @@ bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProper
 	}
 
 	return SuperCanEditChange;
+}
+
+TArray<UAGX_ShapeComponent*> UAGX_TerrainMaterialPatchComponent::GetAttachedShapes() const
+{
+	TArray<UAGX_ShapeComponent*> Shapes;
+	if (IsInBlueprint())
+	{
+#if WITH_EDITOR
+		if (UBlueprint* Blueprint = FAGX_BlueprintUtilities::GetBlueprintFrom(*this))
+		{
+			for (UAGX_ShapeComponent* ShapeComponent :
+				 FAGX_BlueprintUtilities::GetTemplateComponents<UAGX_ShapeComponent>(
+					 *Blueprint, EAGX_Inherited::Include))
+			{
+				UActorComponent* Parent =
+					FAGX_BlueprintUtilities::GetTemplateComponentAttachParent(ShapeComponent);
+				if (Parent == this)
+				{
+					Shapes.Add(ShapeComponent);
+				}
+			}
+		}
+#endif // WITH_EDITOR
+	}
+	else
+	{
+		for (USceneComponent* Child : GetAttachChildren())
+		{
+			if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
+				Shapes.Add(ShapeComponent);
+		}
+	}
+
+	return Shapes;
 }
 
 void UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(

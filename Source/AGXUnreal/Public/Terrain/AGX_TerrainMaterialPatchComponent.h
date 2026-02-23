@@ -35,9 +35,19 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
-	/** Per-shape local transforms used to create one or more patch instances. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch", AdvancedDisplay)
+	/**
+	* Per-shape local transforms used to create one or more patch instances.
+	*/
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch Advanced", AdvancedDisplay)
 	TArray<FTransform> InstanceTransforms;
+
+	/**
+	 * If set to true, the Shape instances are debug rendered.
+	 * Debug rendering of Trimesh Shapes is currently not supported.
+	 * This operation may be performance heavy.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch Advanced", AdvancedDisplay)
+	bool bDebugRenderInstances {false};
 };
 
 /**
@@ -63,7 +73,11 @@ public:
 	/**
 	 * Terrain Material Patch data that is used to assign Terrain Materials to patches of the
 	 * Terrain overlapped by the Shapes.
-	 * This data is applied at BeginPlay and changes to it durint Play will generally not havee any
+	 *
+	 * Elements of this data is automatically added or removed according to the AGX Shape Components
+	 * attached to this Component.
+	 *
+	 * This data is applied at BeginPlay and changes to it durint Play will generally not have any
 	 * effect. One exception is when adding instances through the AddShapeInstance function.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
@@ -77,7 +91,8 @@ public:
 
 	/**
 	 * Add a Shape instance of an existing patch.
-	 * If the ShapeName does not match an existing Shape Component's name, this
+	 * If the ShapeName does not match an
+	 * existing Shape Component's name, this
 	 * function has no effect.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
@@ -93,6 +108,12 @@ public:
 	void AddPatch(
 		UAGX_ShapeComponent* ShapeComponent, UAGX_TerrainMaterial* TerrainMaterial,
 		UAGX_ShapeMaterial* ShapeMaterial);
+
+	/**
+	* Returns all attached AGX Shape Components.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	TArray<UAGX_ShapeComponent*> GetAttachedShapes() const;
 
 	// ~Begin UObject interface.
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
