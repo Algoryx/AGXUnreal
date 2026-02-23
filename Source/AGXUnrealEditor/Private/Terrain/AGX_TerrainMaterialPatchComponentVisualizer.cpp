@@ -4,6 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Shapes/AGX_BoxShapeComponent.h"
+#include "Shapes/AGX_CapsuleShapeComponent.h"
+#include "Shapes/AGX_CylinderShapeComponent.h"
+#include "Shapes/AGX_ShapeComponent.h"
+#include "Shapes/AGX_SphereShapeComponent.h"
 #include "Terrain/AGX_TerrainMaterialPatchComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 
@@ -12,13 +16,13 @@
 
 namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 {
-	FName GetShapeComponentName(const UAGX_BoxShapeComponent& ShapeComponent)
+	FName GetShapeComponentName(const UAGX_ShapeComponent& ShapeComponent)
 	{
 		return FName(*FAGX_BlueprintUtilities::GetRegularNameFromTemplateComponentName(
 			ShapeComponent.GetName()));
 	}
 
-	const UAGX_BoxShapeComponent* GetAttachedBoxShapeByName(
+	const UAGX_ShapeComponent* GetAttachedShapeByName(
 		const UAGX_TerrainMaterialPatchComponent& PatchComponent, const FName& ShapeName)
 	{
 		if (ShapeName.IsNone())
@@ -26,13 +30,13 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 
 		for (const UAGX_ShapeComponent* ShapeComponent : PatchComponent.GetAttachedShapes())
 		{
-			const UAGX_BoxShapeComponent* BoxShape =
-				Cast<const UAGX_BoxShapeComponent>(ShapeComponent);
-			if (BoxShape == nullptr)
+			if (ShapeComponent == nullptr)
 				continue;
 
-			if (GetShapeComponentName(*BoxShape) == ShapeName || BoxShape->GetFName() == ShapeName)
-				return BoxShape;
+			if (
+				GetShapeComponentName(*ShapeComponent) == ShapeName ||
+				ShapeComponent->GetFName() == ShapeName)
+				return ShapeComponent;
 		}
 
 		return nullptr;
@@ -47,6 +51,103 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 			Shape.GetComponentTransform().TransformRotation(InstanceTransform.GetRotation());
 
 		return FTransform(WorldRot, WorldPos);
+	}
+
+	void DrawSphere(
+		const UAGX_SphereShapeComponent& SphereShape, const FTransform& InstanceWorldTransform,
+		FPrimitiveDrawInterface* PDI)
+	{
+		DrawWireSphere(
+			PDI, InstanceWorldTransform, FLinearColor::Yellow, SphereShape.GetRadius(), 20,
+			SDPG_Foreground, 1.5f);
+	}
+
+	void DrawCylinder(
+		const UAGX_CylinderShapeComponent& CylinderShape, const FTransform& InstanceWorldTransform,
+		FPrimitiveDrawInterface* PDI)
+	{
+		DrawWireCylinder(
+			PDI, InstanceWorldTransform.GetLocation(),
+			InstanceWorldTransform.GetUnitAxis(EAxis::Z),
+			InstanceWorldTransform.GetUnitAxis(EAxis::X),
+			InstanceWorldTransform.GetUnitAxis(EAxis::Y), FLinearColor::Yellow,
+			CylinderShape.GetRadius(), 0.5f * CylinderShape.GetHeight(), 24, SDPG_Foreground);
+	}
+
+	void DrawCapsule(
+		const UAGX_CapsuleShapeComponent& CapsuleShape, const FTransform& InstanceWorldTransform,
+		FPrimitiveDrawInterface* PDI)
+	{
+		const float Radius = CapsuleShape.GetRadius();
+		const float HalfHeight = 0.5f * CapsuleShape.GetHeight();
+
+		DrawWireCylinder(
+			PDI, InstanceWorldTransform.GetLocation(),
+			InstanceWorldTransform.GetUnitAxis(EAxis::Z),
+			InstanceWorldTransform.GetUnitAxis(EAxis::X),
+			InstanceWorldTransform.GetUnitAxis(EAxis::Y), FLinearColor::Yellow, Radius, HalfHeight,
+			24, SDPG_Foreground);
+
+		const FVector Axis = InstanceWorldTransform.GetUnitAxis(EAxis::Z);
+		const FVector Top = InstanceWorldTransform.GetLocation() + Axis * HalfHeight;
+		const FVector Bottom = InstanceWorldTransform.GetLocation() - Axis * HalfHeight;
+		DrawWireSphere(
+			PDI, FTransform(InstanceWorldTransform.GetRotation(), Top), FLinearColor::Yellow, Radius,
+			20, SDPG_Foreground, 1.5f);
+		DrawWireSphere(
+			PDI, FTransform(InstanceWorldTransform.GetRotation(), Bottom), FLinearColor::Yellow,
+			Radius, 20, SDPG_Foreground, 1.5f);
+	}
+
+	void DrawBoxInstances(
+		const UAGX_BoxShapeComponent& BoxShape, const TArray<FTransform>& InstanceTransforms,
+		FPrimitiveDrawInterface* PDI)
+	{
+		const FBox LocalBounds(-BoxShape.GetHalfExtent(), BoxShape.GetHalfExtent());
+		for (const FTransform& InstanceTransform : InstanceTransforms)
+		{
+			const FTransform InstanceWorldTransform =
+				GetInstanceWorldTransform(BoxShape, InstanceTransform);
+			DrawWireBox(
+				PDI, InstanceWorldTransform.ToMatrixNoScale(), LocalBounds, FLinearColor::Yellow,
+				SDPG_Foreground, 1.5f, 0.f, true);
+		}
+	}
+
+	void DrawSphereInstances(
+		const UAGX_SphereShapeComponent& SphereShape, const TArray<FTransform>& InstanceTransforms,
+		FPrimitiveDrawInterface* PDI)
+	{
+		for (const FTransform& InstanceTransform : InstanceTransforms)
+		{
+			const FTransform InstanceWorldTransform =
+				GetInstanceWorldTransform(SphereShape, InstanceTransform);
+			DrawSphere(SphereShape, InstanceWorldTransform, PDI);
+		}
+	}
+
+	void DrawCylinderInstances(
+		const UAGX_CylinderShapeComponent& CylinderShape,
+		const TArray<FTransform>& InstanceTransforms, FPrimitiveDrawInterface* PDI)
+	{
+		for (const FTransform& InstanceTransform : InstanceTransforms)
+		{
+			const FTransform InstanceWorldTransform =
+				GetInstanceWorldTransform(CylinderShape, InstanceTransform);
+			DrawCylinder(CylinderShape, InstanceWorldTransform, PDI);
+		}
+	}
+
+	void DrawCapsuleInstances(
+		const UAGX_CapsuleShapeComponent& CapsuleShape, const TArray<FTransform>& InstanceTransforms,
+		FPrimitiveDrawInterface* PDI)
+	{
+		for (const FTransform& InstanceTransform : InstanceTransforms)
+		{
+			const FTransform InstanceWorldTransform =
+				GetInstanceWorldTransform(CapsuleShape, InstanceTransform);
+			DrawCapsule(CapsuleShape, InstanceWorldTransform, PDI);
+		}
 	}
 }
 
@@ -65,21 +166,37 @@ void FAGX_TerrainMaterialPatchComponentVisualizer::DrawVisualization(
 		if (!PatchData.bDebugRenderInstances)
 			continue;
 
-		const UAGX_BoxShapeComponent* BoxShape =
-			AGX_TerrainMaterialPatchComponentVisualizer_helpers::GetAttachedBoxShapeByName(
+		const UAGX_ShapeComponent* Shape =
+			AGX_TerrainMaterialPatchComponentVisualizer_helpers::GetAttachedShapeByName(
 				*PatchComponent, PatchData.ShapeComponentName);
-		if (BoxShape == nullptr)
+		if (Shape == nullptr)
 			continue;
 
-		const FBox LocalBounds(-BoxShape->GetHalfExtent(), BoxShape->GetHalfExtent());
-		for (const FTransform& InstanceTransform : PatchData.InstanceTransforms)
+		if (const UAGX_BoxShapeComponent* BoxShape = Cast<const UAGX_BoxShapeComponent>(Shape))
 		{
-			const FTransform InstanceWorldTransform =
-				AGX_TerrainMaterialPatchComponentVisualizer_helpers::GetInstanceWorldTransform(
-					*BoxShape, InstanceTransform);
-			DrawWireBox(
-				PDI, InstanceWorldTransform.ToMatrixNoScale(), LocalBounds, FLinearColor::Yellow,
-				SDPG_Foreground, 1.5f, 0.f, true);
+			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawBoxInstances(
+				*BoxShape, PatchData.InstanceTransforms, PDI);
+		}
+		else if (
+			const UAGX_SphereShapeComponent* SphereShape =
+				Cast<const UAGX_SphereShapeComponent>(Shape))
+		{
+			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawSphereInstances(
+				*SphereShape, PatchData.InstanceTransforms, PDI);
+		}
+		else if (
+			const UAGX_CylinderShapeComponent* CylinderShape =
+				Cast<const UAGX_CylinderShapeComponent>(Shape))
+		{
+			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawCylinderInstances(
+				*CylinderShape, PatchData.InstanceTransforms, PDI);
+		}
+		else if (
+			const UAGX_CapsuleShapeComponent* CapsuleShape =
+				Cast<const UAGX_CapsuleShapeComponent>(Shape))
+		{
+			AGX_TerrainMaterialPatchComponentVisualizer_helpers::DrawCapsuleInstances(
+				*CapsuleShape, PatchData.InstanceTransforms, PDI);
 		}
 	}
 }
