@@ -204,6 +204,7 @@ void UAGX_TerrainMaterialPatchComponent::AddPatch(
 		ShapeComponent, TerrainMaterial, ShapeMaterial, Placement, *TerrainBarrier);
 }
 
+#if WITH_EDITOR
 bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
@@ -226,6 +227,7 @@ bool UAGX_TerrainMaterialPatchComponent::CanEditChange(const FProperty* InProper
 
 	return SuperCanEditChange;
 }
+#endif // WITH_EDITOR
 
 TArray<UAGX_ShapeComponent*> UAGX_TerrainMaterialPatchComponent::GetAttachedShapes() const
 {

@@ -117,7 +117,9 @@ public:
 	TArray<UAGX_ShapeComponent*> GetAttachedShapes() const;
 
 	// ~Begin UObject interface.
+#if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
 	// ~End UObject interface.
 
 	// ~Begin UActorComponent interface.
