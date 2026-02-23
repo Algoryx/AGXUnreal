@@ -13,6 +13,8 @@
 #if WITH_EDITOR
 #include "Utilities/AGX_BlueprintUtilities.h"
 #endif
+#include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 namespace AGX_TerrainMaterialPatchComponent_helpers
 {
@@ -201,12 +203,19 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 	FTerrainBarrier* TerrainBarrier =
 		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
 	if (TerrainBarrier == nullptr)
+	{
+		const FString Message = FString::Printf(
+			TEXT("AGX Terrain Material Patch '%s' in '%s' could not find an AGX Terrain or AGX "
+				 "Movable Terrain parent. Ignoring terrain material patch assignments."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
+	}
 
 	for (const FAGX_TerrainMaterialPatchData& AssignmentData : TerrainMaterialPatches)
 	{
 		if (AssignmentData.TerrainMaterial == nullptr)
-			continue;
+			continue; // Todo: is it OK to assign nullptr?
 
 		UAGX_ShapeComponent* ShapeComponent =
 			AGX_TerrainMaterialPatchComponent_helpers::GetAttachedShapeByName(
@@ -225,8 +234,7 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 		if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
 			continue;
 
-		TerrainBarrier->SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
-
+		FShapeMaterialBarrier* ShapeMaterialBarrier = nullptr;
 		if (AssignmentData.ShapeMaterial != nullptr)
 		{
 			auto ShapeMaterialInstance =
@@ -234,13 +242,26 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 			if (ShapeMaterialInstance == nullptr)
 				continue;
 
-			FShapeMaterialBarrier* ShapeMaterialBarrier =
+			ShapeMaterialBarrier =
 				ShapeMaterialInstance->GetOrCreateShapeMaterialNative(GetWorld());
-			if (ShapeMaterialBarrier == nullptr)
-				continue;
-
-			TerrainBarrier->SetAssociatedMaterial(*TerrainMaterialBarrier, *ShapeMaterialBarrier);
 		}
+
+		const FTransform OriginalRelativeTransform = ShapeComponent->GetRelativeTransform();
+		for (const FTransform& InstanceTransform : AssignmentData.InstanceTransforms)
+		{
+			// Instance transforms are interpreted relative to the shape's original transform.
+			ShapeComponent->SetRelativeTransform(OriginalRelativeTransform * InstanceTransform);
+			ShapeComponent->UpdateComponentToWorld();
+
+			TerrainBarrier->SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+			if (ShapeMaterialBarrier != nullptr)
+				TerrainBarrier->SetAssociatedMaterial(
+					*TerrainMaterialBarrier, *ShapeMaterialBarrier);
+		}
+
+		// Finally, we restore the Shapes Transform.
+		ShapeComponent->SetRelativeTransform(OriginalRelativeTransform);
+		ShapeComponent->UpdateComponentToWorld();
 	}
 }
 
