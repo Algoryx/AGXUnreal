@@ -22,39 +22,31 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 		const UAGX_TerrainMaterialPatchComponent& PatchComponent, const FName& ShapeName)
 	{
 		if (ShapeName.IsNone())
-		{
 			return nullptr;
-		}
 
 		for (const UAGX_ShapeComponent* ShapeComponent : PatchComponent.GetAttachedShapes())
 		{
 			const UAGX_BoxShapeComponent* BoxShape =
 				Cast<const UAGX_BoxShapeComponent>(ShapeComponent);
 			if (BoxShape == nullptr)
-			{
 				continue;
-			}
 
 			if (GetShapeComponentName(*BoxShape) == ShapeName || BoxShape->GetFName() == ShapeName)
-			{
 				return BoxShape;
-			}
 		}
 
 		return nullptr;
 	}
 
 	FTransform GetInstanceWorldTransform(
-		const UAGX_BoxShapeComponent& BoxShape, const FTransform& InstanceTransform)
+		const USceneComponent& Shape, const FTransform& InstanceTransform)
 	{
-		const FTransform InstanceRelativeTransform =
-			BoxShape.GetRelativeTransform() * InstanceTransform;
-		if (const USceneComponent* Parent = BoxShape.GetAttachParent())
-		{
-			return InstanceRelativeTransform * Parent->GetComponentTransform();
-		}
+		const FVector WorldPos =
+			Shape.GetComponentTransform().TransformPositionNoScale(InstanceTransform.GetLocation());
+		const FQuat WorldRot =
+			Shape.GetComponentTransform().TransformRotation(InstanceTransform.GetRotation());
 
-		return InstanceRelativeTransform;
+		return FTransform(WorldRot, WorldPos);
 	}
 }
 
@@ -71,17 +63,13 @@ void FAGX_TerrainMaterialPatchComponentVisualizer::DrawVisualization(
 	for (const FAGX_TerrainMaterialPatchData& PatchData : PatchComponent->GetTerrainMaterialPatches())
 	{
 		if (!PatchData.bDebugRenderInstances)
-		{
 			continue;
-		}
 
 		const UAGX_BoxShapeComponent* BoxShape =
 			AGX_TerrainMaterialPatchComponentVisualizer_helpers::GetAttachedBoxShapeByName(
 				*PatchComponent, PatchData.ShapeComponentName);
 		if (BoxShape == nullptr)
-		{
 			continue;
-		}
 
 		const FBox LocalBounds(-BoxShape->GetHalfExtent(), BoxShape->GetHalfExtent());
 		for (const FTransform& InstanceTransform : PatchData.InstanceTransforms)

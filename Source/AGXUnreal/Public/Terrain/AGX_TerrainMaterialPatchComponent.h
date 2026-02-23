@@ -36,8 +36,9 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
 	/**
-	* Per-shape local transforms used to create one or more patch instances.
-	*/
+	 * Per-shape local transforms used to create one or more patch instances.
+	 * Note that Scale is currently not supported and changes to it will have no effect.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch Advanced", AdvancedDisplay)
 	TArray<FTransform> InstanceTransforms;
 
@@ -110,8 +111,8 @@ public:
 		UAGX_ShapeMaterial* ShapeMaterial);
 
 	/**
-	* Returns all attached AGX Shape Components.
-	*/
+	 * Returns all attached AGX Shape Components.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
 	TArray<UAGX_ShapeComponent*> GetAttachedShapes() const;
 
