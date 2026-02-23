@@ -23,15 +23,19 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 		InstanceTransforms.Add(FTransform::Identity);
 	}
 
+	/** Name of the attached AGX Shape Component that defines this patch area. */
 	UPROPERTY(VisibleAnywhere, Category = "AGX Terrain Material Patch")
 	FName ShapeComponentName;
 
+	/** Terrain Material that will be assigned to the Terrain voxels overlapped by the Shape. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_TerrainMaterial* TerrainMaterial = nullptr;
 
+	/** Optional Shape Material to associate with the selected Terrain Material. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
+	/** Per-shape local transforms used to create one or more patch instances. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch", AdvancedDisplay)
 	TArray<FTransform> InstanceTransforms;
 };
@@ -71,6 +75,11 @@ public:
 
 	void UpdateTerrainMaterialPatches();
 
+	/**
+	 * Add an Instance of an existing Shape.
+	 * If the ShapeName does not match an existing Shape Component's name, this function has no
+	 * effect.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
 	void AddShapeInstance(FName ShapeName, FTransform InstanceTransform);
 
