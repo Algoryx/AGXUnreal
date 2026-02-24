@@ -301,6 +301,10 @@ void UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
 	UpdateTerrainMaterialPatches();
 
 	FTerrainBarrier* TerrainBarrier =
@@ -340,15 +344,32 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	FTerrainMaterialBarrier* TerrainMaterialBarrier =
 		GetTerrainMaterialBarrier(TerrainMaterial, GetWorld());
+	const bool bShapeHadNative = Shape->HasNative();
 	FShapeBarrier* ShapeBarrier = GetShapeBarrier(Shape);
-	if (TerrainMaterialBarrier == nullptr || ShapeBarrier == nullptr)
+	if (TerrainMaterialBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Terrain Material "
+				 "Barrier from Terrain Material '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *TerrainMaterial->GetName());
 		return;
+	}
+	if (ShapeBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Shape "
+				 "Barrier from Shape Component '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *Shape->GetName());
+		return;
+	}
 
 	FShapeMaterialBarrier* ShapeMaterialBarrier =
 		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
 
 	const FTransform OriginalRelativeTransform = Shape->GetRelativeTransform();
-	for (const FAGX_Placement& Placement: Placements)
+	for (const FAGX_Placement& Placement : Placements)
 	{
 		const FTransform Transform = Placement.ToTransform();
 
@@ -356,15 +377,41 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 		Shape->SetRelativeTransform(OriginalRelativeTransform * Transform);
 		Shape->UpdateComponentToWorld();
 
-		TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+		const int32 NumVoxels =
+			TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+		if (NumVoxels == 0)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("ApplyTerrainMaterialPatch called on Terrain Material Patch Component '%s' in "
+					 "'%s' but no voxels were overlapped or assigned when using Shape '%s' and "
+					 "Terrain Material '%s'."),
+				*GetName(), *GetLabelSafe(GetOwner()), *Shape->GetName(),
+				*TerrainMaterial->GetName());
+		}
+
+		if (bLogPatchAssignments)
+		{
+			UE_LOG(
+				LogAGX, Log,
+				TEXT("Terrain Material Patch Component '%s' in '%s' assigned %d voxels when using "
+					 "Shape '%s' and Terrain Material '%s'."),
+				*GetName(), *GetLabelSafe(GetOwner()), NumVoxels, *Shape->GetName(),
+				*TerrainMaterial->GetName());
+		}
+
 		if (ShapeMaterialBarrier != nullptr)
 			TerrainBarrier.SetAssociatedMaterial(*TerrainMaterialBarrier, *ShapeMaterialBarrier);
 	}
 
 	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
-	// above.
+	// above. We also release its Native if we created it. This is since the Shape may have the
+	// bIncludeInSimulation set to false, in which case it will crash on Blueprint Reconstruction
+	// since no one (Simulation) is keeping it alive.
 	Shape->SetRelativeTransform(OriginalRelativeTransform);
 	Shape->UpdateComponentToWorld();
+	if (!bShapeHadNative && Shape->HasNative())
+		Shape->ReleaseNative();
 }
 
 #if WITH_EDITOR

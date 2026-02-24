@@ -84,6 +84,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
 
+	/**
+	 * For each Terrain Material patch assignment, a log message is printed with the number of
+	 * overlapping voxels for each assignment.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch", AdvancedDisplay)
+	bool bLogPatchAssignments {false};
+
 	TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches();
 
 	const TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches() const;
