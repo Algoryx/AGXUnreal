@@ -81,7 +81,7 @@ public:
 	 * This data is applied at BeginPlay and changes to it durint Play will generally not have any
 	 * effect. One exception is when adding instances through the AddShapeInstance function.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch", Meta = (ExposeOnSpawn))
 	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
 
 	TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches();
