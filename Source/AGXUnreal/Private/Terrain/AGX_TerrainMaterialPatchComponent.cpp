@@ -342,6 +342,9 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	FTerrainBarrier& TerrainBarrier)
 {
 	using namespace AGX_TerrainMaterialPatchComponent_helpers;
+	if (!bEnabled)
+		return;
+
 	FTerrainMaterialBarrier* TerrainMaterialBarrier =
 		GetTerrainMaterialBarrier(TerrainMaterial, GetWorld());
 	const bool bShapeHadNative = Shape->HasNative();

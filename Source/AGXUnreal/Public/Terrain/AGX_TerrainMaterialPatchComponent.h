@@ -72,6 +72,13 @@ public:
 	UAGX_TerrainMaterialPatchComponent();
 
 	/**
+	* Whether or not this Component is enabled or not.
+	* If set to false, no patch assignments will occur.
+	*/
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
+	bool bEnabled {true};
+
+	/**
 	 * Terrain Material Patch data that is used to assign Terrain Materials to patches of the
 	 * Terrain overlapped by the Shapes.
 	 *
