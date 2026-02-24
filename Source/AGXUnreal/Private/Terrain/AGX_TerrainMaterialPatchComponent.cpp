@@ -1,4 +1,4 @@
-﻿// Copyright 2026, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Terrain/AGX_TerrainMaterialPatchComponent.h"
 
