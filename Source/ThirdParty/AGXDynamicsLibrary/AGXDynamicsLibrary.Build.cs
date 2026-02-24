@@ -81,6 +81,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// within AGX Dynamics.
 		Cfg,
 
+		// Resources needed by the Thread Timeline feature.
+		JournalConfigurations,
+
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
 
@@ -878,6 +881,17 @@ public class AGXDynamicsLibrary : ModuleRules
 			}
 		}
 
+		// Copy AGX Dynamics JournalConfigurations directory.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
 		// Copy Material Library.
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
@@ -1617,6 +1631,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
@@ -1673,6 +1691,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
@@ -1727,6 +1749,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
@@ -1785,6 +1811,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
@@ -1842,6 +1872,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
@@ -1896,6 +1930,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
