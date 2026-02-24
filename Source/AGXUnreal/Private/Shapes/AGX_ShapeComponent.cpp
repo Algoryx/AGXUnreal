@@ -390,6 +390,9 @@ namespace AGX_ShapeComponent_helpers
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
+		if (!RenderData.GetShouldRender())
+			Component->SetVisibility(false, /*bPropagateToChildren*/ false);
+
 		Component->SetMaterial(0, Material);
 		Component->SetRelativeTransform(RelTransform);
 		Component->SetStaticMesh(StaticMesh);
@@ -451,7 +454,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	// and then read by agxViewer, the shape will not be visible (unless it has RenderData).
 	const bool Visible =
 		Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
-	SetVisibility(Visible);
+	SetVisibility(Visible, /*bPropagateToChildren*/ false);
 
 	////// Render Material ///////
 	UMaterialInterface* Material =
