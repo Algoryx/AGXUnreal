@@ -48,6 +48,38 @@ bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
 	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT);
 }
 
+void FTerrainWheelBarrier::SetSlipRatioVxThreshold(double InThreshold)
+{
+	check(HasNative());
+	agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
+	check(Settings != nullptr);
+	Settings->setSlipRatioVxThreshold(ConvertDistanceToAGX(InThreshold));
+}
+
+double FTerrainWheelBarrier::GetSlipRatioVxThreshold() const
+{
+	check(HasNative());
+	const agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
+	check(Settings != nullptr);
+	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioVxThreshold());
+}
+
+void FTerrainWheelBarrier::SetSlipRatioOmegaYRThreshold(double InThreshold)
+{
+	check(HasNative());
+	agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
+	check(Settings != nullptr);
+	Settings->setSlipRatioOmegaYRThreshold(ConvertDistanceToAGX(InThreshold));
+}
+
+double FTerrainWheelBarrier::GetSlipRatioOmegaYRThreshold() const
+{
+	check(HasNative());
+	const agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
+	check(Settings != nullptr);
+	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioOmegaYRthreshold());
+}
+
 void FTerrainWheelBarrier::SetEnableAGXDebugRendering(bool InEnable)
 {
 	check(HasNative());

@@ -65,6 +65,38 @@ bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
 	return bEnableTerrainDisplacement;
 }
 
+void UAGX_TerrainWheelComponent::SetSlipRatioVxThreshold(double InThreshold)
+{
+	SlipRatioVxThreshold = InThreshold;
+
+	if (HasNative())
+		NativeBarrier.SetSlipRatioVxThreshold(InThreshold);
+}
+
+double UAGX_TerrainWheelComponent::GetSlipRatioVxThreshold() const
+{
+	if (HasNative())
+		return NativeBarrier.GetSlipRatioVxThreshold();
+
+	return SlipRatioVxThreshold;
+}
+
+void UAGX_TerrainWheelComponent::SetSlipRatioOmegaYRThreshold(double InThreshold)
+{
+	SlipRatioOmegaYRThreshold = InThreshold;
+
+	if (HasNative())
+		NativeBarrier.SetSlipRatioOmegaYRThreshold(InThreshold);
+}
+
+double UAGX_TerrainWheelComponent::GetSlipRatioOmegaYRThreshold() const
+{
+	if (HasNative())
+		return NativeBarrier.GetSlipRatioOmegaYRThreshold();
+
+	return SlipRatioOmegaYRThreshold;
+}
+
 void UAGX_TerrainWheelComponent::SetAGXDebugRenderingEnabled(bool InEnable)
 {
 	bEnableAGXDebugRendering = InEnable;
@@ -299,6 +331,8 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxThreshold);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYRThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
@@ -404,6 +438,8 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
+	NativeBarrier.SetSlipRatioVxThreshold(SlipRatioVxThreshold);
+	NativeBarrier.SetSlipRatioOmegaYRThreshold(SlipRatioOmegaYRThreshold);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 

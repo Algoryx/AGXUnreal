@@ -56,6 +56,33 @@ public:
 	bool IsTerrainDisplacementEnabled() const;
 
 	/**
+	 * Longitudinal velocity threshold used by the slip-ratio dead-band [cm/s].
+	 * The slip ratio is clamped to zero when both |vX| and |omegaY * radius| are below their
+	 * respective thresholds.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	double SlipRatioVxThreshold {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetSlipRatioVxThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	double GetSlipRatioVxThreshold() const;
+
+	/**
+	 * Tangential surface-speed threshold used by the slip-ratio dead-band [cm/s].
+	 * This corresponds to |omegaY * radius| in the slip-ratio logic.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	double SlipRatioOmegaYRThreshold {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetSlipRatioOmegaYRThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	double GetSlipRatioOmegaYRThreshold() const;
+
+	/**
 	 * Determines whether detailed debug rendering in AGX for this Terrain Wheel is active. This
 	 * will be visible in the AGX Web Debugger.
 	 */

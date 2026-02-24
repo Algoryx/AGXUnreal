@@ -28,6 +28,12 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetEnableTerrainDisplacement(bool InEnable);
 	bool GetEnableTerrainDisplacement() const;
 
+	void SetSlipRatioVxThreshold(double InThreshold);
+	double GetSlipRatioVxThreshold() const;
+
+	void SetSlipRatioOmegaYRThreshold(double InThreshold);
+	double GetSlipRatioOmegaYRThreshold() const;
+
 	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
 
 	void AllocateNative(FCylinderShapeBarrier& Cylinder);
