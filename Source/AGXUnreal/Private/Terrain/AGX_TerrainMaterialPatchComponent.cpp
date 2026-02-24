@@ -401,7 +401,19 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 		}
 
 		if (ShapeMaterialBarrier != nullptr)
-			TerrainBarrier.SetAssociatedMaterial(*TerrainMaterialBarrier, *ShapeMaterialBarrier);
+		{
+			if (!TerrainBarrier.SetAssociatedMaterial(
+					*TerrainMaterialBarrier, *ShapeMaterialBarrier))
+			{
+				UE_LOG(
+					LogAGX, Log,
+					TEXT("Terrain Material Patch Component '%s' in '%s' associating Shape Material "
+						 "'%s' with Terrain Material '%s' failed. The Output Log may contain more "
+						 "details."),
+					*GetName(), *GetLabelSafe(GetOwner()), *ShapeMaterial->GetName(),
+					*TerrainMaterial->GetName());
+			}
+		}
 	}
 
 	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
