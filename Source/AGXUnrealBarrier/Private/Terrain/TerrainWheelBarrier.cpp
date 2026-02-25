@@ -96,6 +96,25 @@ double FTerrainWheelBarrier::GetSlipRatioSmoothingSpeed() const
 	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioSmoothingSpeed());
 }
 
+void FTerrainWheelBarrier::SetRegressionPlaneStepSizeScaleUsingWheel(bool InEnable)
+{
+	check(HasNative());
+	using namespace agxTerrain;
+
+	using GridScale = RegressionPlanesParameters::GridScale;
+	using GridScalePair = RegressionPlanesParameters::GridScalePair;
+
+	agx::VectorPOD<GridScalePair> scales;
+
+	if (InEnable)
+		scales.push_back({GridScale::RADIUS, GridScale::WIDTH});
+	else
+		scales.push_back({GridScale::ELEMENT_SIZE, GridScale::ELEMENT_SIZE});
+
+	NativeRef->Native->getRegressionPlanesParameters()->setRegressionPlanesGridsStepSizeScale(
+		scales);
+}
+
 void FTerrainWheelBarrier::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
 	check(HasNative());

@@ -98,6 +98,17 @@ public:
 	double GetSlipRatioSmoothingSpeed() const;
 
 	/**
+	 * If set to true, the size of the wheel is used as a basis for the
+	 * scaling of the regression plane used by the Terrain Wheel.
+	 * If set to false, te element size of the terrain is used instead.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	bool bRegressionPlaneStepSizeScaleUsingWheel {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetRegressionPlaneStepSizeScaleUsingWheelEnabled(bool InEnable);
+
+	/**
 	 * Enable or disable computation of the rear contact angle from the front contact angle.
 	 *
 	 * When enabled, the rear contact angle theta_r is not computed from the wheel-terrain
@@ -182,6 +193,7 @@ private:
 	// To allow usage of Dispatcher macro.
 	void SetEnableTerrainDisplacement(bool InEnable);
 	void SetEnableTerrainDeformation(bool InEnable);
+	void SetRegressionPlaneStepSizeScaleUsingWheel(bool InEnable);
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 	void SetEnableAGXDebugRendering(bool InEnable);
 
