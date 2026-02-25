@@ -113,6 +113,22 @@ double UAGX_TerrainWheelComponent::GetSlipRatioSmoothingSpeed() const
 	return SlipRatioSmoothingSpeed;
 }
 
+void UAGX_TerrainWheelComponent::SetRegressionPlanesGridsNumGridPoints(FIntPoint InValue)
+{
+	RegressionPlanesGridsNumGridPoints = InValue;
+
+	if (HasNative())
+		NativeBarrier.SetRegressionPlanesGridsNumGridPoints(InValue);
+}
+
+void UAGX_TerrainWheelComponent::SetRegressionPlanesGridsStepSize(FVector2D InValue)
+{
+	RegressionPlanesGridsStepSize = InValue;
+
+	if (HasNative())
+		NativeBarrier.SetRegressionPlanesGridsStepSize(InValue);
+}
+
 void UAGX_TerrainWheelComponent::SetComputeRearAngleFromFrontAngleEnabled(bool InEnable)
 {
 	bEnableComputeRearAngleFromFrontAngle = InEnable;
@@ -371,6 +387,8 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYRThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingSpeed);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(RegressionPlanesGridsNumGridPoints);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(RegressionPlanesGridsStepSize);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
@@ -480,6 +498,8 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	NativeBarrier.SetSlipRatioVxThreshold(SlipRatioVxThreshold);
 	NativeBarrier.SetSlipRatioOmegaYRThreshold(SlipRatioOmegaYRThreshold);
 	NativeBarrier.SetSlipRatioSmoothingSpeed(SlipRatioSmoothingSpeed);
+	NativeBarrier.SetRegressionPlanesGridsNumGridPoints(RegressionPlanesGridsNumGridPoints);
+	NativeBarrier.SetRegressionPlanesGridsStepSize(RegressionPlanesGridsStepSize);
 	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());

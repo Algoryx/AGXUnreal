@@ -98,10 +98,31 @@ public:
 	double GetSlipRatioSmoothingSpeed() const;
 
 	/**
-	 * Enable or disable computation of the rear contact angle from the front contact angle.
+	 * The number of sampling points for each regression-plane grid in the X and Y directions
+	 * respecively.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	FIntPoint RegressionPlanesGridsNumGridPoints {5, 5};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetRegressionPlanesGridsNumGridPoints(FIntPoint InValue);
+
+	/**
+	* The step size for each regression-plane sampling grid as a multiple of the Terrain
+	 * Element size.
+	*/
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	FVector2D RegressionPlanesGridsStepSize {2.0, 2.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetRegressionPlanesGridsStepSize(FVector2D InValue);
+
+	/**
+	 * Enable or disable computation of the rear contact angle from the front contact
+	 * angle.
 	 *
-	 * When enabled, the rear contact angle theta_r is not computed from the wheel-terrain
-	 * geometry directly. Instead it is derived from the current front contact angle
+	 * When enabled, the rear contact angle theta_r is not computed from the
+	 * wheel-terrain geometry directly. Instead it is derived from the current front contact angle
 	 * theta_f using an empirical slip-dependent relation
 	 * (see computeRearAngleFromFrontAngle()).
 	 * This can be useful when a simplified or more stable trailing-edge estimate is desired.
