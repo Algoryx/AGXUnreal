@@ -34,6 +34,12 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetSlipRatioOmegaYRThreshold(double InThreshold);
 	double GetSlipRatioOmegaYRThreshold() const;
 
+	void SetSlipRatioSmoothingSpeed(double InSpeed);
+	double GetSlipRatioSmoothingSpeed() const;
+
+	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
+	bool GetEnableComputeRearAngleFromFrontAngle() const;
+
 	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
 
 	void AllocateNative(FCylinderShapeBarrier& Cylinder);

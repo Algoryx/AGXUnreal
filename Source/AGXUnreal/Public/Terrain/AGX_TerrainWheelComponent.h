@@ -83,6 +83,39 @@ public:
 	double GetSlipRatioOmegaYRThreshold() const;
 
 	/**
+	 * Minimum velocity scale used to smooth slip-ratio computation [cm/s].
+	 *
+	 * At very low wheel speeds this value is used to attenuate the slip-ratio expression
+	 * to improve numerical stability close to standstill.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	double SlipRatioSmoothingSpeed {0.01};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetSlipRatioSmoothingSpeed(double InSpeed);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	double GetSlipRatioSmoothingSpeed() const;
+
+	/**
+	 * Enable or disable computation of the rear contact angle from the front contact angle.
+	 *
+	 * When enabled, the rear contact angle theta_r is not computed from the wheel-terrain
+	 * geometry directly. Instead it is derived from the current front contact angle
+	 * theta_f using an empirical slip-dependent relation
+	 * (see computeRearAngleFromFrontAngle()).
+	 * This can be useful when a simplified or more stable trailing-edge estimate is desired.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
+	bool bEnableComputeRearAngleFromFrontAngle {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetComputeRearAngleFromFrontAngleEnabled(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	bool IsComputeRearAngleFromFrontAngleEnabled() const;
+
+	/**
 	 * Determines whether detailed debug rendering in AGX for this Terrain Wheel is active. This
 	 * will be visible in the AGX Web Debugger.
 	 */
@@ -149,6 +182,7 @@ private:
 	// To allow usage of Dispatcher macro.
 	void SetEnableTerrainDisplacement(bool InEnable);
 	void SetEnableTerrainDeformation(bool InEnable);
+	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 	void SetEnableAGXDebugRendering(bool InEnable);
 
 	void CreateNative();
