@@ -149,6 +149,9 @@ public:
 	void SetStatisticsEnabled(bool bEnable);
 	FAGX_Statistics GetStatistics();
 
+	void EnableThreadTimeline();
+	bool DisableThreadTimeline(const FString& FileType);
+
 	bool HasNative() const;
 	void AllocateNative();
 	FSimulationRef* GetNative();
