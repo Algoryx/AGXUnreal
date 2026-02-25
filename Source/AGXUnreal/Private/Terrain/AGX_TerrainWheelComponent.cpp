@@ -113,14 +113,6 @@ double UAGX_TerrainWheelComponent::GetSlipRatioSmoothingSpeed() const
 	return SlipRatioSmoothingSpeed;
 }
 
-void UAGX_TerrainWheelComponent::SetRegressionPlaneStepSizeScaleUsingWheelEnabled(bool InEnable)
-{
-	bRegressionPlaneStepSizeScaleUsingWheel = InEnable;
-
-	if (HasNative())
-		NativeBarrier.SetRegressionPlaneStepSizeScaleUsingWheel(InEnable);
-}
-
 void UAGX_TerrainWheelComponent::SetComputeRearAngleFromFrontAngleEnabled(bool InEnable)
 {
 	bEnableComputeRearAngleFromFrontAngle = InEnable;
@@ -162,11 +154,6 @@ void UAGX_TerrainWheelComponent::SetEnableAGXDebugRendering(bool InEnable)
 void UAGX_TerrainWheelComponent::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
 	SetComputeRearAngleFromFrontAngleEnabled(InEnable);
-}
-
-void UAGX_TerrainWheelComponent::SetRegressionPlaneStepSizeScaleUsingWheel(bool InEnable)
-{
-	SetRegressionPlaneStepSizeScaleUsingWheelEnabled(InEnable);
 }
 
 void UAGX_TerrainWheelComponent::CopyFrom(
@@ -384,7 +371,6 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYRThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingSpeed);
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(RegressionPlaneStepSizeScaleUsingWheel);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
@@ -494,8 +480,6 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	NativeBarrier.SetSlipRatioVxThreshold(SlipRatioVxThreshold);
 	NativeBarrier.SetSlipRatioOmegaYRThreshold(SlipRatioOmegaYRThreshold);
 	NativeBarrier.SetSlipRatioSmoothingSpeed(SlipRatioSmoothingSpeed);
-	NativeBarrier.SetRegressionPlaneStepSizeScaleUsingWheel(
-		bRegressionPlaneStepSizeScaleUsingWheel);
 	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
