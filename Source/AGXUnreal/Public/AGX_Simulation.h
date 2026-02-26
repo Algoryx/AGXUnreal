@@ -267,8 +267,8 @@ public: // Properties.
 	int32 RaytraceDeviceIndex {0};
 
 	/**
-	 * Default Lidar Surface Material used by Sensor Environments when a detected object has no
-	 * explicitly assigned Lidar Surface Material.
+	 * Default Lidar Surface Material assigned to all objects added to a Sensor Environment
+	 * when the object has no explicitly assigned Lidar Surface Material.
 	 */
 	UPROPERTY(
 		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
