@@ -220,7 +220,8 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.IsEmpty() && !Settings.FilePath.StartsWith(
+					FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
@@ -239,7 +240,7 @@ namespace AGX_Importer_helpers
 			}
 		}
 
-		if (!FPaths::FileExists(Settings.FilePath))
+		if (!Settings.FilePath.IsEmpty() && !FPaths::FileExists(Settings.FilePath))
 		{
 			UE_LOG(LogAGX, Error, TEXT("File: '%s' does not exist."), *Settings.FilePath);
 			return false;
