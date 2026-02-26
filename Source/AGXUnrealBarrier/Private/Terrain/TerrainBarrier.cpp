@@ -203,6 +203,27 @@ void FTerrainBarrier::SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainM
 	NativeRef->Native->setTerrainMaterial(TerrainMaterial.GetNative()->Native);
 }
 
+bool FTerrainBarrier::SetAssociatedMaterial(
+	FTerrainMaterialBarrier& TerrainMaterial, FShapeMaterialBarrier& ShapeMaterial)
+{
+	check(HasNative());
+	check(TerrainMaterial.HasNative());
+	check(ShapeMaterial.HasNative());
+	return NativeRef->Native->setAssociatedMaterial(
+		TerrainMaterial.GetNative()->Native, ShapeMaterial.GetNative()->Native);
+}
+
+int32 FTerrainBarrier::SetTerrainMaterial(
+	FTerrainMaterialBarrier& TerrainMaterial, FShapeBarrier& Shape)
+{
+	check(HasNative());
+	check(TerrainMaterial.HasNative());
+	check(Shape.HasNative());
+
+	return NativeRef->Native->addTerrainMaterial(
+		TerrainMaterial.GetNative()->Native, Shape.GetNative()->NativeGeometry);
+}
+
 void FTerrainBarrier::SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties)
 {
 	check(HasNative());
