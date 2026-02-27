@@ -236,6 +236,9 @@ void UAGX_ShapeComponent::BeginPlay()
 		return;
 	}
 
+	if (!bIncludeInSimulation)
+		return;
+
 	GetOrCreateNative();
 	if (HasNative())
 	{

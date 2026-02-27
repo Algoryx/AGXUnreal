@@ -230,6 +230,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_CuttingEdgeComponent",
 		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
+		"ClassIcon.AGX_TerrainMaterialPatchComponent", new IMAGE_BRUSH("Icons/terrain_material_32x32", IconSize16));
+	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize16));
