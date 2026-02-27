@@ -224,7 +224,7 @@ namespace AGX_SensorEnvironment_helpers
 
 		ShapeInstance.InstanceData.Instance.AllocateNative(ShapeInstance.Shape, SEBarrier);
 		ShapeInstance.InstanceData.SetTransform(Mesh.GetComponentTransform());
-		ShapeInstance.InstanceData.Instance.SetLidarSurfaceMaterialOrDefault(
+		ShapeInstance.InstanceData.Instance.SetLidarSurfaceMaterial(
 			GetLambertianOpaqueMaterialBarrierFromOrDefault(Mesh, DefaultMaterial));
 		return ShapeInstance;
 	}
@@ -545,7 +545,7 @@ bool AAGX_SensorEnvironment::AddInstancedMeshInstance_Internal(
 	InstanceData.SetTransform(InstanceTrans);
 	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
 		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	InstanceData.Instance.SetLidarSurfaceMaterialOrDefault(
+	InstanceData.Instance.SetLidarSurfaceMaterial(
 		GetLambertianOpaqueMaterialBarrierFromOrDefault(*Mesh, DefaultMaterial));
 	return true;
 }
@@ -574,7 +574,7 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*PagerBarrier))
 			return false;
 
-		NativeBarrier.SetLidarSurfaceMaterialOrDefault(
+		NativeBarrier.SetLidarSurfaceMaterial(
 			*PagerBarrier,
 			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 	}
@@ -589,7 +589,7 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*TerrainBarrier))
 			return false;
 
-		NativeBarrier.SetLidarSurfaceMaterialOrDefault(
+		NativeBarrier.SetLidarSurfaceMaterial(
 			*TerrainBarrier,
 			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 	}
@@ -626,7 +626,7 @@ bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Ter
 
 	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
 		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	NativeBarrier.SetLidarSurfaceMaterialOrDefault(
+	NativeBarrier.SetLidarSurfaceMaterial(
 		*TerrainBarrier, GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 
 	if (DebugLogOnAdd)
@@ -661,7 +661,7 @@ bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
 
 	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
 		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	NativeBarrier.SetLidarSurfaceMaterialOrDefault(
+	NativeBarrier.SetLidarSurfaceMaterial(
 		*Barrier, GetLambertianOpaqueMaterialBarrierFromOrDefault(*Wire, DefaultMaterial));
 
 	if (DebugLogOnAdd)

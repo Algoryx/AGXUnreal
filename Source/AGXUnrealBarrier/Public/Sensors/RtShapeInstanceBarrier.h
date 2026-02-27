@@ -27,7 +27,7 @@ public:
 	 * Assign a Lambertian Opaque Material to this RtShapeInstance. If Material is nullptr, the
 	 * default AGX Lambertian Opaque Material is assigned.
 	 */
-	void SetLidarSurfaceMaterialOrDefault(FRtLambertianOpaqueMaterialBarrier* Material);
+	void SetLidarSurfaceMaterial(FRtLambertianOpaqueMaterialBarrier* Material);
 
 	bool HasNative() const;
 	FRtShapeInstance* GetNative();
