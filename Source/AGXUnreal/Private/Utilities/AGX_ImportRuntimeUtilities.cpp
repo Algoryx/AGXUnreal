@@ -138,7 +138,7 @@ FString FAGX_ImportRuntimeUtilities::RemoveImportedOpenPLXFiles(const FString& F
 	return "";
 }
 
-FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierNameImpl(
 	const FString& BarrierName, FAGX_ImportContext* Context)
 {
 	if (Context == nullptr || Context->RootModelName.IsEmpty())
