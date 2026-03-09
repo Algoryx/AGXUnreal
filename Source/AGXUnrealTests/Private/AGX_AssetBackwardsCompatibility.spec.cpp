@@ -258,6 +258,40 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 		});
 	});
 
+	Describe("Loading Contact Material with old default restitution", [this]()
+	{
+		It("should preserve the old restitution value", [this]()
+		{
+			const FString ObjectName {TEXT("AGX_CM_PreRestitutionChange_Default")};
+			const FString PackagePath =
+				FString::Printf(TEXT("/Game/Tests/BackwardsCompatibility/%s"), *ObjectName);
+
+			AgxAutomationCommon::CheckAssetMD5Checksum(PackagePath, TEXT("79e13f6abd0e2cf09d0c132e715857d6"), *this);
+
+			UAGX_ContactMaterial* ContactMaterial = LoadAsset<UAGX_ContactMaterial>(PackagePath, ObjectName);
+			TestEqual(
+				TEXT("The contact material should have correct Restitution"),
+				ContactMaterial->Restitution, 0.5);
+		});
+	});
+
+	Describe("Loading Contact Material with explicit zero restitution", [this]()
+	{
+		It("should have the correct value for restitution", [this]()
+		{
+			const FString ObjectName {TEXT("AGX_CM_PreRestitutionChange_ExplicitZero")};
+			const FString PackagePath =
+				FString::Printf(TEXT("/Game/Tests/BackwardsCompatibility/%s"), *ObjectName);
+
+			AgxAutomationCommon::CheckAssetMD5Checksum(PackagePath, TEXT("a0d65d89ec35bb125ca03cc55725e163"), *this);
+
+			UAGX_ContactMaterial* ContactMaterial = LoadAsset<UAGX_ContactMaterial>(PackagePath, ObjectName);
+			TestEqual(
+				TEXT("The contact material should have correct Restitution"),
+				ContactMaterial->Restitution, 0.0);
+		});
+	});
+
 	Describe("Loading Terrain Materials with doubles", [this]()
 	{
 		It("should convert double to FAGX_Real", [this]()
