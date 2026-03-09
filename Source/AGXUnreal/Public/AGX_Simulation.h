@@ -618,6 +618,12 @@ public: // Member functions.
 	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	bool IsWebDebuggingActive() const;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	void Internal_EnableThreadTimeline();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	bool Internal_DisableThreadTimeline(const FString& FileType = "chrome");
+
 	friend class AAGX_Stepper;
 
 private:

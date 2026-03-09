@@ -660,6 +660,22 @@ TArray<FAGX_ShapeContact> UAGX_Simulation::GetShapeContacts() const
 	return ShapeContacts;
 }
 
+void UAGX_Simulation::Internal_EnableThreadTimeline()
+{
+	if (!HasNative())
+		return;
+
+	NativeBarrier.EnableThreadTimeline();
+}
+
+bool UAGX_Simulation::Internal_DisableThreadTimeline(const FString& FileType)
+{
+	if (!HasNative())
+		return false;
+
+	return NativeBarrier.DisableThreadTimeline(FileType);
+}
+
 void UAGX_Simulation::SetEnableContactWarmstarting(bool bEnable)
 {
 	bContactWarmstarting = bEnable;
