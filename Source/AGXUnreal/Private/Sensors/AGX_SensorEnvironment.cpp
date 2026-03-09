@@ -565,8 +565,6 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 
 	if (Terrain->bEnableTerrainPaging)
 	{
-		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
-			GetDefaultLambertianOpaqueMaterialBarrier(*this);
 		FTerrainPagerBarrier* PagerBarrier = Terrain->GetOrCreateNativeTerrainPager();
 		if (PagerBarrier == nullptr)
 			return false;
@@ -574,14 +572,14 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*PagerBarrier))
 			return false;
 
+		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+			GetDefaultLambertianOpaqueMaterialBarrier(*this);
 		NativeBarrier.SetLidarSurfaceMaterial(
 			*PagerBarrier,
 			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 	}
 	else
 	{
-		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
-			GetDefaultLambertianOpaqueMaterialBarrier(*this);
 		FTerrainBarrier* TerrainBarrier = Terrain->GetOrCreateNative();
 		if (TerrainBarrier == nullptr)
 			return false;
@@ -589,6 +587,8 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*TerrainBarrier))
 			return false;
 
+		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+			GetDefaultLambertianOpaqueMaterialBarrier(*this);
 		NativeBarrier.SetLidarSurfaceMaterial(
 			*TerrainBarrier,
 			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
