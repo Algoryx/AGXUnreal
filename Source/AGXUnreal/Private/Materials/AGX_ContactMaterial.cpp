@@ -1170,8 +1170,8 @@ void UAGX_ContactMaterial::Serialize(FArchive& Archive)
 	{
 		// This is a trick we use to determine if the Restitution property was explicitly set to
 		// something other than default in old assets.
-		// Without this trick, we cannot not differentiate between old Contact Materials with
-		// Restitution values equal to the old default and the new default values.
+		// Without this trick, we cannot differentiate between old Contact Materials with
+		// Restitution values equal to the old default and the new default value.
 		// The trick is that we will check this value again after Super::Serialize is called, and
 		// then we can determine whether Restitution was explicitly set or not.
 		Restitution = std::numeric_limits<double>::quiet_NaN();
