@@ -72,7 +72,7 @@ public:
 	UAGX_TerrainMaterialPatchComponent();
 
 	/**
-	* Whether or not this Component is enabled or not.
+	* Whether or not this Component is enabled.
 	* If set to false, no patch assignments will occur.
 	*/
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
