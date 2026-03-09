@@ -390,7 +390,7 @@ public:
 	 * A value of 1.0 means that the body does not lose energy during normal-collisions.
 	 */
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real Restitution {0.5};
+	FAGX_Real Restitution {0.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetRestitution(double InRestitution);

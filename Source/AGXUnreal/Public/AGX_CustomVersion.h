@@ -77,6 +77,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// created by it, anymore, and instead uses one or several rendering Components to do that.
 		ParticleRenderingByRenderingComponents,
 
+		// Contact Material restitution default value changed from 0.5 to 0.0.
+		CMRestitutionDefaultIsZero,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

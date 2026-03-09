@@ -5,6 +5,7 @@
 // AX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
@@ -1163,7 +1164,34 @@ void UAGX_ContactMaterial::UpdateNativeProperties(
 
 void UAGX_ContactMaterial::Serialize(FArchive& Archive)
 {
+#if WITH_EDITOR
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::CMRestitutionDefaultIsZero))
+	{
+		// This is a trick we use to determine if the Restitution property was explicitly set to
+		// something other than default in old assets.
+		// Without this trick, we cannot not differentiate between old Contact Materials with
+		// Restitution values equal to the old default and the new default values.
+		// The trick is that we will check this value again after Super::Serialize is called, and
+		// then we can determine whether Restitution was explicitly set or not.
+		Restitution = std::numeric_limits<double>::quiet_NaN();
+	}
+#endif // WITH_EDITOR
+
 	Super::Serialize(Archive);
+
+#if WITH_EDITOR
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::CMRestitutionDefaultIsZero))
+	{
+		static constexpr double OldDefault = 0.5;
+		const bool ExplicitRestitution = !FMath::IsNaN(Restitution);
+		if (!ExplicitRestitution)
+			Restitution = OldDefault; // Old asset that had old default value.
+
+		AGX_CHECK(!FMath::IsNaN(Restitution));
+	}
+#endif // WITH_EDITOR
+
 	ContactReduction.Serialize(Archive);
 }
 
