@@ -209,7 +209,8 @@ namespace AGX_TrackComponent_helpers
 	}
 
 	UAGX_TrackProperties* GetOrCreateTrackProperties(
-		const FTrackBarrier& Barrier, FAGX_ImportContext& Context)
+		const FTrackBarrier& Barrier, FAGX_ImportContext& Context,
+		const UAGX_TrackComponent& TrackComponent)
 	{
 		auto PropertiesBarrier = Barrier.GetProperties();
 		if (!PropertiesBarrier.HasNative())
@@ -224,7 +225,8 @@ namespace AGX_TrackComponent_helpers
 		Properties->CopyFrom(PropertiesBarrier);
 
 		const FString CleanTrackBarrierName =
-			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				TrackComponent, Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Properties->GetOuter(), FString::Printf(TEXT("AGX_TP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackProperties::StaticClass());
@@ -235,7 +237,8 @@ namespace AGX_TrackComponent_helpers
 	}
 
 	UAGX_TrackInternalMergeProperties* GetOrCreateMergeProperties(
-		const FTrackBarrier& Barrier, FAGX_ImportContext& Context)
+		const FTrackBarrier& Barrier, FAGX_ImportContext& Context,
+		const UAGX_TrackComponent& TrackComponent)
 	{
 		const FGuid Guid = Barrier.GetGuid();
 		if (auto Existing = Context.TrackMergeProperties->FindRef(Guid))
@@ -248,7 +251,7 @@ namespace AGX_TrackComponent_helpers
 
 		const FString CleanTrackBarrierName =
 			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
-				Barrier.GetName(), &Context);
+				TrackComponent, Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Properties->GetOuter(), FString::Printf(TEXT("AGX_TIMP_%s"), *CleanTrackBarrierName),
 			UAGX_TrackInternalMergeProperties::StaticClass());
@@ -270,7 +273,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	ImportGuid = Barrier.GetGuid();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
 	Rename(*Name);
@@ -299,8 +302,8 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	Context->Tracks->Add(ImportGuid, this);
 
 	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
-	TrackProperties = GetOrCreateTrackProperties(Barrier, *Context);
-	InternalMergeProperties = GetOrCreateMergeProperties(Barrier, *Context);
+	TrackProperties = GetOrCreateTrackProperties(Barrier, *Context, *this);
+	InternalMergeProperties = GetOrCreateMergeProperties(Barrier, *Context, *this);
 
 	// Wheels.
 	auto SetRigidBody = [&](UAGX_RigidBodyComponent* Body, FAGX_RigidBodyReference& BodyRef)
