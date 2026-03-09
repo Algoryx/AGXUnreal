@@ -774,14 +774,11 @@ void UAGX_Simulation::Deinitialize()
 	if (DebuggerBarrier.HasNative())
 		StopWebDebugging();
 
-	if (DefaultLidarSurfaceMaterial.IsAsset())
+	if (auto LidarSurfaceMaterial =
+			GetAssetFrom<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial))
 	{
-		if (UAGX_LidarSurfaceMaterial* LidarSurfaceMaterial =
-				Cast<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial.TryLoad()))
-		{
-			if (LidarSurfaceMaterial->HasNative())
-				LidarSurfaceMaterial->ReleaseNative();
-		}
+		if (LidarSurfaceMaterial->HasNative())
+			LidarSurfaceMaterial->ReleaseNative();
 	}
 
 	Super::Deinitialize();
