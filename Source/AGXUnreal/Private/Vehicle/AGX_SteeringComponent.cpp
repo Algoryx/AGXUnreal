@@ -58,7 +58,8 @@ double UAGX_SteeringComponent::GetSteeringAngle() const
 namespace AGX_SteeringComponent_helpers
 {
 	UAGX_SteeringParameters* GetOrCreateSteeringParameters(
-		const FSteeringBarrier& Barrier, FAGX_ImportContext& Context)
+		const FSteeringBarrier& Barrier, FAGX_ImportContext& Context,
+		const UAGX_SteeringComponent& SteeringComponent)
 	{
 		// Note: SteeringParameters does not have a UUID in AGX, so we use the SteeringBarriers UUID
 		// for it. It is always uniquely owned by a Steering object in AGX.
@@ -108,7 +109,7 @@ namespace AGX_SteeringComponent_helpers
 
 		const FString CleanSteeringBarrierName =
 			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
-				Barrier.GetName(), &Context);
+				SteeringComponent, Barrier.GetName(), &Context);
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Parameters->GetOuter(), FString::Printf(TEXT("AGX_STP_%s"), *CleanSteeringBarrierName),
 			UAGX_SteeringParameters::StaticClass());
@@ -128,7 +129,7 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 	bEnabled = Barrier.GetEnabled();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);
@@ -139,7 +140,7 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 	AGX_CHECK(!Context->Steerings->Contains(ImportGuid));
 	Context->Steerings->Add(ImportGuid, this);
 
-	SteeringParameters = GetOrCreateSteeringParameters(Barrier, *Context);
+	SteeringParameters = GetOrCreateSteeringParameters(Barrier, *Context, *this);
 
 	auto GetWheelComponentNameFromBarrier =
 		[Context](const FWheelJointBarrier& WheelBarrier) -> FName
