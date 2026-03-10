@@ -12,6 +12,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include "agxCollide/Cylinder.h"
+#include "agxTerrain/WheelDeformationProperties.h"
 #include "EndAGXIncludes.h"
 
 FTerrainWheelBarrier::FTerrainWheelBarrier()
@@ -27,25 +28,25 @@ FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InN
 void FTerrainWheelBarrier::SetEnableTerrainDeformation(bool InEnable)
 {
 	check(HasNative());
-	NativeRef->Native->setOption(agxTerrain::TerrainWheel::ModelOptions::DEFORMATION, InEnable);
+	NativeRef->Native->getWheelDeformationProperties()->setEnableDeformation(InEnable);
 }
 
 bool FTerrainWheelBarrier::GetEnableTerrainDeformation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DEFORMATION);
+	return NativeRef->Native->getWheelDeformationProperties()->getEnableDeformation();
 }
 
 void FTerrainWheelBarrier::SetEnableTerrainDisplacement(bool InEnable)
 {
 	check(HasNative());
-	NativeRef->Native->setOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT, InEnable);
+	NativeRef->Native->getWheelDeformationProperties()->setEnableDisplacement(InEnable);
 }
 
 bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
 {
 	check(HasNative());
-	return NativeRef->Native->getOption(agxTerrain::TerrainWheel::ModelOptions::DISPLACEMENT);
+	return NativeRef->Native->getWheelDeformationProperties()->getEnableDisplacement();
 }
 
 void FTerrainWheelBarrier::SetSlipRatioVxThreshold(double InThreshold)
@@ -132,7 +133,7 @@ bool FTerrainWheelBarrier::GetEnableComputeRearAngleFromFrontAngle() const
 void FTerrainWheelBarrier::SetEnableAGXDebugRendering(bool InEnable)
 {
 	check(HasNative());
-	NativeRef->Native->setEnableDebugRegressionPlanes(InEnable);
+	NativeRef->Native->getTerrainWheelSettings()->setEnableDebugRegressionPlanes(InEnable);
 }
 
 void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)
