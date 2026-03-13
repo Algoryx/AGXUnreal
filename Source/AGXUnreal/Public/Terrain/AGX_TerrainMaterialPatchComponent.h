@@ -72,9 +72,9 @@ public:
 	UAGX_TerrainMaterialPatchComponent();
 
 	/**
-	* Whether or not this Component is enabled.
-	* If set to false, no patch assignments will occur.
-	*/
+	 * Whether or not this Component is enabled.
+	 * If set to false, no patch assignments will occur.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	bool bEnabled {true};
 
@@ -102,6 +102,10 @@ public:
 
 	const TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches() const;
 
+	/**
+	 * Force an update of the Terrain Material Patches given the current children (Shape)
+	 * attachments.
+	 */
 	void UpdateTerrainMaterialPatches();
 
 	/**
