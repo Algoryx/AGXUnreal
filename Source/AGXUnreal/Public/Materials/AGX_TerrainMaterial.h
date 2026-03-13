@@ -104,6 +104,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Bulk")
 	double GetYoungsModulus() const;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Bulk")
+	void SetDeltaReposeAngle(double DeltaReposeAngle);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Bulk")
+	double GetDeltaReposeAngle() const;
+
 	// Compaction properties.
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material")

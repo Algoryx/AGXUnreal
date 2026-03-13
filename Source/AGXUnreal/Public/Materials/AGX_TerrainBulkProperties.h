@@ -19,7 +19,6 @@ struct AGXUNREAL_API FAGX_TerrainBulkProperties
 	GENERATED_BODY()
 
 public:
-
 	bool operator==(const FAGX_TerrainBulkProperties& Other) const = default;
 
 	/**
@@ -94,6 +93,14 @@ public:
 		EditAnywhere, Category = "AGX Terrain Material Bulk",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real YoungsModulus;
+
+	/**
+	 * Sets the delta repose angle of the material, used to caluclate the angle of repose for a
+	 * material [deg].
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Material Bulk")
+	FAGX_Real DeltaReposeAngle;
 
 public:
 	FAGX_TerrainBulkProperties();
