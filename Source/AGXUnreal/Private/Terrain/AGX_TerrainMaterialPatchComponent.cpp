@@ -152,6 +152,7 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	FName ShapeName, const FAGX_Placement& Placement)
 {
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	if (ShapeName.IsNone())
 		return false;
 
@@ -178,10 +179,19 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	if (TerrainBarrier == nullptr)
 		return false;
 
-	FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
-	SingleInstancePatch.InstancePlacements.Reset(1);
-	SingleInstancePatch.InstancePlacements.Add(Placement);
-	ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
+	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData->ShapeComponentName);
+	if (Shape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddPatchShapeInstance called on Terrain Material Patch Component '%s' in '%s', "
+				 "could not find attached Shape given ShapeName '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *ShapeName.ToString());
+		return false;
+	}
+
+	ApplyTerrainMaterialPatch(
+		Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial, {Placement}, *TerrainBarrier);
 	return true;
 }
 
