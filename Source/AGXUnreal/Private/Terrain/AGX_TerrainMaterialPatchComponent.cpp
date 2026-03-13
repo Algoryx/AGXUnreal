@@ -264,39 +264,51 @@ TArray<UAGX_ShapeComponent*> UAGX_TerrainMaterialPatchComponent::GetAttachedShap
 	return Shapes;
 }
 
-void UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
+bool UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
 		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
-		return;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddAssignmentDataIfMissing called AGX Terrain Material Patch '%s' in '%s' with "
+				 "empty Shape Name."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
 	}
 
 	if (TerrainMaterialPatches.FindByPredicate(
 			[ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 			{ return Assignment.ShapeComponentName == ShapeName; }) != nullptr)
 	{
-		return;
+		return true;
 	}
 
 	FAGX_TerrainMaterialPatchData& NewAssignment = TerrainMaterialPatches.AddDefaulted_GetRef();
 	NewAssignment.ShapeComponentName = ShapeName;
+	return true;
 }
 
-void UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
+bool UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
 		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
-		return;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("RemoveAssignmentDataIfPresent called AGX Terrain Material Patch '%s' in '%s' "
+				 "with empty Shape Name."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
 	}
 
 	TerrainMaterialPatches.RemoveAll([ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 									 { return Assignment.ShapeComponentName == ShapeName; });
+	return true;
 }
 
 void UAGX_TerrainMaterialPatchComponent::BeginPlay()

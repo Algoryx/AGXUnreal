@@ -152,9 +152,11 @@ public:
 #endif
 
 private:
-	void AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
+	// Returns true if data was already present or if it was added succesfully.
+	bool AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
 
-	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
+	// Returns true if data was already non-existing or was succesfully removed.
+	bool RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
 
 	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 	void RestoreShapeFromTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
