@@ -191,7 +191,7 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	}
 
 	ApplyTerrainMaterialPatch(
-		Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial, {Placement}, *TerrainBarrier);
+		{Placement}, *TerrainBarrier, Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial);
 	return true;
 }
 
@@ -217,9 +217,9 @@ void UAGX_TerrainMaterialPatchComponent::AddPatch(
 		return;
 	}
 
-	TArray<FAGX_Placement> Placement {FAGX_Placement()};
+	TArray<FAGX_Placement> Placements {FAGX_Placement()};
 	ApplyTerrainMaterialPatch(
-		ShapeComponent, TerrainMaterial, ShapeMaterial, Placement, *TerrainBarrier);
+		Placements, *TerrainBarrier, ShapeComponent, TerrainMaterial, ShapeMaterial);
 }
 
 #if WITH_EDITOR
@@ -362,14 +362,14 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 
 	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData.ShapeComponentName);
 	ApplyTerrainMaterialPatch(
-		Shape, PatchData.TerrainMaterial, PatchData.ShapeMaterial, PatchData.InstancePlacements,
-		TerrainBarrier);
+		PatchData.InstancePlacements, TerrainBarrier, Shape, PatchData.TerrainMaterial,
+		PatchData.ShapeMaterial);
 }
 
 void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
+	const TArray<FAGX_Placement>& Placements, FTerrainBarrier& TerrainBarrier,
 	UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-	UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
-	FTerrainBarrier& TerrainBarrier)
+	UAGX_ShapeMaterial* ShapeMaterial)
 {
 	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	if (!bEnabled)

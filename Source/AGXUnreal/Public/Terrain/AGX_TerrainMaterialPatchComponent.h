@@ -165,7 +165,7 @@ private:
 		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
 
 	void ApplyTerrainMaterialPatch(
+		const TArray<FAGX_Placement>& Placements, FTerrainBarrier& TerrainBarrier,
 		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-		UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
-		FTerrainBarrier& TerrainBarrier);
+		UAGX_ShapeMaterial* ShapeMaterial);
 };
