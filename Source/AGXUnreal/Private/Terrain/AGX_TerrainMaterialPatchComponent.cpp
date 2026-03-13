@@ -449,7 +449,7 @@ void UAGX_TerrainMaterialPatchComponent::OnChildDetached(USceneComponent* Child)
 	Super::OnChildDetached(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 	{
-		RestoreShape(*ShapeComponent);
+		RestoreShapeFromTerrainMaterialPatch(*ShapeComponent);
 		RemoveAssignmentDataIfPresent(*ShapeComponent);
 	}
 }
@@ -463,7 +463,8 @@ void UAGX_TerrainMaterialPatchComponent::PrepareShapeForTerrainMaterialPatch(
 	UAGX_ShapeComponent::ApplySensorMaterial(ShapeComponent);
 }
 
-void UAGX_TerrainMaterialPatchComponent::RestoreShape(UAGX_ShapeComponent& ShapeComponent)
+void UAGX_TerrainMaterialPatchComponent::RestoreShapeFromTerrainMaterialPatch(
+	UAGX_ShapeComponent& ShapeComponent)
 {
 	ShapeComponent.bIncludeInSimulation = true;
 	ShapeComponent.SetHiddenInGame(false);

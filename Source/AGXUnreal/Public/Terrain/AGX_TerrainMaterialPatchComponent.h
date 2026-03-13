@@ -157,8 +157,7 @@ private:
 	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
 
 	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
-
-	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
+	void RestoreShapeFromTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 
 	void ApplyTerrainMaterialPatch(
 		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
