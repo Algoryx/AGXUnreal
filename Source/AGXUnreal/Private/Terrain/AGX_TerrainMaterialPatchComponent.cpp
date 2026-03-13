@@ -159,7 +159,14 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 		[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
 		{ return Data.ShapeComponentName == ShapeName; });
 	if (PatchData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddPatchShapeInstance called on Terrain Material Patch Component '%s' in '%s', "
+				 "but no Patch Data could be matched against given ShapeName '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *ShapeName.ToString());
 		return false;
+	}
 
 	PatchData->InstancePlacements.Add(Placement);
 
@@ -273,8 +280,8 @@ bool UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("AddAssignmentDataIfMissing called AGX Terrain Material Patch '%s' in '%s' with "
-				 "empty Shape Name."),
+			TEXT("AddAssignmentDataIfMissing called AGX Terrain Material Patch Component '%s' in "
+				 "'%s' with empty Shape Name."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
@@ -300,8 +307,8 @@ bool UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("RemoveAssignmentDataIfPresent called AGX Terrain Material Patch '%s' in '%s' "
-				 "with empty Shape Name."),
+			TEXT("RemoveAssignmentDataIfPresent called AGX Terrain Material Patch Component '%s' "
+				 "in '%s' with empty Shape Name."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
@@ -325,8 +332,8 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 	if (TerrainBarrier == nullptr)
 	{
 		const FString Message = FString::Printf(
-			TEXT("AGX Terrain Material Patch '%s' in '%s' could not find an AGX Terrain or AGX "
-				 "Movable Terrain parent. Ignoring terrain material patch assignments."),
+			TEXT("AGX Terrain Material Patch Component '%s' in '%s' could not find an AGX Terrain "
+				 "or AGX Movable Terrain parent. Ignoring terrain material patch assignments."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
