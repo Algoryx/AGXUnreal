@@ -37,10 +37,6 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetSlipRatioSmoothingSpeed(double InSpeed);
 	double GetSlipRatioSmoothingSpeed() const;
 
-	void SetRegressionPlanesGridsNumGridPoints(FIntPoint InValue);
-	void SetRegressionPlanesGridsStepSize(FVector2D InValue);
-
-
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 	bool GetEnableComputeRearAngleFromFrontAngle() const;
 

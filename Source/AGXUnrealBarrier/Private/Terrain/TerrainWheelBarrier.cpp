@@ -97,23 +97,6 @@ double FTerrainWheelBarrier::GetSlipRatioSmoothingSpeed() const
 	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioSmoothingSpeed());
 }
 
-void FTerrainWheelBarrier::SetRegressionPlanesGridsNumGridPoints(FIntPoint InValue)
-{
-	check(HasNative());
-	agx::Vec2iVector NumPoints;
-	NumPoints.push_back({InValue.X, InValue.Y});
-	NativeRef->Native->getRegressionPlanesParameters()->setRegressionPlanesGridsNumGridPoints(
-		NumPoints);
-}
-
-void FTerrainWheelBarrier::SetRegressionPlanesGridsStepSize(FVector2D InValue)
-{
-	check(HasNative());
-	agx::Vec2Vector StepSize;
-	StepSize.push_back({InValue.X, InValue.Y});
-	NativeRef->Native->getRegressionPlanesParameters()->setRegressionPlanesGridsStepSize(StepSize);
-}
-
 void FTerrainWheelBarrier::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
 	check(HasNative());
