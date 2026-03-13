@@ -149,32 +149,33 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 		});
 }
 
-void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
+bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	FName ShapeName, const FAGX_Placement& Placement)
 {
 	if (ShapeName.IsNone())
-		return;
+		return false;
 
 	FAGX_TerrainMaterialPatchData* PatchData = TerrainMaterialPatches.FindByPredicate(
 		[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
 		{ return Data.ShapeComponentName == ShapeName; });
 	if (PatchData == nullptr)
-		return;
+		return false;
 
 	PatchData->InstancePlacements.Add(Placement);
 
-	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
-	{
-		FTerrainBarrier* TerrainBarrier =
-			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
-		if (TerrainBarrier == nullptr)
-			return;
+	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
+		return false;
 
-		FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
-		SingleInstancePatch.InstancePlacements.Reset(1);
-		SingleInstancePatch.InstancePlacements.Add(Placement);
-		ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
-	}
+	FTerrainBarrier* TerrainBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
+	if (TerrainBarrier == nullptr)
+		return false;
+
+	FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
+	SingleInstancePatch.InstancePlacements.Reset(1);
+	SingleInstancePatch.InstancePlacements.Add(Placement);
+	ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
+	return true;
 }
 
 void UAGX_TerrainMaterialPatchComponent::AddPatch(

@@ -110,12 +110,12 @@ public:
 
 	/**
 	 * Add a Shape instance of an existing patch.
-	 * If the ShapeName does not match an
-	 * existing Shape Component's name, this
-	 * function has no effect.
+	 * If the ShapeName does not match an existing Shape Component's name, this
+	 * function has no effect, and false is returned.
+	 * Returns true if the Patch Shape Instance was succesfully added.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	void AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
+	bool AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
 
 	/**
 	 * Apply a Terrain Material patch during Play.
