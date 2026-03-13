@@ -13,16 +13,6 @@
 
 #define LOCTEXT_NAMESPACE "FAGX_TerrainMaterialPatchComponentCustomization"
 
-namespace AGX_TerrainMaterialPatchComponentCustomization_helpers
-{
-	const FText TerrainMaterialTooltip = LOCTEXT(
-		"TerrainMaterialTooltip",
-		"This Terrain Material will be assigned to the voxels of the Terrain that this Shape overlaps.");
-
-	const FText ShapeMaterialTooltip = LOCTEXT(
-		"ShapeMaterialTooltip",
-		"This Shape Material will be associated with the selected Terrain Material for this Terrain.");
-}
 
 TSharedRef<IDetailCustomization>
 FAGX_TerrainMaterialPatchComponentCustomization::MakeInstance()
