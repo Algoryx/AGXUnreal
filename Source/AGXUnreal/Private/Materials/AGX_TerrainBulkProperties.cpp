@@ -12,5 +12,6 @@ FAGX_TerrainBulkProperties::FAGX_TerrainBulkProperties()
 	, PoissonsRatio(0.1)
 	, SwellFactor(1.1)
 	, YoungsModulus(1.0e7)
+	, DeltaReposeAngle(0.0)
 {
 }
