@@ -791,7 +791,7 @@ FROS2SubscriberBarrier* UAGX_ROS2SubscriberComponent::GetOrCreateBarrier(
 		}
 
 		Barrier = &NativeBarriers.Add(Topic, FROS2SubscriberBarrier());
-		Barrier->AllocateNative(Type, Topic, Qos);
+		Barrier->AllocateNative(Type, Topic, Qos, DomainID);
 	}
 	else if (Barrier->GetMessageType() != Type)
 	{
