@@ -381,7 +381,7 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 	SegmentLength = Barrier.GetSegmentLength();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_CableComponent::StaticClass());
 	Rename(*Name);
