@@ -47,7 +47,7 @@ void FRtShapeInstanceBarrier::AllocateNative(
 		Environment.GetNative()->Native->getScene(), Shape.GetNative()->Native, nullptr);
 }
 
-void FRtShapeInstanceBarrier::SetLidarSurfaceMaterialOrDefault(
+void FRtShapeInstanceBarrier::SetLidarSurfaceMaterial(
 	FRtLambertianOpaqueMaterialBarrier* Material)
 {
 	check(HasNative());

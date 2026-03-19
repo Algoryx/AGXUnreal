@@ -266,6 +266,15 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
 	int32 RaytraceDeviceIndex {0};
 
+	/**
+	 * Default Lidar Surface Material assigned to all objects added to a Sensor Environment
+	 * when the object has no explicitly assigned Lidar Surface Material.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
+	FSoftObjectPath DefaultLidarSurfaceMaterial;
+
 #if WITH_EDITORONLY_DATA
 
 	/**
