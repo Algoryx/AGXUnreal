@@ -258,7 +258,7 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 		});
 	});
 
-	Describe("Loading Contact Material with old default restitution", [this]()
+	Describe("Loading old Contact Material with old default restitution", [this]()
 	{
 		It("should preserve the old restitution value", [this]()
 		{
@@ -270,12 +270,12 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 
 			UAGX_ContactMaterial* ContactMaterial = LoadAsset<UAGX_ContactMaterial>(PackagePath, ObjectName);
 			TestEqual(
-				TEXT("The contact material should have correct Restitution"),
+				TEXT("The contact material should have the previous default restitution"),
 				ContactMaterial->Restitution, 0.5);
 		});
 	});
 
-	Describe("Loading Contact Material with explicit zero restitution", [this]()
+	Describe("Loading old Contact Material with explicit zero restitution", [this]()
 	{
 		It("should have the correct value for restitution", [this]()
 		{
@@ -287,7 +287,7 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 
 			UAGX_ContactMaterial* ContactMaterial = LoadAsset<UAGX_ContactMaterial>(PackagePath, ObjectName);
 			TestEqual(
-				TEXT("The contact material should have correct Restitution"),
+				TEXT("The contact material should have correct explicit Restitution"),
 				ContactMaterial->Restitution, 0.0);
 		});
 	});
