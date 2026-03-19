@@ -559,7 +559,7 @@ void FSimulationBarrier::Step()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Unknown exception caught from AGX Dynamics stepForrward. The simulation state is "
+			TEXT("Unknown exception caught from AGX Dynamics stepForward. The simulation state is "
 				 "now unreliable. The scene should be recreated. The LogAGXDynamics log category "
 				 "may contain additional information, see either the Output Log panel in Unreal "
 				 "Editor or the log file."));
