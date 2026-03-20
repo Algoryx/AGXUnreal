@@ -404,14 +404,20 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	FShapeMaterialBarrier* ShapeMaterialBarrier =
 		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
 
-	const FTransform OriginalRelativeTransform = Shape->GetRelativeTransform();
+	const FVector OriginalWorldPosition = ShapeBarrier->GetWorldPosition();
+	const FQuat OriginalWorldRotation = ShapeBarrier->GetWorldRotation();
+	const FTransform OriginalWorldTransform(OriginalWorldRotation, OriginalWorldPosition);
 	for (const FAGX_Placement& Placement : Placements)
 	{
 		const FTransform Transform = Placement.ToTransform();
 
-		// Instance transforms are interpreted relative to the shape's original transform.
-		Shape->SetRelativeTransform(OriginalRelativeTransform * Transform);
-		Shape->UpdateComponentToWorld();
+		// Instance transforms are interpreted relative to the shape's original world transform.
+		const FVector StampedWorldPosition =
+			OriginalWorldTransform.TransformPositionNoScale(Transform.GetLocation());
+		const FQuat StampedWorldRotation =
+			OriginalWorldTransform.TransformRotation(Transform.GetRotation());
+		ShapeBarrier->SetWorldPosition(StampedWorldPosition);
+		ShapeBarrier->SetWorldRotation(StampedWorldRotation);
 
 		const int32 NumVoxels =
 			TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
@@ -452,14 +458,23 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 		}
 	}
 
-	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
-	// above. We also release its Native if we created it. This is since the Shape may have the
-	// bIncludeInSimulation set to false, in which case it will crash on Blueprint Reconstruction
-	// since no one (Simulation) is keeping it alive.
-	Shape->SetRelativeTransform(OriginalRelativeTransform);
-	Shape->UpdateComponentToWorld();
-	if (!bShapeHadNative && Shape->HasNative())
-		Shape->ReleaseNative();
+	if (Shape->HasNative())
+	{
+		if (bShapeHadNative)
+		{
+			// Restore the original native world transform since we changed it during
+			// "stamping" above.
+			ShapeBarrier->SetWorldPosition(OriginalWorldPosition);
+			ShapeBarrier->SetWorldRotation(OriginalWorldRotation);
+		}
+		else
+		{
+			// Release the Shape Native since we created it. This is important since the
+			// Shape may have the bIncludeInSimulation set to false, in which case it will crash on
+			// Blueprint Reconstruction since no one (Simulation) is keeping it alive.
+			Shape->ReleaseNative();
+		}
+	}
 }
 
 #if WITH_EDITOR
