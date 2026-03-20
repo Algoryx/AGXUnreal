@@ -19,6 +19,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
@@ -772,6 +773,13 @@ void UAGX_Simulation::Deinitialize()
 
 	if (DebuggerBarrier.HasNative())
 		StopWebDebugging();
+
+	if (auto LidarSurfaceMaterial =
+			GetAssetFrom<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial))
+	{
+		if (LidarSurfaceMaterial->HasNative())
+			LidarSurfaceMaterial->ReleaseNative();
+	}
 
 	Super::Deinitialize();
 	if (HasNative())
