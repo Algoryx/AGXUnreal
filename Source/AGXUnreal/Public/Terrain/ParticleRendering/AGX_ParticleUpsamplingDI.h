@@ -13,7 +13,7 @@
 #include "AGX_ParticleUpsamplingDI.generated.h"
 
 UCLASS(EditInlineNew, Category = "Data Interface", CollapseCategories, meta = (DisplayName = "Particle Upsampling Data Interface"))
-class AGXUNREALSHADERS_API UAGX_ParticleUpsamplingDI : public UNiagaraDataInterface
+class AGXUNREAL_API UAGX_ParticleUpsamplingDI : public UNiagaraDataInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -65,7 +65,7 @@ public:
 		void* PerInstanceData, FNiagaraSystemInstance* SystemInstance) override;
 
 	/**
-	 * This function removes the data of an instance of this NDI and the proxy, meaning that 
+	 * This function removes the data of an instance of this NDI and the proxy, meaning that
 	 * this function will run when hitting the stop button for each instance of this NDI that
 	 * are present.
 	 */
@@ -78,7 +78,7 @@ public:
 	};
 	virtual bool HasPreSimulateTick() const override { return true; };
 
-	/** 
+	/**
 	 * This ticks on the game thread and lets us do work to initialize the instance data.
 	 * If work is needed to be performed on the gathered instance data after the simulation
 	 * is done, use PerInstanceTickPostSimulate() instead.
