@@ -4,12 +4,12 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
-#include "AGX_ParticleUpsamplingDI.h"
 #include "AGX_PropertyChangedDispatcher.h"
-#include "ParticleUpsamplingDataHandler.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/ParticleRendering/AGX_ParticleRenderingUtilities.h"
+#include "Terrain/ParticleRendering/AGX_ParticleUpsamplingDI.h"
+#include "Terrain/ParticleRendering/ParticleUpsamplingDataHandler.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -18,8 +18,8 @@
 #include "NiagaraComponent.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystemInstanceController.h"
 #include "NiagaraRenderGraphUtils.h"
+#include "NiagaraSystemInstanceController.h"
 #include "SphereTypes.h"
 
 UAGX_UpsamplingParticleRendererComponent::UAGX_UpsamplingParticleRendererComponent()
