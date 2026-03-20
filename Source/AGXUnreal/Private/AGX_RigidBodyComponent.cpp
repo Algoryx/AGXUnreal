@@ -1328,6 +1328,9 @@ void UAGX_RigidBodyComponent::SynchronizeShapes()
 {
 	for (UAGX_ShapeComponent* Shape : GetShapes())
 	{
+		if (!Shape->bIncludeInSimulation)
+			continue;
+
 		FShapeBarrier* NativeShape = Shape->GetOrCreateNative();
 		AGX_CHECK(NativeShape != nullptr && NativeShape->HasNative());
 		if (NativeShape == nullptr || !NativeShape->HasNative())
