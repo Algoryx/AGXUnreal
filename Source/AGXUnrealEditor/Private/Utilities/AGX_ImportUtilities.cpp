@@ -159,7 +159,7 @@ namespace AGX_ImportUtilities_helpers
 	{
 		FRawMesh RawMesh = MeshFactory(MeshDescription);
 		FAGX_EditorUtilities::AddRawMeshToStaticMesh(RawMesh, &Asset);
-		Asset.ImportVersion = EImportStaticMeshVersion::LastVersion;
+		Asset.SetImportVersion(EImportStaticMeshVersion::LastVersion);
 		// Reading triangle data from a Static Mesh asset in a cooked build produces garbage on
 		// Linux, which makes it impossible to create the corresponding AGX Dynamics Trimesh shape.
 		// By setting this flag Unreal Engine will keep a copy of the triangle data in CPU memory
