@@ -248,8 +248,12 @@ FAGX_RenderMaterial FRenderDataBarrier::GetMaterial() const
 		const agx::Vec4f EmissiveAGX = RenderMaterialAGX->getEmissiveColor();
 		RenderMaterial.Emissive = Convert(EmissiveAGX);
 	}
-	if ((RenderMaterial.bHasShininess = RenderMaterialAGX->hasShininess()) == true)
+	if ((RenderMaterial.bHasShininess = RenderMaterialAGX->hasRoughness()) == true)
 	{
+		// Todo: Render Material in AGX now uses Roughness instead of Shininess.
+		// The getShininess still exists but now interllay converts the roughness
+		// to a Shininess value.
+		// We should consider using roughness in our FAGX_RenderMaterial.
 		RenderMaterial.Shininess = RenderMaterialAGX->getShininess();
 	}
 
