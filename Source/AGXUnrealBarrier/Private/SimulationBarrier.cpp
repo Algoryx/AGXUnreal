@@ -731,7 +731,7 @@ bool FSimulationBarrier::HasNative() const
 
 void FSimulationBarrier::AllocateNative()
 {
-	NativeRef = std::make_unique<FSimulationRef>(new agxSDK::Simulation());
+	NativeRef->Native = new agxSDK::Simulation();
 }
 
 FSimulationRef* FSimulationBarrier::GetNative()
@@ -754,7 +754,7 @@ const FSimulationRef* FSimulationBarrier::GetNative() const
 
 void FSimulationBarrier::ReleaseNative()
 {
-	NativeRef = nullptr;
+	NativeRef->Native = nullptr;
 }
 
 FShapeContactMergeSplitThresholdsBarrier FSimulationBarrier::GetGlobalShapeContactTresholds() const
