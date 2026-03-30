@@ -159,7 +159,7 @@ namespace AGX_ImportUtilities_helpers
 	{
 		FRawMesh RawMesh = MeshFactory(MeshDescription);
 		FAGX_EditorUtilities::AddRawMeshToStaticMesh(RawMesh, &Asset);
-#if UE_VERSION_OLDER_THAN(5.7.0)
+#if UE_VERSION_OLDER_THAN(5, 7, 0)
 		Asset.ImportVersion = EImportStaticMeshVersion::LastVersion;
 #else
 		Asset.SetImportVersion(EImportStaticMeshVersion::LastVersion);
