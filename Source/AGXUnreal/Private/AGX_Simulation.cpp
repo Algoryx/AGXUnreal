@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGX_Simulation.h"
 
@@ -8,22 +8,25 @@
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_Stepper.h"
 #include "AMOR/AGX_ConstraintMergeSplitThresholds.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
 #include "AMOR/AGX_WireMergeSplitThresholds.h"
+#include "Cable/AGX_CableComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Contacts/ContactListenerBarrier.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -257,6 +260,12 @@ namespace AGX_Simulation_helpers
 #endif
 }
 
+bool UAGX_Simulation::Add(UAGX_CableComponent& Cable)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Cable);
+}
+
 bool UAGX_Simulation::Add(UAGX_ConstraintComponent& Constraint)
 {
 	EnsureStepperCreated();
@@ -338,6 +347,40 @@ bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	return Result;
 }
 
+void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	EnsureStepperCreated();
+
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' to Simulation that does not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to add Terrain '%s' that does not have a native to Simulation."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	bool result = GetNative()->Add(*MovableTerrain.GetNative());
+
+	if (!result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Failed to add '%s' to Simulation. FSimulationBarrier::Add returned "
+				 "false. The Log category AGXDynamicsLog may contain more information about "
+				 "the failure."),
+			*MovableTerrain.GetName());
+	}
+}
+
 bool UAGX_Simulation::Add(UAGX_TireComponent& Tire)
 {
 	EnsureStepperCreated();
@@ -354,6 +397,12 @@ bool UAGX_Simulation::Add(UAGX_WireComponent& Wire)
 {
 	EnsureStepperCreated();
 	return AGX_Simulation_helpers::Add(*this, Wire);
+}
+
+bool UAGX_Simulation::Remove(UAGX_CableComponent& Cable)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Remove(*this, Cable);
 }
 
 bool UAGX_Simulation::Remove(UAGX_ConstraintComponent& Constraint)
@@ -427,6 +476,41 @@ bool UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	}();
 
 	return Result;
+}
+
+void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from a Simulation that does not have a "
+				 "native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	if (!MovableTerrain.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but the Terrain does "
+				 "not have a native."),
+			*MovableTerrain.GetName());
+		return;
+	}
+
+	const bool Result = GetNative()->Remove(*MovableTerrain.GetNative());
+
+	if (!Result)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Tried to remove Terrain '%s' from Simulation but "
+				 "FSimulationBarrier::Remove returned false. The Log category AGXDynamicsLog may "
+				 "contain more information about the failure."),
+			*MovableTerrain.GetName());
+	}
 }
 
 bool UAGX_Simulation::Remove(UAGX_TireComponent& Tire)
@@ -577,6 +661,22 @@ TArray<FAGX_ShapeContact> UAGX_Simulation::GetShapeContacts() const
 	return ShapeContacts;
 }
 
+void UAGX_Simulation::Internal_EnableThreadTimeline()
+{
+	if (!HasNative())
+		return;
+
+	NativeBarrier.EnableThreadTimeline();
+}
+
+bool UAGX_Simulation::Internal_DisableThreadTimeline(const FString& FileType)
+{
+	if (!HasNative())
+		return false;
+
+	return NativeBarrier.DisableThreadTimeline(FileType);
+}
+
 void UAGX_Simulation::SetEnableContactWarmstarting(bool bEnable)
 {
 	bContactWarmstarting = bEnable;
@@ -673,6 +773,13 @@ void UAGX_Simulation::Deinitialize()
 
 	if (DebuggerBarrier.HasNative())
 		StopWebDebugging();
+
+	if (auto LidarSurfaceMaterial =
+			GetAssetFrom<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial))
+	{
+		if (LidarSurfaceMaterial->HasNative())
+			LidarSurfaceMaterial->ReleaseNative();
+	}
 
 	Super::Deinitialize();
 	if (HasNative())
@@ -1582,7 +1689,8 @@ namespace AGX_Simulation_helpers
 {
 	bool IsMatch(UAGX_ShapeComponent* Shape, const FGuid& Guid)
 	{
-		return Shape->GetNative()->GetGeometryGuid() == Guid;
+		return Shape != nullptr && Shape->HasNative() &&
+			   Shape->GetNative()->GetGeometryGuid() == Guid;
 	}
 
 	template <typename UComponent>

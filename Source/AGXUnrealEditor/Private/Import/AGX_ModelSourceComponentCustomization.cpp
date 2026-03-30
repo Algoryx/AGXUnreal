@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGX_ModelSourceComponentCustomization.h"
 
@@ -211,7 +211,8 @@ namespace AGX_ModelSourceComponentCustomization_helpers
 	{
 		TSet<UMaterialInterface*> Materials;
 		for (UMeshComponent* MeshTemplate :
-			 FAGX_BlueprintUtilities::GetAllTemplateComponents<UMeshComponent>(Blueprint))
+			 FAGX_BlueprintUtilities::GetTemplateComponents<UMeshComponent>(
+				 Blueprint, EAGX_Inherited::Include))
 		{
 			CollectRenderMaterials(*MeshTemplate, Materials);
 		}

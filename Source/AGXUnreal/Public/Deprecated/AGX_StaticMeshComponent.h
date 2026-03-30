@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -46,6 +46,8 @@ struct FAGX_Shape
 };
 
 /**
+ * This Component is deprecated.
+ *
  * A StaticMeshComponent that uses AGX Dynamics for physics simulation instead of the built-in
  * physics engine. Very much experimental and work-in-progress.
  *
@@ -57,7 +59,7 @@ struct FAGX_Shape
  * instances, one per collision shape, in the StaticMesh asset.
  */
 UCLASS(
-	ClassGroup = "AGX", Category = "AGX", Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "Deprecated", Category = "AGX",
 	HideCategories = ("Physics", "Collision"))
 class AGXUNREAL_API UAGX_StaticMeshComponent : public UStaticMeshComponent, public IAGX_NativeOwner
 {

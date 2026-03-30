@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Shapes/AGX_ShapeComponent.h"
 
@@ -236,6 +236,9 @@ void UAGX_ShapeComponent::BeginPlay()
 		return;
 	}
 
+	if (!bIncludeInSimulation)
+		return;
+
 	GetOrCreateNative();
 	if (HasNative())
 	{
@@ -270,6 +273,16 @@ void UAGX_ShapeComponent::EndPlay(const EEndPlayReason::Type Reason)
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
+		// Someone explicitly destroyed this Component, we need to remove ourselves from any owning
+		// Rigid Body, otherwise the Rigid Body will keep the Native object alive since it holds it
+		// by ref_ptr.
+		if (Reason == EEndPlayReason::Destroyed)
+		{
+			auto OwningBody = GetRigidBody();
+			if (OwningBody != nullptr && HasNative() && OwningBody->HasNative())
+				OwningBody->GetNative()->RemoveShape(GetNative());
+		}
+
 		// @todo Figure out how to handle removal of Shape Materials from the Simulation. They can
 		// be shared between many Shape Components, so some kind of reference counting might be
 		// needed.
@@ -380,6 +393,9 @@ namespace AGX_ShapeComponent_helpers
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
+		if (!RenderData.GetShouldRender())
+			Component->SetVisibility(false, /*bPropagateToChildren*/ false);
+
 		Component->SetMaterial(0, Material);
 		Component->SetRelativeTransform(RelTransform);
 		Component->SetStaticMesh(StaticMesh);
@@ -398,7 +414,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	SurfaceVelocity = Barrier.GetSurfaceVelocity();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_ShapeComponent::StaticClass());
 	Rename(*Name);
@@ -441,7 +457,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	// and then read by agxViewer, the shape will not be visible (unless it has RenderData).
 	const bool Visible =
 		Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
-	SetVisibility(Visible);
+	SetVisibility(Visible, /*bPropagateToChildren*/ false);
 
 	////// Render Material ///////
 	UMaterialInterface* Material =

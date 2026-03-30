@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -22,8 +22,10 @@
 
 class AAGX_Stepper;
 class AAGX_Terrain;
+class UAGX_CableComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
+class UAGX_MovableTerrainComponent;
 class UAGX_ObserverFrameComponent;
 class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
@@ -264,6 +266,15 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
 	int32 RaytraceDeviceIndex {0};
 
+	/**
+	 * Default Lidar Surface Material assigned to all objects added to a Sensor Environment
+	 * when the object has no explicitly assigned Lidar Surface Material.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
+	FSoftObjectPath DefaultLidarSurfaceMaterial;
+
 #if WITH_EDITORONLY_DATA
 
 	/**
@@ -493,6 +504,7 @@ public: // Member functions.
 	UPROPERTY(BlueprintAssignable, Category = "Simulation")
 	FOnSeparation OnSeparation;
 
+	bool Add(UAGX_CableComponent& Cable);
 	bool Add(UAGX_ConstraintComponent& Constraint);
 	bool Add(UAGX_ObserverFrameComponent& Frame);
 
@@ -507,10 +519,12 @@ public: // Member functions.
 	bool Add(UAGX_StaticMeshComponent& Body);
 	bool Add(UAGX_SteeringComponent& Steering);
 	bool Add(AAGX_Terrain& Terrain);
+	void Add(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Add(UAGX_TireComponent& Tire);
 	bool Add(UAGX_TrackComponent& Track);
 	bool Add(UAGX_WireComponent& Wire);
 
+	bool Remove(UAGX_CableComponent& Cable);
 	bool Remove(UAGX_ConstraintComponent& Constraint);
 	bool Remove(UAGX_ObserverFrameComponent& Frame);
 	bool Remove(UAGX_RigidBodyComponent& Body);
@@ -520,6 +534,7 @@ public: // Member functions.
 	bool Remove(UAGX_SteeringComponent& Steering);
 	bool Remove(UAGX_StaticMeshComponent& Body);
 	bool Remove(AAGX_Terrain& Terrain);
+	void Remove(UAGX_MovableTerrainComponent& MovableTerrain);
 	bool Remove(UAGX_TireComponent& Tire);
 	bool Remove(UAGX_TrackComponent& Track);
 	bool Remove(UAGX_WireComponent& Wire);
@@ -611,6 +626,12 @@ public: // Member functions.
 
 	UFUNCTION(BlueprintCallable, Category = "Simulation")
 	bool IsWebDebuggingActive() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	void Internal_EnableThreadTimeline();
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
+	bool Internal_DisableThreadTimeline(const FString& FileType = "chrome");
 
 	friend class AAGX_Stepper;
 

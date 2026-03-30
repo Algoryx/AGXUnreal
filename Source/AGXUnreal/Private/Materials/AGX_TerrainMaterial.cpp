@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Materials/AGX_TerrainMaterial.h"
 
@@ -145,6 +145,20 @@ double UAGX_TerrainMaterial::GetYoungsModulus() const
 {
 	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
 		TerrainBulk.YoungsModulus, GetYoungsModulus, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetDeltaReposeAngle(double DeltaReposeAngle)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainBulk.DeltaReposeAngle, DeltaReposeAngle, SetDeltaReposeAngle,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetDeltaReposeAngle() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainBulk.DeltaReposeAngle, GetDeltaReposeAngle, HasTerrainMaterialNative,
 		TerrainMaterialNativeBarrier);
 }
 
@@ -611,6 +625,11 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, YoungsModulus), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.YoungsModulus, SetYoungsModulus) });
 
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainBulk),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainBulkProperties, DeltaReposeAngle), [](ThisClass* This)
+		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(TerrainBulk.DeltaReposeAngle, SetDeltaReposeAngle) });
+
 	// Compaction properties.
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainCompaction),
@@ -983,6 +1002,7 @@ void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
 		TerrainMaterialNativeBarrier.SetPoissonsRatio(TerrainBulk.PoissonsRatio);
 		TerrainMaterialNativeBarrier.SetSwellFactor(TerrainBulk.SwellFactor);
 		TerrainMaterialNativeBarrier.SetYoungsModulus(TerrainBulk.YoungsModulus);
+		TerrainMaterialNativeBarrier.SetDeltaReposeAngle(TerrainBulk.DeltaReposeAngle);
 
 		// Set Compaction properties.
 		TerrainMaterialNativeBarrier.SetAngleOfReposeCompactionRate(
@@ -1052,6 +1072,7 @@ void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 	TerrainBulk.PoissonsRatio = Source.GetPoissonsRatio();
 	TerrainBulk.SwellFactor = Source.GetSwellFactor();
 	TerrainBulk.YoungsModulus = Source.GetYoungsModulus();
+	TerrainBulk.DeltaReposeAngle = Source.GetDeltaReposeAngle();
 
 	// Copy Compaction properties.
 	TerrainCompaction = FAGX_TerrainCompactionProperties();

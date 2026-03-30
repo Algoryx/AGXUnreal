@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 
 using System;
@@ -80,6 +80,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// A non-library dependency which points to the 'cfg' directory
 		/// within AGX Dynamics.
 		Cfg,
+
+		// Resources needed by the Thread Timeline feature.
+		JournalConfigurations,
 
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
@@ -238,7 +241,10 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Math", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Physics", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
@@ -250,8 +256,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-Urdf", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
-		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
@@ -290,8 +296,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Math", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Physics", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
@@ -376,8 +385,11 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-DriveTrain", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-MachineModeling", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Math", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Control", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-controlinterface", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-urdfplugin", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Physics", LibSource.Dependencies);
@@ -862,6 +874,17 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Cfg, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Cfg, true);
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy AGX Dynamics JournalConfigurations directory.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
 			if (!CopyDirectoryRecursively(Source, Dest))
 			{
 				CleanBundledAGXDynamicsResources();
@@ -1608,6 +1631,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
@@ -1664,6 +1691,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
@@ -1718,6 +1749,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
@@ -1776,9 +1811,17 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.WebDebugger, new LibSourceInfo(
+				null, null,
+				Path.Combine(InstalledDir, "bin", "x64", "WebDebugger")
 			));
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
@@ -1828,6 +1871,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
@@ -1883,6 +1930,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,

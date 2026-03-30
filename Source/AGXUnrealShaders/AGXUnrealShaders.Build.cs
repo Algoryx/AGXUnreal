@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 using UnrealBuildTool;
 
@@ -19,11 +19,6 @@ public class AGXUnrealShaders : ModuleRules
             "RenderCore",
             "RHI",
             "Projects"
-        });
-
-        PrivateDependencyModuleNames.AddRange(new string[]
-        {
-            "Niagara"
         });
     }
 }

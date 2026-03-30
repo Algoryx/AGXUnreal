@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -14,7 +14,7 @@
 #include <memory>
 #include <tuple>
 
-class FShovelBarrier;
+struct FShapeBarrier;
 class FTerrainMaterialBarrier;
 class FShapeMaterialBarrier;
 
@@ -23,7 +23,7 @@ struct FTerrainPropertiesBarrier;
 struct FHeightFieldShapeBarrier;
 
 /**
- *
+ * AGX Dynamics access barrier for Terrain.
  */
 class AGXUNREALBARRIER_API FTerrainBarrier
 {
@@ -35,9 +35,19 @@ public:
 
 	bool HasNative() const;
 	void AllocateNative(FHeightFieldShapeBarrier& SourceHeightField, double MaxDepth);
+	void AllocateNative(
+		int ResolutionX, int ResolutionY, double ElementSize, const TArray<float>& InitialHeights,
+		const TArray<float>& MinimumHeights);
+
 	FTerrainRef* GetNative();
 	const FTerrainRef* GetNative() const;
 	void ReleaseNative();
+
+	uintptr_t GetNativeAddress() const;
+	void SetNativeAddress(uintptr_t NativeAddress);
+
+	void SetEnabled(bool InEnabled);
+	bool GetEnabled() const;
 
 	void SetCanCollide(bool bCanCollide);
 	bool GetCanCollide() const;
@@ -50,6 +60,11 @@ public:
 
 	void SetShapeMaterial(const FShapeMaterialBarrier& Material);
 	void SetTerrainMaterial(const FTerrainMaterialBarrier& TerrainMaterial);
+	bool SetAssociatedMaterial(
+		FTerrainMaterialBarrier& TerrainMaterial, FShapeMaterialBarrier& ShapeMaterial);
+
+	// Assign Terrain Material for voxels overlapped by the given Shape.
+	int32 SetTerrainMaterial(FTerrainMaterialBarrier& TerrainMaterial, FShapeBarrier& Shape);
 	void SetTerrainProperties(const FTerrainPropertiesBarrier& TerrainProperties);
 
 	void AddCollisionGroup(const FName& GroupName);
@@ -69,6 +84,16 @@ public:
 
 	int32 GetGridSizeX() const;
 	int32 GetGridSizeY() const;
+
+	FVector2D GetSize() const;
+	double GetElementSize() const;
+
+	void ConvertToDynamicMassInShape(FShapeBarrier* Shape);
+
+	/// Disable/enable merge of dynamic mass to this terrain
+	void SetNoMerge(bool bNoMerge);
+	bool GetNoMerge() const;
+
 
 	/**
 	 * Returns the modified vertices since the last AGX Dynamics Step Forward.
@@ -97,6 +122,8 @@ public:
 	 * optimization.
 	 */
 	void GetHeights(TArray<float>& OutHeights, bool bChangesOnly) const;
+	void GetMinimumHeights(TArray<float>& OutHeights) const;
+	FHeightFieldShapeBarrier GetHeightField() const;
 
 	/**
 	 * Get an array with the positions of the currently existing particles.

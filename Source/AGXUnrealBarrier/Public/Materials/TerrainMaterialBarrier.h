@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -59,6 +59,9 @@ public:
 
 	void SetYoungsModulus(double YoungsModulus);
 	double GetYoungsModulus() const;
+
+	void SetDeltaReposeAngle(double DeltaReposeAngle);
+	double GetDeltaReposeAngle() const;
 
 	// Compaction properties.
 	void SetAngleOfReposeCompactionRate(double AngleOfReposeCompactionRate);

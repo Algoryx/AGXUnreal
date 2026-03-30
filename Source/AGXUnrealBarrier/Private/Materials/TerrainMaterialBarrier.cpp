@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Materials/TerrainMaterialBarrier.h"
 
@@ -202,6 +202,20 @@ double FTerrainMaterialBarrier::GetYoungsModulus() const
 {
 	check(HasNative());
 	return NativeRef->Native->getBulkProperties()->getYoungsModulus();
+}
+
+void FTerrainMaterialBarrier::SetDeltaReposeAngle(double DeltaReposeAngle)
+{
+	check(HasNative());
+	NativeRef->Native->getBulkProperties()->setDeltaReposeAngle(
+		ConvertAngleToAGX(DeltaReposeAngle));
+}
+
+double FTerrainMaterialBarrier::GetDeltaReposeAngle() const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(
+		NativeRef->Native->getBulkProperties()->getDeltaReposeAngle());
 }
 
 void FTerrainMaterialBarrier::SetAngleOfReposeCompactionRate(double AngleOfReposeCompactionRate)

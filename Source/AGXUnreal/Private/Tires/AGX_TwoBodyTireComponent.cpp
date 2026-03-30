@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Tires/AGX_TwoBodyTireComponent.h"
 
@@ -107,7 +107,7 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 	ImplicitFrictionMultiplier = Barrier.GetImplicitFrictionMultiplier();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TwoBodyTireComponent::StaticClass());
 	Rename(*Name);

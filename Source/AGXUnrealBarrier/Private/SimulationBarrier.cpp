@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "SimulationBarrier.h"
 
@@ -7,9 +7,11 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/Cable/CableRef.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Cable/CableBarrier.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
@@ -59,6 +61,13 @@ FSimulationBarrier::~FSimulationBarrier()
 	// Must provide a destructor implementation in the .cpp file because the
 	// std::unique_ptr NativeRef's destructor must be able to see the definition,
 	// not just the forward declaration, of FSimulationRef.
+}
+
+bool FSimulationBarrier::Add(FCableBarrier& Cable)
+{
+	check(HasNative());
+	check(Cable.HasNative());
+	return NativeRef->Native->add(Cable.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Add(FConstraintBarrier& Constraint)
@@ -152,6 +161,13 @@ bool FSimulationBarrier::Add(FWireBarrier& Wire)
 	return NativeRef->Native->add(Wire.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Remove(FCableBarrier& Cable)
+{
+	check(HasNative());
+	check(Cable.HasNative());
+	return NativeRef->Native->remove(Cable.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Remove(FConstraintBarrier& Constraint)
 {
 	check(HasNative());
@@ -241,6 +257,18 @@ bool FSimulationBarrier::Remove(FWireBarrier& Wire)
 	check(HasNative());
 	check(Wire.HasNative());
 	return NativeRef->Native->remove(Wire.GetNative()->Native);
+}
+
+void FSimulationBarrier::EnableThreadTimeline()
+{
+	check(HasNative());
+	NativeRef->Native->enableThreadTimeline();
+}
+
+bool FSimulationBarrier::DisableThreadTimeline(const FString& FileType)
+{
+	check(HasNative());
+	return NativeRef->Native->disableThreadTimeline(Convert(FileType));
 }
 
 void FSimulationBarrier::SetEnableCollisionGroupPair(
@@ -519,13 +547,22 @@ void FSimulationBarrier::Step()
 		/// stepping again as that will likely not end well.
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Got exception from AGX Dynamics. The simulation state is now unreliable. The "
-				 "scene should be recreated."));
+			TEXT("Got exception from AGX Dynamics stepForward. The simulation state is now "
+				 "unreliable. The scene should be recreated."));
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("The LogAGXDynamics log category may contain additional information, see either "
 				 "the Output Log panel in Unreal Editor or the log file."));
 		UE_LOG(LogAGX, Error, TEXT("Error message: %s"), UTF8_TO_TCHAR(error.what()));
+	}
+	catch (...)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Unknown exception caught from AGX Dynamics stepForward. The simulation state is "
+				 "now unreliable. The scene should be recreated. The LogAGXDynamics log category "
+				 "may contain additional information, see either the Output Log panel in Unreal "
+				 "Editor or the log file."));
 	}
 }
 
@@ -658,7 +695,8 @@ FAGX_Statistics FSimulationBarrier::GetStatistics()
 	auto GetSpaceCount = [SpaceContext](const char* const Name)
 	{ return GetStatisticsCount(SpaceContext, Name); };
 	Statistics.Space_NumShapes = GetSpaceCount("Num geometries");
-	Statistics.Space_NumShapeShapeContactPoints = GetSpaceCount("Num geometry-geometry contact points");
+	Statistics.Space_NumShapeShapeContactPoints =
+		GetSpaceCount("Num geometry-geometry contact points");
 	Statistics.Space_NumShapeShapeContacts = GetSpaceCount("Num geometry-geometry contacts");
 	Statistics.Space_NumParticleParticleContacts = GetSpaceCount("Num particle-particle contacts");
 	Statistics.Space_NumShapeParticleContacts = GetSpaceCount("Num geometry-particle contacts");
