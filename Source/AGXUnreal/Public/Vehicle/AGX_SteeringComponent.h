@@ -102,6 +102,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Steering")
 	double GetSteeringAngle() const;
 
+	/**
+	 * Get the maximum possible steering angle [deg].
+	 *
+	 * The side controls if the right-turn or left-turn angle should be returned.
+	 *
+	 * @param Side 0 or 1 for right (or left?) or left (or right?) respectively.
+	 * @return The maximum possible steering angle.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Steering")
+	double GetMaximumSteeringAngle(int64 Side = 0) const;
+
 	void CopyFrom(const FSteeringBarrier& Barrier, FAGX_ImportContext* Context);
 
 	FSteeringBarrier* GetNative();

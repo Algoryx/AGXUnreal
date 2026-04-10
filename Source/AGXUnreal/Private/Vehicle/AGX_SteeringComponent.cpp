@@ -55,6 +55,14 @@ double UAGX_SteeringComponent::GetSteeringAngle() const
 	return NativeBarrier.GetSteeringAngle();
 }
 
+double UAGX_SteeringComponent::GetMaximumSteeringAngle(int64 Side) const
+{
+	if (!HasNative())
+		return 0.0;
+
+	return NativeBarrier.GetMaximumSteeringAngle(Side);
+}
+
 namespace AGX_SteeringComponent_helpers
 {
 	UAGX_SteeringParameters* GetOrCreateSteeringParameters(
