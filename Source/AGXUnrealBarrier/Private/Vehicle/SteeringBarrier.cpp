@@ -155,6 +155,12 @@ double FSteeringBarrier::GetSteeringAngle() const
 	return ConvertAngleToUnreal<double>(NativeRef->Native->getSteeringAngle());
 }
 
+double FSteeringBarrier::GetMaximumSteeringAngle(int64 Side) const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(NativeRef->Native->getMaximumSteeringAngle(Side));
+}
+
 void FSteeringBarrier::SetName(const FString& Name)
 {
 	check(HasNative());
