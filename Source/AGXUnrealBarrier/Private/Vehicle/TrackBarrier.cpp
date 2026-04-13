@@ -177,6 +177,15 @@ void FTrackBarrier::SetTrackImplementation(
 			if (chassis != nullptr && chassis->HasNative())
 				ChassisNative = chassis->GetNative()->Native.get();
 
+			if (ChassisNative == nullptr)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("SetTrackImplementation was called with the default track "
+						 "implementation but without a chassis body. Doing nothing."));
+				return;
+			}
+
 			auto* Implementation = new agxVehicle::ReducedOrderTrackImplementation(ChassisNative);
 			NativeRef->Native->setTrackImplementation(Implementation, /*active*/ true);
 			return;

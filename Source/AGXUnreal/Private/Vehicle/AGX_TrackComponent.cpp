@@ -1003,6 +1003,14 @@ void UAGX_TrackComponent::WriteTrackImplementationToNative()
 	if (UAGX_RigidBodyComponent* ChassisBody = Chassis.GetRigidBody())
 		ChassisBarrier = ChassisBody->GetOrCreateNative();
 
+	if (TrackImplementation == EAGX_TrackImplementation::Default && ChassisBarrier == nullptr)
+	{
+		const FString Message =
+			TEXT("A Chassis body must be assigned when using the default track implementation.");
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+		return;
+	}
+
 	GetNative()->SetTrackImplementation(TrackImplementation, ChassisBarrier);
 }
 
