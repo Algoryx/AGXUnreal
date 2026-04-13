@@ -63,6 +63,13 @@ public:
 	void SetProperties(const FTrackPropertiesBarrier& Properties);
 	FTrackPropertiesBarrier GetProperties() const;
 
+	void SetTrackImplementation(
+		EAGX_TrackImplementation TrackImplementation, FRigidBodyBarrier* chassis);
+	EAGX_TrackImplementation GetTrackImplementation() const;
+
+	// Only relevant for default Track Implementation.
+	FRigidBodyBarrier GetChassis() const;
+
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);
 	TArray<FName> GetCollisionGroups() const;

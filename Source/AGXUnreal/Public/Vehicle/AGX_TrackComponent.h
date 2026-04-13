@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
+#include "AGX_RigidBodyReference.h"
 #include "Vehicle/AGX_TrackEnums.h"
 #include "Vehicle/AGX_TrackWheel.h"
 #include "Vehicle/AGX_VehicleTypes.h"
@@ -16,6 +17,7 @@
 
 #include "AGX_TrackComponent.generated.h"
 
+class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TrackProperties;
 class UAGX_TrackInternalMergeProperties;
@@ -55,6 +57,34 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
 	bool bEnabled = true;
+
+	/**
+	 * The runtime implementation used by AGX Dynamics Track.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
+	EAGX_TrackImplementation TrackImplementation {EAGX_TrackImplementation::Default};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetTrackImplementation(EAGX_TrackImplementation InTrackImplementation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	EAGX_TrackImplementation GetTrackImplementation() const;
+
+	/**
+	 * The chassis body is used to constrain additional bodies to it
+	 * for force feedbacks of the reduced track, and used as reference for the animation
+	 * of the nodes.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::Default"))
+	FAGX_RigidBodyReference Chassis;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetChassis(UAGX_RigidBodyComponent* InChassis);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	UAGX_RigidBodyComponent* GetChassis() const;
 
 	/**
 	 * Number of nodes in the track.
@@ -443,6 +473,9 @@ private:
 
 	// Set TrackProperties assignment on native. Create native TrackProperties if not yet created.
 	void WriteTrackPropertiesToNative();
+
+	// Set track implementation assignment on native.
+	void WriteTrackImplementationToNative();
 
 	// Write UAGX_TrackInternalMergeProperties properties to native.
 	void WriteInternalMergePropertiesToNative();

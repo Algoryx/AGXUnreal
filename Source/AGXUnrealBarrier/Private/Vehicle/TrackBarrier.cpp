@@ -8,21 +8,23 @@
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
-#include "Materials/ShapeMaterialBarrier.h"
-#include "Vehicle/TrackPropertiesBarrier.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
-#include "Vehicle/TrackWheelBarrier.h"
 #include "BarrierOnly/Vehicle/TrackWheelRef.h"
+#include "Materials/ShapeMaterialBarrier.h"
+#include "RigidBodyBarrier.h"
+#include "Vehicle/TrackPropertiesBarrier.h"
+#include "Vehicle/TrackWheelBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agx/Vec3.h>
 #include <agx/Quat.h>
+#include <agx/Vec3.h>
 #include <agxCollide/Box.h>
+#include <agxVehicle/ReducedOrderTrackImplementation.h>
 #include <agxVehicle/Track.h>
-#include <agxVehicle/TrackRoute.h>
 #include <agxVehicle/TrackNodeOnInitializeCallback.h>
+#include <agxVehicle/TrackRoute.h>
 #include "EndAGXIncludes.h"
 
 #if 1
@@ -155,6 +157,95 @@ FTrackPropertiesBarrier FTrackBarrier::GetProperties() const
 	check(HasNative());
 	agxVehicle::TrackProperties* PropertiesAGX = NativeRef->Native->getProperties();
 	return {std::make_unique<FTrackPropertiesRef>(PropertiesAGX)}; // \ todo Replace
+}
+
+void FTrackBarrier::SetTrackImplementation(
+	EAGX_TrackImplementation TrackImplementation, FRigidBodyBarrier* chassis)
+{
+	check(HasNative());
+
+	switch (TrackImplementation)
+	{
+		case EAGX_TrackImplementation::FullDOF:
+		{
+			NativeRef->Native->setEnableFullDegreeModel(true);
+			return;
+		}
+		case EAGX_TrackImplementation::Default:
+		{
+			agx::RigidBody* ChassisNative = nullptr;
+			if (chassis != nullptr && chassis->HasNative())
+				ChassisNative = chassis->GetNative()->Native.get();
+
+			auto* Implementation = new agxVehicle::ReducedOrderTrackImplementation(ChassisNative);
+			NativeRef->Native->setTrackImplementation(Implementation, /*active*/ true);
+			return;
+		}
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("SetTrackImplementation was called with an unknown TrackImplementation enum "
+			 "literal. Doing nothing."));
+}
+
+EAGX_TrackImplementation FTrackBarrier::GetTrackImplementation() const
+{
+	check(HasNative());
+
+	if (NativeRef->Native->getEnableFullDegreeModel())
+	{
+		return EAGX_TrackImplementation::FullDOF;
+	}
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	if (Implementation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Track '%s' reports that full degrees-of-freedom is disabled but no active track "
+				 "implementation exists. Returning Default."),
+			*GetName());
+		return EAGX_TrackImplementation::Default;
+	}
+
+	if (Implementation->is<agxVehicle::ReducedOrderTrackImplementation>())
+	{
+		return EAGX_TrackImplementation::Default;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Track '%s' uses an unknown non-full-DOF track implementation. Returning "
+			 "Default, which may be wrong."),
+		*GetName());
+	return EAGX_TrackImplementation::Default;
+}
+
+FRigidBodyBarrier FTrackBarrier::GetChassis() const
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	if (Implementation == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	auto* ReducedOrderImplementation =
+		Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>();
+	if (ReducedOrderImplementation == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	agx::RigidBody* Chassis = ReducedOrderImplementation->getChassis();
+	if (Chassis == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Chassis);
 }
 
 void FTrackBarrier::AddCollisionGroup(const FName& GroupName)

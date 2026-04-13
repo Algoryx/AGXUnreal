@@ -576,7 +576,7 @@ void UAGX_TrackProperties::Serialize(FArchive& Archive)
 	Super::Serialize(Archive);
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
-	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TrackReducedOrderTrackImplementation))
 	{
 		TArray<double> Compliance {
 			HingeComplianceTranslational_X_DEPRECATED, HingeComplianceTranslational_Y_DEPRECATED,

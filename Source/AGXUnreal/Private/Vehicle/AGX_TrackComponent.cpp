@@ -77,6 +77,34 @@ bool UAGX_TrackComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
 	return true;
 }
 
+void UAGX_TrackComponent::SetTrackImplementation(EAGX_TrackImplementation InTrackImplementation)
+{
+	TrackImplementation = InTrackImplementation;
+	WriteTrackImplementationToNative();
+}
+
+EAGX_TrackImplementation UAGX_TrackComponent::GetTrackImplementation() const
+{
+	if (HasNative())
+	{
+		return GetNative()->GetTrackImplementation();
+	}
+
+	return TrackImplementation;
+}
+
+void UAGX_TrackComponent::SetChassis(UAGX_RigidBodyComponent* InChassis)
+{
+	Chassis.SetComponent(InChassis);
+	SetComponentReferencesLocalScope();
+	WriteTrackImplementationToNative();
+}
+
+UAGX_RigidBodyComponent* UAGX_TrackComponent::GetChassis() const
+{
+	return Chassis.GetRigidBody();
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license
@@ -255,11 +283,12 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	Width = static_cast<float>(Barrier.GetWidth());
 	Thickness = static_cast<float>(Barrier.GetThickness());
 	InitialTension = Barrier.GetInitialTension();
+	TrackImplementation = Barrier.GetTrackImplementation();
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
 	Rename(*Name);
@@ -299,6 +328,13 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 
 		BodyRef.Name = Body->GetFName();
 	};
+
+	FRigidBodyBarrier ChassisBarrier = Barrier.GetChassis();
+	if (ChassisBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Rb = Context->RigidBodies->FindRef(ChassisBarrier.GetGuid());
+		SetRigidBody(Rb, Chassis);
+	}
 
 	for (const FTrackWheelBarrier& WheelBarrier : Barrier.GetWheels())
 	{
@@ -495,10 +531,11 @@ void UAGX_TrackComponent::Serialize(FArchive& Archive)
 	Super::Serialize(Archive);
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
-	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TrackReducedOrderTrackImplementation))
 	{
 		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
 		InitialTension.Value = InitialDistanceTension_DEPRECATED;
+		TrackImplementation = EAGX_TrackImplementation::FullDOF;
 	}
 }
 
@@ -764,6 +801,14 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		[](ThisClass* Self) { Self->WriteTrackPropertiesToNative(); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackImplementation),
+		[](ThisClass* Self) { Self->SetTrackImplementation(Self->TrackImplementation); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, Chassis),
+		[](ThisClass* Self) { Self->SetChassis(Self->Chassis.GetRigidBody()); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, InternalMergeProperties),
 		[](ThisClass* Self) { Self->WriteInternalMergePropertiesToNative(); });
 
@@ -809,6 +854,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 void UAGX_TrackComponent::SetComponentReferencesLocalScope()
 {
 	AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(this);
+	Chassis.LocalScope = Owner;
 	for (FAGX_TrackWheel& Wheel : Wheels)
 	{
 		Wheel.RigidBody.LocalScope = Owner;
@@ -909,6 +955,7 @@ void UAGX_TrackComponent::CreateNative()
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),
 	// because some properties in TrackProperties affects the track initialization algorithm.
 	WriteTrackPropertiesToNative();
+	WriteTrackImplementationToNative();
 
 	Sim->Add(*this);
 
@@ -945,6 +992,18 @@ void UAGX_TrackComponent::WriteTrackPropertiesToNative()
 	{
 		GetNative()->ClearProperties();
 	}
+}
+
+void UAGX_TrackComponent::WriteTrackImplementationToNative()
+{
+	if (!HasNative())
+		return;
+
+	FRigidBodyBarrier* ChassisBarrier = nullptr;
+	if (UAGX_RigidBodyComponent* ChassisBody = Chassis.GetRigidBody())
+		ChassisBarrier = ChassisBody->GetOrCreateNative();
+
+	GetNative()->SetTrackImplementation(TrackImplementation, ChassisBarrier);
 }
 
 void UAGX_TrackComponent::WriteInternalMergePropertiesToNative()
@@ -1074,6 +1133,9 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 
 	// Set track properties.
 	WriteTrackPropertiesToNative();
+
+	// Set track implementation.
+	WriteTrackImplementationToNative();
 
 	// Set track internal merge properties.
 	WriteInternalMergePropertiesToNative();
