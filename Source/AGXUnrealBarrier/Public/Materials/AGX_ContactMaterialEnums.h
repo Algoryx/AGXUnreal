@@ -86,7 +86,8 @@ enum class EAGX_FrictionModel : uint8
 	OrientedIterativeProjectedConeFriction = 6,
 
 	/**
-	 * Oriented box friction model that uses the same normal force magnitude for all contact points
+	 * Oriented box friction model that uses the same normal force magnitude for all contact
+	 * points
 	 * associated to this friction model.
 	 *
 	 * This means that the size of the friction box always will be:
@@ -94,15 +95,47 @@ enum class EAGX_FrictionModel : uint8
 	 *   Secondary Direction = Secondary Friction Coefficient * Normal Force Magnitude
 	 *
 	 * The given normal force can also be scaled with the contact point depth by setting
+	 *
 	 * 'Scale Normal Force With Depth' to true.
 	 */
 	OrientedConstantNormalForceBoxFriction = 7,
 
+	/**
+	 * Box friction model where the primary direction is calculated from interacting
+	 * tracks.
+	 */
+	TrackBoxFriction = 8,
+
+	/**
+	 * Scale box friction model where the primary direction is calculated from interacting
+	 * tracks.
+	 */
+	TrackScaledBoxFriction = 9,
+
+	/**
+	 * Iterative projected cone friction model where the primary direction is calculated
+	 * from interacting tracks.
+	 */
+	TrackIterativeProjectedConeFriction = 10,
 };
 
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)
 {
 	return FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction;
+}
+
+inline bool SupportsSecondaryFrictionDirections(EAGX_FrictionModel FrictionModel)
+{
+	return FrictionModel == EAGX_FrictionModel::BoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::ScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::IterativeProjectedConeFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackIterativeProjectedConeFriction;
 }
 
 inline bool IsOrientedFrictionModel(EAGX_FrictionModel FrictionModel)

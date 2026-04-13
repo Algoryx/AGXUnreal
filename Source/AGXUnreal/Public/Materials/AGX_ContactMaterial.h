@@ -48,7 +48,6 @@ class AGXUNREAL_API UAGX_ContactMaterial : public UObject
 	GENERATED_BODY()
 
 public:
-
 	bool operator==(const UAGX_ContactMaterial& Other) const;
 
 	/**
@@ -209,7 +208,7 @@ public:
 	/**
 	 * Friction in the secondary direction, if enabled.
 	 *
-	 * Only used by Oriented Friction Models.
+	 * Only used by friction models that support primary and secondary directions.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
@@ -237,7 +236,8 @@ public:
 	 * If disable, 'Friction Coefficient' represents all directions and 'Secondary Friction
 	 * Coefficient' is not used.
 	 *
-	 * Note that secondary direction friction coefficient is only used by Oriented Friction Models.
+	 * Note that secondary direction friction coefficient is only used by friction models that
+	 * support primary and secondary directions.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
 	bool bUseSecondaryFrictionCoefficient {false};
@@ -266,7 +266,7 @@ public:
 	/**
 	 * Surface viscosity in the secondary direction, if enabled.
 	 *
-	 * Only used by Oriented Friction Models.
+	 * Only used by friction models that support primary and secondary directions.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
@@ -294,7 +294,8 @@ public:
 	 * If disable, 'Surface Viscosity' represents all directions and 'Secondary Surface Viscosity'
 	 * is not used.
 	 *
-	 * Note that secondary direction surface viscosity is only used by Oriented Friction Models.
+	 * Note that secondary direction surface viscosity is only used by friction models that support
+	 * primary and secondary directions.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
 	bool bUseSecondarySurfaceViscosity {false};
@@ -521,6 +522,7 @@ public:
 	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.

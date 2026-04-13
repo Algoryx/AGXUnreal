@@ -14,6 +14,7 @@
 #include <agx/FrictionModel.h>
 #include <agx/OrientedFrictionModels.h>
 #include <agx/RigidBody.h>
+#include <agxVehicle/TrackFrictionModels.h>
 #include "EndAGXIncludes.h"
 
 #include <Misc/AssertionMacros.h>
@@ -49,6 +50,12 @@ namespace
 			case EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction:
 				return new agx::ConstantNormalForceOrientedBoxFrictionModel(
 					0, nullptr, DefaultPrimaryDir);
+			case EAGX_FrictionModel::TrackBoxFriction:
+				return new agxVehicle::TrackBoxFrictionModel();
+			case EAGX_FrictionModel::TrackScaledBoxFriction:
+				return new agxVehicle::TrackScaleBoxFrictionModel();
+			case EAGX_FrictionModel::TrackIterativeProjectedConeFriction:
+				return new agxVehicle::TrackIterativeProjectedConeFrictionModel();
 			default:
 				check(!"ConvertFrictionModelToAgx received unsupported value");
 				return nullptr;
@@ -63,6 +70,19 @@ namespace
 		//       Hierarchically deep types must be cast-tested before their ancestor types!
 		// \todo Consider using typeid() to compare exact types instead.
 
+		if (dynamic_cast<const agxVehicle::TrackIterativeProjectedConeFrictionModel*>(
+				FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackIterativeProjectedConeFriction;
+		}
+		else if (dynamic_cast<const agxVehicle::TrackScaleBoxFrictionModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackScaledBoxFriction;
+		}
+		else if (dynamic_cast<const agxVehicle::TrackBoxFrictionModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackBoxFriction;
+		}
 		if (dynamic_cast<const agx::ConstantNormalForceOrientedBoxFrictionModel*>(FrictionModel))
 		{
 			return EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction;

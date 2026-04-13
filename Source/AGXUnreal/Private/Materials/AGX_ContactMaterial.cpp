@@ -598,6 +598,46 @@ bool UAGX_ContactMaterial::IsOrientedFrictionModel() const
 	return ::IsOrientedFrictionModel(FrictionModel);
 }
 
+#if WITH_EDITOR
+bool UAGX_ContactMaterial::CanEditChange(const FProperty* InProperty) const
+{
+	const bool bSuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!bSuperCanEditChange || InProperty == nullptr)
+	{
+		return bSuperCanEditChange;
+	}
+
+	const FName PropertyName = InProperty->GetFName();
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, NormalForceMagnitude) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bScaleNormalForceWithDepth))
+	{
+		return IsConstantNormalForceFrictionModel();
+	}
+
+	if (PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondaryFrictionCoefficient) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondaryFrictionCoefficient) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondarySurfaceViscosity) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondarySurfaceViscosity))
+	{
+		return SupportsSecondaryFrictionDirections(FrictionModel);
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, PrimaryDirection) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameActor) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameComponent))
+	{
+		return IsOrientedFrictionModel();
+	}
+
+	return bSuperCanEditChange;
+}
+#endif
+
 void UAGX_ContactMaterial::SetRestitution(double InRestitution)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(Restitution, InRestitution, SetRestitution);
