@@ -981,7 +981,6 @@ void UAGX_TrackComponent::CreateNative()
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),
 	// because some properties in TrackProperties affects the track initialization algorithm.
 	WriteTrackPropertiesToNative();
-	WriteTrackImplementationToNative();
 
 	Sim->Add(*this);
 
@@ -1169,11 +1168,11 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 	// Set shape material on all native geometries.
 	UpdateNativeShapeMaterial();
 
-	// Set track properties.
-	WriteTrackPropertiesToNative();
-
 	// Set track implementation.
 	WriteTrackImplementationToNative();
+
+	// Set track properties.
+	WriteTrackPropertiesToNative();
 
 	// Set track internal merge properties.
 	WriteInternalMergePropertiesToNative();
