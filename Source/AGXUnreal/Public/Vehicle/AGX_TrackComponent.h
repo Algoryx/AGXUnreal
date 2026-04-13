@@ -87,6 +87,29 @@ public:
 	UAGX_RigidBodyComponent* GetChassis() const;
 
 	/**
+	 * Controls the scale of the force applied by the vertical stabilization that filters
+	 * high-frequency oscillations.
+	 *
+	 * Increase this scale factor if you experience unnatural track oscillations during high
+	 * tension. If you experience that the vertical stabilization effect becomes too dominant,
+	 * noticed as a plastic behavior in the track when moved from equilibrium, decrease this
+	 * scale factor.
+	 *
+	 * The strength of the vertical stability depends on track tension, bending stiffness and this
+	 * scale factor.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track", AdvancedDisplay,
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::Default"))
+	double VerticalStabilityScaleFactor {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetVerticalStabilityScaleFactor(double InVerticalStabilityScaleFactor);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	double GetVerticalStabilityScaleFactor() const;
+
+	/**
 	 * Number of nodes in the track.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
@@ -132,8 +155,11 @@ public:
 	/**
 	 * Properties controlling how the Rigid Bodies created for the Track shoes may be merged with
 	 * each other.
+	 * Only used with the FullDOF Track Implementation.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::FullDOF"))
 	UAGX_TrackInternalMergeProperties* InternalMergeProperties;
 
 	/**

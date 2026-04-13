@@ -70,6 +70,18 @@ public:
 	// Only relevant for default Track Implementation.
 	FRigidBodyBarrier GetChassis() const;
 
+	/**
+	 * Set the vertical stability scale factor of the reduced-order track implementation.
+	 * Only relevant for the default track implementation (reduced-order).
+	 */
+	void SetVerticalStabilityScaleFactor(double Scale);
+
+	/**
+	 * Get the vertical stability scale factor of the reduced-order track implementation.
+	 * Only relevant for the default track implementation (reduced-order).
+	 */
+	double GetVerticalStabilityScaleFactor() const;
+
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);
 	TArray<FName> GetCollisionGroups() const;

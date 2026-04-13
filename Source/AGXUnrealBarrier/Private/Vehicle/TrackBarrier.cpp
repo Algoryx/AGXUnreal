@@ -257,6 +257,45 @@ FRigidBodyBarrier FTrackBarrier::GetChassis() const
 	return AGXBarrierFactories::CreateRigidBodyBarrier(Chassis);
 }
 
+void FTrackBarrier::SetVerticalStabilityScaleFactor(double Scale)
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	auto* ReducedOrderImplementation =
+		Implementation != nullptr
+			? Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>()
+			: nullptr;
+	if (ReducedOrderImplementation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SetVerticalStabilityScaleFactor was called on Track '%s' without a reduced-order "
+				 "track implementation. Doing nothing."),
+			*GetName());
+		return;
+	}
+
+	ReducedOrderImplementation->getProperties().setVerticalStabilityScaleFactor(Scale);
+}
+
+double FTrackBarrier::GetVerticalStabilityScaleFactor() const
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	auto* ReducedOrderImplementation =
+		Implementation != nullptr
+			? Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>()
+			: nullptr;
+	if (ReducedOrderImplementation == nullptr)
+	{
+		return 1.0;
+	}
+
+	return ReducedOrderImplementation->getProperties().getVerticalStabilityScaleFactor();
+}
+
 void FTrackBarrier::AddCollisionGroup(const FName& GroupName)
 {
 	check(HasNative());

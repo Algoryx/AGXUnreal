@@ -105,6 +105,26 @@ UAGX_RigidBodyComponent* UAGX_TrackComponent::GetChassis() const
 	return Chassis.GetRigidBody();
 }
 
+void UAGX_TrackComponent::SetVerticalStabilityScaleFactor(double InVerticalStabilityScaleFactor)
+{
+	VerticalStabilityScaleFactor = InVerticalStabilityScaleFactor;
+
+	if (HasNative() && TrackImplementation == EAGX_TrackImplementation::Default)
+	{
+		GetNative()->SetVerticalStabilityScaleFactor(VerticalStabilityScaleFactor);
+	}
+}
+
+double UAGX_TrackComponent::GetVerticalStabilityScaleFactor() const
+{
+	if (HasNative() && GetTrackImplementation() == EAGX_TrackImplementation::Default)
+	{
+		return GetNative()->GetVerticalStabilityScaleFactor();
+	}
+
+	return VerticalStabilityScaleFactor;
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license
@@ -284,6 +304,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	Thickness = static_cast<float>(Barrier.GetThickness());
 	InitialTension = Barrier.GetInitialTension();
 	TrackImplementation = Barrier.GetTrackImplementation();
+	VerticalStabilityScaleFactor = Barrier.GetVerticalStabilityScaleFactor();
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
@@ -809,6 +830,11 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		[](ThisClass* Self) { Self->SetChassis(Self->Chassis.GetRigidBody()); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, VerticalStabilityScaleFactor),
+		[](ThisClass* Self)
+		{ Self->SetVerticalStabilityScaleFactor(Self->VerticalStabilityScaleFactor); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, InternalMergeProperties),
 		[](ThisClass* Self) { Self->WriteInternalMergePropertiesToNative(); });
 
@@ -1012,6 +1038,10 @@ void UAGX_TrackComponent::WriteTrackImplementationToNative()
 	}
 
 	GetNative()->SetTrackImplementation(TrackImplementation, ChassisBarrier);
+	if (TrackImplementation == EAGX_TrackImplementation::Default)
+	{
+		GetNative()->SetVerticalStabilityScaleFactor(VerticalStabilityScaleFactor);
+	}
 }
 
 void UAGX_TrackComponent::WriteInternalMergePropertiesToNative()
