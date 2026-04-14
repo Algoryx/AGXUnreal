@@ -27,9 +27,10 @@ public class AGXUnreal : ModuleRules
 		PrecompileForTargets = PrecompileTargetsType.Any;
 
 		// TODO: Determine which of these are really need and why.
+		// Can any of them be moved to PrivateDependencyModuleNames?
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"AGXCommon", "AGXUnrealBarrier", "AGXUnrealShaders", "RHI", "RenderCore", "Core", "CoreUObject",
-			"Engine", "InputCore", "Niagara", "ProceduralMeshComponent"});
+			"Engine", "InputCore", "Niagara", "PCG", "ProceduralMeshComponent"});
 
 
 		// TODO: Determine which of these are really needed and why.
