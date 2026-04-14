@@ -8,7 +8,6 @@
 // Unreal Engine includes.
 #include "Data/PCGPointData.h"
 #include "PCGContext.h"
-#include "Animation/MirrorDataTable.h"
 
 #define LOCTEXT_NAMESPACE "AGX_LogPoints"
 
@@ -33,22 +32,18 @@ FText UAGX_LogPointsSettings::GetNodeTooltipText() const
 
 EPCGSettingsType UAGX_LogPointsSettings::GetType() const
 {
-	return EPCGSettingsType::Spatial;
+	return EPCGSettingsType::PointOps;
 }
 #endif // WITH_EDITOR
 
 TArray<FPCGPinProperties> UAGX_LogPointsSettings::InputPinProperties() const
 {
-	auto Test_1 = Super::InputPinProperties();
-	auto Test_2 = Super::DefaultPointInputPinProperties();
-	return Test_1;
+	return Super::DefaultPointInputPinProperties();
 }
 
 TArray<FPCGPinProperties> UAGX_LogPointsSettings::OutputPinProperties() const
 {
-	auto Test_1 = Super::OutputPinProperties();
-	auto Test_2 = Super::DefaultPointOutputPinProperties();
-	return Test_1;
+	return Super::DefaultPointOutputPinProperties();
 }
 
 FPCGElementPtr UAGX_LogPointsSettings::CreateElement() const
