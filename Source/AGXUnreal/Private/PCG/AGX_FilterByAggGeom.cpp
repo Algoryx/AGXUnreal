@@ -76,9 +76,8 @@ bool FAGX_FilterByAggGeomElement::ExecuteInternal(FPCGContext* Context) const
 
 	// Get all inputs that contain attribute sets, which is what Get Actor Data will output in
 	// Get Components Reference mode.
-	TArray<FPCGTaggedData> Inputs = Context->InputData.GetAllParams();
-	// TArray<FPCGTaggedData> Inputs =
-	// Context->InputData.GetInputsByPin(PCGPinConstants::DefaultInputLabel);
+	TArray<FPCGTaggedData> Inputs =
+		Context->InputData.GetInputsByPin(PCGPinConstants::DefaultInputLabel);
 
 	// Shorter name for the output data, to reduce typing later.
 	TArray<FPCGTaggedData>& Outputs = Context->OutputData.TaggedData;
@@ -112,6 +111,12 @@ bool FAGX_FilterByAggGeomElement::ExecuteInternal(FPCGContext* Context) const
 				ParamData, Selector, ComponentRefs, Context,
 				EPCGAttributeAccessorFlags::AllowBroadcastAndConstructible))
 		{
+			PCGE_LOG(
+				Warning, GraphAndLog,
+				LOCTEXT(
+					"ExtractAllValuesFailed",
+					"FAGX_FilterByAggGeomElement::ExecuteInternal got ParamData from which "
+					"FSoftObjectPaths could not be extracted."));
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("FAGX_FilterByAggGeomElement::ExecuteInternal got ParamData from which "
