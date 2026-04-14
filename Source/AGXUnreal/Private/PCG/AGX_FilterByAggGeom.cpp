@@ -1,6 +1,6 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "PCG/AGX_FilterByAggGeomElement.h"
+#include "PCG/AGX_FilterByAggGeom.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
