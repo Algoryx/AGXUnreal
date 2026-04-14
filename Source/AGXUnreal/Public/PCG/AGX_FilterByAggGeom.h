@@ -8,7 +8,7 @@
 #include "AGX_FilterByAggGeom.generated.h"
 
 UENUM(BlueprintType, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
-enum class EAGX_FilterAggGeomTypes : uint32
+enum class EAGX_FilterAggGeomTypes : uint8
 {
 	None = 0 UMETA(Hidden),
 
@@ -44,7 +44,7 @@ public:
 		EditAnywhere, BlueprintReadWrite, Category = "AGX",
 		Meta =
 			(PCG_Overridable, Bitmask, BitmaskEnum = "/Script/AGXUnreal.EAGX_FilterAggGeomTypes"))
-	uint32 ToInclude = EAGX_FilterAggGeomTypes::All;
+	int32 ToInclude = static_cast<int32>(EAGX_FilterAggGeomTypes::All);
 
 	UFUNCTION(BlueprintCallable)
 	EAGX_FilterAggGeomTypes GetToInclude() const;
@@ -53,7 +53,7 @@ public:
 	bool ShouldInclude(EAGX_FilterAggGeomTypes Type) const;
 };
 
-class FAGX_FilterByAggGeom : public IPCGElement
+class FAGX_FilterByAggGeomElement : public IPCGElement
 {
 protected:
 	virtual bool ExecuteInternal(FPCGContext* Context) const override;
@@ -63,11 +63,5 @@ protected:
 	{
 		// TODO Figure out what this does.
 		return EPCGElementExecutionLoopMode::SinglePrimaryPin;
-	}
-
-	virtual bool SupportsBasePointDataInputs(FPCGContext* InContext) const override
-	{
-		// TODO Figure out what this does.
-		return true;
 	}
 };
