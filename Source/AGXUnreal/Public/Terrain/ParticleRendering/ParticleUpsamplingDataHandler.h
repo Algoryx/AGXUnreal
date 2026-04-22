@@ -11,8 +11,8 @@
 
 /**
  * Struct to store data from a single coarse particle.
- */ 
-struct AGXUNREALSHADERS_API FCoarseParticle
+ */
+struct AGXUNREAL_API FCoarseParticle
 {
 	/**
 	 * The position stored at XYZ, the particle radius stored at W.
@@ -28,7 +28,7 @@ struct AGXUNREALSHADERS_API FCoarseParticle
 /**
  * Struct to store data contained in a voxel of the voxel grid.
  */
-struct AGXUNREALSHADERS_API FVoxelEntry
+struct AGXUNREAL_API FVoxelEntry
 {
 	/**
 	 * IndexAndRoom_Index holds the voxel index (XYZ), IndexAndRoom_Room represents
@@ -52,7 +52,7 @@ struct AGXUNREALSHADERS_API FVoxelEntry
 	FVector4f MaxBounds;
 
 	/**
-	 * The min coordinates of the bounding box surrounding coarse particles 
+	 * The min coordinates of the bounding box surrounding coarse particles
 	 * in this voxel stored at XYZ, W is empty.
 	 */
 	FVector4f MinBounds;
@@ -65,14 +65,14 @@ struct AGXUNREALSHADERS_API FVoxelEntry
  *
  * UAVs allow for unordered read/write access from multiple threads by supporting
  * atomic operations. This makes it possible to implement data structures like
- * hash tables directly on the GPU, where multiple threads can perform concurrent 
+ * hash tables directly on the GPU, where multiple threads can perform concurrent
  * inserts and lookups.
  *
  * SRVs provide read-only access to buffers from multiple threads. Although threads
  * can read from the buffer in parallel without conflicts, writing is not allowed,
  * as it would result in exceptions being thrown.
  */
-struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
+struct AGXUNREAL_API FParticleUpsamplingBuffers : public FRenderResource
 {
 	FParticleUpsamplingBuffers()
 		: CoarseParticlesCapacity(0)
@@ -81,54 +81,54 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 	}
 
 	FParticleUpsamplingBuffers(uint32 InitialCoarseParticleCapacity, uint32 InitialActiveVoxelsCapacity)
-		: CoarseParticlesCapacity(InitialCoarseParticleCapacity) 
+		: CoarseParticlesCapacity(InitialCoarseParticleCapacity)
 		, ActiveVoxelsCapacity(InitialActiveVoxelsCapacity)
 	{
 	}
-	
+
 	// ~Begin FRenderResource interface.
 
 	/**
-	 * Initialize the different buffers used in this render resource. 
+	 * Initialize the different buffers used in this render resource.
 	 */
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
 
-	/** 
-	 * Release all buffers used in this render resource.  
+	/**
+	 * Release all buffers used in this render resource.
 	 */
 	virtual void ReleaseRHI() override;
 	virtual FString GetFriendlyName() const override { return TEXT("Particle Upsampling Render Resources") ;};
 
 	// ~End FRenderResource interface.
 
-	/** 
-	 * Function for initializing a new Read-only buffer on the GPU 
+	/**
+	 * Function for initializing a new Read-only buffer on the GPU
 	 */
 	template <typename T>
 	FShaderResourceViewRHIRef InitSRVBuffer(
 		FRHICommandListBase& RHICmdList, const TCHAR* InDebugName, uint32 ElementCount);
 
-	/** 
-	 * Function for initializing a new Read/Write buffer on the GPU. 
+	/**
+	 * Function for initializing a new Read/Write buffer on the GPU.
 	 */
 	template <typename T>
 	FUnorderedAccessViewRHIRef InitUAVBuffer(
 		FRHICommandListBase& RHICmdList, const TCHAR* InDebugName, uint32 ElementCount);
 
-	/** 
-	 * Update the buffers for the coarse particles, releasing the old ones and creating new ones. 
+	/**
+	 * Update the buffers for the coarse particles, releasing the old ones and creating new ones.
 	 */
 	void UpdateCoarseParticleBuffer(
 		FRHICommandListBase& RHICmdList, const TArray<FCoarseParticle> CoarseParticleData);
 
-	/** 
-	 * Update the buffers for the hashtable, releasing the old ones and creating new ones. 
+	/**
+	 * Update the buffers for the hashtable, releasing the old ones and creating new ones.
 	 */
 	void UpdateHashTableBuffers(
 		FRHICommandListBase& RHICmdList, const TArray<FIntVector4> ActiveVoxelIndices);
 
-	/** 
-	 * Reference to the SRV buffer containing Coarse Particles. 
+	/**
+	 * Reference to the SRV buffer containing Coarse Particles.
 	 */
 	FShaderResourceViewRHIRef CoarseParticles;
 
@@ -137,18 +137,18 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 	 */
 	uint32 CoarseParticlesCapacity {0};
 
-	/** 
-	 * Reference to the SRV buffer containing Active Voxels. 
+	/**
+	 * Reference to the SRV buffer containing Active Voxels.
 	 */
 	FShaderResourceViewRHIRef ActiveVoxelIndices;
 
-	/** 
-	 * Reference to the UAV buffer containing data for each voxel in the voxel grid. 
+	/**
+	 * Reference to the UAV buffer containing data for each voxel in the voxel grid.
 	 */
 	FUnorderedAccessViewRHIRef ActiveVoxelsTable;
 
 	/**
-	 * Reference to the UAV buffer containing data on which indices are 
+	 * Reference to the UAV buffer containing data on which indices are
 	 * occupied in the hashtable buffer.
 	 */
 	FUnorderedAccessViewRHIRef ActiveVoxelsTableOccupancy;
@@ -160,10 +160,10 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingBuffers : public FRenderResource
 };
 
 /**
- * Struct containing the data from the simulation that is used to be able to 
+ * Struct containing the data from the simulation that is used to be able to
  * perform particle upsampling.
  */
-struct AGXUNREALSHADERS_API FParticleUpsamplingSimulationData
+struct AGXUNREAL_API FParticleUpsamplingSimulationData
 {
 	FParticleUpsamplingSimulationData()
 	{
@@ -180,12 +180,12 @@ struct AGXUNREALSHADERS_API FParticleUpsamplingSimulationData
 	int TableSize = 0;
 };
 
-/** 
+/**
  * Struct for handling all the data and buffers for the particle upsampling
  * data interface. This struct will be passed as the instanced data between
  * the game thread and render thread.
  */
-struct AGXUNREALSHADERS_API FParticleUpsamplingDataHandler
+struct AGXUNREAL_API FParticleUpsamplingDataHandler
 {
 	static const uint32 INITIAL_COARSE_PARTICLE_BUFFER_SIZE = 1024;
 	static const uint32 INITIAL_ACTIVE_VOXEL_BUFFER_SIZE = 1024;

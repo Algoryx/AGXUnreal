@@ -259,6 +259,18 @@ bool FSimulationBarrier::Remove(FWireBarrier& Wire)
 	return NativeRef->Native->remove(Wire.GetNative()->Native);
 }
 
+void FSimulationBarrier::EnableThreadTimeline()
+{
+	check(HasNative());
+	NativeRef->Native->enableThreadTimeline();
+}
+
+bool FSimulationBarrier::DisableThreadTimeline(const FString& FileType)
+{
+	check(HasNative());
+	return NativeRef->Native->disableThreadTimeline(Convert(FileType));
+}
+
 void FSimulationBarrier::SetEnableCollisionGroupPair(
 	const FName& Group1, const FName& Group2, bool CanCollide)
 {
@@ -535,13 +547,22 @@ void FSimulationBarrier::Step()
 		/// stepping again as that will likely not end well.
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Got exception from AGX Dynamics. The simulation state is now unreliable. The "
-				 "scene should be recreated."));
+			TEXT("Got exception from AGX Dynamics stepForward. The simulation state is now "
+				 "unreliable. The scene should be recreated."));
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("The LogAGXDynamics log category may contain additional information, see either "
 				 "the Output Log panel in Unreal Editor or the log file."));
 		UE_LOG(LogAGX, Error, TEXT("Error message: %s"), UTF8_TO_TCHAR(error.what()));
+	}
+	catch (...)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("Unknown exception caught from AGX Dynamics stepForward. The simulation state is "
+				 "now unreliable. The scene should be recreated. The LogAGXDynamics log category "
+				 "may contain additional information, see either the Output Log panel in Unreal "
+				 "Editor or the log file."));
 	}
 }
 
@@ -674,7 +695,8 @@ FAGX_Statistics FSimulationBarrier::GetStatistics()
 	auto GetSpaceCount = [SpaceContext](const char* const Name)
 	{ return GetStatisticsCount(SpaceContext, Name); };
 	Statistics.Space_NumShapes = GetSpaceCount("Num geometries");
-	Statistics.Space_NumShapeShapeContactPoints = GetSpaceCount("Num geometry-geometry contact points");
+	Statistics.Space_NumShapeShapeContactPoints =
+		GetSpaceCount("Num geometry-geometry contact points");
 	Statistics.Space_NumShapeShapeContacts = GetSpaceCount("Num geometry-geometry contacts");
 	Statistics.Space_NumParticleParticleContacts = GetSpaceCount("Num particle-particle contacts");
 	Statistics.Space_NumShapeParticleContacts = GetSpaceCount("Num geometry-particle contacts");
@@ -709,7 +731,7 @@ bool FSimulationBarrier::HasNative() const
 
 void FSimulationBarrier::AllocateNative()
 {
-	NativeRef = std::make_unique<FSimulationRef>(new agxSDK::Simulation());
+	NativeRef->Native = new agxSDK::Simulation();
 }
 
 FSimulationRef* FSimulationBarrier::GetNative()
@@ -732,7 +754,7 @@ const FSimulationRef* FSimulationBarrier::GetNative() const
 
 void FSimulationBarrier::ReleaseNative()
 {
-	NativeRef = nullptr;
+	NativeRef->Native = nullptr;
 }
 
 FShapeContactMergeSplitThresholdsBarrier FSimulationBarrier::GetGlobalShapeContactTresholds() const

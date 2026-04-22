@@ -20,10 +20,5 @@ public class AGXUnrealShaders : ModuleRules
             "RHI",
             "Projects"
         });
-
-        PrivateDependencyModuleNames.AddRange(new string[]
-        {
-            "Niagara"
-        });
     }
 }

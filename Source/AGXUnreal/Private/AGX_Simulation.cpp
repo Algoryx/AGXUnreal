@@ -19,6 +19,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
@@ -660,6 +661,22 @@ TArray<FAGX_ShapeContact> UAGX_Simulation::GetShapeContacts() const
 	return ShapeContacts;
 }
 
+void UAGX_Simulation::Internal_EnableThreadTimeline()
+{
+	if (!HasNative())
+		return;
+
+	NativeBarrier.EnableThreadTimeline();
+}
+
+bool UAGX_Simulation::Internal_DisableThreadTimeline(const FString& FileType)
+{
+	if (!HasNative())
+		return false;
+
+	return NativeBarrier.DisableThreadTimeline(FileType);
+}
+
 void UAGX_Simulation::SetEnableContactWarmstarting(bool bEnable)
 {
 	bContactWarmstarting = bEnable;
@@ -756,6 +773,13 @@ void UAGX_Simulation::Deinitialize()
 
 	if (DebuggerBarrier.HasNative())
 		StopWebDebugging();
+
+	if (auto LidarSurfaceMaterial =
+			GetAssetFrom<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial))
+	{
+		if (LidarSurfaceMaterial->HasNative())
+			LidarSurfaceMaterial->ReleaseNative();
+	}
 
 	Super::Deinitialize();
 	if (HasNative())
@@ -1665,7 +1689,8 @@ namespace AGX_Simulation_helpers
 {
 	bool IsMatch(UAGX_ShapeComponent* Shape, const FGuid& Guid)
 	{
-		return Shape->GetNative()->GetGeometryGuid() == Guid;
+		return Shape != nullptr && Shape->HasNative() &&
+			   Shape->GetNative()->GetGeometryGuid() == Guid;
 	}
 
 	template <typename UComponent>

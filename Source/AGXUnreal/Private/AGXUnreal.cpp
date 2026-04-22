@@ -160,6 +160,12 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 		Redirects.Emplace(ECoreRedirectFlags::Type_Function, *BpName, *Function->GetName());
 	}
 
+	// Niagara types moved from AGXUnrealShaders into AGXUnreal because AGXUnrealShaders is not
+	// reliably loaded after Niagara.
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("/Script/AGXUnrealShaders.AGX_ParticleUpsamplingDI"),
+		TEXT("/Script/AGXUnreal.AGX_ParticleUpsamplingDI"));
+
 	FCoreRedirects::AddRedirectList(Redirects, TEXT("AGXUnreal"));
 }
 

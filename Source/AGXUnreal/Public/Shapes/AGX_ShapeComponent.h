@@ -34,6 +34,14 @@ public:
 	UAGX_ShapeComponent();
 
 	/**
+	 * If set to true, this Component will be added to the Simulation on BeginPlay.
+	 * If set to false, it will not be added to the Simulation and will thus not interact with other
+	 * objects in the Simulation.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Unreal")
+	bool bIncludeInSimulation {true};
+
+	/**
 	 * Defines physical properties of both the surface and the bulk of this shape.
 	 *
 	 * Surface properties do for example greatly affect frictional forces.
@@ -238,6 +246,12 @@ public:
 
 	static FString GetRenderMeshComponentNamePrefix();
 
+	/**
+	 * Clear the reference pointer held by this Shape Component. May only be called when there is a
+	 * Native to release.
+	 */
+	virtual void ReleaseNative() PURE_VIRTUAL(UAGX_ShapeComponent::ReleaseNative, );
+
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
@@ -267,6 +281,9 @@ public:
 #endif
 	// ~End UObject interface.
 
+	static void ApplySensorMaterial(UMeshComponent& Mesh);
+	static void RemoveSensorMaterial(UMeshComponent& Mesh);
+
 protected:
 	/**
 	 * Get a pointer to the actual member Barrier object. This will never return nullptr. The
@@ -279,12 +296,6 @@ protected:
 
 	virtual const FShapeBarrier* GetNativeBarrier() const
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetNativebarrier, return nullptr;);
-
-	/**
-	 * Clear the reference pointer held by this Shape Component. May only be called when there is a
-	 * Native to release.
-	 */
-	virtual void ReleaseNative() PURE_VIRTUAL(UAGX_ShapeComponent::ReleaseNative, );
 
 #if WITH_EDITOR
 	/**
@@ -335,9 +346,6 @@ protected:
 	 * is the world coordinate system.
 	 */
 	virtual void UpdateNativeGlobalTransform();
-
-	static void ApplySensorMaterial(UMeshComponent& Mesh);
-	static void RemoveSensorMaterial(UMeshComponent& Mesh);
 
 	/** Description of Unreal collision, used by e.g. Line Trace. */
 	UPROPERTY(Transient, Duplicatetransient)

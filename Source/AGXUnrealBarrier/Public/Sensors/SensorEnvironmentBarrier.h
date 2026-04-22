@@ -47,11 +47,12 @@ public:
 
 	void SetAmbientMaterial(FRtAmbientMaterialBarrier* Material);
 
-	void SetLidarSurfaceMaterialOrDefault(
+	/// If Material is nullptr, the AGX default Lidar Surface Material is assigned.
+	void SetLidarSurfaceMaterial(
 		FTerrainBarrier& Terrain, FRtLambertianOpaqueMaterialBarrier* Material);
-	void SetLidarSurfaceMaterialOrDefault(
+	void SetLidarSurfaceMaterial(
 		FTerrainPagerBarrier& TerrainPager, FRtLambertianOpaqueMaterialBarrier* Material);
-	void SetLidarSurfaceMaterialOrDefault(
+	void SetLidarSurfaceMaterial(
 		FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material);
 
 	/// In Tesla [T].

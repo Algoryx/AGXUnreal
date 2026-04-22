@@ -506,7 +506,7 @@ void UAGX_RigidBodyComponent::CopyFrom(
 	const FRigidBodyBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOuter(), CleanBarrierName, UAGX_RigidBodyComponent::StaticClass());
 	Rename(*Name);
@@ -1328,6 +1328,9 @@ void UAGX_RigidBodyComponent::SynchronizeShapes()
 {
 	for (UAGX_ShapeComponent* Shape : GetShapes())
 	{
+		if (!Shape->bIncludeInSimulation)
+			continue;
+
 		FShapeBarrier* NativeShape = Shape->GetOrCreateNative();
 		AGX_CHECK(NativeShape != nullptr && NativeShape->HasNative());
 		if (NativeShape == nullptr || !NativeShape->HasNative())
