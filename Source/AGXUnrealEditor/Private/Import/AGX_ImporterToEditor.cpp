@@ -460,10 +460,12 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		if (Result.Actor == nullptr)
 		{
+			const FString Path =
+				Settings.FilePath.IsEmpty() ? Settings.SourceFilePath : Settings.FilePath;
 			const FString Text = FString::Printf(
 				TEXT("Errors occurred during import. The file '%s' could not be imported. Log "
 					 "category LogAGX in the Output Log may contain more information."),
-				*Settings.FilePath);
+				*Path);
 			FAGX_NotificationUtilities::ShowDialogBoxWithError(Text, "Import Model to Blueprint");
 			return false;
 		}
@@ -1698,7 +1700,7 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
 	const FString DestinationDir =
-		FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+		FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 	const FString NewLocation =
 		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))
