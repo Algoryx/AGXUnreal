@@ -3,16 +3,18 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "RigidBodyBarrier.h"
 #include "Vehicle/AGX_TrackEnums.h"
 
 // Standard library includes.
 #include <memory>
 
-struct FRigidBodyBarrier;
+struct FTrackWheelCreationData;
 struct FTrackWheelRef;
 
+
 /*
- * This is currently only used by the Import pipeline.
+ * This is currently mostly used by the Import pipeline.
  * In the future, it would be possible to let the FAGX_TrackWheel UStruct own an instance of this
  * class and be responsible to keep it in sync, and expose relevant functions to the user in the
  * Editor.
@@ -24,6 +26,8 @@ public:
 	FTrackWheelBarrier(std::unique_ptr<FTrackWheelRef> Native);
 	FTrackWheelBarrier(FTrackWheelBarrier&& Other);
 	~FTrackWheelBarrier();
+
+	void AllocateNative(const FTrackWheelCreationData& Data);
 
 	FRigidBodyBarrier GetRigidBody() const;
 
@@ -47,4 +51,18 @@ public:
 
 private:
 	std::unique_ptr<FTrackWheelRef> NativeRef;
+};
+
+struct AGXUNREALBARRIER_API FTrackWheelCreationData
+{
+	uint8 Model {0};
+	double Radius {0.0};
+
+	FRigidBodyBarrier RigidBody;
+	FVector RelativePosition;
+	FQuat RelativeRotation;
+
+	bool bSplitSegments {false};
+	bool bMoveNodesToRotationPlane {false};
+	bool bMoveNodesToWheel {false};
 };

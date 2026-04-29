@@ -8,20 +8,23 @@
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
-#include "Materials/ShapeMaterialBarrier.h"
-#include "Vehicle/TrackPropertiesBarrier.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
-#include "Vehicle/TrackWheelBarrier.h"
 #include "BarrierOnly/Vehicle/TrackWheelRef.h"
+#include "Materials/ShapeMaterialBarrier.h"
+#include "RigidBodyBarrier.h"
+#include "Vehicle/TrackPropertiesBarrier.h"
+#include "Vehicle/TrackWheelBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agx/Vec3.h>
 #include <agx/Quat.h>
+#include <agx/Vec3.h>
 #include <agxCollide/Box.h>
+#include <agxVehicle/ReducedOrderTrackImplementation.h>
 #include <agxVehicle/Track.h>
 #include <agxVehicle/TrackNodeOnInitializeCallback.h>
+#include <agxVehicle/TrackRoute.h>
 #include "EndAGXIncludes.h"
 
 #if 1
@@ -91,37 +94,13 @@ FTrackBarrier::~FTrackBarrier()
 	// not just the forward declaration, of FTrackRef.
 }
 
-void FTrackBarrier::AddTrackWheel(
-	uint8 Model, double Radius, const FRigidBodyBarrier& RigidBody, const FVector& RelativePosition,
-	const FQuat& RelativeRotation, bool bSplitSegments, bool bMoveNodesToRotationPlane,
-	bool bMoveNodesToWheel)
+void FTrackBarrier::AddTrackWheel(const FTrackWheelCreationData& Data)
 {
 	check(HasNative());
-	check(RigidBody.HasNative()); // \todo More gentle check and return false?
 
-	// Convert to AGX Dynamics types.
-	agxVehicle::TrackWheel::Model ModelAGX = static_cast<agxVehicle::TrackWheel::Model>(Model);
-	agx::Real RadiusAGX = ConvertDistanceToAGX<agx::Real>(Radius);
-	agx::RigidBody* RigidBodyAGX = FAGX_AgxDynamicsObjectsAccess::GetFrom(&RigidBody);
-	agx::AffineMatrix4x4 RelTransformAGX = ConvertMatrix(RelativePosition, RelativeRotation);
-
-	// Create AGX Dynamics TrackWheel
-	agxVehicle::TrackWheelRef WheelAGX =
-		new agxVehicle::TrackWheel(ModelAGX, RadiusAGX, RigidBodyAGX, RelTransformAGX);
-
-	// Set properties.
-	// \remark MERGE_NODES seems to be automatically set by AGX Dynamics depending on Model
-	//         (set to true for Sprocket and Idler). Not sure if there is any purpose for letting
-	//         the user override it, so ignoring it for now..
-	// WheelAGX->setEnableProperty(agxVehicle::TrackWheel::Property::MERGE_NODES, ...);
-	WheelAGX->setEnableProperty(agxVehicle::TrackWheel::Property::SPLIT_SEGMENTS, bSplitSegments);
-	WheelAGX->setEnableProperty(
-		agxVehicle::TrackWheel::Property::MOVE_NODES_TO_ROTATION_PLANE, bMoveNodesToRotationPlane);
-	WheelAGX->setEnableProperty(
-		agxVehicle::TrackWheel::Property::MOVE_NODES_TO_WHEEL, bMoveNodesToWheel);
-
-	// Add to Track
-	NativeRef->Native->add(WheelAGX);
+	FTrackWheelBarrier WheelBarrier;
+	WheelBarrier.AllocateNative(Data);
+	NativeRef->Native->add(WheelBarrier.GetNative()->Native);
 }
 
 void FTrackBarrier::SetName(const FString& Name)
@@ -178,6 +157,143 @@ FTrackPropertiesBarrier FTrackBarrier::GetProperties() const
 	check(HasNative());
 	agxVehicle::TrackProperties* PropertiesAGX = NativeRef->Native->getProperties();
 	return {std::make_unique<FTrackPropertiesRef>(PropertiesAGX)}; // \ todo Replace
+}
+
+void FTrackBarrier::SetTrackImplementation(
+	EAGX_TrackImplementation TrackImplementation, FRigidBodyBarrier* chassis)
+{
+	check(HasNative());
+
+	switch (TrackImplementation)
+	{
+		case EAGX_TrackImplementation::FullDOF:
+		{
+			NativeRef->Native->setEnableFullDegreeModel(true);
+			return;
+		}
+		case EAGX_TrackImplementation::Default:
+		{
+			agx::RigidBody* ChassisNative = nullptr;
+			if (chassis != nullptr && chassis->HasNative())
+				ChassisNative = chassis->GetNative()->Native.get();
+
+			if (ChassisNative == nullptr)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("SetTrackImplementation was called with the default track "
+						 "implementation but without a chassis body. Doing nothing."));
+				return;
+			}
+
+			auto* Implementation = new agxVehicle::ReducedOrderTrackImplementation(ChassisNative);
+			NativeRef->Native->setTrackImplementation(Implementation, /*active*/ true);
+			return;
+		}
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("SetTrackImplementation was called with an unknown TrackImplementation enum "
+			 "literal. Doing nothing."));
+}
+
+EAGX_TrackImplementation FTrackBarrier::GetTrackImplementation() const
+{
+	check(HasNative());
+
+	if (NativeRef->Native->getEnableFullDegreeModel())
+	{
+		return EAGX_TrackImplementation::FullDOF;
+	}
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	if (Implementation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Track '%s' reports that full degrees-of-freedom is disabled but no active track "
+				 "implementation exists. Returning Default."),
+			*GetName());
+		return EAGX_TrackImplementation::Default;
+	}
+
+	if (Implementation->is<agxVehicle::ReducedOrderTrackImplementation>())
+	{
+		return EAGX_TrackImplementation::Default;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Track '%s' uses an unknown non-full-DOF track implementation. Returning "
+			 "Default, which may be wrong."),
+		*GetName());
+	return EAGX_TrackImplementation::Default;
+}
+
+FRigidBodyBarrier FTrackBarrier::GetChassis() const
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	if (Implementation == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	auto* ReducedOrderImplementation =
+		Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>();
+	if (ReducedOrderImplementation == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	agx::RigidBody* Chassis = ReducedOrderImplementation->getChassis();
+	if (Chassis == nullptr)
+	{
+		return FRigidBodyBarrier();
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Chassis);
+}
+
+void FTrackBarrier::SetVerticalStabilityScaleFactor(double Scale)
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	auto* ReducedOrderImplementation =
+		Implementation != nullptr
+			? Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>()
+			: nullptr;
+	if (ReducedOrderImplementation == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SetVerticalStabilityScaleFactor was called on Track '%s' without a reduced-order "
+				 "track implementation. Doing nothing."),
+			*GetName());
+		return;
+	}
+
+	ReducedOrderImplementation->getProperties().setVerticalStabilityScaleFactor(Scale);
+}
+
+double FTrackBarrier::GetVerticalStabilityScaleFactor() const
+{
+	check(HasNative());
+
+	agxVehicle::TrackImplementation* Implementation = NativeRef->Native->getTrackImplementation();
+	auto* ReducedOrderImplementation =
+		Implementation != nullptr
+			? Implementation->asSafe<agxVehicle::ReducedOrderTrackImplementation>()
+			: nullptr;
+	if (ReducedOrderImplementation == nullptr)
+	{
+		return 1.0;
+	}
+
+	return ReducedOrderImplementation->getProperties().getVerticalStabilityScaleFactor();
 }
 
 void FTrackBarrier::AddCollisionGroup(const FName& GroupName)
@@ -271,21 +387,24 @@ double FTrackBarrier::GetThickness() const
 	return ConvertDistanceToUnreal<double>(NativeRef->Native->getRoute()->getNodeThickness());
 }
 
-double FTrackBarrier::GetInitialDistanceTension() const
+FAGX_TrackInitialTension FTrackBarrier::GetInitialTension() const
 {
 	check(HasNative());
-	if (NativeRef->Native->getRoute() == nullptr)
+	FAGX_TrackInitialTension InitialTension;
+
+	if (NativeRef->Native->getInitialTension().isDistance)
 	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("GetInitialDistanceTension was called on Track: '%s' that does not have a "
-				 "TrackRoute. The value returned will not be valid."),
-			*GetName());
-		return -1.0;
+		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
+		InitialTension.Value =
+			ConvertDistanceToUnreal<double>(NativeRef->Native->getInitialTension().value);
+	}
+	else
+	{
+		InitialTension.Mode = EAGX_TrackInitialTensionMode::Force;
+		InitialTension.Value = NativeRef->Native->getInitialTension().value;
 	}
 
-	return ConvertDistanceToUnreal<double>(
-		NativeRef->Native->getRoute()->getInitialDistanceTension());
+	return InitialTension;
 }
 
 FRigidBodyBarrier FTrackBarrier::GetNodeBody(int index) const
@@ -669,14 +788,28 @@ const FTrackRef* FTrackBarrier::GetNative() const
 }
 
 void FTrackBarrier::AllocateNative(
-	int32 NumberOfNodes, float Width, float Thickness, float InitialDistanceTension)
+	int32 NumberOfNodes, float Width, float Thickness,
+	const FAGX_TrackInitialTension& InitialTension)
 {
 	check(!HasNative());
 	agx::Real WidthAGX = ConvertDistanceToAGX<agx::Real>(Width);
 	agx::Real ThicknessAGX = ConvertDistanceToAGX<agx::Real>(Thickness);
-	agx::Real InitialDistanceTensionAGX = ConvertDistanceToAGX<agx::Real>(InitialDistanceTension);
-	NativeRef->Native =
-		new agxVehicle::Track(NumberOfNodes, WidthAGX, ThicknessAGX, InitialDistanceTensionAGX);
+
+	const agxVehicle::InitialTrackTension TensionAGX = [&InitialTension]()
+	{
+		if (InitialTension.Mode == EAGX_TrackInitialTensionMode::Distance)
+		{
+			return agxVehicle::InitialTrackTension(
+				ConvertDistanceToAGX(InitialTension.Value), /*isDistance*/ true);
+		}
+		else
+		{
+			return agxVehicle::InitialTrackTension(InitialTension.Value, /*isDistance*/ false);
+		}
+	}();
+
+	NativeRef->Native = new agxVehicle::Track(
+		new agxVehicle::TrackRoute(NumberOfNodes, WidthAGX, ThicknessAGX), TensionAGX);
 }
 
 void FTrackBarrier::ReleaseNative()
