@@ -257,6 +257,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
@@ -312,6 +313,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		LinkLibFiles.Add("hash-library", LibSource.Dependencies);
 
 		// List of the include directories from aGX Dynamics and its
