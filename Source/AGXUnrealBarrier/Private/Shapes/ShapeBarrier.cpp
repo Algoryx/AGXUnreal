@@ -203,6 +203,21 @@ bool FShapeBarrier::GetEnableCollisions() const
 	return NativeRef->NativeGeometry->getEnableCollisions();
 }
 
+void FShapeBarrier::SetEnableCollisions(FShapeBarrier& OtherShape, bool bCanCollide)
+{
+	check(HasNative());
+	check(OtherShape.HasNative());
+	NativeRef->NativeGeometry->setEnableCollisions(
+		OtherShape.GetNative()->NativeGeometry, bCanCollide);
+}
+
+bool FShapeBarrier::GetEnableCollisions(FShapeBarrier& OtherShape) const
+{
+	check(HasNative());
+	check(OtherShape.HasNative());
+	return NativeRef->NativeGeometry->getEnableCollisions(OtherShape.GetNative()->NativeGeometry);
+}
+
 void FShapeBarrier::SetEnabled(bool Enabled)
 {
 	check(HasNative());

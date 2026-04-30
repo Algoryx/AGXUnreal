@@ -79,6 +79,39 @@ public:
 	void RemoveCollisionGroupIfExists(FName GroupName);
 
 	/**
+	 * Enable or disable collisions between this Shape Component and another Shape Component.
+	 *
+	 * The default state is enabled. Disabled collisions takes precedence over enabled collisions,
+	 * meaning that if a pair of Shapes have collisions disabled in any way, such as using collision
+	 * groups or by disabling collisions on a Shape entirely, calling Set Enable Collisions with
+	 * True will not override that.
+	 *
+	 * The Shape pair collision flag set by this function is currently a Native state only, meaning
+	 * this function should only be called during runtime with Shape Components that have a native.
+	 *
+	 * @param OtherShape The shape to enable or disable collisions against.
+	 * @param bEnable True to enable collisions, false to disable.
+	 * @return True if both Shape Components have a Native.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool SetEnableCollisions(UAGX_ShapeComponent* OtherShape, bool bEnable);
+
+	/**
+	 * Determine whether collisions has been disabled between this Shape and the given Shape.
+	 *
+	 * This does not do a full collision rejection test, it only checks for the disable flag set by
+	 * Set Enable Collisions.
+	 *
+	 * The Shape pair collision flag read by this function is currently a Native state only, meaning
+	 * this function should only be called during runtime with Shape Components that have a native.
+	 *
+	 * @param OtherShape
+	 * @return
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool GetEnableCollisions(UAGX_ShapeComponent* OtherShape);
+
+	/**
 	 * Determines whether this shape should act as a sensor.
 	 *
 	 * A sensor participates in collision detection, but the contact data generated is not passed

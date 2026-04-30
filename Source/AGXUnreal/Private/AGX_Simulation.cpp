@@ -1232,7 +1232,7 @@ void UAGX_Simulation::Step(double DeltaTime)
 		// It is somewhat of a hack, but is the best solution known currently without making e.g.
 		// a specialized Primitive Component or similar talking to the GPU more directly.
 		FAGX_RenderUtilities::DrawContactPoints(
-			NativeBarrier.GetShapeContacts(), DeltaTime * 1.5f, GetWorld());
+			NativeBarrier.GetShapeContacts(), ShapeContactsSize, DeltaTime * 1.5f, GetWorld());
 	}
 }
 
