@@ -556,6 +556,16 @@ bool UAGX_ShapeComponent::SetEnableCollisions(UAGX_ShapeComponent* OtherShape, b
 		return false;
 	}
 
+	if (OtherShape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Set Enable Collisions called on Shape Component '%s' in '%s' was passed a None / "
+				 "nullptr Other Shape. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
 	if (!OtherShape->HasNative())
 	{
 		UE_LOG(
@@ -578,6 +588,16 @@ bool UAGX_ShapeComponent::GetEnableCollisions(UAGX_ShapeComponent* OtherShape)
 			LogAGX, Warning,
 			TEXT("Get Enable Collisions called on Shape Component '%s' in '%s' that does not yet "
 				 "have a Native. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (OtherShape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Enable Collisions called on Shape Component '%s' in '%s' was passed a None / "
+				 "nullptr Other Shape. Doing nothing."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
