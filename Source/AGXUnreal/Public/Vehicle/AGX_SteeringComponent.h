@@ -105,9 +105,12 @@ public:
 	/**
 	 * Get the maximum possible steering angle [deg].
 	 *
-	 * The side controls if the right-turn or left-turn angle should be returned.
+	 * The Side parameter controls if the right-turn or left-turn angle should be returned.
 	 *
-	 * @param Side 0 or 1 for right (or left?) or left (or right?) respectively.
+	 * This function depends on internal state of AGX Dynamics and can only return valid data when
+	 * a Native is available.
+	 *
+	 * @param Side 0 for left wheel, 1 for right wheel.
 	 * @return The maximum possible steering angle.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Steering")

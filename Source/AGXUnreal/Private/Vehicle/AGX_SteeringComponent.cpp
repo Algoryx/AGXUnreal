@@ -58,7 +58,14 @@ double UAGX_SteeringComponent::GetSteeringAngle() const
 double UAGX_SteeringComponent::GetMaximumSteeringAngle(int64 Side) const
 {
 	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Maximum Steering Angle called on Steering Component '%s' in '%s' which does "
+				 "not have a Native. 0.0 will be returned."),
+			*GetName(), *GetLabelSafe(GetOwner()));
 		return 0.0;
+	}
 
 	return NativeBarrier.GetMaximumSteeringAngle(Side);
 }
@@ -136,8 +143,8 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
 	bEnabled = Barrier.GetEnabled();
 
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);
