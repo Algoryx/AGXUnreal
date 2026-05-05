@@ -48,7 +48,6 @@ class AGXUNREAL_API UAGX_ContactMaterial : public UObject
 	GENERATED_BODY()
 
 public:
-
 	bool operator==(const UAGX_ContactMaterial& Other) const;
 
 	/**
@@ -144,18 +143,15 @@ public:
 	EAGX_FrictionModel GetFrictionModel() const;
 
 	/**
-	 * Constant normal force used by the friction model 'Constant Normal Force Box Friction' [N].
+	 * Constant normal force used by friction models 'Constant Normal Force Box Friction' and
+	 * 'Track Box Friction' (when 'Use Constant Normal Force' is enabled) [N].
 	 *
 	 * This should be set to an estimation of the force, in Newtons, by which the two colliding
 	 * objects are being pushed together. If the main contributor to this force is gravity then
 	 * this value should be set to the mass of the upper object and any additional load it is
 	 * carrying times the gravitational acceleration in m/s^2.
 	 */
-	UPROPERTY(
-		EditAnywhere, Category = "Friction",
-		Meta =
-			(EditCondition =
-				 "FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
+	UPROPERTY(EditAnywhere, Category = "Friction")
 	FAGX_Real NormalForceMagnitude {100.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -166,13 +162,9 @@ public:
 
 	/**
 	 * Whether the 'Normal Force Magnitude' should be scaled by contact point depth.
-	 * Only used by friction model 'Constant Normal Force Box Friction'.
+	 * Only used by friction models that support constant normal force.
 	 */
-	UPROPERTY(
-		EditAnywhere, Category = "Friction",
-		Meta =
-			(EditCondition =
-				 "FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction"))
+	UPROPERTY(EditAnywhere, Category = "Friction")
 	bool bScaleNormalForceWithDepth {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -180,6 +172,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	bool GetScaleNormalForceWithDepth() const;
+
+	/**
+	 * Whether the friction model should use a constant normal force magnitude.
+	 *
+	 * Currently only used by friction model 'Track Box Friction'; for other friction models with
+	 * Constant Normal Force support, the assigned Constant Normal Force is always used and this
+	 * property has no effect.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Friction")
+	bool bUseConstantNormalForce {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	void SetUseConstantNormalForce(bool bInUseConstantNormalForce);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	bool GetUseConstantNormalForce() const;
 
 	/**
 	 * Whether surface friction should be calculated in the solver for this Contact Material.
@@ -209,7 +217,7 @@ public:
 	/**
 	 * Friction in the secondary direction, if enabled.
 	 *
-	 * Only used by Oriented Friction Models.
+	 * Only used by friction models that support primary and secondary directions.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
@@ -237,7 +245,8 @@ public:
 	 * If disable, 'Friction Coefficient' represents all directions and 'Secondary Friction
 	 * Coefficient' is not used.
 	 *
-	 * Note that secondary direction friction coefficient is only used by Oriented Friction Models.
+	 * Note that secondary direction friction coefficient is only used by friction models that
+	 * support primary and secondary directions.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
 	bool bUseSecondaryFrictionCoefficient {false};
@@ -266,7 +275,7 @@ public:
 	/**
 	 * Surface viscosity in the secondary direction, if enabled.
 	 *
-	 * Only used by Oriented Friction Models.
+	 * Only used by friction models that support primary and secondary directions.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
@@ -294,7 +303,8 @@ public:
 	 * If disable, 'Surface Viscosity' represents all directions and 'Secondary Surface Viscosity'
 	 * is not used.
 	 *
-	 * Note that secondary direction surface viscosity is only used by Oriented Friction Models.
+	 * Note that secondary direction surface viscosity is only used by friction models that support
+	 * primary and secondary directions.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
 	bool bUseSecondarySurfaceViscosity {false};
@@ -521,6 +531,7 @@ public:
 	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 	// ~End UObject interface.

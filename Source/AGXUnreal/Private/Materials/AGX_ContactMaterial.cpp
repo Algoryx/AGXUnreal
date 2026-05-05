@@ -31,6 +31,7 @@ bool UAGX_ContactMaterial::operator==(const UAGX_ContactMaterial& Other) const
             && FrictionModel == Other.FrictionModel
             && NormalForceMagnitude == Other.NormalForceMagnitude
             && bScaleNormalForceWithDepth == Other.bScaleNormalForceWithDepth
+            && bUseConstantNormalForce == Other.bUseConstantNormalForce
             && bEnableSurfaceFriction == Other.bEnableSurfaceFriction
             && FrictionCoefficient == Other.FrictionCoefficient
             && SecondaryFrictionCoefficient == Other.SecondaryFrictionCoefficient
@@ -181,6 +182,12 @@ void UAGX_ContactMaterial::SetFrictionModel(EAGX_FrictionModel InFrictionModel)
 		NativeBarrier.SetNormalForceMagnitude(NormalForceMagnitude);
 		NativeBarrier.SetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
 	}
+	if (FrictionModel == EAGX_FrictionModel::TrackBoxFriction)
+	{
+		NativeBarrier.SetEnableConstantNormalForceMagnitude(bUseConstantNormalForce);
+		NativeBarrier.SetNormalForceMagnitude(NormalForceMagnitude);
+		NativeBarrier.SetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
+	}
 	if (IsOrientedFrictionModel())
 	{
 		NativeBarrier.SetPrimaryDirection(PrimaryDirection);
@@ -208,7 +215,8 @@ void UAGX_ContactMaterial::SetNormalForceMagnitude(double InNormalForceMagnitude
 		// Only some friction models have a normal force magnitude in AGX Dynamics.
 		// Ignore the rest.
 		if (HasNative() &&
-			FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction)
+			(FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+			 FrictionModel == EAGX_FrictionModel::TrackBoxFriction))
 		{
 			NativeBarrier.SetNormalForceMagnitude(InNormalForceMagnitude);
 		}
@@ -230,7 +238,9 @@ double UAGX_ContactMaterial::GetNormalForceMagnitude() const
 	{
 		return Instance->GetNormalForceMagnitude();
 	}
-	if (HasNative() && FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction)
+	if (HasNative() &&
+		(FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+		 FrictionModel == EAGX_FrictionModel::TrackBoxFriction))
 	{
 		double ForceMagnitude {0.0};
 		const bool bGotMagnitude = NativeBarrier.GetNormalForceMagnitude(ForceMagnitude);
@@ -265,7 +275,8 @@ void UAGX_ContactMaterial::SetScaleNormalForceWithDepth(bool bEnabled)
 		bScaleNormalForceWithDepth = bEnabled;
 		// Only some friction models support scaling the normal force with depth.
 		if (HasNative() &&
-			FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction)
+			(FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+			 FrictionModel == EAGX_FrictionModel::TrackBoxFriction))
 		{
 			NativeBarrier.SetEnableScaleNormalForceWithDepth(bEnabled);
 		}
@@ -287,7 +298,9 @@ bool UAGX_ContactMaterial::GetScaleNormalForceWithDepth() const
 	{
 		return Instance->GetScaleNormalForceWithDepth();
 	}
-	if (HasNative() && FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction)
+	if (HasNative() &&
+		(FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+		 FrictionModel == EAGX_FrictionModel::TrackBoxFriction))
 	{
 		bool bScaleWithDepth {false};
 		const bool bGotScaleWithDepth =
@@ -304,6 +317,40 @@ bool UAGX_ContactMaterial::GetScaleNormalForceWithDepth() const
 		return bScaleWithDepth;
 	}
 	return bScaleNormalForceWithDepth;
+}
+
+void UAGX_ContactMaterial::SetUseConstantNormalForce(bool bInUseConstantNormalForce)
+{
+	if (IsInstance())
+	{
+		bUseConstantNormalForce = bInUseConstantNormalForce;
+		if (HasNative() && FrictionModel == EAGX_FrictionModel::TrackBoxFriction)
+		{
+			NativeBarrier.SetEnableConstantNormalForceMagnitude(bInUseConstantNormalForce);
+		}
+	}
+	else
+	{
+		if (Instance != nullptr)
+		{
+			Instance->SetUseConstantNormalForce(bInUseConstantNormalForce);
+			return;
+		}
+		bUseConstantNormalForce = bInUseConstantNormalForce;
+	}
+}
+
+bool UAGX_ContactMaterial::GetUseConstantNormalForce() const
+{
+	if (Instance != nullptr)
+	{
+		return Instance->GetUseConstantNormalForce();
+	}
+	if (HasNative() && FrictionModel == EAGX_FrictionModel::TrackBoxFriction)
+	{
+		return NativeBarrier.GetEnableConstantNormalForceMagnitude();
+	}
+	return bUseConstantNormalForce;
 }
 
 void UAGX_ContactMaterial::SetSurfaceFrictionEnabled(bool bInEnabled)
@@ -598,6 +645,52 @@ bool UAGX_ContactMaterial::IsOrientedFrictionModel() const
 	return ::IsOrientedFrictionModel(FrictionModel);
 }
 
+#if WITH_EDITOR
+bool UAGX_ContactMaterial::CanEditChange(const FProperty* InProperty) const
+{
+	const bool bSuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!bSuperCanEditChange || InProperty == nullptr)
+	{
+		return bSuperCanEditChange;
+	}
+
+	const FName PropertyName = InProperty->GetFName();
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, NormalForceMagnitude) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bScaleNormalForceWithDepth))
+	{
+		return IsConstantNormalForceFrictionModel() ||
+			   (FrictionModel == EAGX_FrictionModel::TrackBoxFriction && bUseConstantNormalForce);
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseConstantNormalForce))
+	{
+		return FrictionModel == EAGX_FrictionModel::TrackBoxFriction;
+	}
+
+	if (PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondaryFrictionCoefficient) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondaryFrictionCoefficient) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondarySurfaceViscosity) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondarySurfaceViscosity))
+	{
+		return SupportsSecondaryFrictionDirections(FrictionModel);
+	}
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, PrimaryDirection) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameActor) ||
+		PropertyName ==
+			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameComponent))
+	{
+		return IsOrientedFrictionModel();
+	}
+
+	return bSuperCanEditChange;
+}
+#endif
+
 void UAGX_ContactMaterial::SetRestitution(double InRestitution)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(Restitution, InRestitution, SetRestitution);
@@ -747,6 +840,7 @@ void UAGX_ContactMaterial::CopyFrom(const UAGX_ContactMaterial* Source)
 	COPY_PROPERTY(FrictionModel);
 	COPY_PROPERTY(NormalForceMagnitude);
 	COPY_PROPERTY(bScaleNormalForceWithDepth);
+	COPY_PROPERTY(bUseConstantNormalForce);
 	COPY_PROPERTY(bEnableSurfaceFriction);
 	COPY_PROPERTY(FrictionCoefficient);
 	COPY_PROPERTY(SecondaryFrictionCoefficient);
@@ -819,6 +913,7 @@ void UAGX_ContactMaterial::CopyFrom(
 	COPY_PROPERTY(FrictionModel);
 	Source.GetNormalForceMagnitude(NormalForceMagnitude);
 	Source.GetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
+	bUseConstantNormalForce = Source.GetEnableConstantNormalForceMagnitude();
 	bEnableSurfaceFriction = Source.GetSurfaceFrictionEnabled();
 	COPY_PROPERTY(FrictionCoefficient);
 	COPY_PROPERTY(SecondaryFrictionCoefficient);
@@ -1113,6 +1208,14 @@ void UAGX_ContactMaterial::UpdateNativeProperties(
 			NativeBarrier.SetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
 		}
 
+		// Track Box Friction has optional constant normal force support.
+		if (FrictionModel == EAGX_FrictionModel::TrackBoxFriction)
+		{
+			NativeBarrier.SetEnableConstantNormalForceMagnitude(bUseConstantNormalForce);
+			NativeBarrier.SetNormalForceMagnitude(NormalForceMagnitude);
+			NativeBarrier.SetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
+		}
+
 		// Update properties exclusive to oriented friction models.
 		if (IsOrientedFrictionModel())
 		{
@@ -1274,6 +1377,7 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 	DEFAULT_DISPATCHER(FrictionModel);
 	DEFAULT_DISPATCHER(NormalForceMagnitude);
 	SETTER_DISPATCHER(bScaleNormalForceWithDepth, SetScaleNormalForceWithDepth);
+	SETTER_DISPATCHER(bUseConstantNormalForce, SetUseConstantNormalForce);
 	SETTER_DISPATCHER(bEnableSurfaceFriction, SetSurfaceFrictionEnabled);
 	DEFAULT_DISPATCHER(FrictionCoefficient);
 

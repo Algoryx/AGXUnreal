@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -76,6 +77,54 @@ bool UAGX_TrackComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
 	return true;
 }
 
+void UAGX_TrackComponent::SetTrackImplementation(EAGX_TrackImplementation InTrackImplementation)
+{
+	TrackImplementation = InTrackImplementation;
+	WriteTrackImplementationToNative();
+}
+
+EAGX_TrackImplementation UAGX_TrackComponent::GetTrackImplementation() const
+{
+	if (HasNative())
+	{
+		return GetNative()->GetTrackImplementation();
+	}
+
+	return TrackImplementation;
+}
+
+void UAGX_TrackComponent::SetChassis(UAGX_RigidBodyComponent* InChassis)
+{
+	Chassis.SetComponent(InChassis);
+	SetComponentReferencesLocalScope();
+	WriteTrackImplementationToNative();
+}
+
+UAGX_RigidBodyComponent* UAGX_TrackComponent::GetChassis() const
+{
+	return Chassis.GetRigidBody();
+}
+
+void UAGX_TrackComponent::SetVerticalStabilityScaleFactor(double InVerticalStabilityScaleFactor)
+{
+	VerticalStabilityScaleFactor = InVerticalStabilityScaleFactor;
+
+	if (HasNative() && TrackImplementation == EAGX_TrackImplementation::Default)
+	{
+		GetNative()->SetVerticalStabilityScaleFactor(VerticalStabilityScaleFactor);
+	}
+}
+
+double UAGX_TrackComponent::GetVerticalStabilityScaleFactor() const
+{
+	if (HasNative() && GetTrackImplementation() == EAGX_TrackImplementation::Default)
+	{
+		return GetNative()->GetVerticalStabilityScaleFactor();
+	}
+
+	return VerticalStabilityScaleFactor;
+}
+
 FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) const
 {
 	// Avoid getting Track Preview if no valid license is available since this will spam license
@@ -110,27 +159,12 @@ FAGX_TrackPreviewData* UAGX_TrackComponent::GetTrackPreview(bool bForceUpdate) c
 		}
 
 		// Create AGX barrier wheel descs.
-		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
-		WheelDescs.Reserve(Wheels.Num());
-		for (const auto& Wheel : Wheels)
-		{
-			UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
-			if (!Body)
-				continue;
-
-			// Make sure the world transform is up-to-date.
-			Body->ConditionalUpdateComponentToWorld();
-
-			// Create wheel data.
-			FTrackBarrier::FTrackWheelDescription Desc;
-			Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
-			Desc.Radius = Wheel.Radius;
-			Desc.RigidBodyTransform = Body->GetComponentTransform();
-			Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
-			WheelDescs.Add(Desc);
-		}
+		TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs = GetTrackWheelDescription();
 
 		// Let AGX generate track nodes preview data.
+		const double InitialDistanceTension =
+			InitialTension.Mode == EAGX_TrackInitialTensionMode::Distance ? InitialTension.Value
+																		  : 0.0;
 		FTrackBarrier::GetPreviewData(
 			TrackPreview->NodeTransforms, TrackPreview->NodeHalfExtents, NumberOfNodes, Width,
 			Thickness, InitialDistanceTension, WheelDescs);
@@ -219,8 +253,8 @@ namespace AGX_TrackComponent_helpers
 		if (auto Existing = Context.TrackProperties->FindRef(PropertiesBarrier.GetGuid()))
 			return Existing;
 
-		auto Properties = NewObject<UAGX_TrackProperties>(
-			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		auto Properties =
+			NewObject<UAGX_TrackProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
 		Properties->CopyFrom(PropertiesBarrier);
 
@@ -268,12 +302,14 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	NumberOfNodes = Barrier.GetNumNodes();
 	Width = static_cast<float>(Barrier.GetWidth());
 	Thickness = static_cast<float>(Barrier.GetThickness());
-	InitialDistanceTension = static_cast<float>(Barrier.GetInitialDistanceTension());
+	InitialTension = Barrier.GetInitialTension();
+	TrackImplementation = Barrier.GetTrackImplementation();
+	VerticalStabilityScaleFactor = Barrier.GetVerticalStabilityScaleFactor();
 	CollisionGroups = Barrier.GetCollisionGroups();
 	ImportGuid = Barrier.GetGuid();
 
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TrackComponent::StaticClass());
 	Rename(*Name);
@@ -313,6 +349,13 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 
 		BodyRef.Name = Body->GetFName();
 	};
+
+	FRigidBodyBarrier ChassisBarrier = Barrier.GetChassis();
+	if (ChassisBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Rb = Context->RigidBodies->FindRef(ChassisBarrier.GetGuid());
+		SetRigidBody(Rb, Chassis);
+	}
 
 	for (const FTrackWheelBarrier& WheelBarrier : Barrier.GetWheels())
 	{
@@ -412,6 +455,31 @@ FVector UAGX_TrackComponent::GetNodeSize(int32 Index) const
 	return GetNative()->GetNodeSize(Index);
 }
 
+TArray<FTrackBarrier::FTrackWheelDescription> UAGX_TrackComponent::GetTrackWheelDescription() const
+{
+	TArray<FTrackBarrier::FTrackWheelDescription> WheelDescs;
+	WheelDescs.Reserve(Wheels.Num());
+	for (const auto& Wheel : Wheels)
+	{
+		UAGX_RigidBodyComponent* Body = Wheel.RigidBody.GetRigidBody();
+		if (!Body)
+			continue;
+
+		// Make sure the world transform is up-to-date.
+		Body->ConditionalUpdateComponentToWorld();
+
+		// Create wheel data.
+		FTrackBarrier::FTrackWheelDescription Desc;
+		Desc.Model = static_cast<decltype(Desc.Model)>(Wheel.Model);
+		Desc.Radius = Wheel.Radius;
+		Desc.RigidBodyTransform = Body->GetComponentTransform();
+		Wheel.GetTransformRelativeToBody(Desc.RelativePosition, Desc.RelativeRotation);
+		WheelDescs.Add(Desc);
+	}
+
+	return WheelDescs;
+}
+
 FTrackBarrier* UAGX_TrackComponent::GetOrCreateNative()
 {
 	if (!HasNative() && bEnabled)
@@ -479,6 +547,19 @@ void UAGX_TrackComponent::SetNativeAddress(uint64 NativeAddress)
 	NativeBarrier.SetNativeAddress(static_cast<uintptr_t>(NativeAddress));
 }
 
+void UAGX_TrackComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TrackReducedOrderTrackImplementation))
+	{
+		InitialTension.Mode = EAGX_TrackInitialTensionMode::Distance;
+		InitialTension.Value = InitialDistanceTension_DEPRECATED;
+		TrackImplementation = EAGX_TrackImplementation::FullDOF;
+	}
+}
+
 void UAGX_TrackComponent::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -511,7 +592,7 @@ bool UAGX_TrackComponent::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, NumberOfNodes),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Width),
 			GET_MEMBER_NAME_CHECKED(ThisClass, Thickness),
-			GET_MEMBER_NAME_CHECKED(ThisClass, InitialDistanceTension)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, InitialTension)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -741,6 +822,19 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		[](ThisClass* Self) { Self->WriteTrackPropertiesToNative(); });
 
 	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackImplementation),
+		[](ThisClass* Self) { Self->SetTrackImplementation(Self->TrackImplementation); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, Chassis),
+		[](ThisClass* Self) { Self->SetChassis(Self->Chassis.GetRigidBody()); });
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, VerticalStabilityScaleFactor),
+		[](ThisClass* Self)
+		{ Self->SetVerticalStabilityScaleFactor(Self->VerticalStabilityScaleFactor); });
+
+	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, InternalMergeProperties),
 		[](ThisClass* Self) { Self->WriteInternalMergePropertiesToNative(); });
 
@@ -786,6 +880,7 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 void UAGX_TrackComponent::SetComponentReferencesLocalScope()
 {
 	AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(this);
+	Chassis.LocalScope = Owner;
 	for (FAGX_TrackWheel& Wheel : Wheels)
 	{
 		Wheel.RigidBody.LocalScope = Owner;
@@ -826,7 +921,7 @@ void UAGX_TrackComponent::CreateNative()
 		return;
 	}
 
-	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialDistanceTension);
+	NativeBarrier.AllocateNative(NumberOfNodes, Width, Thickness, InitialTension);
 	if (!HasNative())
 	{
 		UE_LOG(
@@ -870,9 +965,17 @@ void UAGX_TrackComponent::CreateNative()
 		check(transformOK);
 
 		// Add native wheel to native Track.
-		NativeBarrier.AddTrackWheel(
-			static_cast<uint8>(Wheel.Model), Wheel.Radius, *Body->GetOrCreateNative(), RelPos,
-			RelRot, Wheel.bSplitSegments, Wheel.bMoveNodesToRotationPlane, Wheel.bMoveNodesToWheel);
+		FTrackWheelCreationData WheelData {};
+		WheelData.Model = static_cast<uint8>(Wheel.Model);
+		WheelData.Radius = Wheel.Radius;
+		WheelData.RigidBody = *Body->GetOrCreateNative();
+		WheelData.RelativePosition = RelPos;
+		WheelData.RelativeRotation = RelRot;
+		WheelData.bSplitSegments = Wheel.bSplitSegments;
+		WheelData.bMoveNodesToRotationPlane = Wheel.bMoveNodesToRotationPlane;
+		WheelData.bMoveNodesToWheel = Wheel.bMoveNodesToWheel;
+
+		NativeBarrier.AddTrackWheel(WheelData);
 	}
 
 	// Set TrackProperties BEFORE adding track to simulation (i.e. triggering track initialization),
@@ -913,6 +1016,30 @@ void UAGX_TrackComponent::WriteTrackPropertiesToNative()
 	else
 	{
 		GetNative()->ClearProperties();
+	}
+}
+
+void UAGX_TrackComponent::WriteTrackImplementationToNative()
+{
+	if (!HasNative())
+		return;
+
+	FRigidBodyBarrier* ChassisBarrier = nullptr;
+	if (UAGX_RigidBodyComponent* ChassisBody = Chassis.GetRigidBody())
+		ChassisBarrier = ChassisBody->GetOrCreateNative();
+
+	if (TrackImplementation == EAGX_TrackImplementation::Default && ChassisBarrier == nullptr)
+	{
+		const FString Message =
+			TEXT("A Chassis body must be assigned when using the default track implementation.");
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+		return;
+	}
+
+	GetNative()->SetTrackImplementation(TrackImplementation, ChassisBarrier);
+	if (TrackImplementation == EAGX_TrackImplementation::Default)
+	{
+		GetNative()->SetVerticalStabilityScaleFactor(VerticalStabilityScaleFactor);
 	}
 }
 
@@ -1040,6 +1167,9 @@ void UAGX_TrackComponent::UpdateNativeProperties()
 
 	// Set shape material on all native geometries.
 	UpdateNativeShapeMaterial();
+
+	// Set track implementation.
+	WriteTrackImplementationToNative();
 
 	// Set track properties.
 	WriteTrackPropertiesToNative();

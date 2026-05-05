@@ -5,7 +5,10 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_NativeOwner.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
+#include "AGX_RigidBodyReference.h"
+#include "Vehicle/AGX_TrackEnums.h"
 #include "Vehicle/AGX_TrackWheel.h"
+#include "Vehicle/AGX_VehicleTypes.h"
 #include "Vehicle/TrackBarrier.h"
 
 // Unreal Engine includes.
@@ -14,6 +17,7 @@
 
 #include "AGX_TrackComponent.generated.h"
 
+class UAGX_RigidBodyComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TrackProperties;
 class UAGX_TrackInternalMergeProperties;
@@ -55,6 +59,57 @@ public:
 	bool bEnabled = true;
 
 	/**
+	 * The runtime implementation used by AGX Dynamics Track.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
+	EAGX_TrackImplementation TrackImplementation {EAGX_TrackImplementation::Default};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetTrackImplementation(EAGX_TrackImplementation InTrackImplementation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	EAGX_TrackImplementation GetTrackImplementation() const;
+
+	/**
+	 * The chassis body is used to constrain additional bodies to it
+	 * for force feedbacks of the reduced track, and used as reference for the animation
+	 * of the nodes.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::Default"))
+	FAGX_RigidBodyReference Chassis;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetChassis(UAGX_RigidBodyComponent* InChassis);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	UAGX_RigidBodyComponent* GetChassis() const;
+
+	/**
+	 * Controls the scale of the force applied by the vertical stabilization that filters
+	 * high-frequency oscillations.
+	 *
+	 * Increase this scale factor if you experience unnatural track oscillations during high
+	 * tension. If you experience that the vertical stabilization effect becomes too dominant,
+	 * noticed as a plastic behavior in the track when moved from equilibrium, decrease this
+	 * scale factor.
+	 *
+	 * The strength of the vertical stability depends on track tension, bending stiffness and this
+	 * scale factor.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track", AdvancedDisplay,
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::Default"))
+	double VerticalStabilityScaleFactor {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	void SetVerticalStabilityScaleFactor(double InVerticalStabilityScaleFactor);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Track")
+	double GetVerticalStabilityScaleFactor() const;
+
+	/**
 	 * Number of nodes in the track.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
@@ -73,14 +128,11 @@ public:
 	float Thickness = 15.0f;
 
 	/**
-	 * Value (distance) of how much shorter each node should be which causes tension
-	 * in the system of tracks and wheels [cm].
-	 *
-	 * Since contacts and other factors are included it's not possible to know the exact
-	 * tension after the system has been created.
+	 * Initial tension of the Track that is used on creation.
+	 * Can either be expressed as a tension force in newtons, or a node distance offset in cm.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
-	float InitialDistanceTension = 0.01f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track", Meta = (ExposeOnSpawn))
+	FAGX_TrackInitialTension InitialTension;
 
 	/**
 	 * Define the bulk and surface properties of each generated shoe.
@@ -103,8 +155,11 @@ public:
 	/**
 	 * Properties controlling how the Rigid Bodies created for the Track shoes may be merged with
 	 * each other.
+	 * Only used with the FullDOF Track Implementation.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Track")
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Track",
+		Meta = (EditCondition = "TrackImplementation == EAGX_TrackImplementation::FullDOF"))
 	UAGX_TrackInternalMergeProperties* InternalMergeProperties;
 
 	/**
@@ -378,6 +433,11 @@ public:
 	 */
 	void RaiseTrackPreviewNeedsUpdate(bool bDoNotBroadcastIfAlreadyRaised = true);
 
+	/**
+	 * Returns description about this Track's wheels given the current configuration.
+	 */
+	TArray<FTrackBarrier::FTrackWheelDescription> GetTrackWheelDescription() const;
+
 	/// Get the native AGX Dynamics representation of this track. Create it if necessary.
 	FTrackBarrier* GetOrCreateNative();
 
@@ -393,6 +453,7 @@ public:
 	// ~End IAGX_NativeOwner interface.
 
 	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
@@ -439,6 +500,9 @@ private:
 	// Set TrackProperties assignment on native. Create native TrackProperties if not yet created.
 	void WriteTrackPropertiesToNative();
 
+	// Set track implementation assignment on native.
+	void WriteTrackImplementationToNative();
+
 	// Write UAGX_TrackInternalMergeProperties properties to native.
 	void WriteInternalMergePropertiesToNative();
 
@@ -469,6 +533,9 @@ private:
 #endif
 
 private:
+	UPROPERTY()
+	float InitialDistanceTension_DEPRECATED = 0.01f;
+
 	// The AGX Dynamics object only exists while simulating.
 	// Initialized in BeginPlay and released in EndPlay.
 	FTrackBarrier NativeBarrier;
@@ -489,10 +556,12 @@ private:
  * This struct's only purpose is to inform UAGX_TrackComponent when a Blueprint Reconstruction is
  * complete, i.e. when properties have been deserialized and instance data applied.
  *
- * It inherits FAGX_NativeOwnerSceneComponentInstanceData because UAGX_TrackComponent is a native owner.
+ * It inherits FAGX_NativeOwnerSceneComponentInstanceData because UAGX_TrackComponent is a native
+ * owner.
  */
 USTRUCT()
-struct AGXUNREAL_API FAGX_TrackComponentInstanceData : public FAGX_NativeOwnerSceneComponentInstanceData
+struct AGXUNREAL_API FAGX_TrackComponentInstanceData
+	: public FAGX_NativeOwnerSceneComponentInstanceData
 {
 	GENERATED_BODY()
 
