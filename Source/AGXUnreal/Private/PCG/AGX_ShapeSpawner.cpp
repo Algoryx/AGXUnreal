@@ -313,6 +313,12 @@ namespace AGX_ShapeSpawner_helpers
 		Sphere->SetWorldTransform(PointPositionAndRotation(Point));
 		Sphere->SetRadius(Dims.Radius);
 		RegisterGeneratedComponent(*Sphere, SpawnActor, RootComponent, SourceComponent, SettingsTag);
+
+		// Trying my hardest to make the shape not render.
+		Sphere->SetVisibleFlag(false);
+		Sphere->SetVisibility(false);
+		Sphere->SetHiddenInGame(true);
+
 	}
 
 	void SpawnBoxAtPoint(
@@ -328,6 +334,12 @@ namespace AGX_ShapeSpawner_helpers
 		Box->SetWorldTransform(PointPositionAndRotation(Point));
 		Box->SetHalfExtent(Dims.HalfExtent);
 		RegisterGeneratedComponent(*Box, SpawnActor, RootComponent, SourceComponent, SettingsTag);
+
+
+		// Trying my hardest to make the shape not render.
+		Box->SetVisibleFlag(false);
+		Box->SetVisibility(false);
+		Box->SetHiddenInGame(true);
 	}
 
 	void SpawnCapsuleAtPoint(
@@ -351,6 +363,11 @@ namespace AGX_ShapeSpawner_helpers
 		Capsule->SetHeight(Dims.Height);
 		RegisterGeneratedComponent(
 			*Capsule, SpawnActor, RootComponent, SourceComponent, SettingsTag);
+
+		// Trying my hardest to make the shape not render.
+		Capsule->SetVisibleFlag(false);
+		Capsule->SetVisibility(false);
+		Capsule->SetHiddenInGame(true);
 	}
 }
 
