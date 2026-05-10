@@ -22,8 +22,9 @@
 #include "PCGComponent.h"
 #include "PCGContext.h"
 #include "PCGManagedResource.h"
-#include "GameFramework/Actor.h"
+#include "Engine/Level.h"
 #include "Engine/World.h"
+#include "GameFramework/Actor.h"
 
 #define LOCTEXT_NAMESPACE "AGX_ShapeSpawner"
 

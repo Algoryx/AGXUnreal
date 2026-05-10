@@ -25,8 +25,9 @@
 #include "PhysicsEngine/BoxElem.h"
 #include "PhysicsEngine/SphereElem.h"
 #include "PhysicsEngine/SphylElem.h"
-#include "GameFramework/Actor.h"
+#include "Engine/Level.h"
 #include "Engine/World.h"
+#include "GameFramework/Actor.h"
 
 #define LOCTEXT_NAMESPACE "AGX_SpawnShapeComponents"
 
