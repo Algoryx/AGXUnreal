@@ -41,15 +41,15 @@ protected:
 
 public:
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX",
+		EditAnywhere, BlueprintReadWrite, Category = "AGX PCG",
 		Meta =
 			(PCG_Overridable, Bitmask, BitmaskEnum = "/Script/AGXUnreal.EAGX_FilterAggGeomTypes"))
 	int32 ToInclude = static_cast<int32>(EAGX_FilterAggGeomTypes::All);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "AGX PCG")
 	EAGX_FilterAggGeomTypes GetToInclude() const;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "AGX PCG")
 	bool ShouldInclude(EAGX_FilterAggGeomTypes Type) const;
 };
 
