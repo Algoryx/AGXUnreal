@@ -238,6 +238,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
+		RuntimeLibFiles.Add("gdal", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -273,6 +274,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("libprotobuf", LibSource.Dependencies);
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
+			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
 		}
 
