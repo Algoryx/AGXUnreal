@@ -14,8 +14,8 @@ public:
 	static TArray<FString> GetBundlePaths();
 
 	/**
-	* Returns the path to the User Bundle path (residing in the users own project).
-	*/
+	 * Returns the path to the User Bundle path (residing in the users own project).
+	 */
 	static FString GetUserBundlePath();
 
 	/**
@@ -24,13 +24,14 @@ public:
 	static FString GetModelsDirectory();
 
 	/**
-	 * Given an OpenPLX file anywhere on the system, this function creates a directory with the same
-	 * name as the OpenPLX model inside the Project/OpenPLXModels/ directory. If there already
-	 * exists a directory with the same name, a _n suffix is added at the end where n goes from
-	 * 1...inf such that it becomes unique.
-	 * Returns the absolute path to the created directory.
+	 * Given an OpenPLX file anywhere on the system, this function generates a directory path with
+	 * the same name as the OpenPLX model inside the Project/OpenPLXModels/ directory.
+	 * Note: this function does not create the directory.
+	 * If there already exists a directory with the same name, a _n suffix is added at the end where
+	 * n goes from 1...inf such that it becomes unique. Returns the absolute path to the generated
+	 * directory path.
 	 */
-	static FString CreateUniqueModelDirectory(const FString& Filepath);
+	static FString GenerateUniqueModelDirectoryPath(const FString& Filepath);
 
 	/**
 	 * Takes an absolute path to an OpenPLX-file residing inside the Models Directory (see
