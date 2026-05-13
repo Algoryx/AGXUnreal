@@ -9,6 +9,7 @@
 #include "ROS2/ROS2Conversions.h"
 
 FROS2AnyMessageBuilderBarrier::FROS2AnyMessageBuilderBarrier()
+	: Native(new FAnyMessageBuilder(nullptr))
 {
 }
 
@@ -28,8 +29,8 @@ FROS2AnyMessageBuilderBarrier::FROS2AnyMessageBuilderBarrier(
 FROS2AnyMessageBuilderBarrier& FROS2AnyMessageBuilderBarrier::operator=(
 	FROS2AnyMessageBuilderBarrier&& Other) noexcept
 {
-	Native = std::move(Other.Native);
-	Other.Native = nullptr;
+	Native->Native = std::move(Other.Native->Native);
+	Other.Native->Native = nullptr;
 	return *this;
 }
 
@@ -41,7 +42,7 @@ bool FROS2AnyMessageBuilderBarrier::HasNative() const
 void FROS2AnyMessageBuilderBarrier::AllocateNative()
 {
 	check(!HasNative());
-	Native = std::make_unique<FAnyMessageBuilder>(new agxROS2::AnyMessageBuilder());
+	Native->Native.reset(new agxROS2::AnyMessageBuilder());
 }
 
 FAnyMessageBuilder* FROS2AnyMessageBuilderBarrier::GetNative()
@@ -56,7 +57,7 @@ const FAnyMessageBuilder* FROS2AnyMessageBuilderBarrier::GetNative() const
 
 void FROS2AnyMessageBuilderBarrier::ReleaseNative()
 {
-	Native = nullptr;
+	Native->Native = nullptr;
 }
 
 void FROS2AnyMessageBuilderBarrier::BeginMessage()

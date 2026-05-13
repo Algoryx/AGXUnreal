@@ -20,6 +20,7 @@ FRenderDataBarrier::FRenderDataBarrier()
 FRenderDataBarrier::FRenderDataBarrier(FRenderDataBarrier&& Other)
 	: NativeRef(std::move(Other.NativeRef))
 {
+	Other.NativeRef.reset(new FRenderDataRef());
 }
 
 FRenderDataBarrier::FRenderDataBarrier(std::unique_ptr<FRenderDataRef>&& InNativeRef)
@@ -291,5 +292,5 @@ const FRenderDataRef* FRenderDataBarrier::GetNative() const
 void FRenderDataBarrier::ReleaseNative()
 {
 	check(HasNative());
-	NativeRef = nullptr;
+	NativeRef->Native = nullptr;
 }

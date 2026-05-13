@@ -348,6 +348,14 @@ public: // Properties.
 	bool bDrawShapeContacts {false};
 
 	/**
+	 * The size to draw shape contacts when Draw Shape Contacts is enabled [cm].
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadWrite, Category = "Debug",
+		Meta = (EditCondition = "bDrawShapeContacts"))
+	float ShapeContactsSize {1.5f};
+
+	/**
 	 * Returns all Shape Contacts in the currently running Simulation.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Dynamics")
