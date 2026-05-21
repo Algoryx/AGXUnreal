@@ -655,34 +655,29 @@ bool UAGX_ContactMaterial::CanEditChange(const FProperty* InProperty) const
 	}
 
 	const FName PropertyName = InProperty->GetFName();
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, NormalForceMagnitude) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bScaleNormalForceWithDepth))
+	if (PropertyName == AGX_MEMBER_NAME(NormalForceMagnitude) ||
+		PropertyName == AGX_MEMBER_NAME(bScaleNormalForceWithDepth))
 	{
 		return IsConstantNormalForceFrictionModel() ||
 			   (FrictionModel == EAGX_FrictionModel::TrackBoxFriction && bUseConstantNormalForce);
 	}
 
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseConstantNormalForce))
+	if (PropertyName == AGX_MEMBER_NAME(bUseConstantNormalForce))
 	{
 		return FrictionModel == EAGX_FrictionModel::TrackBoxFriction;
 	}
 
-	if (PropertyName ==
-			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondaryFrictionCoefficient) ||
-		PropertyName ==
-			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondaryFrictionCoefficient) ||
-		PropertyName ==
-			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, bUseSecondarySurfaceViscosity) ||
-		PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, SecondarySurfaceViscosity))
+	if (PropertyName == AGX_MEMBER_NAME(bUseSecondaryFrictionCoefficient) ||
+		PropertyName == AGX_MEMBER_NAME(SecondaryFrictionCoefficient) ||
+		PropertyName == AGX_MEMBER_NAME(bUseSecondarySurfaceViscosity) ||
+		PropertyName == AGX_MEMBER_NAME(SecondarySurfaceViscosity))
 	{
 		return SupportsSecondaryFrictionDirections(FrictionModel);
 	}
 
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, PrimaryDirection) ||
-		PropertyName ==
-			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameActor) ||
-		PropertyName ==
-			GET_MEMBER_NAME_CHECKED(UAGX_ContactMaterial, OrientedFrictionReferenceFrameComponent))
+	if (PropertyName == AGX_MEMBER_NAME(PrimaryDirection) ||
+		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameActor) ||
+		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameComponent))
 	{
 		return IsOrientedFrictionModel();
 	}
