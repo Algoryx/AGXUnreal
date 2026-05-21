@@ -290,6 +290,11 @@ double FTrackBarrier::GetVerticalStabilityScaleFactor() const
 			: nullptr;
 	if (ReducedOrderImplementation == nullptr)
 	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("GetVerticalStabilityScaleFactor was called on Track '%s' without a "
+				 "reduced-order track implementation. Returning 1.0."),
+			*GetName());
 		return 1.0;
 	}
 
