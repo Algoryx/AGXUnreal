@@ -16,17 +16,15 @@ enum class EAGX_TrackImplementation : uint8
 {
 	/**
 	 * The default AGX Track Model does not model individual track shoes explicitly. Instead, it
-   * uses a compact set of bodies and constraints, where the degrees of freedom are determined by
-   * the number of wheels rather than the number of track nodes.
-
-   * Between each pair of wheels, a sensor box body is introduced and constrained to the chassis
-   * using a prismatic constraint. Track-ground interaction is represented through the combined
-   * behavior of the wheels and sensor boxes, which together define the track topology and tension
-   * forces. The track nodes are animated based on wheel geometry and rotational motion, enabling
-   * realistic visual rendering.
-
-   * This approach provides a stable and efficient simulation while capturing the essential dynamics
-   * of tracked vehicles.
+	 * uses a compact set of bodies and constraints, where the degrees of freedom are determined by
+	 * the number of wheels rather than the number of track nodes.
+	 * Between each pair of wheels, a sensor box body is introduced and constrained to the chassis
+	 * using a prismatic constraint. Track-ground interaction is represented through the combined
+	 * behavior of the wheels and sensor boxes, which together define the track topology and tension
+	 * forces. The track nodes are animated based on wheel geometry and rotational motion, enabling
+	 * realistic visual rendering.
+	 * This approach provides a stable and efficient simulation while capturing the essential
+	 * dynamics of tracked vehicles.
 	 */
 	Default,
 
