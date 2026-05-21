@@ -3296,6 +3296,12 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual(
 			"Tensile Attenuation", Track->TrackProperties->GetTensileAttenuation(), 0.05);
 
+		Test.TestEqual(
+			"Torsional Stiffness", Track->TrackProperties->GetTorsionalStiffness(), 9e10);
+
+		Test.TestEqual(
+			"Torsional Attenuation", Track->TrackProperties->GetTorsionalAttenuation(), 0.07);
+
 		Test.TestEqual("Hinge Range Enabled", Track->TrackProperties->bEnableHingeRange, false);
 		Test.TestEqual("Hinge Range Min", Track->TrackProperties->HingeRange.Min, -120.0);
 		Test.TestEqual("Hinge Range Max", Track->TrackProperties->HingeRange.Max, 20.0);
