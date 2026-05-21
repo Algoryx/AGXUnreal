@@ -49,6 +49,7 @@
 #include "FileHelpers.h"
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
@@ -140,6 +141,9 @@ namespace AGX_ImporterToEditor_helpers
 		}
 
 		if constexpr (std::is_same_v<T, UMaterialInterface>)
+			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
+
+		if constexpr (std::is_same_v<T, UMaterialInstanceConstant>)
 			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
 
 		if constexpr (std::is_same_v<T, UMaterialInstanceDynamic>)
@@ -1274,28 +1278,23 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 	{
 		for (const auto& [Guid, Rm] : *Context.RenderMaterials)
 		{
-			UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Rm);
+			auto Mid = Cast<UMaterialInstanceConstant>(Rm);
 			UMaterialInterface* A = nullptr;
 			if (Mid != nullptr)
 			{
 				// This is somewhat of a work-around.
-				// Before the AGX_ImporterToEditor class, we used an old import pipeline where
-				// Render Materials were written to disk as UMaterialInstanceConstant types.
-				// Now, we write them as UMaterialInstanceDynamic types.
-				// This means that if we do Reimport of an old imported model we will get a type
-				// mismatch in the CopyProperties function in UpdateOrCreateAsset (the new Render
-				// Material is of type UMaterialInstanceDynamic, and the asset is of type
-				// UMaterialInstanceConstant).
-				// To make our lives simple, we actually want to upgrade the asset so that it's type
-				// is of the new UMaterialInstanceDynamic type.
-				// We do this by forcing the type matching done by UpdateOrCreateAsset to be
-				// UMaterialInstanceDynamic, which means it will not find the old asset of type
-				// UMaterialInstanceConstant, and a new asset will be created (and the old asset
-				// will be removed).
-				// The next time the same model is Reimported, the asset type will be the correct
-				// one and we will get a match in UpdateOrCreateAsset and update the asset without
-				// removing it which is what we want.
-				A = UpdateOrCreateAsset<UMaterialInstanceDynamic>(*Mid, Context);
+				// We have hirstorically moved back and forth between UMaterialInstanceConstant and
+				// UMaterialInstanceDynamic. Currently, we use UMaterialInstanceConstant for
+				// in-editor imports and UMaterialInstanceDynamic for standalone builds/runtime
+				// imports. To make our lives simple, we actually want to upgrade the old asset so that
+				// it's type is of the new UMaterialInstanceConstant type. We do this by forcing the
+				// type matching done by UpdateOrCreateAsset to be UMaterialInstanceConstant, which
+				// means it will not find the old asset of type UMaterialInstanceDynamic, and a new
+				// asset will be created (and the old asset will be removed). The next time the same
+				// model is Reimported, the asset type will be the correct one and we will get a
+				// match in UpdateOrCreateAsset and update the asset without removing it which is
+				// what we want.
+				A = UpdateOrCreateAsset<UMaterialInstanceConstant>(*Mid, Context);
 			}
 			else
 				A = UpdateOrCreateAsset(*Rm, Context);

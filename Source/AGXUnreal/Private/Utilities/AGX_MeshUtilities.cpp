@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
@@ -17,7 +18,11 @@
 #include "Engine/StaticMeshActor.h"
 #include "MaterialDomain.h"
 #include "Materials/Material.h"
+#if WITH_EDITOR
+#include "Materials/MaterialInstanceConstant.h"
+#endif
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Math/Color.h"
 #include "Math/UnrealMathUtility.h"
 #include "Misc/EngineVersionComparison.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -40,6 +45,136 @@
 
 namespace
 {
+	FString CreateRenderMaterialName(const FString& BarrierName, const FGuid& Guid, UObject& Owner)
+	{
+		const FString WantedName =
+			BarrierName.IsEmpty() ? FString::Printf(TEXT("MI_RenderMaterial_%s"), *Guid.ToString())
+								  : FString::Printf(TEXT("MI_%s"), *BarrierName);
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Owner, WantedName, UMaterialInterface::StaticClass());
+	}
+
+	FString CreateRenderMaterialName(const FAGX_RenderMaterial& MaterialBarrier, UObject& Owner)
+	{
+		return CreateRenderMaterialName(
+			MaterialBarrier.Name.IsNone() ? TEXT("") : MaterialBarrier.Name.ToString(),
+			MaterialBarrier.Guid, Owner);
+	}
+
+	FString CreateRenderMaterialName(const FOpenPLXMaterialBarrier& MaterialBarrier, UObject& Owner)
+	{
+		return CreateRenderMaterialName(
+			MaterialBarrier.GetName(), MaterialBarrier.GetGuid(), Owner);
+	}
+
+	void SetAGXRenderMaterialParameters(
+		UMaterialInstanceDynamic& Material, const FAGX_RenderMaterial& MaterialBarrier)
+	{
+	}
+
+	UMaterialInterface* CreateRenderMaterialRuntime(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
+		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
+
+		Material->ClearParameterValues();
+		if (MaterialBarrier.bHasDiffuse)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Diffuse")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Diffuse));
+		}
+		if (MaterialBarrier.bHasAmbient)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Ambient")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Ambient));
+		}
+		if (MaterialBarrier.bHasEmissive)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Emissive")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Emissive));
+		}
+		if (MaterialBarrier.bHasShininess)
+			Material->SetScalarParameterValue(FName(TEXT("Shininess")), MaterialBarrier.Shininess);
+
+		return Material;
+	}
+
+#if WITH_EDITOR
+	UMaterialInterface* CreateRenderMaterialEditor(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = NewObject<UMaterialInstanceConstant>(
+			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
+		Material->SetParentEditorOnly(&Base);
+
+		Material->ClearParameterValuesEditorOnly();
+		if (MaterialBarrier.bHasDiffuse)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Diffuse"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Diffuse));
+		}
+		if (MaterialBarrier.bHasAmbient)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Ambient"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Ambient));
+		}
+		if (MaterialBarrier.bHasEmissive)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Emissive"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Emissive));
+		}
+		if (MaterialBarrier.bHasShininess)
+		{
+			Material->SetScalarParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Shininess"))), MaterialBarrier.Shininess);
+		}
+
+		Material->PostEditChange();
+		return Material;
+	}
+#endif
+
+	UMaterialInterface* CreateRenderMaterialRuntime(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
+		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
+
+		const TOptional<FLinearColor> BaseColor = MaterialBarrier.GetBaseColor();
+		if (BaseColor.IsSet())
+			Material->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor.GetValue());
+
+		return Material;
+	}
+
+#if WITH_EDITOR
+	UMaterialInterface* CreateRenderMaterialEditor(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = NewObject<UMaterialInstanceConstant>(
+			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
+		Material->SetParentEditorOnly(&Base);
+		Material->ClearParameterValuesEditorOnly();
+
+		const TOptional<FLinearColor> BaseColor = MaterialBarrier.GetBaseColor();
+		if (BaseColor.IsSet())
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("BaseColor"))), BaseColor.GetValue());
+		}
+
+		Material->PostEditChange();
+		return Material;
+	}
+#endif
+
 	// Helper struct for scaling UV coordinates.
 	struct UvCoordinateScaler
 	{
@@ -2783,43 +2918,24 @@ UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 	if (Base == nullptr)
 		return nullptr;
 
-	auto Material = UMaterialInstanceDynamic::Create(Base, &Owner);
-	const FGuid Guid = MaterialBarrier.Guid;
-	const FString WantedName =
-		MaterialBarrier.Name.IsNone()
-			? FString::Printf(TEXT("MI_RenderMaterial_%s"), *Guid.ToString())
-			: FString::Printf(TEXT("MI_%s"), *MaterialBarrier.Name.ToString());
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		&Owner, WantedName, UMaterialInterface::StaticClass());
+#if WITH_EDITOR
+	return CreateRenderMaterialEditor(MaterialBarrier, *Base, Owner);
+#else
+	return CreateRenderMaterialRuntime(MaterialBarrier, *Base, Owner);
+#endif
+}
 
-	Material->Rename(*Name);
+UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
+	const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner)
+{
+	if (Base == nullptr || !MaterialBarrier.HasNative())
+		return nullptr;
 
-	auto SetVector = [&Material](const TCHAR* Name, const FVector4& Value) {
-		Material->SetVectorParameterValue(FName(Name), FAGX_RenderMaterial::ConvertToLinear(Value));
-	};
-
-	auto SetScalar = [&Material](const TCHAR* Name, float Value)
-	{ Material->SetScalarParameterValue(FName(Name), Value); };
-
-	Material->ClearParameterValues();
-	if (MaterialBarrier.bHasDiffuse)
-	{
-		SetVector(TEXT("Diffuse"), MaterialBarrier.Diffuse);
-	}
-	if (MaterialBarrier.bHasAmbient)
-	{
-		SetVector(TEXT("Ambient"), MaterialBarrier.Ambient);
-	}
-	if (MaterialBarrier.bHasEmissive)
-	{
-		SetVector(TEXT("Emissive"), MaterialBarrier.Emissive);
-	}
-	if (MaterialBarrier.bHasShininess)
-	{
-		SetScalar(TEXT("Shininess"), MaterialBarrier.Shininess);
-	}
-
-	return Material;
+#if WITH_EDITOR
+	return CreateRenderMaterialEditor(MaterialBarrier, *Base, Owner);
+#else
+	return CreateRenderMaterialRuntime(MaterialBarrier, *Base, Owner);
+#endif
 }
 
 UMaterial* AGX_MeshUtilities::GetDefaultRenderMaterial(bool bIsSensor)

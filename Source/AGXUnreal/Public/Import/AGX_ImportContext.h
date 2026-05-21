@@ -2,10 +2,14 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
 struct FAGX_ImportSettings;
+struct FOpenPLXMaterialBarrier;
 
 class UAGX_CableComponent;
 class UAGX_CableProperties;
@@ -61,6 +65,11 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	// The key is the GUID of the RenderMaterial.
 	TUniquePtr<TMap<FGuid, UMaterialInterface*>> RenderMaterials;
+
+	// This is a holder of material overrides coming from OpenPLX.
+	// Key is the GUID of a RenderMaterial in AGX, and the value is the
+	// corresponing OpenPLX Visual Material that will replace the AGX RenderMaterial.
+	TUniquePtr<TMap<FGuid, FOpenPLXMaterialBarrier>> PLXMaterialOverrides;
 
 	// For render meshes, the GUID is taken from the RenderData.
 	TUniquePtr<TMap<FGuid, UStaticMesh*>> RenderStaticMeshes;

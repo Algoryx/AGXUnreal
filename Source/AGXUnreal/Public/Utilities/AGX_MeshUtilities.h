@@ -36,6 +36,7 @@
 class AStaticMeshActor;
 class FDynamicMeshIndexBuffer32;
 class FRenderDataBarrier;
+struct FOpenPLXMaterialBarrier;
 struct FShapeBarrier;
 class UMaterial;
 class UMaterialInterface;
@@ -346,7 +347,7 @@ public:
 
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
-		
+
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
@@ -521,11 +522,22 @@ public:
 
 	/**
 	 * Creates a new render Material instance based on the given RenderMaterial Barrier and Base.
-	 * If Base is nullptr, this functions returns nullptr.
-	 * This function supports runtime usage.
+	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
+	 * UMaterialInstanceDynamic. If Base is nullptr, this functions returns nullptr. This function
+	 * supports runtime usage.
 	 */
 	static UMaterialInterface* CreateRenderMaterial(
 		const FAGX_RenderMaterial& MaterialBarrier, UMaterial* Base, UObject& Owner);
+
+	/**
+	 * Creates a new material instance based on the given OpenPLX material barrier and
+	 * Base.
+	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
+	 * UMaterialInstanceDynamic. If Base is nullptr, this function returns nullptr.
+	 * This function supports runtime usage.
+	 */
+	static UMaterialInterface* CreateRenderMaterial(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner);
 
 	/**
 	 * Returns the default (AGX) render material.
@@ -621,4 +633,3 @@ inline bool AGX_MeshUtilities::LineTraceMesh(
 
 	return HitFound;
 }
-

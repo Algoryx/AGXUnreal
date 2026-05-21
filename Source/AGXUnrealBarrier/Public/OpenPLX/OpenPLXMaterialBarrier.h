@@ -4,6 +4,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Misc/Optional.h"
 
 // Standard library includes.
 #include <memory>
@@ -25,6 +26,9 @@ struct AGXUNREALBARRIER_API FOpenPLXMaterialBarrier
 	const FOpenPLXMaterialRef* GetNative() const;
 
 	FString GetName() const;
+	FGuid GetGuid() const;
+	bool HasTrait(const FString& Trait) const;
+	TOptional<FLinearColor> GetBaseColor() const;
 
 private:
 	std::shared_ptr<FOpenPLXMaterialRef> NativeRef;

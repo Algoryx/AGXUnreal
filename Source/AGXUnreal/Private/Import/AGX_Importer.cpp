@@ -33,6 +33,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -355,6 +356,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
+	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
 	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.MSThresholds = MakeUnique<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>>();
