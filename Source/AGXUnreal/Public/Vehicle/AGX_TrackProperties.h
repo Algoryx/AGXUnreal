@@ -26,7 +26,7 @@ class AGXUNREAL_API UAGX_TrackProperties : public UObject
 
 public:
 	/**
-	 * Lateral bending stiffness (resists sagging).
+	 * Bending stiffness about the lateral axis (resists sagging).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real BendingStiffnessLateral = 50.0;
@@ -38,7 +38,7 @@ public:
 	double GetBendingStiffnessLateral() const;
 
 	/**
-	 * Lateral bending attenuation (sagging).
+	 * Bending attenuation about the lateral axis (sagging).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double BendingAttenuationLateral = 2.0;
@@ -50,7 +50,7 @@ public:
 	double GetBendingAttenuationLateral() const;
 
 	/**
-	 * Vertical bending stiffness (resists side-to-side bending).
+	 * Bending stiffness about the vertical axis (resists side-to-side bending).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real BendingStiffnessVertical = 1.1e9;
@@ -62,7 +62,7 @@ public:
 	double GetBendingStiffnessVertical() const;
 
 	/**
-	 * Vertical bending attenuation (side-to-side bending).
+	 * Bending attenuation about the vertical axis (side-to-side bending).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double BendingAttenuationVertical = 2.0;
@@ -146,7 +146,7 @@ public:
 	double GetTensileAttenuation() const;
 
 	/**
-	 * Torsional stiffness (resists twisting).
+	 * Torsional stiffness about the longitudinal axis (resists twisting).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	FAGX_Real TorsionalStiffness = 1.1e9;
@@ -158,7 +158,7 @@ public:
 	double GetTorsionalStiffness() const;
 
 	/**
-	 * Torsional attenuation (twisting).
+	 * Torsional attenuation about the longitudinal axis (twisting).
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Track Properties")
 	double TorsionalAttenuation = 2.0;
