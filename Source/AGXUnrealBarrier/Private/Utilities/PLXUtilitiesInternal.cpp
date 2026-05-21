@@ -642,13 +642,12 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
 		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
-	// The DriveTrainMapper will put any DriveTrain object into RequiredPowerLine, and may create
-	// new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints() (handled
-	// below). It does not create other things that we have to add explicitly to the Assembly or
-	// Simulation.
+	// The DriveTrainMapper will create the DriveTrain object if the model contains one, and may
+	// also create new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints()
+	// (handled below). It does not create other things that we have to add explicitly to the
+	// Assembly or Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
-	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(
-		System);
+	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(System);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
