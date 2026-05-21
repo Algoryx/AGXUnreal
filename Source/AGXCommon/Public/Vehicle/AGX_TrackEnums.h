@@ -39,8 +39,6 @@ enum class EAGX_TrackImplementation : uint8
 	FullDOF
 };
 
-// Unreal Header Tool does not support line breaks in UMETA tags.
-// clang-format off
 /**
  * The different types of wheels supported by AGX Dynamics.
  *
@@ -49,11 +47,15 @@ enum class EAGX_TrackImplementation : uint8
 UENUM(BlueprintType)
 enum class EAGX_TrackWheelModel : uint8
 {
-	Sprocket UMETA(DisplayName = "Sprocket", ToolTip = "Geared driving wheel. Will merge track nodes to itself."),
-	Idler UMETA(DisplayName = "Idler", ToolTip = "Geared non-powered wheel. Will merge track nodes to itself."),
-	Roller UMETA(DisplayName = "Roller", ToolTip = "Track return or road wheel.")
+	/** Geared driving wheel. Will merge track nodes to itself. */
+	Sprocket,
+
+	/** Geared non-powered wheel. Will merge track nodes to itself. */
+	Idler,
+
+	/** Track return or road wheel. */
+	Roller
 };
-// clang-format on
 
 /**
  * Contact reduction of merged nodes in contact with other objects such as ground.
