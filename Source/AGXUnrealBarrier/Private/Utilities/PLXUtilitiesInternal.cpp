@@ -636,24 +636,18 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		Assembly->add(SteeringAGX);
 	}
 
-	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
-	// certain name. This is the PowerLine we will use to map the OpenPLX DriveTrain.
-	agxPowerLine::PowerLineRef RequiredPowerLine = new agxPowerLine::PowerLine();
-	RequiredPowerLine->setName(agx::Name(GetDefaultPowerLineName()));
-	Assembly->add(RequiredPowerLine);
-
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 
 	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
 		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
-	// The DriveTrainMapper will put any DriveTrain object into RequiredPowerLine, and may create
-	// new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints() (handled
-	// below). It does not create other things that we have to add explicitly to the Assembly or
-	// Simulation.
+	// The DriveTrainMapper will create the DriveTrain object if the model contains one, and may
+	// also create new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints()
+	// (handled below). It does not create other things that we have to add explicitly to the
+	// Assembly or Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
+	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(System);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -663,7 +657,11 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		}
 	}
 
-	Simulation.GetNative()->Native->add(RequiredPowerLine);
+	if (PowerLine != nullptr)
+	{
+		Assembly->add(PowerLine);
+		Simulation.GetNative()->Native->add(PowerLine);
+	}
 
 	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{

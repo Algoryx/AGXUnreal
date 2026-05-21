@@ -58,6 +58,7 @@
 #include <agxTerrain/Terrain.h>
 #include <agxTerrain/Utils.h>
 #include <agxWire/Wire.h>
+#include <agxVehicle/ReducedOrderTrackImplementation.h>
 #include <agxVehicle/Steering.h>
 #include <agxVehicle/Track.h>
 #include <agxVehicle/WheelJoint.h>
@@ -269,6 +270,19 @@ namespace
 
 				if (agx::Constraint* Constraint = Node->getConstraint())
 					NonFreeConstraint.Add(Constraint);
+			}
+
+			if (auto* ImplBase = Track->getTrackImplementation())
+			{
+				if (auto ROTI = ImplBase->asSafe<agxVehicle::ReducedOrderTrackImplementation>())
+				{
+					for (const auto& WheelData : ROTI->getWheelSensorData())
+					{
+						auto* Prismatic = WheelData->getTrackSegmentData().prismatic.get();
+						if (Prismatic != nullptr)
+							NonFreeConstraint.Add(Prismatic);
+					}
+				}
 			}
 		}
 	}
