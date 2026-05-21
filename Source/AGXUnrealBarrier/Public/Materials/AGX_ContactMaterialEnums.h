@@ -87,8 +87,7 @@ enum class EAGX_FrictionModel : uint8
 
 	/**
 	 * Oriented box friction model that uses the same normal force magnitude for all contact
-	 * points
-	 * associated to this friction model.
+	 * points associated to this friction model.
 	 *
 	 * This means that the size of the friction box always will be:
 	 *   Primary Direction   = (Primary) Friction Coefficient * Normal Force Magnitude
