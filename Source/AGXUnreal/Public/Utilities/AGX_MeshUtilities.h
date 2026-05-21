@@ -540,9 +540,14 @@ public:
 		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner);
 
 	/**
-	 * Returns the default (AGX) render material.
+	 * Returns the base (AGX) render material.
 	 */
-	static UMaterial* GetDefaultRenderMaterial(bool bIsSensor);
+	static UMaterial* GetAGXBaseRenderMaterial(bool bIsSensor);
+
+	/**
+	 * Returns the base (OpenPLX) render material.
+	 */
+	static UMaterial* GetOpenPLXBaseRenderMaterial();
 
 	/**
 	 * Add a Simple Collision Box to the given StaticMesh.

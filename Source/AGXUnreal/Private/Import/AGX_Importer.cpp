@@ -391,6 +391,9 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
+	if (Settings.ImportType == EAGX_ImportType::Plx)
+		*Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
+
 	Context.RootModelName = SimObjects.GetModelName();
 
 	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *Actor);

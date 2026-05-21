@@ -2938,7 +2938,7 @@ UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 #endif
 }
 
-UMaterial* AGX_MeshUtilities::GetDefaultRenderMaterial(bool bIsSensor)
+UMaterial* AGX_MeshUtilities::GetAGXBaseRenderMaterial(bool bIsSensor)
 {
 	const TCHAR* AssetPath =
 		bIsSensor ? TEXT("Material'/AGXUnreal/Runtime/Materials/M_SensorMaterial.M_SensorMaterial'")
@@ -2950,6 +2950,21 @@ UMaterial* AGX_MeshUtilities::GetDefaultRenderMaterial(bool bIsSensor)
 		UE_LOG(
 			LogAGX, Warning, TEXT("Could not load default%s render material from '%s'."),
 			(bIsSensor ? TEXT(" sensor") : TEXT("")), AssetPath);
+	}
+	return Material;
+}
+
+UMaterial* AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial()
+{
+	const TCHAR* AssetPath =
+		TEXT("Material'/AGXUnreal/Runtime/Materials/M_PLXImportedBase.M_PLXImportedBase'");
+	UMaterial* Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterial>(AssetPath);
+
+	if (Material == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning, TEXT("Could not load OpenPLX base render material from '%s'."),
+			AssetPath);
 	}
 	return Material;
 }

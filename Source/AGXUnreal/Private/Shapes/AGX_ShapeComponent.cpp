@@ -310,10 +310,10 @@ void UAGX_ShapeComponent::UpdateNativeLocalTransform()
 namespace AGX_ShapeComponent_helpers
 {
 	UMaterialInterface* CreatePLXOverrideRenderMaterial(
-		const FOpenPLXMaterialBarrier& Barrier, bool IsSensor, FAGX_ImportContext& Context)
+		const FOpenPLXMaterialBarrier& Barrier, FAGX_ImportContext& Context)
 	{
 		check(Context.Outer != nullptr);
-		UMaterial* Base = AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
 		return AGX_MeshUtilities::CreateRenderMaterial(Barrier, Base, *Context.Outer);
 	}
 
@@ -322,7 +322,7 @@ namespace AGX_ShapeComponent_helpers
 	{
 		if (Context.RenderMaterials == nullptr || !RenderData.HasNative() ||
 			!RenderData.HasMaterial())
-			return AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+			return AGX_MeshUtilities::GetAGXBaseRenderMaterial(IsSensor);
 
 		const FAGX_RenderMaterial MBarrier = RenderData.GetMaterial();
 		const FGuid MGuid = MBarrier.Guid;
@@ -333,13 +333,13 @@ namespace AGX_ShapeComponent_helpers
 
 		// If we have an override material from OpenPLX, we use that directly instead of the AGX
 		// Render Material to improve visuals.
-		if (Context.PLXMaterialOverrides != nullptr)
+		if (!IsSensor && Context.PLXMaterialOverrides != nullptr)
 		{
 			if (FOpenPLXMaterialBarrier* PLXOverride = Context.PLXMaterialOverrides->Find(MGuid))
 			{
 				if (PLXOverride->HasNative())
 				{
-					Result = CreatePLXOverrideRenderMaterial(*PLXOverride, IsSensor, Context);
+					Result = CreatePLXOverrideRenderMaterial(*PLXOverride, Context);
 					AGX_CHECK(Result != nullptr);
 				}
 			}
@@ -347,7 +347,7 @@ namespace AGX_ShapeComponent_helpers
 
 		if (Result == nullptr) // Creation from regular AGX Render Material.
 		{
-			UMaterial* Base = AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+			UMaterial* Base = AGX_MeshUtilities::GetAGXBaseRenderMaterial(IsSensor);
 			Result = AGX_MeshUtilities::CreateRenderMaterial(MBarrier, Base, *Context.Outer);
 			AGX_CHECK(Result != nullptr);
 		}
