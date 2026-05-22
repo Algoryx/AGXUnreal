@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
+#include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
@@ -16,6 +17,7 @@
 // Unreal Engine includes.
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/Texture2D.h"
 #include "MaterialDomain.h"
 #include "Materials/Material.h"
 #if WITH_EDITOR
@@ -168,6 +170,26 @@ namespace
 		{
 			Material->SetVectorParameterValueEditorOnly(
 				FMaterialParameterInfo(FName(TEXT("BaseColor"))), BaseColor.GetValue());
+		}
+
+		const TOptional<FOpenPLXTextureData> BaseColorTexture =
+			MaterialBarrier.GetBaseColorTextureData();
+		if (BaseColorTexture.IsSet())
+		{
+			UTexture2D* Texture =
+				FOpenPLX_RenderUtilities::CreateTexture(BaseColorTexture.GetValue(), Owner);
+			if (Texture != nullptr)
+			{
+				Material->SetTextureParameterValueEditorOnly(
+					FMaterialParameterInfo(FName(TEXT("BaseColorTexture"))), Texture);
+			}
+			else
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Failed to create Unreal texture for OpenPLX material '%s'."),
+					*MaterialBarrier.GetName());
+			}
 		}
 
 		Material->PostEditChange();
