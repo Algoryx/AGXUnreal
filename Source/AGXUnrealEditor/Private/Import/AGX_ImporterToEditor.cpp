@@ -151,7 +151,7 @@ namespace AGX_ImporterToEditor_helpers
 			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
 
 		if constexpr (std::is_same_v<T, UTexture2D>)
-			return FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName();
+			return FAGX_ImportUtilities::GetImportTextureDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_ShapeMaterial>)
 			return FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
@@ -577,8 +577,8 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UMaterialInterface>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName())));
 
-		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UTexture2D>(FPaths::Combine(
-			RootDirectory, FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName())));
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UTexture2D>(
+			FPaths::Combine(RootDirectory, FAGX_ImportUtilities::GetImportTextureDirectoryName())));
 
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UStaticMesh>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName())));
@@ -657,8 +657,7 @@ namespace AGX_ImporterToEditor_helpers
 
 		if (Context->Textures != nullptr)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName();
+			const FString AssetType = FAGX_ImportUtilities::GetImportTextureDirectoryName();
 			for (const auto& [Guid, Texture] : *Context->Textures)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Texture, *Context);
@@ -1314,14 +1313,14 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 				// We have hirstorically moved back and forth between UMaterialInstanceConstant and
 				// UMaterialInstanceDynamic. Currently, we use UMaterialInstanceConstant for
 				// in-editor imports and UMaterialInstanceDynamic for standalone builds/runtime
-				// imports. To make our lives simple, we actually want to upgrade the old asset so that
-				// it's type is of the new UMaterialInstanceConstant type. We do this by forcing the
-				// type matching done by UpdateOrCreateAsset to be UMaterialInstanceConstant, which
-				// means it will not find the old asset of type UMaterialInstanceDynamic, and a new
-				// asset will be created (and the old asset will be removed). The next time the same
-				// model is Reimported, the asset type will be the correct one and we will get a
-				// match in UpdateOrCreateAsset and update the asset without removing it which is
-				// what we want.
+				// imports. To make our lives simple, we actually want to upgrade the old asset so
+				// that it's type is of the new UMaterialInstanceConstant type. We do this by
+				// forcing the type matching done by UpdateOrCreateAsset to be
+				// UMaterialInstanceConstant, which means it will not find the old asset of type
+				// UMaterialInstanceDynamic, and a new asset will be created (and the old asset will
+				// be removed). The next time the same model is Reimported, the asset type will be
+				// the correct one and we will get a match in UpdateOrCreateAsset and update the
+				// asset without removing it which is what we want.
 				A = UpdateOrCreateAsset<UMaterialInstanceConstant>(*Mid, Context);
 			}
 			else

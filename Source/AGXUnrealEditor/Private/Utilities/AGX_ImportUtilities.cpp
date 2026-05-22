@@ -217,9 +217,9 @@ FString FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName()
 	return FString("RenderMaterial");
 }
 
-FString FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName()
+FString FAGX_ImportUtilities::GetImportTextureDirectoryName()
 {
-	return FPaths::Combine(GetImportRenderMaterialDirectoryName(), TEXT("Textures"));
+	return FPaths::Combine(TEXT("Textures"));
 }
 
 FString FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName()
@@ -287,7 +287,7 @@ template <>
 AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UTexture2D>()
 {
-	return GetImportRenderMaterialTextureDirectoryName();
+	return GetImportTextureDirectoryName();
 }
 
 template <>

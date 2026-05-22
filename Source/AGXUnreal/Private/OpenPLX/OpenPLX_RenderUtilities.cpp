@@ -129,6 +129,17 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	Mip->SizeX = TextureData.Width;
 	Mip->SizeY = TextureData.Height;
 	void* MipData = Mip->BulkData.Lock(LOCK_READ_WRITE);
+	MipData = Mip->BulkData.Realloc(BGRA8Pixels.Num());
+	if (MipData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Failed to allocate mip data for OpenPLX texture '%s'."),
+			*TextureData.Name);
+		Mip->BulkData.Unlock();
+		return nullptr;
+	}
+
 	FMemory::Memcpy(MipData, BGRA8Pixels.GetData(), BGRA8Pixels.Num());
 	Mip->BulkData.Unlock();
 
