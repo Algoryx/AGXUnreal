@@ -63,6 +63,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/Package.h"
@@ -356,6 +357,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
+	Context.Textures = MakeUnique<TMap<FGuid, UTexture2D*>>();
 	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
 	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();

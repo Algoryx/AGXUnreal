@@ -105,6 +105,7 @@ public:
 	static FString GetImportCablePropertiesDirectoryName();
 	static FString GetImportContactMaterialDirectoryName();
 	static FString GetImportRenderMaterialDirectoryName();
+	static FString GetImportRenderMaterialTextureDirectoryName();
 	static FString GetImportMergeSplitThresholdsDirectoryName();
 	static FString GetImportCollisionStaticMeshDirectoryName();
 	static FString GetImportRenderStaticMeshDirectoryName();

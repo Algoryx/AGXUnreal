@@ -314,7 +314,18 @@ namespace AGX_ShapeComponent_helpers
 	{
 		check(Context.Outer != nullptr);
 		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
-		return AGX_MeshUtilities::CreateRenderMaterial(Barrier, Base, *Context.Outer);
+		UMaterialInterface* Material =
+			AGX_MeshUtilities::CreateRenderMaterial(
+				Barrier, Base, *Context.Outer, Context.Textures.Get());
+		if (Context.Textures != nullptr)
+		{
+			for (const auto& [Guid, Texture] : *Context.Textures)
+			{
+				if (Texture != nullptr)
+					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
+			}
+		}
+		return Material;
 	}
 
 	UMaterialInterface* GetOrCreateRenderMaterial(

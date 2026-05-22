@@ -46,6 +46,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Editor.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/Texture2D.h"
 #include "FileHelpers.h"
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
@@ -148,6 +149,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UMaterialInstanceDynamic>)
 			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
+
+		if constexpr (std::is_same_v<T, UTexture2D>)
+			return FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_ShapeMaterial>)
 			return FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
@@ -573,6 +577,9 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UMaterialInterface>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName())));
 
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UTexture2D>(FPaths::Combine(
+			RootDirectory, FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UStaticMesh>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName())));
 
@@ -645,6 +652,16 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, MST] : *Context->MSThresholds)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *MST, *Context);
+			}
+		}
+
+		if (Context->Textures != nullptr)
+		{
+			const FString AssetType =
+				FAGX_ImportUtilities::GetImportRenderMaterialTextureDirectoryName();
+			for (const auto& [Guid, Texture] : *Context->Textures)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Texture, *Context);
 			}
 		}
 
@@ -1268,6 +1285,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		for (const auto& [Guid, MST] : *Context.MSThresholds)
 		{
 			const auto A = UpdateOrCreateAsset(*MST, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
+	if (Context.Textures != nullptr)
+	{
+		for (const auto& [Guid, Texture] : *Context.Textures)
+		{
+			const auto A = UpdateOrCreateAsset(*Texture, Context);
 			AGX_CHECK(A != nullptr);
 			if (A == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;

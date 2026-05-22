@@ -37,6 +37,7 @@ class UMaterialInterface;
 class UOpenPLX_SignalHandlerComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UTexture2D;
 class UWorld;
 
 /**
@@ -65,6 +66,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	// The key is the GUID of the RenderMaterial.
 	TUniquePtr<TMap<FGuid, UMaterialInterface*>> RenderMaterials;
+
+	// The key is the GUID of the source texture.
+	TUniquePtr<TMap<FGuid, UTexture2D*>> Textures;
 
 	// This is a holder of material overrides coming from OpenPLX.
 	// Key is the GUID of a RenderMaterial in AGX, and the value is the

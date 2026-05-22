@@ -158,7 +158,8 @@ namespace
 
 #if WITH_EDITOR
 	UMaterialInterface* CreateRenderMaterialEditor(
-		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner)
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner,
+		TMap<FGuid, UTexture2D*>* Textures)
 	{
 		auto Material = NewObject<UMaterialInstanceConstant>(
 			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
@@ -176,8 +177,15 @@ namespace
 			MaterialBarrier.GetBaseColorTextureData();
 		if (BaseColorTexture.IsSet())
 		{
-			UTexture2D* Texture =
-				FOpenPLX_RenderUtilities::CreateTexture(BaseColorTexture.GetValue(), Owner);
+			const FOpenPLXTextureData& TextureData = BaseColorTexture.GetValue();
+			UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
+			if (Texture == nullptr)
+			{
+				Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner);
+				if (Texture != nullptr && Textures != nullptr)
+					Textures->Add(TextureData.Guid, Texture);
+			}
+
 			if (Texture != nullptr)
 			{
 				Material->SetTextureParameterValueEditorOnly(
@@ -2948,13 +2956,14 @@ UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 }
 
 UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
-	const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner)
+	const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
+	TMap<FGuid, UTexture2D*>* Textures)
 {
 	if (Base == nullptr || !MaterialBarrier.HasNative())
 		return nullptr;
 
 #if WITH_EDITOR
-	return CreateRenderMaterialEditor(MaterialBarrier, *Base, Owner);
+	return CreateRenderMaterialEditor(MaterialBarrier, *Base, Owner, Textures);
 #else
 	return CreateRenderMaterialRuntime(MaterialBarrier, *Base, Owner);
 #endif

@@ -42,6 +42,7 @@ class UMaterial;
 class UMaterialInterface;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UTexture2D;
 
 struct FAGX_RenderMaterial;
 struct FAGX_SimpleMeshTriangle;
@@ -531,13 +532,15 @@ public:
 
 	/**
 	 * Creates a new material instance based on the given OpenPLX material barrier and
-	 * Base.
+	 * Base. If Textures were created, these are added to the Textures parameter if set.
+	 * The Guid is set to under underlying texture object guid.
 	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
 	 * UMaterialInstanceDynamic. If Base is nullptr, this function returns nullptr.
 	 * This function supports runtime usage.
 	 */
 	static UMaterialInterface* CreateRenderMaterial(
-		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner);
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
+		TMap<FGuid, UTexture2D*>* Textures = nullptr);
 
 	/**
 	 * Returns the base (AGX) render material.
