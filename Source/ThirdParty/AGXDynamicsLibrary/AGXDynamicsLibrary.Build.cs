@@ -238,7 +238,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
-		RuntimeLibFiles.Add("gdal", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -269,7 +268,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		}
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
-
+			RuntimeLibFiles.Add("gdal", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.Dependencies);
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
