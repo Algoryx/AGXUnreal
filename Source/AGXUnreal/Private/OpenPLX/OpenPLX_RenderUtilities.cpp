@@ -8,15 +8,30 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
+#include "Engine/TextureDefines.h"
 #include "Engine/Texture2D.h"
-#include "Misc/EngineVersionComparison.h"
 #include "PixelFormat.h"
 #include "TextureResource.h"
 
 namespace
 {
-	bool ConvertOpenPLXTextureToBGRA8(
-		const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels)
+	TextureCompressionSettings GetTextureCompressionSettings(EOpenPLX_TextureUsage Usage)
+	{
+		switch (Usage)
+		{
+			case EOpenPLX_TextureUsage::BaseColor:
+				return TC_Default;
+			case EOpenPLX_TextureUsage::Scalar:
+				return TC_Grayscale;
+			case EOpenPLX_TextureUsage::Normal:
+				return TC_Normalmap;
+			default:
+				checkNoEntry();
+				return TC_Default;
+		}
+	}
+
+	bool ValidateOpenPLXTextureData(const FOpenPLXTextureData& TextureData)
 	{
 		if (TextureData.Width <= 0 || TextureData.Height <= 0 || TextureData.NumChannels <= 0 ||
 			TextureData.NumChannels > 4)
@@ -44,6 +59,44 @@ namespace
 			return false;
 		}
 
+		return true;
+	}
+
+	bool ConvertOpenPLXTextureToG8(const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels)
+	{
+		if (!ValidateOpenPLXTextureData(TextureData))
+			return false;
+
+		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
+		OutPixels.SetNumUninitialized(NumPixels);
+		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+		{
+			const uint8* Source = TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
+			OutPixels[PixelIndex] = Source[0];
+		}
+
+		return true;
+	}
+
+	bool ConvertOpenPLXTextureToBGRA8(
+		const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels,
+		EOpenPLX_TextureUsage Usage)
+	{
+		if (!ValidateOpenPLXTextureData(TextureData))
+			return false;
+
+		if (Usage == EOpenPLX_TextureUsage::Normal && TextureData.NumChannels < 3)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"Cannot create normal map from OpenPLX texture '%s': expected at least 3 "
+					"channels, got %d."),
+				*TextureData.Name, TextureData.NumChannels);
+			return false;
+		}
+
+		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
 		OutPixels.SetNumUninitialized(NumPixels * 4);
 		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
@@ -90,11 +143,19 @@ namespace
 }
 
 UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
-	const FOpenPLXTextureData& TextureData, UObject& Owner)
+	const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage)
 {
-	TArray<uint8> BGRA8Pixels;
-	if (!ConvertOpenPLXTextureToBGRA8(TextureData, BGRA8Pixels))
+	const bool bScalarTexture = Usage == EOpenPLX_TextureUsage::Scalar;
+	TArray<uint8> TexturePixels;
+	if (bScalarTexture)
+	{
+		if (!ConvertOpenPLXTextureToG8(TextureData, TexturePixels))
+			return nullptr;
+	}
+	else if (!ConvertOpenPLXTextureToBGRA8(TextureData, TexturePixels, Usage))
+	{
 		return nullptr;
+	}
 
 	const FString WantedName = TextureData.Name.IsEmpty()
 								   ? FString::Printf(
@@ -107,13 +168,14 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	if (Texture == nullptr)
 		return nullptr;
 
-	Texture->SRGB = true;
+	Texture->SRGB = Usage == EOpenPLX_TextureUsage::BaseColor;
 
 #if WITH_EDITORONLY_DATA
 	Texture->MipGenSettings = TMGS_NoMipmaps;
-	Texture->CompressionSettings = TC_Default;
+	Texture->CompressionSettings = GetTextureCompressionSettings(Usage);
 	Texture->Source.Init(
-		TextureData.Width, TextureData.Height, 1, 1, TSF_BGRA8, BGRA8Pixels.GetData());
+		TextureData.Width, TextureData.Height, 1, 1, bScalarTexture ? TSF_G8 : TSF_BGRA8,
+		TexturePixels.GetData());
 #endif
 
 	Texture->SetPlatformData(new FTexturePlatformData());
@@ -122,14 +184,14 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	PlatformData->SizeX = TextureData.Width;
 	PlatformData->SizeY = TextureData.Height;
 	PlatformData->SetNumSlices(1);
-	PlatformData->PixelFormat = PF_B8G8R8A8;
+	PlatformData->PixelFormat = bScalarTexture ? PF_G8 : PF_B8G8R8A8;
 
 	FTexture2DMipMap* Mip = new FTexture2DMipMap();
 	PlatformData->Mips.Add(Mip);
 	Mip->SizeX = TextureData.Width;
 	Mip->SizeY = TextureData.Height;
 	void* MipData = Mip->BulkData.Lock(LOCK_READ_WRITE);
-	MipData = Mip->BulkData.Realloc(BGRA8Pixels.Num());
+	MipData = Mip->BulkData.Realloc(TexturePixels.Num());
 	if (MipData == nullptr)
 	{
 		UE_LOG(
@@ -140,7 +202,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 		return nullptr;
 	}
 
-	FMemory::Memcpy(MipData, BGRA8Pixels.GetData(), BGRA8Pixels.Num());
+	FMemory::Memcpy(MipData, TexturePixels.GetData(), TexturePixels.Num());
 	Mip->BulkData.Unlock();
 
 	Texture->UpdateResource();

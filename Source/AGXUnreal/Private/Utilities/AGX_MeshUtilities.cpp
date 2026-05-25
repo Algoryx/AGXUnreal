@@ -71,13 +71,14 @@ namespace
 	}
 
 	UTexture2D* GetOrCreateTexture(
-		const FOpenPLXTextureData& TextureData, UObject& Owner, TMap<FGuid, UTexture2D*>* Textures)
+		const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
+		TMap<FGuid, UTexture2D*>* Textures)
 	{
 		UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
 		if (Texture != nullptr)
 			return Texture;
 
-		Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner);
+		Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner, Usage);
 		if (Texture != nullptr && Textures != nullptr)
 			Textures->Add(TextureData.Guid, Texture);
 
@@ -198,12 +199,13 @@ namespace
 
 		auto SetTexture =
 			[&Material, &MaterialBarrier, &Owner](
-				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData)
+				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData,
+				EOpenPLX_TextureUsage Usage)
 		{
 			if (!TextureData.IsSet())
 				return;
 
-			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, nullptr);
+			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, Usage, nullptr);
 			if (Texture != nullptr)
 				Material->SetTextureParameterValue(ParameterName, Texture);
 			else
@@ -211,18 +213,28 @@ namespace
 		};
 
 		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
-		SetTexture(FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData());
+		SetTexture(
+			FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData(),
+			EOpenPLX_TextureUsage::BaseColor);
 		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
-		SetTexture(FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData());
+		SetTexture(
+			FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
-		SetTexture(FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData());
+		SetTexture(
+			FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
-		SetTexture(FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData());
+		SetTexture(
+			FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
-		SetTexture(FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData());
+		SetTexture(
+			FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData(),
+			EOpenPLX_TextureUsage::Normal);
 		SetTexture(
 			FName(TEXT("AmbientOcclusionTexture")),
-			MaterialBarrier.GetAmbientOcclusionTextureData());
+			MaterialBarrier.GetAmbientOcclusionTextureData(), EOpenPLX_TextureUsage::Scalar);
 
 		return Material;
 	}
@@ -258,12 +270,13 @@ namespace
 
 		auto SetTexture =
 			[&Material, &MaterialBarrier, &Owner, Textures](
-				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData)
+				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData,
+				EOpenPLX_TextureUsage Usage)
 		{
 			if (!TextureData.IsSet())
 				return;
 
-			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, Textures);
+			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, Usage, Textures);
 			if (Texture != nullptr)
 			{
 				Material->SetTextureParameterValueEditorOnly(
@@ -276,18 +289,28 @@ namespace
 		};
 
 		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
-		SetTexture(FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData());
+		SetTexture(
+			FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData(),
+			EOpenPLX_TextureUsage::BaseColor);
 		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
-		SetTexture(FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData());
+		SetTexture(
+			FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
-		SetTexture(FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData());
+		SetTexture(
+			FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
-		SetTexture(FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData());
+		SetTexture(
+			FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
-		SetTexture(FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData());
+		SetTexture(
+			FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData(),
+			EOpenPLX_TextureUsage::Normal);
 		SetTexture(
 			FName(TEXT("AmbientOcclusionTexture")),
-			MaterialBarrier.GetAmbientOcclusionTextureData());
+			MaterialBarrier.GetAmbientOcclusionTextureData(), EOpenPLX_TextureUsage::Scalar);
 
 		Material->PostEditChange();
 		return Material;
