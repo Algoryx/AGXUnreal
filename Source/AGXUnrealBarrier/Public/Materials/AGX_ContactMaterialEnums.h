@@ -36,7 +36,7 @@ enum class EAGX_ContactSolver : uint8
 UENUM(BlueprintType)
 enum class EAGX_FrictionModel : uint8
 {
-	NotDefined = 0,
+	NotDefined,
 
 	/**
 	 * Box friction. Static bounds during solve. The friction box is aligned with the world axes.
@@ -44,7 +44,7 @@ enum class EAGX_FrictionModel : uint8
 	 * impact speed, mass, and gravity, or for continuous contacts equal to the the last normal
 	 * force.
 	 */
-	BoxFriction = 1,
+	BoxFriction,
 
 	/**
 	 * This model uses the current (i.e. correct) normal force received by the solver.
@@ -52,7 +52,7 @@ enum class EAGX_FrictionModel : uint8
 	 * It is computationally more expensive than the box friction model but with a more realistic
 	 * dry friction.
 	 */
-	ScaledBoxFriction = 2,
+	ScaledBoxFriction,
 
 	/**
 	 * This friction model is the default in AGX Dynamics.
@@ -68,27 +68,26 @@ enum class EAGX_FrictionModel : uint8
 	 * projected onto the friction cone, i.e., you will always get friction_force =
 	 * friction_coefficient * normal_force.
 	 */
-	IterativeProjectedConeFriction = 3,
+	IterativeProjectedConeFriction,
 
 	/**
 	 * Box friction model with oriented friction box.
 	 */
-	OrientedBoxFriction = 4,
+	OrientedBoxFriction,
 
 	/**
 	 * Scale box friction model with oriented friction box.
 	 */
-	OrientedScaledBoxFriction = 5,
+	OrientedScaledBoxFriction,
 
 	/**
 	 * Iterative projected cone friction model with oriented friction box.
 	 */
-	OrientedIterativeProjectedConeFriction = 6,
+	OrientedIterativeProjectedConeFriction,
 
 	/**
 	 * Oriented box friction model that uses the same normal force magnitude for all contact
-	 * points
-	 * associated to this friction model.
+	 * points associated to this friction model.
 	 *
 	 * This means that the size of the friction box always will be:
 	 *   Primary Direction   = (Primary) Friction Coefficient * Normal Force Magnitude
@@ -98,25 +97,25 @@ enum class EAGX_FrictionModel : uint8
 	 *
 	 * 'Scale Normal Force With Depth' to true.
 	 */
-	OrientedConstantNormalForceBoxFriction = 7,
+	OrientedConstantNormalForceBoxFriction,
 
 	/**
 	 * Box friction model where the primary direction is calculated from interacting
 	 * tracks.
 	 */
-	TrackBoxFriction = 8,
+	TrackBoxFriction,
 
 	/**
 	 * Scale box friction model where the primary direction is calculated from interacting
 	 * tracks.
 	 */
-	TrackScaledBoxFriction = 9,
+	TrackScaledBoxFriction,
 
 	/**
 	 * Iterative projected cone friction model where the primary direction is calculated
 	 * from interacting tracks.
 	 */
-	TrackIterativeProjectedConeFriction = 10,
+	TrackIterativeProjectedConeFriction,
 };
 
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)

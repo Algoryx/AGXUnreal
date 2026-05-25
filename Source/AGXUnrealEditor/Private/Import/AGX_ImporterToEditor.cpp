@@ -1072,6 +1072,28 @@ namespace AGX_ImporterToEditor_helpers
 
 		return EAGX_ImportResult::Success;
 	}
+
+	void OnFailureCleanup(const FAGX_ImportSettings& Settings)
+	{
+		if (Settings.ImportType != EAGX_ImportType::Plx)
+			return;
+
+		if (Settings.FilePath.IsEmpty())
+			return;
+
+		const FString FileDirectory =
+			FPaths::ConvertRelativePathToFull(FPaths::GetPath(Settings.FilePath));
+		if (!FPaths::DirectoryExists(FileDirectory))
+			return;
+
+		FString ModelsDirectory =
+			FPaths::ConvertRelativePathToFull(FOpenPLXUtilities::GetModelsDirectory());
+
+		if (!FileDirectory.StartsWith(ModelsDirectory))
+			return;
+
+		IFileManager::Get().DeleteDirectory(*FileDirectory, /*RequireExists=*/true, /*Tree=*/true);
+	}
 }
 
 UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
@@ -1090,7 +1112,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	FAGX_Importer Importer;
 	FAGX_ImportResult Result = Importer.Import(Settings, *GetTransientPackage());
 	if (!ValidateImportResult(Result, Settings))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Validating import"));
 
@@ -1098,7 +1123,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	RootDirectory = MakeRootDirectoryPath(ModelName);
 
 	if (!ValidateImportEnum(FinalizeModelSourceComponent(*Result.Context, RootDirectory)))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Saving Assets"));
 	WriteAssetsToDisk(RootDirectory, Result.Context);

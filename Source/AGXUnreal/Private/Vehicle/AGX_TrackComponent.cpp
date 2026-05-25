@@ -821,18 +821,13 @@ void UAGX_TrackComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackProperties),
 		[](ThisClass* Self) { Self->WriteTrackPropertiesToNative(); });
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, TrackImplementation),
-		[](ThisClass* Self) { Self->SetTrackImplementation(Self->TrackImplementation); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TrackImplementation);
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, Chassis),
 		[](ThisClass* Self) { Self->SetChassis(Self->Chassis.GetRigidBody()); });
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, VerticalStabilityScaleFactor),
-		[](ThisClass* Self)
-		{ Self->SetVerticalStabilityScaleFactor(Self->VerticalStabilityScaleFactor); });
+	AGX_COMPONENT_DEFAULT_DISPATCHER(VerticalStabilityScaleFactor);
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TrackComponent, InternalMergeProperties),
