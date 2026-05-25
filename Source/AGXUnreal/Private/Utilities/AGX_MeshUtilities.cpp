@@ -178,7 +178,8 @@ namespace
 		if (BaseColorTexture.IsSet())
 		{
 			const FOpenPLXTextureData& TextureData = BaseColorTexture.GetValue();
-			UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
+			UTexture2D* Texture =
+				Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
 			if (Texture == nullptr)
 			{
 				Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner);
@@ -333,7 +334,6 @@ namespace
 		Vertices.Reserve(OrigVertNum + VertexColumns + 1);
 		Normals.Reserve(OrigNormNum + VertexColumns + 1); // 1 normal per vertex.
 		TexCoords.Reserve(OrigTexNum + VertexColumns + 1); // 1 tex coord per vertex.
-
 
 		const float SegmentSize = 2.0 * PI / CircleSegments;
 		const float RadiusInv = 1.0f / Radius;
@@ -2771,7 +2771,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const FRenderDataBarrier& InRenderData, UObject& InOuter, UMaterialInterface* InMaterial,
 	bool bInBuild, bool bInWithBoxCollision, EAGX_NormalsSource InNormalsSource,
-	const FString& InName)
+	const FString& InName, bool bFlipV)
 {
 	using namespace AGX_MeshUtilities_helpers;
 
@@ -2846,6 +2846,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	CopyAttributes(AttributeLocations.Normals, Normals, InNormals, Indices);
 	TArray<FVector2f> UVs;
 	CopyAttributes(AttributeLocations.UVs, UVs, InUVs, Indices);
+	if (bFlipV)
+	{
+		for (FVector2f& UV : UVs)
+			UV.Y = 1.0f - UV.Y;
+	}
 
 	// Render Data never carries tangents, so leave it empty.
 	TArray<FVector3f> Tangents;

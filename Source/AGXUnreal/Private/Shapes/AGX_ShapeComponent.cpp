@@ -404,7 +404,8 @@ namespace AGX_ShapeComponent_helpers
 			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
 
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
+			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource,
+			TEXT(""), /*flipV*/ true);
 
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);

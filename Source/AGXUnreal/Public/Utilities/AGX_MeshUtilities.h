@@ -505,12 +505,14 @@ public:
 	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
 	 * @param InNormalsSource Where to get normals from, either Render Data or let Unreal compute.
 	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
+	 * @param bFlipV Whether to flip the V component of imported UV coordinates.
 	 * @return The UStaticMesh created from the Render Data.
 	 */
 	static UStaticMesh* CreateStaticMesh(
 		const FRenderDataBarrier& InRenderDataBarrier, UObject& InOuter,
 		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
-		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""),
+		bool bFlipV = false);
 
 	/**
 	 * Copies triangle information and render material from one Static Mesh to another.
