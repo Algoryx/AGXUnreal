@@ -3,6 +3,7 @@
 #include "Vehicle/TrackPropertiesBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
 
@@ -10,9 +11,11 @@
 #include "BeginAGXIncludes.h"
 #include <agx/Hinge.h>
 #include <agxVehicle/TrackProperties.h>
+#include <agxVehicle/TrackUtils.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine includes.
+#include <Math/UnrealMathUtility.h>
 #include <Misc/AssertionMacros.h>
 
 FTrackPropertiesBarrier::FTrackPropertiesBarrier()
@@ -71,188 +74,152 @@ FGuid FTrackPropertiesBarrier::GetGuid() const
 	return Guid;
 }
 
-//
-// Hinge compliance. Set.
-//
-
-void FTrackPropertiesBarrier::SetHingeCompliance(double Compliance, int32 DOF)
+void FTrackPropertiesBarrier::SetBendingStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, static_cast<agx::Hinge::DOF>(DOF));
+	NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceTranslational(double Compliance)
+double FTrackPropertiesBarrier::GetBendingStiffnessLateral() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeComplianceTranslational(Compliance);
+	return NativeRef->Native->getBendingStiffness(agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceTranslationalX(double Compliance)
+void FTrackPropertiesBarrier::SetBendingAttenuationLateral(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, agx::Hinge::TRANSLATIONAL_1);
+	NativeRef->Native->setBendingAttenuation(
+		Attenuation, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceTranslationalY(double Compliance)
+double FTrackPropertiesBarrier::GetBendingAttenuationLateral() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, agx::Hinge::TRANSLATIONAL_2);
+	return NativeRef->Native->getBendingAttenuation(agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceTranslationalZ(double Compliance)
+void FTrackPropertiesBarrier::SetBendingStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, agx::Hinge::TRANSLATIONAL_3);
+	NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceRotational(double Compliance)
+double FTrackPropertiesBarrier::GetBendingStiffnessVertical() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeComplianceRotational(Compliance);
+	return NativeRef->Native->getBendingStiffness(agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceRotationalX(double Compliance)
+void FTrackPropertiesBarrier::SetBendingAttenuationVertical(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, agx::Hinge::ROTATIONAL_1);
+	NativeRef->Native->setBendingAttenuation(
+		Attenuation, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeComplianceRotationalY(double Compliance)
+double FTrackPropertiesBarrier::GetBendingAttenuationVertical() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeCompliance(Compliance, agx::Hinge::ROTATIONAL_2);
+	return NativeRef->Native->getBendingAttenuation(agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-//
-// Hinge compliance. Get.
-//
-
-double FTrackPropertiesBarrier::GetHingeCompliance(int32 DOF) const
+void FTrackPropertiesBarrier::SetShearStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(static_cast<agx::Hinge::DOF>(DOF));
+	NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-double FTrackPropertiesBarrier::GetHingeComplianceTranslationalX() const
+double FTrackPropertiesBarrier::GetShearStiffnessLateral() const
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(agx::Hinge::TRANSLATIONAL_1);
+	return NativeRef->Native->getShearStiffness(agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-double FTrackPropertiesBarrier::GetHingeComplianceTranslationalY() const
+void FTrackPropertiesBarrier::SetShearAttenuationLateral(double Attenuation)
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(agx::Hinge::TRANSLATIONAL_2);
+	NativeRef->Native->setShearAttenuation(Attenuation, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-double FTrackPropertiesBarrier::GetHingeComplianceTranslationalZ() const
+double FTrackPropertiesBarrier::GetShearAttenuationLateral() const
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(agx::Hinge::TRANSLATIONAL_3);
+	return NativeRef->Native->getShearAttenuation(agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
-double FTrackPropertiesBarrier::GetHingeComplianceRotationalX() const
+void FTrackPropertiesBarrier::SetShearStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(agx::Hinge::ROTATIONAL_1);
+	NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-double FTrackPropertiesBarrier::GetHingeComplianceRotationalY() const
+double FTrackPropertiesBarrier::GetShearStiffnessVertical() const
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeCompliance(agx::Hinge::ROTATIONAL_2);
+	return NativeRef->Native->getShearStiffness(agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-// Hinge spook damping. Set
-
-void FTrackPropertiesBarrier::SetHingeSpookDamping(double Damping, int32 DOF)
+void FTrackPropertiesBarrier::SetShearAttenuationVertical(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(Damping, static_cast<agx::Hinge::DOF>(DOF));
+	NativeRef->Native->setShearAttenuation(
+		Attenuation, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingTranslational(double Damping)
+double FTrackPropertiesBarrier::GetShearAttenuationVertical() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDampingTranslational(Damping);
+	return NativeRef->Native->getShearAttenuation(agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingTranslationalX(double Damping)
+void FTrackPropertiesBarrier::SetTensileStiffness(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(Damping, agx::Hinge::TRANSLATIONAL_1);
+	NativeRef->Native->setTensileStiffness(Stiffness);
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingTranslationalY(double Damping)
+double FTrackPropertiesBarrier::GetTensileStiffness() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(Damping, agx::Hinge::TRANSLATIONAL_2);
+	return NativeRef->Native->getTensileStiffness();
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingTranslationalZ(double Damping)
+void FTrackPropertiesBarrier::SetTensileAttenuation(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(Damping, agx::Hinge::TRANSLATIONAL_3);
+	NativeRef->Native->setTensileAttenuation(Attenuation);
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingRotational(double Damping)
+double FTrackPropertiesBarrier::GetTensileAttenuation() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDampingRotational(Damping);
+	return NativeRef->Native->getTensileAttenuation();
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingRotationalX(double Damping)
+void FTrackPropertiesBarrier::SetTorsionalStiffness(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(agx::Hinge::ROTATIONAL_1);
+	NativeRef->Native->setTorsionalStiffness(Stiffness);
 }
 
-void FTrackPropertiesBarrier::SetHingeSpookDampingRotationalY(double Damping)
+double FTrackPropertiesBarrier::GetTorsionalStiffness() const
 {
 	check(HasNative());
-	NativeRef->Native->setHingeDamping(agx::Hinge::ROTATIONAL_2);
+	return NativeRef->Native->getTorsionalStiffness();
 }
 
-//
-// Hinge spook damping. Get.
-
-double FTrackPropertiesBarrier::GetHingeSpookDamping(int32 DOF) const
+void FTrackPropertiesBarrier::SetTorsionalAttenuation(double Attenuation)
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeDamping(static_cast<agx::Hinge::DOF>(DOF));
+	NativeRef->Native->setTorsionalAttenuation(Attenuation);
 }
 
-double FTrackPropertiesBarrier::GetHingeSpookDampingTranslationalX() const
+double FTrackPropertiesBarrier::GetTorsionalAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getHingeDamping(agx::Hinge::TRANSLATIONAL_1);
+	return NativeRef->Native->getTorsionalAttenuation();
 }
-
-double FTrackPropertiesBarrier::GetHingeSpookDampingTranslationalY() const
-{
-	check(HasNative());
-	return NativeRef->Native->getHingeDamping(agx::Hinge::TRANSLATIONAL_2);
-}
-
-double FTrackPropertiesBarrier::GetHingeSpookDampingTranslationalZ() const
-{
-	check(HasNative());
-	return NativeRef->Native->getHingeDamping(agx::Hinge::TRANSLATIONAL_3);
-}
-
-double FTrackPropertiesBarrier::GetHingeSpookDampingRotationalX() const
-{
-	check(HasNative());
-	return NativeRef->Native->getHingeDamping(agx::Hinge::ROTATIONAL_1);
-}
-
-double FTrackPropertiesBarrier::GetHingeSpookDampingRotationalY() const
-{
-	check(HasNative());
-	return NativeRef->Native->getHingeDamping(agx::Hinge::ROTATIONAL_2);
-}
-
-// Hinge range.
 
 void FTrackPropertiesBarrier::SetHingeRangeEnabled(bool bEnable)
 {
@@ -281,7 +248,7 @@ void FTrackPropertiesBarrier::SetHingeRange(FAGX_RealInterval MinMaxAngles)
 FAGX_RealInterval FTrackPropertiesBarrier::GetHingeRangeRange() const
 {
 	check(HasNative());
-	const agx::RangeReal RangeAGX = NativeRef->Native->getHingeRangeRange();
+	const agx::RangeReal RangeAGX = NativeRef->Native->getHingeRange();
 	const FAGX_RealInterval RangeUnreal = ConvertAngle(RangeAGX);
 	return RangeUnreal;
 }
@@ -385,4 +352,59 @@ double FTrackPropertiesBarrier::GetStabilizingHingeFrictionParameter() const
 {
 	check(HasNative());
 	return NativeRef->Native->getStabilizingHingeFrictionParameter();
+}
+
+FTrackPropertiesBarrier FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
+	const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength,
+	double TimeStep)
+{
+	if (FMath::IsNearlyZero(TimeStep))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: TimeStep is almost "
+				 "zero (%g)."),
+			TimeStep);
+		return FTrackPropertiesBarrier {};
+	}
+
+	constexpr int32 ExpectedNumElements = 5;
+	if (Compliance.Num() != ExpectedNumElements)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: Compliance must "
+				 "contain exactly %d elements, got %d."),
+			ExpectedNumElements, Compliance.Num());
+		return FTrackPropertiesBarrier {};
+	}
+
+	if (Damping.Num() != ExpectedNumElements)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: Damping must "
+				 "contain exactly %d elements, got %d."),
+			ExpectedNumElements, Damping.Num());
+		return FTrackPropertiesBarrier {};
+	}
+
+	const agx::RealVector ComplianceAGX = ConvertArray<double, double>(Compliance);
+	const agx::RealVector DampingAGX = ConvertArray<double, double>(Damping);
+	const agx::Real NodeLengthAGX = ConvertDistanceToAGX(NodeLength);
+
+	agxVehicle::TrackPropertiesRef Properties = new agxVehicle::TrackProperties();
+	agxVehicle::utils::setTrackStiffnessFromCompliance(Properties, ComplianceAGX, NodeLengthAGX);
+
+	using Axis = agxVehicle::TrackProperties::Axis;
+	Properties->setBendingAttenuation(2.0, Axis::LATERAL); // Default for bending.
+
+	// Attenuation based on (deprecated) damping values.
+	Properties->setShearAttenuation(Damping[0] / TimeStep, Axis::VERTICAL);
+	Properties->setTensileAttenuation(Damping[1] / TimeStep);
+	Properties->setShearAttenuation(Damping[2] / TimeStep, Axis::LATERAL);
+	Properties->setBendingAttenuation(Damping[3] / TimeStep, Axis::VERTICAL);
+	Properties->setTorsionalAttenuation(Damping[4] / TimeStep);
+
+	return FTrackPropertiesBarrier(std::make_unique<FTrackPropertiesRef>(Properties.get()));
 }

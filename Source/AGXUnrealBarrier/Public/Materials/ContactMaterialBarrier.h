@@ -44,6 +44,10 @@ public:
 	bool SetEnableScaleNormalForceWithDepth(bool bEnabled);
 	bool GetEnableScaleNormalForceWithDepth(bool& bEnabled) const;
 
+	/// Currently only available for TrackBoxFrictionModel.
+	bool SetEnableConstantNormalForceMagnitude(bool bEnabled);
+	bool GetEnableConstantNormalForceMagnitude() const;
+
 	void SetRestitution(double Restitution);
 	double GetRestitution() const;
 
