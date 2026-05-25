@@ -43,6 +43,15 @@ struct AGXUNREALBARRIER_API FOpenPLXMaterialBarrier
 	bool HasTrait(const FString& Trait) const;
 	TOptional<FLinearColor> GetBaseColor() const;
 	TOptional<FOpenPLXTextureData> GetBaseColorTextureData() const;
+	TOptional<float> GetMetallic() const;
+	TOptional<FOpenPLXTextureData> GetMetallicTextureData() const;
+	TOptional<float> GetRoughness() const;
+	TOptional<FOpenPLXTextureData> GetRoughnessTextureData() const;
+	TOptional<float> GetAlpha() const;
+	TOptional<FOpenPLXTextureData> GetAlphaTextureData() const;
+	TOptional<float> GetNormalScale() const;
+	TOptional<FOpenPLXTextureData> GetNormalTextureData() const;
+	TOptional<FOpenPLXTextureData> GetAmbientOcclusionTextureData() const;
 
 private:
 	std::shared_ptr<FOpenPLXMaterialRef> NativeRef;

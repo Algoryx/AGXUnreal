@@ -69,6 +69,29 @@ namespace
 			MaterialBarrier.GetName(), MaterialBarrier.GetGuid(), Owner);
 	}
 
+	UTexture2D* GetOrCreateTexture(
+		const FOpenPLXTextureData& TextureData, UObject& Owner, TMap<FGuid, UTexture2D*>* Textures)
+	{
+		UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
+		if (Texture != nullptr)
+			return Texture;
+
+		Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner);
+		if (Texture != nullptr && Textures != nullptr)
+			Textures->Add(TextureData.Guid, Texture);
+
+		return Texture;
+	}
+
+	void LogTextureCreationFailure(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, const FName& ParameterName)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Failed to create Unreal texture for OpenPLX material '%s' parameter '%s'."),
+			*MaterialBarrier.GetName(), *ParameterName.ToString());
+	}
+
 	void SetAGXRenderMaterialParameters(
 		UMaterialInstanceDynamic& Material, const FAGX_RenderMaterial& MaterialBarrier)
 	{
@@ -149,9 +172,45 @@ namespace
 		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
 		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
 
-		const TOptional<FLinearColor> BaseColor = MaterialBarrier.GetBaseColor();
-		if (BaseColor.IsSet())
-			Material->SetVectorParameterValue(FName(TEXT("BaseColor")), BaseColor.GetValue());
+		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
+		{
+			if (Value.IsSet())
+				Material->SetVectorParameterValue(ParameterName, Value.GetValue());
+		};
+
+		auto SetScalar = [&Material](const FName& ParameterName, const TOptional<float>& Value)
+		{
+			if (Value.IsSet())
+				Material->SetScalarParameterValue(ParameterName, Value.GetValue());
+		};
+
+		auto SetTexture =
+			[&Material, &MaterialBarrier, &Owner](
+				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData)
+		{
+			if (!TextureData.IsSet())
+				return;
+
+			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, nullptr);
+			if (Texture != nullptr)
+				Material->SetTextureParameterValue(ParameterName, Texture);
+			else
+				LogTextureCreationFailure(MaterialBarrier, ParameterName);
+		};
+
+		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
+		SetTexture(FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData());
+		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
+		SetTexture(FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData());
+		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
+		SetTexture(FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData());
+		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
+		SetTexture(FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData());
+		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
+		SetTexture(FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData());
+		SetTexture(
+			FName(TEXT("AmbientOcclusionTexture")),
+			MaterialBarrier.GetAmbientOcclusionTextureData());
 
 		return Material;
 	}
@@ -166,40 +225,56 @@ namespace
 		Material->SetParentEditorOnly(&Base);
 		Material->ClearParameterValuesEditorOnly();
 
-		const TOptional<FLinearColor> BaseColor = MaterialBarrier.GetBaseColor();
-		if (BaseColor.IsSet())
+		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
 		{
-			Material->SetVectorParameterValueEditorOnly(
-				FMaterialParameterInfo(FName(TEXT("BaseColor"))), BaseColor.GetValue());
-		}
-
-		const TOptional<FOpenPLXTextureData> BaseColorTexture =
-			MaterialBarrier.GetBaseColorTextureData();
-		if (BaseColorTexture.IsSet())
-		{
-			const FOpenPLXTextureData& TextureData = BaseColorTexture.GetValue();
-			UTexture2D* Texture =
-				Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
-			if (Texture == nullptr)
+			if (Value.IsSet())
 			{
-				Texture = FOpenPLX_RenderUtilities::CreateTexture(TextureData, Owner);
-				if (Texture != nullptr && Textures != nullptr)
-					Textures->Add(TextureData.Guid, Texture);
+				Material->SetVectorParameterValueEditorOnly(
+					FMaterialParameterInfo(ParameterName), Value.GetValue());
 			}
+		};
 
+		auto SetScalar = [&Material](const FName& ParameterName, const TOptional<float>& Value)
+		{
+			if (Value.IsSet())
+			{
+				Material->SetScalarParameterValueEditorOnly(
+					FMaterialParameterInfo(ParameterName), Value.GetValue());
+			}
+		};
+
+		auto SetTexture =
+			[&Material, &MaterialBarrier, &Owner, Textures](
+				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData)
+		{
+			if (!TextureData.IsSet())
+				return;
+
+			UTexture2D* Texture = GetOrCreateTexture(TextureData.GetValue(), Owner, Textures);
 			if (Texture != nullptr)
 			{
 				Material->SetTextureParameterValueEditorOnly(
-					FMaterialParameterInfo(FName(TEXT("BaseColorTexture"))), Texture);
+					FMaterialParameterInfo(ParameterName), Texture);
 			}
 			else
 			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Failed to create Unreal texture for OpenPLX material '%s'."),
-					*MaterialBarrier.GetName());
+				LogTextureCreationFailure(MaterialBarrier, ParameterName);
 			}
-		}
+		};
+
+		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
+		SetTexture(FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData());
+		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
+		SetTexture(FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData());
+		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
+		SetTexture(FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData());
+		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
+		SetTexture(FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData());
+		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
+		SetTexture(FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData());
+		SetTexture(
+			FName(TEXT("AmbientOcclusionTexture")),
+			MaterialBarrier.GetAmbientOcclusionTextureData());
 
 		Material->PostEditChange();
 		return Material;

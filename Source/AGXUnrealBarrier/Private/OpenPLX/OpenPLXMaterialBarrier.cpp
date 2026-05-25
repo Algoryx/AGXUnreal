@@ -3,6 +3,7 @@
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 
@@ -21,6 +22,82 @@
 
 // Standard library includes.
 #include <exception>
+
+namespace
+{
+	TOptional<float> GetScalar(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, const TCHAR* Trait, const char* Field)
+	{
+		if (!MaterialBarrier.HasTrait(Trait))
+			return {};
+
+		return static_cast<float>(MaterialBarrier.GetNative()->Native->getDynamic(Field).asReal());
+	}
+
+	TOptional<FOpenPLXTextureData> GetTextureData(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, const TCHAR* Trait, const char* Field,
+		const TCHAR* LogName)
+	{
+		if (!MaterialBarrier.HasTrait(Trait))
+			return {};
+
+		auto Texture = std::dynamic_pointer_cast<openplx::Visuals::Textures::Texture>(
+			MaterialBarrier.GetNative()->Native->getDynamic(Field).asObject());
+		if (Texture == nullptr)
+			return {};
+
+		auto TextureData = Texture->data();
+		if (TextureData == nullptr)
+			return {};
+
+		std::string Base64DataAGX = TextureData->data();
+		const FString Base64Data = UTF8_TO_TCHAR(Base64DataAGX.c_str());
+		agxUtil::freeContainerMemory(Base64DataAGX);
+
+		FOpenPLXTextureData Result;
+		Result.Name = Convert(Texture->getName());
+		Result.Guid = FGuid(Convert(Texture->getUuid()));
+		Result.Width = static_cast<int32>(TextureData->width());
+		Result.Height = static_cast<int32>(TextureData->height());
+		Result.NumChannels = static_cast<int32>(TextureData->format()) + 1;
+
+		if (Result.Width <= 0 || Result.Height <= 0 || Result.NumChannels <= 0 ||
+			Result.NumChannels > 4)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX material '%s' has invalid %s texture metadata: texture='%s', "
+					 "size=%dx%d, channels=%d."),
+				*MaterialBarrier.GetName(), LogName, *Result.Name, Result.Width, Result.Height,
+				Result.NumChannels);
+			return {};
+		}
+
+		if (!FBase64::Decode(Base64Data, Result.Pixels))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX material '%s' failed to decode %s texture '%s'."),
+				*MaterialBarrier.GetName(), LogName, *Result.Name);
+			return {};
+		}
+
+		const int64 ExpectedNumBytes =
+			static_cast<int64>(Result.Width) * Result.Height * Result.NumChannels;
+		if (Result.Pixels.Num() != ExpectedNumBytes)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX material '%s' decoded %s texture '%s' has unexpected byte "
+					 "count: got=%d, expected=%lld."),
+				*MaterialBarrier.GetName(), LogName, *Result.Name, Result.Pixels.Num(),
+				ExpectedNumBytes);
+			return {};
+		}
+
+		return Result;
+	}
+}
 
 FOpenPLXMaterialBarrier::FOpenPLXMaterialBarrier()
 	: NativeRef {new FOpenPLXMaterialRef}
@@ -92,60 +169,71 @@ TOptional<FLinearColor> FOpenPLXMaterialBarrier::GetBaseColor() const
 TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetBaseColorTextureData() const
 {
 	check(HasNative());
-	if (!HasTrait(TEXT("Visuals.Materials.SurfaceFeatures.BaseColor")))
-		return {};
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.BaseColor"), "base_color_map",
+		TEXT("base color"));
+}
 
-	auto BaseColorMap = std::dynamic_pointer_cast<openplx::Visuals::Textures::Texture>(
-		NativeRef->Native->getDynamic("base_color_map").asObject());
-	if (BaseColorMap == nullptr)
-		return {};
+TOptional<float> FOpenPLXMaterialBarrier::GetMetallic() const
+{
+	check(HasNative());
+	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Metallic"), "metallic");
+}
 
-	auto TextureData = BaseColorMap->data();
-	if (TextureData == nullptr)
-		return {};
+TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetMetallicTextureData() const
+{
+	check(HasNative());
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.Metallic"), "metallic_map",
+		TEXT("metallic"));
+}
 
-	std::string Base64DataAGX = TextureData->data();
-	const FString Base64Data = UTF8_TO_TCHAR(Base64DataAGX.c_str());
-	agxUtil::freeContainerMemory(Base64DataAGX);
+TOptional<float> FOpenPLXMaterialBarrier::GetRoughness() const
+{
+	check(HasNative());
+	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Roughness"), "roughness");
+}
 
-	FOpenPLXTextureData Result;
-	Result.Name = Convert(BaseColorMap->getName());
-	Result.Guid = FGuid(Convert(BaseColorMap->getUuid()));
-	Result.Width = static_cast<int32>(TextureData->width());
-	Result.Height = static_cast<int32>(TextureData->height());
-	Result.NumChannels = static_cast<int32>(TextureData->format()) + 1;
+TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetRoughnessTextureData() const
+{
+	check(HasNative());
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.Roughness"), "roughness_map",
+		TEXT("roughness"));
+}
 
-	if (Result.Width <= 0 || Result.Height <= 0 || Result.NumChannels <= 0 ||
-		Result.NumChannels > 4)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX material '%s' has invalid base color texture metadata: texture='%s', "
-				 "size=%dx%d, channels=%d."),
-			*GetName(), *Result.Name, Result.Width, Result.Height, Result.NumChannels);
-		return {};
-	}
+TOptional<float> FOpenPLXMaterialBarrier::GetAlpha() const
+{
+	check(HasNative());
+	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Transparency"), "alpha");
+}
 
-	if (!FBase64::Decode(Base64Data, Result.Pixels))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX material '%s' failed to decode base color texture '%s'."), *GetName(),
-			*Result.Name);
-		return {};
-	}
+TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetAlphaTextureData() const
+{
+	check(HasNative());
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.Transparency"), "alpha_map",
+		TEXT("alpha"));
+}
 
-	const int64 ExpectedNumBytes =
-		static_cast<int64>(Result.Width) * Result.Height * Result.NumChannels;
-	if (Result.Pixels.Num() != ExpectedNumBytes)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX material '%s' decoded base color texture '%s' has unexpected byte "
-				 "count: got=%d, expected=%lld."),
-			*GetName(), *Result.Name, Result.Pixels.Num(), ExpectedNumBytes);
-		return {};
-	}
+TOptional<float> FOpenPLXMaterialBarrier::GetNormalScale() const
+{
+	check(HasNative());
+	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Normals"), "normal_scale");
+}
 
-	return Result;
+TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetNormalTextureData() const
+{
+	check(HasNative());
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.Normals"), "normal_map",
+		TEXT("normal"));
+}
+
+TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetAmbientOcclusionTextureData() const
+{
+	check(HasNative());
+	return GetTextureData(
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.AmbientOcclusion"), "occlusion_map",
+		TEXT("ambient occlusion"));
 }
