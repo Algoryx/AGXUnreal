@@ -24,6 +24,7 @@
 #include "Materials/MaterialInstanceConstant.h"
 #endif
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstance.h"
 #include "Math/Color.h"
 #include "Math/UnrealMathUtility.h"
 #include "Misc/EngineVersionComparison.h"
@@ -90,6 +91,16 @@ namespace
 			LogAGX, Warning,
 			TEXT("Failed to create Unreal texture for OpenPLX material '%s' parameter '%s'."),
 			*MaterialBarrier.GetName(), *ParameterName.ToString());
+	}
+
+	void SetTranslucentBlendModeIfNeeded(
+		UMaterialInstance& Material, const FOpenPLXMaterialBarrier& MaterialBarrier)
+	{
+		if (!MaterialBarrier.HasTrait(TEXT("Visuals.Materials.SurfaceFeatures.Transparency")))
+			return;
+
+		Material.BasePropertyOverrides.bOverride_BlendMode = true;
+		Material.BasePropertyOverrides.BlendMode = BLEND_Translucent;
 	}
 
 	void SetAGXRenderMaterialParameters(
@@ -171,6 +182,7 @@ namespace
 	{
 		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
 		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
+		SetTranslucentBlendModeIfNeeded(*Material, MaterialBarrier);
 
 		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
 		{
@@ -224,6 +236,7 @@ namespace
 			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
 		Material->SetParentEditorOnly(&Base);
 		Material->ClearParameterValuesEditorOnly();
+		SetTranslucentBlendModeIfNeeded(*Material, MaterialBarrier);
 
 		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
 		{
