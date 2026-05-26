@@ -15,7 +15,11 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Blueprint.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureDefines.h"
 #include "HAL/FileManager.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialInterface.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
@@ -319,19 +323,74 @@ DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
 
 bool FCheckBoxWithTextureImportedCommand::Update()
 {
+	using namespace OpenPLX_ImporterToBlueprintTest_helpers;
+
+	Test.TestNotNull(TEXT("Blueprint"), State.Blueprint);
 	if (State.Blueprint == nullptr)
 		return true;
 
 	TArray<UActorComponent*> Components =
 		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
 
-	const int32 NumStaticMeshComponents =
-		Components
-			.FilterByPredicate([](UActorComponent* Component)
-							   { return Cast<UStaticMeshComponent>(Component) != nullptr; })
-			.Num();
-	Test.TestTrue(
-		TEXT("box_w_texture imported a StaticMeshComponent"), NumStaticMeshComponents > 0);
+	// SceneRoot, 1 Rigid Body, 1 Trimesh, 1 RenderMesh, 1 CollisionMesh, 1 OpenPLXSignalHandler, 1
+	// ModelSource.
+	Test.TestEqual(TEXT("box_w_texture num Components"), Components.Num(), 7);
+
+	UStaticMeshComponent* RenderMesh = AgxAutomationCommon::GetByName<UStaticMeshComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(
+						TEXT("RenderMesh_6CC37468D0C257748FD4F097E39E36EE")));
+	Test.TestNotNull(TEXT("box_w_texture RenderMesh"), RenderMesh);
+	if (RenderMesh == nullptr)
+		return true;
+
+	UMaterialInstanceConstant* Material =
+		Cast<UMaterialInstanceConstant>(RenderMesh->GetMaterial(0));
+	Test.TestNotNull(TEXT("MI_BoxMaterial"), Material);
+	if (Material == nullptr)
+		return true;
+
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial name"), Material->GetName(), FString(TEXT("MI_BoxMaterial")));
+	Test.TestNotNull(TEXT("MI_BoxMaterial parent"), Material->Parent.Get());
+	if (Material->Parent != nullptr)
+	{
+		Test.TestEqual(
+			TEXT("MI_BoxMaterial parent"), Material->Parent->GetName(),
+			FString(TEXT("M_PLXImportedBase")));
+	}
+
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial vector overrides"), Material->VectorParameterValues.Num(), 1);
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial scalar overrides"), Material->ScalarParameterValues.Num(), 0);
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial texture overrides"), Material->TextureParameterValues.Num(), 1);
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial overrides BlendMode"),
+		Material->BasePropertyOverrides.bOverride_BlendMode, 0u);
+
+	if (Material->TextureParameterValues.Num() != 1)
+		return true;
+
+	const FTextureParameterValue& BaseColorTextureParameter = Material->TextureParameterValues[0];
+	Test.TestEqual(
+		TEXT("MI_BoxMaterial texture parameter name"), BaseColorTextureParameter.ParameterInfo.Name,
+		FName(TEXT("BaseColorTexture")));
+
+	UTexture2D* BaseColorTexture = Cast<UTexture2D>(BaseColorTextureParameter.ParameterValue);
+	Test.TestNotNull(TEXT("MI_BoxMaterial BaseColorTexture"), BaseColorTexture);
+	if (BaseColorTexture == nullptr)
+		return true;
+
+	Test.TestEqual(
+		TEXT("BaseColorTexture name"), BaseColorTexture->GetName(), FString(TEXT("T_BoxTexture")));
+	Test.TestTrue(TEXT("BaseColorTexture SRGB"), BaseColorTexture->SRGB);
+	Test.TestEqual(
+		TEXT("BaseColorTexture compression"),
+		static_cast<int32>(BaseColorTexture->CompressionSettings.GetValue()),
+		static_cast<int32>(TC_Default));
+	Test.TestEqual(TEXT("BaseColorTexture width"), BaseColorTexture->GetSizeX(), 1024);
+	Test.TestEqual(TEXT("BaseColorTexture height"), BaseColorTexture->GetSizeY(), 1024);
 
 	return true;
 }
