@@ -47,6 +47,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Editor.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/Texture.h"
 #include "Engine/Texture2D.h"
 #include "FileHelpers.h"
 #include "HAL/FileManager.h"
@@ -403,6 +404,45 @@ namespace AGX_ImporterToEditor_helpers
 			FixupRenderMaterialImpl(TransientToAsset, *Instance);
 
 		FixupRenderMaterialImpl(TransientToAsset, OutMesh);
+	}
+
+	UTexture* GetTextureAsset(const TMap<UObject*, UObject*>& TransientToAsset, UTexture* Texture)
+	{
+		if (Texture == nullptr)
+			return nullptr;
+
+		return Cast<UTexture>(TransientToAsset.FindRef(Texture));
+	}
+
+	void FixupRenderMaterialTextureParameters(
+		const TMap<UObject*, UObject*>& TransientToAsset, UMaterialInterface& Material)
+	{
+		TArray<FMaterialParameterInfo> TextureParameters;
+		TArray<FGuid> TextureParameterIds;
+		Material.GetAllTextureParameterInfo(TextureParameters, TextureParameterIds);
+
+		if (UMaterialInstanceConstant* Constant = Cast<UMaterialInstanceConstant>(&Material))
+		{
+			bool bChanged = false;
+			for (const FMaterialParameterInfo& Parameter : TextureParameters)
+			{
+				UTexture* Texture = nullptr;
+				if (!Constant->GetTextureParameterValue(Parameter, Texture))
+					continue;
+
+				UTexture* Asset = GetTextureAsset(TransientToAsset, Texture);
+				if (Asset != nullptr && Asset != Texture)
+				{
+					Constant->SetTextureParameterValueEditorOnly(Parameter, Asset);
+					bChanged = true;
+				}
+			}
+
+			if (bChanged)
+				Constant->PostEditChange();
+
+			return;
+		}
 	}
 
 	void FixupContactMaterial(
@@ -793,6 +833,7 @@ namespace AGX_ImporterToEditor_helpers
 		}
 
 		AGX_CHECK(!Context.Textures->Contains(OriginalTextureData.Guid));
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
 		Context.Textures->Add(OriginalTextureData.Guid, Texture);
 	}
 
@@ -1301,6 +1342,9 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 		if constexpr (std::is_same_v<T, UAGX_ContactMaterial>)
 			FixupContactMaterial(TransientToAsset, Source);
 
+		if constexpr (std::is_base_of_v<UMaterialInterface, T>)
+			FixupRenderMaterialTextureParameters(TransientToAsset, Source);
+
 		WriteAssetToDisk(RootDirectory, AssetType, Source, Context);
 		return &Source; // We are done.
 	}
@@ -1332,6 +1376,9 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 		bool Result = CopyProperties(Source, *Asset, TransientToAsset, DefaultOverwriteRule);
 		AGX_CHECK(Result);
 	}
+
+	if constexpr (std::is_base_of_v<UMaterialInterface, T>)
+		FixupRenderMaterialTextureParameters(TransientToAsset, *Asset);
 
 	FAGX_ImportRuntimeUtilities::WriteSessionGuidToAssetType(*Asset, Context.SessionGuid);
 	if (!Asset->GetName().Equals(Source.GetName()))
