@@ -40,6 +40,7 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
 	, InputSignalListenerRef {new FInputSignalListenerRef()}
 	, OutputSignalListenerRef {new FOutputSignalListenerRef()}
+	, HeapControlInterfaceRef {std::make_shared<FHeapControlInterfaceRef>()}
 {
 }
 
