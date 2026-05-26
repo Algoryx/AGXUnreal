@@ -33,6 +33,7 @@
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_TextureUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_SteeringParameters.h"
@@ -118,14 +119,14 @@ namespace AGX_ImporterToEditor_helpers
 	// When saving an asset to disk, Unreal sometimes creates a redirector object with
 	// TransientPackage as owner. This object may cause name collisions on multiple imports done in
 	// a row because it may linger between imports.
-	void DestroyRedirectorAfterSave(UObject* SavedAsset, const FAGX_ImportContext& Context)
+	void DestroyRedirectorAfterSave(UObject* Source, const FAGX_ImportContext& Context)
 	{
-		if (SavedAsset == nullptr)
+		if (Source == nullptr)
 			return;
 
 		auto RedirectorObj =
-			StaticFindObjectFast(UObject::StaticClass(), Context.Outer, *SavedAsset->GetName());
-		if (RedirectorObj != nullptr && RedirectorObj != SavedAsset)
+			StaticFindObjectFast(UObject::StaticClass(), Context.Outer, *Source->GetName());
+		if (RedirectorObj != nullptr && RedirectorObj != Source)
 			RedirectorObj->ConditionalBeginDestroy();
 	}
 
@@ -1301,7 +1302,7 @@ bool FAGX_ImporterToEditor::Reimport(
 	}
 
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Updating Blueprint"));
-	const auto UpdateResult = UpdateBlueprint(BaseBP, Settings, Importer.GetContext());
+	const auto UpdateResult = UpdateBlueprint(BaseBP, Settings, *Result.Context);
 	if (!ValidateImportEnum(UpdateResult))
 		return false;
 
@@ -1369,6 +1370,16 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 			AGX_CHECK(Result);
 		}
 	}
+	else if constexpr (std::is_same_v<T, UTexture2D>)
+	{
+		// UTexture2D stores its pixel data outside the reflected property system, so
+		// CopyProperties cannot update it correctly.
+		if (!AGX_TextureUtilities::AreTexturesEqual(&Source, Asset))
+		{
+			const bool Result = AGX_TextureUtilities::CopyTexture(&Source, Asset);
+			AGX_CHECK(Result);
+		}
+	}
 	else // All other Asset types.
 	{
 		// For shared assets, we might be copying and saving multiple times here, but we assume
@@ -1386,7 +1397,7 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 
 	bool Result = FAGX_ObjectUtilities::SaveAsset(*Asset);
 	AGX_CHECK(Result);
-	DestroyRedirectorAfterSave(Asset, Context);
+	DestroyRedirectorAfterSave(&Source, Context);
 	TransientToAsset.Add(&Source, Asset);
 	return Asset;
 }
