@@ -222,6 +222,30 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveReal(const FOpenPLX_Output& Output,
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
+	const FOpenPLX_Output& Output, double& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to receive a real from '%s' through the "
+				 "Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Output.Name.ToString());
+		return false;
+	}
+
+	if (!FOpenPLX_Utilities::IsRealType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveRealInterface", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, double& Value)
 {
 	FOpenPLX_Output Output;
@@ -536,12 +560,10 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	FOpenPLXMappingBarriersCollection Barriers;
 	Barriers.Constraints =
 		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
-	Barriers.Bodies =
-		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+	Barriers.Bodies = CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
-	Barriers.Steerings =
-		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
+	Barriers.Steerings = CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
 
 	// Initialize SignalHandler in Barrier module.
 	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);

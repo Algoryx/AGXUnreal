@@ -96,6 +96,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveReal(const FOpenPLX_Output& Output, double& OutValue);
 
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
+
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
