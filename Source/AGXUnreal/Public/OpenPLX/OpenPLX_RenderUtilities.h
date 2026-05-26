@@ -12,7 +12,8 @@ enum class EOpenPLX_TextureUsage : uint8
 {
 	BaseColor,
 	Scalar,
-	Normal
+	Normal,
+	Raw
 };
 
 class AGXUNREAL_API FOpenPLX_RenderUtilities

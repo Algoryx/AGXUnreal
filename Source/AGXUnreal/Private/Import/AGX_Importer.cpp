@@ -470,6 +470,8 @@ EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
 	Component->SourceFilePath = Context.Settings->SourceFilePath;
 	Component->bRuntimeImport = Context.Settings->bRuntimeImport;
 	Component->bIgnoreDisabledTrimeshes = Context.Settings->bIgnoreDisabledTrimeshes;
+	Component->bAdditionalyImportUnmodifiedTextures =
+		Context.Settings->bAdditionalyImportUnmodifiedTextures;
 	Component->Rename(*Name);
 
 	/*

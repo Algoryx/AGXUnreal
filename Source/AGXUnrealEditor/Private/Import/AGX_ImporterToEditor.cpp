@@ -19,6 +19,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
+#include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
@@ -760,6 +761,56 @@ namespace AGX_ImporterToEditor_helpers
 		}
 	}
 
+	void ImportOriginalTexture(
+		const TOptional<FOpenPLXTextureData>& TextureData, FAGX_ImportContext& Context)
+	{
+		if (!TextureData.IsSet())
+			return;
+
+		AGX_CHECK(Context.Outer != nullptr);
+		AGX_CHECK(Context.Textures != nullptr);
+		if (Context.Outer == nullptr || Context.Textures == nullptr)
+			return;
+
+		FOpenPLXTextureData OriginalTextureData = TextureData.GetValue();
+		AGX_CHECK(OriginalTextureData.TextureDataGuid.IsValid());
+		OriginalTextureData.Guid = OriginalTextureData.TextureDataGuid;
+		if (!OriginalTextureData.TextureDataName.IsEmpty())
+			OriginalTextureData.Name = OriginalTextureData.TextureDataName;
+		OriginalTextureData.Swizzle.Empty();
+		if (Context.Textures->Contains(OriginalTextureData.Guid))
+			return;
+
+		UTexture2D* Texture = FOpenPLX_RenderUtilities::CreateTexture(
+			OriginalTextureData, *Context.Outer, EOpenPLX_TextureUsage::Raw);
+		if (Texture == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Failed to create raw OpenPLX texture asset for texture '%s'."),
+				*OriginalTextureData.Name);
+			return;
+		}
+
+		AGX_CHECK(!Context.Textures->Contains(OriginalTextureData.Guid));
+		Context.Textures->Add(OriginalTextureData.Guid, Texture);
+	}
+
+	void ImportOriginalOpenPLXTextures(FAGX_ImportContext& Context)
+	{
+		for (const TPair<FGuid, FOpenPLXMaterialBarrier>& MaterialOverride :
+			 *Context.PLXMaterialOverrides)
+		{
+			const FOpenPLXMaterialBarrier& MaterialBarrier = MaterialOverride.Value;
+			ImportOriginalTexture(MaterialBarrier.GetBaseColorTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetMetallicTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetRoughnessTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetAlphaTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetNormalTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetAmbientOcclusionTextureData(), Context);
+		}
+	}
+
 	template <typename T, typename = void>
 	struct HasImportGuid : std::false_type
 	{
@@ -840,6 +891,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.RenderMaterials != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.RenderMaterials)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.Textures != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.Textures)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1128,6 +1185,12 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 		return nullptr;
 	}
 
+	if (Settings.ImportType == EAGX_ImportType::Plx &&
+		Settings.bAdditionalyImportUnmodifiedTextures)
+	{
+		ImportOriginalOpenPLXTextures(*Result.Context);
+	}
+
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Saving Assets"));
 	WriteAssetsToDisk(RootDirectory, Result.Context);
 
@@ -1189,6 +1252,12 @@ bool FAGX_ImporterToEditor::Reimport(
 
 	if (!ValidateImportEnum(FinalizeModelSourceComponent(*Result.Context, RootDirectory)))
 		return false;
+
+	if (Settings.ImportType == EAGX_ImportType::Plx &&
+		Settings.bAdditionalyImportUnmodifiedTextures)
+	{
+		ImportOriginalOpenPLXTextures(*Result.Context);
+	}
 
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Updating Blueprint"));
 	const auto UpdateResult = UpdateBlueprint(BaseBP, Settings, Importer.GetContext());

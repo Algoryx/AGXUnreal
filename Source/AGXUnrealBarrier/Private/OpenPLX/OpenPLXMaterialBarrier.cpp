@@ -57,6 +57,8 @@ namespace
 		FOpenPLXTextureData Result;
 		Result.Name = Convert(Texture->getName());
 		Result.Guid = FGuid(Convert(Texture->getUuid()));
+		Result.TextureDataName = Convert(TextureData->getName());
+		Result.TextureDataGuid = FGuid(Convert(TextureData->getUuid()));
 		Result.Width = static_cast<int32>(TextureData->width());
 		Result.Height = static_cast<int32>(TextureData->height());
 		Result.NumChannels = static_cast<int32>(TextureData->format()) + 1;

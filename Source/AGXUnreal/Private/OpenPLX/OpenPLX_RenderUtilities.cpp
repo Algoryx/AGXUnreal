@@ -25,6 +25,8 @@ namespace
 				return TC_Grayscale;
 			case EOpenPLX_TextureUsage::Normal:
 				return TC_Normalmap;
+			case EOpenPLX_TextureUsage::Raw:
+				return TC_Default;
 			default:
 				checkNoEntry();
 				return TC_Default;
@@ -80,12 +82,13 @@ namespace
 	}
 
 	bool GetTextureSourceChannels(
-		const FOpenPLXTextureData& TextureData, TArray<int32>& OutSourceChannels)
+		const FOpenPLXTextureData& TextureData, TArray<int32>& OutSourceChannels,
+		bool bApplySwizzle)
 	{
 		if (!ValidateOpenPLXTextureData(TextureData))
 			return false;
 
-		if (TextureData.Swizzle.IsEmpty())
+		if (!bApplySwizzle || TextureData.Swizzle.IsEmpty())
 		{
 			OutSourceChannels.SetNumUninitialized(TextureData.NumChannels);
 			for (int32 ChannelIndex = 0; ChannelIndex < TextureData.NumChannels; ++ChannelIndex)
@@ -130,7 +133,7 @@ namespace
 	bool ConvertOpenPLXTextureToG8(const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels)
 	{
 		TArray<int32> SourceChannels;
-		if (!GetTextureSourceChannels(TextureData, SourceChannels))
+		if (!GetTextureSourceChannels(TextureData, SourceChannels, true))
 			return false;
 
 		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
@@ -149,7 +152,8 @@ namespace
 		EOpenPLX_TextureUsage Usage)
 	{
 		TArray<int32> SourceChannels;
-		if (!GetTextureSourceChannels(TextureData, SourceChannels))
+		if (!GetTextureSourceChannels(
+				TextureData, SourceChannels, Usage != EOpenPLX_TextureUsage::Raw))
 			return false;
 
 		const int32 NumChannels = SourceChannels.Num();

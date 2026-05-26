@@ -18,8 +18,10 @@ struct AGXUNREALBARRIER_API FOpenPLXTextureData
 {
 	GENERATED_BODY()
 
-	FString Name;
-	FGuid Guid;
+	FString Name; // Name of the Texture object.
+	FGuid Guid; // Guid of the Texture object.
+	FString TextureDataName; // Name of the underlying pixel data object.
+	FGuid TextureDataGuid; // Guid of the underlying pixel data object.
 	int32 Width {0};
 	int32 Height {0};
 	int32 NumChannels {0};
