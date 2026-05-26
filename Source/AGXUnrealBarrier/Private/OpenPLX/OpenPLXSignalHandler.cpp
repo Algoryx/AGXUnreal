@@ -94,6 +94,19 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
+	// OpenPLX uses pretty deep namespace nesting which causes very long lines. Namespace
+	// aliases helps us cut those lengths down a bit while still keeping it clear which types comes
+	// from OpenPLX.
+	namespace oplx = openplx;
+	namespace oplxSignals = openplx::Physics::Signals;
+	namespace aoplx = agxopenplx;
+	using ControlDispatchSPtr = std::shared_ptr<oplx::ControlDispatch>;
+	using ControlInterfaceSPtr = std::shared_ptr<oplx::ControlInterface>;
+	using SignalInterfaceSPtr = std::shared_ptr<oplxSignals::SignalInterface>;
+	using std::make_shared;
+
+	std::shared_ptr<aoplx::AgxMetadata> AgxMetadata = std::make_shared<aoplx::AgxMetadata>();
+
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
 		FPLXUtilitiesInternal::HasOutputs(System.get()))
@@ -109,7 +122,7 @@ void FOpenPLXSignalHandler::Init(
 	{
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 		InputSignalListenerRef->Native =
-			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
+			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, AgxMetadata);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -117,8 +130,7 @@ void FOpenPLXSignalHandler::Init(
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap,
-			std::make_shared<agxopenplx::AgxMetadata>());
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, AgxMetadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -126,10 +138,18 @@ void FOpenPLXSignalHandler::Init(
 	 * Control Interface setup.
 	 */
 
-	std::shared_ptr<openplx::ControlDispatch> ControlDispatch = std::make_shared<openplx::ControlDispatch>();
-	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
-	std::shared_ptr<openplx::ControlInterface> ControlInterface = std::make_shared<openplx::ControlInterface>(ControlDispatch);
-	HeapControlInterfaceRef->Native = std::make_shared<openplx::HeapControlInterface>(ControlInterface);
+	ControlDispatchSPtr ControlDispatch = make_shared<oplx::ControlDispatch>();
+	aoplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
+	ControlInterfaceSPtr ControlInterface = make_shared<oplx::ControlInterface>(ControlDispatch);
+	std::vector<SignalInterfaceSPtr> SignalInterfaces =
+		FPLXUtilitiesInternal::GetNestedObjects<oplxSignals::SignalInterface>(*System);
+	for (SignalInterfaceSPtr& SignalInterface : SignalInterfaces)
+	{
+		ControlInterface->add_controls_from_signal_interface(SignalInterface);
+	}
+	ControlInterface->prepare_controls();
+	HeapControlInterfaceRef->Native =
+		std::make_shared<openplx::HeapControlInterface>(ControlInterface);
 
 	bIsInitialized = true;
 }
