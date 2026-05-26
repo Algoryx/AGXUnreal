@@ -9,6 +9,7 @@
 #include "agxOpenPLX/OutputSignalListener.h"
 #include "agxOpenPLX/AgxObjectMap.h"
 #include "openplx/Physics3D/System.h"
+#include "openplx/HeapControlInterface.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -47,6 +48,16 @@ struct FOutputSignalListenerRef
 		std::shared_ptr<agxopenplx::AgxObjectMap> Mapper)
 		: Native(new agxopenplx::OutputSignalListener(
 			  PlxModel, OutputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
+	{
+	}
+};
+
+struct FHeapControlInterfaceRef
+{
+	std::shared_ptr<openplx::HeapControlInterface> Native;
+	FHeapControlInterfaceRef() = default;
+	FHeapControlInterfaceRef(std::shared_ptr<openplx::HeapControlInterface> InNative)
+		: Native(InNative)
 	{
 	}
 };

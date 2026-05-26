@@ -13,6 +13,8 @@ struct FRigidBodyBarrier;
 class FSimulationBarrier;
 
 struct FAssemblyRef;
+struct FControlInterfaceRef;
+struct FHeapControlInterfaceRef;
 struct FInputSignalListenerRef;
 struct FInputSignalQueuePtr;
 struct FOutputSignalListenerRef;
@@ -22,6 +24,10 @@ struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
 struct FOpenPLXMappingBarriersCollection;
 
+/**
+ * FOpenPLXSignalHandler is responsible for communication between an UOpenPLXSignalHandlerComponent
+ * and the underlying OpenPLX model.
+ */
 class AGXUNREALBARRIER_API FOpenPLXSignalHandler
 {
 public:
@@ -64,6 +70,11 @@ private:
 	FOpenPLXModelRegistry::Handle ModelHandle {FOpenPLXModelRegistry::InvalidHandle};
 
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
+
+	// Queue-based signals.
 	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
 	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
+
+	// ControlInterface-based signals.
+	std::shared_ptr<FHeapControlInterfaceRef> HeapControlInterfaceRef;
 };

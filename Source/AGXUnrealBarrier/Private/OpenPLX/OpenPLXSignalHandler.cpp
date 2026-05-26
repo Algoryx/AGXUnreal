@@ -21,6 +21,10 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/AgxObjectMap.h"
+#include "agxOpenPLX/AgxOpenPlxApi.h"
+#include "openplx/ControlDispatch.h"
+#include "openplx/ControlInterface.h"
+#include <openplx/HeapControlInterface.h>
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
@@ -117,6 +121,15 @@ void FOpenPLXSignalHandler::Init(
 			std::make_shared<agxopenplx::AgxMetadata>());
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
+
+	/*
+	 * Control Interface setup.
+	 */
+
+	std::shared_ptr<openplx::ControlDispatch> ControlDispatch = std::make_shared<openplx::ControlDispatch>();
+	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
+	std::shared_ptr<openplx::ControlInterface> ControlInterface = std::make_shared<openplx::ControlInterface>(ControlDispatch);
+	HeapControlInterfaceRef->Native = std::make_shared<openplx::HeapControlInterface>(ControlInterface);
 
 	bIsInitialized = true;
 }
