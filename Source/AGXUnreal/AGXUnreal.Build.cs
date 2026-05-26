@@ -295,7 +295,7 @@ public class AGXUnreal : ModuleRules
 
 	private bool IsGitRepository(string Path)
 	{
-		string Arguments = String.Format("-C {0} remote", Path);
+		string Arguments = String.Format("-C \"{0}\" remote", Path);
 		ProcessResult Result = RunProcess("git", Arguments);
 		return Result.Success;
 	}
