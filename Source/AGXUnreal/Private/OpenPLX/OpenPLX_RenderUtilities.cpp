@@ -241,6 +241,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 		return nullptr;
 
 	Texture->SRGB = Usage == EOpenPLX_TextureUsage::BaseColor;
+	Texture->NeverStream = true;
 
 #if WITH_EDITORONLY_DATA
 	Texture->MipGenSettings = TMGS_NoMipmaps;

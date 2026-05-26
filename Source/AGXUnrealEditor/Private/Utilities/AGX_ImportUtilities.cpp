@@ -219,7 +219,7 @@ FString FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName()
 
 FString FAGX_ImportUtilities::GetImportTextureDirectoryName()
 {
-	return FPaths::Combine(TEXT("Textures"));
+	return FString("Textures");
 }
 
 FString FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName()
