@@ -61,6 +61,15 @@ namespace
 		Result.Height = static_cast<int32>(TextureData->height());
 		Result.NumChannels = static_cast<int32>(TextureData->format()) + 1;
 
+		const agx::String SwizzleTrait = "Visuals.Textures.Swizzle";
+		agx::String SwizzleTraitAgxAllocated = agxUtil::copyContainerMemory(SwizzleTrait);
+		if (Texture->hasTrait(std::move(SwizzleTraitAgxAllocated)))
+		{
+			std::string SwizzleAGX = Texture->getDynamic("swizzle").asString();
+			Result.Swizzle = UTF8_TO_TCHAR(SwizzleAGX.c_str());
+			agxUtil::freeContainerMemory(SwizzleAGX);
+		}
+
 		if (Result.Width <= 0 || Result.Height <= 0 || Result.NumChannels <= 0 ||
 			Result.NumChannels > 4)
 		{

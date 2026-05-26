@@ -23,6 +23,7 @@ struct AGXUNREALBARRIER_API FOpenPLXTextureData
 	int32 Width {0};
 	int32 Height {0};
 	int32 NumChannels {0};
+	FString Swizzle;
 	TArray<uint8> Pixels;
 };
 

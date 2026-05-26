@@ -62,9 +62,75 @@ namespace
 		return true;
 	}
 
-	bool ConvertOpenPLXTextureToG8(const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels)
+	int32 GetSwizzleChannelIndex(TCHAR Channel)
+	{
+		switch (Channel)
+		{
+			case 'r':
+				return 0;
+			case 'g':
+				return 1;
+			case 'b':
+				return 2;
+			case 'a':
+				return 3;
+			default:
+				return INDEX_NONE;
+		}
+	}
+
+	bool GetTextureSourceChannels(
+		const FOpenPLXTextureData& TextureData, TArray<int32>& OutSourceChannels)
 	{
 		if (!ValidateOpenPLXTextureData(TextureData))
+			return false;
+
+		if (TextureData.Swizzle.IsEmpty())
+		{
+			OutSourceChannels.SetNumUninitialized(TextureData.NumChannels);
+			for (int32 ChannelIndex = 0; ChannelIndex < TextureData.NumChannels; ++ChannelIndex)
+				OutSourceChannels[ChannelIndex] = ChannelIndex;
+			return true;
+		}
+
+		if (TextureData.Swizzle.Len() > 4)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
+					"has too many channels."),
+				*TextureData.Name, *TextureData.Swizzle);
+			return false;
+		}
+
+		OutSourceChannels.SetNumUninitialized(TextureData.Swizzle.Len());
+		for (int32 ChannelIndex = 0; ChannelIndex < TextureData.Swizzle.Len(); ++ChannelIndex)
+		{
+			const int32 SourceChannelIndex =
+				GetSwizzleChannelIndex(TextureData.Swizzle[ChannelIndex]);
+			if (SourceChannelIndex == INDEX_NONE ||
+				SourceChannelIndex >= TextureData.NumChannels)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT(
+						"Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
+						"is invalid for %d source channels."),
+					*TextureData.Name, *TextureData.Swizzle, TextureData.NumChannels);
+				return false;
+			}
+
+			OutSourceChannels[ChannelIndex] = SourceChannelIndex;
+		}
+
+		return true;
+	}
+
+	bool ConvertOpenPLXTextureToG8(const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels)
+	{
+		TArray<int32> SourceChannels;
+		if (!GetTextureSourceChannels(TextureData, SourceChannels))
 			return false;
 
 		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
@@ -72,7 +138,7 @@ namespace
 		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
 			const uint8* Source = TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
-			OutPixels[PixelIndex] = Source[0];
+			OutPixels[PixelIndex] = Source[SourceChannels[0]];
 		}
 
 		return true;
@@ -82,17 +148,19 @@ namespace
 		const FOpenPLXTextureData& TextureData, TArray<uint8>& OutPixels,
 		EOpenPLX_TextureUsage Usage)
 	{
-		if (!ValidateOpenPLXTextureData(TextureData))
+		TArray<int32> SourceChannels;
+		if (!GetTextureSourceChannels(TextureData, SourceChannels))
 			return false;
 
-		if (Usage == EOpenPLX_TextureUsage::Normal && TextureData.NumChannels < 3)
+		const int32 NumChannels = SourceChannels.Num();
+		if (Usage == EOpenPLX_TextureUsage::Normal && NumChannels < 3)
 		{
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT(
 					"Cannot create normal map from OpenPLX texture '%s': expected at least 3 "
 					"channels, got %d."),
-				*TextureData.Name, TextureData.NumChannels);
+				*TextureData.Name, NumChannels);
 			return false;
 		}
 
@@ -106,25 +174,25 @@ namespace
 			uint8 B = 255;
 			uint8 A = 255;
 
-			switch (TextureData.NumChannels)
+			switch (NumChannels)
 			{
 				case 1:
-					R = G = B = Source[0];
+					R = G = B = Source[SourceChannels[0]];
 					break;
 				case 2:
-					R = G = B = Source[0];
-					A = Source[1];
+					R = G = B = Source[SourceChannels[0]];
+					A = Source[SourceChannels[1]];
 					break;
 				case 3:
-					R = Source[0];
-					G = Source[1];
-					B = Source[2];
+					R = Source[SourceChannels[0]];
+					G = Source[SourceChannels[1]];
+					B = Source[SourceChannels[2]];
 					break;
 				case 4:
-					R = Source[0];
-					G = Source[1];
-					B = Source[2];
-					A = Source[3];
+					R = Source[SourceChannels[0]];
+					G = Source[SourceChannels[1]];
+					B = Source[SourceChannels[2]];
+					A = Source[SourceChannels[3]];
 					break;
 				default:
 					checkNoEntry();
@@ -159,7 +227,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 
 	const FString WantedName = TextureData.Name.IsEmpty()
 								   ? FString::Printf(
-										 TEXT("T_PLXTexture_%s"), *TextureData.Guid.ToString())
+										 TEXT("T_Texture_%s"), *TextureData.Guid.ToString())
 								   : FString::Printf(TEXT("T_%s"), *TextureData.Name);
 	const FString TextureName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		&Owner, WantedName, UTexture2D::StaticClass());
