@@ -230,14 +230,14 @@ TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetAlphaTextureData() co
 TOptional<float> FOpenPLXMaterialBarrier::GetNormalScale() const
 {
 	check(HasNative());
-	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Normals"), "normal_scale");
+	return GetScalar(*this, TEXT("Visuals.Materials.SurfaceFeatures.Normal"), "normal_scale");
 }
 
 TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetNormalTextureData() const
 {
 	check(HasNative());
 	return GetTextureData(
-		*this, TEXT("Visuals.Materials.SurfaceFeatures.Normals"), "normal_map",
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.Normal"), "normal_map",
 		TEXT("normal"));
 }
 

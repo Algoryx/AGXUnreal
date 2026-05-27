@@ -95,14 +95,14 @@ namespace
 			*MaterialBarrier.GetName(), *ParameterName.ToString());
 	}
 
-	void SetTranslucentBlendModeIfNeeded(
+	void SetMaskedBlendModeIfNeeded(
 		UMaterialInstance& Material, const FOpenPLXMaterialBarrier& MaterialBarrier)
 	{
 		if (!MaterialBarrier.HasTrait(TEXT("Visuals.Materials.SurfaceFeatures.Transparency")))
 			return;
 
 		Material.BasePropertyOverrides.bOverride_BlendMode = true;
-		Material.BasePropertyOverrides.BlendMode = BLEND_Translucent;
+		Material.BasePropertyOverrides.BlendMode = BLEND_Masked;
 	}
 
 	void SetAGXRenderMaterialParameters(
@@ -185,9 +185,10 @@ namespace
 	{
 		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
 		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
-		SetTranslucentBlendModeIfNeeded(*Material, MaterialBarrier);
+		SetMaskedBlendModeIfNeeded(*Material, MaterialBarrier);
 
-		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
+		auto SetVector =
+			[&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
 		{
 			if (Value.IsSet())
 				Material->SetVectorParameterValue(ParameterName, Value.GetValue());
@@ -199,10 +200,10 @@ namespace
 				Material->SetScalarParameterValue(ParameterName, Value.GetValue());
 		};
 
-		auto SetTexture =
-			[&Material, &MaterialBarrier, &Owner, bCreateTextureRenderResources](
-				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData,
-				EOpenPLX_TextureUsage Usage)
+		auto SetTexture = [&Material, &MaterialBarrier, &Owner, bCreateTextureRenderResources](
+							  const FName& ParameterName,
+							  const TOptional<FOpenPLXTextureData>& TextureData,
+							  EOpenPLX_TextureUsage Usage)
 		{
 			if (!TextureData.IsSet())
 				return;
@@ -251,9 +252,10 @@ namespace
 			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
 		Material->SetParentEditorOnly(&Base);
 		Material->ClearParameterValuesEditorOnly();
-		SetTranslucentBlendModeIfNeeded(*Material, MaterialBarrier);
+		SetMaskedBlendModeIfNeeded(*Material, MaterialBarrier);
 
-		auto SetVector = [&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
+		auto SetVector =
+			[&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
 		{
 			if (Value.IsSet())
 			{
@@ -280,8 +282,7 @@ namespace
 				return;
 
 			UTexture2D* Texture = GetOrCreateTexture(
-				TextureData.GetValue(), Owner, Usage, Textures,
-				bCreateTextureRenderResources);
+				TextureData.GetValue(), Owner, Usage, Textures, bCreateTextureRenderResources);
 			if (Texture != nullptr)
 			{
 				Material->SetTextureParameterValueEditorOnly(
@@ -305,9 +306,9 @@ namespace
 		SetTexture(
 			FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData(),
 			EOpenPLX_TextureUsage::Scalar);
-		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
+		SetScalar(FName(TEXT("Opacity")), MaterialBarrier.GetAlpha());
 		SetTexture(
-			FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData(),
+			FName(TEXT("OpacityTexture")), MaterialBarrier.GetAlphaTextureData(),
 			EOpenPLX_TextureUsage::Scalar);
 		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
 		SetTexture(
