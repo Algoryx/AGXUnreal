@@ -230,10 +230,13 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 		return nullptr;
 	}
 
-	const FString WantedName = TextureData.Name.IsEmpty()
+	FString WantedName = TextureData.Name.IsEmpty()
 								   ? FString::Printf(
 										 TEXT("T_Texture_%s"), *TextureData.Guid.ToString())
 								   : FString::Printf(TEXT("T_%s"), *TextureData.Name);
+	if (WantedName.StartsWith(TEXT("T_T_")))
+		WantedName.RemoveFromStart(TEXT("T_"));
+
 	const FString TextureName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		&Owner, WantedName, UTexture2D::StaticClass());
 

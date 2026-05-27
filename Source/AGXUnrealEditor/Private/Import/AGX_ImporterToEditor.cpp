@@ -814,7 +814,6 @@ namespace AGX_ImporterToEditor_helpers
 			return;
 
 		FOpenPLXTextureData OriginalTextureData = TextureData.GetValue();
-		AGX_CHECK(OriginalTextureData.TextureDataGuid.IsValid());
 		OriginalTextureData.Guid = OriginalTextureData.TextureDataGuid;
 		if (!OriginalTextureData.TextureDataName.IsEmpty())
 			OriginalTextureData.Name = OriginalTextureData.TextureDataName;
