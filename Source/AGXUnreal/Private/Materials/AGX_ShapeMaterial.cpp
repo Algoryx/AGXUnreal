@@ -400,7 +400,7 @@ UAGX_ShapeMaterial* UAGX_ShapeMaterial::CreateInstanceFromAsset(
 	const FString InstanceName = Source->GetName() + "_Instance";
 
 	UAGX_ShapeMaterial* NewInstance = NewObject<UAGX_ShapeMaterial>(
-		GetTransientPackage(), UAGX_ShapeMaterial::StaticClass(), *InstanceName, RF_Transient);
+		GetTransientPackage(), Source->GetClass(), *InstanceName, RF_Transient);
 	NewInstance->Asset = Source;
 	NewInstance->CopyShapeMaterialProperties(Source);
 	NewInstance->CreateNative(PlayingWorld);

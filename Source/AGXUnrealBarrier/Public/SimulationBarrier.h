@@ -23,6 +23,7 @@ class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FTireBarrier;
 class FTrackBarrier;
+class FWindAndWaterControllerBarrier;
 class FWireBarrier;
 
 struct FCableBarrier;
@@ -61,7 +62,7 @@ public:
 	bool Add(FTireBarrier& Tire);
 	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
-
+	bool Add(FWindAndWaterControllerBarrier& WindAnWaterController);
 	bool Remove(FCableBarrier& Cable);
 	bool Remove(FConstraintBarrier& Constraint);
 	bool Remove(FContactMaterialBarrier& ContactMaterial);
@@ -81,7 +82,7 @@ public:
 	bool Remove(FTireBarrier& Tire);
 	bool Remove(FTrackBarrier& Track);
 	bool Remove(FWireBarrier& Wire);
-
+	bool Remove(FWindAndWaterControllerBarrier& WindAnWaterController);
 	void SetEnableCollisionGroupPair(const FName& Group1, const FName& Group2, bool CanCollide);
 
 	static void SetEnableCollision(FRigidBodyBarrier& Body1, FRigidBodyBarrier& Body2, bool Enable);

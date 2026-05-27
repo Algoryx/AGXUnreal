@@ -15,6 +15,7 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "Model/WindAndWaterControllerBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/ShapeBarrier.h"
@@ -84,9 +85,15 @@ bool FSimulationBarrier::Add(FContactMaterialBarrier& ContactMaterial)
 	return NativeRef->Native->add(ContactMaterial.GetNative()->Native);
 }
 
-bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
+bool FSimulationBarrier::Add(FWindAndWaterControllerBarrier& WindAnWaterController)
 {
 	check(HasNative());
+	check(WindAnWaterController.HasNative());
+	return NativeRef->Native->add(WindAnWaterController.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Add(FObserverFrameBarrier& Frame)
+{
 	check(Frame.HasNative());
 	return NativeRef->Native->add(Frame.GetNative()->Native);
 }
@@ -180,6 +187,13 @@ bool FSimulationBarrier::Remove(FContactMaterialBarrier& ContactMaterial)
 	check(HasNative());
 	check(ContactMaterial.HasNative());
 	return NativeRef->Native->remove(ContactMaterial.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FWindAndWaterControllerBarrier& WindAnWaterController)
+{
+	check(HasNative());
+	check(WindAnWaterController.HasNative());
+	return NativeRef->Native->remove(WindAnWaterController.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FObserverFrameBarrier& Frame)

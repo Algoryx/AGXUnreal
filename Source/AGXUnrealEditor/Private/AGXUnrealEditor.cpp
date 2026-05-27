@@ -61,6 +61,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialCustomization.h"
 #include "Materials/AGX_ContactMaterialRegistrarActor.h"
+#include "Materials/AGX_WindAndWaterAwareShapeMaterialAssetTypeActions.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponentCustomization.h"
 #include "Materials/AGX_ShapeMaterialAssetTypeActions.h"
@@ -343,6 +344,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		AssetTools, MakeShareable(new FAGX_ShovelPropertiesActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainMaterialAssetTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_WindAndWaterAwareShapeMaterialTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainPropertiesActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
