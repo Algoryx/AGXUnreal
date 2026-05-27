@@ -15,6 +15,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Blueprint.h"
+#include "Engine/Texture.h"
 #include "Engine/Texture2D.h"
 #include "Engine/TextureDefines.h"
 #include "HAL/FileManager.h"
@@ -441,6 +442,216 @@ private:
 namespace
 {
 	FOpenPLX_ImporterToBlueprint_BoxWithTextureTest OpenPLX_ImporterToBlueprint_BoxWithTextureTest;
+}
+
+namespace OpenPLX_ImporterToBlueprintTest_AgxIcon_helpers
+{
+	void CheckTextureParameter(
+		UMaterialInstanceConstant& Material, const TCHAR* ParameterName, const TCHAR* TextureName,
+		bool bSRGB, TextureCompressionSettings CompressionSettings, FAutomationTestBase& Test)
+	{
+		UTexture* Texture = nullptr;
+		const bool bHasTexture = Material.GetTextureParameterValue(
+			FMaterialParameterInfo(FName(ParameterName)), Texture);
+		Test.TestTrue(
+			FString::Printf(TEXT("%s has %s"), *Material.GetName(), ParameterName), bHasTexture);
+
+		UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
+		Test.TestNotNull(
+			FString::Printf(TEXT("%s %s texture"), *Material.GetName(), ParameterName), Texture2D);
+		if (Texture2D == nullptr)
+			return;
+
+		Test.TestEqual(
+			FString::Printf(TEXT("%s texture name"), ParameterName), Texture2D->GetName(),
+			FString(TextureName));
+		Test.TestEqual(FString::Printf(TEXT("%s SRGB"), ParameterName), Texture2D->SRGB, bSRGB);
+		Test.TestEqual(
+			FString::Printf(TEXT("%s compression"), ParameterName),
+			static_cast<int32>(Texture2D->CompressionSettings.GetValue()),
+			static_cast<int32>(CompressionSettings));
+	}
+
+	void CheckScalarParameter(
+		UMaterialInstanceConstant& Material, const TCHAR* ParameterName, float Expected,
+		FAutomationTestBase& Test)
+	{
+		float Actual = 0.0f;
+		const bool bHasScalar =
+			Material.GetScalarParameterValue(FMaterialParameterInfo(FName(ParameterName)), Actual);
+		Test.TestTrue(
+			FString::Printf(TEXT("%s has %s"), *Material.GetName(), ParameterName), bHasScalar);
+		if (!bHasScalar)
+			return;
+
+		Test.TestTrue(
+			FString::Printf(TEXT("%s scalar"), ParameterName),
+			FMath::IsNearlyEqual(Actual, Expected, UE_KINDA_SMALL_NUMBER));
+	}
+
+	void CheckVectorParameter(
+		UMaterialInstanceConstant& Material, const TCHAR* ParameterName,
+		const FLinearColor& Expected, FAutomationTestBase& Test)
+	{
+		FLinearColor Actual;
+		const bool bHasVector =
+			Material.GetVectorParameterValue(FMaterialParameterInfo(FName(ParameterName)), Actual);
+		Test.TestTrue(
+			FString::Printf(TEXT("%s has %s"), *Material.GetName(), ParameterName), bHasVector);
+		if (!bHasVector)
+			return;
+
+		Test.TestTrue(
+			FString::Printf(TEXT("%s vector"), ParameterName),
+			Actual.Equals(Expected, UE_KINDA_SMALL_NUMBER));
+	}
+
+	void CheckCommonTextures(UMaterialInstanceConstant& Material, FAutomationTestBase& Test)
+	{
+		CheckTextureParameter(
+			Material, TEXT("BaseColorTexture"), TEXT("T_DiffuseTexture"), true, TC_Default, Test);
+		CheckTextureParameter(
+			Material, TEXT("RoughnessTexture"), TEXT("T_RoughnessTexture"), false, TC_Grayscale,
+			Test);
+		CheckTextureParameter(
+			Material, TEXT("MetallicTexture"), TEXT("T_MetallicTexture"), false, TC_Grayscale,
+			Test);
+		CheckTextureParameter(
+			Material, TEXT("NormalTexture"), TEXT("T_NormalTexture"), false, TC_Normalmap, Test);
+		CheckTextureParameter(
+			Material, TEXT("AmbientOcclusionTexture"), TEXT("T_AOTexture"), false, TC_Grayscale,
+			Test);
+	}
+}
+
+//
+// agx_icon_masked test starts here.
+//
+
+DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
+	FCheckAgxIconMaskedImportedCommand,
+	OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState&, State, FAutomationTestBase&,
+	Test);
+
+bool FCheckAgxIconMaskedImportedCommand::Update()
+{
+	Test.TestNotNull(TEXT("Blueprint"), State.Blueprint);
+	if (State.Blueprint == nullptr)
+		return true;
+
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
+
+	// SceneRoot, 1 RenderMesh, 1 Trimesh, 1 CollisionMesh, 1 OpenPLXSignalHandler, 1 ModelSource.
+	Test.TestEqual(TEXT("agx_icon_masked num Components"), Components.Num(), 6);
+
+	UStaticMeshComponent* RenderMesh = AgxAutomationCommon::GetByName<UStaticMeshComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(
+						TEXT("RenderMesh_044BF93AA4FA5652BD713DC07DA5C3B6")));
+	Test.TestNotNull(TEXT("agx_icon_masked RenderMesh"), RenderMesh);
+	if (RenderMesh == nullptr)
+		return true;
+
+	UMaterialInstanceConstant* Material =
+		Cast<UMaterialInstanceConstant>(RenderMesh->GetMaterial(0));
+	Test.TestNotNull(TEXT("MI_AgxIconMaterial masked"), Material);
+	if (Material == nullptr)
+		return true;
+
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked name"), Material->GetName(),
+		FString(TEXT("MI_AgxIconMaterial")));
+	Test.TestNotNull(TEXT("MI_AgxIconMaterial masked parent"), Material->Parent.Get());
+	if (Material->Parent != nullptr)
+	{
+		Test.TestEqual(
+			TEXT("MI_AgxIconMaterial masked parent"), Material->Parent->GetName(),
+			FString(TEXT("M_PLXImportedBase")));
+	}
+
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked vector overrides"), Material->VectorParameterValues.Num(),
+		1);
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked scalar overrides"), Material->ScalarParameterValues.Num(),
+		4);
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked texture overrides"), Material->TextureParameterValues.Num(),
+		6);
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked overrides BlendMode"),
+		Material->BasePropertyOverrides.bOverride_BlendMode, 1u);
+	Test.TestEqual(
+		TEXT("MI_AgxIconMaterial masked BlendMode"), Material->BasePropertyOverrides.BlendMode,
+		BLEND_Masked);
+
+	using namespace OpenPLX_ImporterToBlueprintTest_AgxIcon_helpers;
+	CheckVectorParameter(
+		*Material, TEXT("BaseColor"), FLinearColor(0.99f, 0.98f, 0.97f, 1.0f), Test);
+	CheckScalarParameter(*Material, TEXT("Roughness"), 0.98f, Test);
+	CheckScalarParameter(*Material, TEXT("Metallic"), 0.97f, Test);
+	CheckScalarParameter(*Material, TEXT("NormalScale"), 0.96f, Test);
+	CheckScalarParameter(*Material, TEXT("Opacity"), 0.99f, Test);
+	CheckCommonTextures(*Material, Test);
+	CheckTextureParameter(
+		*Material, TEXT("OpacityTexture"), TEXT("T_MaskTexture"), false, TC_Grayscale, Test);
+
+	return true;
+}
+
+class FOpenPLX_ImporterToBlueprint_AgxIconMaskedTest final
+	: public AgxAutomationCommon::FAgxAutomationTest
+{
+public:
+	FOpenPLX_ImporterToBlueprint_AgxIconMaskedTest()
+		: AgxAutomationCommon::FAgxAutomationTest(
+			  TEXT("FOpenPLX_ImporterToBlueprint_AgxIconMaskedTest"),
+			  TEXT("AGXUnreal.Editor.OpenPLX.ImporterToBlueprint.AgxIconMasked"))
+	{
+		State.OpenPLXFile = TEXT("OpenPLX/agx_icon/agx_icon_masked.openplx");
+		State.ExpectedCopiedOpenPLXFiles = {
+			TEXT("agx_icon_masked.openplx"), TEXT("agx_icon.obj"),
+			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"), TEXT("T_agx_icon_ORM.png"),
+			TEXT("T_agx_icon_Mask.png")};
+		State.ExpectedImportedAssetsExcludingBaseBP = {
+			TEXT("Blueprint"),
+			TEXT("RenderMaterial"),
+			TEXT("RenderMesh"),
+			TEXT("StaticMesh"),
+			TEXT("Textures"),
+			TEXT("BP_agx_icon_masked.uasset"),
+			TEXT("MI_AgxIconMaterial.uasset"),
+			TEXT("SM_RenderMesh_DDF194887D5353ADB3EA51F31E951A38.uasset"),
+			TEXT("SM_CollisionMesh_044BF93AA4FA5652BD713DC07DA5C3B6.uasset"),
+			TEXT("T_AOTexture.uasset"),
+			TEXT("T_DiffuseTexture.uasset"),
+			TEXT("T_MaskTexture.uasset"),
+			TEXT("T_MetallicTexture.uasset"),
+			TEXT("T_NormalTexture.uasset"),
+			TEXT("T_RoughnessTexture.uasset")};
+	}
+
+protected:
+	bool RunTest(const FString& Parameters) override
+	{
+		using namespace OpenPLX_ImporterToBlueprintTest_helpers;
+
+		BAIL_TEST_IF_NOT_EDITOR(false)
+
+		AddCommonOpenPLXImportCommands(State, *this);
+		ADD_LATENT_AUTOMATION_COMMAND(FCheckAgxIconMaskedImportedCommand(State, *this));
+		AddCommonOpenPLXCleanupCommands(State, *this);
+
+		return true;
+	}
+
+private:
+	OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState State;
+};
+
+namespace
+{
+	FOpenPLX_ImporterToBlueprint_AgxIconMaskedTest OpenPLX_ImporterToBlueprint_AgxIconMaskedTest;
 }
 
 #endif // WITH_DEV_AUTOMATION_TESTS
