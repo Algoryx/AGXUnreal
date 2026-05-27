@@ -25,6 +25,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Materials/Material.h"
 #include "Misc/EngineVersionComparison.h"
 #include "PhysicsEngine/AggregateGeom.h"
