@@ -212,7 +212,7 @@ bool AGX_TextureUtilities::CopyTexture(
 	Destination->SRGB = Source->SRGB;
 	Destination->NeverStream = Source->NeverStream;
 	Destination->CompressionSettings = Source->CompressionSettings;
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	Destination->MipGenSettings = Source->MipGenSettings;
 #endif
 	Destination->SetPlatformData(PlatformData);
@@ -236,7 +236,7 @@ bool AGX_TextureUtilities::AreTexturesEqual(UTexture2D* TextureA, UTexture2D* Te
 		return false;
 	}
 
-#if WITH_EDITORONLY_DATA
+#if WITH_EDITOR
 	if (TextureA->MipGenSettings != TextureB->MipGenSettings)
 	{
 		return false;
