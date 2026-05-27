@@ -191,6 +191,21 @@ bool UOpenPLX_SignalHandlerComponent::SendReal(const FOpenPLX_Input& Input, doub
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& Input, double Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsRealType(Input.Type))
+	{
+		LogTypeMismatchWarning("SendRealInterface", Input.Name.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double Value)
 {
 	FOpenPLX_Input Input;
@@ -233,13 +248,13 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
 			LogAGX, Warning,
 			TEXT("Signal Handler Component '%s' tried to receive a real from '%s' through the "
 				 "Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Output.Name.ToString());
+			*GetName(), *Output.Alias.ToString());
 		return false;
 	}
 
 	if (!FOpenPLX_Utilities::IsRealType(Output.Type))
 	{
-		LogTypeMismatchWarning("ReceiveRealInterface", Output.Name.ToString(), "Output");
+		LogTypeMismatchWarning("ReceiveRealInterface", Output.Alias.ToString(), "Output");
 		return false;
 	}
 

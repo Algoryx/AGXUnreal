@@ -41,6 +41,7 @@ public:
 
 	/// Scalars.
 	bool Send(const FOpenPLX_Input& Input, double Value);
+	bool SendInterface(const FOpenPLX_Input& Input, double Value);
 	bool Receive(const FOpenPLX_Output& Output, double& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, double& OutValue);
 

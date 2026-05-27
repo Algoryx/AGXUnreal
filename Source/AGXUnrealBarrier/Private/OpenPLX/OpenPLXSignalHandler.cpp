@@ -326,7 +326,7 @@ namespace OpenPLXSignalHandler_helpers
 		return {};
 	}
 
-	TOptional<double> TypeConvertValueToUnreal(const FOpenPLX_Output& Output, double Value)
+	TOptional<double> TypeConvertRealToUnreal(const FOpenPLX_Output& Output, double Value)
 	{
 		switch (Output.Type)
 		{
@@ -355,6 +355,61 @@ namespace OpenPLXSignalHandler_helpers
 			LogAGX, Warning,
 			TEXT("Tried to convert Real type from value for Output '%s', but the type is either "
 				 "not of Real type or is unsupported."),
+			*Output.Alias.ToString());
+		return {};
+	}
+
+	TOptional<double> TypeConvertRealToAGX(const FOpenPLX_Input& Input, double Value)
+	{
+		switch (Input.Type)
+		{
+			case EOpenPLX_InputType::ActivateInput:
+			case EOpenPLX_InputType::DurationInput:
+			case EOpenPLX_InputType::EnableInteractionInput:
+			case EOpenPLX_InputType::EngageInput:
+			case EOpenPLX_InputType::AutomaticClutchEngagementDurationInput:
+			case EOpenPLX_InputType::AutomaticClutchDisengagementDurationInput:
+			case EOpenPLX_InputType::FractionInput:
+			case EOpenPLX_InputType::Force1DInput:
+			case EOpenPLX_InputType::ForceRangeInput:
+			case EOpenPLX_InputType::IntInput:
+			case EOpenPLX_InputType::BoolInput:
+			case EOpenPLX_InputType::Torque1DInput:
+			case EOpenPLX_InputType::TorqueRangeInput:
+			case EOpenPLX_InputType::TorqueConverterLockUpInput:
+				return Value;
+			case EOpenPLX_InputType::AngleInput:
+			case EOpenPLX_InputType::AngularVelocity1DInput:
+			case EOpenPLX_InputType::AngularVelocity3DInput:
+				return ConvertAngleToAGX(Value);
+			case EOpenPLX_InputType::LinearVelocity1DInput:
+			case EOpenPLX_InputType::LinearVelocity3DInput:
+			case EOpenPLX_InputType::Position1DInput:
+				return ConvertDistanceToAGX(Value);
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to convert Real type from value for Output '%s', but the type is either "
+				 "not of Real type or is unsupported."),
+			*Input.Alias.ToString());
+		return {};
+	}
+
+	TOptional<FVector2D> TypeConvertRangeRealToUnreal(
+		const FOpenPLX_Output& Output, FVector2D& Value)
+	{
+		switch (Output.Type)
+		{
+			case EOpenPLX_OutputType::ForceRangeOutput:
+			case EOpenPLX_OutputType::TorqueRangeOutput:
+				return FVector2D(Value.X, Value.Y);
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Tried to read vec2 vector type from signal for Output "
+				 "'%s', but the type is either not of vec2 vector type or is unsupported."),
 			*Output.Alias.ToString());
 		return {};
 	}
@@ -566,6 +621,56 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	template <typename ValueT, typename ValueGetterFuncT>
+	bool SendInterface(
+		const FOpenPLX_Input& Input, ValueT Value,
+		FHeapControlInterfaceRef* HeapControlInterfaceRef, ValueGetterFuncT ValueGetterFunc)
+	{
+		if (HeapControlInterfaceRef == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to send OpenPLX Output signal for output '%s', but don't have a "
+					 "Control Interface wrapper reference"),
+				*Input.Alias.ToString());
+			return false;
+		}
+
+		openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+		if (Interface == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to send OpenPLX Input signal for input '%s', through the Control "
+					 "Interface, but don't have a Control Interface instance."),
+				*Input.Alias.ToString());
+			return false;
+		}
+
+		TOptional<ValueT> ConvertedValueMaybe = ValueGetterFunc(Input, Value);
+		if (!ConvertedValueMaybe)
+		{
+			UE_LOG(LogAGX, Warning, TEXT("TODO ERROR MESSAGE HERE!"));
+#pragma message("TODO: ERROR MESSAGE HERE!")
+			return false;
+		}
+
+		ValueT ConvertedValue = *ConvertedValueMaybe;
+		std::string Alias = Convert(Input.Alias.ToString());
+		bool bWritten = Interface->write<ValueT>(Alias, ConvertedValue);
+		if (!bWritten)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Control Interface: Tried to send to Input '%s' but the write was "
+					 "rejected by the Control Interface"),
+				*Input.Alias.ToString());
+			return false;
+		}
+
+		return true;
+	}
+
+	template <typename ValueT, typename ValueGetterFuncT>
 	bool ReceiveInterface(
 		const FOpenPLX_Output& Output, ValueT& OutValue,
 		FHeapControlInterfaceRef* HeapControlInterfaceRef, ValueGetterFuncT ValueGetterFunc)
@@ -594,7 +699,7 @@ namespace OpenPLXSignalHandler_helpers
 		}
 
 		std::string Alias = Convert(Output.Alias.ToString());
-		std::optional<ValueT> Value = Interface->read<ValueT>(Convert(Output.Alias.ToString()));
+		std::optional<ValueT> Value = Interface->read<ValueT>(Alias);
 		if (!Value)
 		{
 			UE_LOG(
@@ -605,7 +710,7 @@ namespace OpenPLXSignalHandler_helpers
 			return false;
 		}
 
-		TOptional<double> ConvertedValue = ValueGetterFunc(Output, *Value);
+		TOptional<ValueT> ConvertedValue = ValueGetterFunc(Output, *Value);
 		if (!ConvertedValue)
 		{
 			const FString TypeName = StaticEnum<EOpenPLX_OutputType>()
@@ -632,6 +737,14 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
 		OpenPLXSignalHandler_helpers::ConvertReal);
 }
 
+bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, double Value)
+{
+	check(IsInitialized());
+	return OpenPLXSignalHandler_helpers::SendInterface(
+		Input, Value, HeapControlInterfaceRef.get(),
+		OpenPLXSignalHandler_helpers::TypeConvertRealToAGX);
+}
+
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
 {
 	check(IsInitialized());
@@ -645,7 +758,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, doub
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::ReceiveInterface(
 		Output, OutValue, HeapControlInterfaceRef.get(),
-		OpenPLXSignalHandler_helpers::TypeConvertValueToUnreal);
+		OpenPLXSignalHandler_helpers::TypeConvertRealToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)

@@ -82,6 +82,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendReal(const FOpenPLX_Input& Input, double Value);
 
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
+
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
