@@ -326,6 +326,39 @@ namespace OpenPLXSignalHandler_helpers
 		return {};
 	}
 
+	TOptional<double> TypeConvertValueToUnreal(const FOpenPLX_Output& Output, double Value)
+	{
+		switch (Output.Type)
+		{
+			case EOpenPLX_OutputType::DurationOutput:
+			case EOpenPLX_OutputType::AutomaticClutchEngagementDurationOutput:
+			case EOpenPLX_OutputType::AutomaticClutchDisengagementDurationOutput:
+			case EOpenPLX_OutputType::FractionOutput:
+			case EOpenPLX_OutputType::Force1DOutput:
+			case EOpenPLX_OutputType::MassOutput:
+			case EOpenPLX_OutputType::RatioOutput:
+			case EOpenPLX_OutputType::RpmOutput:
+			case EOpenPLX_OutputType::Torque1DOutput:
+			case EOpenPLX_OutputType::TorqueConverterPumpTorqueOutput:
+			case EOpenPLX_OutputType::TorqueConverterTurbineTorqueOutput:
+				return Value;
+			case EOpenPLX_OutputType::AngleOutput:
+			case EOpenPLX_OutputType::AngularVelocity1DOutput:
+				return ConvertAngleToUnreal<double>(Value);
+			case EOpenPLX_OutputType::LinearVelocity1DOutput:
+			case EOpenPLX_OutputType::Position1DOutput:
+			case EOpenPLX_OutputType::RelativeVelocity1DOutput:
+				return ConvertDistanceToUnreal<double>(Value);
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to convert Real type from value for Output '%s', but the type is either "
+				 "not of Real type or is unsupported."),
+			*Output.Alias.ToString());
+		return {};
+	}
+
 	TOptional<double> GetRealValueFrom(
 		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
@@ -532,21 +565,61 @@ namespace OpenPLXSignalHandler_helpers
 		return true;
 	}
 
-	template <typename ValueT>
+	template <typename ValueT, typename ValueGetterFuncT>
 	bool ReceiveInterface(
-		const FOpenPLX_Output& Output, ValueT& OutValue, openplx::HeapControlInterface& Interface)
+		const FOpenPLX_Output& Output, ValueT& OutValue,
+		FHeapControlInterfaceRef* HeapControlInterfaceRef, ValueGetterFuncT ValueGetterFunc)
 	{
-		std::optional<ValueT> Value = Interface.read<ValueT>(Convert(Output.Alias.ToString()));
+		if (HeapControlInterfaceRef == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
+					 "Interface, but don't have a Control Interface wrapper reference."),
+				*Output.Name.ToString());
+			OutValue = 0.0;
+			return false;
+		}
+
+		openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+		if (Interface == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
+					 "Interface, but don't have a Control Interface pointer."),
+				*Output.Name.ToString());
+			OutValue = 0.0;
+			return false;
+		}
+
+		std::string Alias = Convert(Output.Alias.ToString());
+		std::optional<ValueT> Value = Interface->read<ValueT>(Convert(Output.Alias.ToString()));
 		if (!Value)
 		{
 			UE_LOG(
-				LogAGX, Warning, TEXT("Received null value for Output '%s'"),
+				LogAGX, Warning,
+				TEXT("OpenPLX Signal Interface: Received null value for Output '%s'."),
 				*Output.Name.ToString());
 			OutValue = {};
 			return false;
 		}
 
-		OutValue = *Value;
+		TOptional<double> ConvertedValue = ValueGetterFunc(Output, *Value);
+		if (!ConvertedValue)
+		{
+			const FString TypeName = StaticEnum<EOpenPLX_OutputType>()
+										 ->GetDisplayNameTextByValue((int64) Output.Type)
+										 .ToString();
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Signal Interface: Could not convert value for '%s' of type '%s' to "
+					 "Unreal type and unit."),
+				*Output.Alias.ToString(), *TypeName);
+			OutValue = 0.0;
+			return false;
+		}
+		OutValue = *ConvertedValue;
 		return true;
 	}
 }
@@ -570,31 +643,9 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutVa
 bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, double& OutValue)
 {
 	check(IsInitialized());
-	if (HeapControlInterfaceRef == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
-				 "Interface, but don't have a Control Interface wrapper reference."),
-			*Output.Name.ToString());
-		OutValue = 0.0;
-		return false;
-	}
-
-	openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
-	if (Interface == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
-				 "Interface, but don't have a Control Interface pointer."),
-			*Output.Name.ToString());
-		OutValue = 0.0;
-		return false;
-	}
-
 	return OpenPLXSignalHandler_helpers::ReceiveInterface(
-		Output, OutValue, *HeapControlInterfaceRef->Native);
+		Output, OutValue, HeapControlInterfaceRef.get(),
+		OpenPLXSignalHandler_helpers::TypeConvertValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
