@@ -608,7 +608,7 @@ public:
 			  TEXT("FOpenPLX_ImporterToBlueprint_AgxIconMaskedTest"),
 			  TEXT("AGXUnreal.Editor.OpenPLX.ImporterToBlueprint.AgxIconMasked"))
 	{
-		State.OpenPLXFile = TEXT("OpenPLX/agx_icon/agx_icon_masked.openplx");
+		State.OpenPLXFile = TEXT("OpenPLX/agx_icon_masked/agx_icon_masked.openplx");
 		State.ExpectedCopiedOpenPLXFiles = {
 			TEXT("agx_icon_masked.openplx"), TEXT("agx_icon.obj"),
 			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"), TEXT("T_agx_icon_ORM.png"),
