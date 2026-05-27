@@ -536,7 +536,7 @@ namespace OpenPLXSignalHandler_helpers
 	bool ReceiveInterface(
 		const FOpenPLX_Output& Output, ValueT& OutValue, openplx::HeapControlInterface& Interface)
 	{
-		std::optional<ValueT> Value = Interface.read<ValueT>(Convert(Output.Name.ToString()));
+		std::optional<ValueT> Value = Interface.read<ValueT>(Convert(Output.Alias.ToString()));
 		if (!Value)
 		{
 			UE_LOG(
@@ -547,10 +547,6 @@ namespace OpenPLXSignalHandler_helpers
 		}
 
 		OutValue = *Value;
-
-		UE_LOG(
-			LogAGX, Warning, TEXT("Received %f from '%s' through the Control Interface."),
-			OutValue, *Output.Name.ToString());
 		return true;
 	}
 }
