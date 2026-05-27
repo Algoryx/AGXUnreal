@@ -823,7 +823,8 @@ namespace AGX_ImporterToEditor_helpers
 			return;
 
 		UTexture2D* Texture = FOpenPLX_RenderUtilities::CreateTexture(
-			OriginalTextureData, *Context.Outer, EOpenPLX_TextureUsage::Raw);
+			OriginalTextureData, *Context.Outer, EOpenPLX_TextureUsage::Raw,
+			/*bCreateRenderResource*/ false);
 		if (Texture == nullptr)
 		{
 			UE_LOG(

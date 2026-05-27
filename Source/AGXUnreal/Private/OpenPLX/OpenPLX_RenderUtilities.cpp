@@ -215,7 +215,8 @@ namespace
 }
 
 UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
-	const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage)
+	const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
+	bool bCreateRenderResource)
 {
 	const bool bScalarTexture = Usage == EOpenPLX_TextureUsage::Scalar;
 	TArray<uint8> TexturePixels;
@@ -278,6 +279,8 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	FMemory::Memcpy(MipData, TexturePixels.GetData(), TexturePixels.Num());
 	Mip->BulkData.Unlock();
 
-	Texture->UpdateResource();
+	if (bCreateRenderResource)
+		Texture->UpdateResource();
+
 	return Texture;
 }

@@ -538,11 +538,15 @@ public:
 	 * The Guid is set to under underlying texture object guid.
 	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
 	 * UMaterialInstanceDynamic. If Base is nullptr, this function returns nullptr.
+	 * If bCreateTextureRenderResources is false, textures created by this function are initialized
+	 * with CPU-side texture data only and UpdateResource is not called. This is useful for
+	 * temporary import objects that will be promoted to assets later.
 	 * This function supports runtime usage.
 	 */
 	static UMaterialInterface* CreateRenderMaterial(
 		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
-		TMap<FGuid, UTexture2D*>* Textures = nullptr);
+		TMap<FGuid, UTexture2D*>* Textures = nullptr,
+		bool bCreateTextureRenderResources = true);
 
 	/**
 	 * Returns the base (AGX) render material.

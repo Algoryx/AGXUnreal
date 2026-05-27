@@ -314,9 +314,10 @@ namespace AGX_ShapeComponent_helpers
 	{
 		check(Context.Outer != nullptr);
 		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
-		UMaterialInterface* Material =
-			AGX_MeshUtilities::CreateRenderMaterial(
-				Barrier, Base, *Context.Outer, Context.Textures.Get());
+		const bool bCreateTextureRenderResources =
+			false; // These are set up later by the Importer calling us.
+		UMaterialInterface* Material = AGX_MeshUtilities::CreateRenderMaterial(
+			Barrier, Base, *Context.Outer, Context.Textures.Get(), bCreateTextureRenderResources);
 		if (Context.Textures != nullptr)
 		{
 			for (const auto& [Guid, Texture] : *Context.Textures)

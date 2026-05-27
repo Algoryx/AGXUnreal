@@ -180,7 +180,8 @@ namespace
 #endif
 }
 
-bool AGX_TextureUtilities::CopyTexture(UTexture2D* Source, UTexture2D* Destination)
+bool AGX_TextureUtilities::CopyTexture(
+	UTexture2D* Source, UTexture2D* Destination, bool bCreateRenderResource)
 {
 	if (Source == nullptr || Destination == nullptr)
 		return false;
@@ -213,7 +214,9 @@ bool AGX_TextureUtilities::CopyTexture(UTexture2D* Source, UTexture2D* Destinati
 	Destination->CompressionSettings = Source->CompressionSettings;
 	Destination->MipGenSettings = Source->MipGenSettings;
 	Destination->SetPlatformData(PlatformData);
-	Destination->UpdateResource();
+	if (bCreateRenderResource)
+		Destination->UpdateResource();
+
 	return true;
 }
 
