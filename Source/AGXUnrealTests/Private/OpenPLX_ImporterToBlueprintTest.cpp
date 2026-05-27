@@ -25,6 +25,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Tests/AutomationCommon.h"
+#include "UObject/Package.h"
 
 /*
  * This file contains tests for importing OpenPLX files to Blueprints.
