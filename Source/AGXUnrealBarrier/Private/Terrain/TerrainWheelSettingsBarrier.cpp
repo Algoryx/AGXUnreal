@@ -94,6 +94,31 @@ double FTerrainWheelSettingsBarrier::GetSlipRatioSmoothingAngularSpeed() const
 	return ConvertDistanceToUnreal<double>(NativeRef->Native->getSlipRatioSmoothingAngularSpeed());
 }
 
+void FTerrainWheelSettingsBarrier::SetAngularIntegrationStep(double InStep)
+{
+	check(HasNative());
+	NativeRef->Native->setAngularIntegrationStep(ConvertAngleToAGX(InStep));
+}
+
+double FTerrainWheelSettingsBarrier::GetAngularIntegrationStep() const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(NativeRef->Native->getAngularIntegrationStep());
+}
+
+void FTerrainWheelSettingsBarrier::SetPressureSinkageModel(
+	EAGX_TerrainWheelPressureSinkageModel InModel)
+{
+	check(HasNative());
+	NativeRef->Native->setPressureSinkageModel(Convert(InModel));
+}
+
+EAGX_TerrainWheelPressureSinkageModel FTerrainWheelSettingsBarrier::GetPressureSinkageModel() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getPressureSinkageModel());
+}
+
 void FTerrainWheelSettingsBarrier::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
 	check(HasNative());
@@ -104,6 +129,19 @@ bool FTerrainWheelSettingsBarrier::GetEnableComputeRearAngleFromFrontAngle() con
 {
 	check(HasNative());
 	return NativeRef->Native->getEnableComputeRearAngleFromFrontAngle();
+}
+
+void FTerrainWheelSettingsBarrier::SetEnableComputeMaximumNormalStressAngleFromFrontAngle(
+	bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableComputeMaximumNormalStressAngleFromFrontAngle(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableComputeMaximumNormalStressAngleFromFrontAngle();
 }
 
 void FTerrainWheelSettingsBarrier::SetEnableAGXDebugRendering(bool InEnable)

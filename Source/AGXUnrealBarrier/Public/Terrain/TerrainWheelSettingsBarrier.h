@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_TerrainWheelEnums.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
@@ -43,8 +46,17 @@ public:
 	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
 	double GetSlipRatioSmoothingAngularSpeed() const;
 
+	void SetAngularIntegrationStep(double InStep);
+	double GetAngularIntegrationStep() const;
+
+	void SetPressureSinkageModel(EAGX_TerrainWheelPressureSinkageModel InModel);
+	EAGX_TerrainWheelPressureSinkageModel GetPressureSinkageModel() const;
+
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 	bool GetEnableComputeRearAngleFromFrontAngle() const;
+
+	void SetEnableComputeMaximumNormalStressAngleFromFrontAngle(bool InEnable);
+	bool GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const;
 
 	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
 

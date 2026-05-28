@@ -66,6 +66,27 @@ double UAGX_TerrainWheelSettings::GetSlipRatioSmoothingAngularSpeed() const
 		SlipRatioSmoothingAngularSpeed, GetSlipRatioSmoothingAngularSpeed);
 }
 
+void UAGX_TerrainWheelSettings::SetAngularIntegrationStep(double InStep)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(AngularIntegrationStep, InStep, SetAngularIntegrationStep);
+}
+
+double UAGX_TerrainWheelSettings::GetAngularIntegrationStep() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(AngularIntegrationStep, GetAngularIntegrationStep);
+}
+
+void UAGX_TerrainWheelSettings::SetPressureSinkageModel(
+	EAGX_TerrainWheelPressureSinkageModel InModel)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(PressureSinkageModel, InModel, SetPressureSinkageModel);
+}
+
+EAGX_TerrainWheelPressureSinkageModel UAGX_TerrainWheelSettings::GetPressureSinkageModel() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(PressureSinkageModel, GetPressureSinkageModel);
+}
+
 void UAGX_TerrainWheelSettings::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
 	AGX_ASSET_SETTER_IMPL_VALUE(
@@ -77,6 +98,21 @@ bool UAGX_TerrainWheelSettings::GetEnableComputeRearAngleFromFrontAngle() const
 {
 	AGX_ASSET_GETTER_IMPL_VALUE(
 		bEnableComputeRearAngleFromFrontAngle, GetEnableComputeRearAngleFromFrontAngle);
+}
+
+void UAGX_TerrainWheelSettings::SetEnableComputeMaximumNormalStressAngleFromFrontAngle(
+	bool InEnable)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(
+		bEnableComputeMaximumNormalStressAngleFromFrontAngle, InEnable,
+		SetEnableComputeMaximumNormalStressAngleFromFrontAngle);
+}
+
+bool UAGX_TerrainWheelSettings::GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(
+		bEnableComputeMaximumNormalStressAngleFromFrontAngle,
+		GetEnableComputeMaximumNormalStressAngleFromFrontAngle);
 }
 
 void UAGX_TerrainWheelSettings::SetEnableAGXDebugRendering(bool InEnable)
@@ -138,7 +174,11 @@ void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Sou
 	SlipRatioVxAngularEquivalentThreshold = Source.GetSlipRatioVxAngularEquivalentThreshold();
 	SlipRatioOmegaYThreshold = Source.GetSlipRatioOmegaYThreshold();
 	SlipRatioSmoothingAngularSpeed = Source.GetSlipRatioSmoothingAngularSpeed();
+	AngularIntegrationStep = Source.GetAngularIntegrationStep();
+	PressureSinkageModel = Source.GetPressureSinkageModel();
 	bEnableComputeRearAngleFromFrontAngle = Source.GetEnableComputeRearAngleFromFrontAngle();
+	bEnableComputeMaximumNormalStressAngleFromFrontAngle =
+		Source.GetEnableComputeMaximumNormalStressAngleFromFrontAngle();
 }
 
 void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source)
@@ -149,7 +189,11 @@ void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source
 	SlipRatioVxAngularEquivalentThreshold = Source->SlipRatioVxAngularEquivalentThreshold;
 	SlipRatioOmegaYThreshold = Source->SlipRatioOmegaYThreshold;
 	SlipRatioSmoothingAngularSpeed = Source->SlipRatioSmoothingAngularSpeed;
+	AngularIntegrationStep = Source->AngularIntegrationStep;
+	PressureSinkageModel = Source->PressureSinkageModel;
 	bEnableComputeRearAngleFromFrontAngle = Source->bEnableComputeRearAngleFromFrontAngle;
+	bEnableComputeMaximumNormalStressAngleFromFrontAngle =
+		Source->bEnableComputeMaximumNormalStressAngleFromFrontAngle;
 	bEnableAGXDebugRendering = Source->bEnableAGXDebugRendering;
 	ImportGuid = Source->ImportGuid;
 }
@@ -263,7 +307,11 @@ void UAGX_TerrainWheelSettings::UpdateNativeProperties()
 	NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(SlipRatioVxAngularEquivalentThreshold);
 	NativeBarrier.SetSlipRatioOmegaYThreshold(SlipRatioOmegaYThreshold);
 	NativeBarrier.SetSlipRatioSmoothingAngularSpeed(SlipRatioSmoothingAngularSpeed);
+	NativeBarrier.SetAngularIntegrationStep(AngularIntegrationStep);
+	NativeBarrier.SetPressureSinkageModel(PressureSinkageModel);
 	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
+	NativeBarrier.SetEnableComputeMaximumNormalStressAngleFromFrontAngle(
+		bEnableComputeMaximumNormalStressAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 }
 
@@ -292,7 +340,10 @@ void UAGX_TerrainWheelSettings::InitPropertyDispatcher()
 	AGX_ASSET_DEFAULT_DISPATCHER(SlipRatioVxAngularEquivalentThreshold);
 	AGX_ASSET_DEFAULT_DISPATCHER(SlipRatioOmegaYThreshold);
 	AGX_ASSET_DEFAULT_DISPATCHER(SlipRatioSmoothingAngularSpeed);
+	AGX_ASSET_DEFAULT_DISPATCHER(AngularIntegrationStep);
+	AGX_ASSET_DEFAULT_DISPATCHER(PressureSinkageModel);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableComputeMaximumNormalStressAngleFromFrontAngle);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
 #endif // WITH_EDITOR

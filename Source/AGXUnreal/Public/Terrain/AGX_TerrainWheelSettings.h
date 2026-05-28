@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_TerrainWheelEnums.h"
 #include "Terrain/TerrainWheelSettingsBarrier.h"
 
 // Unreal Engine includes.
@@ -32,7 +33,7 @@ public:
 	 * respective thresholds.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioVxAngularEquivalentThreshold {1.0};
+	double SlipRatioVxAngularEquivalentThreshold {1.745};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
@@ -45,7 +46,7 @@ public:
 	 * This corresponds to |omegaY * radius| in the slip-ratio logic.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioOmegaYThreshold {1.0};
+	double SlipRatioOmegaYThreshold {1.745};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioOmegaYThreshold(double InThreshold);
@@ -60,13 +61,39 @@ public:
 	 * to improve numerical stability close to standstill.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioSmoothingAngularSpeed {0.01};
+	double SlipRatioSmoothingAngularSpeed {1.745};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	double GetSlipRatioSmoothingAngularSpeed() const;
+
+	/**
+	 * Angular integration step used when numerically integrating over the wheel contact interval
+	 * [deg]. Smaller values can improve accuracy at increased computational cost.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	double AngularIntegrationStep {0.0573};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetAngularIntegrationStep(double InStep);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	double GetAngularIntegrationStep() const;
+
+	/**
+	 * Semi-empirical pressure-sinkage model used to compute normal pressure from sinkage.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelPressureSinkageModel PressureSinkageModel {
+		EAGX_TerrainWheelPressureSinkageModel::Bekker};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetPressureSinkageModel(EAGX_TerrainWheelPressureSinkageModel InModel);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelPressureSinkageModel GetPressureSinkageModel() const;
 
 	/**
 	 * Enable or disable computation of the rear contact angle from the front contact
@@ -79,13 +106,34 @@ public:
 	 * This can be useful when a simplified or more stable trailing-edge estimate is desired.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	bool bEnableComputeRearAngleFromFrontAngle {false};
+	bool bEnableComputeRearAngleFromFrontAngle {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	bool GetEnableComputeRearAngleFromFrontAngle() const;
+
+	/**
+	 * Enable or disable computation of the maximum normal stress angle from the front contact
+	 * angle.
+	 *
+	 * If enabled, the maximum normal stress theta_m is computed according to
+	 * theta_m = (a_0 + a_i * slip_ratio) * theta_f,
+	 * where a_0, a_1 are constants, and theta_f is the front angle.
+	 *
+	 * If disabled, theta_m is computed according to
+	 * theta_m = 0.5 * (theta_r + theta_f),
+	 * where theta_r (theta_f) is the rear angle (front angle).
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	bool bEnableComputeMaximumNormalStressAngleFromFrontAngle {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableComputeMaximumNormalStressAngleFromFrontAngle(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const;
 
 	/**
 	 * Determines whether detailed debug rendering in AGX for this Terrain Wheel is active. This
