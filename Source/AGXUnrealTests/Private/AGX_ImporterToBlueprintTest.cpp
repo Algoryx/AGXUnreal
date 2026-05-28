@@ -23,6 +23,8 @@
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
@@ -3974,6 +3976,159 @@ bool FClearShovelImportedCommand::Update()
 }
 
 //
+// Terrain Wheel test starts here.
+//
+
+class FImporterToBlueprint_TerrainWheelTest;
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
+	FCheckTerrainWheelImportedCommand, FImporterToBlueprint_TerrainWheelTest&, Test);
+
+DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(
+	FClearTerrainWheelImportedCommand, FImporterToBlueprint_TerrainWheelTest&, Test);
+
+class FImporterToBlueprint_TerrainWheelTest final : public AgxAutomationCommon::FAgxAutomationTest
+{
+public:
+	FImporterToBlueprint_TerrainWheelTest()
+		: AgxAutomationCommon::FAgxAutomationTest(
+			  TEXT("FImporterToBlueprint_TerrainWheelTest"),
+			  TEXT("AGXUnreal.Editor.ImporterToBlueprint.TerrainWheel"))
+	{
+	}
+
+	UBlueprint* Contents = nullptr;
+
+protected:
+	virtual bool RunTest(const FString&) override
+	{
+		BAIL_TEST_IF_NOT_EDITOR(false)
+		ADD_LATENT_AUTOMATION_COMMAND(
+			FImportArchiveBlueprintCommand(TEXT("terrain_wheel_build.agx"), Contents, *this));
+		ADD_LATENT_AUTOMATION_COMMAND(FCheckTerrainWheelImportedCommand(*this));
+		ADD_LATENT_AUTOMATION_COMMAND(FClearTerrainWheelImportedCommand(*this));
+		return true;
+	}
+};
+
+namespace
+{
+	FImporterToBlueprint_TerrainWheelTest ImporterToBlueprint_TerrainWheelTest;
+}
+
+bool FCheckTerrainWheelImportedCommand::Update()
+{
+	using namespace AgxAutomationCommon;
+	if (Test.Contents == nullptr)
+	{
+		Test.AddError(TEXT("Could not import TerrainWheel test scene: No content created."));
+		return true;
+	}
+
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(*Test.Contents, EAGX_Inherited::Include);
+
+	// 1 SceneRoot, 2 Body, 1 Cylinder, 1 Box, 1 TerrainWheel, 1 ModelSource, 1
+	// ContactMaterialRegistrar.
+	Test.TestTrue(TEXT("Number of imported Components"), Components.Num() == 8);
+
+	UAGX_RigidBodyComponent* Body = GetByName<UAGX_RigidBodyComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Body")));
+	Test.TestNotNull(TEXT("Body"), Body);
+
+	UAGX_CylinderShapeComponent* Geometry = GetByName<UAGX_CylinderShapeComponent>(
+		Components,
+		*FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Geometry")));
+	Test.TestNotNull(TEXT("Geometry"), Geometry);
+
+	UAGX_TerrainWheelComponent* TerrainWheel = GetByName<UAGX_TerrainWheelComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("TerrainWheel")));
+	Test.TestNotNull(TEXT("Terrain Wheel Component"), TerrainWheel);
+	if (TerrainWheel == nullptr)
+		return true;
+
+	Test.TestEqual(
+		TEXT("Terrain Wheel Body Reference"), TerrainWheel->RigidBody.Name,
+		FName(TEXT("Body")));
+	Test.TestNotNull(TEXT("Terrain Wheel Settings"), TerrainWheel->TerrainWheelSettings);
+	if (TerrainWheel->TerrainWheelSettings == nullptr)
+		return true;
+
+	UAGX_TerrainWheelSettings* Settings = TerrainWheel->TerrainWheelSettings;
+	Test.TestTrue(TEXT("Terrain Wheel Settings is asset"), Settings->IsAsset());
+	Test.TestFalse(TEXT("Terrain Wheel Settings is instance"), Settings->IsInstance());
+	Test.TestEqual(
+		TEXT("SlipRatioVxAngularEquivalentThreshold"),
+		Settings->SlipRatioVxAngularEquivalentThreshold, 1.25);
+	Test.TestEqual(TEXT("SlipRatioOmegaYThreshold"), Settings->SlipRatioOmegaYThreshold, 2.5);
+	Test.TestEqual(
+		TEXT("SlipRatioSmoothingAngularSpeed"), Settings->SlipRatioSmoothingAngularSpeed, 3.75);
+	Test.TestEqual(TEXT("AngularIntegrationStep"), Settings->AngularIntegrationStep, 0.5);
+	Test.TestEqual(
+		TEXT("PressureSinkageModel"), Settings->PressureSinkageModel,
+		EAGX_TerrainWheelPressureSinkageModel::Reece);
+	Test.TestFalse(
+		TEXT("EnableComputeRearAngleFromFrontAngle"),
+		Settings->bEnableComputeRearAngleFromFrontAngle);
+	Test.TestFalse(
+		TEXT("EnableComputeMaximumNormalStressAngleFromFrontAngle"),
+		Settings->bEnableComputeMaximumNormalStressAngleFromFrontAngle);
+	Test.TestTrue(TEXT("EnableAGXDebugRendering"), Settings->bEnableAGXDebugRendering);
+
+	UAGX_ContactMaterialRegistrarComponent* Registrar =
+		GetByName<UAGX_ContactMaterialRegistrarComponent>(
+			Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(
+							TEXT("AGX_ContactMaterialRegistrar")));
+	Test.TestNotNull(TEXT("Contact Material Registrar"), Registrar);
+	if (Registrar != nullptr)
+	{
+		UAGX_ContactMaterial** ContactMaterial = Registrar->ContactMaterials.FindByPredicate(
+			[](UAGX_ContactMaterial* Cm)
+			{
+				return Cm != nullptr &&
+					   Cm->GetName() == TEXT("CM_TerrainWheelMaterial_TerrainMaterial");
+			});
+		Test.TestNotNull(TEXT("Terrain Wheel Contact Material"), ContactMaterial);
+		if (ContactMaterial != nullptr)
+		{
+			Test.TestEqual(
+				TEXT("Terrain Wheel Contact Material Friction Model"),
+				(*ContactMaterial)->FrictionModel, EAGX_FrictionModel::TerrainWheelForceModel);
+		}
+	}
+
+	return true;
+}
+
+bool FClearTerrainWheelImportedCommand::Update()
+{
+	if (Test.Contents == nullptr)
+	{
+		return true;
+	}
+
+	// clang-format off
+	const FString BaseBlueprintName = Test.Contents->GetName() + FString(".uasset");
+	TArray<const TCHAR*> ExpectedFiles = {
+		TEXT("BP_terrain_wheel_build.uasset"),
+			*BaseBlueprintName,
+		TEXT("Blueprint"),
+		TEXT("ContactMaterial"),
+			TEXT("CM_TerrainWheelMaterial_TerrainMaterial.uasset"),
+		TEXT("ShapeMaterial"),
+			TEXT("TerrainWheelMaterial.uasset"),
+			TEXT("TerrainMaterial.uasset"),
+		TEXT("TerrainWheelSettings"),
+			TEXT("AGX_TWS_TerrainWheel.uasset")
+	};
+	// clang-format on
+
+	AgxAutomationCommon::DeleteImportDirectory(TEXT("terrain_wheel_build"), ExpectedFiles);
+
+	return true;
+}
+
+//
 // Nested Assemblies test starts here.
 //
 
@@ -4156,7 +4311,8 @@ bool FCheckCableImportedCommand::Update()
 	Test.TestTrue(
 		"First node is body fixed", Cable->RouteNodes[0].NodeType == EAGX_CableNodeType::BodyFixed);
 	Test.TestTrue(
-		"Last node is body fixed", Cable->RouteNodes.Last().NodeType == EAGX_CableNodeType::BodyFixed);
+		"Last node is body fixed",
+		Cable->RouteNodes.Last().NodeType == EAGX_CableNodeType::BodyFixed);
 
 	Test.TestEqual("Cable radius", Cable->Radius, 5.0);
 
