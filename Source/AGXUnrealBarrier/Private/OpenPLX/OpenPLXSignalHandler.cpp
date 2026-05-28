@@ -397,7 +397,7 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	TOptional<FVector2D> TypeConvertRangeRealToUnreal(
-		const FOpenPLX_Output& Output, FVector2D& Value)
+		const FOpenPLX_Output& Output, const FVector2D& Value)
 	{
 		switch (Output.Type)
 		{
@@ -411,6 +411,24 @@ namespace OpenPLXSignalHandler_helpers
 			TEXT("OpenPLX Control Interface: Tried to read vec2 vector type from signal for Output "
 				 "'%s', but the type is either not of vec2 vector type or is unsupported."),
 			*Output.Alias.ToString());
+		return {};
+	}
+
+	TOptional<FVector2D> TypeConvertRangeRealToAGX(
+		const FOpenPLX_Input& Input, const FVector2D& Value)
+	{
+		switch (Input.Type)
+		{
+			case EOpenPLX_InputType::ForceRangeInput:
+			case EOpenPLX_InputType::TorqueRangeInput:
+				return Value;
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Tried to write vec2 vector type for Input '%s', but "
+				 "the type is either not of vec2 vector type or is unsupported."),
+			*Input.Alias.ToString());
 		return {};
 	}
 
@@ -649,8 +667,11 @@ namespace OpenPLXSignalHandler_helpers
 		TOptional<ValueT> ConvertedValueMaybe = ValueGetterFunc(Input, Value);
 		if (!ConvertedValueMaybe)
 		{
-			UE_LOG(LogAGX, Warning, TEXT("TODO ERROR MESSAGE HERE!"));
-#pragma message("TODO: ERROR MESSAGE HERE!")
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Control Interface: Type and unit conversion from Unreal to AGX "
+					 "Dynamics failed for OpenPLX input '%s'."),
+				*Input.Alias.ToString());
 			return false;
 		}
 
@@ -682,7 +703,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
 					 "Interface, but don't have a Control Interface wrapper reference."),
 				*Output.Name.ToString());
-			OutValue = 0.0;
+			OutValue = {};
 			return false;
 		}
 
@@ -694,7 +715,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
 					 "Interface, but don't have a Control Interface pointer."),
 				*Output.Name.ToString());
-			OutValue = 0.0;
+			OutValue = {};
 			return false;
 		}
 
@@ -721,7 +742,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT("OpenPLX Signal Interface: Could not convert value for '%s' of type '%s' to "
 					 "Unreal type and unit."),
 				*Output.Alias.ToString(), *TypeName);
-			OutValue = 0.0;
+			OutValue = {};
 			return false;
 		}
 		OutValue = *ConvertedValue;
@@ -776,6 +797,139 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& Ou
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
 		OpenPLXSignalHandler_helpers::GetVector2DValueFrom);
+}
+
+bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	OutValue = {};
+
+	if (HeapControlInterfaceRef == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
+				 "Interface, but don't have a Control Interface wrapper reference."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to receive OpenPLX Output signal for output '%s' through the Control "
+				 "Interface, but don't have a Control Interface pointer."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	std::string Alias = Convert(Output.Alias.ToString());
+	std::shared_ptr<openplx::Marshalling> M = Interface->prepare_read(Alias);
+	if (M == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Could not prepare read for Output '%s'. The alias may "
+				 "not match any registered output."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	auto Min = M->read_real<double>("min");
+	auto Max = M->read_real<double>("max");
+	if (!Min || !Max)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Could not read 'min'/'max' fields for Output '%s'."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	TOptional<FVector2D> Converted = TypeConvertRangeRealToUnreal(Output, FVector2D(*Min, *Max));
+	if (!Converted)
+	{
+		const FString TypeName = StaticEnum<EOpenPLX_OutputType>()
+									 ->GetDisplayNameTextByValue((int64) Output.Type)
+									 .ToString();
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Could not convert value for '%s' of type '%s' to "
+				 "Unreal type and unit."),
+			*Output.Alias.ToString(), *TypeName);
+		return false;
+	}
+
+	OutValue = *Converted;
+	return true;
+}
+
+bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+
+	if (HeapControlInterfaceRef == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to send OpenPLX Input signal for input '%s' through the Control Interface, "
+				 "but don't have a Control Interface wrapper reference."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Tried to send OpenPLX Input signal for input '%s' through the Control Interface, "
+				 "but don't have a Control Interface pointer."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	TOptional<FVector2D> ConvertedMaybe = TypeConvertRangeRealToAGX(Input, Value);
+	if (!ConvertedMaybe)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Could not convert value for Input '%s' from Unreal "
+				 "type and unit to AGX."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	std::string Alias = Convert(Input.Alias.ToString());
+	std::shared_ptr<openplx::Marshalling> M = Interface->prepare_write(Alias);
+	if (M == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Could not prepare write for Input '%s'. The alias may "
+				 "not match any registered input."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	const bool bWroteMin = M->write_real<double>("min", ConvertedMaybe->X);
+	const bool bWroteMax = M->write_real<double>("max", ConvertedMaybe->Y);
+	Interface->flush();
+
+	if (!bWroteMin || !bWroteMax)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Failed to write 'min'/'max' fields for Input '%s'."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)

@@ -47,7 +47,9 @@ public:
 
 	/// Ranges (Vec2 real).
 	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value);
+	bool SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/// FVectors (Vec3 real).
 	bool Send(const FOpenPLX_Input& Input, const FVector& Value);

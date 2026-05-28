@@ -292,6 +292,22 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeReal(const FOpenPLX_Input& Input,
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsRangeType(Input.Type))
+	{
+		LogTypeMismatchWarning("SendRangeRealInterface", Input.Alias.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
 {
 	FOpenPLX_Input Input;
@@ -322,6 +338,30 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(
 	}
 
 	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to receive a range real from '%s' through "
+				 "the Control Interface but the Signal Hander has not been initialized."),
+			*GetName(), *Output.Alias.ToString());
+		return false;
+	}
+
+	if (!FOpenPLX_Utilities::IsRangeType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveRangeRealInterface", Output.Alias.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue)

@@ -116,6 +116,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value);
 
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
+
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real Range type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
@@ -129,6 +132,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue);
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real Range type.
