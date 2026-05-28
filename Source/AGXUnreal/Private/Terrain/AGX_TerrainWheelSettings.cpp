@@ -120,6 +120,11 @@ void UAGX_TerrainWheelSettings::SetEnableAGXDebugRendering(bool InEnable)
 	AGX_ASSET_SETTER_IMPL_VALUE(bEnableAGXDebugRendering, InEnable, SetEnableAGXDebugRendering);
 }
 
+bool UAGX_TerrainWheelSettings::GetEnableAGXDebugRendering() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableAGXDebugRendering, GetEnableAGXDebugRendering);
+}
+
 void UAGX_TerrainWheelSettings::CommitToAsset()
 {
 	if (IsInstance())
@@ -131,9 +136,6 @@ void UAGX_TerrainWheelSettings::CommitToAsset()
 			Asset->Modify();
 #endif
 			Asset->CopyFrom(*Barrier);
-
-			// AGX has no getter for this setting, so keep the Unreal-side value when committing.
-			Asset->bEnableAGXDebugRendering = bEnableAGXDebugRendering;
 #if WITH_EDITOR
 			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
 #endif
@@ -179,6 +181,7 @@ void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Sou
 	bEnableComputeRearAngleFromFrontAngle = Source.GetEnableComputeRearAngleFromFrontAngle();
 	bEnableComputeMaximumNormalStressAngleFromFrontAngle =
 		Source.GetEnableComputeMaximumNormalStressAngleFromFrontAngle();
+	bEnableAGXDebugRendering = Source.GetEnableAGXDebugRendering();
 }
 
 void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source)

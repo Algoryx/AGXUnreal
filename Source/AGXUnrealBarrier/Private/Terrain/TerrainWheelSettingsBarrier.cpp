@@ -149,3 +149,9 @@ void FTerrainWheelSettingsBarrier::SetEnableAGXDebugRendering(bool InEnable)
 	check(HasNative());
 	NativeRef->Native->setEnableDebugRegressionPlanes(InEnable);
 }
+
+bool FTerrainWheelSettingsBarrier::GetEnableAGXDebugRendering() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableDebugRegressionPlanes();
+}

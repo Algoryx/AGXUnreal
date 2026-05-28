@@ -58,7 +58,8 @@ public:
 	void SetEnableComputeMaximumNormalStressAngleFromFrontAngle(bool InEnable);
 	bool GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const;
 
-	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
+	void SetEnableAGXDebugRendering(bool InEnable);
+	bool GetEnableAGXDebugRendering() const;
 
 private:
 	std::shared_ptr<FTerrainWheelSettingsRef> NativeRef;

@@ -145,6 +145,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableAGXDebugRendering(bool InEnable);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableAGXDebugRendering() const;
+
 	/*
 	 * The import Guid of this Asset. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
