@@ -188,7 +188,7 @@ void FTerrainWheelBarrier::ReleaseNative()
 FRigidBodyBarrier FTerrainWheelBarrier::GetRigidBody() const
 {
 	check(HasNative());
-	return FRigidBodyBarrier(std::make_shared<FRigidBodyRef>(NativeRef->Native->getTireBody()));
+	return FRigidBodyBarrier(std::make_shared<FRigidBodyRef>(NativeRef->Native->getWheelBody()));
 }
 
 void FTerrainWheelBarrier::IncrementRefCount() const
