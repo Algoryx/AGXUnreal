@@ -579,59 +579,65 @@ double UAGX_TerrainMaterial::GetSinkageExponentParameterB() const
 		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
 }
 
-void UAGX_TerrainMaterial::SetShearModulusXParameterA(double Value)
+void UAGX_TerrainMaterial::SetShearModulusTangentialParameterA(double Value)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusXParameterA, Value, SetShearModulusXParameterA,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusTangentialParameterA, Value,
+		SetShearModulusTangentialParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-double UAGX_TerrainMaterial::GetShearModulusXParameterA() const
+double UAGX_TerrainMaterial::GetShearModulusTangentialParameterA() const
 {
 	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusXParameterA, GetShearModulusXParameterA,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusTangentialParameterA,
+		GetShearModulusTangentialParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-void UAGX_TerrainMaterial::SetShearModulusXParameterB(double Value)
+void UAGX_TerrainMaterial::SetShearModulusTangentialParameterB(double Value)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusXParameterB, Value, SetShearModulusXParameterB,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusTangentialParameterB, Value,
+		SetShearModulusTangentialParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-double UAGX_TerrainMaterial::GetShearModulusXParameterB() const
+double UAGX_TerrainMaterial::GetShearModulusTangentialParameterB() const
 {
 	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusXParameterB, GetShearModulusXParameterB,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusTangentialParameterB,
+		GetShearModulusTangentialParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-void UAGX_TerrainMaterial::SetShearModulusYParameterA(double Value)
+void UAGX_TerrainMaterial::SetShearModulusLateralParameterA(double Value)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusYParameterA, Value, SetShearModulusYParameterA,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusLateralParameterA, Value,
+		SetShearModulusLateralParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-double UAGX_TerrainMaterial::GetShearModulusYParameterA() const
+double UAGX_TerrainMaterial::GetShearModulusLateralParameterA() const
 {
 	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusYParameterA, GetShearModulusYParameterA,
+		TerrainTerramechanics.ShearModulusLateralParameterA, GetShearModulusLateralParameterA,
 		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
 }
 
-void UAGX_TerrainMaterial::SetShearModulusYParameterB(double Value)
+void UAGX_TerrainMaterial::SetShearModulusLateralParameterB(double Value)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusYParameterB, Value, SetShearModulusYParameterB,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		TerrainTerramechanics.ShearModulusLateralParameterB, Value,
+		SetShearModulusLateralParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
-double UAGX_TerrainMaterial::GetShearModulusYParameterB() const
+double UAGX_TerrainMaterial::GetShearModulusLateralParameterB() const
 {
 	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
-		TerrainTerramechanics.ShearModulusYParameterB, GetShearModulusYParameterB,
+		TerrainTerramechanics.ShearModulusLateralParameterB, GetShearModulusLateralParameterB,
 		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
 }
 
@@ -1105,38 +1111,46 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, ShearModulusXParameterA),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusTangentialParameterA),
 		[](ThisClass* This)
 		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				TerrainTerramechanics.ShearModulusXParameterA, SetShearModulusXParameterA)
+				TerrainTerramechanics.ShearModulusTangentialParameterA,
+				SetShearModulusTangentialParameterA)
 		});
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, ShearModulusXParameterB),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusTangentialParameterB),
 		[](ThisClass* This)
 		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				TerrainTerramechanics.ShearModulusXParameterB, SetShearModulusXParameterB)
+				TerrainTerramechanics.ShearModulusTangentialParameterB,
+				SetShearModulusTangentialParameterB)
 		});
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, ShearModulusYParameterA),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusLateralParameterA),
 		[](ThisClass* This)
 		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				TerrainTerramechanics.ShearModulusYParameterA, SetShearModulusYParameterA)
+				TerrainTerramechanics.ShearModulusLateralParameterA,
+				SetShearModulusLateralParameterA)
 		});
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
-		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, ShearModulusYParameterB),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusLateralParameterB),
 		[](ThisClass* This)
 		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				TerrainTerramechanics.ShearModulusYParameterB, SetShearModulusYParameterB)
+				TerrainTerramechanics.ShearModulusLateralParameterB,
+				SetShearModulusLateralParameterB)
 		});
 
 	PropertyDispatcher.Add(
@@ -1398,14 +1412,14 @@ void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
 			TerrainTerramechanics.SinkageExponentParameterA);
 		TerrainMaterialNativeBarrier.SetSinkageExponentParameterB(
 			TerrainTerramechanics.SinkageExponentParameterB);
-		TerrainMaterialNativeBarrier.SetShearModulusXParameterA(
-			TerrainTerramechanics.ShearModulusXParameterA);
-		TerrainMaterialNativeBarrier.SetShearModulusXParameterB(
-			TerrainTerramechanics.ShearModulusXParameterB);
-		TerrainMaterialNativeBarrier.SetShearModulusYParameterA(
-			TerrainTerramechanics.ShearModulusYParameterA);
-		TerrainMaterialNativeBarrier.SetShearModulusYParameterB(
-			TerrainTerramechanics.ShearModulusYParameterB);
+		TerrainMaterialNativeBarrier.SetShearModulusTangentialParameterA(
+			TerrainTerramechanics.ShearModulusTangentialParameterA);
+		TerrainMaterialNativeBarrier.SetShearModulusTangentialParameterB(
+			TerrainTerramechanics.ShearModulusTangentialParameterB);
+		TerrainMaterialNativeBarrier.SetShearModulusLateralParameterA(
+			TerrainTerramechanics.ShearModulusLateralParameterA);
+		TerrainMaterialNativeBarrier.SetShearModulusLateralParameterB(
+			TerrainTerramechanics.ShearModulusLateralParameterB);
 		TerrainMaterialNativeBarrier.SetCohesiveModulusBekker(
 			TerrainTerramechanics.CohesiveModulusBekker);
 		TerrainMaterialNativeBarrier.SetFrictionalModulusBekker(
@@ -1484,10 +1498,14 @@ void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 	TerrainTerramechanics = FAGX_TerrainTerramechanicsProperties();
 	TerrainTerramechanics.SinkageExponentParameterA = Source.GetSinkageExponentParameterA();
 	TerrainTerramechanics.SinkageExponentParameterB = Source.GetSinkageExponentParameterB();
-	TerrainTerramechanics.ShearModulusXParameterA = Source.GetShearModulusXParameterA();
-	TerrainTerramechanics.ShearModulusXParameterB = Source.GetShearModulusXParameterB();
-	TerrainTerramechanics.ShearModulusYParameterA = Source.GetShearModulusYParameterA();
-	TerrainTerramechanics.ShearModulusYParameterB = Source.GetShearModulusYParameterB();
+	TerrainTerramechanics.ShearModulusTangentialParameterA =
+		Source.GetShearModulusTangentialParameterA();
+	TerrainTerramechanics.ShearModulusTangentialParameterB =
+		Source.GetShearModulusTangentialParameterB();
+	TerrainTerramechanics.ShearModulusLateralParameterA =
+		Source.GetShearModulusLateralParameterA();
+	TerrainTerramechanics.ShearModulusLateralParameterB =
+		Source.GetShearModulusLateralParameterB();
 	TerrainTerramechanics.CohesiveModulusBekker = Source.GetCohesiveModulusBekker();
 	TerrainTerramechanics.FrictionalModulusBekker = Source.GetFrictionalModulusBekker();
 	TerrainTerramechanics.CohesiveModulusReece = Source.GetCohesiveModulusReece();

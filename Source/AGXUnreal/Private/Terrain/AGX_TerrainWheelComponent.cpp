@@ -65,52 +65,52 @@ bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
 	return bEnableTerrainDisplacement;
 }
 
-void UAGX_TerrainWheelComponent::SetSlipRatioVxThreshold(double InThreshold)
+void UAGX_TerrainWheelComponent::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
-	SlipRatioVxThreshold = InThreshold;
+	SlipRatioVxAngularEquivalentThreshold = InThreshold;
 
 	if (HasNative())
-		NativeBarrier.SetSlipRatioVxThreshold(InThreshold);
+		NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(InThreshold);
 }
 
-double UAGX_TerrainWheelComponent::GetSlipRatioVxThreshold() const
+double UAGX_TerrainWheelComponent::GetSlipRatioVxAngularEquivalentThreshold() const
 {
 	if (HasNative())
-		return NativeBarrier.GetSlipRatioVxThreshold();
+		return NativeBarrier.GetSlipRatioVxAngularEquivalentThreshold();
 
-	return SlipRatioVxThreshold;
+	return SlipRatioVxAngularEquivalentThreshold;
 }
 
-void UAGX_TerrainWheelComponent::SetSlipRatioOmegaYRThreshold(double InThreshold)
+void UAGX_TerrainWheelComponent::SetSlipRatioOmegaYThreshold(double InThreshold)
 {
-	SlipRatioOmegaYRThreshold = InThreshold;
+	SlipRatioOmegaYThreshold = InThreshold;
 
 	if (HasNative())
-		NativeBarrier.SetSlipRatioOmegaYRThreshold(InThreshold);
+		NativeBarrier.SetSlipRatioOmegaYThreshold(InThreshold);
 }
 
-double UAGX_TerrainWheelComponent::GetSlipRatioOmegaYRThreshold() const
+double UAGX_TerrainWheelComponent::GetSlipRatioOmegaYThreshold() const
 {
 	if (HasNative())
-		return NativeBarrier.GetSlipRatioOmegaYRThreshold();
+		return NativeBarrier.GetSlipRatioOmegaYThreshold();
 
-	return SlipRatioOmegaYRThreshold;
+	return SlipRatioOmegaYThreshold;
 }
 
-void UAGX_TerrainWheelComponent::SetSlipRatioSmoothingSpeed(double InSpeed)
+void UAGX_TerrainWheelComponent::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
 {
-	SlipRatioSmoothingSpeed = InSpeed;
+	SlipRatioSmoothingAngularSpeed = InSpeed;
 
 	if (HasNative())
-		NativeBarrier.SetSlipRatioSmoothingSpeed(InSpeed);
+		NativeBarrier.SetSlipRatioSmoothingAngularSpeed(InSpeed);
 }
 
-double UAGX_TerrainWheelComponent::GetSlipRatioSmoothingSpeed() const
+double UAGX_TerrainWheelComponent::GetSlipRatioSmoothingAngularSpeed() const
 {
 	if (HasNative())
-		return NativeBarrier.GetSlipRatioSmoothingSpeed();
+		return NativeBarrier.GetSlipRatioSmoothingAngularSpeed();
 
-	return SlipRatioSmoothingSpeed;
+	return SlipRatioSmoothingAngularSpeed;
 }
 
 void UAGX_TerrainWheelComponent::SetComputeRearAngleFromFrontAngleEnabled(bool InEnable)
@@ -159,8 +159,8 @@ void UAGX_TerrainWheelComponent::SetEnableComputeRearAngleFromFrontAngle(bool In
 void UAGX_TerrainWheelComponent::CopyFrom(
 	const FTerrainWheelBarrier& Barrier, FAGX_ImportContext* Context)
 {
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TerrainWheelComponent::StaticClass());
 	Rename(*Name);
@@ -368,9 +368,9 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxThreshold);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYRThreshold);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingSpeed);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxAngularEquivalentThreshold);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYThreshold);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingAngularSpeed);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
@@ -477,9 +477,10 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
-	NativeBarrier.SetSlipRatioVxThreshold(SlipRatioVxThreshold);
-	NativeBarrier.SetSlipRatioOmegaYRThreshold(SlipRatioOmegaYRThreshold);
-	NativeBarrier.SetSlipRatioSmoothingSpeed(SlipRatioSmoothingSpeed);
+	NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(
+		SlipRatioVxAngularEquivalentThreshold);
+	NativeBarrier.SetSlipRatioOmegaYThreshold(SlipRatioOmegaYThreshold);
+	NativeBarrier.SetSlipRatioSmoothingAngularSpeed(SlipRatioSmoothingAngularSpeed);
 	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());

@@ -49,52 +49,52 @@ bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
 	return NativeRef->Native->getWheelDeformationProperties()->getEnableDisplacement();
 }
 
-void FTerrainWheelBarrier::SetSlipRatioVxThreshold(double InThreshold)
+void FTerrainWheelBarrier::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
 	check(HasNative());
 	agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	Settings->setSlipRatioVxThreshold(ConvertDistanceToAGX(InThreshold));
+	Settings->setSlipRatioVxAngularEquivalentThreshold(ConvertDistanceToAGX(InThreshold));
 }
 
-double FTerrainWheelBarrier::GetSlipRatioVxThreshold() const
+double FTerrainWheelBarrier::GetSlipRatioVxAngularEquivalentThreshold() const
 {
 	check(HasNative());
 	const agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioVxThreshold());
+	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioVxAngularEquivalentThreshold());
 }
 
-void FTerrainWheelBarrier::SetSlipRatioOmegaYRThreshold(double InThreshold)
+void FTerrainWheelBarrier::SetSlipRatioOmegaYThreshold(double InThreshold)
 {
 	check(HasNative());
 	agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	Settings->setSlipRatioOmegaYRThreshold(ConvertDistanceToAGX(InThreshold));
+	Settings->setSlipRatioOmegaYThreshold(ConvertDistanceToAGX(InThreshold));
 }
 
-double FTerrainWheelBarrier::GetSlipRatioOmegaYRThreshold() const
+double FTerrainWheelBarrier::GetSlipRatioOmegaYThreshold() const
 {
 	check(HasNative());
 	const agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioOmegaYRthreshold());
+	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioOmegaYThreshold());
 }
 
-void FTerrainWheelBarrier::SetSlipRatioSmoothingSpeed(double InSpeed)
+void FTerrainWheelBarrier::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
 {
 	check(HasNative());
 	agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	Settings->setSlipRatioSmoothingSpeed(ConvertDistanceToAGX(InSpeed));
+	Settings->setSlipRatioSmoothingAngularSpeed(ConvertDistanceToAGX(InSpeed));
 }
 
-double FTerrainWheelBarrier::GetSlipRatioSmoothingSpeed() const
+double FTerrainWheelBarrier::GetSlipRatioSmoothingAngularSpeed() const
 {
 	check(HasNative());
 	const agxTerrain::TerrainWheelSettings* Settings = NativeRef->Native->getTerrainWheelSettings();
 	check(Settings != nullptr);
-	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioSmoothingSpeed());
+	return ConvertDistanceToUnreal<double>(Settings->getSlipRatioSmoothingAngularSpeed());
 }
 
 void FTerrainWheelBarrier::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)

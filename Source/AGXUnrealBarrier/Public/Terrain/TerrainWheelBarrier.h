@@ -28,14 +28,14 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetEnableTerrainDisplacement(bool InEnable);
 	bool GetEnableTerrainDisplacement() const;
 
-	void SetSlipRatioVxThreshold(double InThreshold);
-	double GetSlipRatioVxThreshold() const;
+	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
+	double GetSlipRatioVxAngularEquivalentThreshold() const;
 
-	void SetSlipRatioOmegaYRThreshold(double InThreshold);
-	double GetSlipRatioOmegaYRThreshold() const;
+	void SetSlipRatioOmegaYThreshold(double InThreshold);
+	double GetSlipRatioOmegaYThreshold() const;
 
-	void SetSlipRatioSmoothingSpeed(double InSpeed);
-	double GetSlipRatioSmoothingSpeed() const;
+	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
+	double GetSlipRatioSmoothingAngularSpeed() const;
 
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
 	bool GetEnableComputeRearAngleFromFrontAngle() const;

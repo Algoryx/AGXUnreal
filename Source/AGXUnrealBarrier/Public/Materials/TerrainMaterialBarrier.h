@@ -154,17 +154,17 @@ public:
 	void SetSinkageExponentParameterB(double Value);
 	double GetSinkageExponentParameterB() const;
 
-	void SetShearModulusXParameterA(double Value);
-	double GetShearModulusXParameterA() const;
+	void SetShearModulusTangentialParameterA(double Value);
+	double GetShearModulusTangentialParameterA() const;
 
-	void SetShearModulusXParameterB(double Value);
-	double GetShearModulusXParameterB() const;
+	void SetShearModulusTangentialParameterB(double Value);
+	double GetShearModulusTangentialParameterB() const;
 
-	void SetShearModulusYParameterA(double Value);
-	double GetShearModulusYParameterA() const;
+	void SetShearModulusLateralParameterA(double Value);
+	double GetShearModulusLateralParameterA() const;
 
-	void SetShearModulusYParameterB(double Value);
-	double GetShearModulusYParameterB() const;
+	void SetShearModulusLateralParameterB(double Value);
+	double GetShearModulusLateralParameterB() const;
 
 	void SetCohesiveModulusBekker(double Value);
 	double GetCohesiveModulusBekker() const;

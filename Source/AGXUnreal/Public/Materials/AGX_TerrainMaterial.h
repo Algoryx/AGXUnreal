@@ -303,28 +303,28 @@ public:
 	double GetSinkageExponentParameterB() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	void SetShearModulusXParameterA(double Value);
+	void SetShearModulusTangentialParameterA(double Value);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	double GetShearModulusXParameterA() const;
+	double GetShearModulusTangentialParameterA() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	void SetShearModulusXParameterB(double Value);
+	void SetShearModulusTangentialParameterB(double Value);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	double GetShearModulusXParameterB() const;
+	double GetShearModulusTangentialParameterB() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	void SetShearModulusYParameterA(double Value);
+	void SetShearModulusLateralParameterA(double Value);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	double GetShearModulusYParameterA() const;
+	double GetShearModulusLateralParameterA() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	void SetShearModulusYParameterB(double Value);
+	void SetShearModulusLateralParameterB(double Value);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
-	double GetShearModulusYParameterB() const;
+	double GetShearModulusLateralParameterB() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Terramechanics Properties")
 	void SetCohesiveModulusBekker(double Value);

@@ -593,52 +593,52 @@ double FTerrainMaterialBarrier::GetSinkageExponentParameterB() const
 	return NativeRef->Native->getTerramechanicsProperties()->getSinkageExponentParameterB();
 }
 
-void FTerrainMaterialBarrier::SetShearModulusXParameterA(double Value)
+void FTerrainMaterialBarrier::SetShearModulusTangentialParameterA(double Value)
 {
 	check(HasNative());
-	NativeRef->Native->getTerramechanicsProperties()->setShearModulusXParameterA(Value);
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusTangentialParameterA(Value);
 }
 
-double FTerrainMaterialBarrier::GetShearModulusXParameterA() const
+double FTerrainMaterialBarrier::GetShearModulusTangentialParameterA() const
 {
 	check(HasNative());
-	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusXParameterA();
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusTangentialParameterA();
 }
 
-void FTerrainMaterialBarrier::SetShearModulusXParameterB(double Value)
+void FTerrainMaterialBarrier::SetShearModulusTangentialParameterB(double Value)
 {
 	check(HasNative());
-	NativeRef->Native->getTerramechanicsProperties()->setShearModulusXParameterB(Value);
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusTangentialParameterB(Value);
 }
 
-double FTerrainMaterialBarrier::GetShearModulusXParameterB() const
+double FTerrainMaterialBarrier::GetShearModulusTangentialParameterB() const
 {
 	check(HasNative());
-	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusXParameterB();
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusTangentialParameterB();
 }
 
-void FTerrainMaterialBarrier::SetShearModulusYParameterA(double Value)
+void FTerrainMaterialBarrier::SetShearModulusLateralParameterA(double Value)
 {
 	check(HasNative());
-	NativeRef->Native->getTerramechanicsProperties()->setShearModulusYParameterA(Value);
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusLateralParameterA(Value);
 }
 
-double FTerrainMaterialBarrier::GetShearModulusYParameterA() const
+double FTerrainMaterialBarrier::GetShearModulusLateralParameterA() const
 {
 	check(HasNative());
-	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusYParameterA();
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusLateralParameterA();
 }
 
-void FTerrainMaterialBarrier::SetShearModulusYParameterB(double Value)
+void FTerrainMaterialBarrier::SetShearModulusLateralParameterB(double Value)
 {
 	check(HasNative());
-	NativeRef->Native->getTerramechanicsProperties()->setShearModulusYParameterB(Value);
+	NativeRef->Native->getTerramechanicsProperties()->setShearModulusLateralParameterB(Value);
 }
 
-double FTerrainMaterialBarrier::GetShearModulusYParameterB() const
+double FTerrainMaterialBarrier::GetShearModulusLateralParameterB() const
 {
 	check(HasNative());
-	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusYParameterB();
+	return NativeRef->Native->getTerramechanicsProperties()->getShearModulusLateralParameterB();
 }
 
 void FTerrainMaterialBarrier::SetCohesiveModulusBekker(double Value)

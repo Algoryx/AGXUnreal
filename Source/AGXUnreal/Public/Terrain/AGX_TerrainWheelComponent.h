@@ -61,26 +61,26 @@ public:
 	 * respective thresholds.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
-	double SlipRatioVxThreshold {1.0};
+	double SlipRatioVxAngularEquivalentThreshold {1.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	void SetSlipRatioVxThreshold(double InThreshold);
+	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	double GetSlipRatioVxThreshold() const;
+	double GetSlipRatioVxAngularEquivalentThreshold() const;
 
 	/**
 	 * Tangential surface-speed threshold used by the slip-ratio dead-band [cm/s].
 	 * This corresponds to |omegaY * radius| in the slip-ratio logic.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
-	double SlipRatioOmegaYRThreshold {1.0};
+	double SlipRatioOmegaYThreshold {1.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	void SetSlipRatioOmegaYRThreshold(double InThreshold);
+	void SetSlipRatioOmegaYThreshold(double InThreshold);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	double GetSlipRatioOmegaYRThreshold() const;
+	double GetSlipRatioOmegaYThreshold() const;
 
 	/**
 	 * Minimum velocity scale used to smooth slip-ratio computation [cm/s].
@@ -89,13 +89,13 @@ public:
 	 * to improve numerical stability close to standstill.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
-	double SlipRatioSmoothingSpeed {0.01};
+	double SlipRatioSmoothingAngularSpeed {0.01};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	void SetSlipRatioSmoothingSpeed(double InSpeed);
+	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	double GetSlipRatioSmoothingSpeed() const;
+	double GetSlipRatioSmoothingAngularSpeed() const;
 
 	/**
 	 * Enable or disable computation of the rear contact angle from the front contact

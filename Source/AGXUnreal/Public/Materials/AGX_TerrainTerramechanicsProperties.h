@@ -39,26 +39,26 @@ public:
 	 * tau_x = [c + sigma*tan(phi)][1-exp(-j_x/K_x)].
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Terramechanics Properties")
-	double ShearModulusXParameterA {0.036};
+	double ShearModulusTangentialParameterA {0.036};
 
 	/**
 	 * The 'a_1' in K_x = a_0 + slip_angle * a_1.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Terramechanics Properties")
-	double ShearModulusXParameterB {0.043};
+	double ShearModulusTangentialParameterB {0.043};
 
 	/**
 	 * The 'a_0' in K_y = a_0 + slip_angle * a_1, where
 	 * tau_y = [c + sigma*tan(phi)][1-exp(-j_y/K_y)].
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Terramechanics Properties")
-	double ShearModulusYParameterA {0.013};
+	double ShearModulusLateralParameterA {0.013};
 
 	/**
 	 * The 'a_1' in K_y = a_0 + slip_angle * a_1.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Terramechanics Properties")
-	double ShearModulusYParameterB {0.020};
+	double ShearModulusLateralParameterB {0.020};
 
 	/**
 	 * The 'k_c' in p = (k_c/b + k_phi)z^n.
