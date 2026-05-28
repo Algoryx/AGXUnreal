@@ -114,6 +114,7 @@
 #include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
 #include "Terrain/AGX_TerrainWheelComponentVisualizer.h"
+#include "Terrain/AGX_TerrainWheelSettingsActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
@@ -347,6 +348,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		AssetTools, MakeShareable(new FAGX_TerrainMaterialAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainPropertiesActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_TerrainWheelSettingsActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_TrackInternalMergePropertiesAssetTypeActions(AgxAssetCategoryBit)));

@@ -12,6 +12,7 @@
 
 struct FCylinderShapeBarrier;
 struct FRigidBodyBarrier;
+struct FTerrainWheelSettingsBarrier;
 struct FTerrainWheelRef;
 
 USTRUCT(BlueprintType)
@@ -41,6 +42,10 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	bool GetEnableComputeRearAngleFromFrontAngle() const;
 
 	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
+
+	void SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings);
+	FTerrainWheelSettingsBarrier GetTerrainWheelSettings() const;
+	void ResetTerrainWheelSettings();
 
 	void AllocateNative(FCylinderShapeBarrier& Cylinder);
 

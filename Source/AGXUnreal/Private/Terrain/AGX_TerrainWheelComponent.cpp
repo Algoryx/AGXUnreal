@@ -11,8 +11,9 @@
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
-#include "Utilities/AGX_NotificationUtilities.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -31,6 +32,30 @@ UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	AGX_TerrainWheelComponent_helpers::SetLocalScope(*this);
+}
+
+bool UAGX_TerrainWheelComponent::SetTerrainWheelSettings(
+	UAGX_TerrainWheelSettings* InTerrainWheelSettings)
+{
+	UAGX_TerrainWheelSettings* TerrainWheelSettingsOrig = TerrainWheelSettings;
+	TerrainWheelSettings = InTerrainWheelSettings;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeTerrainWheelSettings is responsible to create an instance if none exists and do
+	// the asset/instance swap.
+	if (!UpdateNativeTerrainWheelSettings())
+	{
+		// Something went wrong, restore original TerrainWheelSettings.
+		TerrainWheelSettings = TerrainWheelSettingsOrig;
+		return false;
+	}
+
+	return true;
 }
 
 void UAGX_TerrainWheelComponent::SetTerrainDeformationEnabled(bool InEnable)
@@ -237,6 +262,16 @@ void UAGX_TerrainWheelComponent::BeginPlay()
 			SNotificationItem::CS_Fail);
 		return;
 	}
+
+	if (!UpdateNativeTerrainWheelSettings())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Unable to update TerrainWheelSettings for '%s' in '%s', Output Log may "
+					 "contain more information."),
+				*GetName(), *GetNameSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+	}
 }
 
 void UAGX_TerrainWheelComponent::EndPlay(const EEndPlayReason::Type Reason)
@@ -371,6 +406,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxAngularEquivalentThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYThreshold);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingAngularSpeed);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
@@ -477,16 +513,42 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
-	NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(
-		SlipRatioVxAngularEquivalentThreshold);
+	NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(SlipRatioVxAngularEquivalentThreshold);
 	NativeBarrier.SetSlipRatioOmegaYThreshold(SlipRatioOmegaYThreshold);
 	NativeBarrier.SetSlipRatioSmoothingAngularSpeed(SlipRatioSmoothingAngularSpeed);
 	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
+	UpdateNativeTerrainWheelSettings();
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
 		Sim->Add(*this);
+}
+
+bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelSettings()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainWheelSettings == nullptr)
+	{
+		NativeBarrier.ResetTerrainWheelSettings();
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	UAGX_TerrainWheelSettings* Instance = TerrainWheelSettings->GetOrCreateInstance(World);
+	check(Instance);
+
+	if (TerrainWheelSettings != Instance)
+	{
+		TerrainWheelSettings = Instance;
+	}
+
+	FTerrainWheelSettingsBarrier* SettingsBarrier = Instance->GetOrCreateNative();
+	check(SettingsBarrier);
+	NativeBarrier.SetTerrainWheelSettings(*SettingsBarrier);
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

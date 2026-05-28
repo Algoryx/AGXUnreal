@@ -8,6 +8,7 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
+#include "Terrain/TerrainWheelSettingsBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -117,6 +118,27 @@ void FTerrainWheelBarrier::SetEnableAGXDebugRendering(bool InEnable)
 {
 	check(HasNative());
 	NativeRef->Native->getTerrainWheelSettings()->setEnableDebugRegressionPlanes(InEnable);
+}
+
+void FTerrainWheelBarrier::SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings)
+{
+	check(HasNative());
+	check(Settings.HasNative());
+	NativeRef->Native->setTerrainWheelSettings(Settings.GetNative()->Native);
+}
+
+FTerrainWheelSettingsBarrier FTerrainWheelBarrier::GetTerrainWheelSettings() const
+{
+	check(HasNative());
+	return FTerrainWheelSettingsBarrier(
+		std::make_shared<FTerrainWheelSettingsRef>(
+			NativeRef->Native->getTerrainWheelSettings()));
+}
+
+void FTerrainWheelBarrier::ResetTerrainWheelSettings()
+{
+	check(HasNative());
+	NativeRef->Native->setTerrainWheelSettings(new agxTerrain::TerrainWheelSettings());
 }
 
 void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)
