@@ -24,6 +24,77 @@ public:
 	UAGX_TerrainWheelSettings() = default;
 
 	/**
+	 * Longitudinal velocity threshold used by the slip-ratio dead-band [cm/s].
+	 * The slip ratio is clamped to zero when both |vX| and |omegaY * radius| are below their
+	 * respective thresholds.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	double SlipRatioVxAngularEquivalentThreshold {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	double GetSlipRatioVxAngularEquivalentThreshold() const;
+
+	/**
+	 * Tangential surface-speed threshold used by the slip-ratio dead-band [cm/s].
+	 * This corresponds to |omegaY * radius| in the slip-ratio logic.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	double SlipRatioOmegaYThreshold {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetSlipRatioOmegaYThreshold(double InThreshold);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	double GetSlipRatioOmegaYThreshold() const;
+
+	/**
+	 * Minimum velocity scale used to smooth slip-ratio computation [cm/s].
+	 *
+	 * At very low wheel speeds this value is used to attenuate the slip-ratio expression
+	 * to improve numerical stability close to standstill.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	double SlipRatioSmoothingAngularSpeed {0.01};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	double GetSlipRatioSmoothingAngularSpeed() const;
+
+	/**
+	 * Enable or disable computation of the rear contact angle from the front contact
+	 * angle.
+	 *
+	 * When enabled, the rear contact angle theta_r is not computed from the
+	 * wheel-terrain geometry directly. Instead it is derived from the current front contact angle
+	 * theta_f using an empirical slip-dependent relation
+	 * (see computeRearAngleFromFrontAngle()).
+	 * This can be useful when a simplified or more stable trailing-edge estimate is desired.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	bool bEnableComputeRearAngleFromFrontAngle {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableComputeRearAngleFromFrontAngle() const;
+
+	/**
+	 * Determines whether detailed debug rendering in AGX for this Terrain Wheel is active. This
+	 * will be visible in the AGX Web Debugger.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
+	bool bEnableAGXDebugRendering {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableAGXDebugRendering(bool InEnable);
+
+	/**
 	 * Copy property values from the runtime instance to the Terrain Wheel Settings asset the
 	 * instance was created from.
 	 */
@@ -54,7 +125,18 @@ public:
 
 	void UpdateNativeProperties();
 
+	// ~Begin UObject interface.
+	virtual void PostInitProperties() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
+	// ~End UObject interface.
+
 private:
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
+
 	void CreateNative();
 
 private:

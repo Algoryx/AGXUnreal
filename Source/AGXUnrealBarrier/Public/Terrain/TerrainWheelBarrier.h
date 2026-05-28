@@ -29,20 +29,6 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	void SetEnableTerrainDisplacement(bool InEnable);
 	bool GetEnableTerrainDisplacement() const;
 
-	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
-	double GetSlipRatioVxAngularEquivalentThreshold() const;
-
-	void SetSlipRatioOmegaYThreshold(double InThreshold);
-	double GetSlipRatioOmegaYThreshold() const;
-
-	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
-	double GetSlipRatioSmoothingAngularSpeed() const;
-
-	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
-	bool GetEnableComputeRearAngleFromFrontAngle() const;
-
-	void SetEnableAGXDebugRendering(bool InEnable); // No getter in AGX.
-
 	void SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings);
 	FTerrainWheelSettingsBarrier GetTerrainWheelSettings() const;
 	void ResetTerrainWheelSettings();

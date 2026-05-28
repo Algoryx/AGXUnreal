@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
@@ -46,4 +47,59 @@ void FTerrainWheelSettingsBarrier::ReleaseNative()
 {
 	check(HasNative());
 	NativeRef->Native = nullptr;
+}
+
+void FTerrainWheelSettingsBarrier::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
+{
+	check(HasNative());
+	NativeRef->Native->setSlipRatioVxAngularEquivalentThreshold(ConvertDistanceToAGX(InThreshold));
+}
+
+double FTerrainWheelSettingsBarrier::GetSlipRatioVxAngularEquivalentThreshold() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(
+		NativeRef->Native->getSlipRatioVxAngularEquivalentThreshold());
+}
+
+void FTerrainWheelSettingsBarrier::SetSlipRatioOmegaYThreshold(double InThreshold)
+{
+	check(HasNative());
+	NativeRef->Native->setSlipRatioOmegaYThreshold(ConvertDistanceToAGX(InThreshold));
+}
+
+double FTerrainWheelSettingsBarrier::GetSlipRatioOmegaYThreshold() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getSlipRatioOmegaYThreshold());
+}
+
+void FTerrainWheelSettingsBarrier::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
+{
+	check(HasNative());
+	NativeRef->Native->setSlipRatioSmoothingAngularSpeed(ConvertDistanceToAGX(InSpeed));
+}
+
+double FTerrainWheelSettingsBarrier::GetSlipRatioSmoothingAngularSpeed() const
+{
+	check(HasNative());
+	return ConvertDistanceToUnreal<double>(NativeRef->Native->getSlipRatioSmoothingAngularSpeed());
+}
+
+void FTerrainWheelSettingsBarrier::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableComputeRearAngleFromFrontAngle(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableComputeRearAngleFromFrontAngle() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableComputeRearAngleFromFrontAngle();
+}
+
+void FTerrainWheelSettingsBarrier::SetEnableAGXDebugRendering(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableDebugRegressionPlanes(InEnable);
 }

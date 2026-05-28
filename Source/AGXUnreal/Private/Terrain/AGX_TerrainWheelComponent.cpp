@@ -3,7 +3,6 @@
 #include "Terrain/AGX_TerrainWheelComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -90,77 +89,6 @@ bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
 	return bEnableTerrainDisplacement;
 }
 
-void UAGX_TerrainWheelComponent::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
-{
-	SlipRatioVxAngularEquivalentThreshold = InThreshold;
-
-	if (HasNative())
-		NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(InThreshold);
-}
-
-double UAGX_TerrainWheelComponent::GetSlipRatioVxAngularEquivalentThreshold() const
-{
-	if (HasNative())
-		return NativeBarrier.GetSlipRatioVxAngularEquivalentThreshold();
-
-	return SlipRatioVxAngularEquivalentThreshold;
-}
-
-void UAGX_TerrainWheelComponent::SetSlipRatioOmegaYThreshold(double InThreshold)
-{
-	SlipRatioOmegaYThreshold = InThreshold;
-
-	if (HasNative())
-		NativeBarrier.SetSlipRatioOmegaYThreshold(InThreshold);
-}
-
-double UAGX_TerrainWheelComponent::GetSlipRatioOmegaYThreshold() const
-{
-	if (HasNative())
-		return NativeBarrier.GetSlipRatioOmegaYThreshold();
-
-	return SlipRatioOmegaYThreshold;
-}
-
-void UAGX_TerrainWheelComponent::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
-{
-	SlipRatioSmoothingAngularSpeed = InSpeed;
-
-	if (HasNative())
-		NativeBarrier.SetSlipRatioSmoothingAngularSpeed(InSpeed);
-}
-
-double UAGX_TerrainWheelComponent::GetSlipRatioSmoothingAngularSpeed() const
-{
-	if (HasNative())
-		return NativeBarrier.GetSlipRatioSmoothingAngularSpeed();
-
-	return SlipRatioSmoothingAngularSpeed;
-}
-
-void UAGX_TerrainWheelComponent::SetComputeRearAngleFromFrontAngleEnabled(bool InEnable)
-{
-	bEnableComputeRearAngleFromFrontAngle = InEnable;
-
-	if (HasNative())
-		NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(InEnable);
-}
-
-bool UAGX_TerrainWheelComponent::IsComputeRearAngleFromFrontAngleEnabled() const
-{
-	if (HasNative())
-		return NativeBarrier.GetEnableComputeRearAngleFromFrontAngle();
-
-	return bEnableComputeRearAngleFromFrontAngle;
-}
-
-void UAGX_TerrainWheelComponent::SetAGXDebugRenderingEnabled(bool InEnable)
-{
-	bEnableAGXDebugRendering = InEnable;
-	if (HasNative())
-		NativeBarrier.SetEnableAGXDebugRendering(InEnable);
-}
-
 void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
 {
 	SetTerrainDeformationEnabled(InEnable);
@@ -169,16 +97,6 @@ void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
 void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
 {
 	SetTerrainDisplacementEnabled(InEnable);
-}
-
-void UAGX_TerrainWheelComponent::SetEnableAGXDebugRendering(bool InEnable)
-{
-	SetAGXDebugRenderingEnabled(InEnable);
-}
-
-void UAGX_TerrainWheelComponent::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
-{
-	SetComputeRearAngleFromFrontAngleEnabled(InEnable);
 }
 
 void UAGX_TerrainWheelComponent::CopyFrom(
@@ -403,12 +321,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioVxAngularEquivalentThreshold);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioOmegaYThreshold);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SlipRatioSmoothingAngularSpeed);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 }
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
@@ -513,11 +426,6 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
-	NativeBarrier.SetSlipRatioVxAngularEquivalentThreshold(SlipRatioVxAngularEquivalentThreshold);
-	NativeBarrier.SetSlipRatioOmegaYThreshold(SlipRatioOmegaYThreshold);
-	NativeBarrier.SetSlipRatioSmoothingAngularSpeed(SlipRatioSmoothingAngularSpeed);
-	NativeBarrier.SetEnableComputeRearAngleFromFrontAngle(bEnableComputeRearAngleFromFrontAngle);
-	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	UpdateNativeTerrainWheelSettings();
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
