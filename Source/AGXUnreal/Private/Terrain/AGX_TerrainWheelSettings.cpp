@@ -7,11 +7,28 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Terrain/TerrainWheelBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "UObject/UObjectGlobals.h"
+
+namespace AGX_TerrainWheelSettings_helpers
+{
+	FString CreateSettingsName(const FTerrainWheelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString BaseName = CleanBarrierName.IsEmpty() ? TEXT("TerrainWheelSettings") : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("AGX_TWS_%s"), *BaseName),
+			UAGX_TerrainWheelSettings::StaticClass());
+	}
+}
 
 void UAGX_TerrainWheelSettings::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
@@ -92,11 +109,32 @@ void UAGX_TerrainWheelSettings::CommitToAsset()
 	}
 }
 
+void UAGX_TerrainWheelSettings::CopyFrom(
+	const FTerrainWheelBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	FTerrainWheelSettingsBarrier SettingsBarrier = Source.GetTerrainWheelSettings();
+	if (!SettingsBarrier.HasNative())
+		return;
+
+	CopyFrom(SettingsBarrier);
+
+	if (Context == nullptr || Context->TerrainWheelSettings == nullptr)
+		return; // We are done.
+
+	Rename(*AGX_TerrainWheelSettings_helpers::CreateSettingsName(Source, *Context));
+	AGX_CHECK(!Context->TerrainWheelSettings->Contains(ImportGuid));
+	Context->TerrainWheelSettings->Add(ImportGuid, this);
+}
+
 void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Source)
 {
 	if (!Source.HasNative())
 		return;
 
+	ImportGuid = Source.GetGuid();
 	SlipRatioVxAngularEquivalentThreshold = Source.GetSlipRatioVxAngularEquivalentThreshold();
 	SlipRatioOmegaYThreshold = Source.GetSlipRatioOmegaYThreshold();
 	SlipRatioSmoothingAngularSpeed = Source.GetSlipRatioSmoothingAngularSpeed();
@@ -113,6 +151,7 @@ void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source
 	SlipRatioSmoothingAngularSpeed = Source->SlipRatioSmoothingAngularSpeed;
 	bEnableComputeRearAngleFromFrontAngle = Source->bEnableComputeRearAngleFromFrontAngle;
 	bEnableAGXDebugRendering = Source->bEnableAGXDebugRendering;
+	ImportGuid = Source->ImportGuid;
 }
 
 UAGX_TerrainWheelSettings* UAGX_TerrainWheelSettings::GetInstance()

@@ -43,6 +43,7 @@
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainWheelBarrier.h"
@@ -368,6 +369,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.ContactMaterials = MakeUnique<TMap<FGuid, UAGX_ContactMaterial*>>();
 	Context.ShovelProperties = MakeUnique<TMap<FGuid, UAGX_ShovelProperties*>>();
 	Context.SteeringParameters = MakeUnique<TMap<FGuid, UAGX_SteeringParameters*>>();
+	Context.TerrainWheelSettings = MakeUnique<TMap<FGuid, UAGX_TerrainWheelSettings*>>();
 	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
 	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
 }

@@ -27,6 +27,7 @@
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -780,6 +781,7 @@ void UAGX_Simulation::Deinitialize()
 
 		CloseInstancedAssetEditors<UAGX_ShovelProperties>();
 		CloseInstancedAssetEditors<UAGX_SteeringParameters>();
+		CloseInstancedAssetEditors<UAGX_TerrainWheelSettings>();
 	}
 #endif
 

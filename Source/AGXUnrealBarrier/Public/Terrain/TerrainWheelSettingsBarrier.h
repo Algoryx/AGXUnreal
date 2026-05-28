@@ -32,6 +32,8 @@ public:
 	void AllocateNative();
 	void ReleaseNative();
 
+	FGuid GetGuid() const;
+
 	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
 	double GetSlipRatioVxAngularEquivalentThreshold() const;
 

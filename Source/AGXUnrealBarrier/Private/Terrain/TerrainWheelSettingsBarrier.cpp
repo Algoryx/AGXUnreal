@@ -49,6 +49,12 @@ void FTerrainWheelSettingsBarrier::ReleaseNative()
 	NativeRef->Native = nullptr;
 }
 
+FGuid FTerrainWheelSettingsBarrier::GetGuid() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getUuid());
+}
+
 void FTerrainWheelSettingsBarrier::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
 	check(HasNative());

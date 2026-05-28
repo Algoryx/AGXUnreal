@@ -25,6 +25,24 @@ namespace AGX_TerrainWheelComponent_helpers
 		AActor* Owner = FAGX_ObjectUtilities::GetRootParentActor(TerrainWheel);
 		TerrainWheel.RigidBody.LocalScope = Owner;
 	}
+
+	UAGX_TerrainWheelSettings* GetOrCreateTerrainWheelSettings(
+		const FTerrainWheelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		FTerrainWheelSettingsBarrier SettingsBarrier = Barrier.GetTerrainWheelSettings();
+		if (!SettingsBarrier.HasNative())
+			return nullptr;
+
+		const FGuid Guid = SettingsBarrier.GetGuid();
+		if (auto Existing = Context.TerrainWheelSettings->FindRef(Guid))
+			return Existing;
+
+		UAGX_TerrainWheelSettings* Settings = NewObject<UAGX_TerrainWheelSettings>(
+			Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Settings, Context.SessionGuid);
+		Settings->CopyFrom(Barrier, &Context);
+		return Settings;
+	}
 }
 
 UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
@@ -102,6 +120,8 @@ void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
 void UAGX_TerrainWheelComponent::CopyFrom(
 	const FTerrainWheelBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	using namespace AGX_TerrainWheelComponent_helpers;
+
 	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
 		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
@@ -111,7 +131,8 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName();
 
-	if (Context == nullptr || Context->TerrainWheels == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || Context->TerrainWheels == nullptr ||
+		Context->TerrainWheelSettings == nullptr || Context->RigidBodies == nullptr)
 		return; // We are done.
 
 	const FRigidBodyBarrier BodyBarrier = Barrier.GetRigidBody();
@@ -125,6 +146,7 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 
 	AGX_CHECK(!Context->TerrainWheels->Contains(ImportGuid));
 	Context->TerrainWheels->Add(ImportGuid, this);
+	TerrainWheelSettings = GetOrCreateTerrainWheelSettings(Barrier, *Context);
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()

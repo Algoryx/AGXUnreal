@@ -11,6 +11,9 @@
 
 #include "AGX_TerrainWheelSettings.generated.h"
 
+struct FAGX_ImportContext;
+struct FTerrainWheelBarrier;
+
 /**
  * Contains configuration properties for AGX Terrain Wheel. Several Terrain Wheel Components can
  * share the same Terrain Wheel Settings.
@@ -94,6 +97,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableAGXDebugRendering(bool InEnable);
 
+	/*
+	 * The import Guid of this Asset. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
+
 	/**
 	 * Copy property values from the runtime instance to the Terrain Wheel Settings asset the
 	 * instance was created from.
@@ -101,6 +111,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void CommitToAsset();
 
+	void CopyFrom(const FTerrainWheelBarrier& Source, FAGX_ImportContext* Context);
 	void CopyFrom(const FTerrainWheelSettingsBarrier& Source);
 	void CopyFrom(const UAGX_TerrainWheelSettings* Source);
 
