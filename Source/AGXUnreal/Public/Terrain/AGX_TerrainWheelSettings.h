@@ -101,6 +101,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void CommitToAsset();
 
+	void CopyFrom(const FTerrainWheelSettingsBarrier& Source);
+	void CopyFrom(const UAGX_TerrainWheelSettings* Source);
+
 	UAGX_TerrainWheelSettings* GetInstance();
 
 	/**

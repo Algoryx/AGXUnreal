@@ -7,11 +7,10 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
-#include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 
 void UAGX_TerrainWheelSettings::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
@@ -70,19 +69,50 @@ void UAGX_TerrainWheelSettings::SetEnableAGXDebugRendering(bool InEnable)
 
 void UAGX_TerrainWheelSettings::CommitToAsset()
 {
-	if (IsInstance() && Asset.IsValid())
+	if (IsInstance())
 	{
-		UEngine::CopyPropertiesForUnrelatedObjects(this, Asset.Get());
-		if (UPackage* Package = Asset->GetPackage())
+		if (FTerrainWheelSettingsBarrier* Barrier = GetNative();
+			Barrier != nullptr && Asset.IsValid())
 		{
-			Package->SetDirtyFlag(true);
-			Package->PackageMarkedDirtyEvent.Broadcast(Package, true);
+#if WITH_EDITOR
+			Asset->Modify();
+#endif
+			Asset->CopyFrom(*Barrier);
+
+			// AGX has no getter for this setting, so keep the Unreal-side value when committing.
+			Asset->bEnableAGXDebugRendering = bEnableAGXDebugRendering;
+#if WITH_EDITOR
+			FAGX_ObjectUtilities::MarkAssetDirty(*Asset);
+#endif
 		}
 	}
-	else if (Instance.IsValid())
+	else if (Instance != nullptr)
 	{
 		Instance->CommitToAsset();
 	}
+}
+
+void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	SlipRatioVxAngularEquivalentThreshold = Source.GetSlipRatioVxAngularEquivalentThreshold();
+	SlipRatioOmegaYThreshold = Source.GetSlipRatioOmegaYThreshold();
+	SlipRatioSmoothingAngularSpeed = Source.GetSlipRatioSmoothingAngularSpeed();
+	bEnableComputeRearAngleFromFrontAngle = Source.GetEnableComputeRearAngleFromFrontAngle();
+}
+
+void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source)
+{
+	if (Source == nullptr)
+		return;
+
+	SlipRatioVxAngularEquivalentThreshold = Source->SlipRatioVxAngularEquivalentThreshold;
+	SlipRatioOmegaYThreshold = Source->SlipRatioOmegaYThreshold;
+	SlipRatioSmoothingAngularSpeed = Source->SlipRatioSmoothingAngularSpeed;
+	bEnableComputeRearAngleFromFrontAngle = Source->bEnableComputeRearAngleFromFrontAngle;
+	bEnableAGXDebugRendering = Source->bEnableAGXDebugRendering;
 }
 
 UAGX_TerrainWheelSettings* UAGX_TerrainWheelSettings::GetInstance()
@@ -115,8 +145,9 @@ UAGX_TerrainWheelSettings* UAGX_TerrainWheelSettings::GetOrCreateInstance(
 	const FString InstanceName = GetName() + TEXT("_Instance");
 	InstancePtr = NewObject<UAGX_TerrainWheelSettings>(
 		GetTransientPackage(), UAGX_TerrainWheelSettings::StaticClass(), *InstanceName,
-		RF_Transient, this);
+		RF_Transient);
 	InstancePtr->Asset = this;
+	InstancePtr->CopyFrom(this);
 	InstancePtr->CreateNative();
 	Instance = InstancePtr;
 	return InstancePtr;
