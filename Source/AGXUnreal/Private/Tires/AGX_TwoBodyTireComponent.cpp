@@ -107,7 +107,7 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 	ImplicitFrictionMultiplier = Barrier.GetImplicitFrictionMultiplier();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_TwoBodyTireComponent::StaticClass());
 	Rename(*Name);

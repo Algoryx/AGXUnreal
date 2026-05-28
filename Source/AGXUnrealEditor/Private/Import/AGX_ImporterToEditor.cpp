@@ -461,10 +461,12 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		if (Result.Actor == nullptr)
 		{
+			const FString Path =
+				Settings.FilePath.IsEmpty() ? Settings.SourceFilePath : Settings.FilePath;
 			const FString Text = FString::Printf(
 				TEXT("Errors occurred during import. The file '%s' could not be imported. Log "
 					 "category LogAGX in the Output Log may contain more information."),
-				*Settings.FilePath);
+				*Path);
 			FAGX_NotificationUtilities::ShowDialogBoxWithError(Text, "Import Model to Blueprint");
 			return false;
 		}
@@ -1051,6 +1053,28 @@ namespace AGX_ImporterToEditor_helpers
 
 		return EAGX_ImportResult::Success;
 	}
+
+	void OnFailureCleanup(const FAGX_ImportSettings& Settings)
+	{
+		if (Settings.ImportType != EAGX_ImportType::Plx)
+			return;
+
+		if (Settings.FilePath.IsEmpty())
+			return;
+
+		const FString FileDirectory =
+			FPaths::ConvertRelativePathToFull(FPaths::GetPath(Settings.FilePath));
+		if (!FPaths::DirectoryExists(FileDirectory))
+			return;
+
+		FString ModelsDirectory =
+			FPaths::ConvertRelativePathToFull(FOpenPLXUtilities::GetModelsDirectory());
+
+		if (!FileDirectory.StartsWith(ModelsDirectory))
+			return;
+
+		IFileManager::Get().DeleteDirectory(*FileDirectory, /*RequireExists=*/true, /*Tree=*/true);
+	}
 }
 
 UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
@@ -1069,7 +1093,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	FAGX_Importer Importer;
 	FAGX_ImportResult Result = Importer.Import(Settings, *GetTransientPackage());
 	if (!ValidateImportResult(Result, Settings))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Validating import"));
 
@@ -1077,7 +1104,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	RootDirectory = MakeRootDirectoryPath(ModelName);
 
 	if (!ValidateImportEnum(FinalizeModelSourceComponent(*Result.Context, RootDirectory)))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Saving Assets"));
 	WriteAssetsToDisk(RootDirectory, Result.Context);
@@ -1711,7 +1741,7 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
 	const FString DestinationDir =
-		FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+		FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 	const FString NewLocation =
 		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))

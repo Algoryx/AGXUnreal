@@ -3246,7 +3246,6 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual("Number Of Nodes", Track->NumberOfNodes, 120);
 		Test.TestEqual("Width", Track->Width, 35.f);
 		Test.TestEqual("Thickness", Track->Thickness, 2.5f);
-		Test.TestEqual("Initial Distance Tension", Track->InitialDistanceTension, 0.1f);
 		Test.TestNotNull("Shape Material", Track->ShapeMaterial);
 
 		// Track Properties.
@@ -3261,6 +3260,47 @@ bool FCheckTrackImportedCommand::Update()
 		Test.TestEqual(
 			"Track Properties Name", Track->TrackProperties->GetName(),
 			FString("AGX_TP_") + BeautifiedTrackName);
+
+		Test.TestEqual(
+			"Bending Stiffness Lateral", Track->TrackProperties->GetBendingStiffnessLateral(),
+			2e10);
+
+		Test.TestEqual(
+			"Bending Attenuation Lateral", Track->TrackProperties->GetBendingAttenuationLateral(),
+			3e10);
+
+		Test.TestEqual(
+			"Bending Stiffness Vertical", Track->TrackProperties->GetBendingStiffnessVertical(),
+			4e10);
+
+		Test.TestEqual(
+			"Bending Attenuation Vertical", Track->TrackProperties->GetBendingAttenuationVertical(),
+			5e10);
+
+		Test.TestEqual(
+			"Shear Stiffness Lateral", Track->TrackProperties->GetShearStiffnessLateral(), 6e10);
+
+		Test.TestEqual(
+			"Shear Attenuation Lateral", Track->TrackProperties->GetShearAttenuationLateral(),
+			0.01);
+
+		Test.TestEqual(
+			"Shear Stiffness Vertical", Track->TrackProperties->GetShearStiffnessVertical(), 7e10);
+
+		Test.TestEqual(
+			"Shear Attenuation Vertical", Track->TrackProperties->GetShearAttenuationVertical(),
+			0.03);
+
+		Test.TestEqual("Tensile Stiffness", Track->TrackProperties->GetTensileStiffness(), 8e10);
+
+		Test.TestEqual(
+			"Tensile Attenuation", Track->TrackProperties->GetTensileAttenuation(), 0.05);
+
+		Test.TestEqual(
+			"Torsional Stiffness", Track->TrackProperties->GetTorsionalStiffness(), 9e10);
+
+		Test.TestEqual(
+			"Torsional Attenuation", Track->TrackProperties->GetTorsionalAttenuation(), 0.06);
 
 		Test.TestEqual("Hinge Range Enabled", Track->TrackProperties->bEnableHingeRange, false);
 		Test.TestEqual("Hinge Range Min", Track->TrackProperties->HingeRange.Min, -120.0);

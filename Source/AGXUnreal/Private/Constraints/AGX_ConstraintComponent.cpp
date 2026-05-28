@@ -198,6 +198,24 @@ void UAGX_ConstraintComponent::SetConstraintAttachmentLocation2(FVector LocalLoc
 		BodyAttachment2, LocalLocation, *NativeBarrier, 1);
 }
 
+void UAGX_ConstraintComponent::SetConstraintAttachmentRotation1(FRotator LocalRotation)
+{
+	BodyAttachment1.LocalFrameRotation = LocalRotation;
+	if (NativeBarrier->HasNative())
+	{
+		NativeBarrier->SetLocalRotation(0, LocalRotation.Quaternion());
+	}
+}
+
+void UAGX_ConstraintComponent::SetConstraintAttachmentRotation2(FRotator LocalRotation)
+{
+	BodyAttachment2.LocalFrameRotation = LocalRotation;
+	if (NativeBarrier->HasNative())
+	{
+		NativeBarrier->SetLocalRotation(1, LocalRotation.Quaternion());
+	}
+}
+
 void UAGX_ConstraintComponent::SetEnable(bool InEnabled)
 {
 	if (HasNative())
@@ -584,7 +602,7 @@ void UAGX_ConstraintComponent::CopyFrom(
 	bComputeForces = Barrier.GetEnableComputeForces();
 
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);

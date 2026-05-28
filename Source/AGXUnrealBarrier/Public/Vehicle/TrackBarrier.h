@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Vehicle/AGX_TrackEnums.h"
+#include "Vehicle/AGX_VehicleTypes.h"
 
 // Unreal Engine includes.
 #include "Containers/UnrealString.h"
@@ -62,6 +63,25 @@ public:
 	void SetProperties(const FTrackPropertiesBarrier& Properties);
 	FTrackPropertiesBarrier GetProperties() const;
 
+	void SetTrackImplementation(
+		EAGX_TrackImplementation TrackImplementation, FRigidBodyBarrier* chassis);
+	EAGX_TrackImplementation GetTrackImplementation() const;
+
+	// Only relevant for default Track Implementation.
+	FRigidBodyBarrier GetChassis() const;
+
+	/**
+	 * Set the vertical stability scale factor of the reduced-order track implementation.
+	 * Only relevant for the default track implementation (reduced-order).
+	 */
+	void SetVerticalStabilityScaleFactor(double Scale);
+
+	/**
+	 * Get the vertical stability scale factor of the reduced-order track implementation.
+	 * Only relevant for the default track implementation (reduced-order).
+	 */
+	double GetVerticalStabilityScaleFactor() const;
+
 	void AddCollisionGroup(const FName& GroupName);
 	void AddCollisionGroups(const TArray<FName>& GroupNames);
 	TArray<FName> GetCollisionGroups() const;
@@ -74,7 +94,7 @@ public:
 
 	double GetThickness() const;
 
-	double GetInitialDistanceTension() const;
+	FAGX_TrackInitialTension GetInitialTension() const;
 
 	FRigidBodyBarrier GetNodeBody(int index) const;
 
@@ -144,7 +164,8 @@ public:
 	const FTrackRef* GetNative() const;
 
 	void AllocateNative(
-		int32 NumberOfNodes, float Width, float Thickness, float InitialDistanceTension);
+		int32 NumberOfNodes, float Width, float Thickness,
+		const FAGX_TrackInitialTension& InitialTension);
 	void ReleaseNative();
 
 	/// @return The address of the underlying AGX Dynamics object.

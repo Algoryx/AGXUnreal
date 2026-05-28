@@ -72,7 +72,7 @@ namespace AGX_AGXUtilities_helpers
 		// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX
 		// file.
 		const FString DestinationDir =
-			FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+			FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 		const FString NewLocation =
 			FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 

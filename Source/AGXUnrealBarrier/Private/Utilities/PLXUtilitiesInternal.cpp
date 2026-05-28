@@ -505,115 +505,6 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	return EOpenPLX_OutputType::Unsupported;
 }
 
-TArray<FString> FPLXUtilitiesInternal::GetFileDependencies(const FString& Filepath)
-{
-	using namespace PLXUtilities_helpers;
-	TArray<FString> Dependencies;
-
-	if (!FPaths::FileExists(Filepath))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("GetFileDependencies: Could not read OpenPLX file '%s'. The file does not exist."),
-			*Filepath);
-		return Dependencies;
-	}
-
-	agxSDK::SimulationRef Simulation {new agxSDK::Simulation()};
-
-	const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
-	const std::vector<std::string> BundlePathsStd =
-		ToStdStringVector(FOpenPLXUtilities::GetBundlePaths());
-
-	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
-	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
-	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
-
-	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
-	//  allocated in Unreal.
-	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
-	agxopenplx::OptParams Params = agxopenplx::OptParams()
-									   .withUuidv5(std::move(UuidAgxAllocated))
-									   .withSkipDefaultBundles()
-									   .withBundlePaths(BundlePathsStd);
-	agxopenplx::LoadResult Result;
-	auto LogErrors = [&]()
-	{
-		return FPLXUtilitiesInternal::LogErrorsSafe(
-			Result.errors(), TEXT("GetFileDependencies got OpenPLX Error: "));
-	};
-
-	try
-	{
-		Result = agxopenplx::load_from_file(Simulation, Convert(Filepath), Params);
-	}
-	catch (const std::runtime_error& Excep)
-	{
-		UE_LOG(
-			LogAGX, Error, TEXT("GetFileDependencies: Could not read OpenPLX file '%s':\n\n%s"),
-			*Filepath, UTF8_TO_TCHAR(Excep.what()));
-		LogErrors();
-		return Dependencies;
-	}
-
-	if (LogErrors())
-		return Dependencies;
-
-	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());
-	if (System == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("GetFileDependencies: Could not read OpenPLX file '%s'. The Log category LogAGX "
-				 "may include more details."),
-			*Filepath);
-		return Dependencies;
-	}
-
-	for (auto G : GetNestedObjects<openplx::Visuals::Geometries::ExternalTriMeshGeometry>(*System))
-	{
-		if (G == nullptr)
-			continue;
-
-		std::string PathPLX = G->path();
-		const FString Path = FPaths::ConvertRelativePathToFull(Convert(PathPLX));
-		agxUtil::freeContainerMemory(PathPLX); // Allocated in OpenPLX, deallocate safely.
-		if (FPaths::FileExists(Path))
-			Dependencies.AddUnique(Path);
-	}
-
-	// Get the dependencies from the OpenPLX context.
-	auto ContextInternal =
-		openplx::Core::Api::OpenPlxContextInternal::fromContext(*Result.context());
-	std::vector<std::shared_ptr<openplx::DocumentContext>> Docs = ContextInternal->documents();
-
-	auto IsKnownBundle = [&](const FString& P)
-	{
-		return BundlePaths.ContainsByPredicate([&](const FString& BundlePath)
-											   { return P.StartsWith(BundlePath); });
-	};
-
-	for (auto& D : Docs)
-	{
-		std::filesystem::path PathPLX = D->getPath();
-		const FString Path = FPaths::ConvertRelativePathToFull(Convert(PathPLX.string()));
-		agxUtil::freeContainerMemory(PathPLX);
-		if (!IsKnownBundle(Path))
-		{
-			if (FPaths::FileExists(Path))
-				Dependencies.AddUnique(Path);
-
-			const FString BundleConfig = FPaths::ConvertRelativePathToFull(
-				Convert(D->getBundleConfig().config_file_path.string()));
-			if (!IsKnownBundle(BundleConfig) && FPaths::FileExists(BundleConfig))
-				Dependencies.AddUnique(BundleConfig);
-		}
-	}
-	agxopenplx::freeContainerMemory(Docs);
-
-	return Dependencies;
-}
-
 std::string FPLXUtilitiesInternal::BuildBundlePathsString(const TArray<FString>& Paths)
 {
 	std::string Result;
@@ -745,24 +636,18 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		Assembly->add(SteeringAGX);
 	}
 
-	// OpenPLX OutputSignalListener requires the assembly to contain a PowerLine with a
-	// certain name. This is the PowerLine we will use to map the OpenPLX DriveTrain.
-	agxPowerLine::PowerLineRef RequiredPowerLine = new agxPowerLine::PowerLine();
-	RequiredPowerLine->setName(agx::Name(GetDefaultPowerLineName()));
-	Assembly->add(RequiredPowerLine);
-
 	// Map DriveTrain.
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 
 	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
 		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
-	// The DriveTrainMapper will put any DriveTrain object into RequiredPowerLine, and may create
-	// new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints() (handled
-	// below). It does not create other things that we have to add explicitly to the Assembly or
-	// Simulation.
+	// The DriveTrainMapper will create the DriveTrain object if the model contains one, and may
+	// also create new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints()
+	// (handled below). It does not create other things that we have to add explicitly to the
+	// Assembly or Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
-	DriveTrainMapper.mapDriveTrainIntoPowerLine(System, RequiredPowerLine);
+	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(System);
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{
@@ -772,7 +657,11 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 		}
 	}
 
-	Simulation.GetNative()->Native->add(RequiredPowerLine);
+	if (PowerLine != nullptr)
+	{
+		Assembly->add(PowerLine);
+		Simulation.GetNative()->Native->add(PowerLine);
+	}
 
 	for (auto& [Object, Constraint] : DriveTrainMapper.getMappedConstraints())
 	{

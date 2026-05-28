@@ -5,12 +5,18 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGX_LogCategory.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // Unreal Engine includes.
 #include "HAL/FileManager.h"
 #include "HAL/PlatformFileManager.h"
 #include "Misc/Paths.h"
+
+// OpenPLX includes.
+#include "BeginAGXIncludes.h"
+#include "agxOpenPLX/AgxOpenPlxApi.h"
+#include "EndAGXIncludes.h"
 
 TArray<FString> FOpenPLXUtilities::GetBundlePaths()
 {
@@ -19,7 +25,8 @@ TArray<FString> FOpenPLXUtilities::GetBundlePaths()
 	Paths.Add(FPaths::Combine(
 		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "openplxbundles"));
 	Paths.Add(FPaths::Combine(
-			FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "data", "openplx", "agxBundle"));
+		FAGX_Environment::GetPluginSourcePath(), "ThirdParty", "agx", "data", "openplx",
+		"agxBundle"));
 
 	const FString UserBundlePath = GetUserBundlePath();
 	if (FPaths::DirectoryExists(UserBundlePath))
@@ -40,7 +47,7 @@ FString FOpenPLXUtilities::GetModelsDirectory()
 	return FPaths::Combine(ProjectPath, TEXT("OpenPLXModels"));
 }
 
-FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
+FString FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(const FString& Filepath)
 {
 	const FString ModelName = FPaths::GetBaseFilename(Filepath);
 	const FString BaseModelDir = FPaths::Combine(GetModelsDirectory(), ModelName);
@@ -52,15 +59,7 @@ FString FOpenPLXUtilities::CreateUniqueModelDirectory(const FString& Filepath)
 		UniqueModelDir = FString::Printf(TEXT("%s_%d"), *BaseModelDir, Suffix++);
 	}
 
-	if (IFileManager::Get().MakeDirectory(*UniqueModelDir, true))
-	{
-		return UniqueModelDir;
-	}
-
-	UE_LOG(
-		LogAGX, Error, TEXT("CreateUniqueModelDirectory: Failed to create directory: %s"),
-		*UniqueModelDir);
-	return "";
+	return UniqueModelDir;
 }
 
 FString FOpenPLXUtilities::RebuildOpenPLXFilePath(FString Path)
@@ -86,43 +85,85 @@ FString FOpenPLXUtilities::RebuildOpenPLXFilePath(FString Path)
 FString FOpenPLXUtilities::CopyAllDependenciesToProject(
 	FString Filepath, const FString& Destination)
 {
-	const TArray<FString> Dependencies = FPLXUtilitiesInternal::GetFileDependencies(Filepath);
-	if (Dependencies.Num() == 0)
-		return ""; // Logging done in GetFileDependencies.
-
 	// Ensure consistent formatting of / and \\ in the path.
 	Filepath = FPaths::ConvertRelativePathToFull(Filepath);
-	const FString SourceRoot = FPaths::GetPath(Filepath);
-	FString CopiedMainFilePath;
 
-	for (const FString& Dep : Dependencies)
+	if (!FPaths::FileExists(Filepath))
 	{
-		if (!Dep.StartsWith(SourceRoot))
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("OpenPLX dependency '%s' is not located in the same directory, or a "
-					 "subdirectory to the OpenPLX file '%s'. It cannot be copied."),
-				*Dep, *Filepath);
-		}
-
-		const FString RelativePath = Dep.RightChop(SourceRoot.Len());
-		const FString TargetPath = FPaths::Combine(Destination, RelativePath);
-
-		const FString TargetDir = FPaths::GetPath(TargetPath);
-		if (!FPaths::DirectoryExists(TargetDir))
-			IFileManager::Get().MakeDirectory(*TargetDir, true);
-
-		if (!FPlatformFileManager::Get().GetPlatformFile().CopyFile(*TargetPath, *Dep))
-		{
-			UE_LOG(LogAGX, Warning, TEXT("Failed to copy OpenPLX dependency: %s"), *Dep);
-		}
-
-		if (Dep == Filepath)
-		{
-			CopiedMainFilePath = TargetPath;
-		}
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FOpenPLXUtilities::CopyAllDependenciesToProject was called with Filepath that "
+				 "does not exist: '%s'"),
+			*Filepath);
+		return "";
 	}
 
-	return CopiedMainFilePath;
+	if (Destination.IsEmpty())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FOpenPLXUtilities::CopyAllDependenciesToProject was called with empty "
+				 "Destination."));
+		return "";
+	}
+
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	// First, we backup any existing file so that we can restore it if this operation fails.
+	FString BackupDir("");
+	if (!Destination.IsEmpty() && FPaths::DirectoryExists(Destination))
+	{
+		const FString DestParentDir = FPaths::GetPath(Destination);
+		BackupDir =
+			FPaths::Combine(DestParentDir, FPaths::GetBaseFilename(Filepath) + FString("_backup_"));
+		if (FPaths::DirectoryExists(BackupDir))
+			PlatformFile.DeleteDirectoryRecursively(*BackupDir);
+
+		PlatformFile.CopyDirectoryTree(*BackupDir, *Destination, true);
+
+		// Delete any old files.
+		PlatformFile.DeleteDirectoryRecursively(*Destination);
+	}
+
+	bool Result = false;
+	try
+	{
+		AGX_CHECK(!FPaths::DirectoryExists(Destination)); // Deleted above.
+		IFileManager::Get().MakeDirectory(*Destination, true);
+		const TArray<FString> BundlePaths = FOpenPLXUtilities::GetBundlePaths();
+		Result = agxopenplx::bake_file(
+			Convert(Filepath), Convert(Destination), /*bake_imports*/ false,
+			ToStdStringVector(BundlePaths));
+	}
+	catch (const std::exception& Ex)
+	{
+		UE_LOG(LogAGX, Error, TEXT("agxopenplx::bake_file threw std::exception: %hs"), Ex.what());
+	}
+	catch (...)
+	{
+		UE_LOG(LogAGX, Error, TEXT("agxopenplx::bake_file threw an unknown exception"));
+	}
+
+	const FString OutputFile = FPaths::Combine(Destination, FPaths::GetCleanFilename(Filepath));
+	if (!Result || !FPaths::FileExists(OutputFile))
+	{
+		// Clean up any partial result from bake_file before returning.
+		if (PlatformFile.DirectoryExists(*Destination))
+			PlatformFile.DeleteDirectoryRecursively(*Destination);
+
+		// Restore (and then remove) backup if it exists.
+		// Note:: DirectoryExists returns true for empty string.
+		if (!BackupDir.IsEmpty() && FPaths::DirectoryExists(BackupDir))
+		{
+			PlatformFile.CopyDirectoryTree(*Destination, *BackupDir, true);
+			PlatformFile.DeleteDirectoryRecursively(*BackupDir);
+		}
+
+		return "";
+	}
+
+	if (!BackupDir.IsEmpty() && FPaths::DirectoryExists(BackupDir))
+		PlatformFile.DeleteDirectoryRecursively(*BackupDir);
+
+	return OutputFile;
 }

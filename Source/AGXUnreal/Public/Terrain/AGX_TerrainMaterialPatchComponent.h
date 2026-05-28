@@ -72,9 +72,9 @@ public:
 	UAGX_TerrainMaterialPatchComponent();
 
 	/**
-	* Whether or not this Component is enabled or not.
-	* If set to false, no patch assignments will occur.
-	*/
+	 * Whether or not this Component is enabled.
+	 * If set to false, no patch assignments will occur.
+	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	bool bEnabled {true};
 
@@ -102,16 +102,20 @@ public:
 
 	const TArray<FAGX_TerrainMaterialPatchData>& GetTerrainMaterialPatches() const;
 
+	/**
+	 * Force an update of the Terrain Material Patches given the current children (Shape)
+	 * attachments.
+	 */
 	void UpdateTerrainMaterialPatches();
 
 	/**
 	 * Add a Shape instance of an existing patch.
-	 * If the ShapeName does not match an
-	 * existing Shape Component's name, this
-	 * function has no effect.
+	 * If the ShapeName does not match an existing Shape Component's name, this
+	 * function has no effect, and false is returned.
+	 * Returns true if the Patch Shape Instance was succesfully added.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	void AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
+	bool AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
 
 	/**
 	 * Apply a Terrain Material patch during Play.
@@ -148,19 +152,20 @@ public:
 #endif
 
 private:
-	void AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
+	// Returns true if data was already present or if it was added succesfully.
+	bool AddAssignmentDataIfMissing(const UAGX_ShapeComponent& ShapeComponent);
 
-	void RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
+	// Returns true if data was already non-existing or was succesfully removed.
+	bool RemoveAssignmentDataIfPresent(const UAGX_ShapeComponent& ShapeComponent);
 
 	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
-
-	void RestoreShape(UAGX_ShapeComponent& ShapeComponent);
+	void RestoreShapeFromTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 
 	void ApplyTerrainMaterialPatch(
 		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
 
 	void ApplyTerrainMaterialPatch(
+		const TArray<FAGX_Placement>& Placements, FTerrainBarrier& TerrainBarrier,
 		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-		UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
-		FTerrainBarrier& TerrainBarrier);
+		UAGX_ShapeMaterial* ShapeMaterial);
 };

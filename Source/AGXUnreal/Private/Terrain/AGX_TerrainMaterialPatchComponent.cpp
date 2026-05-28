@@ -149,32 +149,50 @@ void UAGX_TerrainMaterialPatchComponent::UpdateTerrainMaterialPatches()
 		});
 }
 
-void UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
+bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	FName ShapeName, const FAGX_Placement& Placement)
 {
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	if (ShapeName.IsNone())
-		return;
+		return false;
 
 	FAGX_TerrainMaterialPatchData* PatchData = TerrainMaterialPatches.FindByPredicate(
 		[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
 		{ return Data.ShapeComponentName == ShapeName; });
 	if (PatchData == nullptr)
-		return;
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddPatchShapeInstance called on Terrain Material Patch Component '%s' in '%s', "
+				 "but no Patch Data could be matched against given ShapeName '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *ShapeName.ToString());
+		return false;
+	}
 
 	PatchData->InstancePlacements.Add(Placement);
 
-	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
-	{
-		FTerrainBarrier* TerrainBarrier =
-			AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
-		if (TerrainBarrier == nullptr)
-			return;
+	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
+		return false;
 
-		FAGX_TerrainMaterialPatchData SingleInstancePatch = *PatchData;
-		SingleInstancePatch.InstancePlacements.Reset(1);
-		SingleInstancePatch.InstancePlacements.Add(Placement);
-		ApplyTerrainMaterialPatch(SingleInstancePatch, *TerrainBarrier);
+	FTerrainBarrier* TerrainBarrier =
+		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
+	if (TerrainBarrier == nullptr)
+		return false;
+
+	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData->ShapeComponentName);
+	if (Shape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddPatchShapeInstance called on Terrain Material Patch Component '%s' in '%s', "
+				 "could not find attached Shape given ShapeName '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *ShapeName.ToString());
+		return false;
 	}
+
+	ApplyTerrainMaterialPatch(
+		{Placement}, *TerrainBarrier, Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial);
+	return true;
 }
 
 void UAGX_TerrainMaterialPatchComponent::AddPatch(
@@ -199,9 +217,9 @@ void UAGX_TerrainMaterialPatchComponent::AddPatch(
 		return;
 	}
 
-	TArray<FAGX_Placement> Placement {FAGX_Placement()};
+	TArray<FAGX_Placement> Placements {FAGX_Placement()};
 	ApplyTerrainMaterialPatch(
-		ShapeComponent, TerrainMaterial, ShapeMaterial, Placement, *TerrainBarrier);
+		Placements, *TerrainBarrier, ShapeComponent, TerrainMaterial, ShapeMaterial);
 }
 
 #if WITH_EDITOR
@@ -263,39 +281,51 @@ TArray<UAGX_ShapeComponent*> UAGX_TerrainMaterialPatchComponent::GetAttachedShap
 	return Shapes;
 }
 
-void UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
+bool UAGX_TerrainMaterialPatchComponent::AddAssignmentDataIfMissing(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
 		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
-		return;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AddAssignmentDataIfMissing called AGX Terrain Material Patch Component '%s' in "
+				 "'%s' with empty Shape Name."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
 	}
 
 	if (TerrainMaterialPatches.FindByPredicate(
 			[ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 			{ return Assignment.ShapeComponentName == ShapeName; }) != nullptr)
 	{
-		return;
+		return true;
 	}
 
 	FAGX_TerrainMaterialPatchData& NewAssignment = TerrainMaterialPatches.AddDefaulted_GetRef();
 	NewAssignment.ShapeComponentName = ShapeName;
+	return true;
 }
 
-void UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
+bool UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 	const UAGX_ShapeComponent& ShapeComponent)
 {
 	const FName ShapeName =
 		AGX_TerrainMaterialPatchComponent_helpers::GetShapeComponentName(ShapeComponent);
 	if (ShapeName.IsNone())
 	{
-		return;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("RemoveAssignmentDataIfPresent called AGX Terrain Material Patch Component '%s' "
+				 "in '%s' with empty Shape Name."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
 	}
 
 	TerrainMaterialPatches.RemoveAll([ShapeName](const FAGX_TerrainMaterialPatchData& Assignment)
 									 { return Assignment.ShapeComponentName == ShapeName; });
+	return true;
 }
 
 void UAGX_TerrainMaterialPatchComponent::BeginPlay()
@@ -312,8 +342,8 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 	if (TerrainBarrier == nullptr)
 	{
 		const FString Message = FString::Printf(
-			TEXT("AGX Terrain Material Patch '%s' in '%s' could not find an AGX Terrain or AGX "
-				 "Movable Terrain parent. Ignoring terrain material patch assignments."),
+			TEXT("AGX Terrain Material Patch Component '%s' in '%s' could not find an AGX Terrain "
+				 "or AGX Movable Terrain parent. Ignoring terrain material patch assignments."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
@@ -332,17 +362,20 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 
 	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData.ShapeComponentName);
 	ApplyTerrainMaterialPatch(
-		Shape, PatchData.TerrainMaterial, PatchData.ShapeMaterial, PatchData.InstancePlacements,
-		TerrainBarrier);
+		PatchData.InstancePlacements, TerrainBarrier, Shape, PatchData.TerrainMaterial,
+		PatchData.ShapeMaterial);
 }
 
 void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
+	const TArray<FAGX_Placement>& Placements, FTerrainBarrier& TerrainBarrier,
 	UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-	UAGX_ShapeMaterial* ShapeMaterial, const TArray<FAGX_Placement>& Placements,
-	FTerrainBarrier& TerrainBarrier)
+	UAGX_ShapeMaterial* ShapeMaterial)
 {
 	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	if (!bEnabled)
+		return;
+
+	if (Shape == nullptr || TerrainMaterial == nullptr)
 		return;
 
 	FTerrainMaterialBarrier* TerrainMaterialBarrier =
@@ -371,14 +404,20 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 	FShapeMaterialBarrier* ShapeMaterialBarrier =
 		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
 
-	const FTransform OriginalRelativeTransform = Shape->GetRelativeTransform();
+	const FVector OriginalWorldPosition = ShapeBarrier->GetWorldPosition();
+	const FQuat OriginalWorldRotation = ShapeBarrier->GetWorldRotation();
+	const FTransform OriginalWorldTransform(OriginalWorldRotation, OriginalWorldPosition);
 	for (const FAGX_Placement& Placement : Placements)
 	{
 		const FTransform Transform = Placement.ToTransform();
 
-		// Instance transforms are interpreted relative to the shape's original transform.
-		Shape->SetRelativeTransform(OriginalRelativeTransform * Transform);
-		Shape->UpdateComponentToWorld();
+		// Instance transforms are interpreted relative to the shape's original world transform.
+		const FVector StampedWorldPosition =
+			OriginalWorldTransform.TransformPositionNoScale(Transform.GetLocation());
+		const FQuat StampedWorldRotation =
+			OriginalWorldTransform.TransformRotation(Transform.GetRotation());
+		ShapeBarrier->SetWorldPosition(StampedWorldPosition);
+		ShapeBarrier->SetWorldRotation(StampedWorldRotation);
 
 		const int32 NumVoxels =
 			TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
@@ -419,14 +458,23 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 		}
 	}
 
-	// Finally, we restore the original Shapes Transform since we moved it during "stamping"
-	// above. We also release its Native if we created it. This is since the Shape may have the
-	// bIncludeInSimulation set to false, in which case it will crash on Blueprint Reconstruction
-	// since no one (Simulation) is keeping it alive.
-	Shape->SetRelativeTransform(OriginalRelativeTransform);
-	Shape->UpdateComponentToWorld();
-	if (!bShapeHadNative && Shape->HasNative())
-		Shape->ReleaseNative();
+	if (Shape->HasNative())
+	{
+		if (bShapeHadNative)
+		{
+			// Restore the original native world transform since we changed it during
+			// "stamping" above.
+			ShapeBarrier->SetWorldPosition(OriginalWorldPosition);
+			ShapeBarrier->SetWorldRotation(OriginalWorldRotation);
+		}
+		else
+		{
+			// Release the Shape Native since we created it. This is important since the
+			// Shape may have the bIncludeInSimulation set to false, in which case it will crash on
+			// Blueprint Reconstruction since no one (Simulation) is keeping it alive.
+			Shape->ReleaseNative();
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -445,7 +493,7 @@ void UAGX_TerrainMaterialPatchComponent::OnChildDetached(USceneComponent* Child)
 	Super::OnChildDetached(Child);
 	if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
 	{
-		RestoreShape(*ShapeComponent);
+		RestoreShapeFromTerrainMaterialPatch(*ShapeComponent);
 		RemoveAssignmentDataIfPresent(*ShapeComponent);
 	}
 }
@@ -459,7 +507,8 @@ void UAGX_TerrainMaterialPatchComponent::PrepareShapeForTerrainMaterialPatch(
 	UAGX_ShapeComponent::ApplySensorMaterial(ShapeComponent);
 }
 
-void UAGX_TerrainMaterialPatchComponent::RestoreShape(UAGX_ShapeComponent& ShapeComponent)
+void UAGX_TerrainMaterialPatchComponent::RestoreShapeFromTerrainMaterialPatch(
+	UAGX_ShapeComponent& ShapeComponent)
 {
 	ShapeComponent.bIncludeInSimulation = true;
 	ShapeComponent.SetHiddenInGame(false);

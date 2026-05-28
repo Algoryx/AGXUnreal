@@ -121,7 +121,7 @@ public:
 	 *      ROTATIONAL_2, torsional stiffness
 	 * Damping - this must be a vector of length 5 with damping. Same order as stiffness.
 	 */
-	FTrackPropertiesBarrier CreateFromComplianceAndDamping(
+	static FTrackPropertiesBarrier CreateFromComplianceAndDamping(
 		const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength, double SimulationTimeStep);
 
 private:

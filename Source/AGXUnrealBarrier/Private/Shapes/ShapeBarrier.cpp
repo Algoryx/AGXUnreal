@@ -14,8 +14,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include "agxCollide/CollisionGroupManager.h"
-#include <agxUtil/agxUtil.h>
+#include <agxCollide/CollisionGroupManager.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine includes.
@@ -203,6 +202,21 @@ bool FShapeBarrier::GetEnableCollisions() const
 	return NativeRef->NativeGeometry->getEnableCollisions();
 }
 
+void FShapeBarrier::SetEnableCollisions(FShapeBarrier& OtherShape, bool bCanCollide)
+{
+	check(HasNative());
+	check(OtherShape.HasNative());
+	NativeRef->NativeGeometry->setEnableCollisions(
+		OtherShape.GetNative()->NativeGeometry, bCanCollide);
+}
+
+bool FShapeBarrier::GetEnableCollisions(FShapeBarrier& OtherShape) const
+{
+	check(HasNative());
+	check(OtherShape.HasNative());
+	return NativeRef->NativeGeometry->getEnableCollisions(OtherShape.GetNative()->NativeGeometry);
+}
+
 void FShapeBarrier::SetEnabled(bool Enabled)
 {
 	check(HasNative());
@@ -313,47 +327,13 @@ FAGX_RenderMaterial FShapeBarrier::GetRenderMaterial() const
 {
 	check(HasNative());
 
-	FAGX_RenderMaterial RenderMaterialUnreal;
 	if (!HasRenderMaterial())
 	{
 		// Default-created FAGX_RenderMaterial has all bHas-properties set to false.
-		return RenderMaterialUnreal;
+		return FAGX_RenderMaterial {};
 	}
 
-	const agxCollide::RenderData* RenderDataAgx = NativeRef->NativeShape->getRenderData();
-	const agxCollide::RenderMaterial* RenderMaterialAgx = RenderDataAgx->getRenderMaterial();
-
-	RenderMaterialUnreal.Guid = Convert(RenderMaterialAgx->getUuid());
-
-	{
-		agx::String NameAGX = RenderMaterialAgx->getName();
-		RenderMaterialUnreal.Name = NameAGX.empty() ? NAME_None : FName(*Convert(NameAGX));
-
-		// Must be called to avoid crash due to different allocators used by AGX Dynamics and
-		// Unreal Engine.
-		agxUtil::freeContainerMemory(NameAGX);
-	}
-
-	if ((RenderMaterialUnreal.bHasDiffuse = RenderMaterialAgx->hasDiffuseColor()) == true)
-	{
-		agx::Vec4 DiffuseAgx(RenderMaterialAgx->getDiffuseColor());
-		RenderMaterialUnreal.Diffuse = Convert(DiffuseAgx);
-	}
-	if ((RenderMaterialUnreal.bHasAmbient = RenderMaterialAgx->hasAmbientColor()) == true)
-	{
-		agx::Vec4 AmbientAgx(RenderMaterialAgx->getAmbientColor());
-		RenderMaterialUnreal.Ambient = Convert(AmbientAgx);
-	}
-	if ((RenderMaterialUnreal.bHasEmissive = RenderMaterialAgx->hasEmissiveColor()) == true)
-	{
-		agx::Vec4 EmissiveAgx(RenderMaterialAgx->getEmissiveColor());
-		RenderMaterialUnreal.Emissive = Convert(EmissiveAgx);
-	}
-	if ((RenderMaterialUnreal.bHasShininess = RenderMaterialAgx->hasShininess()) == true)
-	{
-		RenderMaterialUnreal.Shininess = RenderMaterialAgx->getShininess();
-	}
-	return RenderMaterialUnreal;
+	return GetRenderData().GetMaterial();
 }
 
 FRigidBodyBarrier FShapeBarrier::GetRigidBody() const

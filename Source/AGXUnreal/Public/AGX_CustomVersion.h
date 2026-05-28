@@ -77,8 +77,12 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// created by it, anymore, and instead uses one or several rendering Components to do that.
 		ParticleRenderingByRenderingComponents,
 
-		// Track Properties API change, now uses stiffness and attenuation.
-		TerrainPropertiesUsesStiffnessAttenuation,
+		// Contact Material restitution default value changed from 0.5 to 0.0.
+		CMRestitutionDefaultIsZero,
+
+		// Track Properties API change, now uses stiffness and attenuation and ReducedOrder track
+		// implementation.
+		TrackReducedOrderTrackImplementation,
 
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,

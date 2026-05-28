@@ -153,7 +153,7 @@ namespace TrimshShapeComponent_helpers
 		// RenderData).
 		const bool Visible =
 			Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
-		Component->SetVisibility(Visible);
+		Component->SetVisibility(Visible, /*bPropagateToChildren*/ false);
 
 		Context.CollisionStaticMeshCom->Add(Barrier.GetShapeGuid(), Component);
 

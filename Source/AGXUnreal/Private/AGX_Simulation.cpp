@@ -19,6 +19,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/ShapeBarrier.h"
@@ -785,6 +786,13 @@ void UAGX_Simulation::Deinitialize()
 	if (DebuggerBarrier.HasNative())
 		StopWebDebugging();
 
+	if (auto LidarSurfaceMaterial =
+			GetAssetFrom<UAGX_LidarSurfaceMaterial>(DefaultLidarSurfaceMaterial))
+	{
+		if (LidarSurfaceMaterial->HasNative())
+			LidarSurfaceMaterial->ReleaseNative();
+	}
+
 	Super::Deinitialize();
 	if (HasNative())
 		ReleaseNative();
@@ -1236,7 +1244,7 @@ void UAGX_Simulation::Step(double DeltaTime)
 		// It is somewhat of a hack, but is the best solution known currently without making e.g.
 		// a specialized Primitive Component or similar talking to the GPU more directly.
 		FAGX_RenderUtilities::DrawContactPoints(
-			NativeBarrier.GetShapeContacts(), DeltaTime * 1.5f, GetWorld());
+			NativeBarrier.GetShapeContacts(), ShapeContactsSize, DeltaTime * 1.5f, GetWorld());
 	}
 }
 

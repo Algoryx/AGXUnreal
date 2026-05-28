@@ -79,19 +79,20 @@ bool FAGX_RenderUtilities::UpdateRenderTextureRegions(
 }
 
 void FAGX_RenderUtilities::DrawContactPoints(
-	const TArray<FShapeContactBarrier>& ShapeContacts, float LifeTime, UWorld* World)
+	const TArray<FShapeContactBarrier>& ShapeContacts, float Size, float LifeTime, UWorld* World)
 {
 	for (const FShapeContactBarrier& ShapeContact : ShapeContacts)
 	{
 		for (const FContactPointBarrier& ContactPoint : ShapeContact.GetContactPoints())
 		{
 			const FVector PointLocation = ContactPoint.GetLocation();
-			DrawDebugSphere(World, PointLocation, 1.5f, 10, FColor::Orange, false, LifeTime, 99);
+			DrawDebugSphere(World, PointLocation, Size, 10, FColor::Orange, false, LifeTime, 99);
 
-			// The Normal is drawn as a 3.5 cm line.
-			const FVector NormalEnd = PointLocation + ContactPoint.GetNormal() * 3.5;
+			// The Normal is drawn as a line.
+			const FVector NormalEnd = PointLocation + ContactPoint.GetNormal() * Size * 3.0;
+			const float Thickness = Size * 0.3;
 			DrawDebugLine(
-				World, PointLocation, NormalEnd, FColor::Orange, false, LifeTime, 99, 0.35f);
+				World, PointLocation, NormalEnd, FColor::Orange, false, LifeTime, 99, Thickness);
 		}
 	}
 }

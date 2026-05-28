@@ -267,6 +267,15 @@ public: // Properties.
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar")
 	int32 RaytraceDeviceIndex {0};
 
+	/**
+	 * Default Lidar Surface Material assigned to all objects added to a Sensor Environment
+	 * when the object has no explicitly assigned Lidar Surface Material.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Lidar",
+		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
+	FSoftObjectPath DefaultLidarSurfaceMaterial;
+
 #if WITH_EDITORONLY_DATA
 
 	/**
@@ -338,6 +347,14 @@ public: // Properties.
 	 */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bDrawShapeContacts {false};
+
+	/**
+	 * The size to draw shape contacts when Draw Shape Contacts is enabled [cm].
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadWrite, Category = "Debug",
+		Meta = (EditCondition = "bDrawShapeContacts"))
+	float ShapeContactsSize {1.5f};
 
 	/**
 	 * Returns all Shape Contacts in the currently running Simulation.

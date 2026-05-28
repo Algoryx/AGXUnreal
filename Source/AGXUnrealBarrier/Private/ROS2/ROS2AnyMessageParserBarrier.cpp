@@ -16,6 +16,7 @@
 #include "EndAGXIncludes.h"
 
 FROS2AnyMessageParserBarrier::FROS2AnyMessageParserBarrier()
+	: Native(std::make_unique<FAnyMessageParser>(nullptr))
 {
 }
 
@@ -39,8 +40,8 @@ FROS2AnyMessageParserBarrier::FROS2AnyMessageParserBarrier(
 FROS2AnyMessageParserBarrier& FROS2AnyMessageParserBarrier::operator=(
 	FROS2AnyMessageParserBarrier&& Other) noexcept
 {
-	Native = std::move(Other.Native);
-	Other.Native = nullptr;
+	Native->Native = std::move(Other.Native->Native);
+	Other.Native->Native = nullptr;
 	return *this;
 }
 
@@ -52,7 +53,7 @@ bool FROS2AnyMessageParserBarrier::HasNative() const
 void FROS2AnyMessageParserBarrier::AllocateNative()
 {
 	check(!HasNative());
-	Native = std::make_unique<FAnyMessageParser>(new agxROS2::AnyMessageParser());
+	Native->Native.reset(new agxROS2::AnyMessageParser());
 }
 
 FAnyMessageParser* FROS2AnyMessageParserBarrier::GetNative()
@@ -67,7 +68,7 @@ const FAnyMessageParser* FROS2AnyMessageParserBarrier::GetNative() const
 
 void FROS2AnyMessageParserBarrier::ReleaseNative()
 {
-	Native = nullptr;
+	Native->Native = nullptr;
 }
 
 void FROS2AnyMessageParserBarrier::BeginParse(const FAGX_AgxMsgsAny& InMessage)

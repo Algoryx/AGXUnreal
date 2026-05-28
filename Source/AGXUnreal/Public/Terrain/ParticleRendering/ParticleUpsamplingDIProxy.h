@@ -9,7 +9,7 @@
 #include "NiagaraDataInterface.h"
 
 /** This proxy is used to safely copy data between game thread and render thread*/
-struct AGXUNREALSHADERS_API FParticleUpsamplingDIProxy : FNiagaraDataInterfaceProxy
+struct AGXUNREAL_API FParticleUpsamplingDIProxy : FNiagaraDataInterfaceProxy
 {
 	// ~Begin FNiagaraDataInterfaceProxy interface.
 

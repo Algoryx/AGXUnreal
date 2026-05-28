@@ -9,7 +9,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
-#include "Vehicle/AGX_TrackComponent.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -17,124 +17,122 @@
 
 void UAGX_TrackProperties::SetBendingStiffnessLateral(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(BendingStiffnessLateral, Stiffness, SetBendingStiffnessLateral);
+	AGX_ASSET_SETTER(BendingStiffnessLateral, Stiffness);
 }
 
 double UAGX_TrackProperties::GetBendingStiffnessLateral() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(BendingStiffnessLateral, GetBendingStiffnessLateral);
+	AGX_ASSET_GETTER(BendingStiffnessLateral);
 }
 
 void UAGX_TrackProperties::SetBendingAttenuationLateral(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		BendingAttenuationLateral, Attenuation, SetBendingAttenuationLateral);
+	AGX_ASSET_SETTER(BendingAttenuationLateral, Attenuation);
 }
 
 double UAGX_TrackProperties::GetBendingAttenuationLateral() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(BendingAttenuationLateral, GetBendingAttenuationLateral);
+	AGX_ASSET_GETTER(BendingAttenuationLateral);
 }
 
 void UAGX_TrackProperties::SetBendingStiffnessVertical(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(BendingStiffnessVertical, Stiffness, SetBendingStiffnessVertical);
+	AGX_ASSET_SETTER(BendingStiffnessVertical, Stiffness);
 }
 
 double UAGX_TrackProperties::GetBendingStiffnessVertical() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(BendingStiffnessVertical, GetBendingStiffnessVertical);
+	AGX_ASSET_GETTER(BendingStiffnessVertical);
 }
 
 void UAGX_TrackProperties::SetBendingAttenuationVertical(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		BendingAttenuationVertical, Attenuation, SetBendingAttenuationVertical);
+	AGX_ASSET_SETTER(BendingAttenuationVertical, Attenuation);
 }
 
 double UAGX_TrackProperties::GetBendingAttenuationVertical() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(BendingAttenuationVertical, GetBendingAttenuationVertical);
+	AGX_ASSET_GETTER(BendingAttenuationVertical);
 }
 
 void UAGX_TrackProperties::SetShearStiffnessLateral(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(ShearStiffnessLateral, Stiffness, SetShearStiffnessLateral);
+	AGX_ASSET_SETTER(ShearStiffnessLateral, Stiffness);
 }
 
 double UAGX_TrackProperties::GetShearStiffnessLateral() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(ShearStiffnessLateral, GetShearStiffnessLateral);
+	AGX_ASSET_GETTER(ShearStiffnessLateral);
 }
 
 void UAGX_TrackProperties::SetShearAttenuationLateral(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(ShearAttenuationLateral, Attenuation, SetShearAttenuationLateral);
+	AGX_ASSET_SETTER(ShearAttenuationLateral, Attenuation);
 }
 
 double UAGX_TrackProperties::GetShearAttenuationLateral() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(ShearAttenuationLateral, GetShearAttenuationLateral);
+	AGX_ASSET_GETTER(ShearAttenuationLateral);
 }
 
 void UAGX_TrackProperties::SetShearStiffnessVertical(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(ShearStiffnessVertical, Stiffness, SetShearStiffnessVertical);
+	AGX_ASSET_SETTER(ShearStiffnessVertical, Stiffness);
 }
 
 double UAGX_TrackProperties::GetShearStiffnessVertical() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(ShearStiffnessVertical, GetShearStiffnessVertical);
+	AGX_ASSET_GETTER(ShearStiffnessVertical);
 }
 
 void UAGX_TrackProperties::SetShearAttenuationVertical(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(ShearAttenuationVertical, Attenuation, SetShearAttenuationVertical);
+	AGX_ASSET_SETTER(ShearAttenuationVertical, Attenuation);
 }
 
 double UAGX_TrackProperties::GetShearAttenuationVertical() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(ShearAttenuationVertical, GetShearAttenuationVertical);
+	AGX_ASSET_GETTER(ShearAttenuationVertical);
 }
 
 void UAGX_TrackProperties::SetTensileStiffness(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(TensileStiffness, Stiffness, SetTensileStiffness);
+	AGX_ASSET_SETTER(TensileStiffness, Stiffness);
 }
 
 double UAGX_TrackProperties::GetTensileStiffness() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TensileStiffness, GetTensileStiffness);
+	AGX_ASSET_GETTER(TensileStiffness);
 }
 
 void UAGX_TrackProperties::SetTensileAttenuation(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(TensileAttenuation, Attenuation, SetTensileAttenuation);
+	AGX_ASSET_SETTER(TensileAttenuation, Attenuation);
 }
 
 double UAGX_TrackProperties::GetTensileAttenuation() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TensileAttenuation, GetTensileAttenuation);
+	AGX_ASSET_GETTER(TensileAttenuation);
 }
 
 void UAGX_TrackProperties::SetTorsionalStiffness(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(TorsionalStiffness, Stiffness, SetTorsionalStiffness);
+	AGX_ASSET_SETTER(TorsionalStiffness, Stiffness);
 }
 
 double UAGX_TrackProperties::GetTorsionalStiffness() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TorsionalStiffness, GetTorsionalStiffness);
+	AGX_ASSET_GETTER(TorsionalStiffness);
 }
 
 void UAGX_TrackProperties::SetTorsionalAttenuation(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(TorsionalAttenuation, Attenuation, SetTorsionalAttenuation);
+	AGX_ASSET_SETTER(TorsionalAttenuation, Attenuation);
 }
 
 double UAGX_TrackProperties::GetTorsionalAttenuation() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TorsionalAttenuation, GetTorsionalAttenuation);
+	AGX_ASSET_GETTER(TorsionalAttenuation);
 }
 
 //
@@ -153,13 +151,13 @@ bool UAGX_TrackProperties::GetHingeRangeEnabled() const
 
 void UAGX_TrackProperties::SetHingeRange(FAGX_RealInterval InHingeRange)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(HingeRange, InHingeRange, SetHingeRange);
+	AGX_ASSET_SETTER(HingeRange, InHingeRange);
 }
 
 void UAGX_TrackProperties::SetHingeRange(double Min, double Max)
 {
 	const FAGX_RealInterval Range(Min, Max);
-	AGX_ASSET_SETTER_IMPL_VALUE(HingeRange, Range, SetHingeRange);
+	AGX_ASSET_SETTER(HingeRange, Range);
 }
 
 void UAGX_TrackProperties::SetHingeRange_BP(float Min, float Max)
@@ -169,7 +167,7 @@ void UAGX_TrackProperties::SetHingeRange_BP(float Min, float Max)
 
 FAGX_RealInterval UAGX_TrackProperties::GetHingeRange() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeRange, GetHingeRange);
+	AGX_ASSET_GETTER(HingeRange);
 }
 
 void UAGX_TrackProperties::GetHingeRange(double& Min, double& Max) const
@@ -219,8 +217,7 @@ bool UAGX_TrackProperties::GetOnInitializeTransformNodesToWheelsEnabled() const
 
 void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap(double Overlap)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		TransformNodesToWheelsOverlap, Overlap, SetTransformNodesToWheelsOverlap);
+	AGX_ASSET_SETTER(TransformNodesToWheelsOverlap, Overlap);
 }
 
 void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap_BP(float Overlap)
@@ -230,7 +227,7 @@ void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap_BP(float Overlap)
 
 double UAGX_TrackProperties::GetTransformNodesToWheelsOverlap() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TransformNodesToWheelsOverlap, GetTransformNodesToWheelsOverlap);
+	AGX_ASSET_GETTER(TransformNodesToWheelsOverlap);
 }
 
 float UAGX_TrackProperties::GetTransformNodesToWheelsOverlap_BP() const
@@ -242,8 +239,7 @@ float UAGX_TrackProperties::GetTransformNodesToWheelsOverlap_BP() const
 
 void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold(double MergeThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NodesToWheelsMergeThreshold, MergeThreshold, SetNodesToWheelsMergeThreshold);
+	AGX_ASSET_SETTER(NodesToWheelsMergeThreshold, MergeThreshold);
 }
 
 void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold_BP(float MergeThreshold)
@@ -255,8 +251,7 @@ void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold_BP(float MergeThreshol
 
 void UAGX_TrackProperties::SetNodesToWheelsSplitThreshold(double SplitThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NodesToWheelsSplitThreshold, SplitThreshold, SetNodesToWheelsSplitThreshold);
+	AGX_ASSET_SETTER(NodesToWheelsSplitThreshold, SplitThreshold);
 }
 
 void UAGX_TrackProperties::SetNodesToWheelsSplitThreshold_BP(float SplitThreshold)
@@ -278,23 +273,19 @@ void UAGX_TrackProperties::SetNumNodesIncludedInAverageDirection(int32 NumInclud
 		return;
 	}
 
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NumNodesIncludedInAverageDirection, NumIncludedNodes,
-		SetNumNodesIncludedInAverageDirection);
+	AGX_ASSET_SETTER(NumNodesIncludedInAverageDirection, NumIncludedNodes);
 }
 
 int32 UAGX_TrackProperties::GetNumNodesIncludedInAverageDirection() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		NumNodesIncludedInAverageDirection, GetNumNodesIncludedInAverageDirection);
+	AGX_ASSET_GETTER(NumNodesIncludedInAverageDirection);
 }
 
 // Stabilizing hinge normal force.
 
 void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce(double MinNormalForce)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		MinStabilizingHingeNormalForce, MinNormalForce, SetMinStabilizingHingeNormalForce);
+	AGX_ASSET_SETTER(MinStabilizingHingeNormalForce, MinNormalForce);
 }
 
 void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce_BP(float MinNormalForce)
@@ -306,8 +297,7 @@ void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce_BP(float MinNormalF
 
 void UAGX_TrackProperties::SetStabilizingHingeFrictionParameter(double FrictionParameter)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		StabilizingHingeFrictionParameter, FrictionParameter, SetStabilizingHingeFrictionParameter);
+	AGX_ASSET_SETTER(StabilizingHingeFrictionParameter, FrictionParameter);
 }
 
 void UAGX_TrackProperties::SetStabilizingHingeFrictionParameter_BP(float FrictionParameter)
@@ -571,13 +561,39 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
 }
 
-void UAGX_TrackProperties::SerializeInternal(const UAGX_TrackComponent& Track, FArchive& Archive)
+void UAGX_TrackProperties::Serialize(FArchive& Archive)
 {
+	Super::Serialize(Archive);
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
 
-	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainPropertiesUsesStiffnessAttenuation))
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TrackReducedOrderTrackImplementation))
 	{
-		// TODO
+		TArray<double> Compliance {
+			HingeComplianceTranslational_X_DEPRECATED, HingeComplianceTranslational_Y_DEPRECATED,
+			HingeComplianceTranslational_Z_DEPRECATED, HingeComplianceRotational_X_DEPRECATED,
+			HingeComplianceRotational_Y_DEPRECATED};
+
+		TArray<double> Damping {
+			HingeSpookDampingTranslational_X_DEPRECATED,
+			HingeSpookDampingTranslational_Y_DEPRECATED,
+			HingeSpookDampingTranslational_Z_DEPRECATED, HingeSpookDampingRotational_X_DEPRECATED,
+			HingeSpookDampingRotational_Y_DEPRECATED};
+
+		// Best guess. We cannot know this value at this time.
+		// Even if we re-created the Track owning this TrackProperties it would not be enough since
+		// multiple tracks can share TrackProperties, so the node length cannot be known.
+		const double NodeLength = 10.0;
+
+		auto Sim = Cast<UAGX_Simulation>(UAGX_Simulation::StaticClass()->GetDefaultObject());
+		const double StepForwardTime = Sim != nullptr ? Sim->TimeStep : (1.0 / 60.0);
+
+		FTrackPropertiesBarrier Barrier = FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
+			Compliance, Damping, NodeLength, StepForwardTime);
+		CopyFrom(Barrier);
+
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
 	}
 }
 

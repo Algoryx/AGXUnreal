@@ -98,8 +98,7 @@ public:
 	 * Sets the delta repose angle of the material, used to caluclate the angle of repose for a
 	 * material [deg].
 	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Material Bulk")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Bulk")
 	FAGX_Real DeltaReposeAngle;
 
 public:

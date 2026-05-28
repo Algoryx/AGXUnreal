@@ -3,6 +3,7 @@
 #include "Vehicle/TrackPropertiesBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/TrackPropertiesRef.h"
 
@@ -10,9 +11,11 @@
 #include "BeginAGXIncludes.h"
 #include <agx/Hinge.h>
 #include <agxVehicle/TrackProperties.h>
+#include <agxVehicle/TrackUtils.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine includes.
+#include <Math/UnrealMathUtility.h>
 #include <Misc/AssertionMacros.h>
 
 FTrackPropertiesBarrier::FTrackPropertiesBarrier()
@@ -74,8 +77,7 @@ FGuid FTrackPropertiesBarrier::GetGuid() const
 void FTrackPropertiesBarrier::SetBendingStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setBendingStiffness(Stiffness,
-	// agxVehicle::TrackProperties::Axis::LATERAL);
+	NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
 double FTrackPropertiesBarrier::GetBendingStiffnessLateral() const
@@ -100,8 +102,7 @@ double FTrackPropertiesBarrier::GetBendingAttenuationLateral() const
 void FTrackPropertiesBarrier::SetBendingStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setBendingStiffness(Stiffness,
-	// agxVehicle::TrackProperties::Axis::VERTICAL);
+	NativeRef->Native->setBendingStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
 double FTrackPropertiesBarrier::GetBendingStiffnessVertical() const
@@ -126,7 +127,7 @@ double FTrackPropertiesBarrier::GetBendingAttenuationVertical() const
 void FTrackPropertiesBarrier::SetShearStiffnessLateral(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
+	NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::LATERAL);
 }
 
 double FTrackPropertiesBarrier::GetShearStiffnessLateral() const
@@ -150,7 +151,7 @@ double FTrackPropertiesBarrier::GetShearAttenuationLateral() const
 void FTrackPropertiesBarrier::SetShearStiffnessVertical(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
+	NativeRef->Native->setShearStiffness(Stiffness, agxVehicle::TrackProperties::Axis::VERTICAL);
 }
 
 double FTrackPropertiesBarrier::GetShearStiffnessVertical() const
@@ -175,7 +176,7 @@ double FTrackPropertiesBarrier::GetShearAttenuationVertical() const
 void FTrackPropertiesBarrier::SetTensileStiffness(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setTensileStiffness(Stiffness);
+	NativeRef->Native->setTensileStiffness(Stiffness);
 }
 
 double FTrackPropertiesBarrier::GetTensileStiffness() const
@@ -199,7 +200,7 @@ double FTrackPropertiesBarrier::GetTensileAttenuation() const
 void FTrackPropertiesBarrier::SetTorsionalStiffness(double Stiffness)
 {
 	check(HasNative());
-	// NativeRef->Native->setTorsionalStiffness(Stiffness);
+	NativeRef->Native->setTorsionalStiffness(Stiffness);
 }
 
 double FTrackPropertiesBarrier::GetTorsionalStiffness() const
@@ -355,16 +356,55 @@ double FTrackPropertiesBarrier::GetStabilizingHingeFrictionParameter() const
 
 FTrackPropertiesBarrier FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
 	const TArray<double>& Compliance, const TArray<double>& Damping, double NodeLength,
-	double SimulationTimeStep)
+	double TimeStep)
 {
+	if (FMath::IsNearlyZero(TimeStep))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: TimeStep is almost "
+				 "zero (%g)."),
+			TimeStep);
+		return FTrackPropertiesBarrier {};
+	}
+
+	constexpr int32 ExpectedNumElements = 5;
+	if (Compliance.Num() != ExpectedNumElements)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: Compliance must "
+				 "contain exactly %d elements, got %d."),
+			ExpectedNumElements, Compliance.Num());
+		return FTrackPropertiesBarrier {};
+	}
+
+	if (Damping.Num() != ExpectedNumElements)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to create TrackProperties from compliance and damping: Damping must "
+				 "contain exactly %d elements, got %d."),
+			ExpectedNumElements, Damping.Num());
+		return FTrackPropertiesBarrier {};
+	}
+
 	const agx::RealVector ComplianceAGX = ConvertArray<double, double>(Compliance);
 	const agx::RealVector DampingAGX = ConvertArray<double, double>(Damping);
 	const agx::Real NodeLengthAGX = ConvertDistanceToAGX(NodeLength);
 
-	agxVehicle::TrackPropertiesRef Properties =
-		agxVehicle::TrackProperties::createFromComplianceAndDamping(
-			ComplianceAGX, DampingAGX, NodeLengthAGX, SimulationTimeStep);
-	FTrackPropertiesBarrier Barrier(std::make_unique<FTrackPropertiesRef>(Properties.get()));
+	agxVehicle::TrackPropertiesRef Properties = new agxVehicle::TrackProperties();
+	agxVehicle::utils::setTrackStiffnessFromCompliance(Properties, ComplianceAGX, NodeLengthAGX);
 
-	return Barrier;
+	using Axis = agxVehicle::TrackProperties::Axis;
+	Properties->setBendingAttenuation(2.0, Axis::LATERAL); // Default for bending.
+
+	// Attenuation based on (deprecated) damping values.
+	Properties->setShearAttenuation(Damping[0] / TimeStep, Axis::VERTICAL);
+	Properties->setTensileAttenuation(Damping[1] / TimeStep);
+	Properties->setShearAttenuation(Damping[2] / TimeStep, Axis::LATERAL);
+	Properties->setBendingAttenuation(Damping[3] / TimeStep, Axis::VERTICAL);
+	Properties->setTorsionalAttenuation(Damping[4] / TimeStep);
+
+	return FTrackPropertiesBarrier(std::make_unique<FTrackPropertiesRef>(Properties.get()));
 }

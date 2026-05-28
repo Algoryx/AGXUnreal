@@ -36,7 +36,7 @@ enum class EAGX_ContactSolver : uint8
 UENUM(BlueprintType)
 enum class EAGX_FrictionModel : uint8
 {
-	NotDefined = 0,
+	NotDefined,
 
 	/**
 	 * Box friction. Static bounds during solve. The friction box is aligned with the world axes.
@@ -44,7 +44,7 @@ enum class EAGX_FrictionModel : uint8
 	 * impact speed, mass, and gravity, or for continuous contacts equal to the the last normal
 	 * force.
 	 */
-	BoxFriction = 1,
+	BoxFriction,
 
 	/**
 	 * This model uses the current (i.e. correct) normal force received by the solver.
@@ -52,7 +52,7 @@ enum class EAGX_FrictionModel : uint8
 	 * It is computationally more expensive than the box friction model but with a more realistic
 	 * dry friction.
 	 */
-	ScaledBoxFriction = 2,
+	ScaledBoxFriction,
 
 	/**
 	 * This friction model is the default in AGX Dynamics.
@@ -68,47 +68,80 @@ enum class EAGX_FrictionModel : uint8
 	 * projected onto the friction cone, i.e., you will always get friction_force =
 	 * friction_coefficient * normal_force.
 	 */
-	IterativeProjectedConeFriction = 3,
+	IterativeProjectedConeFriction,
 
 	/**
 	 * Box friction model with oriented friction box.
 	 */
-	OrientedBoxFriction = 4,
+	OrientedBoxFriction,
 
 	/**
 	 * Scale box friction model with oriented friction box.
 	 */
-	OrientedScaledBoxFriction = 5,
+	OrientedScaledBoxFriction,
 
 	/**
 	 * Iterative projected cone friction model with oriented friction box.
 	 */
-	OrientedIterativeProjectedConeFriction = 6,
+	OrientedIterativeProjectedConeFriction,
 
 	/**
-	 * Oriented box friction model that uses the same normal force magnitude for all contact points
-	 * associated to this friction model.
+	 * Oriented box friction model that uses the same normal force magnitude for all contact
+	 * points associated to this friction model.
 	 *
 	 * This means that the size of the friction box always will be:
 	 *   Primary Direction   = (Primary) Friction Coefficient * Normal Force Magnitude
 	 *   Secondary Direction = Secondary Friction Coefficient * Normal Force Magnitude
 	 *
 	 * The given normal force can also be scaled with the contact point depth by setting
+	 *
 	 * 'Scale Normal Force With Depth' to true.
 	 */
-	OrientedConstantNormalForceBoxFriction = 7,
+	OrientedConstantNormalForceBoxFriction,
 
 	/**
-	 * Patch Finger Friction model, used for TerrainWheel and GTire only.
+	 * Box friction model where the primary direction is calculated from interacting
+	 * tracks.
+	 */
+	TrackBoxFriction,
+
+	/**
+	 * Scale box friction model where the primary direction is calculated from interacting
+	 * tracks.
+	 */
+	TrackScaledBoxFriction,
+
+	/**
+	 * Iterative projected cone friction model where the primary direction is calculated
+	 * from interacting tracks.
+	 */
+	TrackIterativeProjectedConeFriction,
+	
+	/**
+	 * Patch Finger Friction model, used for TerrainWheel only.
 	 * When using this, some properties in the Contact Material such as bUseContactAreaApproach will
 	 * be overridden in AGX.
 	 */
-	PatchFingerFriction = 8,
+	PatchFingerFriction,
 };
 
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)
 {
 	return FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction;
+}
+
+inline bool SupportsSecondaryFrictionDirections(EAGX_FrictionModel FrictionModel)
+{
+	return FrictionModel == EAGX_FrictionModel::BoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::ScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::IterativeProjectedConeFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction ||
+		   FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackScaledBoxFriction ||
+		   FrictionModel == EAGX_FrictionModel::TrackIterativeProjectedConeFriction;
 }
 
 inline bool IsOrientedFrictionModel(EAGX_FrictionModel FrictionModel)

@@ -15,7 +15,7 @@
 #include <agx/FrictionModel.h>
 #include <agx/OrientedFrictionModels.h>
 #include <agx/RigidBody.h>
-#include <agxVehicle/GTire.h>
+#include <agxVehicle/TrackFrictionModels.h>
 #include "EndAGXIncludes.h"
 
 #include <Misc/AssertionMacros.h>
@@ -53,6 +53,12 @@ namespace
 			case EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction:
 				return new agx::ConstantNormalForceOrientedBoxFrictionModel(
 					0, nullptr, DefaultPrimaryDir);
+			case EAGX_FrictionModel::TrackBoxFriction:
+				return new agxVehicle::TrackBoxFrictionModel();
+			case EAGX_FrictionModel::TrackScaledBoxFriction:
+				return new agxVehicle::TrackScaleBoxFrictionModel();
+			case EAGX_FrictionModel::TrackIterativeProjectedConeFriction:
+				return new agxVehicle::TrackIterativeProjectedConeFrictionModel();
 			default:
 				check(!"ConvertFrictionModelToAgx received unsupported value");
 				return nullptr;
@@ -67,6 +73,19 @@ namespace
 		//       Hierarchically deep types must be cast-tested before their ancestor types!
 		// \todo Consider using typeid() to compare exact types instead.
 
+		if (dynamic_cast<const agxVehicle::TrackIterativeProjectedConeFrictionModel*>(
+				FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackIterativeProjectedConeFriction;
+		}
+		else if (dynamic_cast<const agxVehicle::TrackScaleBoxFrictionModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackScaledBoxFriction;
+		}
+		else if (dynamic_cast<const agxVehicle::TrackBoxFrictionModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::TrackBoxFriction;
+		}
 		if (dynamic_cast<const agx::ConstantNormalForceOrientedBoxFrictionModel*>(FrictionModel))
 		{
 			return EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction;
@@ -258,6 +277,13 @@ bool FContactMaterialBarrier::SetNormalForceMagnitude(double NormalForceMagnitud
 		FrictionModel->setNormalForceMagnitude(NormalForceMagnitude);
 		return true;
 	}
+	else if (
+		auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		TrackModel->setConstantNormalForceMagnitude(NormalForceMagnitude);
+		return true;
+	}
 	else
 	{
 		// \todo If FrictionModel is set AFTER this function call, we could cache the
@@ -266,7 +292,7 @@ bool FContactMaterialBarrier::SetNormalForceMagnitude(double NormalForceMagnitud
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Failed to set NormalForceMagnitude on native ContactMaterial because its "
-				 "FrictionModel has not been set to ConstantNormalForceOrientedBoxFrictionModel."));
+				 "FrictionModel has not been set to a model that supports constant normal force."));
 		return false;
 	}
 }
@@ -279,6 +305,13 @@ bool FContactMaterialBarrier::GetNormalForceMagnitude(double& NormalForceMagnitu
 			NativeRef->Native->getFrictionModel()))
 	{
 		NormalForceMagnitude = FrictionModel->getNormalForceMagnitude();
+		return true;
+	}
+	else if (
+		auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		NormalForceMagnitude = TrackModel->getConstantNormalForceMagnitude();
 		return true;
 	}
 	else
@@ -297,6 +330,13 @@ bool FContactMaterialBarrier::SetEnableScaleNormalForceWithDepth(bool bEnabled)
 		FrictionModel->setEnableScaleWithDepth(bEnabled);
 		return true;
 	}
+	else if (
+		auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		TrackModel->setEnableScaleWithDepth(bEnabled);
+		return true;
+	}
 	else
 	{
 		// \todo If FrictionModel is set AFTER this function call, we could cache the
@@ -305,8 +345,8 @@ bool FContactMaterialBarrier::SetEnableScaleNormalForceWithDepth(bool bEnabled)
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Failed to set EnableScaleNormalForceWithDepth on native ContactMaterial because "
-				 "its "
-				 "FrictionModel has not been set to ConstantNormalForceOrientedBoxFrictionModel."));
+				 "its FrictionModel has not been set to a model that supports constant normal "
+				 "force."));
 		return false;
 	}
 }
@@ -321,10 +361,50 @@ bool FContactMaterialBarrier::GetEnableScaleNormalForceWithDepth(bool& bEnabled)
 		bEnabled = FrictionModel->getEnableScaleWithDepth();
 		return true;
 	}
+	else if (
+		auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		bEnabled = TrackModel->getEnableScaleWithDepth();
+		return true;
+	}
 	else
 	{
 		return false;
 	}
+}
+
+bool FContactMaterialBarrier::SetEnableConstantNormalForceMagnitude(bool bEnabled)
+{
+	check(HasNative());
+
+	if (auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		TrackModel->setEnableConstantNormalForceMagnitude(bEnabled);
+		return true;
+	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Failed to set EnableConstantNormalForceMagnitude on native ContactMaterial "
+				 "because its FrictionModel has not been set to TrackBoxFrictionModel."));
+		return false;
+	}
+}
+
+bool FContactMaterialBarrier::GetEnableConstantNormalForceMagnitude() const
+{
+	check(HasNative());
+
+	if (auto* TrackModel =
+			dynamic_cast<agxVehicle::TrackBoxFrictionModel*>(NativeRef->Native->getFrictionModel()))
+	{
+		return TrackModel->getEnableConstantNormalForceMagnitude();
+	}
+
+	return false;
 }
 
 void FContactMaterialBarrier::SetRestitution(double Restitution)
