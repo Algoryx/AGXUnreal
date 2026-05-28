@@ -112,11 +112,8 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassIcon.AGX_RigidBodyComponent", new IMAGE_BRUSH("Icons/rigid_body_32x32", IconSize16));
 	Style->Set(
-		"ClassIcon.AGX_StaticMeshComponent",
-		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
-	Style->Set(
-		"ClassIcon.AGX_CableComponent",
-		new IMAGE_BRUSH("Icons/cable_32x32", IconSize16));
+		"ClassIcon.AGX_StaticMeshComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
+	Style->Set("ClassIcon.AGX_CableComponent", new IMAGE_BRUSH("Icons/cable_32x32", IconSize16));
 	// Collisions
 	Style->Set(
 		"ClassIcon.AGX_CollisionGroupAdderComponent",
@@ -213,8 +210,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	// Steering
 	Style->Set(
-		"ClassIcon.AGX_SteeringComponent",
-		new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));
+		"ClassIcon.AGX_SteeringComponent", new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));
 	// Tire.
 	Style->Set(
 		"ClassIcon.AGX_TwoBodyTireComponent",
@@ -230,11 +226,13 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_CuttingEdgeComponent",
 		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
-		"ClassIcon.AGX_TerrainMaterialPatchComponent", new IMAGE_BRUSH("Icons/terrain_material_32x32", IconSize16));
+		"ClassIcon.AGX_TerrainMaterialPatchComponent",
+		new IMAGE_BRUSH("Icons/terrain_material_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
-		"ClassIcon.AGX_MovableTerrainComponent", new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize16));
+		"ClassIcon.AGX_MovableTerrainComponent",
+		new IMAGE_BRUSH("Icons/movable_terrain_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_TerrainWheelComponent",
 		new IMAGE_BRUSH("Icons/terrain_wheel_32x32", IconSize16));
@@ -338,6 +336,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	Style->Set(
 		"ClassThumbnail.AGX_TerrainProperties",
 		new IMAGE_BRUSH("Thumbnails/terrain_properties_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_TerrainWheelSettings",
+		new IMAGE_BRUSH("Thumbnails/terrainwheel_settings_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_TrackInternalMergeProperties",
 		new IMAGE_BRUSH("Thumbnails/track_internal_merge_properties_128x128", IconSize128));
