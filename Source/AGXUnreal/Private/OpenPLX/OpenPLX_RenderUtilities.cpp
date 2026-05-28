@@ -27,10 +27,12 @@ namespace
 				return TC_Normalmap;
 			case EOpenPLX_TextureUsage::Raw:
 				return TC_Default;
-			default:
-				checkNoEntry();
-				return TC_Default;
 		}
+
+		UE_LOG(
+			LogAGX, Warning, TEXT("Unknown OpenPLX texture usage '%d'. Using default compression."),
+			static_cast<int32>(Usage));
+		return TC_Default;
 	}
 
 	bool ValidateOpenPLXTextureData(const FOpenPLXTextureData& TextureData)
@@ -40,11 +42,9 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"Cannot create Unreal texture from OpenPLX texture '%s': invalid metadata "
-					"size=%dx%d, channels=%d."),
-				*TextureData.Name, TextureData.Width, TextureData.Height,
-				TextureData.NumChannels);
+				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': invalid metadata "
+					 "size=%dx%d, channels=%d."),
+				*TextureData.Name, TextureData.Width, TextureData.Height, TextureData.NumChannels);
 			return false;
 		}
 
@@ -54,9 +54,8 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"Cannot create Unreal texture from OpenPLX texture '%s': got %d bytes, "
-					"expected %lld."),
+				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': got %d bytes, "
+					 "expected %lld."),
 				*TextureData.Name, TextureData.Pixels.Num(), ExpectedNumBytes);
 			return false;
 		}
@@ -76,9 +75,10 @@ namespace
 				return 2;
 			case 'a':
 				return 3;
-			default:
-				return INDEX_NONE;
 		}
+
+		UE_LOG(LogAGX, Warning, TEXT("Unsupported OpenPLX texture swizzle channel '%c'."), Channel);
+		return INDEX_NONE;
 	}
 
 	bool GetTextureSourceChannels(
@@ -100,9 +100,8 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
-					"has too many channels."),
+				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
+					 "has too many channels."),
 				*TextureData.Name, *TextureData.Swizzle);
 			return false;
 		}
@@ -112,14 +111,12 @@ namespace
 		{
 			const int32 SourceChannelIndex =
 				GetSwizzleChannelIndex(TextureData.Swizzle[ChannelIndex]);
-			if (SourceChannelIndex == INDEX_NONE ||
-				SourceChannelIndex >= TextureData.NumChannels)
+			if (SourceChannelIndex == INDEX_NONE || SourceChannelIndex >= TextureData.NumChannels)
 			{
 				UE_LOG(
 					LogAGX, Warning,
-					TEXT(
-						"Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
-						"is invalid for %d source channels."),
+					TEXT("Cannot create Unreal texture from OpenPLX texture '%s': swizzle '%s' "
+						 "is invalid for %d source channels."),
 					*TextureData.Name, *TextureData.Swizzle, TextureData.NumChannels);
 				return false;
 			}
@@ -140,7 +137,8 @@ namespace
 		OutPixels.SetNumUninitialized(NumPixels);
 		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
-			const uint8* Source = TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
+			const uint8* Source =
+				TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
 			OutPixels[PixelIndex] = Source[SourceChannels[0]];
 		}
 
@@ -161,9 +159,8 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"Cannot create normal map from OpenPLX texture '%s': expected at least 3 "
-					"channels, got %d."),
+				TEXT("Cannot create normal map from OpenPLX texture '%s': expected at least 3 "
+					 "channels, got %d."),
 				*TextureData.Name, NumChannels);
 			return false;
 		}
@@ -172,7 +169,8 @@ namespace
 		OutPixels.SetNumUninitialized(NumPixels * 4);
 		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
-			const uint8* Source = TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
+			const uint8* Source =
+				TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
 			uint8 R = 255;
 			uint8 G = 255;
 			uint8 B = 255;
@@ -198,9 +196,16 @@ namespace
 					B = Source[SourceChannels[2]];
 					A = Source[SourceChannels[3]];
 					break;
-				default:
-					checkNoEntry();
-					return false;
+			}
+
+			if (NumChannels < 1 || NumChannels > 4)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Cannot create Unreal texture from OpenPLX texture '%s': unsupported "
+						 "channel count %d."),
+					*TextureData.Name, NumChannels);
+				return false;
 			}
 
 			uint8* Destination = OutPixels.GetData() + PixelIndex * 4;
@@ -231,11 +236,10 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	}
 
 	FString WantedName = TextureData.Name.IsEmpty()
-								   ? FString::Printf(
-										 TEXT("T_Texture_%s"), *TextureData.Guid.ToString())
-								   : FString::Printf(TEXT("T_%s"), *TextureData.Name);
+							 ? FString::Printf(TEXT("T_Texture_%s"), *TextureData.Guid.ToString())
+							 : FString::Printf(TEXT("T_%s"), *TextureData.Name);
 	if (WantedName.StartsWith(TEXT("T_T_")))
-		WantedName.RemoveFromStart(TEXT("T_"));
+		WantedName.RemoveFromStart(TEXT("T_")); // Texture files may start with T_ already.
 
 	const FString TextureName = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		&Owner, WantedName, UTexture2D::StaticClass());
@@ -272,8 +276,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	if (MipData == nullptr)
 	{
 		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Failed to allocate mip data for OpenPLX texture '%s'."),
+			LogAGX, Warning, TEXT("Failed to allocate mip data for OpenPLX texture '%s'."),
 			*TextureData.Name);
 		Mip->BulkData.Unlock();
 		return nullptr;
