@@ -106,6 +106,15 @@ namespace
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
 					break;
 				}
+				case agxCollide::Shape::TIRE_SHAPE:
+				{
+					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// internally by TerrainWheel and still uses type Cylinder.
+					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
+					OutSimObjects.GetCylinderShapes().Add(
+						AGXBarrierFactories::CreateCylinderShapeBarrier(Cylinder));
+					break;
+				}
 				case agxCollide::Shape::TRIMESH:
 				{
 					agxCollide::Trimesh* Trimesh {Shape->as<agxCollide::Trimesh>()};
