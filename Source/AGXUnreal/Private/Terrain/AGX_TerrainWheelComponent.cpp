@@ -392,7 +392,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		UE_LOG(
 			LogAGX, Warning, TEXT("Invalid Rigid Body selected for '%s' in '%s'."), *GetName(),
 			*GetNameSafe(GetOwner()));
-		ShowFailNotification;
+		ShowFailNotification();
 		return;
 	}
 
@@ -404,7 +404,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 			LogAGX, Warning,
 			TEXT("Expected excactly 1 Cylinder Shape in RigidBody for '%s' in '%s', but found %d."),
 			*GetName(), *GetNameSafe(GetOwner()), Cylinders.Num());
-		ShowFailNotification;
+		ShowFailNotification();
 		return;
 	}
 
@@ -417,7 +417,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 			LogAGX, Warning,
 			TEXT("Unable to get Rigid Body Barrier for RigidBody in '%s' in '%s'."), *GetName(),
 			*GetNameSafe(GetOwner()));
-		ShowFailNotification;
+		ShowFailNotification();
 		return;
 	}
 
@@ -430,14 +430,14 @@ void UAGX_TerrainWheelComponent::CreateNative()
 			TEXT("Unable to get Cylinder Shape Barrier from Cylinder in Body selected in '%s' in "
 				 "'%s'."),
 			*GetName(), *GetNameSafe(GetOwner()));
-		ShowFailNotification;
+		ShowFailNotification();
 		return;
 	}
 
 	NativeBarrier.AllocateNative(*CylinderBarrier);
 	if (!HasNative())
 	{
-		ShowFailNotification;
+		ShowFailNotification();
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Unable to create Native Terrain Wheel for '%s' in '%s'. The Output Log may "
