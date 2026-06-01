@@ -7,7 +7,6 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
-#include "Sensors/SensorEnvironmentBarrier.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -85,61 +84,41 @@ float UAGX_LidarAmbientMaterial::GetReturnGammaDistributionScaleParameter() cons
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsAir(float VisibilityKm)
 {
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	if (!HasNative())
 		return false;
 
-	FRtAmbientMaterialBarrier Barrier;
-	Barrier.AllocateNative();
-	if (!Barrier.HasNative())
-		return false;
-
-	Barrier.ConfigureAsAir(VisibilityKm);
-	CopyFrom(Barrier);
+	NativeBarrier.ConfigureAsAir(VisibilityKm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsFog(float VisibilityKm, float WavelengthNm)
 {
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	if (!HasNative())
 		return false;
 
-	FRtAmbientMaterialBarrier Barrier;
-	Barrier.AllocateNative();
-	if (!Barrier.HasNative())
-		return false;
-
-	Barrier.ConfigureAsFog(VisibilityKm, WavelengthNm);
-	CopyFrom(Barrier);
+	NativeBarrier.ConfigureAsFog(VisibilityKm, WavelengthNm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsRainfall(float RateMmPerHour)
 {
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	if (!HasNative())
 		return false;
 
-	FRtAmbientMaterialBarrier Barrier;
-	Barrier.AllocateNative();
-	if (!Barrier.HasNative())
-		return false;
-
-	Barrier.ConfigureAsRainfall(RateMmPerHour);
-	CopyFrom(Barrier);
+	NativeBarrier.ConfigureAsRainfall(RateMmPerHour);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm)
 {
-	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+	if (!HasNative())
 		return false;
 
-	FRtAmbientMaterialBarrier Barrier;
-	Barrier.AllocateNative();
-	if (!Barrier.HasNative())
-		return false;
-
-	Barrier.ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
-	CopyFrom(Barrier);
+	NativeBarrier.ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 

@@ -67,15 +67,30 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	float GetReturnGammaDistributionScaleParameter() const;
 
+	/**
+	 * Configure this Material as Air with the set visibility in kilometers. The Material parameters
+	 * will update accordingly.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsAir(float VisibilityKm);
 
+	/**
+	 * Configure this Material as Fog with the set visibility in kilometers and Lidar wavelength in
+	 * nanometers. The Material parameters will update accordingly.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsFog(float VisibilityKm, float WavelengthNm);
 
+	/**
+	 * Configure this Material to simulate rainfall based on the rain rate in millimeters per hour.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsRainfall(float RateMmPerHour);
 
+	/**
+	 * Configure this Material to simulate snowfall with snowfall rate in millimeters per hour and
+	 * Lidar wavelength in nanometers.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm);
 
