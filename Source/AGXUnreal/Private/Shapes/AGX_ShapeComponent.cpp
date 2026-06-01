@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Shapes/AGX_ShapeComponent.h"
 
@@ -61,7 +61,8 @@ void UAGX_ShapeComponent::SetNativeAddress(uint64 NativeAddress)
 
 TStructOnScope<FActorComponentInstanceData> UAGX_ShapeComponent::GetComponentInstanceData() const
 {
-	return MakeStructOnScope<FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
+	return MakeStructOnScope<
+		FActorComponentInstanceData, FAGX_NativeOwnerSceneComponentInstanceData>(
 		this, this,
 		[](UActorComponent* Component)
 		{
@@ -236,6 +237,9 @@ void UAGX_ShapeComponent::BeginPlay()
 		return;
 	}
 
+	if (!bIncludeInSimulation)
+		return;
+
 	GetOrCreateNative();
 	if (HasNative())
 	{
@@ -270,6 +274,16 @@ void UAGX_ShapeComponent::EndPlay(const EEndPlayReason::Type Reason)
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
+		// Someone explicitly destroyed this Component, we need to remove ourselves from any owning
+		// Rigid Body, otherwise the Rigid Body will keep the Native object alive since it holds it
+		// by ref_ptr.
+		if (Reason == EEndPlayReason::Destroyed)
+		{
+			auto OwningBody = GetRigidBody();
+			if (OwningBody != nullptr && HasNative() && OwningBody->HasNative())
+				OwningBody->GetNative()->RemoveShape(GetNative());
+		}
+
 		// @todo Figure out how to handle removal of Shape Materials from the Simulation. They can
 		// be shared between many Shape Components, so some kind of reference counting might be
 		// needed.
@@ -380,6 +394,9 @@ namespace AGX_ShapeComponent_helpers
 			nullptr);
 		UStaticMeshComponent* Component = NewObject<UStaticMeshComponent>(&Owner, *ComponentName);
 		FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, Owner, Context.SessionGuid);
+		if (!RenderData.GetShouldRender())
+			Component->SetVisibility(false, /*bPropagateToChildren*/ false);
+
 		Component->SetMaterial(0, Material);
 		Component->SetRelativeTransform(RelTransform);
 		Component->SetStaticMesh(StaticMesh);
@@ -397,8 +414,8 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	ImportName = Barrier.GetName();
 	SurfaceVelocity = Barrier.GetSurfaceVelocity();
 
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_ShapeComponent::StaticClass());
 	Rename(*Name);
@@ -441,7 +458,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	// and then read by agxViewer, the shape will not be visible (unless it has RenderData).
 	const bool Visible =
 		Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
-	SetVisibility(Visible);
+	SetVisibility(Visible, /*bPropagateToChildren*/ false);
 
 	////// Render Material ///////
 	UMaterialInterface* Material =
@@ -521,6 +538,81 @@ void UAGX_ShapeComponent::RemoveCollisionGroupIfExists(FName GroupName)
 	CollisionGroups.RemoveAt(Index);
 	if (HasNative())
 		GetNative()->RemoveCollisionGroup(GroupName);
+}
+
+bool UAGX_ShapeComponent::SetEnableCollisions(UAGX_ShapeComponent* OtherShape, bool bEnable)
+{
+	// TODO Add state for the disabled pairs list in AGX Dynamics for Unreal, alleviating the need
+	// to wait for the Natives to be created and to make it possible to configure disabled
+	// collisions from the Blueprint editor's Details panel.
+
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Set Enable Collisions called on Shape Component '%s' in '%s' that does not yet "
+				 "have a Native. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (OtherShape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Set Enable Collisions called on Shape Component '%s' in '%s' was passed a None / "
+				 "nullptr Other Shape. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!OtherShape->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Set Enable Collisions passed Shape Component '%s' in '%s' that does not yet "
+				 "have a Native. Doing nothing."),
+			*OtherShape->GetName(), *GetLabelSafe(OtherShape->GetOwner()));
+		return false;
+	}
+
+	GetNativeBarrier()->SetEnableCollisions(*OtherShape->GetNativeBarrier(), bEnable);
+	return true;
+}
+
+bool UAGX_ShapeComponent::GetEnableCollisions(UAGX_ShapeComponent* OtherShape)
+{
+	if (!HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Enable Collisions called on Shape Component '%s' in '%s' that does not yet "
+				 "have a Native. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (OtherShape == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Enable Collisions called on Shape Component '%s' in '%s' was passed a None / "
+				 "nullptr Other Shape. Doing nothing."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!OtherShape->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Get Enable Collisions passed Shape Component '%s' in '%s' that does not yet "
+				 "have a Native. Doing nothing."),
+			*OtherShape->GetName(), *GetLabelSafe(OtherShape->GetOwner()));
+		return false;
+	}
+
+	return GetNativeBarrier()->GetEnableCollisions(*OtherShape->GetNativeBarrier());
 }
 
 bool UAGX_ShapeComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)

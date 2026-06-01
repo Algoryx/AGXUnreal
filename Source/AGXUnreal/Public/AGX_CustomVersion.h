@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -76,6 +76,13 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// AGX Dynamics for Unreal or provided by a user. AGX Terrain does not render particles
 		// created by it, anymore, and instead uses one or several rendering Components to do that.
 		ParticleRenderingByRenderingComponents,
+
+		// Contact Material restitution default value changed from 0.5 to 0.0.
+		CMRestitutionDefaultIsZero,
+
+		// Track Properties API change, now uses stiffness and attenuation and ReducedOrder track
+		// implementation.
+		TrackReducedOrderTrackImplementation,
 
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "ROS2/AGX_ROS2PublisherComponent.h"
 
@@ -784,7 +784,7 @@ FROS2PublisherBarrier* UAGX_ROS2PublisherComponent::GetOrCreateBarrier(
 		}
 
 		Barrier = &NativeBarriers.Add(Topic, FROS2PublisherBarrier());
-		Barrier->AllocateNative(Type, Topic, Qos);
+		Barrier->AllocateNative(Type, Topic, Qos, DomainID);
 	}
 	else if (Barrier->GetMessageType() != Type)
 	{

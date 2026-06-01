@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGX_ImporterToEditor.h"
 
@@ -7,6 +7,8 @@
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholds.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_ConstraintComponent.h"
 #include "Import/AGX_ImportContext.h"
@@ -145,6 +147,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_ShapeMaterial>)
 			return FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_CableProperties>)
+			return FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_ContactMaterial>)
 			return FAGX_ImportUtilities::GetImportContactMaterialDirectoryName();
@@ -438,14 +443,14 @@ namespace AGX_ImporterToEditor_helpers
 			return false;
 		}
 
+		// Recoverable.
 		if (Result != EAGX_ImportResult::Success)
 		{
 			const FString Text = FString::Printf(
 				TEXT("Some issues occurred during import and the result may not be the "
 					 "expected result. Log category LogAGX in the Output Log may "
 					 "contain more information."));
-			FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_Fail);
-			return false;
+			FAGX_NotificationUtilities::ShowNotification(Text, SNotificationItem::CS_None);
 		}
 
 		return true;
@@ -455,10 +460,12 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		if (Result.Actor == nullptr)
 		{
+			const FString Path =
+				Settings.FilePath.IsEmpty() ? Settings.SourceFilePath : Settings.FilePath;
 			const FString Text = FString::Printf(
 				TEXT("Errors occurred during import. The file '%s' could not be imported. Log "
 					 "category LogAGX in the Output Log may contain more information."),
-				*Settings.FilePath);
+				*Path);
 			FAGX_NotificationUtilities::ShowDialogBoxWithError(Text, "Import Model to Blueprint");
 			return false;
 		}
@@ -552,6 +559,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ShapeMaterial>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName())));
+
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_CableProperties>(FPaths::Combine(
+			RootDirectory, FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName())));
 
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ContactMaterial>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportContactMaterialDirectoryName())));
@@ -669,6 +679,15 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, Sm] : *Context->ShapeMaterials)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Sm, *Context);
+			}
+		}
+
+		if (Context->CableProperties != nullptr)
+		{
+			const FString AssetType = FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
+			for (const auto& [Guid, Cp] : *Context->CableProperties)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Cp, *Context);
 			}
 		}
 
@@ -807,6 +826,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.RenderStaticMeshes != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.RenderStaticMeshes)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.CableProperties != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.CableProperties)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1027,6 +1052,28 @@ namespace AGX_ImporterToEditor_helpers
 
 		return EAGX_ImportResult::Success;
 	}
+
+	void OnFailureCleanup(const FAGX_ImportSettings& Settings)
+	{
+		if (Settings.ImportType != EAGX_ImportType::Plx)
+			return;
+
+		if (Settings.FilePath.IsEmpty())
+			return;
+
+		const FString FileDirectory =
+			FPaths::ConvertRelativePathToFull(FPaths::GetPath(Settings.FilePath));
+		if (!FPaths::DirectoryExists(FileDirectory))
+			return;
+
+		FString ModelsDirectory =
+			FPaths::ConvertRelativePathToFull(FOpenPLXUtilities::GetModelsDirectory());
+
+		if (!FileDirectory.StartsWith(ModelsDirectory))
+			return;
+
+		IFileManager::Get().DeleteDirectory(*FileDirectory, /*RequireExists=*/true, /*Tree=*/true);
+	}
 }
 
 UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
@@ -1045,7 +1092,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	FAGX_Importer Importer;
 	FAGX_ImportResult Result = Importer.Import(Settings, *GetTransientPackage());
 	if (!ValidateImportResult(Result, Settings))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Validating import"));
 
@@ -1053,7 +1103,10 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	RootDirectory = MakeRootDirectoryPath(ModelName);
 
 	if (!ValidateImportEnum(FinalizeModelSourceComponent(*Result.Context, RootDirectory)))
+	{
+		OnFailureCleanup(Settings);
 		return nullptr;
+	}
 
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Saving Assets"));
 	WriteAssetsToDisk(RootDirectory, Result.Context);
@@ -1067,7 +1120,7 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 	if (Settings.bOpenBlueprintEditorAfterImport)
 		GEditor->GetEditorSubsystem<UAssetEditorSubsystem>()->OpenEditorForAsset(ChildBlueprint);
 
-	PostImport(Settings);
+	PostImport(Settings, Result.Result);
 
 	return ChildBlueprint;
 }
@@ -1314,6 +1367,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		}
 	}
 
+	if (Context.CableProperties != nullptr)
+	{
+		for (const auto& [Guid, Cp] : *Context.CableProperties)
+		{
+			const auto A = UpdateOrCreateAsset(*Cp, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
 	if (Context.ContactMaterials != nullptr)
 	{
 		for (const auto& [Guid, Cm] : *Context.ContactMaterials)
@@ -1444,6 +1508,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Steerings)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Steerings, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.Cables != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.Cables)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Cables, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else
@@ -1652,7 +1728,7 @@ void FAGX_ImporterToEditor::PreImport(FAGX_ImportSettings& OutSettings)
 	// We need to copy the OpenPLX file (and any dependency) to the OpenPLX ModelsDirectory.
 	// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX file.
 	const FString DestinationDir =
-		FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+		FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 	const FString NewLocation =
 		FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 	if (NewLocation.IsEmpty() && FPaths::DirectoryExists(DestinationDir))
@@ -1690,13 +1766,28 @@ void FAGX_ImporterToEditor::PreReimport(
 	OutSettings.FilePath = NewLocation;
 }
 
-void FAGX_ImporterToEditor::PostImport(const FAGX_ImportSettings& Settings)
+void FAGX_ImporterToEditor::PostImport(
+	const FAGX_ImportSettings& Settings, EAGX_ImportResult Result)
 {
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 	{
-		FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
-			TEXT("OpenPLX model files were copied to: \n\n'%s'. \n\nThese files are needed during "
-				 "runtime and should not be removed as long as the imported model is used."),
-			*FPaths::GetPath(Settings.FilePath)));
+		if (Result == EAGX_ImportResult::Success)
+		{
+			FAGX_NotificationUtilities::ShowDialogBoxWithSuccess(FString::Printf(
+				TEXT("OpenPLX model files were copied to: \n\n'%s'. \n\nThese files are needed "
+					 "during runtime and should not be removed as long as the imported model is "
+					 "used."),
+				*FPaths::GetPath(Settings.FilePath)));
+		}
+		else
+		{
+			FAGX_NotificationUtilities::ShowDialogBoxWithWarning(FString::Printf(
+				TEXT("Warnings occured during Import, check the Output Log for more "
+					 "details. The result may be usable, but it cannot be guaranteed.\n\nOpenPLX "
+					 "model files were copied to: \n\n'%s'. \n\nThese files are needed "
+					 "during runtime and should not be removed as long as the imported model is "
+					 "used."),
+				*FPaths::GetPath(Settings.FilePath)));
+		}
 	}
 }

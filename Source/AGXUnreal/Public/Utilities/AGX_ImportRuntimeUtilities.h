@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -6,12 +6,14 @@
 #include "Import/AGX_ImportEnums.h"
 
 // Unreal Engine includes.
+#include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
+
+#include <type_traits>
 
 class AActor;
 class FShapeMaterialBarrier;
 class UAGX_ShapeMaterial;
-class UActorComponent;
 struct FAGX_ImportContext;
 
 class AGXUNREAL_API FAGX_ImportRuntimeUtilities
@@ -50,6 +52,19 @@ public:
 	 * the root model name (the System name). This function returns the Barrier name with the root
 	 * model name removed from the beginning (if applicable).
 	 */
+	template <typename ObjectType>
 	static FString RemoveModelNameFromBarrierName(
+		ObjectType& Object, const FString& BarrierName, FAGX_ImportContext* Context)
+	{
+		using ObjectT = std::remove_cv_t<std::remove_reference_t<ObjectType>>;
+		static_assert(
+			std::is_base_of_v<UActorComponent, ObjectT>,
+			"RemoveModelNameFromBarrierName can only be called with UActorComponent-derived types.");
+		(void) Object; // Unused warning fix.
+		return RemoveModelNameFromBarrierNameImpl(BarrierName, Context);
+	}
+
+private:
+	static FString RemoveModelNameFromBarrierNameImpl(
 		const FString& BarrierName, FAGX_ImportContext* Context);
 };

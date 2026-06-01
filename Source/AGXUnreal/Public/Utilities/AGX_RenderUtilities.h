@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -28,7 +28,7 @@ public:
 	 * The rendering is not avaiable in built applications built with Shipping configuration.
 	 */
 	static void DrawContactPoints(
-		const TArray<FShapeContactBarrier>& ShapeContacts, float LifeTime, UWorld* World);
+		const TArray<FShapeContactBarrier>& ShapeContacts, float Size, float LifeTime, UWorld* World);
 };
 
 UCLASS(ClassGroup = "AGX Render Utilities")

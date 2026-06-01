@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Import/AGX_Importer.h"
 
@@ -6,6 +6,9 @@
 #include "AGX_LogCategory.h"
 #include "AGX_ObserverFrameComponent.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableProperties.h"
+#include "Cable/CableBarrier.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "Constraints/AGX_BallConstraintComponent.h"
 #include "Constraints/AGX_CylindricalConstraintComponent.h"
@@ -190,6 +193,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_SteeringComponent, T>)
 			return *Context.Steerings.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_CableComponent, T>)
+			return *Context.Cables.Get();
+
 		if constexpr (std::is_base_of_v<UAGX_WireComponent, T>)
 			return *Context.Wires.Get();
 
@@ -219,7 +225,8 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.IsEmpty() && !Settings.FilePath.StartsWith(
+					FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
@@ -238,7 +245,7 @@ namespace AGX_Importer_helpers
 			}
 		}
 
-		if (!FPaths::FileExists(Settings.FilePath))
+		if (!Settings.FilePath.IsEmpty() && !FPaths::FileExists(Settings.FilePath))
 		{
 			UE_LOG(LogAGX, Error, TEXT("File: '%s' does not exist."), *Settings.FilePath);
 			return false;
@@ -278,6 +285,63 @@ namespace AGX_Importer_helpers
 			}
 		}
 	}
+	
+	void ConditionallyDisableConstraints(
+		const FSimulationObjectCollection& SimObjects, FAGX_ImportContext& Context)
+	{
+		// This is a work-around for imported OpenPLX models, where the
+		// agxOpenPlx::OpenPlxToAgxMapper lets constraints (OpenPLX: Interactions) stay enabled even
+		// though the user have disabled them. Instead, it disables all ElementaryConstraitns. So
+		// for us to give the same behavior as in AGX Dynamcis, we need to "fake" the disable state
+		// on the high-level Constraint since we don't have a representation of Elementary
+		// Constraints in AGXUnreal.
+		AGX_CHECK(Context.Settings->ImportType == EAGX_ImportType::Plx);
+		if (Context.Constraints == nullptr)
+			return;
+
+		for (const auto& Barrier : SimObjects.CollectAllConstraints())
+		{
+			if (!Barrier.HasNative())
+				return;
+
+			auto Component = Context.Constraints->FindRef(Barrier.GetGuid());
+			if (Component == nullptr)
+				return;
+
+			if (Barrier.IsAllElementaryConstraintsDisabled())
+				Component->SetEnable(false);
+		}
+	}
+
+	template <typename T>
+	concept HasGetName = requires(const T& t) {
+		{ t.GetName() };
+	};
+
+	template <typename TBarrier>
+	void PrintAddComponentGuidCollisionWarning(const TBarrier& Barrier, const FGuid& Guid)
+	{
+		if constexpr (HasGetName<TBarrier>)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("FAGX_Importer::AddComponent was given object '%s' with GUID '%s' which "
+					 "collides with a previous object GUID. The model is invalid and this object "
+					 "will not be "
+					 "imported."),
+				*Barrier.GetName(), *Guid.ToString());
+		}
+		else
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"FAGX_Importer::AddComponent was given an object with GUID '%s' which collides "
+					"with a previous object GUID. The model is invalid and this object will not be "
+					"imported."),
+				*Guid.ToString());
+		}
+	}
 }
 
 FAGX_Importer::FAGX_Importer()
@@ -288,6 +352,8 @@ FAGX_Importer::FAGX_Importer()
 	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
 	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
+	Context.Cables = MakeUnique<TMap<FGuid, UAGX_CableComponent*>>();
+	Context.CableProperties = MakeUnique<TMap<FGuid, UAGX_CableProperties*>>();
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
@@ -343,7 +409,7 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	BatchBuildStaticMeshes(Context);
 #endif
 
-	PostImport();
+	PostImport(SimObjects);
 	return FAGX_ImportResult(Result, Actor, &Context);
 }
 
@@ -367,8 +433,14 @@ EAGX_ImportResult FAGX_Importer::AddComponent(
 	}
 
 	const FGuid Guid = Barrier.GetGuid();
-	AGX_CHECK(
-		AGX_Importer_helpers::GetComponentsMapFrom<TComponent>(Context).FindRef(Guid) == nullptr);
+	const bool GuidCollision =
+		AGX_Importer_helpers::GetComponentsMapFrom<TComponent>(Context).FindRef(Guid) != nullptr;
+	AGX_CHECK(!GuidCollision);
+	if (GuidCollision)
+	{
+		AGX_Importer_helpers::PrintAddComponentGuidCollisionWarning(Barrier, Guid);
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
 
 	TComponent* Component = NewObject<TComponent>(&OutActor);
 	FAGX_ImportRuntimeUtilities::OnComponentCreated(*Component, OutActor, Context.SessionGuid);
@@ -690,6 +762,16 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 	}
 
 	{
+		FScopedSlowTask T((float) SimObjects.GetCables().Num(), FText::FromString("Cables"));
+		for (const auto& Cable : SimObjects.GetCables())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Cable.GetName())));
+			Res |= AddComponent<UAGX_CableComponent, FCableBarrier>(Cable, *Root, OutActor);
+		}
+	}
+
+	{
 		FScopedSlowTask T((float) SimObjects.GetWires().Num(), FText::FromString("Wires"));
 		for (const auto& Wire : SimObjects.GetWires())
 		{
@@ -820,8 +902,11 @@ EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	return EAGX_ImportResult::Success;
 }
 
-void FAGX_Importer::PostImport()
+void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 {
 	if (Context.Settings->ImportType == EAGX_ImportType::Plx)
+	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
+		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
+	}
 }

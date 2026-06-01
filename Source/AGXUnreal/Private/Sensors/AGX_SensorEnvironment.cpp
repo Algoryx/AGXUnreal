@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Sensors/AGX_SensorEnvironment.h"
 
@@ -16,9 +16,11 @@
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_SensorEnvironmentSpriteComponent.h"
 #include "Sensors/AGX_SurfaceMaterialAssetUserData.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/WireBarrier.h"
@@ -35,6 +37,40 @@
 
 namespace AGX_SensorEnvironment_helpers
 {
+	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFrom(
+		UAGX_LidarSurfaceMaterial* SurfaceMaterial, UWorld* World)
+	{
+		if (SurfaceMaterial == nullptr)
+			return nullptr;
+
+		UAGX_LidarSurfaceMaterial* SurfaceMaterialInstance = SurfaceMaterial->GetOrCreateInstance(World);
+		if (SurfaceMaterialInstance == nullptr)
+			return nullptr;
+
+		auto LambertianOpaqueMaterial =
+			Cast<UAGX_LidarLambertianOpaqueMaterial>(SurfaceMaterialInstance);
+		if (LambertianOpaqueMaterial == nullptr)
+			return nullptr;
+
+		return LambertianOpaqueMaterial->GetOrCreateNative();
+	}
+
+	FRtLambertianOpaqueMaterialBarrier* GetDefaultLambertianOpaqueMaterialBarrier(
+		const AAGX_SensorEnvironment& SensorEnvironment)
+	{
+		UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(&SensorEnvironment);
+		if (Simulation == nullptr)
+			return nullptr;
+
+		UAGX_LidarSurfaceMaterial* DefaultSurfaceMaterial =
+			Cast<UAGX_LidarSurfaceMaterial>(Simulation->DefaultLidarSurfaceMaterial.TryLoad());
+		if (DefaultSurfaceMaterial == nullptr)
+			return nullptr;
+
+		return GetLambertianOpaqueMaterialBarrierFrom(
+			DefaultSurfaceMaterial, SensorEnvironment.GetWorld());
+	}
+
 	bool GetVerticesIndices(
 		UStaticMeshComponent* Mesh, TArray<FVector>& OutVertices, TArray<FTriIndices>& OutIndices,
 		int32 Lod)
@@ -153,28 +189,34 @@ namespace AGX_SensorEnvironment_helpers
 		if (SurfaceMaterialData == nullptr)
 			return nullptr;
 
-		auto LambertianOpaqueMaterial =
-			Cast<UAGX_LidarLambertianOpaqueMaterial>(SurfaceMaterialData->LidarSurfaceMaterial);
-		if (LambertianOpaqueMaterial == nullptr)
-			return nullptr;
-
-		return LambertianOpaqueMaterial->GetNative();
+		return GetLambertianOpaqueMaterialBarrierFrom(
+			SurfaceMaterialData->LidarSurfaceMaterial.Get(), Component.GetWorld());
 	}
 
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFrom(
 		AAGX_Terrain& Terrain)
 	{
-		auto LambertianOpaqueMaterial =
-			Cast<UAGX_LidarLambertianOpaqueMaterial>(Terrain.LidarSurfaceMaterial);
-		if (LambertianOpaqueMaterial == nullptr)
-			return nullptr;
+		return GetLambertianOpaqueMaterialBarrierFrom(Terrain.LidarSurfaceMaterial, Terrain.GetWorld());
+	}
 
-		return LambertianOpaqueMaterial->GetNative();
+	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFromOrDefault(
+		USceneComponent& Component, FRtLambertianOpaqueMaterialBarrier* DefaultMaterial)
+	{
+		FRtLambertianOpaqueMaterialBarrier* Material =
+			GetLambertianOpaqueMaterialBarrierFrom(Component);
+		return Material != nullptr ? Material : DefaultMaterial;
+	}
+
+	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFromOrDefault(
+		AAGX_Terrain& Terrain, FRtLambertianOpaqueMaterialBarrier* DefaultMaterial)
+	{
+		FRtLambertianOpaqueMaterialBarrier* Material = GetLambertianOpaqueMaterialBarrierFrom(Terrain);
+		return Material != nullptr ? Material : DefaultMaterial;
 	}
 
 	TOptional<FAGX_RtShapeInstanceData> CreateShapeInstanceData(
 		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices, USceneComponent& Mesh,
-		FSensorEnvironmentBarrier& SEBarrier)
+		FSensorEnvironmentBarrier& SEBarrier, FRtLambertianOpaqueMaterialBarrier* DefaultMaterial)
 	{
 		FAGX_RtShapeInstanceData ShapeInstance;
 		if (!ShapeInstance.Shape.AllocateNative(Vertices, Indices))
@@ -182,8 +224,8 @@ namespace AGX_SensorEnvironment_helpers
 
 		ShapeInstance.InstanceData.Instance.AllocateNative(ShapeInstance.Shape, SEBarrier);
 		ShapeInstance.InstanceData.SetTransform(Mesh.GetComponentTransform());
-		ShapeInstance.InstanceData.Instance.SetLidarSurfaceMaterialOrDefault(
-			GetLambertianOpaqueMaterialBarrierFrom(Mesh));
+		ShapeInstance.InstanceData.Instance.SetLidarSurfaceMaterial(
+			GetLambertianOpaqueMaterialBarrierFromOrDefault(Mesh, DefaultMaterial));
 		return ShapeInstance;
 	}
 
@@ -419,7 +461,10 @@ bool AAGX_SensorEnvironment::AddMesh(
 	if (TrackedMeshes.Contains(Mesh))
 		return false;
 
-	auto ShapeInstance = CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier);
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	auto ShapeInstance =
+		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
 	if (!ShapeInstance.IsSet())
 		return false;
 
@@ -443,7 +488,10 @@ bool AAGX_SensorEnvironment::AddMesh(
 	if (TrackedAGXMeshes.Contains(Mesh))
 		return false;
 
-	auto ShapeInstance = CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier);
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	auto ShapeInstance =
+		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
 	if (!ShapeInstance.IsSet())
 		return false;
 
@@ -495,8 +543,10 @@ bool AAGX_SensorEnvironment::AddInstancedMeshInstance_Internal(
 	FTransform InstanceTrans;
 	Mesh->GetInstanceTransform(Index, InstanceTrans, true);
 	InstanceData.SetTransform(InstanceTrans);
-	InstanceData.Instance.SetLidarSurfaceMaterialOrDefault(
-		GetLambertianOpaqueMaterialBarrierFrom(*Mesh));
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	InstanceData.Instance.SetLidarSurfaceMaterial(
+		GetLambertianOpaqueMaterialBarrierFromOrDefault(*Mesh, DefaultMaterial));
 	return true;
 }
 
@@ -522,8 +572,11 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*PagerBarrier))
 			return false;
 
-		NativeBarrier.SetLidarSurfaceMaterialOrDefault(
-			*PagerBarrier, GetLambertianOpaqueMaterialBarrierFrom(*Terrain));
+		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+			GetDefaultLambertianOpaqueMaterialBarrier(*this);
+		NativeBarrier.SetLidarSurfaceMaterial(
+			*PagerBarrier,
+			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 	}
 	else
 	{
@@ -534,14 +587,52 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 		if (!NativeBarrier.Add(*TerrainBarrier))
 			return false;
 
-		NativeBarrier.SetLidarSurfaceMaterialOrDefault(
-			*TerrainBarrier, GetLambertianOpaqueMaterialBarrierFrom(*Terrain));
+		FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+			GetDefaultLambertianOpaqueMaterialBarrier(*this);
+		NativeBarrier.SetLidarSurfaceMaterial(
+			*TerrainBarrier,
+			GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 	}
 
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
 			LogAGX, Log, TEXT("Sensor Environment '%s' added Terrain '%s'."), *GetName(),
+			*Terrain->GetName());
+	}
+
+	return true;
+}
+
+bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+{
+	using namespace AGX_SensorEnvironment_helpers;
+	if (Terrain == nullptr)
+		return false;
+
+	if (!HasNative())
+	{
+		InitializeNative();
+		if (!HasNative())
+			return false;
+	}
+
+	FTerrainBarrier* TerrainBarrier = Terrain->GetOrCreateNative();
+	if (TerrainBarrier == nullptr)
+		return false;
+
+	if (!NativeBarrier.Add(*TerrainBarrier))
+		return false;
+
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	NativeBarrier.SetLidarSurfaceMaterial(
+		*TerrainBarrier, GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
+
+	if (DebugLogOnAdd)
+	{
+		UE_LOG(
+			LogAGX, Log, TEXT("Sensor Environment '%s' added Movable Terrain '%s'."), *GetName(),
 			*Terrain->GetName());
 	}
 
@@ -568,8 +659,10 @@ bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
 	if (!NativeBarrier.Add(*Barrier))
 		return false;
 
-	NativeBarrier.SetLidarSurfaceMaterialOrDefault(
-		*Barrier, GetLambertianOpaqueMaterialBarrierFrom(*Wire));
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	NativeBarrier.SetLidarSurfaceMaterial(
+		*Barrier, GetLambertianOpaqueMaterialBarrierFromOrDefault(*Wire, DefaultMaterial));
 
 	if (DebugLogOnAdd)
 	{
@@ -693,6 +786,14 @@ bool AAGX_SensorEnvironment::RemoveTerrain(AAGX_Terrain* Terrain)
 		return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
 }
 
+bool AAGX_SensorEnvironment::RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+{
+	if (!HasNative() || Terrain == nullptr || !Terrain->HasNative())
+		return false;
+
+	return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
+}
+
 bool AAGX_SensorEnvironment::RemoveWire(UAGX_WireComponent* Wire)
 {
 	if (!HasNative() || Wire == nullptr || !Wire->HasNative())
@@ -797,6 +898,16 @@ void AAGX_SensorEnvironment::BeginPlay()
 		// Add Terrains.
 		for (TActorIterator<AActor> ActorIt(GetWorld()); ActorIt; ++ActorIt)
 		{
+			if (auto SceneRoot = ActorIt->GetRootComponent())
+			{
+				for (auto MovableTerrain :
+					 FAGX_ObjectUtilities::GetChildrenOfType<UAGX_MovableTerrainComponent>(
+						 *SceneRoot, /*recursive*/ true))
+				{
+					AddMovableTerrain(MovableTerrain);
+				}
+			}
+
 			if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
 			{
 				AddTerrain(Terrain);

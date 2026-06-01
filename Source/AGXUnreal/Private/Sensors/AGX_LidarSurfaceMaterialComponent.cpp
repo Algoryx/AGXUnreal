@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Sensors/AGX_LidarSurfaceMaterialComponent.h"
 
@@ -7,6 +7,7 @@
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Sensors/AGX_SurfaceMaterialAssetUserData.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Wire/AGX_WireComponent.h"
@@ -29,7 +30,8 @@ namespace AGX_LidarSurfaceMaterialComponent_helpers
 
 		return Component->IsA<UStaticMeshComponent>() ||
 			   Component->IsA<UAGX_SimpleMeshComponent>() || Component->IsA<UAGX_WireComponent>() ||
-			   Component->IsA<UAGX_TrackComponent>();
+			   Component->IsA<UAGX_TrackComponent>() ||
+			   Component->IsA<UAGX_MovableTerrainComponent>();
 	}
 
 	USceneComponent* FindFirstValidParent(const USceneComponent& Component)
@@ -163,6 +165,10 @@ void UAGX_LidarSurfaceMaterialComponent::AssignMaterial()
 		else if (UAGX_TrackComponent* Track = Cast<UAGX_TrackComponent>(C))
 		{
 			AssignMaterial(Track->GetVisualMeshes());
+		}
+		else if (UAGX_MovableTerrainComponent* Terrain = Cast<UAGX_MovableTerrainComponent>(C))
+		{
+			AssignMaterial(Terrain);
 		}
 	}
 }

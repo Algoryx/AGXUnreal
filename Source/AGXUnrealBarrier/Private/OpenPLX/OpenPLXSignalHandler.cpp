@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
@@ -585,9 +585,9 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 void FOpenPLXSignalHandler::ReleaseNatives()
 {
 	ModelRegistry = nullptr;
-	AssemblyRef = nullptr;
-	InputSignalListenerRef = nullptr;
-	OutputSignalListenerRef = nullptr;
+	AssemblyRef->Native = nullptr;
+	InputSignalListenerRef->Native = nullptr;
+	OutputSignalListenerRef->Native = nullptr;
 }
 
 void FOpenPLXSignalHandler::SetNativeAddresses(

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 
 using System;
@@ -80,6 +80,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		/// A non-library dependency which points to the 'cfg' directory
 		/// within AGX Dynamics.
 		Cfg,
+
+		// Resources needed by the Thread Timeline feature.
+		JournalConfigurations,
 
 		/// Points to the AGX Dynamics Material library location.
 		MaterialLibrary,
@@ -238,20 +241,24 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Physics1D", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Physics3D", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Robotics", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Sensors", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Simulation", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Terrain", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Urdf", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Vehicles", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxbundles-Visuals", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Math", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Physics", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Physics3D", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Robotics", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Sensors", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Simulation", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Terrain", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Urdf", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("openplxurdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
@@ -261,11 +268,12 @@ public class AGXDynamicsLibrary : ModuleRules
 		}
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
-
+			RuntimeLibFiles.Add("gdal", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.Dependencies);
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
+			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
 		}
 
@@ -290,19 +298,23 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		LinkLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		LinkLibFiles.Add("openplx-core", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Control", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-controlinterface", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-kernel", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Math", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Physics", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Physics1D", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Physics3D", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Robotics", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Simulation", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Terrain", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Urdf", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Vehicles", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxbundles-Visuals", LibSource.Dependencies);
-		LinkLibFiles.Add("openplxurdfplugin", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-DriveTrain", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-MachineModeling", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Math", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Physics", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Physics3D", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Robotics", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Simulation", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Terrain", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Urdf", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Vehicles", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Visuals", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		LinkLibFiles.Add("hash-library", LibSource.Dependencies);
 
 		// List of the include directories from aGX Dynamics and its
@@ -375,20 +387,23 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("agxOpenPLX", LibSource.AGX);
 			DelayLoadLibraries.Add("agxOpenPLXBundle", LibSource.AGX);
 			DelayLoadLibraries.Add("click", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-DriveTrain", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Math", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-DriveTrain", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-MachineModeling", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Math", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-core", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Control", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-controlinterface", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-kernel", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxurdfplugin", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Physics", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Physics1D", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Physics3D", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Robotics", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Simulation", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Terrain", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Urdf", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Vehicles", LibSource.Dependencies);
-			DelayLoadLibraries.Add("openplxbundles-Visuals", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-urdfplugin", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Physics", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Physics1D", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Physics3D", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Robotics", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Simulation", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Terrain", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Urdf", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Vehicles", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Visuals", LibSource.Dependencies);
 			AddDelayLoadDependencies(DelayLoadLibraries);
 		}
 
@@ -862,6 +877,17 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Cfg, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Cfg, true);
+			if (!CopyDirectoryRecursively(Source, Dest))
+			{
+				CleanBundledAGXDynamicsResources();
+				return;
+			}
+		}
+
+		// Copy AGX Dynamics JournalConfigurations directory.
+		{
+			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
+			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.JournalConfigurations, true);
 			if (!CopyDirectoryRecursively(Source, Dest))
 			{
 				CleanBundledAGXDynamicsResources();
@@ -1608,6 +1634,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(SourceDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(SourceDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(SourceDir, "data", "MaterialLibrary")
@@ -1664,6 +1694,10 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "MaterialLibrary")
@@ -1718,6 +1752,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
@@ -1776,9 +1814,17 @@ public class AGXDynamicsLibrary : ModuleRules
 				null, null,
 				Path.Combine(DataDir, "cfg")
 			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
+			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "MaterialLibrary")
+			));
+			LibSources.Add(LibSource.WebDebugger, new LibSourceInfo(
+				null, null,
+				Path.Combine(InstalledDir, "bin", "x64", "WebDebugger")
 			));
 			LibSources.Add(LibSource.AGXOpenPLXBundle, new LibSourceInfo(
 				null, null,
@@ -1828,6 +1874,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(DataDir, "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(DataDir, "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,
@@ -1883,6 +1933,10 @@ public class AGXDynamicsLibrary : ModuleRules
 			LibSources.Add(LibSource.Cfg, new LibSourceInfo(
 				null, null,
 				Path.Combine(BaseDir, "data", "cfg")
+			));
+			LibSources.Add(LibSource.JournalConfigurations, new LibSourceInfo(
+				null, null,
+				Path.Combine(BaseDir, "data", "JournalConfigurations")
 			));
 			LibSources.Add(LibSource.MaterialLibrary, new LibSourceInfo(
 				null, null,

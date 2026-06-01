@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Materials/MaterialLibraryBarrier.h"
 
@@ -28,7 +28,11 @@ namespace MaterialLibraryBarrier_helpers
 		NamesUnreal.Reserve(NamesAGX.size());
 		for (const agx::String& NameAGX : NamesAGX)
 		{
-			NamesUnreal.Add(Convert(NameAGX));
+			const FString NameUnreal = Convert(NameAGX);
+			if (NameUnreal.StartsWith(TEXT("internal"))) // TODO: internal issue 1189
+				continue;
+
+			NamesUnreal.Add(NameUnreal);
 		}
 
 		// Must be called to avoid crash due to different allocators used by AGX Dynamics and

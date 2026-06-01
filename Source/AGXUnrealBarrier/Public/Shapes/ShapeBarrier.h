@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -90,6 +90,9 @@ struct AGXUNREALBARRIER_API FShapeBarrier
 
 	void SetEnableCollisions(bool CanCollide);
 	bool GetEnableCollisions() const;
+
+	void SetEnableCollisions(FShapeBarrier& OtherShape, bool bCanCollide);
+	bool GetEnableCollisions(FShapeBarrier& OtherShape) const;
 
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;

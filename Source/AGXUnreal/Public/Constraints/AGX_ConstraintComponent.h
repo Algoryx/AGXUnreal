@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -56,6 +56,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
 	void SetConstraintAttachmentLocation1(FVector BodyLocalLocation);
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
+	void SetConstraintAttachmentRotation1(FRotator BodyLocalRotation);
+
 	/**
 	 * The second Rigid Body bound by this constraint, and its Attachment Frame definition.
 	 * If second Rigid Body is null, the first Rigid Body will be constrained to the World.
@@ -75,6 +78,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
 	void SetConstraintAttachmentLocation2(FVector BodyLocalLocation);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Attachment")
+	void SetConstraintAttachmentRotation2(FRotator BodyLocalRotation);
 
 	UPROPERTY(EditAnywhere, Category = "AGX Constraint")
 	bool bEnable = true;
@@ -425,14 +431,14 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FString ImportName;
 
 public: // Deprecated functions.

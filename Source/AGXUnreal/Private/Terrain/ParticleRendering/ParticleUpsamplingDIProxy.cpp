@@ -1,9 +1,9 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
-#include "ParticleUpsamplingDIProxy.h"
+#include "Terrain/ParticleRendering/ParticleUpsamplingDIProxy.h"
 
 
-/** 
+/**
  * Get the size of the data that will be passed to render.
  */
 int32 FParticleUpsamplingDIProxy::PerInstanceDataPassedToRenderThreadSize() const
@@ -54,4 +54,3 @@ void FParticleUpsamplingDIProxy::ConsumePerInstanceDataFromGameThread(
 	// memory.
 	InstanceDataFromGT->~FParticleUpsamplingDataHandler();
 }
-

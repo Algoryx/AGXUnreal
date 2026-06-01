@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -167,6 +167,72 @@ private:
 
 /// Short version of GET_MEMBER_NAME_CHECKED when we want a member in the current class.
 #define AGX_MEMBER_NAME(MemberName) GET_MEMBER_NAME_CHECKED(ThisClass, MemberName)
+
+/**
+ * When modifying a runtime instance of an AGX asset from the Details panel, i.e. when the Property
+ * Changed Dispatcher is called from a Post Edit Change Chain Property callback, then any
+ * modifications done to the runtime instance should be propagated to the persistent asset the
+ * instance was created from. The change should appear to the user as-if it was done by the user on
+ * the asset, i.e. with the asset being marked dirty / unsaved and with undo / redo support.
+ */
+#define AGX_ASSET_DISPATCHER_LAMBDA_BODY(PropertyName, SetFunc)   \
+	{                                                             \
+		if (This->IsInstance())                                   \
+		{                                                         \
+			AGX_WithEditorWrappers::Modify(*This->Asset);         \
+			This->Asset->PropertyName = This->PropertyName;       \
+			AGX_WithEditorWrappers::MarkAssetDirty(*This->Asset); \
+		}                                                         \
+		This->SetFunc(This->PropertyName);                        \
+	}
+
+/**
+ * Helper-macro to create a complete Property Dispatcher callback in an AGX asset type.
+ */
+#define AGX_ASSET_DEFAULT_DISPATCHER(PropertyName) \
+	PropertyDispatcher.Add(                        \
+		AGX_MEMBER_NAME(PropertyName),             \
+		[](ThisClass* This) { AGX_ASSET_DISPATCHER_LAMBDA_BODY(PropertyName, Set##PropertyName) })
+
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
+ * asset. Call the corresponding Set member function, passing in that very same property member
+ * variable.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER(PropertyName) \
+	PropertyDispatcher.Add(                            \
+		AGX_MEMBER_NAME(PropertyName),                 \
+		[](ThisClass* This) { This->Set##PropertyName(This->PropertyName); })
+
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
+ * asset, for a bool property. Call the corresponding Set member function, passing in that very same
+ * property member variable. Is aware that bool properties has a 'b' appended to the property name
+ * but not the setter function name.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(PropertyName) \
+	PropertyDispatcher.Add(                                 \
+		AGX_MEMBER_NAME(b##PropertyName),                   \
+		[](ThisClass* This) { This->Set##PropertyName(This->b##PropertyName); })
+
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component for a non-bool
+ * property where the Set function isn't named according to the property being set.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC(PropertyName, Func) \
+	PropertyDispatcher.Add(                                       \
+		AGX_MEMBER_NAME(PropertyName), [](ThisClass* This) { This->Func(This->PropertyName); })
+
+/**
+ * Default implementation for adding a Property Dispatcher callback to a Component for a bool
+ * property where the Set function isn't named according to the property being set.
+ */
+#define AGX_COMPONENT_DEFAULT_DISPATCHER_FUNC_BOOL(PropertyName, Func) \
+	PropertyDispatcher.Add(                                            \
+		AGX_MEMBER_NAME(b##PropertyName),                              \
+		[](ThisClass* This) { This->Func(This->b##PropertyName); })
+
+// Property Dispatcher member function definitions.
 
 template <typename T>
 FAGX_PropertyChangedDispatcher<T>& FAGX_PropertyChangedDispatcher<T>::Get()

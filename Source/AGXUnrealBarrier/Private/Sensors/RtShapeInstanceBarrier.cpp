@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Sensors/RtShapeInstanceBarrier.h"
 
@@ -47,7 +47,7 @@ void FRtShapeInstanceBarrier::AllocateNative(
 		Environment.GetNative()->Native->getScene(), Shape.GetNative()->Native, nullptr);
 }
 
-void FRtShapeInstanceBarrier::SetLidarSurfaceMaterialOrDefault(
+void FRtShapeInstanceBarrier::SetLidarSurfaceMaterial(
 	FRtLambertianOpaqueMaterialBarrier* Material)
 {
 	check(HasNative());

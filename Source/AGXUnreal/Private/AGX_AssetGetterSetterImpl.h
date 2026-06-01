@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -117,6 +117,12 @@ namespace AGX_WithEditorWrappers
 	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, HasNative, NativeBarrier, .)
 
 /**
+ * @brief Set a property where the setter function name is Set<PropertyName>.
+ */
+#define AGX_ASSET_SETTER(PropertyName, InVar) \
+	AGX_ASSET_SETTER_IMPL_VALUE(PropertyName, InVar, Set##PropertyName)
+
+/**
  * @brief Set a new Property value on one of our asset/instance types, where there are two NativeBarriers
  * and the one we want is a pointer.
  * @param PropertyName The name of the property to set. May be a StructNAme.MemberVariableName identifier.
@@ -170,57 +176,16 @@ namespace AGX_WithEditorWrappers
 #define AGX_ASSET_GETTER_IMPL_VALUE(PropertyName, GetFunc) \
 	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNative, NativeBarrier, .)
 
+/**
+ * @brief Get a property where the getter function name is Get<PropertyName>.
+ */
+#define AGX_ASSET_GETTER(PropertyName) \
+	AGX_ASSET_GETTER_IMPL_VALUE(PropertyName, Get##PropertyName)
+
 #define AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_POINTER(PropertyName, GetFunc, HasNativeFunc, NativeName) \
 	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNativeFunc, NativeName, ->)
 
 #define AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(PropertyName, GetFunc, HasNativeFunc, NativeName) \
 	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNativeFunc, NativeName, .)
-
-
-/**
- * When modifying a runtime instance from the Details panel, i.e. when the Property Changed
- * Dispatcher is called from a Post Edit Change Chain Property callback, then any modifications
- * done to the runtime instance should be propagated to the persistant asset the instance was
- * created from. The change should appear to the user as-if it was done by the user on the asset,
- * i.e. with the asset being marked dirty / unsaved and with undo / redo support.
- */
-#define AGX_ASSET_DISPATCHER_LAMBDA_BODY(PropertyName, SetFunc) \
-{ \
-	if (This->IsInstance()) \
-	{ \
-		AGX_WithEditorWrappers::Modify(*This->Asset); \
-		This->Asset->PropertyName = This->PropertyName; \
-		AGX_WithEditorWrappers::MarkAssetDirty(*This->Asset); \
-	} \
-	This->SetFunc(This->PropertyName); \
-}
-
-#define AGX_ASSET_DEFAULT_DISPATCHER(PropertyName) \
-	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, PropertyName), \
-	[](ThisClass* This) { \
-		AGX_ASSET_DISPATCHER_LAMBDA_BODY(PropertyName, Set ## PropertyName) \
-	})
-
-
-/// Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
-/// asset. Call the corresponding Set member function, passing in that very same property member
-/// variable.
-#define AGX_COMPONENT_DEFAULT_DISPATCHER(PropertyName) \
-	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, PropertyName), \
-		[](ThisClass* This) { \
-			This->Set ## PropertyName(This->PropertyName); \
-		})
-
-/**
- * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
- * asset, for a bool property. Call the corresponding Set member function, passing in that very same
- * property member variable. Is aware that bool properties has a 'b' appended to the property name
- * but not the setter function name.
- */
-#define AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(PropertyName) \
-	PropertyDispatcher.Add(GET_MEMBER_NAME_CHECKED(ThisClass, b ## PropertyName), \
-	[](ThisClass* This) { \
-		This->Set ## PropertyName(This->b ## PropertyName); \
-	})
 
 // clang-format on

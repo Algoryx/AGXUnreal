@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -94,6 +94,13 @@ public:
 		EditAnywhere, Category = "AGX Terrain Material Bulk",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real YoungsModulus;
+
+	/**
+	 * Sets the delta repose angle of the material, used to caluclate the angle of repose for a
+	 * material [deg].
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Bulk")
+	FAGX_Real DeltaReposeAngle;
 
 public:
 	FAGX_TerrainBulkProperties();

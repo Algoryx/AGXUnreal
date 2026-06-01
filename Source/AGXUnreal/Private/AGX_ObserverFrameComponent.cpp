@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGX_ObserverFrameComponent.h"
 
@@ -165,7 +165,7 @@ void UAGX_ObserverFrameComponent::CopyFrom(
 	const FObserverFrameBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), Context);
+		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_ObserverFrameComponent::StaticClass());
 	Rename(*Name);

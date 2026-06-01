@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -63,12 +63,6 @@ public:
 
 	static EOpenPLX_InputType GetInputType(const openplx::Physics::Signals::Input& Input);
 	static EOpenPLX_OutputType GetOutputType(const openplx::Physics::Signals::Output& Output);
-
-	/**
-	 * Returns an array of paths to all dependencies of an OpenPLX file.
-	 * Files part of the AGX Dynamics bundle in the plugin are skipped.
-	 */
-	static TArray<FString> GetFileDependencies(const FString& Filepath);
 
 	/**
 	 * Takes a list of OpenPLX bundle paths and builds a single ; separated std::string from them

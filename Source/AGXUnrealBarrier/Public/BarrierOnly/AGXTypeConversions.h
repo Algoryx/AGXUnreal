@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -408,6 +408,28 @@ inline FVector ConvertFloatVector(const agx::Vec3f& V)
 	return FVector(
 		ConvertToUnreal<decltype(FVector::X)>(V.x()), -ConvertToUnreal<decltype(FVector::X)>(V.y()),
 		ConvertToUnreal<decltype(FVector::X)>(V.z()));
+}
+
+template <typename SourceT, typename DestT>
+inline TArray<DestT> ConvertArray(const agx::VectorPOD<SourceT>& V)
+{
+	TArray<DestT> Res;
+	Res.Reserve(V.size());
+	for (auto& Val : V)
+		Res.Add(Val);
+
+	return Res;
+}
+
+template <typename SourceT, typename DestT>
+inline agx::VectorPOD<DestT> ConvertArray(const TArray<SourceT>& V)
+{
+	agx::VectorPOD<DestT> Res;
+	Res.reserve(V.Num());
+	for (const auto& Val : V)
+		Res.push_back(Val);
+
+	return Res;
 }
 
 // Rotation-related.

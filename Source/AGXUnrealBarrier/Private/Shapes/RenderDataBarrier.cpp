@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Shapes/RenderDataBarrier.h"
 
@@ -20,6 +20,7 @@ FRenderDataBarrier::FRenderDataBarrier()
 FRenderDataBarrier::FRenderDataBarrier(FRenderDataBarrier&& Other)
 	: NativeRef(std::move(Other.NativeRef))
 {
+	Other.NativeRef.reset(new FRenderDataRef());
 }
 
 FRenderDataBarrier::FRenderDataBarrier(std::unique_ptr<FRenderDataRef>&& InNativeRef)
@@ -248,8 +249,12 @@ FAGX_RenderMaterial FRenderDataBarrier::GetMaterial() const
 		const agx::Vec4f EmissiveAGX = RenderMaterialAGX->getEmissiveColor();
 		RenderMaterial.Emissive = Convert(EmissiveAGX);
 	}
-	if ((RenderMaterial.bHasShininess = RenderMaterialAGX->hasShininess()) == true)
+	if ((RenderMaterial.bHasShininess = RenderMaterialAGX->hasRoughness()) == true)
 	{
+		// Todo: Render Material in AGX now uses Roughness instead of Shininess.
+		// The getShininess still exists but now interllay converts the roughness
+		// to a Shininess value.
+		// We should consider using roughness in our FAGX_RenderMaterial.
 		RenderMaterial.Shininess = RenderMaterialAGX->getShininess();
 	}
 
@@ -287,5 +292,5 @@ const FRenderDataRef* FRenderDataBarrier::GetNative() const
 void FRenderDataBarrier::ReleaseNative()
 {
 	check(HasNative());
-	NativeRef = nullptr;
+	NativeRef->Native = nullptr;
 }

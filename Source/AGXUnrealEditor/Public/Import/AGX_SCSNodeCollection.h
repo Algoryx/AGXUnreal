@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -31,6 +31,7 @@ struct AGXUNREALEDITOR_API FAGX_SCSNodeCollection
 	TMap<FGuid, USCS_Node*> Shovels;
 	TMap<FGuid, USCS_Node*> Steerings;
 	TMap<FGuid, USCS_Node*> Tracks;
+	TMap<FGuid, USCS_Node*> Cables;
 	TMap<FGuid, USCS_Node*> Wires;
 	
 

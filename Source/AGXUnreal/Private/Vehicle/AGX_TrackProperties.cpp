@@ -1,252 +1,138 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Vehicle/AGX_TrackProperties.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "UObject/Package.h"
 
-//
-// Compliance translational.
-//
-
-void UAGX_TrackProperties::SetHingeComplianceTranslational(double X, double Y, double Z)
+void UAGX_TrackProperties::SetBendingStiffnessLateral(double Stiffness)
 {
-	SetHingeComplianceTranslationalX(X);
-	SetHingeComplianceTranslationalY(Y);
-	SetHingeComplianceTranslationalZ(Z);
+	AGX_ASSET_SETTER(BendingStiffnessLateral, Stiffness);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceTranslationalX(double X)
+double UAGX_TrackProperties::GetBendingStiffnessLateral() const
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeComplianceTranslational_X, X, SetHingeComplianceTranslationalX);
+	AGX_ASSET_GETTER(BendingStiffnessLateral);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceTranslationalY(double Y)
+void UAGX_TrackProperties::SetBendingAttenuationLateral(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeComplianceTranslational_Y, Y, SetHingeComplianceTranslationalY);
+	AGX_ASSET_SETTER(BendingAttenuationLateral, Attenuation);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceTranslationalZ(double Z)
+double UAGX_TrackProperties::GetBendingAttenuationLateral() const
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeComplianceTranslational_Z, Z, SetHingeComplianceTranslationalZ);
+	AGX_ASSET_GETTER(BendingAttenuationLateral);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceTranslational_BP(float X, float Y, float Z)
+void UAGX_TrackProperties::SetBendingStiffnessVertical(double Stiffness)
 {
-	SetHingeComplianceTranslational(
-		static_cast<double>(X), static_cast<double>(Y), static_cast<double>(Z));
+	AGX_ASSET_SETTER(BendingStiffnessVertical, Stiffness);
 }
 
-void UAGX_TrackProperties::GetHingeComplianceTranslational(double& X, double& Y, double& Z) const
+double UAGX_TrackProperties::GetBendingStiffnessVertical() const
 {
-	X = GetHingeComplianceTranslationalX();
-	Y = GetHingeComplianceTranslationalY();
-	Z = GetHingeComplianceTranslationalZ();
+	AGX_ASSET_GETTER(BendingStiffnessVertical);
 }
 
-double UAGX_TrackProperties::GetHingeComplianceTranslationalX() const
+void UAGX_TrackProperties::SetBendingAttenuationVertical(double Attenuation)
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceTranslational_X, GetHingeComplianceTranslationalX);
+	AGX_ASSET_SETTER(BendingAttenuationVertical, Attenuation);
 }
 
-double UAGX_TrackProperties::GetHingeComplianceTranslationalY() const
+double UAGX_TrackProperties::GetBendingAttenuationVertical() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceTranslational_Y, GetHingeComplianceTranslationalY);
+	AGX_ASSET_GETTER(BendingAttenuationVertical);
 }
 
-double UAGX_TrackProperties::GetHingeComplianceTranslationalZ() const
+void UAGX_TrackProperties::SetShearStiffnessLateral(double Stiffness)
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceTranslational_Z, GetHingeComplianceTranslationalZ);
+	AGX_ASSET_SETTER(ShearStiffnessLateral, Stiffness);
 }
 
-void UAGX_TrackProperties::GetHingeComplianceTranslational_BP(float& X, float& Y, float& Z)
+double UAGX_TrackProperties::GetShearStiffnessLateral() const
 {
-	X = GetHingeComplianceTranslationalX();
-	Y = GetHingeComplianceTranslationalY();
-	Z = GetHingeComplianceTranslationalZ();
+	AGX_ASSET_GETTER(ShearStiffnessLateral);
 }
 
-//
-// Compliance rotational.
-//
-
-void UAGX_TrackProperties::SetHingeComplianceRotational(double ComplianceX, double ComplianceY)
+void UAGX_TrackProperties::SetShearAttenuationLateral(double Attenuation)
 {
-	SetHingeComplianceRotationalX(ComplianceX);
-	SetHingeComplianceRotationalY(ComplianceY);
+	AGX_ASSET_SETTER(ShearAttenuationLateral, Attenuation);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceRotationalX(double Compliance)
+double UAGX_TrackProperties::GetShearAttenuationLateral() const
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeComplianceRotational_X, Compliance, SetHingeComplianceRotationalX);
+	AGX_ASSET_GETTER(ShearAttenuationLateral);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceRotationalY(double Compliance)
+void UAGX_TrackProperties::SetShearStiffnessVertical(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeComplianceRotational_Y, Compliance, SetHingeComplianceRotationalY);
+	AGX_ASSET_SETTER(ShearStiffnessVertical, Stiffness);
 }
 
-void UAGX_TrackProperties::SetHingeComplianceRotational_BP(float X, float Y)
+double UAGX_TrackProperties::GetShearStiffnessVertical() const
 {
-	SetHingeComplianceRotational(static_cast<double>(X), static_cast<double>(Y));
+	AGX_ASSET_GETTER(ShearStiffnessVertical);
 }
 
-void UAGX_TrackProperties::GetHingeComplianceRotational(double& X, double& Y) const
+void UAGX_TrackProperties::SetShearAttenuationVertical(double Attenuation)
 {
-	X = GetHingeComplianceRotationalX();
-	Y = GetHingeComplianceRotationalY();
+	AGX_ASSET_SETTER(ShearAttenuationVertical, Attenuation);
 }
 
-void UAGX_TrackProperties::GetHingeSpookDampingRotational(double& X, double& Y) const
+double UAGX_TrackProperties::GetShearAttenuationVertical() const
 {
-	X = GetHingeSpookDampingRotationalX();
-	Y = GetHingeSpookDampingRotationalY();
+	AGX_ASSET_GETTER(ShearAttenuationVertical);
 }
 
-double UAGX_TrackProperties::GetHingeComplianceRotationalX() const
+void UAGX_TrackProperties::SetTensileStiffness(double Stiffness)
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceRotational_X, GetHingeComplianceRotationalX);
+	AGX_ASSET_SETTER(TensileStiffness, Stiffness);
 }
 
-double UAGX_TrackProperties::GetHingeComplianceRotationalY() const
+double UAGX_TrackProperties::GetTensileStiffness() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeComplianceRotational_Y, GetHingeComplianceRotationalY);
+	AGX_ASSET_GETTER(TensileStiffness);
 }
 
-void UAGX_TrackProperties::GetHingeComplianceRotational_BP(float& X, float& Y)
+void UAGX_TrackProperties::SetTensileAttenuation(double Attenuation)
 {
-	X = GetHingeComplianceRotationalX();
-	Y = GetHingeComplianceRotationalY();
+	AGX_ASSET_SETTER(TensileAttenuation, Attenuation);
 }
 
-//
-// Damping translational.
-//
-
-void UAGX_TrackProperties::SetHingeSpookDampingTranslational(
-	double DampingX, double DampingY, double DampingZ)
+double UAGX_TrackProperties::GetTensileAttenuation() const
 {
-	SetHingeSpookDampingTranslationalX(DampingX);
-	SetHingeSpookDampingTranslationalY(DampingY);
-	SetHingeSpookDampingTranslationalZ(DampingZ);
+	AGX_ASSET_GETTER(TensileAttenuation);
 }
 
-void UAGX_TrackProperties::SetHingeSpookDampingTranslationalX(double Damping)
+void UAGX_TrackProperties::SetTorsionalStiffness(double Stiffness)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_X, Damping, SetHingeSpookDampingTranslationalX);
+	AGX_ASSET_SETTER(TorsionalStiffness, Stiffness);
 }
 
-void UAGX_TrackProperties::SetHingeSpookDampingTranslationalY(double Damping)
+double UAGX_TrackProperties::GetTorsionalStiffness() const
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_Y, Damping, SetHingeSpookDampingTranslationalY);
+	AGX_ASSET_GETTER(TorsionalStiffness);
 }
 
-void UAGX_TrackProperties::SetHingeSpookDampingTranslationalZ(double Damping)
+void UAGX_TrackProperties::SetTorsionalAttenuation(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_Z, Damping, SetHingeSpookDampingTranslationalZ);
+	AGX_ASSET_SETTER(TorsionalAttenuation, Attenuation);
 }
 
-void UAGX_TrackProperties::SetHingeSpookDampingTranslational_BP(
-	float DampingX, float DampingY, float DampingZ)
+double UAGX_TrackProperties::GetTorsionalAttenuation() const
 {
-	// clang-format off
-	SetHingeSpookDampingTranslational(
-		static_cast<double>(DampingX),
-		static_cast<double>(DampingY),
-		static_cast<double>(DampingZ));
-	// clang-format on
-}
-
-void UAGX_TrackProperties::GetHingeSpookDampingTranslational(double& DampingX, double& DampingY, double& DampingZ) const
-{
-	DampingX = GetHingeSpookDampingTranslationalX();
-	DampingY = GetHingeSpookDampingTranslationalY();
-	DampingZ = GetHingeSpookDampingTranslationalZ();
-}
-
-double UAGX_TrackProperties::GetHingeSpookDampingTranslationalX() const
-{
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_X, GetHingeSpookDampingTranslationalX);
-}
-
-double UAGX_TrackProperties::GetHingeSpookDampingTranslationalY() const
-{
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_Y, GetHingeSpookDampingTranslationalY);
-}
-
-double UAGX_TrackProperties::GetHingeSpookDampingTranslationalZ() const
-{
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		HingeSpookDampingTranslational_Z, GetHingeSpookDampingTranslationalZ);
-}
-
-void UAGX_TrackProperties::GetHingeSpookDampingTranslational_BP(
-	float& DampingX, float& DampingY, float& DampingZ)
-{
-	DampingX = GetHingeSpookDampingTranslationalX();
-	DampingY = GetHingeSpookDampingTranslationalY();
-	DampingZ = GetHingeSpookDampingTranslationalZ();
-}
-
-//
-// Damping rotational.
-//
-
-void UAGX_TrackProperties::SetHingeSpookDampingRotational(double DampingX, double DampingY)
-{
-	SetHingeSpookDampingRotationalX(DampingX);
-	SetHingeSpookDampingRotationalY(DampingY);
-}
-
-void UAGX_TrackProperties::SetHingeSpookDampingRotationalX(double Damping)
-{
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeSpookDampingRotational_X, Damping, SetHingeSpookDampingRotationalX);
-}
-
-void UAGX_TrackProperties::SetHingeSpookDampingRotationalY(double Damping)
-{
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		HingeSpookDampingRotational_Y, Damping, SetHingeSpookDampingRotationalY);
-}
-
-void UAGX_TrackProperties::SetHingeSpookDampingRotational_BP(float X, float Y)
-{
-	SetHingeSpookDampingRotational(static_cast<double>(X), static_cast<double>(Y));
-}
-
-double UAGX_TrackProperties::GetHingeSpookDampingRotationalX() const
-{
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeSpookDampingRotational_X, GetHingeSpookDampingRotationalX);
-}
-
-double UAGX_TrackProperties::GetHingeSpookDampingRotationalY() const
-{
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeSpookDampingRotational_Y, GetHingeSpookDampingRotationalY);
-}
-
-void UAGX_TrackProperties::GetHingeSpookDampingRotational_BP(float& X, float& Y)
-{
-	X = GetHingeSpookDampingRotationalX();
-	Y = GetHingeSpookDampingRotationalY();
+	AGX_ASSET_GETTER(TorsionalAttenuation);
 }
 
 //
@@ -265,13 +151,13 @@ bool UAGX_TrackProperties::GetHingeRangeEnabled() const
 
 void UAGX_TrackProperties::SetHingeRange(FAGX_RealInterval InHingeRange)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(HingeRange, InHingeRange, SetHingeRange);
+	AGX_ASSET_SETTER(HingeRange, InHingeRange);
 }
 
 void UAGX_TrackProperties::SetHingeRange(double Min, double Max)
 {
 	const FAGX_RealInterval Range(Min, Max);
-	AGX_ASSET_SETTER_IMPL_VALUE(HingeRange, Range, SetHingeRange);
+	AGX_ASSET_SETTER(HingeRange, Range);
 }
 
 void UAGX_TrackProperties::SetHingeRange_BP(float Min, float Max)
@@ -281,7 +167,7 @@ void UAGX_TrackProperties::SetHingeRange_BP(float Min, float Max)
 
 FAGX_RealInterval UAGX_TrackProperties::GetHingeRange() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(HingeRange, GetHingeRange);
+	AGX_ASSET_GETTER(HingeRange);
 }
 
 void UAGX_TrackProperties::GetHingeRange(double& Min, double& Max) const
@@ -331,8 +217,7 @@ bool UAGX_TrackProperties::GetOnInitializeTransformNodesToWheelsEnabled() const
 
 void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap(double Overlap)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		TransformNodesToWheelsOverlap, Overlap, SetTransformNodesToWheelsOverlap);
+	AGX_ASSET_SETTER(TransformNodesToWheelsOverlap, Overlap);
 }
 
 void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap_BP(float Overlap)
@@ -342,7 +227,7 @@ void UAGX_TrackProperties::SetTransformNodesToWheelsOverlap_BP(float Overlap)
 
 double UAGX_TrackProperties::GetTransformNodesToWheelsOverlap() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(TransformNodesToWheelsOverlap, GetTransformNodesToWheelsOverlap);
+	AGX_ASSET_GETTER(TransformNodesToWheelsOverlap);
 }
 
 float UAGX_TrackProperties::GetTransformNodesToWheelsOverlap_BP() const
@@ -354,8 +239,7 @@ float UAGX_TrackProperties::GetTransformNodesToWheelsOverlap_BP() const
 
 void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold(double MergeThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NodesToWheelsMergeThreshold, MergeThreshold, SetNodesToWheelsMergeThreshold);
+	AGX_ASSET_SETTER(NodesToWheelsMergeThreshold, MergeThreshold);
 }
 
 void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold_BP(float MergeThreshold)
@@ -367,8 +251,7 @@ void UAGX_TrackProperties::SetNodesToWheelsMergeThreshold_BP(float MergeThreshol
 
 void UAGX_TrackProperties::SetNodesToWheelsSplitThreshold(double SplitThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NodesToWheelsSplitThreshold, SplitThreshold, SetNodesToWheelsSplitThreshold);
+	AGX_ASSET_SETTER(NodesToWheelsSplitThreshold, SplitThreshold);
 }
 
 void UAGX_TrackProperties::SetNodesToWheelsSplitThreshold_BP(float SplitThreshold)
@@ -390,23 +273,19 @@ void UAGX_TrackProperties::SetNumNodesIncludedInAverageDirection(int32 NumInclud
 		return;
 	}
 
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		NumNodesIncludedInAverageDirection, NumIncludedNodes,
-		SetNumNodesIncludedInAverageDirection);
+	AGX_ASSET_SETTER(NumNodesIncludedInAverageDirection, NumIncludedNodes);
 }
 
 int32 UAGX_TrackProperties::GetNumNodesIncludedInAverageDirection() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		NumNodesIncludedInAverageDirection, GetNumNodesIncludedInAverageDirection);
+	AGX_ASSET_GETTER(NumNodesIncludedInAverageDirection);
 }
 
 // Stabilizing hinge normal force.
 
 void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce(double MinNormalForce)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		MinStabilizingHingeNormalForce, MinNormalForce, SetMinStabilizingHingeNormalForce);
+	AGX_ASSET_SETTER(MinStabilizingHingeNormalForce, MinNormalForce);
 }
 
 void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce_BP(float MinNormalForce)
@@ -418,8 +297,7 @@ void UAGX_TrackProperties::SetMinStabilizingHingeNormalForce_BP(float MinNormalF
 
 void UAGX_TrackProperties::SetStabilizingHingeFrictionParameter(double FrictionParameter)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		StabilizingHingeFrictionParameter, FrictionParameter, SetStabilizingHingeFrictionParameter);
+	AGX_ASSET_SETTER(StabilizingHingeFrictionParameter, FrictionParameter);
 }
 
 void UAGX_TrackProperties::SetStabilizingHingeFrictionParameter_BP(float FrictionParameter)
@@ -449,19 +327,18 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 		return;
 	}
 
-	HingeComplianceTranslational_X = Source->HingeComplianceTranslational_X;
-	HingeComplianceTranslational_Y = Source->HingeComplianceTranslational_Y;
-	HingeComplianceTranslational_Z = Source->HingeComplianceTranslational_Z;
-
-	HingeComplianceRotational_X = Source->HingeComplianceRotational_X;
-	HingeComplianceRotational_Y = Source->HingeComplianceRotational_Y;
-
-	HingeSpookDampingTranslational_X = Source->HingeSpookDampingTranslational_X;
-	HingeSpookDampingTranslational_Y = Source->HingeSpookDampingTranslational_Y;
-	HingeSpookDampingTranslational_Z = Source->HingeSpookDampingTranslational_Z;
-
-	HingeSpookDampingRotational_X = Source->HingeSpookDampingRotational_X;
-	HingeSpookDampingRotational_Y = Source->HingeSpookDampingRotational_Y;
+	BendingStiffnessLateral = Source->BendingStiffnessLateral;
+	BendingAttenuationLateral = Source->BendingAttenuationLateral;
+	BendingStiffnessVertical = Source->BendingStiffnessVertical;
+	BendingAttenuationVertical = Source->BendingAttenuationVertical;
+	ShearStiffnessLateral = Source->ShearStiffnessLateral;
+	ShearAttenuationLateral = Source->ShearAttenuationLateral;
+	ShearStiffnessVertical = Source->ShearStiffnessVertical;
+	ShearAttenuationVertical = Source->ShearAttenuationVertical;
+	TensileStiffness = Source->TensileStiffness;
+	TensileAttenuation = Source->TensileAttenuation;
+	TorsionalStiffness = Source->TorsionalStiffness;
+	TorsionalAttenuation = Source->TorsionalAttenuation;
 
 	bEnableHingeRange = Source->bEnableHingeRange;
 	HingeRange = Source->HingeRange;
@@ -479,19 +356,18 @@ void UAGX_TrackProperties::CopyFrom(const UAGX_TrackProperties* Source)
 
 void UAGX_TrackProperties::CopyFrom(const FTrackPropertiesBarrier& Source)
 {
-	HingeComplianceTranslational_X = Source.GetHingeCompliance(0);
-	HingeComplianceTranslational_Y = Source.GetHingeCompliance(1);
-	HingeComplianceTranslational_Z = Source.GetHingeCompliance(2);
-
-	HingeComplianceRotational_X = Source.GetHingeCompliance(3);
-	HingeComplianceRotational_Y = Source.GetHingeCompliance(4);
-
-	HingeSpookDampingTranslational_X = Source.GetHingeSpookDamping(0);
-	HingeSpookDampingTranslational_Y = Source.GetHingeSpookDamping(1);
-	HingeSpookDampingTranslational_Z = Source.GetHingeSpookDamping(2);
-
-	HingeSpookDampingRotational_X = Source.GetHingeSpookDamping(3);
-	HingeSpookDampingRotational_Y = Source.GetHingeSpookDamping(4);
+	BendingStiffnessLateral = Source.GetBendingStiffnessLateral();
+	BendingAttenuationLateral = Source.GetBendingAttenuationLateral();
+	BendingStiffnessVertical = Source.GetBendingStiffnessVertical();
+	BendingAttenuationVertical = Source.GetBendingAttenuationVertical();
+	ShearStiffnessLateral = Source.GetShearStiffnessLateral();
+	ShearAttenuationLateral = Source.GetShearAttenuationLateral();
+	ShearStiffnessVertical = Source.GetShearStiffnessVertical();
+	ShearAttenuationVertical = Source.GetShearAttenuationVertical();
+	TensileStiffness = Source.GetTensileStiffness();
+	TensileAttenuation = Source.GetTensileAttenuation();
+	TorsionalStiffness = Source.GetTorsionalStiffness();
+	TorsionalAttenuation = Source.GetTorsionalAttenuation();
 
 	bEnableHingeRange = Source.GetHingeRangeEnabled();
 	HingeRange = Source.GetHingeRangeRange();
@@ -652,17 +528,20 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 		return;
 	}
 
+	NativeBarrier.SetBendingStiffnessLateral(BendingStiffnessLateral);
+	NativeBarrier.SetBendingAttenuationLateral(BendingAttenuationLateral);
+	NativeBarrier.SetBendingStiffnessVertical(BendingStiffnessVertical);
+	NativeBarrier.SetBendingAttenuationVertical(BendingAttenuationVertical);
+	NativeBarrier.SetShearStiffnessLateral(ShearStiffnessLateral);
+	NativeBarrier.SetShearAttenuationLateral(ShearAttenuationLateral);
+	NativeBarrier.SetShearStiffnessVertical(ShearStiffnessVertical);
+	NativeBarrier.SetShearAttenuationVertical(ShearAttenuationVertical);
+	NativeBarrier.SetTensileStiffness(TensileStiffness);
+	NativeBarrier.SetTensileAttenuation(TensileAttenuation);
+	NativeBarrier.SetTorsionalStiffness(TorsionalStiffness);
+	NativeBarrier.SetTorsionalAttenuation(TorsionalAttenuation);
+
 	// Hinge parameters.
-	NativeBarrier.SetHingeComplianceTranslationalX(HingeComplianceTranslational_X);
-	NativeBarrier.SetHingeComplianceTranslationalY(HingeComplianceTranslational_Y);
-	NativeBarrier.SetHingeComplianceTranslationalZ(HingeComplianceTranslational_Z);
-	NativeBarrier.SetHingeComplianceRotationalX(HingeComplianceRotational_X);
-	NativeBarrier.SetHingeComplianceRotationalY(HingeComplianceRotational_Y);
-	NativeBarrier.SetHingeSpookDampingTranslationalX(HingeSpookDampingTranslational_X);
-	NativeBarrier.SetHingeSpookDampingTranslationalY(HingeSpookDampingTranslational_Y);
-	NativeBarrier.SetHingeSpookDampingTranslationalZ(HingeSpookDampingTranslational_Z);
-	NativeBarrier.SetHingeSpookDampingRotationalX(HingeSpookDampingRotational_X);
-	NativeBarrier.SetHingeSpookDampingRotationalY(HingeSpookDampingRotational_Y);
 	NativeBarrier.SetHingeRangeEnabled(bEnableHingeRange);
 	NativeBarrier.SetHingeRangeRange(HingeRange);
 
@@ -680,6 +559,42 @@ void UAGX_TrackProperties::UpdateNativeProperties()
 	// Stabilization parameters.
 	NativeBarrier.SetMinStabilizingHingeNormalForce(MinStabilizingHingeNormalForce);
 	NativeBarrier.SetStabilizingHingeFrictionParameter(StabilizingHingeFrictionParameter);
+}
+
+void UAGX_TrackProperties::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TrackReducedOrderTrackImplementation))
+	{
+		TArray<double> Compliance {
+			HingeComplianceTranslational_X_DEPRECATED, HingeComplianceTranslational_Y_DEPRECATED,
+			HingeComplianceTranslational_Z_DEPRECATED, HingeComplianceRotational_X_DEPRECATED,
+			HingeComplianceRotational_Y_DEPRECATED};
+
+		TArray<double> Damping {
+			HingeSpookDampingTranslational_X_DEPRECATED,
+			HingeSpookDampingTranslational_Y_DEPRECATED,
+			HingeSpookDampingTranslational_Z_DEPRECATED, HingeSpookDampingRotational_X_DEPRECATED,
+			HingeSpookDampingRotational_Y_DEPRECATED};
+
+		// Best guess. We cannot know this value at this time.
+		// Even if we re-created the Track owning this TrackProperties it would not be enough since
+		// multiple tracks can share TrackProperties, so the node length cannot be known.
+		const double NodeLength = 10.0;
+
+		auto Sim = Cast<UAGX_Simulation>(UAGX_Simulation::StaticClass()->GetDefaultObject());
+		const double StepForwardTime = Sim != nullptr ? Sim->TimeStep : (1.0 / 60.0);
+
+		FTrackPropertiesBarrier Barrier = FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
+			Compliance, Damping, NodeLength, StepForwardTime);
+		CopyFrom(Barrier);
+
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
+	}
 }
 
 void UAGX_TrackProperties::PostInitProperties()
@@ -707,74 +622,6 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 		return;
 	}
 
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceTranslational_X),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeComplianceTranslational_X, SetHingeComplianceTranslationalX)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceTranslational_Y),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeComplianceTranslational_Y, SetHingeComplianceTranslationalY)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceTranslational_Z),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeComplianceTranslational_Z, SetHingeComplianceTranslationalZ)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceRotational_X),
-		[](ThisClass* This) {
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeComplianceRotational_X, SetHingeComplianceRotationalX)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeComplianceRotational_Y),
-		[](ThisClass* This) {
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeComplianceRotational_Y, SetHingeComplianceRotationalY)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeSpookDampingTranslational_X),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeSpookDampingTranslational_X, SetHingeSpookDampingTranslationalX)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeSpookDampingTranslational_Y),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeSpookDampingTranslational_Y, SetHingeSpookDampingTranslationalY)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeSpookDampingTranslational_Z),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeSpookDampingTranslational_Z, SetHingeSpookDampingTranslationalZ)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeSpookDampingRotational_X),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeSpookDampingRotational_X, SetHingeSpookDampingRotationalX)
-		});
-	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, HingeSpookDampingRotational_Y),
-		[](ThisClass* This)
-		{
-			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				HingeSpookDampingRotational_Y, SetHingeSpookDampingRotationalY)
-		});
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, bEnableHingeRange), [](ThisClass* This)
 		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(bEnableHingeRange, SetHingeRangeEnabled) });
@@ -805,13 +652,15 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 		});
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, NodesToWheelsMergeThreshold),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				NodesToWheelsMergeThreshold, SetNodesToWheelsMergeThreshold)
 		});
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, NodesToWheelsSplitThreshold),
-		[](ThisClass* This) {
+		[](ThisClass* This)
+		{
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				NodesToWheelsSplitThreshold, SetNodesToWheelsSplitThreshold)
 		});
@@ -836,6 +685,19 @@ void UAGX_TrackProperties::InitPropertyDispatcher()
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				StabilizingHingeFrictionParameter, SetStabilizingHingeFrictionParameter)
 		});
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffnessLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingAttenuationLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingStiffnessVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(BendingAttenuationVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffnessLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearAttenuationLateral);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearStiffnessVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShearAttenuationVertical);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TensileStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TensileAttenuation);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TorsionalStiffness);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TorsionalAttenuation);
 }
 
 #endif

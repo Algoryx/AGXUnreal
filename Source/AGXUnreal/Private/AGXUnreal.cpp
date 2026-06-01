@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGXUnreal.h"
 
@@ -159,6 +159,12 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 			FString::Printf(TEXT("AGX_TerrainMaterial.%s_BP"), *Function->GetName());
 		Redirects.Emplace(ECoreRedirectFlags::Type_Function, *BpName, *Function->GetName());
 	}
+
+	// Niagara types moved from AGXUnrealShaders into AGXUnreal because AGXUnrealShaders is not
+	// reliably loaded after Niagara.
+	Redirects.Emplace(
+		ECoreRedirectFlags::Type_Class, TEXT("/Script/AGXUnrealShaders.AGX_ParticleUpsamplingDI"),
+		TEXT("/Script/AGXUnreal.AGX_ParticleUpsamplingDI"));
 
 	FCoreRedirects::AddRedirectList(Redirects, TEXT("AGXUnreal"));
 }

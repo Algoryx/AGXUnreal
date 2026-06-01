@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Wire/AGX_WireComponentVisualizer.h"
 
@@ -30,7 +30,7 @@ class FWireVisualizerOperations
 public:
 	static bool NodeProxyClicked(
 		FAGX_WireComponentVisualizer& Visualizer, const UAGX_WireComponent& Wire,
-		const bool bNewWire, HNodeProxy& Proxy)
+		const bool bNewWire, HAGX_WireNodeProxy& Proxy)
 	{
 		if (Wire.IsInitialized())
 		{
@@ -338,7 +338,7 @@ namespace AGX_WireComponentVisualizer_helpers
 			const FLinearColor NodeColor = NodeColorFunc(I, Node.NodeType);
 			const FVector Location = Node.Frame.GetWorldLocation(Wire);
 
-			PDI->SetHitProxy(new HNodeProxy(&Wire, I));
+			PDI->SetHitProxy(new HAGX_WireNodeProxy(&Wire, I));
 			PDI->DrawPoint(
 				Location, NodeColor, FAGX_WireUtilities::NodeHandleSize, SDPG_Foreground);
 			PDI->SetHitProxy(nullptr);
@@ -502,7 +502,7 @@ bool FAGX_WireComponentVisualizer::VisProxyHandleClick(
 
 	const bool bNewWire = Wire != GetEditWire();
 
-	if (HNodeProxy* Proxy = HitProxyCast<HNodeProxy>(VisProxy))
+	if (HAGX_WireNodeProxy* Proxy = HitProxyCast<HAGX_WireNodeProxy>(VisProxy))
 	{
 		return FWireVisualizerOperations::NodeProxyClicked(*this, *Wire, bNewWire, *Proxy);
 	}

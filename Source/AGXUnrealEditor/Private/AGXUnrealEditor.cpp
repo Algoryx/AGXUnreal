@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "AGXUnrealEditor.h"
 
@@ -18,7 +18,7 @@
 #include "AGX_RuntimeStyle.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_StaticMeshComponentCustomization.h"
 #include "AGX_TopMenu.h"
 #include "AgxEdMode/AGX_AgxEdMode.h"
@@ -32,6 +32,9 @@
 #include "AMOR/AGX_ConstraintMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_ShapeContactMergeSplitThresholdsTypeActions.h"
 #include "AMOR/AGX_WireMergeSplitThresholdsTypeActions.h"
+#include "Cable/AGX_CableComponent.h"
+#include "Cable/AGX_CableComponentVisualizer.h"
+#include "Cable/AGX_CablePropertiesAssetTypeActions.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerActor.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponent.h"
 #include "CollisionGroups/AGX_CollisionGroupDisablerComponentCustomization.h"
@@ -95,14 +98,19 @@
 #include "Sensors/AGX_SensorEnvironment.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
-#include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponentVisualizer.h"
+#include "Terrain/AGX_MovableTerrainComponent.h"
+#include "Terrain/AGX_MovableTerrainCustomization.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelComponentVisualizer.h"
 #include "Terrain/AGX_ShovelPropertiesActions.h"
 #include "Terrain/AGX_ShovelReference.h"
+#include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponent.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponentCustomization.h"
+#include "Terrain/AGX_TerrainMaterialPatchComponentVisualizer.h"
 #include "Terrain/AGX_TerrainPropertiesActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
@@ -294,6 +302,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_BellCrankSteeringParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_CablePropertiesAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_ConstraintMergeSplitThresholdsTypeActions(AgxAssetCategoryBit)));
@@ -513,6 +523,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 			&FAGX_ModelSourceComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_MovableTerrainCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
 		UAGX_PlotComponent::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_PlotComponentCustomization::MakeInstance));
@@ -546,6 +561,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		UAGX_TerrainMaterial::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
 			&FAGX_TerrainMaterialCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomClassLayout(
+		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName(),
+		FOnGetDetailCustomizationInstance::CreateStatic(
+			&FAGX_TerrainMaterialPatchComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_TrackComponent::StaticClass()->GetFName(),
@@ -655,6 +675,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(
 		UAGX_ModelSourceComponent::StaticClass()->GetFName());
 
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_MovableTerrainComponent::StaticClass()->GetFName());
+
 	PropertyModule.UnregisterCustomClassLayout(UAGX_PlotComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_RigidBodyComponent::StaticClass()->GetFName());
@@ -666,6 +689,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomClassLayout(UAGX_SteeringComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TerrainMaterial::StaticClass()->GetFName());
+
+	PropertyModule.UnregisterCustomClassLayout(
+		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName());
 
 	PropertyModule.UnregisterCustomClassLayout(UAGX_TrackComponent::StaticClass()->GetFName());
 
@@ -686,6 +712,10 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 {
+	RegisterComponentVisualizer(
+		UAGX_CableComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_CableComponentVisualizer));
+
 	RegisterComponentVisualizer(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_CameraSensorComponentVisualizer));
@@ -723,6 +753,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_SteeringComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_TerrainMaterialPatchComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_TireComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_TireComponentVisualizer));
 
@@ -741,6 +775,7 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 
 void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 {
+	UnregisterComponentVisualizer(UAGX_CableComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_CameraSensorBase::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
@@ -750,6 +785,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_LidarSensorLineTraceComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_SteeringComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TireComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TrackComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireComponent::StaticClass()->GetFName());
@@ -886,3 +922,4 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FAGXUnrealEditorModule, AGXUnrealEditor);
+

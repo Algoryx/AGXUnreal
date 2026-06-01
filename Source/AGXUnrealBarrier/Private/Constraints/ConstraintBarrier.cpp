@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Constraints/ConstraintBarrier.h"
 
@@ -179,7 +179,6 @@ double FConstraintBarrier::GetCurrentForce(int32 Dof)
 	check(HasNative());
 	return NativeRef->Native->getCurrentForce(Dof);
 }
-
 
 void FConstraintBarrier::SetEnableComputeForces(bool bEnable)
 {
@@ -394,6 +393,23 @@ bool FConstraintBarrier::IsRotational() const
 
 	if (dynamic_cast<agx::Prismatic*>(NativeRef->Native.get()) != nullptr)
 		return false;
+
+	return true;
+}
+
+bool FConstraintBarrier::IsAllElementaryConstraintsDisabled() const
+{
+	check(HasNative());
+
+	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
+	if (NumEc == 0)
+		return false;
+
+	for (decltype(NumEc) I = 0; I < NumEc; I++)
+	{
+		if (NativeRef->Native->getElementaryConstraint(I)->getEnable())
+			return false;
+	}
 
 	return true;
 }

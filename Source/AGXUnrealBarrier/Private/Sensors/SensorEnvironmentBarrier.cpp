@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Sensors/SensorEnvironmentBarrier.h"
 
@@ -163,14 +163,14 @@ void FSensorEnvironmentBarrier::SetAmbientMaterial(FRtAmbientMaterialBarrier* Ma
 namespace SensorEnvironmentBarrier_helpers
 {
 	template <typename TBarrier>
-	void SetLidarSurfaceMaterialOrDefault(
+	void SetLidarSurfaceMaterial(
 		TBarrier& Barrier, FRtLambertianOpaqueMaterialBarrier* Material)
 	{
 		check(Barrier.HasNative());
 
 		if (Material == nullptr)
 		{
-			// Assign default if setting nullptr Material.
+			// Assign AGX default if setting nullptr Material.
 			agxSensor::RtSurfaceMaterial::set(
 				Barrier.GetNative()->Native, agxSensor::RtLambertianOpaqueMaterial::create());
 		}
@@ -183,22 +183,22 @@ namespace SensorEnvironmentBarrier_helpers
 	}
 }
 
-void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
+void FSensorEnvironmentBarrier::SetLidarSurfaceMaterial(
 	FTerrainBarrier& Terrain, FRtLambertianOpaqueMaterialBarrier* Material)
 {
-	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterialOrDefault(Terrain, Material);
+	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterial(Terrain, Material);
 }
 
-void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
+void FSensorEnvironmentBarrier::SetLidarSurfaceMaterial(
 	FTerrainPagerBarrier& TerrainPager, FRtLambertianOpaqueMaterialBarrier* Material)
 {
-	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterialOrDefault(TerrainPager, Material);
+	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterial(TerrainPager, Material);
 }
 
-void FSensorEnvironmentBarrier::SetLidarSurfaceMaterialOrDefault(
+void FSensorEnvironmentBarrier::SetLidarSurfaceMaterial(
 	FWireBarrier& Wire, FRtLambertianOpaqueMaterialBarrier* Material)
 {
-	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterialOrDefault(Wire, Material);
+	SensorEnvironmentBarrier_helpers::SetLidarSurfaceMaterial(Wire, Material);
 }
 
 void FSensorEnvironmentBarrier::SetMagneticField(const FVector& MagneticField)

@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -32,6 +32,14 @@ class AGXUNREAL_API UAGX_ShapeComponent : public UAGX_SimpleMeshComponent, publi
 
 public:
 	UAGX_ShapeComponent();
+
+	/**
+	 * If set to true, this Component will be added to the Simulation on BeginPlay.
+	 * If set to false, it will not be added to the Simulation and will thus not interact with other
+	 * objects in the Simulation.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Unreal")
+	bool bIncludeInSimulation {true};
 
 	/**
 	 * Defines physical properties of both the surface and the bulk of this shape.
@@ -69,6 +77,39 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
 	void RemoveCollisionGroupIfExists(FName GroupName);
+
+	/**
+	 * Enable or disable collisions between this Shape Component and another Shape Component.
+	 *
+	 * The default state is enabled. Disabled collisions takes precedence over enabled collisions,
+	 * meaning that if a pair of Shapes have collisions disabled in any way, such as using collision
+	 * groups or by disabling collisions on a Shape entirely, calling Set Enable Collisions with
+	 * True will not override that.
+	 *
+	 * The Shape pair collision flag set by this function is currently a Native state only, meaning
+	 * this function should only be called during runtime with Shape Components that have a native.
+	 *
+	 * @param OtherShape The shape to enable or disable collisions against.
+	 * @param bEnable True to enable collisions, false to disable.
+	 * @return True if both Shape Components have a Native.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool SetEnableCollisions(UAGX_ShapeComponent* OtherShape, bool bEnable);
+
+	/**
+	 * Determine whether collisions has been disabled between this Shape and the given Shape.
+	 *
+	 * This does not do a full collision rejection test, it only checks for the disable flag set by
+	 * Set Enable Collisions.
+	 *
+	 * The Shape pair collision flag read by this function is currently a Native state only, meaning
+	 * this function should only be called during runtime with Shape Components that have a native.
+	 *
+	 * @param OtherShape
+	 * @return
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Shape")
+	bool GetEnableCollisions(UAGX_ShapeComponent* OtherShape);
 
 	/**
 	 * Determines whether this shape should act as a sensor.
@@ -163,14 +204,14 @@ public:
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Guid")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FGuid ImportGuid;
 
 	/*
 	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.
 	 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import Name")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FString ImportName;
 
 	/**
@@ -238,6 +279,12 @@ public:
 
 	static FString GetRenderMeshComponentNamePrefix();
 
+	/**
+	 * Clear the reference pointer held by this Shape Component. May only be called when there is a
+	 * Native to release.
+	 */
+	virtual void ReleaseNative() PURE_VIRTUAL(UAGX_ShapeComponent::ReleaseNative, );
+
 	//~ Begin IAGX_NativeObject interface.
 	virtual bool HasNative() const override;
 	virtual uint64 GetNativeAddress() const override;
@@ -267,6 +314,9 @@ public:
 #endif
 	// ~End UObject interface.
 
+	static void ApplySensorMaterial(UMeshComponent& Mesh);
+	static void RemoveSensorMaterial(UMeshComponent& Mesh);
+
 protected:
 	/**
 	 * Get a pointer to the actual member Barrier object. This will never return nullptr. The
@@ -279,12 +329,6 @@ protected:
 
 	virtual const FShapeBarrier* GetNativeBarrier() const
 		PURE_VIRTUAL(UAGX_ShapeComponent::GetNativebarrier, return nullptr;);
-
-	/**
-	 * Clear the reference pointer held by this Shape Component. May only be called when there is a
-	 * Native to release.
-	 */
-	virtual void ReleaseNative() PURE_VIRTUAL(UAGX_ShapeComponent::ReleaseNative, );
 
 #if WITH_EDITOR
 	/**
@@ -335,9 +379,6 @@ protected:
 	 * is the world coordinate system.
 	 */
 	virtual void UpdateNativeGlobalTransform();
-
-	static void ApplySensorMaterial(UMeshComponent& Mesh);
-	static void RemoveSensorMaterial(UMeshComponent& Mesh);
 
 	/** Description of Unreal collision, used by e.g. Line Trace. */
 	UPROPERTY(Transient, Duplicatetransient)

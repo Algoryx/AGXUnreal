@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #include "Utilities/AGX_Utilities.h"
 
@@ -72,7 +72,7 @@ namespace AGX_AGXUtilities_helpers
 		// We also update the filepath in the ImportSettings to point to the new, copied OpenPLX
 		// file.
 		const FString DestinationDir =
-			FOpenPLXUtilities::CreateUniqueModelDirectory(OutSettings.FilePath);
+			FOpenPLXUtilities::GenerateUniqueModelDirectoryPath(OutSettings.FilePath);
 		const FString NewLocation =
 			FOpenPLXUtilities::CopyAllDependenciesToProject(OutSettings.FilePath, DestinationDir);
 

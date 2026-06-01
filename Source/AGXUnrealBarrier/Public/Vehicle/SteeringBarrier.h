@@ -1,4 +1,4 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
 #pragma once
 
@@ -58,6 +58,8 @@ struct AGXUNREALBARRIER_API FSteeringBarrier
 
 	void SetSteeringAngle(double Angle);
 	double GetSteeringAngle() const;
+
+	double GetMaximumSteeringAngle(int64 Side) const;
 
 	void SetName(const FString& NewName);
 	FString GetName() const;

@@ -1,6 +1,6 @@
-// Copyright 2025, Algoryx Simulation AB.
+// Copyright 2026, Algoryx Simulation AB.
 
-#include "AGX_StaticMeshComponent.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
