@@ -70,6 +70,8 @@ public:
 	/**
 	 * Configure this Material as Air with the set visibility in kilometers. The Material parameters
 	 * will update accordingly.
+	 * This function only works during Play. To make permanent changes to a Lidar Ambient Material
+	 * Asset, use the helpers in the Lidar Ambient Material Asset Editor.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsAir(float VisibilityKm);
@@ -77,12 +79,16 @@ public:
 	/**
 	 * Configure this Material as Fog with the set visibility in kilometers and Lidar wavelength in
 	 * nanometers. The Material parameters will update accordingly.
+	 * This function only works during Play. To make permanent changes to a Lidar Ambient Material
+	 * Asset, use the helpers in the Lidar Ambient Material Asset Editor.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsFog(float VisibilityKm, float WavelengthNm);
 
 	/**
 	 * Configure this Material to simulate rainfall based on the rain rate in millimeters per hour.
+	 * This function only works during Play. To make permanent changes to a Lidar Ambient Material
+	 * Asset, use the helpers in the Lidar Ambient Material Asset Editor.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsRainfall(float RateMmPerHour);
@@ -90,6 +96,8 @@ public:
 	/**
 	 * Configure this Material to simulate snowfall with snowfall rate in millimeters per hour and
 	 * Lidar wavelength in nanometers.
+	 * This function only works during Play. To make permanent changes to a Lidar Ambient Material
+	 * Asset, use the helpers in the Lidar Ambient Material Asset Editor.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
 	bool ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm);
