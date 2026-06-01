@@ -84,6 +84,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
 	UAGX_LidarAmbientMaterial* AmbientMaterial {nullptr};
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
+
 	/**
 	 * Whether or not the transform of added Instanced Static Meshes should be updated each Tick.
 	 * Updating Instanced Static Mesh transforms comes with some perfomance cost, especially if
@@ -290,7 +293,7 @@ private:
 	void UpdateTrackedMeshes();
 	void UpdateTrackedInstancedMeshes();
 	void UpdateTrackedAGXMeshes();
-	void UpdateAmbientMaterial();
+	bool UpdateAmbientMaterial();
 	void TickTrackedLidars() const;
 	void TickTrackedIMUs() const;
 
