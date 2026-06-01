@@ -260,6 +260,29 @@ void AAGX_SensorEnvironment::SetMagneticField(const FVector& Field)
 		NativeBarrier.SetMagneticField(Field);
 }
 
+bool AAGX_SensorEnvironment::SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial)
+{
+	UAGX_LidarAmbientMaterial* AmbientMaterialOrig = AmbientMaterial;
+	AmbientMaterial = InAmbientMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateAmbientMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateAmbientMaterial())
+	{
+		// Something went wrong, restore original AmbientMaterial.
+		AmbientMaterial = AmbientMaterialOrig;
+		return false;
+	}
+
+	return true;
+}
+
 FVector AAGX_SensorEnvironment::GetMagneticField() const
 {
 	if (HasNative())
@@ -1176,21 +1199,22 @@ void AAGX_SensorEnvironment::UpdateTrackedAGXMeshes()
 	AGX_SensorEnvironment_helpers::UpdateTrackedMeshes(TrackedAGXMeshes);
 }
 
-void AAGX_SensorEnvironment::UpdateAmbientMaterial()
+bool AAGX_SensorEnvironment::UpdateAmbientMaterial()
 {
 	AGX_CHECK(HasNative());
 	if (!HasNative())
-		return;
+		return false;
 
 	if (AmbientMaterial == nullptr)
 	{
 		NativeBarrier.SetAmbientMaterial(nullptr);
-		return;
+		return true;
 	}
 
 	UWorld* World = GetWorld();
 	UAGX_LidarAmbientMaterial* Instance = AmbientMaterial->GetOrCreateInstance(World);
-	check(Instance);
+	if (Instance == nullptr)
+		return false;
 
 	// Swap asset to instance as we are now in-game.
 	if (AmbientMaterial != Instance)
@@ -1198,7 +1222,12 @@ void AAGX_SensorEnvironment::UpdateAmbientMaterial()
 		AmbientMaterial = Instance;
 	}
 
-	NativeBarrier.SetAmbientMaterial(AmbientMaterial->GetNative());
+	FRtAmbientMaterialBarrier* Native = AmbientMaterial->GetNative();
+	if (Native == nullptr)
+		return false;
+
+	NativeBarrier.SetAmbientMaterial(Native);
+	return true;
 }
 
 void AAGX_SensorEnvironment::TickTrackedLidars() const

@@ -7,6 +7,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -80,6 +81,66 @@ float UAGX_LidarAmbientMaterial::GetReturnGammaDistributionScaleParameter() cons
 {
 	AGX_ASSET_GETTER_IMPL_VALUE(
 		ReturnGammaDistributionScaleParameter, GetReturnGammaDistributionScaleParameter);
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsAir(float VisibilityKm)
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+		return false;
+
+	FRtAmbientMaterialBarrier Barrier;
+	Barrier.AllocateNative();
+	if (!Barrier.HasNative())
+		return false;
+
+	Barrier.ConfigureAsAir(VisibilityKm);
+	CopyFrom(Barrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsFog(float VisibilityKm, float WavelengthNm)
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+		return false;
+
+	FRtAmbientMaterialBarrier Barrier;
+	Barrier.AllocateNative();
+	if (!Barrier.HasNative())
+		return false;
+
+	Barrier.ConfigureAsFog(VisibilityKm, WavelengthNm);
+	CopyFrom(Barrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsRainfall(float RateMmPerHour)
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+		return false;
+
+	FRtAmbientMaterialBarrier Barrier;
+	Barrier.AllocateNative();
+	if (!Barrier.HasNative())
+		return false;
+
+	Barrier.ConfigureAsRainfall(RateMmPerHour);
+	CopyFrom(Barrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm)
+{
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
+		return false;
+
+	FRtAmbientMaterialBarrier Barrier;
+	Barrier.AllocateNative();
+	if (!Barrier.HasNative())
+		return false;
+
+	Barrier.ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
+	CopyFrom(Barrier);
+	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::HasNative() const

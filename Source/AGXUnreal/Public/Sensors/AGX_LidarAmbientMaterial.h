@@ -67,6 +67,18 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Lidar")
 	float GetReturnGammaDistributionScaleParameter() const;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
+	bool ConfigureAsAir(float VisibilityKm);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
+	bool ConfigureAsFog(float VisibilityKm, float WavelengthNm);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
+	bool ConfigureAsRainfall(float RateMmPerHour);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Lidar", Meta = (ClampMin = "0.0"))
+	bool ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm);
+
 	bool HasNative() const;
 	FRtAmbientMaterialBarrier* GetNative();
 	const FRtAmbientMaterialBarrier* GetNative() const;
