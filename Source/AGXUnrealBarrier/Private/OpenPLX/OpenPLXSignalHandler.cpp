@@ -884,13 +884,13 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVec
 		return false;
 	}
 
-	auto Min = M->read_real<double>("min");
-	auto Max = M->read_real<double>("max");
+	auto Min = M->read_real<double>("x");
+	auto Max = M->read_real<double>("y");
 	if (!Min || !Max)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Control Interface: Could not read 'min'/'max' fields for Output '%s'."),
+			TEXT("OpenPLX Control Interface: Could not read 'x'/'y' fields for Output '%s'."),
 			*Output.Alias.ToString());
 		return false;
 	}
@@ -962,15 +962,15 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 		return false;
 	}
 
-	const bool bWroteMin = M->write_real<double>("min", ConvertedMaybe->X);
-	const bool bWroteMax = M->write_real<double>("max", ConvertedMaybe->Y);
+	const bool bWroteMin = M->write_real<double>("x", ConvertedMaybe->X);
+	const bool bWroteMax = M->write_real<double>("y", ConvertedMaybe->Y);
 	Interface->flush();
 
 	if (!bWroteMin || !bWroteMax)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Control Interface: Failed to write 'min'/'max' fields for Input '%s'."),
+			TEXT("OpenPLX Control Interface: Failed to write 'x'/'y' fields for Input '%s'."),
 			*Input.Alias.ToString());
 		return false;
 	}
