@@ -110,6 +110,9 @@ void UAGX_SensorComponentBase::CopyFrom(
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOuter(), CleanBarrierName, UAGX_SensorComponentBase::StaticClass());
 	Rename(*Name);
+
+	if (Barrier.HasStepStrideNative())
+		StepStride = Barrier.GetStepStride();
 }
 
 void UAGX_SensorComponentBase::BeginPlay()

@@ -605,9 +605,10 @@ namespace
 		OutSimObjects.GetSensors().Reserve(Lidars.size());
 		for (agxSensor::Lidar* LidarAGX : Lidars)
 		{
+			auto StepStride = LidarAGX->findParent<agxSensor::SensorGroupStepStride>();
 			OutSimObjects.GetSensors().Emplace(
 				std::make_shared<FSensorRef>(LidarAGX),
-				std::make_shared<FSensorGroupStepStrideRef>(nullptr));
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
 		}
 	}
 
