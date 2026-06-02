@@ -82,6 +82,46 @@ float UAGX_LidarAmbientMaterial::GetReturnGammaDistributionScaleParameter() cons
 		ReturnGammaDistributionScaleParameter, GetReturnGammaDistributionScaleParameter);
 }
 
+bool UAGX_LidarAmbientMaterial::ConfigureAsAir(float VisibilityKm)
+{
+	if (!HasNative())
+		return false;
+
+	NativeBarrier.ConfigureAsAir(VisibilityKm);
+	CopyFrom(NativeBarrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsFog(float VisibilityKm, float WavelengthNm)
+{
+	if (!HasNative())
+		return false;
+
+	NativeBarrier.ConfigureAsFog(VisibilityKm, WavelengthNm);
+	CopyFrom(NativeBarrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsRainfall(float RateMmPerHour)
+{
+	if (!HasNative())
+		return false;
+
+	NativeBarrier.ConfigureAsRainfall(RateMmPerHour);
+	CopyFrom(NativeBarrier);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm)
+{
+	if (!HasNative())
+		return false;
+
+	NativeBarrier.ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
+	CopyFrom(NativeBarrier);
+	return true;
+}
+
 bool UAGX_LidarAmbientMaterial::HasNative() const
 {
 	if (Instance != nullptr)
