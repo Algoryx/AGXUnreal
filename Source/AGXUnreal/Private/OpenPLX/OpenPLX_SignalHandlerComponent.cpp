@@ -21,6 +21,8 @@
 #include "Vehicle/AGX_SteeringComponent.h"
 
 // Unreal Engine includes.
+#include "NiagaraDebuggerCommon.h"
+#include "NiagaraShared.h"
 #include "Misc/Paths.h"
 
 UOpenPLX_SignalHandlerComponent::UOpenPLX_SignalHandlerComponent()
@@ -395,6 +397,28 @@ bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FV
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
+	const FOpenPLX_Input& Input, FVector Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Send Vector Interface: Cannot send signals because the signal handler has not "
+				 "been initialized."));
+		return false;
+	}
+
+	if (!FOpenPLX_Utilities::IsVectorType(Input.Type))
+	{
+		LogTypeMismatchWarning("SendVectorInterface", Input.Name.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVector Value)
 {
 	FOpenPLX_Input Input;
@@ -425,6 +449,26 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVector(
 	}
 
 	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
+	const FOpenPLX_Output& Output, FVector& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(LogAGX, Warning, TEXT(""), *Output.Alias.ToString());
+		return false;
+	}
+
+	if (!FOpenPLX_Utilities::IsVectorType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveVectorInterface", Output.Alias.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVector& OutValue)

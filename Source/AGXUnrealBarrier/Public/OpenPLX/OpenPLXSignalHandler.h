@@ -53,7 +53,9 @@ public:
 
 	/// FVectors (Vec3 real).
 	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
+	bool SendInterface(const FOpenPLX_Input& Input, const FVector& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue);
+	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	/// Integers.
 	bool Send(const FOpenPLX_Input& Input, int64 Value);

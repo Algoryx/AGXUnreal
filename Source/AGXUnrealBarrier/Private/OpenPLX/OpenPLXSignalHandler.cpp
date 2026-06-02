@@ -432,6 +432,52 @@ namespace OpenPLXSignalHandler_helpers
 		return {};
 	}
 
+	TOptional<FVector> TypeConvertVectorToUnreal(
+		const FOpenPLX_Output& Output, const agx::Vec3& Value)
+	{
+		switch (Output.Type)
+		{
+			case EOpenPLX_OutputType::Force3DOutput:
+				return ConvertVector(Value);
+			case EOpenPLX_OutputType::Torque3DOutput:
+				return ConvertTorque(Value);
+			case EOpenPLX_OutputType::LinearVelocity3DOutput:
+			case EOpenPLX_OutputType::MateConnectorAcceleration3DOutput:
+			case EOpenPLX_OutputType::Position3DOutput:
+				return ConvertDisplacement(Value);
+			case EOpenPLX_OutputType::MateConnectorRPYOutput:
+			case EOpenPLX_OutputType::RPYOutput:
+				return ConvertAngle(Value);
+			case EOpenPLX_OutputType::AngularVelocity3DOutput:
+				return ConvertAngularVelocity(Value);
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Tried to write Vec3 vector type for input '%s', but "
+				 "the type is either not of Vec3 vector type or is  unsupported."),
+			*Output.Alias.ToString());
+		return {};
+	}
+
+	TOptional<agx::Vec3> TypeConvertVectorToAGX(const FOpenPLX_Input& Input, const FVector& Vector)
+	{
+		switch (Input.Type)
+		{
+			case EOpenPLX_InputType::AngularVelocity3DInput:
+				return ConvertAngularVelocity(Vector);
+			case EOpenPLX_InputType::LinearVelocity3DInput:
+				return ConvertDisplacement(Vector);
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Control Interface: Tried to read Vec3 type for output '%s', but the type "
+				 "is either not of Vec3 vector type or is unsupported."),
+			*Input.Alias.ToString());
+		return {};
+	}
+
 	TOptional<double> GetRealValueFrom(
 		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
 	{
@@ -940,12 +986,155 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Val
 		OpenPLXSignalHandler_helpers::ConvertVector3D);
 }
 
+bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVector& Value)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+
+	if (HeapControlInterfaceRef == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("FOpenPLXSignalHandler::SendInterface(FVector): Tried to send OpenPLX input "
+				 "signal for input '%s' through the Control Interrace, but don't have a Control "
+				 "Interface wrapper reference."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::SendInterface(FVector): Tried to send OpenPLX signal for "
+				 "input '%s' through Control Interface, but don't have a Control Interface "
+				 "pointer."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	TOptional<agx::Vec3> ValueAGXMaybe = TypeConvertVectorToAGX(Input, Value);
+	if (!ValueAGXMaybe)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::SendInterface(FVector): Could not convert value for input "
+				 "'%s' from Unreal type and unit to AGX Dynamics"),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	agx::Vec3 ValueAGX = *ValueAGXMaybe;
+
+	std::string Alias = Convert(Input.Alias.ToString());
+	std::shared_ptr<openplx::Marshalling> Marshalling = Interface->prepare_write(Alias);
+	if (Marshalling == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::SendInterface(FVector): Could not prepare write for input "
+				 "'%s'. The alias may not match any registered input."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	const bool bWroteX = Marshalling->write_real("x", ValueAGXMaybe->x());
+	const bool bWroteY = Marshalling->write_real("y", ValueAGXMaybe->y());
+	const bool bWroteZ = Marshalling->write_real("z", ValueAGXMaybe->z());
+	Interface->flush();
+	if (!bWroteX || !bWroteY || !bWroteZ)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::SendInterface(FVector): Marshalling failed to write data "
+				 "for input '%s'."),
+			*Input.Alias.ToString());
+		return false;
+	}
+
+	return true;
+}
+
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
 		OpenPLXSignalHandler_helpers::GetVectorValueFrom);
+}
+
+bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVector& OutValue)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	OutValue = {};
+
+	if (HeapControlInterfaceRef == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::ReceiveInterface(FVector): Tried to receive OpenPLX signal "
+				 "for input '%s' through Control Interface, but don't have a Control Interface "
+				 "wrapper reference"),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::ReceiveInterface(FVector): Tried to receive OpenPLX signal "
+				 "for input '%s' through Control Interface, but don't have a Control Interface "
+				 "pointer."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	std::string Alias = Convert(Output.Alias.ToString());
+	std::shared_ptr<openplx::Marshalling> Marshalling = Interface->prepare_read(Alias);
+	if (Marshalling == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::ReceiveInterface(FVector): Tried to receive OpenPLX signal "
+				 "for input '%s' through Control Interface, but could not prepare read. The alias "
+				 "might not match any registered output."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	std::optional<double> XMaybe = Marshalling->read_real<double>("x");
+	std::optional<double> YMaybe = Marshalling->read_real<double>("y");
+	std::optional<double> ZMaybe = Marshalling->read_real<double>("z");
+	if (!XMaybe || !YMaybe || !ZMaybe)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::ReceiveInterface(FVector): Tried to receive OpenPLX signal "
+				 "for input '%s' through Control Interface, but could not read at least one field "
+				 "from the output."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	agx::Vec3 ValueAGX(*XMaybe, *YMaybe, *ZMaybe);
+	TOptional<FVector> ValueUnreal = TypeConvertVectorToUnreal(Output, ValueAGX);
+	if (!ValueUnreal)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLXSignalHandler::ReceiveInterface(FVector): Tried to receive OpenPLX signal "
+				 "for input '%s' through Control Interface, but could not convert AGX Dynamics "
+				 "type and unit to Unreal."),
+			*Output.Alias.ToString());
+		return false;
+	}
+
+	OutValue = *ValueUnreal;
+	return true;
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)

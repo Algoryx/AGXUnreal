@@ -434,6 +434,16 @@ inline agx::VectorPOD<DestT> ConvertArray(const TArray<SourceT>& V)
 
 // Rotation-related.
 
+inline FVector ConvertAngle(const agx::Vec3& V)
+{
+	// clang-format off
+	return FVector(
+		 ConvertAngleToUnreal<decltype(FVector::X)>(V.x()),
+		-ConvertAngleToUnreal<decltype(FVector::X)>(V.y()),
+		-ConvertAngleToUnreal<decltype(FVector::X)>(V.z()));
+	// clang-format on
+}
+
 inline FVector ConvertAngularVelocity(const agx::Vec3& V)
 {
 	/*
@@ -559,12 +569,23 @@ inline agx::Vec3f ConvertFloatDisplacement(const FVector& V)
 
 // Rotation-related.
 
+inline agx::Vec3 ConvertAngle(const FVector& V)
+{
+	// See comment in the AGX-to-Unreal version of this function.
+	// clang-format off
+	return agx::Vec3(
+		 ConvertAngleToAGX(V.X),
+		-ConvertAngleToAGX(V.Y),
+		-ConvertAngleToAGX(V.Z));
+	// clang-format on
+}
+
 inline agx::Vec3 ConvertAngularVelocity(const FVector& V)
 {
 	// See comment in the AGX-to-Unreal version of this function.
 	// clang-format off
 	return agx::Vec3(
-		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		 ConvertToAGX(FMath::DegreesToRadians(V.X)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
 	// clang-format on
@@ -575,7 +596,7 @@ inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
 	// Similar to ConvertAngularVelocity.
 	// clang-format off
 	return agx::Vec3(
-		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		 ConvertToAGX(FMath::DegreesToRadians(V.X)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
 	// clang-format on
@@ -583,11 +604,14 @@ inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
 
 inline agx::Vec3 ConvertTorque(const FVector& V)
 {
-	/*
-	 * Following a similar logic as ConvertAngularVelocity for the axis directions, but no unit
-	 * conversion since we use Nm in both AGX Dynamics and Unreal Engine.
-	 */
-	return {ConvertToAGX(V.X), -ConvertToAGX(V.Y), -ConvertToAGX(V.Z)};
+	// Following a similar logic as ConvertAngularVelocity for the axis directions, but no unit
+	// conversion since we use Nm in both AGX Dynamics and Unreal Engine.
+	// clang-format off
+	return {
+		 ConvertToAGX(V.X),
+		-ConvertToAGX(V.Y),
+		-ConvertToAGX(V.Z)};
+	// clang-format on
 }
 
 //

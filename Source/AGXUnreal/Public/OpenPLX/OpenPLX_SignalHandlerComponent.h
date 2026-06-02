@@ -150,6 +150,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendVector(const FOpenPLX_Input& Input, FVector Value);
 
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
+
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Vector type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
@@ -163,6 +166,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue);
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Vector type.
