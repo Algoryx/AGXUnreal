@@ -792,12 +792,25 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 	}
 
 	{
-		FScopedSlowTask T((float) SimObjects.GetLidars().Num(), FText::FromString("Lidar"));
-		for (const auto& Lidar : SimObjects.GetLidars())
+		FScopedSlowTask T((float) SimObjects.GetSensors().Num(), FText::FromString("Sensors"));
+		for (const auto& Sensor : SimObjects.GetSensors())
 		{
 			T.EnterProgressFrame(
-				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Lidar.GetName())));
-			Res |= AddLidar(Lidar, OutActor);
+				1.f,
+				FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
+			if (FLidarBarrier::IsLidar(Sensor))
+			{
+				Res |= AddLidar(Sensor, OutActor);
+			}
+			else
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Unsupported Sensor '%s' encountered during import. It will not be "
+						 "imported."),
+					*Sensor.GetName());
+				Res |= EAGX_ImportResult::RecoverableErrorsOccured;
+			}
 		}
 	}
 
@@ -875,11 +888,19 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
 }
 
-EAGX_ImportResult FAGX_Importer::AddLidar(const FLidarBarrier& Lidar, AActor& OutActor)
+EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& OutActor)
 {
-	using namespace AGX_Importer_helpers;
-	auto Parent = GetOwningRigidBodyOrRoot(Lidar, Context, OutActor);
-	return AddComponent<UAGX_LidarSensorComponent, FLidarBarrier>(Lidar, *Parent, OutActor);
+	const FLidarBarrier& Lidar = static_cast<const FLidarBarrier&>(Sensor);
+	FRigidBodyBarrier BodyBarrier = Lidar.GetRigidBody();
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	if (BodyBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		check(Body != nullptr);
+		Parent = Body;
+	}
+
+	return AddComponent<UAGX_LidarSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(

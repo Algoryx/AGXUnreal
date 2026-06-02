@@ -4,10 +4,12 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_Check.h"
 #include "AGX_InternalDelegateAccessor.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 
 UAGX_SensorComponentBase::UAGX_SensorComponentBase()
 {
@@ -94,6 +96,13 @@ const FSensorBarrier* UAGX_SensorComponentBase::GetNative() const
 		return nullptr;
 
 	return NativeBarrier.Get();
+}
+
+void UAGX_SensorComponentBase::CopyFrom(
+	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	ImportName = Barrier.GetName();
+	ImportGuid = Barrier.GetGuid();
 }
 
 void UAGX_SensorComponentBase::BeginPlay()

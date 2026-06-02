@@ -12,6 +12,7 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Sensors/SensorBarrier.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/WheelJointBarrier.h"
@@ -42,7 +43,6 @@ class FTwoBodyTireBarrier;
 class FTrackBarrier;
 
 struct FCableBarrier;
-struct FLidarBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
 
@@ -127,8 +127,8 @@ public:
 	TArray<FTrackBarrier>& GetTracks();
 	const TArray<FTrackBarrier>& GetTracks() const;
 
-	TArray<FLidarBarrier>& GetLidars();
-	const TArray<FLidarBarrier>& GetLidars() const;
+	TArray<FSensorBarrier>& GetSensors();
+	const TArray<FSensorBarrier>& GetSensors() const;
 
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
@@ -180,7 +180,7 @@ private:
 	TArray<FShovelBarrier> Shovels;
 	TArray<FSteeringBarrier> Steerings;
 	TArray<FTrackBarrier> Tracks;
-	TArray<FLidarBarrier> Lidars;
+	TArray<FSensorBarrier> Sensors;
 
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;

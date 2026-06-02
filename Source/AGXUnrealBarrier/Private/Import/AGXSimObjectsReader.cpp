@@ -595,20 +595,19 @@ namespace
 		}
 	}
 
-	void ReadLidars(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	void ReadSensors(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
 	{
 		agxSensor::Environment* Env = agxSensor::Environment::get(&Simulation);
 		if (Env == nullptr)
 			return;
 
 		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
-		OutSimObjects.GetLidars().Reserve(Lidars.size());
+		OutSimObjects.GetSensors().Reserve(Lidars.size());
 		for (agxSensor::Lidar* LidarAGX : Lidars)
 		{
-			FLidarBarrier Lidar(
+			OutSimObjects.GetSensors().Emplace(
 				std::make_shared<FSensorRef>(LidarAGX),
 				std::make_shared<FSensorGroupStepStrideRef>(nullptr));
-			OutSimObjects.GetLidars().Add(Lidar);
 		}
 	}
 
@@ -639,7 +638,7 @@ namespace
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
-		ReadLidars(Simulation, OutSimObjects);
+		ReadSensors(Simulation, OutSimObjects);
 	}
 }
 

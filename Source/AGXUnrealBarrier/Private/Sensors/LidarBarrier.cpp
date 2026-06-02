@@ -106,6 +106,11 @@ FLidarBarrier::FLidarBarrier(
 {
 }
 
+bool FLidarBarrier::IsLidar(const FSensorBarrier& Sensor)
+{
+	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::Lidar>();
+}
+
 void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params)
 {
 	using namespace LidarBarrier_helpers;

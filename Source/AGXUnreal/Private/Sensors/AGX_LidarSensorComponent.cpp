@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
 #include "Sensors/AGX_LidarOutputBase.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
@@ -335,6 +336,18 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	DistanceNoiseSettings = Source.DistanceNoiseSettings;
 	bEnableRayAngleGaussianNoise = Source.bEnableRayAngleGaussianNoise;
 	RayAngleNoiseSettings = Source.RayAngleNoiseSettings;
+}
+
+void UAGX_LidarSensorComponent::CopyFrom(
+	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	Super::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || Context->Sensors == nullptr)
+		return; // We are done.
+
+	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
+	Context->Sensors->Add(ImportGuid, this);
 }
 
 void UAGX_LidarSensorComponent::BeginPlay()

@@ -21,6 +21,7 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UTextureRenderTarget2D;
 
+struct FAGX_ImportContext;
 struct FAGX_LidarOutputBase;
 struct FAGX_SensorMsgsPointCloud2;
 
@@ -261,6 +262,7 @@ public:
 	bool IsCustomParametersSupported() const;
 
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
+	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
 
 	FSensorBarrier* CreateNativeImpl() override;
 
