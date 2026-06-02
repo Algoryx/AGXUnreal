@@ -32,6 +32,11 @@ class FSimulationBarrier;
 struct FOpenPLXMappingBarriersCollection;
 struct FRigidBodyBarrier;
 
+namespace agxopenplx
+{
+	class AgxMetadata;
+}
+
 namespace openplx
 {
 	namespace Physics3D
@@ -108,6 +113,11 @@ public:
 	static agxSDK::AssemblyRef MapRuntimeObjects(
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
 		const FOpenPLXMappingBarriersCollection& Barriers);
+
+	static void MapSensorOutputs(
+		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
+		const FOpenPLXMappingBarriersCollection& Barriers,
+		std::shared_ptr<agxopenplx::AgxMetadata> Metadata);
 
 	/**
 	 * On OpenPlx, a default PowerLine is created holding all DriveTrains in the model. This has a

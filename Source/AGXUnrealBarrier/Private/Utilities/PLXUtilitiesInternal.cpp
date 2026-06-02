@@ -25,8 +25,10 @@
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
+#include "agxOpenPLX/AgxMetadata.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/OpenPlxDriveTrainMapper.h"
+#include "agxOpenPLX/OpenPlxSensorsMapper.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchEngagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchDisengagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/TorqueConverterPumpTorqueOutput.h"
@@ -59,11 +61,13 @@
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
 #include "openplx/Physics3D/Signals/Torque3DOutput.h"
+#include "openplx/Sensors/Signals/LidarOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
 #include "openplx/Robotics/Robotics_all.h"
 #include "openplx/Simulation/Simulation_all.h"
 #include "openplx/Vehicles/Vehicles_all.h"
+#include "openplx/Sensors/Sensors_all.h"
 #include "openplx/Terrain/Terrain_all.h"
 #include "openplx/Visuals/Visuals_all.h"
 #include "openplx/Urdf/Urdf_all.h"
@@ -71,6 +75,10 @@
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
+
+// Standard library includes.
+#include <unordered_set>
+
 
 namespace PLXUtilities_helpers
 {
@@ -92,6 +100,7 @@ namespace PLXUtilities_helpers
 		Robotics_register_factories(EvalCtx);
 		Simulation_register_factories(EvalCtx);
 		Vehicles_register_factories(EvalCtx);
+		Sensors_register_factories(EvalCtx);
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
@@ -364,6 +373,7 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	using namespace openplx::Physics::Signals;
 	using namespace openplx::Physics3D::Signals;
 	using namespace openplx::DriveTrain::Signals;
+	using namespace openplx::Sensors::Signals;
 
 	if (dynamic_cast<const AutomaticClutchEngagementDurationOutput*>(&Output))
 	{
@@ -500,6 +510,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const BoolOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::BoolOutput;
+	}
+	if (dynamic_cast<const LidarOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::LidarOutput;
 	}
 
 	return EOpenPLX_OutputType::Unsupported;
@@ -673,6 +687,42 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	}
 
 	return Assembly;
+}
+
+void FPLXUtilitiesInternal::MapSensorOutputs(
+	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
+	const FOpenPLXMappingBarriersCollection& Barriers, std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
+{
+	if (Barriers.Lidars.Num() == 0)
+		return;
+
+	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
+	auto SensorMapper =
+		std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
+	std::unordered_set<std::size_t> UsedOutputIDs;
+
+	// FOR EACH AGX LIDAR DO:
+
+
+
+	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);
+	for (const auto& LidarPLX : LidarsPLX)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Lidar %s"), *Convert(LidarPLX->getName()));
+	}
+
+	auto LidarMetaData = std::make_shared<agxopenplx::OpenPlxSensorsLidarMetadata>();
+	/*Metadata->registerMetadata(agx_lidar, LidarMetaData);
+	SensorMapper->mapLidarLogicOutputs(openplx_lidar, agx_lidar, UsedOutputIDs);
+	SensorEnvironment->Add(agx_lídar);*/
+
+	if (ErrorReporter->getErrorCount() > 0)
+	{
+		for (auto Err : FPLXUtilitiesInternal::GetErrorStrings(ErrorReporter->getErrors()))
+		{
+			UE_LOG(LogAGX, Warning, TEXT("MapSensorOutputs got error: %s"), *Err);
+		}
+	}
 }
 
 std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()

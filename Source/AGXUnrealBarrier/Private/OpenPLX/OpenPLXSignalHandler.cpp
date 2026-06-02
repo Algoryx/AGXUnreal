@@ -101,20 +101,21 @@ void FOpenPLXSignalHandler::Init(
 			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
+	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
 	{
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 		InputSignalListenerRef->Native =
-			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, std::make_shared<agxopenplx::AgxMetadata>());
+			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
 	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
+		FPLXUtilitiesInternal::MapSensorOutputs(System, Simulation, Barriers, Metadata);
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap,
-			std::make_shared<agxopenplx::AgxMetadata>());
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -241,8 +242,7 @@ namespace OpenPLXSignalHandler_helpers
 	bool Send(
 		const FOpenPLX_Input& Input, ValueT Value, FOpenPLXModelRegistry* ModelRegistry,
 		FOpenPLXModelRegistry::Handle ModelHandle,
-		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
-		ConversionFuncT Func)
+		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, ConversionFuncT Func)
 	{
 		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 			return false;
@@ -470,8 +470,7 @@ namespace OpenPLXSignalHandler_helpers
 	bool Receive(
 		const FOpenPLX_Output& Output, ValueT& OutValue, FOpenPLXModelRegistry* ModelRegistry,
 		FOpenPLXModelRegistry::Handle ModelHandle,
-		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
-		ValueGetterFuncT Func)
+		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue, ValueGetterFuncT Func)
 	{
 		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 			return false;
