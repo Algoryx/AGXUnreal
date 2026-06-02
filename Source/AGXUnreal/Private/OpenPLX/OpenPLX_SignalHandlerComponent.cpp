@@ -14,6 +14,8 @@
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/SensorBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -540,6 +542,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
+	Barriers.Lidars = CollectBarriers<FSensorBarrier, UAGX_LidarSensorComponent>(GetOwner());
 	Barriers.Steerings =
 		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
 
