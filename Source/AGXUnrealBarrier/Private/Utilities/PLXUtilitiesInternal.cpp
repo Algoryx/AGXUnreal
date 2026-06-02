@@ -4,18 +4,24 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/LidarBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agxSDK/Simulation.h>
+#include <agxSensor/Lidar.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
@@ -78,7 +84,6 @@
 
 // Standard library includes.
 #include <unordered_set>
-
 
 namespace PLXUtilities_helpers
 {
@@ -689,32 +694,54 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	return Assembly;
 }
 
-void FPLXUtilitiesInternal::MapSensorOutputs(
+void FPLXUtilitiesInternal::MapSensors(
 	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
-	const FOpenPLXMappingBarriersCollection& Barriers, std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
+	const FOpenPLXMappingBarriersCollection& Barriers,
+	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
 {
 	if (Barriers.Lidars.Num() == 0)
 		return;
 
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
-	auto SensorMapper =
-		std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
+	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
 	std::unordered_set<std::size_t> UsedOutputIDs;
-
-	// FOR EACH AGX LIDAR DO:
-
-
 
 	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);
 	for (const auto& LidarPLX : LidarsPLX)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Lidar %s"), *Convert(LidarPLX->getName()));
-	}
+		const FString Name = Convert(LidarPLX->getName());
+		auto SensorBarrier = Barriers.Lidars.FindByPredicate(
+			[&Name](FSensorBarrier* B) { return B != nullptr && B->GetName().Equals(Name); });
+		if (SensorBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Lidar '%s', could not find a matching AGX Lidar "
+					 "with that Import Name."),
+				*Name);
+			continue;
+		}
 
-	auto LidarMetaData = std::make_shared<agxopenplx::OpenPlxSensorsLidarMetadata>();
-	/*Metadata->registerMetadata(agx_lidar, LidarMetaData);
-	SensorMapper->mapLidarLogicOutputs(openplx_lidar, agx_lidar, UsedOutputIDs);
-	SensorEnvironment->Add(agx_lídar);*/
+		AGX_CHECK(FLidarBarrier::IsLidar(**SensorBarrier));
+		FLidarBarrier* LidarBarrier = static_cast<FLidarBarrier*>(*SensorBarrier);
+		agxSensor::LidarRef LidarAGX =
+			dynamic_cast<agxSensor::Lidar*>(LidarBarrier->GetNative()->Native.get());
+
+		if (LidarAGX == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Lidar '%s', could not get a valid AGX Lidar object."),
+				*Name);
+			continue;
+		}
+
+		auto LidarMetaData = std::make_shared<agxopenplx::OpenPlxSensorsLidarMetadata>();
+		Metadata->registerMetadata(LidarAGX, LidarMetaData);
+		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX, UsedOutputIDs);
+		auto Environment = agxSensor::Environment::getOrCreate(Simulation.GetNative()->Native);
+		Environment->add(LidarAGX);
+	}
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{

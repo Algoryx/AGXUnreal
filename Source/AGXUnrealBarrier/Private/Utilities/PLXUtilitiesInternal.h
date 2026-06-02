@@ -114,7 +114,11 @@ public:
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
 		const FOpenPLXMappingBarriersCollection& Barriers);
 
-	static void MapSensorOutputs(
+	/**
+	 * Adds outputs to provided sensors and adds them to the agxSDK::SensorEnvironment associated
+	 * with the provided Simulation.
+	 */
+	static void MapSensors(
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
 		const FOpenPLXMappingBarriersCollection& Barriers,
 		std::shared_ptr<agxopenplx::AgxMetadata> Metadata);

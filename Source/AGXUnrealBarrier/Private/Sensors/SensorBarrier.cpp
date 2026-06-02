@@ -147,6 +147,12 @@ FGuid FSensorBarrier::GetGuid() const
 	return Convert(NativeRef->Native->getUuid());
 }
 
+void FSensorBarrier::SetName(const FString& Name)
+{
+	check(HasNative());
+	NativeRef->Native->setName(Convert(Name));
+}
+
 FString FSensorBarrier::GetName() const
 {
 	check(HasNative());

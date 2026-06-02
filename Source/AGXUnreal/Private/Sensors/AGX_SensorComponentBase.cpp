@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 UAGX_SensorComponentBase::UAGX_SensorComponentBase()
 {
@@ -103,6 +104,12 @@ void UAGX_SensorComponentBase::CopyFrom(
 {
 	ImportName = Barrier.GetName();
 	ImportGuid = Barrier.GetGuid();
+
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), CleanBarrierName, UAGX_SensorComponentBase::StaticClass());
+	Rename(*Name);
 }
 
 void UAGX_SensorComponentBase::BeginPlay()
@@ -195,6 +202,7 @@ void UAGX_SensorComponentBase::UpdateNativeProperties()
 	AGX_CHECK(HasNative());
 	NativeBarrier->SetEnabled(bEnabled);
 	NativeBarrier->SetStepStride(static_cast<uint32>(StepStride));
+	NativeBarrier->SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 }
 
 FSensorBarrier* UAGX_SensorComponentBase::CreateNativeImpl()

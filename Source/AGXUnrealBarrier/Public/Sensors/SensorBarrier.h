@@ -65,6 +65,8 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
 
 	FGuid GetGuid() const;
+
+	void SetName(const FString& Name);
 	FString GetName() const;
 
 protected:

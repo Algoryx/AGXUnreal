@@ -113,7 +113,7 @@ void FOpenPLXSignalHandler::Init(
 	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
-		FPLXUtilitiesInternal::MapSensorOutputs(System, Simulation, Barriers, Metadata);
+		FPLXUtilitiesInternal::MapSensors(System, Simulation, Barriers, Metadata);
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
 			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
