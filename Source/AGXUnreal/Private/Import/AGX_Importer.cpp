@@ -33,6 +33,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -65,6 +66,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/Package.h"
@@ -362,6 +364,8 @@ FAGX_Importer::FAGX_Importer()
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
+	Context.Textures = MakeUnique<TMap<FGuid, UTexture2D*>>();
+	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
 	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.MSThresholds = MakeUnique<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>>();
@@ -397,6 +401,9 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
+	if (Settings.ImportType == EAGX_ImportType::Plx)
+		*Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
+
 	Context.RootModelName = SimObjects.GetModelName();
 
 	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *Actor);
@@ -410,6 +417,22 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	// when they are created, so no need to Batch build them again here.
 	BatchBuildStaticMeshes(Context);
 #endif
+
+	if (Settings.bRuntimeImport)
+	{
+		// Explicitly create render resources for all Textures. This is skipped by
+		// default during Import to avoid issues with transient Textures causing
+		// assert when destroyed because the Render Thread references them.
+		// For runtime imports we know we want to use all Textures (this is not a reimport).
+		if (Context.Textures != nullptr)
+		{
+			for (const auto& [Guid, Texture] : *Context.Textures)
+			{
+				if (Texture != nullptr)
+					Texture->UpdateResource();
+			}
+		}
+	}
 
 	PostImport(SimObjects);
 	return FAGX_ImportResult(Result, Actor, &Context);
@@ -471,6 +494,8 @@ EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
 	Component->SourceFilePath = Context.Settings->SourceFilePath;
 	Component->bRuntimeImport = Context.Settings->bRuntimeImport;
 	Component->bIgnoreDisabledTrimeshes = Context.Settings->bIgnoreDisabledTrimeshes;
+	Component->bAdditionalyImportUnmodifiedTextures =
+		Context.Settings->bAdditionalyImportUnmodifiedTextures;
 	Component->Rename(*Name);
 
 	/*

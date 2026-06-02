@@ -36,11 +36,13 @@
 class AStaticMeshActor;
 class FDynamicMeshIndexBuffer32;
 class FRenderDataBarrier;
+struct FOpenPLXMaterialBarrier;
 struct FShapeBarrier;
 class UMaterial;
 class UMaterialInterface;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UTexture2D;
 
 struct FAGX_RenderMaterial;
 struct FAGX_SimpleMeshTriangle;
@@ -346,7 +348,7 @@ public:
 
 	static TArray<FAGX_MeshWithTransform> ToMeshWithTransformArray(
 		const TArray<AStaticMeshActor*> Actors);
-		
+
 	static bool LineTraceMesh(
 		FHitResult& OutHit, FVector Start, FVector Stop, FTransform Transform,
 		const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices);
@@ -503,12 +505,14 @@ public:
 	 * @param bInWithBoxCollision If bInBuild is true, whether to also create a box collision.
 	 * @param InNormalsSource Where to get normals from, either Render Data or let Unreal compute.
 	 * @param InName The name of the Static Mesh. If empty a GUID-based name is generated.
+	 * @param bFlipV Whether to flip the V component of imported UV coordinates.
 	 * @return The UStaticMesh created from the Render Data.
 	 */
 	static UStaticMesh* CreateStaticMesh(
 		const FRenderDataBarrier& InRenderDataBarrier, UObject& InOuter,
 		UMaterialInterface* InMaterial, bool bInBuild, bool bInWithBoxCollision,
-		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""));
+		EAGX_NormalsSource InNormalsSource, const FString& InName = TEXT(""),
+		bool bFlipV = false);
 
 	/**
 	 * Copies triangle information and render material from one Static Mesh to another.
@@ -521,16 +525,38 @@ public:
 
 	/**
 	 * Creates a new render Material instance based on the given RenderMaterial Barrier and Base.
-	 * If Base is nullptr, this functions returns nullptr.
-	 * This function supports runtime usage.
+	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
+	 * UMaterialInstanceDynamic. If Base is nullptr, this functions returns nullptr. This function
+	 * supports runtime usage.
 	 */
 	static UMaterialInterface* CreateRenderMaterial(
 		const FAGX_RenderMaterial& MaterialBarrier, UMaterial* Base, UObject& Owner);
 
 	/**
-	 * Returns the default (AGX) render material.
+	 * Creates a new material instance based on the given OpenPLX material barrier and
+	 * Base. If Textures were created, these are added to the Textures parameter if set.
+	 * The Guid is set to under underlying texture object guid.
+	 * If in editor, this function creates a UMaterialInstanceConstant, otherwise a
+	 * UMaterialInstanceDynamic. If Base is nullptr, this function returns nullptr.
+	 * If bCreateTextureRenderResources is false, textures created by this function are initialized
+	 * with CPU-side texture data only and UpdateResource is not called. This is useful for
+	 * temporary import objects that will be promoted to assets later.
+	 * This function supports runtime usage.
 	 */
-	static UMaterial* GetDefaultRenderMaterial(bool bIsSensor);
+	static UMaterialInterface* CreateRenderMaterial(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
+		TMap<FGuid, UTexture2D*>* Textures = nullptr,
+		bool bCreateTextureRenderResources = true);
+
+	/**
+	 * Returns the base (AGX) render material.
+	 */
+	static UMaterial* GetAGXBaseRenderMaterial(bool bIsSensor);
+
+	/**
+	 * Returns the base (OpenPLX) render material.
+	 */
+	static UMaterial* GetOpenPLXBaseRenderMaterial();
 
 	/**
 	 * Add a Simple Collision Box to the given StaticMesh.
@@ -621,4 +647,3 @@ inline bool AGX_MeshUtilities::LineTraceMesh(
 
 	return HitFound;
 }
-

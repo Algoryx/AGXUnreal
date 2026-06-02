@@ -19,6 +19,7 @@
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
+#include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
@@ -34,6 +35,7 @@
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_MeshUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_TextureUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_SteeringParameters.h"
@@ -48,9 +50,12 @@
 #include "Components/StaticMeshComponent.h"
 #include "Editor.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
 #include "FileHelpers.h"
 #include "HAL/FileManager.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
@@ -116,14 +121,14 @@ namespace AGX_ImporterToEditor_helpers
 	// When saving an asset to disk, Unreal sometimes creates a redirector object with
 	// TransientPackage as owner. This object may cause name collisions on multiple imports done in
 	// a row because it may linger between imports.
-	void DestroyRedirectorAfterSave(UObject* SavedAsset, const FAGX_ImportContext& Context)
+	void DestroyRedirectorAfterSave(UObject* Source, const FAGX_ImportContext& Context)
 	{
-		if (SavedAsset == nullptr)
+		if (Source == nullptr)
 			return;
 
 		auto RedirectorObj =
-			StaticFindObjectFast(UObject::StaticClass(), Context.Outer, *SavedAsset->GetName());
-		if (RedirectorObj != nullptr && RedirectorObj != SavedAsset)
+			StaticFindObjectFast(UObject::StaticClass(), Context.Outer, *Source->GetName());
+		if (RedirectorObj != nullptr && RedirectorObj != Source)
 			RedirectorObj->ConditionalBeginDestroy();
 	}
 
@@ -144,8 +149,14 @@ namespace AGX_ImporterToEditor_helpers
 		if constexpr (std::is_same_v<T, UMaterialInterface>)
 			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
 
+		if constexpr (std::is_same_v<T, UMaterialInstanceConstant>)
+			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
+
 		if constexpr (std::is_same_v<T, UMaterialInstanceDynamic>)
 			return FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
+
+		if constexpr (std::is_same_v<T, UTexture2D>)
+			return FAGX_ImportUtilities::GetImportTextureDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_ShapeMaterial>)
 			return FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
@@ -401,6 +412,45 @@ namespace AGX_ImporterToEditor_helpers
 		FixupRenderMaterialImpl(TransientToAsset, OutMesh);
 	}
 
+	UTexture* GetTextureAsset(const TMap<UObject*, UObject*>& TransientToAsset, UTexture* Texture)
+	{
+		if (Texture == nullptr)
+			return nullptr;
+
+		return Cast<UTexture>(TransientToAsset.FindRef(Texture));
+	}
+
+	void FixupRenderMaterialTextureParameters(
+		const TMap<UObject*, UObject*>& TransientToAsset, UMaterialInterface& Material)
+	{
+		TArray<FMaterialParameterInfo> TextureParameters;
+		TArray<FGuid> TextureParameterIds;
+		Material.GetAllTextureParameterInfo(TextureParameters, TextureParameterIds);
+
+		if (UMaterialInstanceConstant* Constant = Cast<UMaterialInstanceConstant>(&Material))
+		{
+			bool bChanged = false;
+			for (const FMaterialParameterInfo& Parameter : TextureParameters)
+			{
+				UTexture* Texture = nullptr;
+				if (!Constant->GetTextureParameterValue(Parameter, Texture))
+					continue;
+
+				UTexture* Asset = GetTextureAsset(TransientToAsset, Texture);
+				if (Asset != nullptr && Asset != Texture)
+				{
+					Constant->SetTextureParameterValueEditorOnly(Parameter, Asset);
+					bChanged = true;
+				}
+			}
+
+			if (bChanged)
+				Constant->PostEditChange();
+
+			return;
+		}
+	}
+
 	void FixupContactMaterial(
 		const TMap<UObject*, UObject*>& TransientToAsset, UAGX_ContactMaterial& Cm)
 	{
@@ -574,6 +624,9 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UMaterialInterface>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName())));
 
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UTexture2D>(
+			FPaths::Combine(RootDirectory, FAGX_ImportUtilities::GetImportTextureDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UStaticMesh>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName())));
 
@@ -651,6 +704,15 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, MST] : *Context->MSThresholds)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *MST, *Context);
+			}
+		}
+
+		if (Context->Textures != nullptr)
+		{
+			const FString AssetType = FAGX_ImportUtilities::GetImportTextureDirectoryName();
+			for (const auto& [Guid, Texture] : *Context->Textures)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Texture, *Context);
 			}
 		}
 
@@ -760,6 +822,57 @@ namespace AGX_ImporterToEditor_helpers
 		}
 	}
 
+	void ImportOriginalTexture(
+		const TOptional<FOpenPLXTextureData>& TextureData, FAGX_ImportContext& Context)
+	{
+		if (!TextureData.IsSet())
+			return;
+
+		AGX_CHECK(Context.Outer != nullptr);
+		AGX_CHECK(Context.Textures != nullptr);
+		if (Context.Outer == nullptr || Context.Textures == nullptr)
+			return;
+
+		FOpenPLXTextureData OriginalTextureData = TextureData.GetValue();
+		OriginalTextureData.Guid = OriginalTextureData.TextureDataGuid;
+		if (!OriginalTextureData.TextureDataName.IsEmpty())
+			OriginalTextureData.Name = OriginalTextureData.TextureDataName;
+		OriginalTextureData.Swizzle.Empty();
+		if (Context.Textures->Contains(OriginalTextureData.Guid))
+			return;
+
+		UTexture2D* Texture = FOpenPLX_RenderUtilities::CreateTexture(
+			OriginalTextureData, *Context.Outer, EOpenPLX_TextureUsage::Raw,
+			/*bCreateRenderResource*/ false);
+		if (Texture == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Failed to create raw OpenPLX texture asset for texture '%s'."),
+				*OriginalTextureData.Name);
+			return;
+		}
+
+		AGX_CHECK(!Context.Textures->Contains(OriginalTextureData.Guid));
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
+		Context.Textures->Add(OriginalTextureData.Guid, Texture);
+	}
+
+	void ImportOriginalOpenPLXTextures(FAGX_ImportContext& Context)
+	{
+		for (const TPair<FGuid, FOpenPLXMaterialBarrier>& MaterialOverride :
+			 *Context.PLXMaterialOverrides)
+		{
+			const FOpenPLXMaterialBarrier& MaterialBarrier = MaterialOverride.Value;
+			ImportOriginalTexture(MaterialBarrier.GetBaseColorTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetMetallicTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetRoughnessTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetAlphaTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetNormalTextureData(), Context);
+			ImportOriginalTexture(MaterialBarrier.GetAmbientOcclusionTextureData(), Context);
+		}
+	}
+
 	template <typename T, typename = void>
 	struct HasImportGuid : std::false_type
 	{
@@ -840,6 +953,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.RenderMaterials != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.RenderMaterials)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.Textures != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.Textures)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1134,6 +1253,12 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 		return nullptr;
 	}
 
+	if (Settings.ImportType == EAGX_ImportType::Plx &&
+		Settings.bAdditionalyImportUnmodifiedTextures)
+	{
+		ImportOriginalOpenPLXTextures(*Result.Context);
+	}
+
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Saving Assets"));
 	WriteAssetsToDisk(RootDirectory, Result.Context);
 
@@ -1196,8 +1321,14 @@ bool FAGX_ImporterToEditor::Reimport(
 	if (!ValidateImportEnum(FinalizeModelSourceComponent(*Result.Context, RootDirectory)))
 		return false;
 
+	if (Settings.ImportType == EAGX_ImportType::Plx &&
+		Settings.bAdditionalyImportUnmodifiedTextures)
+	{
+		ImportOriginalOpenPLXTextures(*Result.Context);
+	}
+
 	ImportTask.EnterProgressFrame(40.f, FText::FromString("Updating Blueprint"));
-	const auto UpdateResult = UpdateBlueprint(BaseBP, Settings, Importer.GetContext());
+	const auto UpdateResult = UpdateBlueprint(BaseBP, Settings, *Result.Context);
 	if (!ValidateImportEnum(UpdateResult))
 		return false;
 
@@ -1238,6 +1369,9 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 		if constexpr (std::is_same_v<T, UAGX_ContactMaterial>)
 			FixupContactMaterial(TransientToAsset, Source);
 
+		if constexpr (std::is_base_of_v<UMaterialInterface, T>)
+			FixupRenderMaterialTextureParameters(TransientToAsset, Source);
+
 		WriteAssetToDisk(RootDirectory, AssetType, Source, Context);
 		return &Source; // We are done.
 	}
@@ -1262,6 +1396,16 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 			AGX_CHECK(Result);
 		}
 	}
+	else if constexpr (std::is_same_v<T, UTexture2D>)
+	{
+		// UTexture2D stores its pixel data outside the reflected property system, so
+		// CopyProperties cannot update it correctly.
+		if (!AGX_TextureUtilities::AreTexturesEqual(&Source, Asset))
+		{
+			const bool Result = AGX_TextureUtilities::CopyTexture(&Source, Asset);
+			AGX_CHECK(Result);
+		}
+	}
 	else // All other Asset types.
 	{
 		// For shared assets, we might be copying and saving multiple times here, but we assume
@@ -1270,13 +1414,16 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 		AGX_CHECK(Result);
 	}
 
+	if constexpr (std::is_base_of_v<UMaterialInterface, T>)
+		FixupRenderMaterialTextureParameters(TransientToAsset, *Asset);
+
 	FAGX_ImportRuntimeUtilities::WriteSessionGuidToAssetType(*Asset, Context.SessionGuid);
 	if (!Asset->GetName().Equals(Source.GetName()))
 		Asset->Rename(*Source.GetName());
 
 	bool Result = FAGX_ObjectUtilities::SaveAsset(*Asset);
 	AGX_CHECK(Result);
-	DestroyRedirectorAfterSave(Asset, Context);
+	DestroyRedirectorAfterSave(&Source, Context);
 	TransientToAsset.Add(&Source, Asset);
 	return Asset;
 }
@@ -1324,32 +1471,38 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		}
 	}
 
+	if (Context.Textures != nullptr)
+	{
+		for (const auto& [Guid, Texture] : *Context.Textures)
+		{
+			const auto A = UpdateOrCreateAsset(*Texture, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
 	if (Context.RenderMaterials != nullptr)
 	{
 		for (const auto& [Guid, Rm] : *Context.RenderMaterials)
 		{
-			UMaterialInstanceDynamic* Mid = Cast<UMaterialInstanceDynamic>(Rm);
+			auto Mid = Cast<UMaterialInstanceConstant>(Rm);
 			UMaterialInterface* A = nullptr;
 			if (Mid != nullptr)
 			{
 				// This is somewhat of a work-around.
-				// Before the AGX_ImporterToEditor class, we used an old import pipeline where
-				// Render Materials were written to disk as UMaterialInstanceConstant types.
-				// Now, we write them as UMaterialInstanceDynamic types.
-				// This means that if we do Reimport of an old imported model we will get a type
-				// mismatch in the CopyProperties function in UpdateOrCreateAsset (the new Render
-				// Material is of type UMaterialInstanceDynamic, and the asset is of type
-				// UMaterialInstanceConstant).
-				// To make our lives simple, we actually want to upgrade the asset so that it's type
-				// is of the new UMaterialInstanceDynamic type.
-				// We do this by forcing the type matching done by UpdateOrCreateAsset to be
-				// UMaterialInstanceDynamic, which means it will not find the old asset of type
-				// UMaterialInstanceConstant, and a new asset will be created (and the old asset
-				// will be removed).
-				// The next time the same model is Reimported, the asset type will be the correct
-				// one and we will get a match in UpdateOrCreateAsset and update the asset without
-				// removing it which is what we want.
-				A = UpdateOrCreateAsset<UMaterialInstanceDynamic>(*Mid, Context);
+				// We have hirstorically moved back and forth between UMaterialInstanceConstant and
+				// UMaterialInstanceDynamic. Currently, we use UMaterialInstanceConstant for
+				// in-editor imports and UMaterialInstanceDynamic for standalone builds/runtime
+				// imports. To make our lives simple, we actually want to upgrade the old asset so
+				// that it's type is of the new UMaterialInstanceConstant type. We do this by
+				// forcing the type matching done by UpdateOrCreateAsset to be
+				// UMaterialInstanceConstant, which means it will not find the old asset of type
+				// UMaterialInstanceDynamic, and a new asset will be created (and the old asset will
+				// be removed). The next time the same model is Reimported, the asset type will be
+				// the correct one and we will get a match in UpdateOrCreateAsset and update the
+				// asset without removing it which is what we want.
+				A = UpdateOrCreateAsset<UMaterialInstanceConstant>(*Mid, Context);
 			}
 			else
 				A = UpdateOrCreateAsset(*Rm, Context);

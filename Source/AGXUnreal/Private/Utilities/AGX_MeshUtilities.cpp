@@ -5,6 +5,8 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
+#include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
@@ -15,9 +17,15 @@
 // Unreal Engine includes.
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/Texture2D.h"
 #include "MaterialDomain.h"
 #include "Materials/Material.h"
+#if WITH_EDITOR
+#include "Materials/MaterialInstanceConstant.h"
+#endif
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInstance.h"
+#include "Math/Color.h"
 #include "Math/UnrealMathUtility.h"
 #include "Misc/EngineVersionComparison.h"
 #include "PhysicsEngine/BodySetup.h"
@@ -40,6 +48,281 @@
 
 namespace
 {
+	FString CreateRenderMaterialName(const FString& BarrierName, const FGuid& Guid, UObject& Owner)
+	{
+		const FString WantedName =
+			BarrierName.IsEmpty() ? FString::Printf(TEXT("MI_RenderMaterial_%s"), *Guid.ToString())
+								  : FString::Printf(TEXT("MI_%s"), *BarrierName);
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Owner, WantedName, UMaterialInterface::StaticClass());
+	}
+
+	FString CreateRenderMaterialName(const FAGX_RenderMaterial& MaterialBarrier, UObject& Owner)
+	{
+		return CreateRenderMaterialName(
+			MaterialBarrier.Name.IsNone() ? TEXT("") : MaterialBarrier.Name.ToString(),
+			MaterialBarrier.Guid, Owner);
+	}
+
+	FString CreateRenderMaterialName(const FOpenPLXMaterialBarrier& MaterialBarrier, UObject& Owner)
+	{
+		return CreateRenderMaterialName(
+			MaterialBarrier.GetName(), MaterialBarrier.GetGuid(), Owner);
+	}
+
+	UTexture2D* GetOrCreateTexture(
+		const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
+		TMap<FGuid, UTexture2D*>* Textures, bool bCreateRenderResource)
+	{
+		UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
+		if (Texture != nullptr)
+			return Texture;
+
+		Texture = FOpenPLX_RenderUtilities::CreateTexture(
+			TextureData, Owner, Usage, bCreateRenderResource);
+		if (Texture != nullptr && Textures != nullptr)
+			Textures->Add(TextureData.Guid, Texture);
+
+		return Texture;
+	}
+
+	void LogTextureCreationFailure(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, const FName& ParameterName)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Failed to create Unreal texture for OpenPLX material '%s' parameter '%s'."),
+			*MaterialBarrier.GetName(), *ParameterName.ToString());
+	}
+
+	void SetMaskedBlendModeIfNeeded(
+		UMaterialInstance& Material, const FOpenPLXMaterialBarrier& MaterialBarrier)
+	{
+		if (!MaterialBarrier.HasTrait(TEXT("Visuals.Materials.SurfaceFeatures.Transparency")))
+			return;
+
+		Material.BasePropertyOverrides.bOverride_BlendMode = true;
+		Material.BasePropertyOverrides.BlendMode = BLEND_Masked;
+	}
+
+	void SetAGXRenderMaterialParameters(
+		UMaterialInstanceDynamic& Material, const FAGX_RenderMaterial& MaterialBarrier)
+	{
+	}
+
+	UMaterialInterface* CreateRenderMaterialRuntime(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
+		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
+
+		Material->ClearParameterValues();
+		if (MaterialBarrier.bHasDiffuse)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Diffuse")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Diffuse));
+		}
+		if (MaterialBarrier.bHasAmbient)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Ambient")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Ambient));
+		}
+		if (MaterialBarrier.bHasEmissive)
+		{
+			Material->SetVectorParameterValue(
+				FName(TEXT("Emissive")),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Emissive));
+		}
+		if (MaterialBarrier.bHasShininess)
+			Material->SetScalarParameterValue(FName(TEXT("Shininess")), MaterialBarrier.Shininess);
+
+		return Material;
+	}
+
+#if WITH_EDITOR
+	UMaterialInterface* CreateRenderMaterialEditor(
+		const FAGX_RenderMaterial& MaterialBarrier, UMaterial& Base, UObject& Owner)
+	{
+		auto Material = NewObject<UMaterialInstanceConstant>(
+			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
+		Material->SetParentEditorOnly(&Base);
+
+		Material->ClearParameterValuesEditorOnly();
+		if (MaterialBarrier.bHasDiffuse)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Diffuse"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Diffuse));
+		}
+		if (MaterialBarrier.bHasAmbient)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Ambient"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Ambient));
+		}
+		if (MaterialBarrier.bHasEmissive)
+		{
+			Material->SetVectorParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Emissive"))),
+				FAGX_RenderMaterial::ConvertToLinear(MaterialBarrier.Emissive));
+		}
+		if (MaterialBarrier.bHasShininess)
+		{
+			Material->SetScalarParameterValueEditorOnly(
+				FMaterialParameterInfo(FName(TEXT("Shininess"))), MaterialBarrier.Shininess);
+		}
+
+		Material->PostEditChange();
+		return Material;
+	}
+#endif
+
+	UMaterialInterface* CreateRenderMaterialRuntime(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner,
+		bool bCreateTextureRenderResources)
+	{
+		auto Material = UMaterialInstanceDynamic::Create(&Base, &Owner);
+		Material->Rename(*CreateRenderMaterialName(MaterialBarrier, Owner));
+		SetMaskedBlendModeIfNeeded(*Material, MaterialBarrier);
+
+		auto SetVector =
+			[&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
+		{
+			if (Value.IsSet())
+				Material->SetVectorParameterValue(ParameterName, Value.GetValue());
+		};
+
+		auto SetScalar = [&Material](const FName& ParameterName, const TOptional<float>& Value)
+		{
+			if (Value.IsSet())
+				Material->SetScalarParameterValue(ParameterName, Value.GetValue());
+		};
+
+		auto SetTexture = [&Material, &MaterialBarrier, &Owner, bCreateTextureRenderResources](
+							  const FName& ParameterName,
+							  const TOptional<FOpenPLXTextureData>& TextureData,
+							  EOpenPLX_TextureUsage Usage)
+		{
+			if (!TextureData.IsSet())
+				return;
+
+			UTexture2D* Texture = GetOrCreateTexture(
+				TextureData.GetValue(), Owner, Usage, nullptr, bCreateTextureRenderResources);
+			if (Texture != nullptr)
+				Material->SetTextureParameterValue(ParameterName, Texture);
+			else
+				LogTextureCreationFailure(MaterialBarrier, ParameterName);
+		};
+
+		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
+		SetTexture(
+			FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData(),
+			EOpenPLX_TextureUsage::BaseColor);
+		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
+		SetTexture(
+			FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
+		SetTexture(
+			FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("Transparency")), MaterialBarrier.GetAlpha());
+		SetTexture(
+			FName(TEXT("TransparencyTexture")), MaterialBarrier.GetAlphaTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
+		SetTexture(
+			FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData(),
+			EOpenPLX_TextureUsage::Normal);
+		SetTexture(
+			FName(TEXT("AmbientOcclusionTexture")),
+			MaterialBarrier.GetAmbientOcclusionTextureData(), EOpenPLX_TextureUsage::Scalar);
+
+		return Material;
+	}
+
+#if WITH_EDITOR
+	UMaterialInterface* CreateRenderMaterialEditor(
+		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner,
+		TMap<FGuid, UTexture2D*>* Textures, bool bCreateTextureRenderResources)
+	{
+		auto Material = NewObject<UMaterialInstanceConstant>(
+			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
+		Material->SetParentEditorOnly(&Base);
+		Material->ClearParameterValuesEditorOnly();
+		SetMaskedBlendModeIfNeeded(*Material, MaterialBarrier);
+
+		auto SetVector =
+			[&Material](const FName& ParameterName, const TOptional<FLinearColor>& Value)
+		{
+			if (Value.IsSet())
+			{
+				Material->SetVectorParameterValueEditorOnly(
+					FMaterialParameterInfo(ParameterName), Value.GetValue());
+			}
+		};
+
+		auto SetScalar = [&Material](const FName& ParameterName, const TOptional<float>& Value)
+		{
+			if (Value.IsSet())
+			{
+				Material->SetScalarParameterValueEditorOnly(
+					FMaterialParameterInfo(ParameterName), Value.GetValue());
+			}
+		};
+
+		auto SetTexture =
+			[&Material, &MaterialBarrier, &Owner, Textures, bCreateTextureRenderResources](
+				const FName& ParameterName, const TOptional<FOpenPLXTextureData>& TextureData,
+				EOpenPLX_TextureUsage Usage)
+		{
+			if (!TextureData.IsSet())
+				return;
+
+			UTexture2D* Texture = GetOrCreateTexture(
+				TextureData.GetValue(), Owner, Usage, Textures, bCreateTextureRenderResources);
+			if (Texture != nullptr)
+			{
+				Material->SetTextureParameterValueEditorOnly(
+					FMaterialParameterInfo(ParameterName), Texture);
+			}
+			else
+			{
+				LogTextureCreationFailure(MaterialBarrier, ParameterName);
+			}
+		};
+
+		SetVector(FName(TEXT("BaseColor")), MaterialBarrier.GetBaseColor());
+		SetTexture(
+			FName(TEXT("BaseColorTexture")), MaterialBarrier.GetBaseColorTextureData(),
+			EOpenPLX_TextureUsage::BaseColor);
+		SetScalar(FName(TEXT("Metallic")), MaterialBarrier.GetMetallic());
+		SetTexture(
+			FName(TEXT("MetallicTexture")), MaterialBarrier.GetMetallicTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("Roughness")), MaterialBarrier.GetRoughness());
+		SetTexture(
+			FName(TEXT("RoughnessTexture")), MaterialBarrier.GetRoughnessTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("Opacity")), MaterialBarrier.GetAlpha());
+		SetTexture(
+			FName(TEXT("OpacityTexture")), MaterialBarrier.GetAlphaTextureData(),
+			EOpenPLX_TextureUsage::Scalar);
+		SetScalar(FName(TEXT("NormalScale")), MaterialBarrier.GetNormalScale());
+		SetTexture(
+			FName(TEXT("NormalTexture")), MaterialBarrier.GetNormalTextureData(),
+			EOpenPLX_TextureUsage::Normal);
+		SetTexture(
+			FName(TEXT("AmbientOcclusionTexture")),
+			MaterialBarrier.GetAmbientOcclusionTextureData(), EOpenPLX_TextureUsage::Scalar);
+
+		Material->PostEditChange();
+		return Material;
+	}
+#endif
+
 	// Helper struct for scaling UV coordinates.
 	struct UvCoordinateScaler
 	{
@@ -168,7 +451,6 @@ namespace
 		Vertices.Reserve(OrigVertNum + VertexColumns + 1);
 		Normals.Reserve(OrigNormNum + VertexColumns + 1); // 1 normal per vertex.
 		TexCoords.Reserve(OrigTexNum + VertexColumns + 1); // 1 tex coord per vertex.
-
 
 		const float SegmentSize = 2.0 * PI / CircleSegments;
 		const float RadiusInv = 1.0f / Radius;
@@ -2606,7 +2888,7 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	const FRenderDataBarrier& InRenderData, UObject& InOuter, UMaterialInterface* InMaterial,
 	bool bInBuild, bool bInWithBoxCollision, EAGX_NormalsSource InNormalsSource,
-	const FString& InName)
+	const FString& InName, bool bFlipV)
 {
 	using namespace AGX_MeshUtilities_helpers;
 
@@ -2681,6 +2963,11 @@ UStaticMesh* AGX_MeshUtilities::CreateStaticMesh(
 	CopyAttributes(AttributeLocations.Normals, Normals, InNormals, Indices);
 	TArray<FVector2f> UVs;
 	CopyAttributes(AttributeLocations.UVs, UVs, InUVs, Indices);
+	if (bFlipV)
+	{
+		for (FVector2f& UV : UVs)
+			UV.Y = 1.0f - UV.Y;
+	}
 
 	// Render Data never carries tangents, so leave it empty.
 	TArray<FVector3f> Tangents;
@@ -2783,46 +3070,30 @@ UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 	if (Base == nullptr)
 		return nullptr;
 
-	auto Material = UMaterialInstanceDynamic::Create(Base, &Owner);
-	const FGuid Guid = MaterialBarrier.Guid;
-	const FString WantedName =
-		MaterialBarrier.Name.IsNone()
-			? FString::Printf(TEXT("MI_RenderMaterial_%s"), *Guid.ToString())
-			: FString::Printf(TEXT("MI_%s"), *MaterialBarrier.Name.ToString());
-	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-		&Owner, WantedName, UMaterialInterface::StaticClass());
-
-	Material->Rename(*Name);
-
-	auto SetVector = [&Material](const TCHAR* Name, const FVector4& Value) {
-		Material->SetVectorParameterValue(FName(Name), FAGX_RenderMaterial::ConvertToLinear(Value));
-	};
-
-	auto SetScalar = [&Material](const TCHAR* Name, float Value)
-	{ Material->SetScalarParameterValue(FName(Name), Value); };
-
-	Material->ClearParameterValues();
-	if (MaterialBarrier.bHasDiffuse)
-	{
-		SetVector(TEXT("Diffuse"), MaterialBarrier.Diffuse);
-	}
-	if (MaterialBarrier.bHasAmbient)
-	{
-		SetVector(TEXT("Ambient"), MaterialBarrier.Ambient);
-	}
-	if (MaterialBarrier.bHasEmissive)
-	{
-		SetVector(TEXT("Emissive"), MaterialBarrier.Emissive);
-	}
-	if (MaterialBarrier.bHasShininess)
-	{
-		SetScalar(TEXT("Shininess"), MaterialBarrier.Shininess);
-	}
-
-	return Material;
+#if WITH_EDITOR
+	return CreateRenderMaterialEditor(MaterialBarrier, *Base, Owner);
+#else
+	return CreateRenderMaterialRuntime(MaterialBarrier, *Base, Owner);
+#endif
 }
 
-UMaterial* AGX_MeshUtilities::GetDefaultRenderMaterial(bool bIsSensor)
+UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
+	const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
+	TMap<FGuid, UTexture2D*>* Textures, bool bCreateTextureRenderResources)
+{
+	if (Base == nullptr || !MaterialBarrier.HasNative())
+		return nullptr;
+
+#if WITH_EDITOR
+	return CreateRenderMaterialEditor(
+		MaterialBarrier, *Base, Owner, Textures, bCreateTextureRenderResources);
+#else
+	return CreateRenderMaterialRuntime(
+		MaterialBarrier, *Base, Owner, bCreateTextureRenderResources);
+#endif
+}
+
+UMaterial* AGX_MeshUtilities::GetAGXBaseRenderMaterial(bool bIsSensor)
 {
 	const TCHAR* AssetPath =
 		bIsSensor ? TEXT("Material'/AGXUnreal/Runtime/Materials/M_SensorMaterial.M_SensorMaterial'")
@@ -2834,6 +3105,21 @@ UMaterial* AGX_MeshUtilities::GetDefaultRenderMaterial(bool bIsSensor)
 		UE_LOG(
 			LogAGX, Warning, TEXT("Could not load default%s render material from '%s'."),
 			(bIsSensor ? TEXT(" sensor") : TEXT("")), AssetPath);
+	}
+	return Material;
+}
+
+UMaterial* AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial()
+{
+	const TCHAR* AssetPath =
+		TEXT("Material'/AGXUnreal/Runtime/Materials/M_PLXImportedBase.M_PLXImportedBase'");
+	UMaterial* Material = FAGX_ObjectUtilities::GetAssetFromPath<UMaterial>(AssetPath);
+
+	if (Material == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning, TEXT("Could not load OpenPLX base render material from '%s'."),
+			AssetPath);
 	}
 	return Material;
 }

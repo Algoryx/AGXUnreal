@@ -14,6 +14,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
@@ -24,6 +25,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Materials/Material.h"
 #include "Misc/EngineVersionComparison.h"
 #include "PhysicsEngine/AggregateGeom.h"
@@ -308,25 +310,72 @@ void UAGX_ShapeComponent::UpdateNativeLocalTransform()
 
 namespace AGX_ShapeComponent_helpers
 {
+	UMaterialInterface* CreatePLXOverrideRenderMaterial(
+		const FOpenPLXMaterialBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		check(Context.Outer != nullptr);
+		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
+		const bool bCreateTextureRenderResources =
+			false; // These are set up later by the Importer calling us.
+		UMaterialInterface* Material = AGX_MeshUtilities::CreateRenderMaterial(
+			Barrier, Base, *Context.Outer, Context.Textures.Get(), bCreateTextureRenderResources);
+		if (Context.Textures != nullptr)
+		{
+			for (const auto& [Guid, Texture] : *Context.Textures)
+			{
+				if (Texture != nullptr)
+					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
+			}
+		}
+		return Material;
+	}
+
 	UMaterialInterface* GetOrCreateRenderMaterial(
 		const FRenderDataBarrier& RenderData, bool IsSensor, FAGX_ImportContext& Context)
 	{
 		if (Context.RenderMaterials == nullptr || !RenderData.HasNative() ||
 			!RenderData.HasMaterial())
-			return AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
+			return AGX_MeshUtilities::GetAGXBaseRenderMaterial(IsSensor);
 
 		const FAGX_RenderMaterial MBarrier = RenderData.GetMaterial();
-		if (auto Existing = Context.RenderMaterials->FindRef(MBarrier.Guid))
+		const FGuid MGuid = MBarrier.Guid;
+		if (auto Existing = Context.RenderMaterials->FindRef(MGuid))
 			return Existing;
 
-		UMaterial* Base = AGX_MeshUtilities::GetDefaultRenderMaterial(IsSensor);
-		auto Result = AGX_MeshUtilities::CreateRenderMaterial(MBarrier, Base, *Context.Outer);
-		AGX_CHECK(Result != nullptr);
+		UMaterialInterface* Result = nullptr;
+
+		// If we have an override material from OpenPLX, we use that directly instead of the AGX
+		// Render Material to improve visuals.
+		if (!IsSensor && Context.PLXMaterialOverrides != nullptr)
+		{
+			if (FOpenPLXMaterialBarrier* PLXOverride = Context.PLXMaterialOverrides->Find(MGuid))
+			{
+				if (PLXOverride->HasNative())
+				{
+					Result = CreatePLXOverrideRenderMaterial(*PLXOverride, Context);
+					AGX_CHECK(Result != nullptr);
+				}
+			}
+		}
+
+		if (Result == nullptr) // Creation from regular AGX Render Material.
+		{
+			UMaterial* Base = AGX_MeshUtilities::GetAGXBaseRenderMaterial(IsSensor);
+			Result = AGX_MeshUtilities::CreateRenderMaterial(MBarrier, Base, *Context.Outer);
+			AGX_CHECK(Result != nullptr);
+		}
+
 		if (Result == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Failed to create render material for AGX RenderMaterial GUID '%s'."),
+				*MGuid.ToString());
 			return nullptr;
+		}
 
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Result, Context.SessionGuid);
-		Context.RenderMaterials->Add(MBarrier.Guid, Result);
+		Context.RenderMaterials->Add(MGuid, Result);
 		return Result;
 	}
 
@@ -357,7 +406,8 @@ namespace AGX_ShapeComponent_helpers
 			AGX_MeshUtilities::EAGX_NormalsSource::FromImport;
 
 		UStaticMesh* Mesh = AGX_MeshUtilities::CreateStaticMesh(
-			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource);
+			RenderData, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalsSource,
+			TEXT(""), /*flipV*/ true);
 
 		if (Mesh != nullptr)
 			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);

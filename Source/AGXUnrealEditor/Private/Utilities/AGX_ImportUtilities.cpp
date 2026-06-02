@@ -30,6 +30,7 @@
 #include "Components/ActorComponent.h"
 #include "Engine/Blueprint.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
@@ -217,6 +218,11 @@ FString FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName()
 	return FString("RenderMaterial");
 }
 
+FString FAGX_ImportUtilities::GetImportTextureDirectoryName()
+{
+	return FString("Textures");
+}
+
 FString FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName()
 {
 	return FString("MergeSplitThresholds");
@@ -281,6 +287,13 @@ AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UMaterialInterface>()
 {
 	return GetImportRenderMaterialDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UTexture2D>()
+{
+	return GetImportTextureDirectoryName();
 }
 
 template <>
