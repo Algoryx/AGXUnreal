@@ -90,6 +90,9 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
+	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
+	auto Environment = FPLXUtilitiesInternal::MapSensors(System, Simulation, Barriers, Metadata);
+
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
 		FPLXUtilitiesInternal::HasOutputs(System.get()))
@@ -98,10 +101,9 @@ void FOpenPLXSignalHandler::Init(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, PlxPowerLine, Environment, agxopenplx::AgxObjectMapMode::Name);
 	}
 
-	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
 	{
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
@@ -113,7 +115,6 @@ void FOpenPLXSignalHandler::Init(
 	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
-		FPLXUtilitiesInternal::MapSensors(System, Simulation, Barriers, Metadata);
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
 			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);

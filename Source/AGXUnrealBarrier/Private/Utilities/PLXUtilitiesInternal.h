@@ -37,6 +37,11 @@ namespace agxopenplx
 	class AgxMetadata;
 }
 
+namespace agxSensor
+{
+	class Environment;
+}
+
 namespace openplx
 {
 	namespace Physics3D
@@ -118,7 +123,7 @@ public:
 	 * Adds outputs to provided sensors and adds them to the agxSDK::SensorEnvironment associated
 	 * with the provided Simulation.
 	 */
-	static void MapSensors(
+	static agxSensor::Environment* MapSensors(
 		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
 		const FOpenPLXMappingBarriersCollection& Barriers,
 		std::shared_ptr<agxopenplx::AgxMetadata> Metadata);

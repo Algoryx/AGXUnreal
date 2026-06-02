@@ -694,17 +694,17 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	return Assembly;
 }
 
-void FPLXUtilitiesInternal::MapSensors(
+agxSensor::Environment* FPLXUtilitiesInternal::MapSensors(
 	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
 	const FOpenPLXMappingBarriersCollection& Barriers,
 	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
 {
 	if (Barriers.Lidars.Num() == 0)
-		return;
+		return nullptr;
 
+	auto Environment = agxSensor::Environment::getOrCreate(Simulation.GetNative()->Native);
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
-	std::unordered_set<std::size_t> UsedOutputIDs;
 
 	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);
 	for (const auto& LidarPLX : LidarsPLX)
@@ -731,15 +731,15 @@ void FPLXUtilitiesInternal::MapSensors(
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Unable to map outputs for Lidar '%s', could not get a valid AGX Lidar object."),
+				TEXT("Unable to map outputs for Lidar '%s', could not get a valid AGX Lidar "
+					 "object."),
 				*Name);
 			continue;
 		}
 
-		auto LidarMetaData = std::make_shared<agxopenplx::OpenPlxSensorsLidarMetadata>();
+		auto LidarMetaData = agxopenplx::OpenPlxSensorsMapper::createLidarMetadata();
 		Metadata->registerMetadata(LidarAGX, LidarMetaData);
-		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX, UsedOutputIDs);
-		auto Environment = agxSensor::Environment::getOrCreate(Simulation.GetNative()->Native);
+		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX);
 		Environment->add(LidarAGX);
 	}
 
@@ -750,6 +750,8 @@ void FPLXUtilitiesInternal::MapSensors(
 			UE_LOG(LogAGX, Warning, TEXT("MapSensorOutputs got error: %s"), *Err);
 		}
 	}
+
+	return Environment;
 }
 
 std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()
