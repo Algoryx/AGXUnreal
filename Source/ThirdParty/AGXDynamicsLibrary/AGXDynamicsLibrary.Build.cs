@@ -308,6 +308,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("openplx-Physics1D", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Physics3D", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Robotics", LibSource.Dependencies);
+		LinkLibFiles.Add("openplx-Sensors", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Simulation", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Terrain", LibSource.Dependencies);
 		LinkLibFiles.Add("openplx-Urdf", LibSource.Dependencies);
@@ -399,6 +400,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			DelayLoadLibraries.Add("openplx-Physics1D", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Physics3D", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Robotics", LibSource.Dependencies);
+			DelayLoadLibraries.Add("openplx-Sensors", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Simulation", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Terrain", LibSource.Dependencies);
 			DelayLoadLibraries.Add("openplx-Urdf", LibSource.Dependencies);
