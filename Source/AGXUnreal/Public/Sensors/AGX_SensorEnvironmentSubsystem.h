@@ -118,6 +118,9 @@ public:
 	void SetMagneticField(const FVector& Field);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	FVector GetMagneticField() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
@@ -181,6 +184,12 @@ public:
 	static UAGX_SensorEnvironmentSubsystem* GetFrom(const UWorld* World);
 	static UAGX_SensorEnvironmentSubsystem* GetFrom(const UGameInstance* GameInstance);
 
+	// ~Begin UObject interface.
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
+	// ~End UObject interface.
+
 	// ~Begin USubsystem interface.
 	virtual void Deinitialize() override;
 	// ~End USubsystem interface.
@@ -199,7 +208,7 @@ private:
 	void UpdateTrackedMeshes();
 	void UpdateTrackedInstancedMeshes();
 	void UpdateTrackedAGXMeshes();
-	void UpdateAmbientMaterial();
+	bool UpdateAmbientMaterial();
 	void TickTrackedLidars() const;
 	void TickTrackedIMUs() const;
 

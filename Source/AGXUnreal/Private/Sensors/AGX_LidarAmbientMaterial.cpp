@@ -82,6 +82,50 @@ float UAGX_LidarAmbientMaterial::GetReturnGammaDistributionScaleParameter() cons
 		ReturnGammaDistributionScaleParameter, GetReturnGammaDistributionScaleParameter);
 }
 
+bool UAGX_LidarAmbientMaterial::ConfigureAsAir(float VisibilityKm)
+{
+	FRtAmbientMaterialBarrier* Native = GetNative();
+	if (Native == nullptr)
+		return false;
+
+	Native->ConfigureAsAir(VisibilityKm);
+	CopyFrom(*Native);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsFog(float VisibilityKm, float WavelengthNm)
+{
+	FRtAmbientMaterialBarrier* Native = GetNative();
+	if (Native == nullptr)
+		return false;
+
+	Native->ConfigureAsFog(VisibilityKm, WavelengthNm);
+	CopyFrom(*Native);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsRainfall(float RateMmPerHour)
+{
+	FRtAmbientMaterialBarrier* Native = GetNative();
+	if (Native == nullptr)
+		return false;
+
+	Native->ConfigureAsRainfall(RateMmPerHour);
+	CopyFrom(*Native);
+	return true;
+}
+
+bool UAGX_LidarAmbientMaterial::ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm)
+{
+	FRtAmbientMaterialBarrier* Native = GetNative();
+	if (Native == nullptr)
+		return false;
+
+	Native->ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
+	CopyFrom(*Native);
+	return true;
+}
+
 bool UAGX_LidarAmbientMaterial::HasNative() const
 {
 	if (Instance != nullptr)

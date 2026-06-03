@@ -28,6 +28,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "GameFramework/Actor.h"
@@ -38,6 +39,25 @@
 
 namespace AGX_SensorEnvironmentSubsystem_helpers
 {
+#if WITH_EDITOR
+	bool IsPlaying(const UAGX_SensorEnvironmentSubsystem& SensorEnvironment)
+	{
+		if (const UWorld* World = SensorEnvironment.GetWorld())
+			return World->IsGameWorld();
+
+		if (GEngine == nullptr)
+			return false;
+
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
+				return true;
+		}
+
+		return false;
+	}
+#endif
+
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFrom(
 		UAGX_LidarSurfaceMaterial* SurfaceMaterial, UWorld* World)
 	{
@@ -269,6 +289,40 @@ void UAGX_SensorEnvironmentSubsystem::SetMagneticField(const FVector& Field)
 	MagneticField = Field;
 	if (HasNative())
 		NativeBarrier.SetMagneticField(Field);
+}
+
+bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
+	UAGX_LidarAmbientMaterial* InAmbientMaterial)
+{
+	const FSoftObjectPath AmbientMaterialOrig = AmbientMaterial;
+	UAGX_LidarAmbientMaterial* AmbientMaterialInstanceOrig = AmbientMaterialInstance;
+
+	if (InAmbientMaterial != nullptr && InAmbientMaterial->IsInstance())
+	{
+		AmbientMaterial = FSoftObjectPath();
+		AmbientMaterialInstance = InAmbientMaterial;
+	}
+	else
+	{
+		AmbientMaterial = InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) :
+														 FSoftObjectPath();
+		AmbientMaterialInstance = nullptr;
+	}
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	if (!UpdateAmbientMaterial())
+	{
+		AmbientMaterial = AmbientMaterialOrig;
+		AmbientMaterialInstance = AmbientMaterialInstanceOrig;
+		return false;
+	}
+
+	return true;
 }
 
 FVector UAGX_SensorEnvironmentSubsystem::GetMagneticField() const
@@ -815,6 +869,32 @@ UAGX_SensorEnvironmentSubsystem* UAGX_SensorEnvironmentSubsystem::GetFrom(
 	return GameInstance->GetSubsystem<UAGX_SensorEnvironmentSubsystem>();
 }
 
+#if WITH_EDITOR
+bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	if (AGX_SensorEnvironmentSubsystem_helpers::IsPlaying(*this))
+	{
+		static const TArray<FName> PropertiesNotEditableDuringPlay = {
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bAutoAddObjects),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, AmbientMaterial),
+			GET_MEMBER_NAME_CHECKED(
+				UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+			return false;
+	}
+
+	return SuperCanEditChange;
+}
+#endif
+
 void UAGX_SensorEnvironmentSubsystem::Deinitialize()
 {
 	for (auto& TrackedLidar : TrackedLidars)
@@ -934,7 +1014,7 @@ void UAGX_SensorEnvironmentSubsystem::InitializeNative()
 	NativeBarrier.SetMagneticField(MagneticField);
 
 	if (FSensorEnvironmentBarrier::IsRaytraceSupported())
-		UpdateAmbientMaterial();
+		(void) UpdateAmbientMaterial();
 
 	if (bAutoAddObjects)
 		AddAutoDetectedTerrains();
@@ -1013,27 +1093,38 @@ void UAGX_SensorEnvironmentSubsystem::UpdateTrackedAGXMeshes()
 	AGX_SensorEnvironmentSubsystem_helpers::UpdateTrackedMeshes(TrackedAGXMeshes);
 }
 
-void UAGX_SensorEnvironmentSubsystem::UpdateAmbientMaterial()
+bool UAGX_SensorEnvironmentSubsystem::UpdateAmbientMaterial()
 {
 	AGX_CHECK(HasNative());
 	if (!HasNative())
-		return;
+		return false;
 
-	UAGX_LidarAmbientMaterial* AmbientMaterialAsset =
-		AGX_SensorEnvironmentSubsystem_helpers::GetAmbientMaterialFrom(AmbientMaterial);
-	if (AmbientMaterialAsset == nullptr)
+	UAGX_LidarAmbientMaterial* Instance = AmbientMaterialInstance;
+	if (Instance == nullptr)
 	{
-		NativeBarrier.SetAmbientMaterial(nullptr);
-		AmbientMaterialInstance = nullptr;
-		return;
+		UAGX_LidarAmbientMaterial* AmbientMaterialAsset =
+			AGX_SensorEnvironmentSubsystem_helpers::GetAmbientMaterialFrom(AmbientMaterial);
+		if (AmbientMaterialAsset == nullptr)
+		{
+			NativeBarrier.SetAmbientMaterial(nullptr);
+			AmbientMaterialInstance = nullptr;
+			return true;
+		}
+
+		UWorld* World = GetWorld();
+		Instance = AmbientMaterialAsset->GetOrCreateInstance(World);
+		if (Instance == nullptr)
+			return false;
+
+		AmbientMaterialInstance = Instance;
 	}
 
-	UWorld* World = GetWorld();
-	UAGX_LidarAmbientMaterial* Instance = AmbientMaterialAsset->GetOrCreateInstance(World);
-	check(Instance);
+	FRtAmbientMaterialBarrier* Native = AmbientMaterialInstance->GetOrCreateNative();
+	if (Native == nullptr)
+		return false;
 
-	AmbientMaterialInstance = Instance;
-	NativeBarrier.SetAmbientMaterial(AmbientMaterialInstance->GetNative());
+	NativeBarrier.SetAmbientMaterial(Native);
+	return true;
 }
 
 void UAGX_SensorEnvironmentSubsystem::TickTrackedLidars() const
