@@ -118,8 +118,6 @@ void UAGX_SensorComponentBase::CopyFrom(
 void UAGX_SensorComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!HasNative() && !GIsReconstructingBlueprintInstances)
-		CreateNativeImpl();
 
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
@@ -142,7 +140,7 @@ void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
 
-	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+	if (PreStepForwardHandle.IsValid() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -150,6 +148,7 @@ void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 			FAGX_InternalDelegateAccessor::GetOnPreStepForwardInternal(*Simulation)
 				.Remove(PreStepForwardHandle);
 		}
+		PreStepForwardHandle.Reset();
 	}
 
 	if (HasNative())

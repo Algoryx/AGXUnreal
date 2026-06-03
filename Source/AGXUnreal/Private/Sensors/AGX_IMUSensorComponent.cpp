@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -126,6 +127,40 @@ void UAGX_IMUSensorComponent::OnRegister()
 	// will not be messing with this object anymore. It is now safe to set the Local Scope on our
 	// Component References.
 	AGX_IMUSensorComponent_helpers::SetLocalScope(*this);
+}
+
+void UAGX_IMUSensorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNativeImpl();
+
+	if (HasNative())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddIMU(this);
+		}
+	}
+}
+
+void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (!GIsReconstructingBlueprintInstances && HasNative() &&
+		Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		Reason != EEndPlayReason::LevelTransition)
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->RemoveIMU(this);
+		}
+	}
+
+	Super::EndPlay(Reason);
 }
 
 FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU()

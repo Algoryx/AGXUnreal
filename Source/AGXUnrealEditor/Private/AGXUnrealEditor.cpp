@@ -96,6 +96,7 @@
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
 #include "Sensors/AGX_SensorEnvironment.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
@@ -253,6 +254,15 @@ void FAGXUnrealEditorModule::RegisterProjectSettings()
 				"UAGX_Simulation_ProjectSettingsDesc",
 				"Configure the simulation settings of the AGX Unreal plugin."),
 			GetMutableDefault<UAGX_Simulation>());
+
+		SettingsModule->RegisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem",
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsName", "AGX Sensor Environment"),
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsDesc",
+				"Configure the sensor environment settings of the AGX Unreal plugin."),
+			GetMutableDefault<UAGX_SensorEnvironmentSubsystem>());
 	}
 }
 
@@ -261,6 +271,8 @@ void FAGXUnrealEditorModule::UnregisterProjectSettings()
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "Plugins", "UAGX_Simulation");
+		SettingsModule->UnregisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem");
 	}
 }
 

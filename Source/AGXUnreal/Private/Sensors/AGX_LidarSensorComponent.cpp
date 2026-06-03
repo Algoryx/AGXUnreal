@@ -10,6 +10,7 @@
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_SensorUtilities.h"
@@ -338,8 +339,7 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	RayAngleNoiseSettings = Source.RayAngleNoiseSettings;
 }
 
-void UAGX_LidarSensorComponent::CopyFrom(
-	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	Super::CopyFrom(Barrier, Context);
 
@@ -354,6 +354,20 @@ void UAGX_LidarSensorComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNativeImpl();
+
+	if (HasNative())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddLidar(this);
+		}
+	}
+
 	if (bEnableRendering && NiagaraSystemAsset != nullptr)
 	{
 		NiagaraSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
@@ -361,6 +375,21 @@ void UAGX_LidarSensorComponent::BeginPlay()
 			FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
 			ENCPoolMethod::None);
 	}
+}
+
+void UAGX_LidarSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (!GIsReconstructingBlueprintInstances && HasNative() &&
+		Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		Reason != EEndPlayReason::LevelTransition)
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->RemoveLidar(this);
+		}
+	}
+
+	Super::EndPlay(Reason);
 }
 
 void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)
