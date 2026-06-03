@@ -37,5 +37,5 @@ void AAGX_SensorEnvironment::BeginPlay()
 	Super::BeginPlay();
 
 	FAGX_NotificationUtilities::ShowNotification(
-		AGX_SensorEnvironment_helpers::GetDeprecationMessage(), SNotificationItem::CS_Fail, 8.f);
+		AGX_SensorEnvironment_helpers::GetDeprecationMessage(), SNotificationItem::CS_None, 8.f);
 }

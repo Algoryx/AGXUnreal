@@ -111,6 +111,29 @@ bool FLidarBarrier::IsLidar(const FSensorBarrier& Sensor)
 	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::Lidar>();
 }
 
+EAGX_LidarModel FLidarBarrier::GetModel() const
+{
+	check(HasNative());
+
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarNative(*this)->getModel();
+	if (Model == nullptr)
+		return EAGX_LidarModel::Invalid;
+
+	if (Model->is<agxSensor::LidarModelHorizontalSweep>())
+		return EAGX_LidarModel::GenericHorizontalSweep;
+
+	if (Model->is<agxSensor::LidarModelOusterOS0>())
+		return EAGX_LidarModel::OusterOS0;
+
+	if (Model->is<agxSensor::LidarModelOusterOS1>())
+		return EAGX_LidarModel::OusterOS1;
+
+	if (Model->is<agxSensor::LidarModelOusterOS2>())
+		return EAGX_LidarModel::OusterOS2;
+
+	return EAGX_LidarModel::Invalid;
+}
+
 void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params)
 {
 	using namespace LidarBarrier_helpers;
@@ -140,6 +163,8 @@ void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelP
 			NativeRef->Native =
 				CreateAGXLidar(*static_cast<const UAGX_OusterOS2Parameters*>(&Params));
 			return;
+		case EAGX_LidarModel::Invalid:
+			break;
 	}
 
 	UE_LOG(LogAGX, Error, TEXT("Unknown Lidar Model given to to FLidarBarrier::AllocateNative."));
@@ -316,6 +341,22 @@ bool FLidarBarrier::GetEnableDistanceGaussianNoise() const
 	return GetDistanceNoise(*GetLidarNative(*this)) != nullptr;
 }
 
+FAGX_DistanceGaussianNoiseSettings FLidarBarrier::GetDistanceGaussianNoiseSettings() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	FAGX_DistanceGaussianNoiseSettings Settings;
+	agxSensor::RtDistanceGaussianNoise* DistanceNoise = GetDistanceNoise(*GetLidarNative(*this));
+	if (DistanceNoise == nullptr)
+		return Settings;
+
+	Settings.Mean = ConvertDistanceToUnreal<double>(DistanceNoise->getMean());
+	Settings.StandardDeviation = ConvertDistanceToUnreal<double>(DistanceNoise->getStdDevBase());
+	Settings.StandardDeviationSlope = DistanceNoise->getStdDevSlope();
+	return Settings;
+}
+
 void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(
 	const FAGX_RayAngleGaussianNoiseSettings& Settings)
 {
@@ -353,6 +394,36 @@ bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 	using namespace LidarBarrier_helpers;
 	check(HasNative());
 	return GetRayAngleNoise(*GetLidarNative(*this)) != nullptr;
+}
+
+FAGX_RayAngleGaussianNoiseSettings FLidarBarrier::GetRayAngleGaussianNoiseSettings() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	FAGX_RayAngleGaussianNoiseSettings Settings;
+	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*GetLidarNative(*this));
+	if (Noise == nullptr)
+		return Settings;
+
+	Settings.Axis = Convert(Noise->getAxis());
+	Settings.Mean = ConvertAngleToUnreal<double>(Noise->getMean());
+	Settings.StandardDeviation = ConvertAngleToUnreal<double>(Noise->getStandardDeviation());
+	return Settings;
+}
+
+bool FLidarBarrier::UsesHorizontalSweepRayPattern() const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarNative(*this)->getModel();
+	if (Model == nullptr)
+		return false;
+
+	const auto PatternGenerator = Model->getRayPatternGenerator();
+	if (PatternGenerator == nullptr)
+		return false;
+
+	return PatternGenerator->is<agxSensor::LidarRayPatternHorizontalSweep>();
 }
 
 FRigidBodyBarrier FLidarBarrier::GetRigidBody() const

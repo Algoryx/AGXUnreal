@@ -9,6 +9,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Sensors/AGX_LidarOutputBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
@@ -272,6 +273,17 @@ FSensorBarrier* UAGX_LidarSensorComponent::CreateNativeImpl()
 		return nullptr;
 	}
 
+	if (Model == EAGX_LidarModel::Invalid)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Invalid Model selected for Lidar Sensor '%s' in '%s'. Make sure a valid "
+					 "Model has been selected."),
+				*GetName(), *GetLabelSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+		return nullptr;
+	}
+
 	if (ModelParameters == nullptr)
 	{
 		FAGX_NotificationUtilities::ShowNotification(
@@ -342,6 +354,44 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	Super::CopyFrom(Barrier, Context);
+
+	const FLidarBarrier& LidarBarrier = static_cast<const FLidarBarrier&>(Barrier);
+
+	bEnabled = LidarBarrier.GetEnabled();
+
+	EAGX_LidarModel ImportedModel = LidarBarrier.GetModel();
+	if (ImportedModel == EAGX_LidarModel::Invalid)
+	{
+		// Lidar Model unknown, but we can match against GenericHorizontalSweep if the
+		// ray pattern generator is the Horizontal Sweep Pattern.
+		if (LidarBarrier.UsesHorizontalSweepRayPattern())
+			ImportedModel = EAGX_LidarModel::GenericHorizontalSweep;
+	}
+
+	if (ImportedModel == EAGX_LidarModel::Invalid)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to determine Lidar Model when importing Lidar Sensor Component '%s'. "
+				 "Keeping default Model."),
+			*GetName());
+	}
+	else
+	{
+		Model = ImportedModel;
+	}
+
+	Range = LidarBarrier.GetRange();
+	BeamDivergence = LidarBarrier.GetBeamDivergence();
+	BeamExitRadius = LidarBarrier.GetBeamExitRadius();
+	bEnableDistanceGaussianNoise = LidarBarrier.GetEnableDistanceGaussianNoise();
+	DistanceNoiseSettings = LidarBarrier.GetDistanceGaussianNoiseSettings();
+	bEnableRayAngleGaussianNoise = LidarBarrier.GetEnableRayAngleGaussianNoise();
+	RayAngleNoiseSettings = LidarBarrier.GetRayAngleGaussianNoiseSettings();
+
+	bEnableRemovePointsMisses = LidarBarrier.GetEnableRemoveRayMisses();
+	RaytraceDepth = static_cast<int32>(std::min(
+		LidarBarrier.GetRaytraceDepth(), static_cast<size_t>(std::numeric_limits<int32>::max())));
 
 	if (Context == nullptr || Context->Sensors == nullptr)
 		return; // We are done.

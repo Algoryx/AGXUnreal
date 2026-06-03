@@ -32,6 +32,8 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 
 	static bool IsLidar(const FSensorBarrier& Sensor);
 
+	EAGX_LidarModel GetModel() const;
+
 	void AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params);
 	void AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& PatternFetcher);
 
@@ -56,10 +58,14 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void EnableOrUpdateDistanceGaussianNoise(const FAGX_DistanceGaussianNoiseSettings& Settings);
 	void DisableDistanceGaussianNoise();
 	bool GetEnableDistanceGaussianNoise() const;
+	FAGX_DistanceGaussianNoiseSettings GetDistanceGaussianNoiseSettings() const;
 
 	void EnableOrUpdateRayAngleGaussianNoise(const FAGX_RayAngleGaussianNoiseSettings& Settings);
 	void DisableRayAngleGaussianNoise();
 	bool GetEnableRayAngleGaussianNoise() const;
+	FAGX_RayAngleGaussianNoiseSettings GetRayAngleGaussianNoiseSettings() const;
+
+	bool UsesHorizontalSweepRayPattern() const;
 
 	/// Returns the Rigid Body this Lidar is attached to, if it exists.
 	FRigidBodyBarrier GetRigidBody() const;
