@@ -95,7 +95,6 @@
 #include "Sensors/AGX_OusterOS0ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
-#include "Sensors/AGX_SensorEnvironment.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
@@ -876,7 +875,6 @@ void FAGXUnrealEditorModule::RegisterPlacementCategory()
 	RegisterPlaceableItem(AAGX_HingeConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_LockConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_PrismaticConstraintActor::StaticClass());
-	RegisterPlaceableItem(AAGX_SensorEnvironment::StaticClass());
 	RegisterPlaceableItem(AAGX_Terrain::StaticClass());
 	RegisterPlaceableItem(AAGX_CollisionGroupDisablerActor::StaticClass());
 	RegisterPlaceableItem(AAGX_RigidBodyActor::StaticClass());
