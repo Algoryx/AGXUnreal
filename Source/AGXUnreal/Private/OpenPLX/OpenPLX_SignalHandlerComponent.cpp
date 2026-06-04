@@ -16,6 +16,8 @@
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/SensorBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -545,9 +547,10 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	Barriers.Lidars = CollectBarriers<FSensorBarrier, UAGX_LidarSensorComponent>(GetOwner());
 	Barriers.Steerings =
 		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
+	auto Env = UAGX_SensorEnvironmentSubsystem::GetFrom(this);
 
 	// Initialize SignalHandler in Barrier module.
-	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);
+	SignalHandler.Init(*PLXFile, *SimulationBarrier, Env->GetNative(), *PLXModelRegistryBarrier, Barriers);
 }
 
 void UOpenPLX_SignalHandlerComponent::EndPlay(const EEndPlayReason::Type Reason)

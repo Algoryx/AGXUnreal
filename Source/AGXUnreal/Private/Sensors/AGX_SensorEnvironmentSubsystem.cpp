@@ -159,15 +159,6 @@ namespace AGX_SensorEnvironmentSubsystem_helpers
 
 		// Chosen arbitrarily, too large will cause Unreal warnings/errors.
 		static constexpr double MaxRadius = 1.0e8;
-		if (Lidar->Range.Max > MaxRadius)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Lidar %s has a Max Range of %f, but the maximum supported Range is %f. Using "
-					 "%f."),
-				*Lidar->GetName(), Lidar->Range.Max.GetValue(), MaxRadius, MaxRadius);
-		}
-
 		const float Radius = std::min(Lidar->Range.Max.GetValue(), MaxRadius);
 		if (!FMath::IsNearlyEqual(Sphere->GetUnscaledSphereRadius(), Radius))
 		{
@@ -304,8 +295,8 @@ bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
 	}
 	else
 	{
-		AmbientMaterial = InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) :
-														 FSoftObjectPath();
+		AmbientMaterial =
+			InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) : FSoftObjectPath();
 		AmbientMaterialInstance = nullptr;
 	}
 
@@ -884,8 +875,7 @@ bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty)
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bAutoAddObjects),
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, AmbientMaterial),
-			GET_MEMBER_NAME_CHECKED(
-				UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;

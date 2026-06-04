@@ -14,6 +14,8 @@
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -41,7 +43,8 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 
 void FOpenPLXSignalHandler::Init(
 	const FString& OpenPLXFile, FSimulationBarrier& Simulation,
-	FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers)
+	FSensorEnvironmentBarrier* Environment, FOpenPLXModelRegistry& InModelRegistry,
+	const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
@@ -91,7 +94,7 @@ void FOpenPLXSignalHandler::Init(
 	}
 
 	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
-	auto Environment = FPLXUtilitiesInternal::MapSensors(System, Simulation, Barriers, Metadata);
+	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -100,8 +103,10 @@ void FOpenPLXSignalHandler::Init(
 		auto PlxPowerLine = dynamic_cast<agxPowerLine::PowerLine*>(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
+		agxSensor::EnvironmentRef EnvironmentAGX =
+			Environment != nullptr && Environment->HasNative() ? Environment->GetNative()->Native : nullptr;
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, Environment, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, PlxPowerLine, EnvironmentAGX, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))

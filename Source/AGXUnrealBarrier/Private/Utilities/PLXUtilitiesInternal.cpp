@@ -694,15 +694,14 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	return Assembly;
 }
 
-agxSensor::Environment* FPLXUtilitiesInternal::MapSensors(
-	std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
+void FPLXUtilitiesInternal::MapSensorOutput(
+	std::shared_ptr<openplx::Physics3D::System> System,
 	const FOpenPLXMappingBarriersCollection& Barriers,
 	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
 {
 	if (Barriers.Lidars.Num() == 0)
-		return nullptr;
+		return;
 
-	auto Environment = agxSensor::Environment::getOrCreate(Simulation.GetNative()->Native);
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
 
@@ -740,7 +739,6 @@ agxSensor::Environment* FPLXUtilitiesInternal::MapSensors(
 		auto LidarMetaData = agxopenplx::OpenPlxSensorsMapper::createLidarMetadata();
 		Metadata->registerMetadata(LidarAGX, LidarMetaData);
 		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX);
-		Environment->add(LidarAGX);
 	}
 
 	if (ErrorReporter->getErrorCount() > 0)
@@ -750,8 +748,6 @@ agxSensor::Environment* FPLXUtilitiesInternal::MapSensors(
 			UE_LOG(LogAGX, Warning, TEXT("MapSensorOutputs got error: %s"), *Err);
 		}
 	}
-
-	return Environment;
 }
 
 std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()

@@ -28,6 +28,7 @@
 #include <vector>
 
 class FConstraintBarrier;
+class FSensorEnvironmentBarrier;
 class FSimulationBarrier;
 struct FOpenPLXMappingBarriersCollection;
 struct FRigidBodyBarrier;
@@ -120,11 +121,10 @@ public:
 		const FOpenPLXMappingBarriersCollection& Barriers);
 
 	/**
-	 * Adds outputs to provided sensors and adds them to the agxSDK::SensorEnvironment associated
-	 * with the provided Simulation.
+	 * Adds outputs to provided sensors.
 	 */
-	static agxSensor::Environment* MapSensors(
-		std::shared_ptr<openplx::Physics3D::System> System, FSimulationBarrier& Simulation,
+	static void MapSensorOutput(
+		std::shared_ptr<openplx::Physics3D::System> System,
 		const FOpenPLXMappingBarriersCollection& Barriers,
 		std::shared_ptr<agxopenplx::AgxMetadata> Metadata);
 
