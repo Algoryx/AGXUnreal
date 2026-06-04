@@ -90,13 +90,38 @@ namespace LidarBarrier_helpers
 	agxSensor::Lidar* GetLidarNative(FLidarBarrier& Lidar)
 	{
 		AGX_CHECK(Lidar.HasNative());
-		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+		return Lidar.GetNative()->Native->asSafe<agxSensor::Lidar>();
 	}
 
 	agxSensor::Lidar* GetLidarNative(const FLidarBarrier& Lidar)
 	{
 		AGX_CHECK(Lidar.HasNative());
-		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+		return Lidar.GetNative()->Native->asSafe<agxSensor::Lidar>();
+	}
+
+	const agxSensor::LidarModel* GetLidarModel(const FLidarBarrier& Lidar)
+	{
+		return GetLidarNative(Lidar)->getModel();
+	}
+
+	const agxSensor::LidarModelOusterOS* GetOusterOSModel(const FLidarBarrier& Lidar)
+	{
+		const agxSensor::LidarModel* Model = GetLidarModel(Lidar);
+		return Model != nullptr ? Model->asSafe<agxSensor::LidarModelOusterOS>() : nullptr;
+	}
+
+	void ReadOusterOSModelParameters(
+		const agxSensor::LidarModelOusterOS& Model, EAGX_OusterOSChannelCount& ChannelCount,
+		EAGX_OusterOSBeamSpacing& BeamSpacing, EAGX_OusterOSMode& Mode)
+	{
+		ChannelCount = Convert(Model.getChannelCount());
+		BeamSpacing = Convert(Model.getBeamSpacing());
+		Mode = Convert(Model.getLidarMode());
+	}
+
+	double CalculateAngularResolution(double Fov, agx::UInt Resolution)
+	{
+		return Resolution > 1 ? Fov / static_cast<double>(Resolution - 1.0) : 0.0;
 	}
 }
 
@@ -410,6 +435,95 @@ FAGX_RayAngleGaussianNoiseSettings FLidarBarrier::GetRayAngleGaussianNoiseSettin
 	Settings.Mean = ConvertAngleToUnreal<double>(Noise->getMean());
 	Settings.StandardDeviation = ConvertAngleToUnreal<double>(Noise->getStandardDeviation());
 	return Settings;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_CustomRayPatternParameters&) const
+{
+	check(HasNative());
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_GenericHorizontalSweepParameters& Parameters) const
+{
+	check(HasNative());
+
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr)
+		return false;
+
+	const auto PatternGenerator = Model->getRayPatternGenerator();
+	if (PatternGenerator == nullptr)
+		return false;
+
+	const auto Pattern = PatternGenerator->asSafe<agxSensor::LidarRayPatternHorizontalSweep>();
+	if (Pattern == nullptr)
+		return false;
+
+	const auto HFovAGX = Pattern->getHorizontalFov();
+	const auto VFovAGX = Pattern->getVerticalFov();
+	const double HorizontalFov =
+		ConvertAngleToUnreal<double>(FMath::Abs(HFovAGX.upper() - HFovAGX.lower()));
+	const double VerticalFov =
+		ConvertAngleToUnreal<double>(FMath::Abs(VFovAGX.upper() - VFovAGX.lower()));
+	const agx::Vec2u ResolutionAGX = Pattern->getResolution();
+
+	Parameters.FOV = {HorizontalFov, VerticalFov};
+	Parameters.Resolution = {
+		LidarBarrier_helpers::CalculateAngularResolution(HorizontalFov, ResolutionAGX.x()),
+		LidarBarrier_helpers::CalculateAngularResolution(VerticalFov, ResolutionAGX.y())};
+	Parameters.Frequency = Pattern->getFrequency();
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS0Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS0>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS1Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS1>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS2Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS2>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
 }
 
 bool FLidarBarrier::UsesHorizontalSweepRayPattern() const

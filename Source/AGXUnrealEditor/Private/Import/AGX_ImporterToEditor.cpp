@@ -20,6 +20,7 @@
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "Sensors/AGX_LidarModelParameters.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -156,6 +157,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_ShovelProperties>)
 			return FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_LidarModelParameters>)
+			return FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_SteeringParameters>)
 			return FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
@@ -583,6 +587,11 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_ShovelProperties>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName())));
 
+		CollectForRemoval(
+			FAGX_EditorUtilities::FindAssets<UAGX_LidarModelParameters>(FPaths::Combine(
+				RootDirectory,
+				FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_SteeringParameters>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName())));
 
@@ -707,6 +716,16 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, Sp] : *Context->ShovelProperties)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
+			}
+		}
+
+		if (Context->LidarModelParameters != nullptr)
+		{
+			const FString AssetType =
+				FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName();
+			for (const auto& [Guid, Lmp] : *Context->LidarModelParameters)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Lmp, *Context);
 			}
 		}
 
@@ -862,6 +881,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.ShovelProperties != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.ShovelProperties)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.LidarModelParameters != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.LidarModelParameters)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1394,6 +1419,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		for (const auto& [Guid, Sp] : *Context.ShovelProperties)
 		{
 			const auto A = UpdateOrCreateAsset(*Sp, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
+	if (Context.LidarModelParameters != nullptr)
+	{
+		for (const auto& [Guid, Lmp] : *Context.LidarModelParameters)
+		{
+			const auto A = UpdateOrCreateAsset(*Lmp, Context);
 			AGX_CHECK(A != nullptr);
 			if (A == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;

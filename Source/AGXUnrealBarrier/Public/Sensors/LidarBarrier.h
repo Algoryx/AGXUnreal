@@ -15,7 +15,12 @@
 
 class FCustomPatternFetcherBase;
 class FLidarOutputBarrier;
+class UAGX_CustomRayPatternParameters;
+class UAGX_GenericHorizontalSweepParameters;
 class UAGX_LidarModelParameters;
+class UAGX_OusterOS0Parameters;
+class UAGX_OusterOS1Parameters;
+class UAGX_OusterOS2Parameters;
 
 struct FAGX_RealInterval;
 struct FRigidBodyBarrier;
@@ -64,6 +69,12 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void DisableRayAngleGaussianNoise();
 	bool GetEnableRayAngleGaussianNoise() const;
 	FAGX_RayAngleGaussianNoiseSettings GetRayAngleGaussianNoiseSettings() const;
+
+	bool ReadModelParameters(UAGX_CustomRayPatternParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_GenericHorizontalSweepParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_OusterOS0Parameters& Parameters) const;
+	bool ReadModelParameters(UAGX_OusterOS1Parameters& Parameters) const;
+	bool ReadModelParameters(UAGX_OusterOS2Parameters& Parameters) const;
 
 	bool UsesHorizontalSweepRayPattern() const;
 

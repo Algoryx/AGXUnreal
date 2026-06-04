@@ -10,6 +10,7 @@
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ContactMaterialBarrier.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "Sensors/AGX_LidarModelParameters.h"
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -236,6 +237,11 @@ FString FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName()
 	return FString("ShovelProperties");
 }
 
+FString FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName()
+{
+	return FString("LidarModelParameters");
+}
+
 FString FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName()
 {
 	return FString("SteeringParameters");
@@ -310,6 +316,13 @@ AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_ShovelProperties>()
 {
 	return GetImportShovelPropertiesDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_LidarModelParameters>()
+{
+	return GetImportLidarModelParametersDirectoryName();
 }
 
 template <>

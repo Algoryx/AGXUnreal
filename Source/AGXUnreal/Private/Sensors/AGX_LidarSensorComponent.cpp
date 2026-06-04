@@ -10,10 +10,17 @@
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Import/AGX_ImportSettings.h"
+#include "Sensors/AGX_CustomRayPatternParameters.h"
+#include "Sensors/AGX_GenericHorizontalSweepParameters.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/AGX_OusterOS0Parameters.h"
+#include "Sensors/AGX_OusterOS1Parameters.h"
+#include "Sensors/AGX_OusterOS2Parameters.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_SensorUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -351,6 +358,80 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	RayAngleNoiseSettings = Source.RayAngleNoiseSettings;
 }
 
+namespace AGX_LidarSensorComponent_helpers
+{
+	bool ReadModelParameters(
+		const FLidarBarrier& Barrier, UAGX_LidarModelParameters& ModelParameters)
+	{
+		if (auto Parameters = Cast<UAGX_OusterOS0Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_OusterOS1Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_OusterOS2Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_GenericHorizontalSweepParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_CustomRayPatternParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		return false;
+	}
+
+	FString CreateModelParametersName(
+		const UAGX_LidarSensorComponent& Lidar, const FLidarBarrier& Barrier,
+		FAGX_ImportContext& Context, UClass& ModelParametersType, UObject& Outer)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Lidar, Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty() ? ModelParametersType.GetName() : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Outer, FString::Printf(TEXT("LMP_%s"), *BaseName),
+			UAGX_LidarModelParameters::StaticClass());
+	}
+
+	UAGX_LidarModelParameters* CreateModelParameters(
+		const UAGX_LidarSensorComponent& Lidar, const FLidarBarrier& Barrier,
+		FAGX_ImportContext& Context, EAGX_LidarModel Model)
+	{
+		UClass* ModelParametersType = FAGX_SensorUtilities::GetParameterTypeFrom(Model);
+		if (ModelParametersType == nullptr)
+			return nullptr;
+
+		const FGuid Guid = Barrier.GetGuid();
+		AGX_CHECK(Context.LidarModelParameters != nullptr);
+		AGX_CHECK(!Context.LidarModelParameters->Contains(Guid));
+
+		UObject* Outer = Context.Outer != nullptr ? Context.Outer : GetTransientPackage();
+		const FString Name = CreateModelParametersName(
+			Lidar, Barrier, Context, *ModelParametersType, *Outer);
+		auto Parameters = NewObject<UAGX_LidarModelParameters>(
+			Outer, ModelParametersType, FName(*Name), RF_Public | RF_Standalone);
+		if (Parameters == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Parameters, Context.SessionGuid);
+		Parameters->ImportGuid = Guid;
+
+		if (!ReadModelParameters(Barrier, *Parameters))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to read Lidar Model Parameters for imported Lidar Sensor '%s'. The "
+					 "parameters of Model Parameters asset '%s' may be incorrect."),
+				*Barrier.GetName(), *Parameters->GetName());
+		}
+
+		Context.LidarModelParameters->Add(Guid, Parameters);
+		return Parameters;
+	}
+}
+
 void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
 {
 	Super::CopyFrom(Barrier, Context);
@@ -393,8 +474,12 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 	RaytraceDepth = static_cast<int32>(std::min(
 		LidarBarrier.GetRaytraceDepth(), static_cast<size_t>(std::numeric_limits<int32>::max())));
 
-	if (Context == nullptr || Context->Sensors == nullptr)
+	if (Context == nullptr || Context->Sensors == nullptr ||
+		Context->LidarModelParameters == nullptr)
 		return; // We are done.
+
+	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
+		*this, LidarBarrier, *Context, ImportedModel);
 
 	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
 	Context->Sensors->Add(ImportGuid, this);

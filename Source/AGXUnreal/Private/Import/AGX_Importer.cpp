@@ -370,6 +370,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.SteeringParameters = MakeUnique<TMap<FGuid, UAGX_SteeringParameters*>>();
 	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
 	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
+	Context.LidarModelParameters = MakeUnique<TMap<FGuid, UAGX_LidarModelParameters*>>();
 }
 
 FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UObject& Outer)

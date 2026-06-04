@@ -13,6 +13,7 @@ class UAGX_CollisionGroupDisablerComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ContactMaterialRegistrarComponent;
+class UAGX_LidarModelParameters;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ModelSourceComponent;
 class UAGX_ObserverFrameComponent;
@@ -77,6 +78,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_SteeringParameters*>> SteeringParameters;
 	TUniquePtr<TMap<FGuid, UAGX_TrackProperties*>> TrackProperties;
 	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
+
+	// Lidar Model Parameters are unique per Lidar on import. The key is the GUID of the Lidar.
+	TUniquePtr<TMap<FGuid, UAGX_LidarModelParameters*>> LidarModelParameters;
 
 	UAGX_ModelSourceComponent* ModelSourceComponent {nullptr};
 	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar {nullptr};
