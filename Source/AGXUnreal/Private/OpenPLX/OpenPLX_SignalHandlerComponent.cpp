@@ -492,6 +492,37 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 	return ReceiveBoolean(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(const FOpenPLX_Output& Output)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsLidarOutputType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveLidarOutput", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveLidarOutput(Output);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(FName NameOrAlias)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveLidarOutputByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveLidarOutput(Output);
+}
+
 void UOpenPLX_SignalHandlerComponent::BeginPlay()
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;

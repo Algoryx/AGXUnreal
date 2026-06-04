@@ -21,14 +21,18 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
-#include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/AgxObjectMap.h"
+#include "agxOpenPLX/SignalListenerUtils.h"
+#include "openplx/Blob.h"
 #include "openplx/Math/Vec3.h"
+#include "openplx/Physics/Signals/AngleOutput.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
 #include "openplx/Physics/Signals/RealInputSignal.h"
 #include "openplx/Physics/Signals/Vec3InputSignal.h"
-#include "openplx/Physics/Signals/AngleOutput.h"
+#include "openplx/Sensors/Signals/LidarOutput.h"
+#include "openplx/Sensors/Signals/LidarOutputField.h"
+#include "openplx/Sensors/Signals/SensorOutputSignal.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -504,6 +508,48 @@ namespace OpenPLXSignalHandler_helpers
 		OutValue = *Value;
 		return true;
 	}
+
+	bool ReceiveLidarOutput(
+		const FOpenPLX_Output& Output, FOpenPLXModelRegistry* ModelRegistry,
+		FOpenPLXModelRegistry::Handle ModelHandle,
+		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue)
+	{
+		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
+			return false;
+
+		if (OutputQueue == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Tried to receive OpenPLX Lidar Output signal for output '%s', but the "
+					 "OpenPLX model does not have any registered outputs."),
+				*Output.Name.ToString());
+			return false;
+		}
+
+		auto Signal =
+			agxopenplx::getSignalBySourceName<openplx::Sensors::Signals::SensorOutputSignal>(
+				OutputQueue->getSignals(), Convert(Output.Name.ToString()));
+		if (Signal == nullptr)
+			return false;
+
+		auto LidarOutput =
+			std::dynamic_pointer_cast<openplx::Sensors::Signals::LidarOutput>(Signal->source());
+		if (LidarOutput == nullptr)
+			return TypeMismatchResult<bool>(Output).IsSet();
+
+		const std::shared_ptr<openplx::Blob> Blob = Signal->data();
+		if (Blob == nullptr)
+			return false;
+
+		UE_LOG(
+			LogAGX, Log,
+			TEXT("Received OpenPLX Lidar Output '%s' data blob "
+				 "(%llu bytes)."),
+			*Output.Name.ToString(),
+			static_cast<unsigned long long>(Blob->getSize()));
+		return true;
+	}
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
@@ -585,6 +631,13 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
 		OpenPLXSignalHandler_helpers::GetBooleanValueFrom);
+}
+
+bool FOpenPLXSignalHandler::ReceiveLidarOutput(const FOpenPLX_Output& Output)
+{
+	check(IsInitialized());
+	return OpenPLXSignalHandler_helpers::ReceiveLidarOutput(
+		Output, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue());
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()

@@ -55,6 +55,9 @@ public:
 	bool Send(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
 
+	/// Lidar outputs.
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output);
+
 	void ReleaseNatives();
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);

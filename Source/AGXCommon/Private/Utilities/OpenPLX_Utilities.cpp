@@ -155,3 +155,14 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 			return false;
 	}
 }
+
+bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::LidarOutput:
+			return true;
+		default:
+			return false;
+	}
+}

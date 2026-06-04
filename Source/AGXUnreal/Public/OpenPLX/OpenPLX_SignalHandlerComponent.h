@@ -216,6 +216,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveBooleanByName(FName NameOrAlias, bool& OutValue);
 
+	/**
+	 * Uses the given Output to receive a Signal of Lidar Output type.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output);
+
+	/**
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Lidar Output type.
+	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
+	 * Output to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveLidarOutputByName(FName NameOrAlias);
+
 	UPROPERTY(Transient)
 	bool bShowDisabledOutputs {false};
 
