@@ -546,8 +546,13 @@ FRigidBodyBarrier FLidarBarrier::GetRigidBody() const
 	check(HasNative());
 
 	agx::RigidBody* Body = nullptr;
-	if (auto Frame = GetLidarNative(*this)->getFrame())
+	for (agx::Frame* Frame = GetLidarNative(*this)->getFrame(); Frame != nullptr;
+		 Frame = Frame->getParent())
+	{
 		Body = Frame->getRigidBody();
+		if (Body != nullptr)
+			break;
+	}
 
 	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
 }
