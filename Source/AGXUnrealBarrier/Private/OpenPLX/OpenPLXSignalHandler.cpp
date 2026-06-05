@@ -3,17 +3,14 @@
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
-#include "Constraints/ConstraintBarrier.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
-#include "RigidBodyBarrier.h"
 #include "SimulationBarrier.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -30,7 +27,6 @@
 #include "openplx/Physics/Signals/IntInputSignal.h"
 #include "openplx/Physics/Signals/RealInputSignal.h"
 #include "openplx/Physics/Signals/Vec3InputSignal.h"
-#include "openplx/Physics/Signals/AngleOutput.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -57,7 +53,8 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Could not load OpenPLX model '%s'. The Output Log may contain more information."),
+			TEXT("OpenPLX Signal Handler: Could not load OpenPLX model '%s'. The Output Log may "
+				 "contain more information."),
 			*OpenPLXFile);
 		return;
 	}
@@ -67,8 +64,8 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Unexpected error: Unable to get registered OpenPLX model '%s'. The OpenPLX model "
-				 "may not behave as intended."),
+			TEXT("OpenPLX Signal Handler: Unable to get registered OpenPLX model '%s'. The OpenPLX "
+				 "model may not behave as intended."),
 			*OpenPLXFile);
 		return;
 	}
@@ -78,8 +75,8 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get a openplx::Physics3D::System from the registered OpenPLX model "
-				 "'%s'. The OpenPLX model may not behave as intended."),
+			TEXT("OpenPLX Signal Handler: Unable to get a openplx::Physics3D::System from the "
+				 "registered OpenPLX model '%s'. The OpenPLX model may not behave as intended."),
 			*OpenPLXFile);
 		return;
 	}
@@ -89,24 +86,14 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get a valid AGX Assembly from simulated model instance for OpenPLX "
-				 "model '%s'. The Output Log may contain more details."),
+			TEXT("OpenPLX Signal Handler: Unable to get a valid AGX Assembly from simulated model "
+				 "instance for OpenPLX model '%s'. The Output Log may contain more details."),
 			*OpenPLXFile);
 		return;
 	}
 
-	// OpenPLX uses pretty deep namespace nesting which causes very long lines. Namespace
-	// aliases helps us cut those lengths down a bit while still keeping it clear which types comes
-	// from OpenPLX.
-	namespace oplx = openplx;
-	namespace oplxSignals = openplx::Physics::Signals;
-	namespace aoplx = agxopenplx;
-	using ControlDispatchSPtr = std::shared_ptr<oplx::ControlDispatch>;
-	using ControlInterfaceSPtr = std::shared_ptr<oplx::ControlInterface>;
-	using SignalInterfaceSPtr = std::shared_ptr<oplxSignals::SignalInterface>;
-	using std::make_shared;
-
-	std::shared_ptr<aoplx::AgxMetadata> AgxMetadata = std::make_shared<aoplx::AgxMetadata>();
+	std::shared_ptr<agxopenplx::AgxMetadata> AgxMetadata =
+		std::make_shared<agxopenplx::AgxMetadata>();
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -139,12 +126,16 @@ void FOpenPLXSignalHandler::Init(
 	 * Control Interface setup.
 	 */
 
-	ControlDispatchSPtr ControlDispatch = make_shared<oplx::ControlDispatch>();
-	aoplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
-	ControlInterfaceSPtr ControlInterface = make_shared<oplx::ControlInterface>(ControlDispatch);
-	std::vector<SignalInterfaceSPtr> SignalInterfaces =
-		FPLXUtilitiesInternal::GetNestedObjects<oplxSignals::SignalInterface>(*System);
-	for (SignalInterfaceSPtr& SignalInterface : SignalInterfaces)
+	std::shared_ptr<openplx::ControlDispatch> ControlDispatch =
+		std::make_shared<openplx::ControlDispatch>();
+	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
+	std::shared_ptr<openplx::ControlInterface> ControlInterface =
+		std::make_shared<openplx::ControlInterface>(ControlDispatch);
+	std::vector<std::shared_ptr<openplx::Physics::Signals::SignalInterface>> SignalInterfaces =
+		FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::SignalInterface>(
+			*System);
+	for (std::shared_ptr<openplx::Physics::Signals::SignalInterface>& SignalInterface :
+		 SignalInterfaces)
 	{
 		ControlInterface->add_controls_from_signal_interface(SignalInterface);
 	}
