@@ -39,29 +39,29 @@ public:
 
 	bool IsInitialized() const;
 
-	/// Scalars.
+	// Real.
 	bool Send(const FOpenPLX_Input& Input, double Value);
 	bool SendInterface(const FOpenPLX_Input& Input, double Value);
 	bool Receive(const FOpenPLX_Output& Output, double& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, double& OutValue);
 
-	/// Ranges (Vec2 real).
+	// Ranges / Vec2.
 	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value);
 	bool SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
-	/// FVectors (Vec3 real).
+	// Vectors / Vec3.
 	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
 	bool SendInterface(const FOpenPLX_Input& Input, const FVector& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
-	/// Integers.
+	// Integer.
 	bool Send(const FOpenPLX_Input& Input, int64 Value);
 	bool Receive(const FOpenPLX_Output& Output, int64& OutValue);
 
-	/// Booleans.
+	// Boolean.
 	bool Send(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
 
