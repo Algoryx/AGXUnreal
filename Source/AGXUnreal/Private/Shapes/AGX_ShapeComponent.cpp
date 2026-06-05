@@ -14,6 +14,7 @@
 #include "Import/AGX_ImportContext.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
+#include "Model/AGX_WindAndWaterControllerSubsystemBase.h"
 #include "Shapes/RenderDataBarrier.h"
 #include "Shapes/RenderMaterial.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
@@ -138,6 +139,12 @@ bool UAGX_ShapeComponent::UpdateNativeMaterial()
 	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(World);
 	check(MaterialBarrier);
 	GetNative()->SetMaterial(*MaterialBarrier);
+	
+	if (const auto WindAndWaterSubsystem = UAGX_WindAndWaterControllerSubsystemBase::GetFrom(this))
+	{
+		WindAndWaterSubsystem->UpdateNativeWindAndWaterParameters(this);
+	}
+    
 	return true;
 }
 

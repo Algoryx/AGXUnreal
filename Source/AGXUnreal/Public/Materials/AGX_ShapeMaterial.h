@@ -162,7 +162,7 @@ public:
 
 	bool IsInstance() const;
 
-	void CopyShapeMaterialProperties(const UAGX_ShapeMaterial* Source);
+	virtual void CopyShapeMaterialProperties(const UAGX_ShapeMaterial* Source);
 
 private:
 	void CreateNative(UWorld* PlayingWorld);

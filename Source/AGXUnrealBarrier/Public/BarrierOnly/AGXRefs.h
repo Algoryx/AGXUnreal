@@ -15,6 +15,8 @@
 #include <agxCollide/Geometry.h>
 #include <agxCollide/Shape.h>
 #include <agxModel/Tire.h>
+#include <agxModel/WindAndWaterController.h>
+#include <agxModel/WindAndWaterParameters.h>
 #include <agxPlot/DataSeries.h>
 #include <agxPlot/System.h>
 #include <agxPlot/WebPlot.h>
@@ -288,6 +290,43 @@ struct FTireRef
 	FTireRef() = default;
 	FTireRef(agxModel::Tire* InNative)
 		: Native(InNative)
+	{
+	}
+};
+
+struct FWindAndWaterControllerRef
+{
+	agxModel::WindAndWaterControllerRef Native;
+
+	FWindAndWaterControllerRef() = default;
+
+	FWindAndWaterControllerRef(agxModel::WindAndWaterController* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FWindAndWaterParametersRef
+{
+	agxModel::WindAndWaterParametersRef Native;
+
+	FWindAndWaterParametersRef() = default;
+
+	FWindAndWaterParametersRef(agxModel::WindAndWaterParameters* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FDynamicWaterRef
+{
+	agxModel::WaterWrapperRef NativeWaterWrapper;
+	agxModel::WindAndWaterController::WaterFlowGeneratorRef NativeWaterFlowGenerator;
+
+	FDynamicWaterRef() = default;
+	FDynamicWaterRef(agxModel::WaterWrapper* InWrapper, agxModel::WindAndWaterController::WaterFlowGenerator* InNativeGenerator)
+		: NativeWaterWrapper(InWrapper),
+		  NativeWaterFlowGenerator(InNativeGenerator)
 	{
 	}
 };
