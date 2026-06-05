@@ -31,6 +31,7 @@
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "AGX_WireNodeDetails"
 
@@ -217,6 +218,25 @@ void FAGX_WireNodeDetails::GenerateChildContent(IDetailChildrenBuilder& Children
 		]
 	];
 
+	// "Wire is Begin Side" checkbox — only visible for Connecting nodes.
+	ChildrenBuilder.AddCustomRow(LOCTEXT("WireBeginSide", "Wire Begin Side"))
+	.Visibility(TAttribute<EVisibility>(this, &FAGX_WireNodeDetails::NodeIsConnecting))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("WireBeginSide", "Wire Begin Side"))
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.IsChecked(this, &FAGX_WireNodeDetails::OnGetIsWireBegin)
+		.OnCheckStateChanged(this, &FAGX_WireNodeDetails::OnSetIsWireBegin)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("WireBeginSideLabel", "Wire is attached at the Begin side of the Link"))
+		]
+	];
+
 	// clang-format on
 }
 
@@ -251,7 +271,7 @@ namespace AGX_WireNodeDetails_helpers
 {
 	bool NodeTypeHasBody(EWireNodeType NodeType)
 	{
-		return NodeType == EWireNodeType::BodyFixed || NodeType == EWireNodeType::Eye;
+		return NodeType == EWireNodeType::BodyFixed || NodeType == EWireNodeType::Eye || NodeType == EWireNodeType::Connecting;
 	}
 
 	/**
@@ -680,6 +700,7 @@ void FAGX_WireNodeDetails::ClearStorage()
 	RebuildRigidBodyComboBox_View(TEXT(""), nullptr);
 	RigidBodyNameText = NoSelection;
 	RigidBodyOwnerLabelText = NoSelection;
+	IsWireBegin.Reset();
 }
 
 UAGX_WireComponent* FAGX_WireNodeDetails::GetWire() const
@@ -835,6 +856,9 @@ void FAGX_WireNodeDetails::UpdateValues()
 
 	RigidBodyNameText = FText::FromName(Node.RigidBody.Name);
 	RigidBodyOwnerLabelText = FText::FromString(GetLabelSafe(Node.RigidBody.GetScope()));
+
+	// Read wire-side flag (only meaningful for Connecting nodes, ignored otherwise).
+	IsWireBegin = Node.bIsWireBegin;
 }
 
 EVisibility FAGX_WireNodeDetails::WithSelection() const
@@ -852,6 +876,56 @@ EVisibility FAGX_WireNodeDetails::NodeHasRigidBody() const
 	using namespace AGX_WireNodeDetails_helpers;
 	return FAGX_EditorUtilities::VisibleIf(
 		NodeType.IsSet() && NodeTypeHasBody(NodeType.GetValue()));
+}
+
+EVisibility FAGX_WireNodeDetails::NodeIsConnecting() const
+{
+	return FAGX_EditorUtilities::VisibleIf(
+		NodeType.IsSet() && NodeType.GetValue() == EWireNodeType::Connecting);
+}
+
+ECheckBoxState FAGX_WireNodeDetails::OnGetIsWireBegin() const
+{
+	if (!IsWireBegin.IsSet())
+	{
+		return ECheckBoxState::Undetermined;
+	}
+	return IsWireBegin.GetValue() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FAGX_WireNodeDetails::OnSetIsWireBegin(ECheckBoxState NewState)
+{
+	if (bIsRunningCallback)
+	{
+		return;
+	}
+	TGuardValue<bool> GuardIsRunningCallback(bIsRunningCallback, true);
+
+	using namespace AGX_WireNodeDetails_helpers;
+	UAGX_WireComponent* Wire;
+	int32 NodeIndex;
+	const TCHAR* Error;
+	bool bValidSelection = GetValidatedSelection(*this, Wire, NodeIndex, Error);
+	if (!bValidSelection)
+	{
+		UE_LOG(LogAGX, Warning,
+			TEXT("Wire node 'Wire Begin Side' edited without a valid selection: %s"), Error);
+		return;
+	}
+
+	const bool bNewValue = (NewState == ECheckBoxState::Checked);
+	FWireRoutingNode& Node = Wire->RouteNodes[NodeIndex];
+	if (Node.bIsWireBegin == bNewValue)
+	{
+		return;
+	}
+
+	const FScopedTransaction Transaction(
+		LOCTEXT("SetWireNodeIsWireBegin", "Set Wire Node Wire Begin Side"));
+	Wire->Modify();
+	Node.bIsWireBegin = bNewValue;
+	FComponentVisualizer::NotifyPropertyModified(Wire, RouteNodesProperty);
+	UpdateValues();
 }
 
 FString FAGX_WireNodeDetails::RebuildRigidBodyComboBox_Edit(const FString& ToSelect, AActor* Actor)

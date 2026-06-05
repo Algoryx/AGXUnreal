@@ -15,6 +15,7 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Wire/AGX_WireInstanceData.h"
+#include "Wire/AGX_WireLinkComponent.h"
 #include "Wire/AGX_WireNode.h"
 #include "Wire/AGX_WireUtilities.h"
 #include "Wire/AGX_WireWinchComponent.h"
@@ -2288,7 +2289,7 @@ void UAGX_WireComponent::CreateNative()
 					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
 					break;
 				}
-				NodeBarrier.AllocateNativeEyeNode(*Body, Location);
+				NodeBarrier.AllocateNativeEyeNode(*Body, Location, RouteNode.Radius.Value);
 				break;
 			}
 			case EWireNodeType::BodyFixed:
@@ -2309,6 +2310,107 @@ void UAGX_WireComponent::CreateNative()
 				}
 				NodeBarrier.AllocateNativeBodyFixedNode(*Body, Location);
 				break;
+			}
+			case EWireNodeType::Connecting:
+			{
+				FRigidBodyBarrier* Body;
+				FVector LocalLocation;
+				std::tie(Body, LocalLocation) = GetBodyAndLocalLocation(RouteNode, LocalToWorld);
+				if (Body == nullptr)
+				{
+					ErrorMessages.Add(FString::Printf(
+						TEXT("Wire node at index %d is a Connecting node but has no valid "
+							 "body. Creating Free Node instead."),
+						I));
+					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+					break;
+				}
+
+				// Find the UAGX_WireLinkComponent attached as a direct child of the body.
+				UAGX_WireLinkComponent* LinkComp = nullptr;
+				if (UAGX_RigidBodyComponent* BodyComp = RouteNode.RigidBody.GetRigidBody())
+				{
+					TArray<USceneComponent*> Children;
+					BodyComp->GetChildrenComponents(
+						/*bIncludeAllDescendants=*/false, Children);
+					for (USceneComponent* Child : Children)
+					{
+						if (UAGX_WireLinkComponent* Candidate =
+								Cast<UAGX_WireLinkComponent>(Child))
+						{
+							LinkComp = Candidate;
+							break;
+						}
+					}
+				}
+				if (LinkComp == nullptr)
+				{
+					ErrorMessages.Add(FString::Printf(
+						TEXT("Wire node at index %d is a Connecting node but no "
+							 "UAGX_WireLinkComponent is attached to the referenced body. "
+							 "Attach a WireLinkComponent as a child of the body component. "
+							 "Creating Free Node instead."),
+						I));
+					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+					break;
+				}
+
+				FWireLinkBarrier* LinkBarrier = LinkComp->GetOrCreateNative();
+				if (LinkBarrier == nullptr)
+				{
+					ErrorMessages.Add(FString::Printf(
+						TEXT("Wire node at index %d: failed to get/create native for "
+							 "WireLinkComponent '%s'. Creating Free Node instead."),
+						I, *LinkComp->GetName()));
+					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+					break;
+				}
+
+			// Validate position within the route:
+			// A WIRE_BEGIN connecting node must be the first route node (index 0) so
+			// that AGX treats this wire as starting at the link.
+			// A WIRE_END connecting node must be the last route node so that AGX
+			// treats this wire as ending at the link.
+			// Violating this produces a degenerate wire that AGX cannot initialise
+			// correctly.
+			const int32 LastIndex = RouteNodes.Num() - 1;
+			const bool bPositionValid = RouteNode.bIsWireBegin ? (I == 0) : (I == LastIndex);
+			if (!bPositionValid)
+			{
+				const FString SideStr = RouteNode.bIsWireBegin
+					? TEXT("WIRE_BEGIN (Wire Begin Side = true) must be the first route node (index 0)")
+					: TEXT("WIRE_END (Wire Begin Side = false) must be the last route node");
+				ErrorMessages.Add(FString::Printf(
+					TEXT("Wire node at index %d is a Connecting node with incorrect position. "
+						 "%s, but it is at index %d of %d. Creating Free Node instead."),
+					I, *SideStr, I, LastIndex));
+				const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+				NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+				break;
+			}
+
+			// Register which wire attaches at which body-local offset and on which side.
+			LinkBarrier->Connect(NativeBarrier, LocalLocation, RouteNode.bIsWireBegin);
+
+			// Insert the link into the wire route. AGX creates the ConnectingNode
+			// internally; the node must not also be added via AddRouteNode.
+			LinkBarrier->AddToWireRoute(NativeBarrier);
+
+			// Apply the link-level radius to the newly created ConnectingNode.
+			// This must be a post-creation call: the AGX Link API (link->connect +
+			// wire->add(link)) provides no radius parameter, so AGX always constructs
+			// the ConnectingNode with radius 0 internally. setRadius is the only hook
+			// available. Skip when 0 since that is already the AGX default.
+			if (LinkComp->Radius.Value > 0.0)
+			{
+				LinkBarrier->SetConnectingNodeRadius(NativeBarrier, LinkComp->Radius.Value);
+			}
+
+			LinkComp->RegisterConnectedWire(this);
+				continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
 			}
 			case EWireNodeType::Other:
 				UE_LOG(

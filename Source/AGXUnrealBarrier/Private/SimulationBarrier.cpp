@@ -11,6 +11,7 @@
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "BarrierOnly/Vehicle/TrackRef.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Wire/WireLinkBarrier.h"
 #include "Cable/CableBarrier.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "Materials/ContactMaterialBarrier.h"
@@ -33,7 +34,7 @@
 #include <agx/UniformGravityField.h>
 #include <agxSDK/MergeSplitHandler.h>
 #include <agxSDK/Simulation.h>
-#include <agxUtil/agxUtil.h>
+	#include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine includes.
@@ -161,6 +162,19 @@ bool FSimulationBarrier::Add(FWireBarrier& Wire)
 	return NativeRef->Native->add(Wire.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FWireLinkBarrier& Link)
+{
+	check(HasNative());
+	check(Link.HasNative());
+	// agxSDK::Simulation has no add(agxWire::Link*) overload.
+	// An agxWire::Link is activated implicitly by the AGX runtime when the wires
+	// that route through it are added to the simulation. Calling simulation->add(link)
+	// falls through to the generic serializable-object path, which logs
+	// "Trying to add unknown serializable type: agxWire::Link" and returns false.
+	// Therefore this function is intentionally a no-op at the AGX level.
+	return true;
+}
+
 bool FSimulationBarrier::Remove(FCableBarrier& Cable)
 {
 	check(HasNative());
@@ -257,6 +271,16 @@ bool FSimulationBarrier::Remove(FWireBarrier& Wire)
 	check(HasNative());
 	check(Wire.HasNative());
 	return NativeRef->Native->remove(Wire.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FWireLinkBarrier& Link)
+{
+	check(HasNative());
+	check(Link.HasNative());
+	// agxSDK::Simulation has no remove(agxWire::Link*) overload.
+	// The link deactivates implicitly when its connected wires are removed from
+	// the simulation. This function is intentionally a no-op at the AGX level.
+	return true;
 }
 
 void FSimulationBarrier::EnableThreadTimeline()

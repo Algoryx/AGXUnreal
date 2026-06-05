@@ -10,6 +10,7 @@
 #include "IDetailCustomNodeBuilder.h"
 #include "Misc/EngineVersionComparison.h"
 #include "SceneOutlinerFilters.h"
+#include "Styling/SlateTypes.h"
 #include "Widgets/Input/SComboBox.h"
 
 class FAGX_WireComponentVisualizer;
@@ -160,6 +161,18 @@ private:
 	/// Called when the end-user selects an entry in the rigid body combo box.
 	void OnSetRigidBody(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 
+	/* Wire side (Connecting nodes only). */
+
+	// Getters.
+
+	/// Returns the check state for the "Wire is Begin Side" checkbox.
+	ECheckBoxState OnGetIsWireBegin() const;
+
+	// Setters.
+
+	/// Called when the end-user toggles the "Wire is Begin Side" checkbox.
+	void OnSetIsWireBegin(ECheckBoxState NewState);
+
 	/*
 	 * STORAGE
 	 * The getter callbacks, prefixed with OnGet, should only read these values, not from the object
@@ -184,6 +197,9 @@ private:
 	TArray<TSharedPtr<FString>> RigidBodyNames;
 	FText RigidBodyNameText;
 	FText RigidBodyOwnerLabelText;
+
+	// Backing storage for the Connecting node wire-side flag.
+	TOptional<bool> IsWireBegin;
 
 	void ClearStorage();
 
@@ -260,6 +276,9 @@ private:
 
 	/// Widgets with this visibility is only shown when the selected wire node type needs a body.
 	EVisibility NodeHasRigidBody() const;
+
+	/// Widgets with this visibility is only shown when the selected node type is Connecting.
+	EVisibility NodeIsConnecting() const;
 
 private:
 	/// Delegate that the Slate system provides for us. When executed a rebuild of all widgets is
