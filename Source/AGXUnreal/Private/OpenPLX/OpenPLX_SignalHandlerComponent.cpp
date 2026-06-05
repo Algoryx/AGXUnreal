@@ -197,11 +197,18 @@ bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& In
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to send a real to '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Input.Alias.ToString());
 		return false;
+	}
 
 	if (!FOpenPLX_Utilities::IsRealType(Input.Type))
 	{
-		LogTypeMismatchWarning("SendRealInterface", Input.Name.ToString(), "Input");
+		LogTypeMismatchWarning("SendRealInterface", Input.Alias.ToString(), "Input");
 		return false;
 	}
 
@@ -299,7 +306,14 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to send a range real to '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Input.Alias.ToString());
 		return false;
+	}
 
 	if (!FOpenPLX_Utilities::IsRangeType(Input.Type))
 	{
@@ -352,7 +366,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Signal Handler Component '%s' tried to receive a range real from '%s' through "
-				 "the Control Interface but the Signal Hander has not been initialized."),
+				 "the Control Interface but the Signal Handler has not been initialized."),
 			*GetName(), *Output.Alias.ToString());
 		return false;
 	}
@@ -405,14 +419,15 @@ bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Send Vector Interface: Cannot send signals because the signal handler has not "
-				 "been initialized."));
+			TEXT("Signal Handler Component '%s' tried to send a vector to '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Input.Alias.ToString());
 		return false;
 	}
 
 	if (!FOpenPLX_Utilities::IsVectorType(Input.Type))
 	{
-		LogTypeMismatchWarning("SendVectorInterface", Input.Name.ToString(), "Input");
+		LogTypeMismatchWarning("SendVectorInterface", Input.Alias.ToString(), "Input");
 		return false;
 	}
 
@@ -458,7 +473,11 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
 	OutValue = {};
 	if (!SignalHandler.IsInitialized())
 	{
-		UE_LOG(LogAGX, Warning, TEXT(""), *Output.Alias.ToString());
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to receive a vector from '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Output.Alias.ToString());
 		return false;
 	}
 
