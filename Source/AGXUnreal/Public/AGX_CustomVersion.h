@@ -83,9 +83,6 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// Track Properties API change, now uses stiffness and attenuation and ReducedOrder track
 		// implementation.
 		TrackReducedOrderTrackImplementation,
-		// Wire route nodes gained a bIsWireBegin property for Connecting node support
-		// (agxWire::Link / UAGX_WireLinkComponent). Default value true is backward compatible.
-		WireRouteNodeConnectingSupport,
 
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,

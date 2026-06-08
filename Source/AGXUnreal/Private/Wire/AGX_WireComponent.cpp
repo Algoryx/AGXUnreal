@@ -2369,31 +2369,28 @@ void UAGX_WireComponent::CreateNative()
 					break;
 				}
 
-			// Validate position within the route:
-			// A WIRE_BEGIN connecting node must be the first route node (index 0) so
-			// that AGX treats this wire as starting at the link.
-			// A WIRE_END connecting node must be the last route node so that AGX
-			// treats this wire as ending at the link.
-			// Violating this produces a degenerate wire that AGX cannot initialise
-			// correctly.
+			// Derive the wire side from the node's position in the route:
+			// - First node (index 0)     → WIRE_BEGIN
+			// - Last  node (LastIndex)   → WIRE_END
+			// A Connecting node that is neither first nor last is invalid.
 			const int32 LastIndex = RouteNodes.Num() - 1;
-			const bool bPositionValid = RouteNode.bIsWireBegin ? (I == 0) : (I == LastIndex);
-			if (!bPositionValid)
+			const bool bIsWireBegin = (I == 0);
+			const bool bIsWireEnd = (I == LastIndex);
+			if (!bIsWireBegin && !bIsWireEnd)
 			{
-				const FString SideStr = RouteNode.bIsWireBegin
-					? TEXT("WIRE_BEGIN (Wire Begin Side = true) must be the first route node (index 0)")
-					: TEXT("WIRE_END (Wire Begin Side = false) must be the last route node");
 				ErrorMessages.Add(FString::Printf(
-					TEXT("Wire node at index %d is a Connecting node with incorrect position. "
-						 "%s, but it is at index %d of %d. Creating Free Node instead."),
-					I, *SideStr, I, LastIndex));
+					TEXT("Wire node at index %d is a Connecting node but is neither the first "
+						 "nor the last node in the route (route has %d nodes). A Connecting "
+						 "node must be at index 0 (WIRE_BEGIN) or at the last index (WIRE_END). "
+						 "Creating Free Node instead."),
+					I, RouteNodes.Num()));
 				const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
 				NodeBarrier.AllocateNativeFreeNode(WorldLocation);
 				break;
 			}
 
 			// Register which wire attaches at which body-local offset and on which side.
-			LinkBarrier->Connect(NativeBarrier, LocalLocation, RouteNode.bIsWireBegin);
+			LinkBarrier->Connect(NativeBarrier, LocalLocation, bIsWireBegin);
 
 			// Insert the link into the wire route. AGX creates the ConnectingNode
 			// internally; the node must not also be added via AddRouteNode.

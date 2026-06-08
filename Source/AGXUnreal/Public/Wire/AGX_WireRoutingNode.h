@@ -19,7 +19,10 @@
  * no orientation. Some members are only used for certain node types:
  * - RigidBody is used by Eye, BodyFixed, and Connecting nodes.
  * - Radius is only meaningful for Eye nodes.
- * - bIsWireBegin is only meaningful for Connecting nodes.
+ *
+ * For Connecting nodes the wire side (WIRE_BEGIN or WIRE_END) is determined automatically from
+ * the node's position in the route array: index 0 → WIRE_BEGIN, last index → WIRE_END.
+ * A Connecting node must therefore be either the first or the last node in the route.
  */
 USTRUCT(BlueprintType)
 struct AGXUNREAL_API FWireRoutingNode
@@ -52,28 +55,6 @@ struct AGXUNREAL_API FWireRoutingNode
 	UPROPERTY(EditAnywhere, Category = "Wire")
 	FAGX_RigidBodyReference RigidBody;
 
-	/**
-	 * Which end of this wire connects at the Link.
-	 *
-	 * If true this wire attaches at the Link's WIRE_BEGIN side; if false at WIRE_END.
-	 * Each side may only be used by one wire. The two wires connecting through a Link must
-	 * use opposite sides.
-	 *
-	 * ⚠️ Position constraint:
-	 *  - WIRE_BEGIN (true)  → this Connecting node must be the FIRST node in the route  (index 0).
-	 *  - WIRE_END   (false) → this Connecting node must be the LAST  node in the route.
-	 * Violating this is an error: AGX cannot initialise the wire and the node will fall
-	 * back to a Free node at BeginPlay.
-	 *
-	 * Only meaningful when NodeType is Connecting. Ignored for all other node types.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "Wire",
-		Meta = (
-			EditCondition = "NodeType == EWireNodeType::Connecting",
-			EditConditionHides,
-			ToolTip = "Which end of the Link this wire connects at. True = WIRE_BEGIN (node must be first in route), False = WIRE_END (node must be last in route). The two wires through a Link must use opposite sides. Only used when NodeType is Connecting."))
-	bool bIsWireBegin {true};
 
 	/**
 	 * Radius [cm] of the eye hole through which the wire slides.
