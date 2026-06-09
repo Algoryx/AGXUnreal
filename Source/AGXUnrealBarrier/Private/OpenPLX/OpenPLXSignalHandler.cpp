@@ -31,6 +31,8 @@
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
+#include "Utilities/OpenPLX_Utilities.h"
+
 #include <cstdint>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
@@ -563,10 +565,49 @@ namespace OpenPLXSignalHandler_helpers
 		return Interface.write(Alias, Value);
 	}
 
-	template <typename... FieldNameValuePairsT>
+
+	bool InterfaceWriteInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64 Value)
+	{
+		return Interface.write(Alias, Value);
+	}
+
+
+	template <typename ValueT>
+	struct FInterfaceField
+	{
+		const char* Name {nullptr};
+		ValueT Value {};
+	};
+
+	struct FInterfaceError
+	{
+		FString FieldName;
+		FString ErrorMessage;
+	};
+
+	template <typename ValueT>
+	bool InterfaceWriteField(
+		openplx::Marshalling& Marshalling, const FInterfaceField<ValueT>& Field)
+	{
+		if constexpr (std::is_floating_point_v<ValueT>)
+			return Marshalling.write_real(Field.Name, Field.Value);
+		else if constexpr (std::is_same_v<ValueT, bool>)
+			return Marshalling.write_bool(Field.Name, Field.Value);
+		else if constexpr (std::is_unsigned_v<ValueT>)
+			return Marshalling.write_uint(Field.Name, Field.Value);
+		else if constexpr (std::is_signed_v<ValueT>)
+			return Marshalling.write_int(Field.Name, Field.Value);
+		else
+			static_assert(
+				false,
+				"InterfaceWriteFields only supports bool, floating point, and integer fields.");
+	}
+
+	template <typename... FInterfaceFields>
 	bool InterfaceWriteFields(
 		openplx::HeapControlInterface& Interface, const std::string& Alias,
-		FieldNameValuePairsT... FieldNameValuePairs)
+		FInterfaceFields... InterfaceFields)
 	{
 		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
 		if (Marshalling == nullptr)
@@ -581,6 +622,44 @@ namespace OpenPLXSignalHandler_helpers
 			return false;
 		}
 
+		TArray<FInterfaceError> Errors;
+		auto WriteField = [&](auto Field)
+		{
+			const bool bSuccess = InterfaceWriteField(*Marshalling, Field);
+			if (!bSuccess)
+			{
+				const char* Error = Marshalling->get_latest_error_message();
+				Errors.Emplace(UTF8_TO_TCHAR(Field.Name), UTF8_TO_TCHAR(Error));
+			}
+		};
+		(WriteField(InterfaceFields), ...);
+		Interface.flush();
+
+		if (!Errors.IsEmpty())
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall value to '%s' through the "
+					"Control Interface because one or more write errors occurred:"),
+				UTF8_TO_TCHAR(Alias.c_str()));
+
+			for (auto [FieldName, Value] : Errors)
+			{
+				UE_LOG(LogAGX, Warning, TEXT("    %s: %s"), *FieldName, *Value);
+			}
+			const std::unordered_map<std::string, openplx::Field>& Fields =
+				Marshalling->get_field_map();
+			UE_LOG(LogAGX, Warning, TEXT("  Known fields:"));
+			for (const auto& [Name, Field] : Fields)
+			{
+				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Name.c_str()));
+			}
+			return false;
+		}
+
+		return true;
+
 		// TODO Loop over FieldNameValuePairs and call Marshalling->write_real and
 		// Marshalling->get_latest_error_message for each, and then error checking. So pretty much
 		// just like InterfaceWriteRangeReal, but generic.
@@ -589,8 +668,9 @@ namespace OpenPLXSignalHandler_helpers
 	bool InterfaceWriteRangeRealNew(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
 	{
-		InterfaceWriteFields(
-			Interface, Alias, /* something that represents Value.x()->"min", Value.y()->"max" in a way that will work for other value types as well. */);
+		return InterfaceWriteFields(
+			Interface, Alias, FInterfaceField {"min", Value.x()},
+			FInterfaceField {"max", Value.y()});
 	}
 
 	bool InterfaceWriteRangeReal(
@@ -1104,7 +1184,7 @@ bool FOpenPLXSignalHandler::SendRangeRealInterface(
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec2>(
 		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue,
-		InterfaceWriteRangeReal);
+		InterfaceWriteRangeRealNew);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
