@@ -54,8 +54,9 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Could not load OpenPLX model '%s'. The Output Log may "
-				 "contain more information."),
+			TEXT(
+				"OpenPLX Signal Handler: Could not load OpenPLX model '%s'. The Output Log may "
+				"contain more information."),
 			*OpenPLXFile);
 		return;
 	}
@@ -65,8 +66,9 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("OpenPLX Signal Handler: Unable to get registered OpenPLX model '%s'. The OpenPLX "
-				 "model may not behave as intended."),
+			TEXT(
+				"OpenPLX Signal Handler: Unable to get registered OpenPLX model '%s'. The OpenPLX "
+				"model may not behave as intended."),
 			*OpenPLXFile);
 		return;
 	}
@@ -76,8 +78,9 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Unable to get a openplx::Physics3D::System from the "
-				 "registered OpenPLX model '%s'. The OpenPLX model may not behave as intended."),
+			TEXT(
+				"OpenPLX Signal Handler: Unable to get a openplx::Physics3D::System from the "
+				"registered OpenPLX model '%s'. The OpenPLX model may not behave as intended."),
 			*OpenPLXFile);
 		return;
 	}
@@ -87,8 +90,9 @@ void FOpenPLXSignalHandler::Init(
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Unable to get a valid AGX Assembly from simulated model "
-				 "instance for OpenPLX model '%s'. The Output Log may contain more details."),
+			TEXT(
+				"OpenPLX Signal Handler: Unable to get a valid AGX Assembly from simulated model "
+				"instance for OpenPLX model '%s'. The Output Log may contain more details."),
 			*OpenPLXFile);
 		return;
 	}
@@ -190,8 +194,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert Real value for Input '%s' ('%s'), but "
-				 "the type is either not of Real type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert Real value for Input '%s' ('%s'), but "
+				"the type is either not of Real type or is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -247,9 +252,10 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert an Unreal Vec2 type to an OpenPLX "
-				 "Vec2 type for Input '%s' ('%s'), but the input is either not of Vec2 vector "
-				 "type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert an Unreal Vec2 type to an OpenPLX "
+				"Vec2 type for Input '%s' ('%s'), but the input is either not of Vec2 vector "
+				"type or is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -278,8 +284,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to read Vec2 vector type from signal for Output "
-				 "'%s' ('%s'), but the type is either not of Vec2 vector type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to read Vec2 vector type from signal for Output "
+				"'%s' ('%s'), but the type is either not of Vec2 vector type or is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -308,8 +315,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to read Vec3 type for input '%s' ('%s'), but "
-				 "the type is either not of Vec3 vector type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to read Vec3 type for input '%s' ('%s'), but "
+				"the type is either not of Vec3 vector type or is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -351,8 +359,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to read Vec3 vector type from signal for Output "
-				 "'%s' ('%s'), but the type is either not of Vec3 vector type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to read Vec3 vector type from signal for Output "
+				"'%s' ('%s'), but the type is either not of Vec3 vector type or is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -378,8 +387,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert integer value for Input '%s' ('%s'), "
-				 "but the type is either not of integer type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert integer value for Input '%s' ('%s'), "
+				"but the type is either not of integer type or is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -394,9 +404,10 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert Integer value for Output '%s' ('%s') "
-				 "from AGX Dynamics units to Unreal units, but the type is either not of integer "
-				 "type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert Integer value for Output '%s' ('%s') "
+				"from AGX Dynamics units to Unreal units, but the type is either not of integer "
+				"type or is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -419,8 +430,9 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert Boolean value for Input '%s' ('%s'), "
-				 "but the type is either not of Boolean type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert Boolean value for Input '%s' ('%s'), "
+				"but the type is either not of Boolean type or is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -439,9 +451,10 @@ namespace OpenPLXSignalHandler_helpers
 
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Handler: Tried to convert Boolean value for Output '%s' "
-				 "('%s') from AGX Dynamics units to Unreal units, but the type is "
-				 "either not of Boolean type or is unsupported."),
+			TEXT(
+				"OpenPLX Signal Handler: Tried to convert Boolean value for Output '%s' "
+				"('%s') from AGX Dynamics units to Unreal units, but the type is "
+				"either not of Boolean type or is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -472,8 +485,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Cannot read value from signal from output '%s' "
-					 "('%s') because the signal is nullptr."),
+				TEXT(
+					"OpenPLX Signal Handler: Cannot read value from signal from output '%s' "
+					"('%s') because the signal is nullptr."),
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return {};
 		}
@@ -483,9 +497,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("OpenPLX Signal Handler: Tried to cast output value output '%s' ('%s') to the "
-					 "requested concrete signal value type but the cast failed. Possible type "
-					 "mismatch. The signal will not be received."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to cast output value output '%s' ('%s') to the "
+					"requested concrete signal value type but the cast failed. Possible type "
+					"mismatch. The signal will not be received."),
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return {};
 		}
@@ -498,8 +513,7 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		using PLXType = openplx::Physics::Signals::RealValue;
 		return GetUnrealValueFromSignal<PLXType, double>(
-			Output, Signal,
-			[](const FOpenPLX_Output& Output, PLXType& Value)
+			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
 			{ return ConvertRealToUnreal(Output, Value.value()); });
 	}
 
@@ -508,8 +522,7 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		using PLXType = openplx::Physics::Signals::Vec2Value;
 		return GetUnrealValueFromSignal<PLXType, FVector2D>(
-			Output, Signal,
-			[](const FOpenPLX_Output& Output, PLXType& Value)
+			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
 			{ return ConvertVector2ObjectToUnreal(Output, *Value.value()); });
 	}
 
@@ -518,8 +531,7 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		using PLXType = openplx::Physics::Signals::Vec3Value;
 		return GetUnrealValueFromSignal<PLXType, FVector>(
-			Output, Signal,
-			[](const FOpenPLX_Output& Output, PLXType& Value)
+			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
 			{ return ConvertVector3ObjectToUnreal(Output, *Value.value()); });
 	}
 
@@ -528,8 +540,7 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		using PLXType = openplx::Physics::Signals::IntValue;
 		return GetUnrealValueFromSignal<PLXType, int64>(
-			Output, Signal,
-			[](const FOpenPLX_Output& Output, PLXType& Value)
+			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
 			{ return ConvertIntegerToUnreal(Output, Value.value()); });
 	}
 
@@ -538,8 +549,7 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		using PLXType = openplx::Physics::Signals::BoolValue;
 		return GetUnrealValueFromSignal<PLXType, bool>(
-			Output, Signal,
-			[](const FOpenPLX_Output& Output, PLXType& Value)
+			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
 			{ return ConvertBooleanToUnreal(Output, Value.value()); });
 	}
 
@@ -553,6 +563,55 @@ namespace OpenPLXSignalHandler_helpers
 		return Interface.write(Alias, Value);
 	}
 
+	bool InterfaceWriteRangeReal(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+	{
+		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
+		if (Marshalling == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
+					"Interface because a marshalling object could not be created."),
+				UTF8_TO_TCHAR(Alias.c_str()));
+			return false;
+		}
+
+		const bool bWroteMin = Marshalling->write_real("min", Value.x());
+		const char* minError = Marshalling->get_latest_error_message();
+		const bool bWroteMax = Marshalling->write_real("max", Value.y());
+		const char* maxError = Marshalling->get_latest_error_message();
+		Interface.flush();
+		if (!bWroteMin || !bWroteMax)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall Vec2 value to '%s' through the "
+					"Control Interface because a write error occurred."),
+				UTF8_TO_TCHAR(Alias.c_str()));
+			if (!bWroteMin)
+			{
+				UE_LOG(LogAGX, Warning, TEXT("   min: %s"), UTF8_TO_TCHAR(minError));
+			}
+			if (!bWroteMax)
+			{
+				UE_LOG(LogAGX, Warning, TEXT("   max: %s"), UTF8_TO_TCHAR(maxError));
+			}
+			const std::unordered_map<std::string, openplx::Field>& Fields =
+				Marshalling->get_field_map();
+			UE_LOG(LogAGX, Warning, TEXT("  Known fields:"));
+			for (auto& [name, field] : Fields)
+			{
+				UE_LOG(LogAGX, Warning, TEXT("   %s"), UTF8_TO_TCHAR(name.c_str()));
+			}
+			return false;
+		}
+
+		return true;
+	}
+
 	bool InterfaceWriteVector2(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
 	{
@@ -561,8 +620,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not write to '%s' through the Control "
-					 "Interface because a marshalling object could not be created."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
+					"Interface because a marshalling object could not be created."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			return false;
 		}
@@ -576,8 +636,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not marshall Vec2 value to '%s' through the "
-					 "Control Interface because a write error occurred."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall Vec2 value to '%s' through the "
+					"Control Interface because a write error occurred."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			if (!bWroteX)
 			{
@@ -615,8 +676,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not marshall Vec3 value to '%s' through the "
-					 "Control Interface because a write error occurred."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall Vec3 value to '%s' through the "
+					"Control Interface because a write error occurred."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			if (!bWroteX)
 			{
@@ -657,8 +719,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not read from '%s' through the Control "
-					 "Interface because a marshalling object could not be created."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
+					"Interface because a marshalling object could not be created."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			return {};
 		}
@@ -671,8 +734,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not marshall Vec2 value from '%s' through the "
-					 "Control Interface because a read error occurred."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall Vec2 value from '%s' through the "
+					"Control Interface because a read error occurred."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			if (!xMaybe)
 			{
@@ -696,8 +760,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not read from '%s' through the Control "
-					 "Interface because a marshalling object could not be created."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
+					"Interface because a marshalling object could not be created."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			return {};
 		}
@@ -712,8 +777,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not marshall Vec3 value from '%s' through the "
-					 "Control Interface because a read error occurred."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not marshall Vec3 value from '%s' through the "
+					"Control Interface because a read error occurred."),
 				UTF8_TO_TCHAR(Alias.c_str()));
 			if (!xMaybe)
 			{
@@ -750,8 +816,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to send OpenPLX Input signal for Input '%s' "
-					 "('%s'), but the OpenPLX model does not have any registered Inputs."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to send OpenPLX Input signal for Input '%s' "
+					"('%s'), but the OpenPLX model does not have any registered Inputs."),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -765,9 +832,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to send OpenPLX signal, but the corresponding "
-					 "OpenPLX Input '%s' ('%s') was not found in the model. The signal will not be "
-					 "sent."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to send OpenPLX signal, but the corresponding "
+					"OpenPLX Input '%s' ('%s') was not found in the model. The signal will not be "
+					"sent."),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -791,8 +859,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to send OpenPLX Output signal for output '%s' "
-					 "('%s'), but don't have a Control Interface wrapper reference"),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to send OpenPLX Output signal for output '%s' "
+					"('%s'), but don't have a Control Interface wrapper reference"),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -802,9 +871,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to send OpenPLX Input signal for input '%s' "
-					 "('%s'), through the Control Interface, but don't have a Control Interface "
-					 "instance."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to send OpenPLX Input signal for input '%s' "
+					"('%s'), through the Control Interface, but don't have a Control Interface "
+					"instance."),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -814,8 +884,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Control Interface: Type and unit conversion from Unreal to OpenPLX "
-					 "failed for input '%s' ('%s')."),
+				TEXT(
+					"OpenPLX Control Interface: Type and unit conversion from Unreal to OpenPLX "
+					"failed for input '%s' ('%s')."),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -827,8 +898,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Control Interface: Tried to send to input '%s' ('%s') but the write "
-					 "was rejected by the Control Interface"),
+				TEXT(
+					"OpenPLX Control Interface: Tried to send to input '%s' ('%s') but the write "
+					"was rejected by the Control Interface"),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -853,8 +925,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to receive OpenPLX Output signal for output '%s', but the OpenPLX "
-					 "model does not have any registered outputs."),
+				TEXT(
+					"Tried to receive OpenPLX Output signal for output '%s', but the OpenPLX "
+					"model does not have any registered outputs."),
 				*Output.Name.ToString());
 			return false;
 		}
@@ -885,9 +958,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to receive OpenPLX Output signal for output "
-					 "'%s' ('%s') through the Control Interface, but don't have a Control "
-					 "Interface wrapper reference."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to receive OpenPLX Output signal for output "
+					"'%s' ('%s') through the Control Interface, but don't have a Control "
+					"Interface wrapper reference."),
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return false;
 		}
@@ -897,9 +971,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Tried to receive OpenPLX Output signal for output "
-					 "'%s' ('%s') through the Control Interface, but don't have a Control "
-					 "Interface pointer."),
+				TEXT(
+					"OpenPLX Signal Handler: Tried to receive OpenPLX Output signal for output "
+					"'%s' ('%s') through the Control Interface, but don't have a Control "
+					"Interface pointer."),
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return false;
 		}
@@ -911,8 +986,9 @@ namespace OpenPLXSignalHandler_helpers
 			const FString TypeName = AGX_EnumUtilities::GetEnumName(Output.Type);
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not read output signal '%s' ('%s') of type "
-					 "'%s'."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not read output signal '%s' ('%s') of type "
+					"'%s'."),
 				*Output.Name.ToString(), *Output.Alias.ToString(), *TypeName);
 			return false;
 		}
@@ -923,8 +999,9 @@ namespace OpenPLXSignalHandler_helpers
 			const FString TypeName = AGX_EnumUtilities::GetEnumName(Output.Type);
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Could not convert output signal '%s' ('%s') of type "
-					 "'%s' from OpenPLX type and unit to Unreal type and unit."),
+				TEXT(
+					"OpenPLX Signal Handler: Could not convert output signal '%s' ('%s') of type "
+					"'%s' from OpenPLX type and unit to Unreal type and unit."),
 				*Output.Name.ToString(), *Output.Alias.ToString(), *TypeName);
 			return false;
 		}
@@ -988,6 +1065,16 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 	return SendInterfaceImpl<agx::Vec2>(
 		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue,
 		InterfaceWriteVector2);
+}
+
+bool FOpenPLXSignalHandler::SendRangeRealInterface(
+	const FOpenPLX_Input& Input, const FVector2D& Value)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	return SendInterfaceImpl<agx::Vec2>(
+		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue,
+		InterfaceWriteRangeReal);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)

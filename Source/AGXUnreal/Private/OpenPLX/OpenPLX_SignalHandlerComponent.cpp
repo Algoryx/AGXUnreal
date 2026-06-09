@@ -339,7 +339,7 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
 		return false;
 	}
 
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.SendRangeRealInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
