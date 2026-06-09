@@ -52,9 +52,7 @@ void FTerrainWheelSettingsBarrier::ReleaseNative()
 FGuid FTerrainWheelSettingsBarrier::GetGuid() const
 {
 	check(HasNative());
-	// TODO Internal issue 1191: use the AGX TerrainWheelSettings UUID when exposed.
-	// return Convert(NativeRef->Native->getUuid());
-	return FGuid::NewGuid();
+	return Convert(NativeRef->Native->getUuid());
 }
 
 void FTerrainWheelSettingsBarrier::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
