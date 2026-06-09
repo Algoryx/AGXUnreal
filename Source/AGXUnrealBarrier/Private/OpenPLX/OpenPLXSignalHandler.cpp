@@ -569,7 +569,10 @@ namespace OpenPLXSignalHandler_helpers
 	bool InterfaceWriteInteger(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64 Value)
 	{
-		return Interface.write(Alias, Value);
+		// We must cast the int64 to an int64_t even though both are signed 64-bit integers because
+		// int64, from Unreal, is "signed long long" and int64_t, from OpenPLX (cstdint really) is
+		// "signed long int". Same bits and values, different types.
+		return Interface.write(Alias, (int64_t)Value);
 	}
 
 
@@ -598,20 +601,7 @@ namespace OpenPLXSignalHandler_helpers
 			return Marshalling.write_uint(Field.Name, Field.Value);
 		else if constexpr (std::is_signed_v<ValueT>)
 		{
-			// return Marshalling.write_int(Field.Name, Field.Value);
-			// The above call to write_int causes:
-			//
-			// undefined symbol:
-			//   bool openplx::Marshalling::write_int<long long>(
-			//       std::__1::basic_string<
-			//           char,
-			//           std::__1::char_traits<char>,
-			//           std::__1::allocator<char>
-			//       > const&,
-			//       long long)
-			//
-			// Why?
-			return false;
+			return Marshalling.write_int(Field.Name, Field.Value);
 		}
 		else
 			static_assert(
