@@ -563,6 +563,36 @@ namespace OpenPLXSignalHandler_helpers
 		return Interface.write(Alias, Value);
 	}
 
+	template <typename... FieldNameValuePairsT>
+	bool InterfaceWriteFields(
+		openplx::HeapControlInterface& Interface, const std::string& Alias,
+		FieldNameValuePairsT... FieldNameValuePairs)
+	{
+		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
+		if (Marshalling == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
+					"Interface because a marshalling object could not be created. This may be "
+					"caused by a type handler not being registered in AgxOpenPlxApi.cpp."),
+				UTF8_TO_TCHAR(Alias.c_str()));
+			return false;
+		}
+
+		// TODO Loop over FieldNameValuePairs and call Marshalling->write_real and
+		// Marshalling->get_latest_error_message for each, and then error checking. So pretty much
+		// just like InterfaceWriteRangeReal, but generic.
+	}
+
+	bool InterfaceWriteRangeRealNew(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+	{
+		InterfaceWriteFields(
+			Interface, Alias, /* something that represents Value.x()->"min", Value.y()->"max" in a way that will work for other value types as well. */);
+	}
+
 	bool InterfaceWriteRangeReal(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
 	{
