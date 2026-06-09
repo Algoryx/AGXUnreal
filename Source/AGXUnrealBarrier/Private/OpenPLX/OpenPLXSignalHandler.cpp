@@ -597,7 +597,22 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_unsigned_v<ValueT>)
 			return Marshalling.write_uint(Field.Name, Field.Value);
 		else if constexpr (std::is_signed_v<ValueT>)
-			return Marshalling.write_int(Field.Name, Field.Value);
+		{
+			// return Marshalling.write_int(Field.Name, Field.Value);
+			// The above call to write_int causes:
+			//
+			// undefined symbol:
+			//   bool openplx::Marshalling::write_int<long long>(
+			//       std::__1::basic_string<
+			//           char,
+			//           std::__1::char_traits<char>,
+			//           std::__1::allocator<char>
+			//       > const&,
+			//       long long)
+			//
+			// Why?
+			return false;
+		}
 		else
 			static_assert(
 				false,
