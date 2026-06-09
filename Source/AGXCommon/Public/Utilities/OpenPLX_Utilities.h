@@ -18,6 +18,9 @@ public:
 	static bool IsRangeType(EOpenPLX_InputType Type);
 	static bool IsRangeType(EOpenPLX_OutputType Type);
 
+	static bool IsVector2Type(EOpenPLX_InputType Type);
+	static bool IsVector2Type(EOpenPLX_OutputType Type);
+
 	static bool IsVectorType(EOpenPLX_InputType Type);
 	static bool IsVectorType(EOpenPLX_OutputType Type);
 

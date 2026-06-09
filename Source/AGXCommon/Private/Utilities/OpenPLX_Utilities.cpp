@@ -72,6 +72,18 @@ bool FOpenPLX_Utilities::IsRangeType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_InputType Type)
+{
+	// Are there any Vec2 typed inputs?
+	return false;
+}
+
+bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_OutputType Type)
+{
+	// Are there any Vec2 typed outputs?
+	return false;
+}
+
 bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_InputType Type)
 {
 	switch (Type)
