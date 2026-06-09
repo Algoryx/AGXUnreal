@@ -13,6 +13,7 @@
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "SimulationBarrier.h"
 #include "Utilities/AGX_EnumUtilities.h"
+#include "Utilities/OpenPLX_Utilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
 // OpenPLX includes.
@@ -31,8 +32,6 @@
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
-#include "Utilities/OpenPLX_Utilities.h"
-
 #include <cstdint>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
@@ -559,22 +558,39 @@ namespace OpenPLXSignalHandler_helpers
 	// Functions for writing a value to a Control Interface.
 	//
 
+	// Control Interface write functions for primitive types.
+
+	bool InterfaceWriteBool(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, bool Value)
+	{
+		return Interface.write(Alias, Value);
+	}
+
+	bool InterfaceWriteSignedInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64 Value)
+	{
+		// We must cast the int64 to an int64_t even though both are signed 64-bit integers because
+		// int64, from Unreal, is "signed long long" and int64_t, from OpenPLX (cstdint really) is
+		// "signed long int". Same bits and values, different types.
+		return Interface.write(Alias, (int64_t) Value);
+	}
+
+	bool InterfaceWriteUnsignedInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const uint64 Value)
+	{
+		// We must cast the int64 to an int64_t even though both are unsigned 64-bit integers
+		// because uint64, from Unreal, is "unsigned long long" and uint64_t, from OpenPLX (cstdint
+		// really) is "unsigned long int". Same bits and values, different types.
+		return Interface.write(Alias, (uint64_t) Value);
+	}
+
 	bool InterfaceWriteReal(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Real Value)
 	{
 		return Interface.write(Alias, Value);
 	}
 
-
-	bool InterfaceWriteInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64 Value)
-	{
-		// We must cast the int64 to an int64_t even though both are signed 64-bit integers because
-		// int64, from Unreal, is "signed long long" and int64_t, from OpenPLX (cstdint really) is
-		// "signed long int". Same bits and values, different types.
-		return Interface.write(Alias, (int64_t)Value);
-	}
-
+	// Control Interface write functions for composite types, which must use marshalling.
 
 	template <typename ValueT>
 	struct FInterfaceField
@@ -593,6 +609,9 @@ namespace OpenPLXSignalHandler_helpers
 	bool InterfaceWriteField(
 		openplx::Marshalling& Marshalling, const FInterfaceField<ValueT>& Field)
 	{
+		// The order is important here because there are overlaps in the Venn diagram of the types.
+		// For example, both int and double are signed so we must check for write_real before
+		// write_int.
 		if constexpr (std::is_floating_point_v<ValueT>)
 			return Marshalling.write_real(Field.Name, Field.Value);
 		else if constexpr (std::is_same_v<ValueT, bool>)
@@ -600,9 +619,7 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_unsigned_v<ValueT>)
 			return Marshalling.write_uint(Field.Name, Field.Value);
 		else if constexpr (std::is_signed_v<ValueT>)
-		{
 			return Marshalling.write_int(Field.Name, Field.Value);
-		}
 		else
 			static_assert(
 				false,
@@ -915,6 +932,104 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	//
+	// Functions for type look-ups.
+	//
+
+	// clang-format off
+	using BoolWriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, bool);
+	using IntWriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, int64);
+	using RealWriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Real);
+	using Vec2WriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Vec2);
+	using Vec3WriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Vec3);
+	// clang-format on
+
+	template <typename UnrealTypeT>
+	struct SelectInterfaceWriteFunction
+	{
+	};
+
+	template <>
+	struct SelectInterfaceWriteFunction<bool>
+	{
+		using WriteFuncPtr = BoolWriteFuncPtr;
+	};
+
+	template <>
+	struct SelectInterfaceWriteFunction<int64>
+	{
+		using WriteFuncPtr = IntWriteFuncPtr;
+	};
+
+	template <>
+	struct SelectInterfaceWriteFunction<agx::Real>
+	{
+		using WriteFuncPtr = RealWriteFuncPtr;
+	};
+
+	template <>
+	struct SelectInterfaceWriteFunction<agx::Vec2>
+	{
+		using WriteFuncPtr = Vec2WriteFuncPtr;
+	};
+
+	template <>
+	struct SelectInterfaceWriteFunction<agx::Vec3>
+	{
+		using WriteFuncPtr = Vec3WriteFuncPtr;
+	};
+
+	template <typename ValueT>
+	SelectInterfaceWriteFunction<ValueT>::WriteFuncPtr GetInterfaceWriteFunction(
+		const FOpenPLX_Input& Input)
+	{
+		static_assert(false, "GetInterfaceWriteFunction not implemented for this type");
+	}
+
+	template <>
+	BoolWriteFuncPtr GetInterfaceWriteFunction<bool>(const FOpenPLX_Input& Input)
+	{
+		return FOpenPLX_Utilities::IsBooleanType(Input.Type) ? InterfaceWriteBool : nullptr;
+	}
+
+	template <>
+	IntWriteFuncPtr GetInterfaceWriteFunction<int64>(const FOpenPLX_Input& Input)
+	{
+		return FOpenPLX_Utilities::IsIntegerType(Input.Type) ? InterfaceWriteSignedInteger
+															 : nullptr;
+	}
+
+	template <>
+	RealWriteFuncPtr GetInterfaceWriteFunction<agx::Real>(const FOpenPLX_Input& Input)
+	{
+		return FOpenPLX_Utilities::IsRealType(Input.Type) ? InterfaceWriteReal : nullptr;
+	}
+
+	template <>
+	Vec2WriteFuncPtr GetInterfaceWriteFunction<agx::Vec2>(const FOpenPLX_Input& Input)
+	{
+		if (FOpenPLX_Utilities::IsRangeType(Input.Type))
+		{
+			return InterfaceWriteRangeRealNew;
+		}
+		if (FOpenPLX_Utilities::IsVector2Type(Input.Type))
+		{
+			return InterfaceWriteVector2;
+		}
+		return nullptr;
+	}
+
+	template <>
+	Vec3WriteFuncPtr GetInterfaceWriteFunction<agx::Vec3>(const FOpenPLX_Input& Input)
+	{
+		return FOpenPLX_Utilities::IsVectorType(Input.Type) ? InterfaceWriteVector3 : nullptr;
+	}
+
+	//
 	// Functions for sending signals.
 	//
 
@@ -964,11 +1079,10 @@ namespace OpenPLXSignalHandler_helpers
 		return true;
 	}
 
-	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT, typename WriteFuncT>
+	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool SendInterfaceImpl(
 		const FOpenPLX_Input& Input, ValueUnrealT ValueUnreal,
-		FHeapControlInterfaceRef* HeapControlInterfaceRef, ConvertFuncT ConvertFunc,
-		WriteFuncT WriteFunc)
+		FHeapControlInterfaceRef* HeapControlInterfaceRef, ConvertFuncT ConvertFunc)
 	{
 		if (HeapControlInterfaceRef == nullptr)
 		{
@@ -1008,6 +1122,7 @@ namespace OpenPLXSignalHandler_helpers
 
 		ValuePLXT ValuePLX = *ValuePLXMaybe;
 		std::string Alias = Convert(Input.Alias.ToString());
+		auto WriteFunc = GetInterfaceWriteFunction<ValuePLXT>(Input);
 		const bool bWritten = WriteFunc(*Interface, Alias, ValuePLX);
 		if (!bWritten)
 		{
@@ -1144,7 +1259,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, double Va
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::SendInterfaceImpl<agx::Real>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertRealToPLX, InterfaceWriteReal);
+		Input, Value, HeapControlInterfaceRef.get(), ConvertRealToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
@@ -1178,8 +1293,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec2>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue,
-		InterfaceWriteVector2);
+		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::SendRangeRealInterface(
@@ -1188,8 +1302,7 @@ bool FOpenPLXSignalHandler::SendRangeRealInterface(
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec2>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue,
-		InterfaceWriteRangeRealNew);
+		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
@@ -1223,8 +1336,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec3>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector3ToPLXValue,
-		InterfaceWriteVector3);
+		Input, Value, HeapControlInterfaceRef.get(), ConvertVector3ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
