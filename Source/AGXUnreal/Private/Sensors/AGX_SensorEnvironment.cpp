@@ -864,7 +864,8 @@ bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, LidarSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, IMUSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bAutoAddObjects),
-			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bSetPreIntegratePosition)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -991,10 +992,13 @@ void AAGX_SensorEnvironment::InitializeNative()
 			}
 		}
 
-		// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same
-		// step.
-		// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
-		Sim->SetPreIntegratePositions(true);
+		if (bSetPreIntegratePosition)
+		{
+			// Set positions integrated in PRE so that they are "seen" in the Lidar output in the
+			// same step. This is the same procedure as used in AGX Dynamics tutorials and examples
+			// using Lidar.
+			Sim->SetPreIntegratePositions(true);
+		}
 	}
 
 	NativeBarrier.AllocateNative(*Sim->GetNative());
