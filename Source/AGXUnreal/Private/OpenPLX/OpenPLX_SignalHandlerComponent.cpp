@@ -95,6 +95,16 @@ bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutIn
 		return true;
 	}
 
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Signal Handler Component: Cannot find OpenPLX input named '%s'. This input will "
+			 "not be able to send signals."),
+		*Name.ToString());
+
+	OutInput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
+	OutInput.Alias = OutInput.Name;
+
 	return false;
 }
 
@@ -146,6 +156,14 @@ bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& Out
 		return true;
 	}
 
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Signal Handler Component: Cannot find OpenPLX output named '%s'. This output will "
+			 "not be able to receive signals."),
+		*Name.ToString());
+
+	OutOutput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
+	OutOutput.Alias = OutOutput.Name;
 	return false;
 }
 
