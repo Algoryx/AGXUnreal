@@ -23,6 +23,7 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxObjectMap.h"
 #include "agxOpenPLX/SignalListenerUtils.h"
+#include "agxUtil/agxUtil.h"
 #include "openplx/Blob.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/AngleOutput.h"
@@ -514,6 +515,7 @@ namespace OpenPLXSignalHandler_helpers
 		FOpenPLXModelRegistry::Handle ModelHandle,
 		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue)
 	{
+		// NOTE: all of this function is just experiment-code not meant to be merged.
 		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
 			return false;
 
@@ -537,6 +539,19 @@ namespace OpenPLXSignalHandler_helpers
 			std::dynamic_pointer_cast<openplx::Sensors::Signals::LidarOutput>(Signal->source());
 		if (LidarOutput == nullptr)
 			return TypeMismatchResult<bool>(Output).IsSet();
+
+		auto Fields = LidarOutput->fields();
+		for (auto Field : Fields)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("FIELD: %d"), Field);
+		}
+		agxUtil::freeContainerMemory(Fields);
+
+		auto Positions = LidarOutput->readPositions(Signal);
+		for (auto& Pos : Positions)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Pos: %f %f %f"), Pos->x(), Pos->y(), Pos->z());
+		}
 
 		const std::shared_ptr<openplx::Blob> Blob = Signal->data();
 		if (Blob == nullptr)
