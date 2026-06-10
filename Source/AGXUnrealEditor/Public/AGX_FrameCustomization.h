@@ -11,7 +11,7 @@ struct FAGX_Frame;
 /**
  * A Property Type Customization that displays FAGX_Frame Properties.
  */
-class FAGX_FrameCustomization : public IPropertyTypeCustomization
+class AGXUNREALEDITOR_API FAGX_FrameCustomization : public IPropertyTypeCustomization
 {
 public:
 	using Super = IPropertyTypeCustomization;
