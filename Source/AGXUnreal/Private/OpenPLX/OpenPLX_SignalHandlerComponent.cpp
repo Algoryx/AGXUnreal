@@ -339,7 +339,7 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
 		return false;
 	}
 
-	return SignalHandler.SendRangeRealInterface(Input, Value);
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
@@ -412,6 +412,46 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, 
 	}
 
 	return ReceiveRangeReal(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to receive a FVector2 from '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Output.Alias.ToString());
+		return false;
+	}
+
+	if (!FOpenPLX_Utilities::IsVector2Type(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveVector2Interface", Output.Alias.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
+	{
+		LogTypeMismatchWarning("SendVector", Input.Name.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)

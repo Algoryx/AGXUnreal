@@ -27,6 +27,9 @@ public:
 	static bool IsIntegerType(EOpenPLX_InputType Type);
 	static bool IsIntegerType(EOpenPLX_OutputType Type);
 
+	static bool IsUnsignedIntegerType(EOpenPLX_InputType Type);
+	static bool IsUnsignedIntegerType(EOpenPLX_OutputType Type);
+
 	static bool IsBooleanType(EOpenPLX_InputType Type);
 	static bool IsBooleanType(EOpenPLX_OutputType Type);
 };

@@ -144,6 +144,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue);
 
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
+
 	/**
 	 * Uses the given Input to send a Signal of Vector type with the given Value.
 	 */

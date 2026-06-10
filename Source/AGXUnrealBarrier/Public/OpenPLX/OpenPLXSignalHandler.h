@@ -50,7 +50,6 @@ public:
 	bool SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
-	bool SendRangeRealInterface(const FOpenPLX_Input& Input, const FVector2D& Value);
 
 	// Vectors / Vec3.
 	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
@@ -60,11 +59,15 @@ public:
 
 	// Integer.
 	bool Send(const FOpenPLX_Input& Input, int64 Value);
+	bool SendInterface(const FOpenPLX_Input& Input, int64 Value);
 	bool Receive(const FOpenPLX_Output& Output, int64& OutValue);
+	bool ReceiveInterface(const FOpenPLX_Output& Output, int64& OutValue);
 
 	// Boolean.
 	bool Send(const FOpenPLX_Input& Input, bool Value);
+	bool SendInterface(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
+	bool ReceiveInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
 	void ReleaseNatives();
 

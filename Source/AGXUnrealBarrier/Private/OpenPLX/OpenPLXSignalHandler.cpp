@@ -555,10 +555,10 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	//
-	// Functions for writing a value to a Control Interface.
+	// Functions for writing to or reading from a Control Interface.
 	//
 
-	// Control Interface write functions for primitive types.
+	// Control Interface write / read functions for primitive types.
 
 	bool InterfaceWriteBool(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, bool Value)
@@ -566,22 +566,39 @@ namespace OpenPLXSignalHandler_helpers
 		return Interface.write(Alias, Value);
 	}
 
-	bool InterfaceWriteSignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64 Value)
+	TOptional<bool> InterfaceReadBool(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
 	{
-		// We must cast the int64 to an int64_t even though both are signed 64-bit integers because
-		// int64, from Unreal, is "signed long long" and int64_t, from OpenPLX (cstdint really) is
-		// "signed long int". Same bits and values, different types.
-		return Interface.write(Alias, (int64_t) Value);
+		std::optional<bool> ValueMaybe = Interface.read<bool>(Alias);
+		if (!ValueMaybe)
+			return {};
+		return {ValueMaybe.value()};
+	}
+
+	bool InterfaceWriteSignedInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64_t Value)
+	{
+		return Interface.write(Alias, Value);
+	}
+
+	TOptional<int64_t> InterfaceReadSignedInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
+	{
+		std::optional<int64_t> ValueMaybe = Interface.read<int64_t>(Alias);
+		return Convert(ValueMaybe);
 	}
 
 	bool InterfaceWriteUnsignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const uint64 Value)
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const uint64_t Value)
 	{
-		// We must cast the int64 to an int64_t even though both are unsigned 64-bit integers
-		// because uint64, from Unreal, is "unsigned long long" and uint64_t, from OpenPLX (cstdint
-		// really) is "unsigned long int". Same bits and values, different types.
-		return Interface.write(Alias, (uint64_t) Value);
+		return Interface.write(Alias, Value);
+	}
+
+	TOptional<uint64_t> InterfaceReadUnsignedInteger(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
+	{
+		std::optional<uint64_t> ValueMaybe = Interface.read<uint64_t>(Alias);
+		return Convert(ValueMaybe);
 	}
 
 	bool InterfaceWriteReal(
@@ -590,28 +607,39 @@ namespace OpenPLXSignalHandler_helpers
 		return Interface.write(Alias, Value);
 	}
 
-	// Control Interface write functions for composite types, which must use marshalling.
+	TOptional<agx::Real> InterfaceReadReal(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
+	{
+		std::optional<double> ValueMaybe = Interface.read<double>(Alias);
+		if (!ValueMaybe)
+			return {};
+		return {ValueMaybe.value()};
+	}
+
+	// Control Interface write / read functions for compound types, which must use marshalling.
+	// This block starts with a bunch of helper types to make it possible to have generic leaf write
+	// and read functions.
 
 	template <typename ValueT>
-	struct FInterfaceField
+	struct FWriteField
 	{
 		const char* Name {nullptr};
 		ValueT Value {};
 	};
 
-	struct FInterfaceError
+	template <typename ValueT>
+	struct FReadField
 	{
-		FString FieldName;
-		FString ErrorMessage;
+		const char* Name {nullptr};
+		ValueT* Value {nullptr};
 	};
 
 	template <typename ValueT>
-	bool InterfaceWriteField(
-		openplx::Marshalling& Marshalling, const FInterfaceField<ValueT>& Field)
+	bool InterfaceWriteField(openplx::Marshalling& Marshalling, const FWriteField<ValueT>& Field)
 	{
 		// The order is important here because there are overlaps in the Venn diagram of the types.
-		// For example, both int and double are signed so we must check for write_real before
-		// write_int.
+		// For example, both int and double are signed but only double is floating-point so we must
+		// check for write_real before write_int.
 		if constexpr (std::is_floating_point_v<ValueT>)
 			return Marshalling.write_real(Field.Name, Field.Value);
 		else if constexpr (std::is_same_v<ValueT, bool>)
@@ -626,10 +654,46 @@ namespace OpenPLXSignalHandler_helpers
 				"InterfaceWriteFields only supports bool, floating point, and integer fields.");
 	}
 
-	template <typename... FInterfaceFields>
+	template <typename ValueT>
+	bool InterfaceReadField(openplx::Marshalling& Marshalling, const FReadField<ValueT>& Field)
+	{
+		std::optional<ValueT> ValueMaybe;
+
+		// The order is important here because there are overlaps in the Venn diagram of the types.
+		// For example, both int and double are signed but only double is floating-point so we must
+		// check for write_real before write_int.
+		if constexpr (std::is_floating_point_v<ValueT>)
+			ValueMaybe = Marshalling.read_real<ValueT>(Field.Name);
+		else if constexpr (std::is_same_v<ValueT, bool>)
+			ValueMaybe = Marshalling.read_bool(Field.Name);
+		else if constexpr (std::is_unsigned_v<ValueT>)
+			ValueMaybe = Marshalling.read_uint<ValueT>(Field.Name);
+		else if constexpr (std::is_signed_v<ValueT>)
+			ValueMaybe = Marshalling.read_int<ValueT>(Field.Name);
+		else
+			static_assert(
+				false,
+				"InterfaceWriteFields only supports bool, floating point, and integer fields.");
+
+		if (!ValueMaybe)
+		{
+			return false;
+		}
+
+		*Field.Value = *ValueMaybe;
+		return true;
+	}
+
+	struct FInterfaceError
+	{
+		FString FieldName;
+		FString ErrorMessage;
+	};
+
+	template <typename... FWriteFields>
 	bool InterfaceWriteFields(
 		openplx::HeapControlInterface& Interface, const std::string& Alias,
-		FInterfaceFields... InterfaceFields)
+		FWriteFields... InterfaceFields)
 	{
 		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
 		if (Marshalling == nullptr)
@@ -666,9 +730,9 @@ namespace OpenPLXSignalHandler_helpers
 					"Control Interface because one or more write errors occurred:"),
 				UTF8_TO_TCHAR(Alias.c_str()));
 
-			for (auto [FieldName, Value] : Errors)
+			for (auto [FieldName, Error] : Errors)
 			{
-				UE_LOG(LogAGX, Warning, TEXT("    %s: %s"), *FieldName, *Value);
+				UE_LOG(LogAGX, Warning, TEXT("    %s: %s"), *FieldName, *Error);
 			}
 			const std::unordered_map<std::string, openplx::Field>& Fields =
 				Marshalling->get_field_map();
@@ -681,313 +745,249 @@ namespace OpenPLXSignalHandler_helpers
 		}
 
 		return true;
-
-		// TODO Loop over FieldNameValuePairs and call Marshalling->write_real and
-		// Marshalling->get_latest_error_message for each, and then error checking. So pretty much
-		// just like InterfaceWriteRangeReal, but generic.
 	}
 
-	bool InterfaceWriteRangeRealNew(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+	template <typename... FReadFields>
+	bool InterfaceReadFields(
+		openplx::HeapControlInterface& Interface, const std::string& Alias,
+		FReadFields... ReadFields)
 	{
-		return InterfaceWriteFields(
-			Interface, Alias, FInterfaceField {"min", Value.x()},
-			FInterfaceField {"max", Value.y()});
-	}
-
-	bool InterfaceWriteRangeReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
-	{
-		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
+		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_read(Alias);
 		if (Marshalling == nullptr)
 		{
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT(
-					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
-					"Interface because a marshalling object could not be created."),
+					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
+					"Interface because a marshalling object could not be created. This may be "
+					"caused by a type handler not being registered in AgxOpenPlxApi.cpp"),
 				UTF8_TO_TCHAR(Alias.c_str()));
-			return false;
+			return {};
 		}
 
-		const bool bWroteMin = Marshalling->write_real("min", Value.x());
-		const char* minError = Marshalling->get_latest_error_message();
-		const bool bWroteMax = Marshalling->write_real("max", Value.y());
-		const char* maxError = Marshalling->get_latest_error_message();
+		TArray<FInterfaceError> Errors;
+		auto ReadField = [&](auto Field)
+		{
+			const bool bSuccess = InterfaceReadField(*Marshalling, Field);
+			if (!bSuccess)
+			{
+				const char* Error = Marshalling->get_latest_error_message();
+				Errors.Emplace(UTF8_TO_TCHAR(Field.Name), UTF8_TO_TCHAR(Error));
+			}
+		};
+		(ReadField(ReadFields), ...);
 		Interface.flush();
-		if (!bWroteMin || !bWroteMax)
+
+		if (!Errors.IsEmpty())
 		{
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT(
-					"OpenPLX Signal Handler: Could not marshall Vec2 value to '%s' through the "
-					"Control Interface because a write error occurred."),
+					"OpenPLX Signal Handler: Could not marshal value to '%s' through the "
+					"Control Interface because one or more read errors occurred:"),
 				UTF8_TO_TCHAR(Alias.c_str()));
-			if (!bWroteMin)
+			for (auto [FieldName, Error] : Errors)
 			{
-				UE_LOG(LogAGX, Warning, TEXT("   min: %s"), UTF8_TO_TCHAR(minError));
-			}
-			if (!bWroteMax)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   max: %s"), UTF8_TO_TCHAR(maxError));
+				UE_LOG(LogAGX, Warning, TEXT("    %s: %s"), *FieldName, *Error);
 			}
 			const std::unordered_map<std::string, openplx::Field>& Fields =
 				Marshalling->get_field_map();
-			UE_LOG(LogAGX, Warning, TEXT("  Known fields:"));
-			for (auto& [name, field] : Fields)
+			for (const auto& [Name, Field] : Fields)
 			{
-				UE_LOG(LogAGX, Warning, TEXT("   %s"), UTF8_TO_TCHAR(name.c_str()));
+				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Name.c_str()));
 			}
 			return false;
 		}
 
 		return true;
+	}
+
+	bool InterfaceWriteRangeReal(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+	{
+		// clang-format off
+		return InterfaceWriteFields(
+			Interface, Alias,
+			FWriteField {"min", Value.x()},
+			FWriteField {"max", Value.y()});
+		// clang-format on
+	}
+
+	TOptional<agx::Vec2> InterfaceReadRangeReal(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
+	{
+		agx::Vec2 Value;
+		// clang-format off
+		const bool bSuccess =
+			InterfaceReadFields(
+				Interface, Alias,
+				FReadField{"min", &Value.x()},
+				FReadField{"max", &Value.y()});
+		// clang-format on
+		return bSuccess ? Value : TOptional<agx::Vec2>();
 	}
 
 	bool InterfaceWriteVector2(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
 	{
-		std::shared_ptr<openplx::Marshalling> marshalling = Interface.prepare_write(Alias);
-		if (marshalling == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
-					"Interface because a marshalling object could not be created."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			return false;
-		}
-
-		const bool bWroteX = marshalling->write_real("x", Value.x());
-		const char* xError = marshalling->get_latest_error_message();
-		const bool bWroteY = marshalling->write_real("y", Value.y());
-		const char* yError = marshalling->get_latest_error_message();
-		Interface.flush();
-		if (!bWroteX || !bWroteY)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not marshall Vec2 value to '%s' through the "
-					"Control Interface because a write error occurred."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			if (!bWroteX)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   x: %s"), UTF8_TO_TCHAR(xError));
-			}
-			if (!bWroteY)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   y: %s"), UTF8_TO_TCHAR(yError));
-			}
-			return false;
-		}
-
-		return true;
-	}
-
-	bool InterfaceWriteVector3(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
-	{
-		std::shared_ptr<openplx::Marshalling> marshalling = Interface.prepare_write(Alias);
-		if (marshalling == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning, TEXT("TODO: Move marhsalling creation to Send/ReceiveInterface"));
-			return false;
-		}
-
-		const bool bWroteX = marshalling->write_real("x", Value.x());
-		const char* xError = marshalling->get_latest_error_message();
-		const bool bWroteY = marshalling->write_real("y", Value.y());
-		const char* yError = marshalling->get_latest_error_message();
-		const bool bWroteZ = marshalling->write_real("z", Value.z());
-		const char* zError = marshalling->get_latest_error_message();
-		Interface.flush();
-		if (!bWroteX || !bWroteY || !bWroteZ)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not marshall Vec3 value to '%s' through the "
-					"Control Interface because a write error occurred."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			if (!bWroteX)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   x: %s"), UTF8_TO_TCHAR(xError));
-			}
-			if (!bWroteY)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   y: %s"), UTF8_TO_TCHAR(yError));
-			}
-			if (!bWroteZ)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("   z: %s"), UTF8_TO_TCHAR(zError));
-			}
-			return false;
-		}
-
-		return true;
-	}
-
-	//
-	// Functions for reading a value from a Control Interface.
-	//
-
-	TOptional<agx::Real> InterfaceReadReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
-	{
-		std::optional<double> ValueMaybe = Interface.read<double>(Alias);
-		if (!ValueMaybe)
-			return {};
-		return {ValueMaybe.value()};
+		// clang-format off
+		return InterfaceWriteFields(
+			Interface, Alias,
+			FWriteField {"x", Value.x()},
+			FWriteField {"y", Value.y()});
+		// clang-format on
 	}
 
 	TOptional<agx::Vec2> InterfaceReadVector2(
 		openplx::HeapControlInterface& Interface, const std::string& Alias)
 	{
-		std::shared_ptr<openplx::Marshalling> marshalling = Interface.prepare_read(Alias);
-		if (marshalling == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
-					"Interface because a marshalling object could not be created."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			return {};
-		}
+		agx::Vec2 Value;
+		// clang-format off
+		const bool bSuccess =
+			InterfaceReadFields(
+				Interface, Alias,
+				FReadField{"x", &Value.x()},
+				FReadField{"y", &Value.y()});
+		// clang-format on
+		return bSuccess ? Value : TOptional<agx::Vec2>();
+	}
 
-		std::optional<agx::Real> xMaybe = marshalling->read_real<agx::Real>("x");
-		const char* xError = marshalling->get_latest_error_message();
-		std::optional<agx::Real> yMaybe = marshalling->read_real<agx::Real>("y");
-		const char* yError = marshalling->get_latest_error_message();
-		if (!xMaybe || !yMaybe)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not marshall Vec2 value from '%s' through the "
-					"Control Interface because a read error occurred."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			if (!xMaybe)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("    x: %s"), UTF8_TO_TCHAR(xError));
-			}
-			if (!yMaybe)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("    y: %s"), UTF8_TO_TCHAR(yError));
-			}
-			return {};
-		}
-
-		return {{*xMaybe, *yMaybe}};
+	bool InterfaceWriteVector3(
+		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
+	{
+		// clang-format off
+		return InterfaceWriteFields(
+			Interface, Alias,
+			FWriteField {"x", Value.x()},
+			FWriteField {"y", Value.y()},
+			FWriteField {"z", Value.z()});
+		// clang-format on
 	}
 
 	TOptional<agx::Vec3> InterfaceReadVector3(
 		openplx::HeapControlInterface& Interface, const std::string& Alias)
 	{
-		std::shared_ptr<openplx::Marshalling> marshalling = Interface.prepare_read(Alias);
-		if (marshalling == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
-					"Interface because a marshalling object could not be created."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			return {};
-		}
-
-		std::optional<agx::Real> xMaybe = marshalling->read_real<agx::Real>("x");
-		const char* xError = marshalling->get_latest_error_message();
-		std::optional<agx::Real> yMaybe = marshalling->read_real<agx::Real>("y");
-		const char* yError = marshalling->get_latest_error_message();
-		std::optional<agx::Real> zMaybe = marshalling->read_real<agx::Real>("z");
-		const char* zError = marshalling->get_latest_error_message();
-		if (!xMaybe || !yMaybe || !zMaybe)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Could not marshall Vec3 value from '%s' through the "
-					"Control Interface because a read error occurred."),
-				UTF8_TO_TCHAR(Alias.c_str()));
-			if (!xMaybe)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("    x: %s"), UTF8_TO_TCHAR(xError));
-			}
-			if (!yMaybe)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("    y: %s"), UTF8_TO_TCHAR(yError));
-			}
-			if (!zMaybe)
-			{
-				UE_LOG(LogAGX, Warning, TEXT("    z: %s"), UTF8_TO_TCHAR(zError));
-			}
-			return {};
-		}
-
-		return {{*xMaybe, *yMaybe, *zMaybe}};
+		agx::Vec3 Value;
+		// clang-format off
+		const bool bSuccess =
+			InterfaceReadFields(
+				Interface, Alias,
+				FReadField{"x", &Value.x()},
+				FReadField{"y", &Value.y()},
+				FReadField{"z", &Value.z()});
+		// clang-format on
+		return bSuccess ? Value : TOptional<agx::Vec3>();
 	}
 
 	//
 	// Functions for type look-ups.
 	//
+	// Different types require different Control Interface read and write functions. Since some
+	// types, e.g. Vec2, require different real / write code depending on the input / output
+	// type, e.g. x/y vs min/max, we want to have a central location where this type-to-code
+	// information is stored so we don't need to repeat long if-else of switch-case statements
+	// all over the place. For now that location is here. There is a lot of templates here since
+	// the main read and write functions are templated, meaning a single code path must be able
+	// to work with many value types. Due to the verbose syntax required to communicate all of
+	// this to the compiler this block of code became way larger than I expected it to. It may
+	// be possible to simplify all of this, or perhaps we should scrap all of this helper stuff
+	// an just list the types explicitly much more.
+	//
 
+	// Function pointer types used when getting a read or write helper function. There is one
+	// function pointer type for each "primitive" type we support.
 	// clang-format off
 	using BoolWriteFuncPtr =
 		bool (*)(openplx::HeapControlInterface&, const std::string&, bool);
 	using IntWriteFuncPtr =
-		bool (*)(openplx::HeapControlInterface&, const std::string&, int64);
+		bool (*)(openplx::HeapControlInterface&, const std::string&, int64_t);
+	using UIntWriteFuncPtr =
+		bool (*)(openplx::HeapControlInterface&, const std::string&, uint64_t);
 	using RealWriteFuncPtr =
 		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Real);
 	using Vec2WriteFuncPtr =
 		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Vec2);
 	using Vec3WriteFuncPtr =
 		bool (*)(openplx::HeapControlInterface&, const std::string&, agx::Vec3);
+
+	using BoolReadFuncPtr =
+		TOptional<bool> (*)(openplx::HeapControlInterface&, const std::string&);
+	using IntReadFuncPtr =
+		TOptional<int64_t> (*)(openplx::HeapControlInterface&, const std::string&);
+	using UIntReadFuncPtr =
+		TOptional<uint64_t> (*)(openplx::HeapControlInterface&, const std::string&);
+	using RealReadFuncPtr =
+		TOptional<agx::Real> (*)(openplx::HeapControlInterface&, const std::string&);
+	using Vec2ReadFuncPtr =
+		TOptional<agx::Vec2> (*)(openplx::HeapControlInterface&, const std::string&);
+	using Vec3ReadFuncPtr =
+		TOptional<agx::Vec3> (*)(openplx::HeapControlInterface&, const std::string&);
 	// clang-format on
 
+	// Trait types that given a "primitive" type tell you the type of the function used to write or
+	// read that type. First an empty base-base to produce compiler errors if an unsupported type is
+	// passed, then follows the type-specific implementation that actually provides the function
+	// types.
 	template <typename UnrealTypeT>
-	struct SelectInterfaceWriteFunction
+	struct SelectInterfaceFunction
 	{
 	};
 
 	template <>
-	struct SelectInterfaceWriteFunction<bool>
+	struct SelectInterfaceFunction<bool>
 	{
-		using WriteFuncPtr = BoolWriteFuncPtr;
+		using Write = BoolWriteFuncPtr;
+		using Read = BoolReadFuncPtr;
 	};
 
 	template <>
-	struct SelectInterfaceWriteFunction<int64>
+	struct SelectInterfaceFunction<int64_t>
 	{
-		using WriteFuncPtr = IntWriteFuncPtr;
+		using Write = IntWriteFuncPtr;
+		using Read = IntReadFuncPtr;
 	};
 
 	template <>
-	struct SelectInterfaceWriteFunction<agx::Real>
+	struct SelectInterfaceFunction<uint64_t>
 	{
-		using WriteFuncPtr = RealWriteFuncPtr;
+		using Write = UIntWriteFuncPtr;
+		using Read = UIntReadFuncPtr;
 	};
 
 	template <>
-	struct SelectInterfaceWriteFunction<agx::Vec2>
+	struct SelectInterfaceFunction<agx::Real>
 	{
-		using WriteFuncPtr = Vec2WriteFuncPtr;
+		using Write = RealWriteFuncPtr;
+		using Read = RealReadFuncPtr;
 	};
 
 	template <>
-	struct SelectInterfaceWriteFunction<agx::Vec3>
+	struct SelectInterfaceFunction<agx::Vec2>
 	{
-		using WriteFuncPtr = Vec3WriteFuncPtr;
+		using Write = Vec2WriteFuncPtr;
+		using Read = Vec2ReadFuncPtr;
 	};
+
+	template <>
+	struct SelectInterfaceFunction<agx::Vec3>
+	{
+		using Write = Vec3WriteFuncPtr;
+		using Read = Vec3ReadFuncPtr;
+	};
+
+	// Functions that do the actual type-to-function look-up, based on both the type of the value
+	// and the type of the input or output, to separate e.g. x/y from min/max.
 
 	template <typename ValueT>
-	SelectInterfaceWriteFunction<ValueT>::WriteFuncPtr GetInterfaceWriteFunction(
-		const FOpenPLX_Input& Input)
+	SelectInterfaceFunction<ValueT>::Write GetInterfaceWriteFunction(const FOpenPLX_Input& Input)
 	{
 		static_assert(false, "GetInterfaceWriteFunction not implemented for this type");
+	}
+
+	template <typename ValueT>
+	SelectInterfaceFunction<ValueT>::Read GetInterfaceReadFunction(const FOpenPLX_Output& Output)
+	{
+		static_assert(false, "GetInterfaceReadFunction not implemented for this type");
 	}
 
 	template <>
@@ -997,10 +997,37 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	template <>
-	IntWriteFuncPtr GetInterfaceWriteFunction<int64>(const FOpenPLX_Input& Input)
+	BoolReadFuncPtr GetInterfaceReadFunction<bool>(const FOpenPLX_Output& Input)
+	{
+		return FOpenPLX_Utilities::IsBooleanType(Input.Type) ? InterfaceReadBool : nullptr;
+	}
+
+	template <>
+	IntWriteFuncPtr GetInterfaceWriteFunction<int64_t>(const FOpenPLX_Input& Input)
 	{
 		return FOpenPLX_Utilities::IsIntegerType(Input.Type) ? InterfaceWriteSignedInteger
 															 : nullptr;
+	}
+
+	template <>
+	IntReadFuncPtr GetInterfaceReadFunction<int64_t>(const FOpenPLX_Output& Output)
+	{
+		return FOpenPLX_Utilities::IsIntegerType(Output.Type) ? InterfaceReadSignedInteger
+															  : nullptr;
+	}
+
+	template <>
+	UIntWriteFuncPtr GetInterfaceWriteFunction<uint64_t>(const FOpenPLX_Input& Input)
+	{
+		return FOpenPLX_Utilities::IsUnsignedIntegerType(Input.Type) ? InterfaceWriteUnsignedInteger
+																	 : nullptr;
+	}
+
+	template <>
+	UIntReadFuncPtr GetInterfaceReadFunction<uint64_t>(const FOpenPLX_Output& Output)
+	{
+		return FOpenPLX_Utilities::IsUnsignedIntegerType(Output.Type) ? InterfaceReadUnsignedInteger
+																	  : nullptr;
 	}
 
 	template <>
@@ -1010,11 +1037,17 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	template <>
+	RealReadFuncPtr GetInterfaceReadFunction<agx::Real>(const FOpenPLX_Output& Output)
+	{
+		return FOpenPLX_Utilities::IsRealType(Output.Type) ? InterfaceReadReal : nullptr;
+	}
+
+	template <>
 	Vec2WriteFuncPtr GetInterfaceWriteFunction<agx::Vec2>(const FOpenPLX_Input& Input)
 	{
 		if (FOpenPLX_Utilities::IsRangeType(Input.Type))
 		{
-			return InterfaceWriteRangeRealNew;
+			return InterfaceWriteRangeReal;
 		}
 		if (FOpenPLX_Utilities::IsVector2Type(Input.Type))
 		{
@@ -1024,9 +1057,29 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	template <>
+	Vec2ReadFuncPtr GetInterfaceReadFunction<agx::Vec2>(const FOpenPLX_Output& Output)
+	{
+		if (FOpenPLX_Utilities::IsRangeType(Output.Type))
+		{
+			return InterfaceReadRangeReal;
+		}
+		if (FOpenPLX_Utilities::IsVector2Type(Output.Type))
+		{
+			return InterfaceReadVector2;
+		}
+		return nullptr;
+	}
+
+	template <>
 	Vec3WriteFuncPtr GetInterfaceWriteFunction<agx::Vec3>(const FOpenPLX_Input& Input)
 	{
 		return FOpenPLX_Utilities::IsVectorType(Input.Type) ? InterfaceWriteVector3 : nullptr;
+	}
+
+	template <>
+	Vec3ReadFuncPtr GetInterfaceReadFunction<agx::Vec3>(const FOpenPLX_Output& Output)
+	{
+		return FOpenPLX_Utilities::IsVectorType(Output.Type) ? InterfaceReadVector3 : nullptr;
 	}
 
 	//
@@ -1176,11 +1229,10 @@ namespace OpenPLXSignalHandler_helpers
 		return true;
 	}
 
-	template <typename ValuePLXT, typename ValueUnrealT, typename ReadFuncT, typename ConvertFuncT>
+	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool ReceiveInterfaceImpl(
 		const FOpenPLX_Output& Output, ValueUnrealT& OutValue,
-		FHeapControlInterfaceRef* HeapControlInterfaceRef, ReadFuncT ReadFunc,
-		ConvertFuncT ConvertFunc)
+		FHeapControlInterfaceRef* HeapControlInterfaceRef, ConvertFuncT ConvertFunc)
 	{
 		OutValue = {};
 
@@ -1210,6 +1262,7 @@ namespace OpenPLXSignalHandler_helpers
 		}
 
 		std::string Alias = Convert(Output.Alias.ToString());
+		auto ReadFunc = GetInterfaceReadFunction<ValuePLXT>(Output);
 		TOptional<ValuePLXT> ValuePLXMaybe = ReadFunc(*Interface, Alias);
 		if (!ValuePLXMaybe)
 		{
@@ -1276,7 +1329,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, doub
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Real>(
-		Output, OutValue, HeapControlInterfaceRef.get(), InterfaceReadReal, ConvertRealToUnreal);
+		Output, OutValue, HeapControlInterfaceRef.get(), ConvertRealToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
@@ -1289,15 +1342,6 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& V
 }
 
 bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value)
-{
-	using namespace OpenPLXSignalHandler_helpers;
-	check(IsInitialized());
-	return SendInterfaceImpl<agx::Vec2>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue);
-}
-
-bool FOpenPLXSignalHandler::SendRangeRealInterface(
-	const FOpenPLX_Input& Input, const FVector2D& Value)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
@@ -1319,8 +1363,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVec
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Vec2>(
-		Output, OutValue, HeapControlInterfaceRef.get(), InterfaceReadVector2,
-		ConvertVector2ValueToUnreal);
+		Output, OutValue, HeapControlInterfaceRef.get(), ConvertVector2ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
@@ -1352,8 +1395,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVec
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Vec3>(
-		Output, OutValue, HeapControlInterfaceRef.get(), InterfaceReadVector3,
-		ConvertVector3ValueToUnreal);
+		Output, OutValue, HeapControlInterfaceRef.get(), ConvertVector3ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
@@ -1364,12 +1406,28 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
 		OpenPLXSignalHandler_helpers::ConvertIntegerToPLX);
 }
 
+bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, int64 Value)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	return SendInterfaceImpl<int64_t>(
+		Input, Value, HeapControlInterfaceRef.get(), ConvertIntegerToPLX);
+}
+
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
 		OpenPLXSignalHandler_helpers::GetUnrealIntegerValueFromSignal);
+}
+
+bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, int64& OutValue)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	return ReceiveInterfaceImpl<int64_t>(
+		Output, OutValue, HeapControlInterfaceRef.get(), ConvertIntegerToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
@@ -1380,12 +1438,28 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
 		OpenPLXSignalHandler_helpers::ConvertBooleanToPLX);
 }
 
+bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, bool Value)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	return SendInterfaceImpl<bool>(
+		Input, Value, HeapControlInterfaceRef.get(), ConvertBooleanToPLX);
+}
+
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
 {
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::Receive(
 		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
 		OpenPLXSignalHandler_helpers::GetUnrealBooleanValueFromSignal);
+}
+
+bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, bool& OutValue)
+{
+	using namespace OpenPLXSignalHandler_helpers;
+	check(IsInitialized());
+	return ReceiveInterfaceImpl<bool>(
+		Output, OutValue, HeapControlInterfaceRef.get(), ConvertBooleanToUnreal);
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()

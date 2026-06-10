@@ -138,6 +138,26 @@ bool FOpenPLX_Utilities::IsIntegerType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_InputType Type)
+{
+	switch (Type)
+	{
+		// Are there any unsinged integer input types?
+		default:
+			return false;
+	}
+}
+
+bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		// Are there any unsigned integer output types?
+		default:
+			return false;
+	}
+}
+
 bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_InputType Type)
 {
 	switch (Type)

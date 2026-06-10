@@ -104,11 +104,29 @@
 // distance in an Unreal Engine type.
 //
 //
-// ConvertUNITFloat
+// Convert<UNIT>Float
 //
 // The Float-suffix is added when the parameter type based overload produces the correct unit
 // conversion but where the default conversion would produce a double, or double composite type, but
 // we need a float, or a float composite.
+
+template <typename T>
+TOptional<T> Convert(std::optional<T>& Value)
+{
+	if (Value)
+		return *Value;
+	else
+		return {};
+}
+
+template <typename T>
+std::optional<T> Convert(TOptional<T>& Value)
+{
+	if (Value)
+		return *Value;
+	else
+		return {};
+}
 
 template <typename T>
 constexpr T AGX_TO_UNREAL_DISTANCE_FACTOR = T(100.0);
