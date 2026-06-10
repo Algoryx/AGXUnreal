@@ -43,7 +43,8 @@ namespace AGX_SensorEnvironment_helpers
 		if (SurfaceMaterial == nullptr)
 			return nullptr;
 
-		UAGX_LidarSurfaceMaterial* SurfaceMaterialInstance = SurfaceMaterial->GetOrCreateInstance(World);
+		UAGX_LidarSurfaceMaterial* SurfaceMaterialInstance =
+			SurfaceMaterial->GetOrCreateInstance(World);
 		if (SurfaceMaterialInstance == nullptr)
 			return nullptr;
 
@@ -196,7 +197,8 @@ namespace AGX_SensorEnvironment_helpers
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFrom(
 		AAGX_Terrain& Terrain)
 	{
-		return GetLambertianOpaqueMaterialBarrierFrom(Terrain.LidarSurfaceMaterial, Terrain.GetWorld());
+		return GetLambertianOpaqueMaterialBarrierFrom(
+			Terrain.LidarSurfaceMaterial, Terrain.GetWorld());
 	}
 
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFromOrDefault(
@@ -210,7 +212,8 @@ namespace AGX_SensorEnvironment_helpers
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFromOrDefault(
 		AAGX_Terrain& Terrain, FRtLambertianOpaqueMaterialBarrier* DefaultMaterial)
 	{
-		FRtLambertianOpaqueMaterialBarrier* Material = GetLambertianOpaqueMaterialBarrierFrom(Terrain);
+		FRtLambertianOpaqueMaterialBarrier* Material =
+			GetLambertianOpaqueMaterialBarrierFrom(Terrain);
 		return Material != nullptr ? Material : DefaultMaterial;
 	}
 
@@ -650,7 +653,8 @@ bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Ter
 	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
 		GetDefaultLambertianOpaqueMaterialBarrier(*this);
 	NativeBarrier.SetLidarSurfaceMaterial(
-		*TerrainBarrier, GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
+		*TerrainBarrier,
+		GetLambertianOpaqueMaterialBarrierFromOrDefault(*Terrain, DefaultMaterial));
 
 	if (DebugLogOnAdd)
 	{
@@ -864,7 +868,8 @@ bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
 			GET_MEMBER_NAME_CHECKED(ThisClass, LidarSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, IMUSensors),
 			GET_MEMBER_NAME_CHECKED(ThisClass, bAutoAddObjects),
-			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial)};
+			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial),
+			GET_MEMBER_NAME_CHECKED(ThisClass, bSetPreIntegratePosition)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 		{
@@ -991,10 +996,13 @@ void AAGX_SensorEnvironment::InitializeNative()
 			}
 		}
 
-		// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same
-		// step.
-		// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
-		Sim->SetPreIntegratePositions(true);
+		if (bSetPreIntegratePosition)
+		{
+			// Set positions integrated in PRE so that they are "seen" in the Lidar output in the
+			// same step. This is the same procedure as used in AGX Dynamics tutorials and examples
+			// using Lidar.
+			Sim->SetPreIntegratePositions(true);
+		}
 	}
 
 	NativeBarrier.AllocateNative(*Sim->GetNative());
@@ -1124,7 +1132,7 @@ bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
 		return false;
 	}
 
-	FIMUBarrier* Barrier = IMU->GetNativeAsIMU(); 
+	FIMUBarrier* Barrier = IMU->GetNativeAsIMU();
 	NativeBarrier.Add(*Barrier);
 	TrackedIMUs.Add(IMURef);
 	return true;
