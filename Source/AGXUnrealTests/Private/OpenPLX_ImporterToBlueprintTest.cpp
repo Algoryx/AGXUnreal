@@ -608,8 +608,8 @@ public:
 		State.OpenPLXFile = TEXT("OpenPLX/agx_icon_masked/agx_icon_masked.openplx");
 		State.ExpectedCopiedOpenPLXFiles = {
 			TEXT("agx_icon_masked.openplx"), TEXT("agx_icon.obj"),
-			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"), TEXT("T_agx_icon_ORM.png"),
-			TEXT("T_agx_icon_Mask.png")};
+			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"),
+			TEXT("T_agx_icon_ORM.png"),		 TEXT("T_agx_icon_Mask.png")};
 		State.ExpectedImportedAssetsExcludingBaseBP = {
 			TEXT("Blueprint"),
 			TEXT("RenderMaterial"),
