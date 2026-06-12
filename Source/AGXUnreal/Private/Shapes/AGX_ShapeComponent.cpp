@@ -332,8 +332,7 @@ namespace AGX_ShapeComponent_helpers
 			{
 				if (Texture != nullptr && !ExistingTextureGuids.Contains(Guid))
 				{
-					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(
-						*Texture, Context.SessionGuid);
+					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
 				}
 			}
 		}
