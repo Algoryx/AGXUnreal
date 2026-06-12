@@ -147,19 +147,6 @@ namespace OpenPLX_ImporterToBlueprintTest_helpers
 		return bDeleted;
 	}
 
-	UAGX_ModelSourceComponent* GetModelSource(UBlueprint& Blueprint)
-	{
-		TArray<UActorComponent*> Components =
-			FAGX_BlueprintUtilities::GetTemplateComponents(Blueprint, EAGX_Inherited::Include);
-		for (UActorComponent* Component : Components)
-		{
-			if (UAGX_ModelSourceComponent* ModelSource = Cast<UAGX_ModelSourceComponent>(Component))
-				return ModelSource;
-		}
-
-		return nullptr;
-	}
-
 	void AddCommonOpenPLXImportCommands(FOpenPLXImportState& State, FAutomationTestBase& Test);
 	void AddCommonOpenPLXCleanupCommands(FOpenPLXImportState& State, FAutomationTestBase& Test);
 }
@@ -214,7 +201,9 @@ bool FCheckOpenPLXBlueprintImportedCommand::Update()
 		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
 	Test.TestTrue(TEXT("OpenPLX import created component templates"), Components.Num() > 1);
 
-	UAGX_ModelSourceComponent* ModelSource = GetModelSource(*State.Blueprint);
+	UAGX_ModelSourceComponent* ModelSource =
+		AgxAutomationCommon::GetByName<UAGX_ModelSourceComponent>(
+			Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("AGX_ModelSource")));
 	Test.TestNotNull(TEXT("AGX_ModelSource"), ModelSource);
 	if (ModelSource == nullptr)
 		return true;
@@ -259,8 +248,15 @@ bool FClearOpenPLXBlueprintImportCommand::Update()
 
 	if (State.CopiedFilePath.IsEmpty())
 	{
-		if (UAGX_ModelSourceComponent* ModelSource = GetModelSource(*State.Blueprint))
+		TArray<UActorComponent*> Components = FAGX_BlueprintUtilities::GetTemplateComponents(
+			*State.Blueprint, EAGX_Inherited::Include);
+		if (UAGX_ModelSourceComponent* ModelSource =
+				AgxAutomationCommon::GetByName<UAGX_ModelSourceComponent>(
+					Components,
+					*FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("AGX_ModelSource"))))
+		{
 			State.CopiedFilePath = ModelSource->FilePath;
+		}
 	}
 
 	if (!State.CopiedFilePath.IsEmpty())
