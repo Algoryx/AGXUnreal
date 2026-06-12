@@ -446,6 +446,75 @@ namespace AGX_ImporterToEditor_helpers
 		}
 	}
 
+	bool CopyRenderMaterial(const UMaterialInterface& Source, UMaterialInterface& Destination)
+	{
+		const UMaterialInstanceConstant* SourceConstant =
+			Cast<UMaterialInstanceConstant>(&Source);
+		UMaterialInstanceConstant* DestinationConstant =
+			Cast<UMaterialInstanceConstant>(&Destination);
+		if (SourceConstant == nullptr || DestinationConstant == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to copy render material from '%s' to '%s': expected two "
+					 "UMaterialInstanceConstant objects."),
+				*Source.GetName(), *Destination.GetName());
+			return false;
+		}
+
+		DestinationConstant->SetParentEditorOnly(SourceConstant->Parent, false);
+		DestinationConstant->ClearParameterValuesEditorOnly();
+		DestinationConstant->BasePropertyOverrides = SourceConstant->BasePropertyOverrides;
+
+		for (const FScalarParameterValue& Parameter : SourceConstant->ScalarParameterValues)
+		{
+			DestinationConstant->SetScalarParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.ParameterValue);
+#if WITH_EDITORONLY_DATA
+			if (Parameter.AtlasData.bIsUsedAsAtlasPosition)
+			{
+				DestinationConstant->SetScalarParameterAtlasEditorOnly(
+					Parameter.ParameterInfo, Parameter.AtlasData);
+			}
+#endif
+		}
+
+		for (const FVectorParameterValue& Parameter : SourceConstant->VectorParameterValues)
+		{
+			DestinationConstant->SetVectorParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.ParameterValue);
+		}
+
+		for (const FTextureParameterValue& Parameter : SourceConstant->TextureParameterValues)
+		{
+			DestinationConstant->SetTextureParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.ParameterValue);
+		}
+
+		for (const FRuntimeVirtualTextureParameterValue& Parameter :
+			 SourceConstant->RuntimeVirtualTextureParameterValues)
+		{
+			DestinationConstant->SetRuntimeVirtualTextureParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.ParameterValue);
+		}
+
+		for (const FSparseVolumeTextureParameterValue& Parameter :
+			 SourceConstant->SparseVolumeTextureParameterValues)
+		{
+			DestinationConstant->SetSparseVolumeTextureParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.ParameterValue);
+		}
+
+		for (const FFontParameterValue& Parameter : SourceConstant->FontParameterValues)
+		{
+			DestinationConstant->SetFontParameterValueEditorOnly(
+				Parameter.ParameterInfo, Parameter.FontValue, Parameter.FontPage);
+		}
+
+		DestinationConstant->PostEditChange();
+		return true;
+	}
+
 	void FixupContactMaterial(
 		const TMap<UObject*, UObject*>& TransientToAsset, UAGX_ContactMaterial& Cm)
 	{
@@ -1380,6 +1449,14 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 			AGX_CHECK(Result);
 		}
 	}
+	else if constexpr (std::is_base_of_v<UMaterialInterface, T>)
+	{
+		// The generic CopyProperties does not work well with Render Materials in all cases.
+		// Therefore we use our own specialized copy function specifically for Render Materials.
+		const bool Result = CopyRenderMaterial(Source, *Asset);
+		AGX_CHECK(Result);
+		FixupRenderMaterialTextureParameters(TransientToAsset, *Asset);
+	}
 	else // All other Asset types.
 	{
 		// For shared assets, we might be copying and saving multiple times here, but we assume
@@ -1387,9 +1464,6 @@ T* FAGX_ImporterToEditor::UpdateOrCreateAsset(T& Source, const FAGX_ImportContex
 		bool Result = CopyProperties(Source, *Asset, TransientToAsset, DefaultOverwriteRule);
 		AGX_CHECK(Result);
 	}
-
-	if constexpr (std::is_base_of_v<UMaterialInterface, T>)
-		FixupRenderMaterialTextureParameters(TransientToAsset, *Asset);
 
 	FAGX_ImportRuntimeUtilities::WriteSessionGuidToAssetType(*Asset, Context.SessionGuid);
 	if (!Asset->GetName().Equals(Source.GetName()))
