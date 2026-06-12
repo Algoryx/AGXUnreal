@@ -6,20 +6,12 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Import/AGX_ModelSourceComponent.h"
-#include "Materials/AGX_ContactMaterial.h"
-#include "Materials/AGX_ShapeMaterial.h"
-#include "Materials/ContactMaterialBarrier.h"
-#include "Materials/ShapeMaterialBarrier.h"
-#include "Shapes/TrimeshShapeBarrier.h"
-#include "Shapes/RenderDataBarrier.h"
-#include "Terrain/AGX_ShovelProperties.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
-#include "Vehicle/AGX_SteeringParameters.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
 #include "Vehicle/TrackBarrier.h"
@@ -29,7 +21,6 @@
 #include "Components/ActorComponent.h"
 #include "Engine/Blueprint.h"
 #include "Engine/StaticMesh.h"
-#include "Engine/Texture2D.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/Paths.h"
@@ -46,6 +37,12 @@
 #else
 #define AGXUNREALEDITOR_API_TEMPLATE
 #endif
+
+class UAGX_ContactMaterial;
+class UAGX_ShapeMaterial;
+class UAGX_ShovelProperties;
+class UAGX_SteeringParameters;
+class UTexture2D;
 
 namespace
 {
