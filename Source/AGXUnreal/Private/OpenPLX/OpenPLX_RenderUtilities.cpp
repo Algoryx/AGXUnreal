@@ -289,7 +289,6 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	Texture->Source.Init(
 		TextureData.Width, TextureData.Height, 1, 1, bScalarTexture ? TSF_G8 : TSF_BGRA8,
 		TexturePixels.GetData());
-	Texture->PostEditChange();
 #else
 	Texture->NeverStream = false;
 

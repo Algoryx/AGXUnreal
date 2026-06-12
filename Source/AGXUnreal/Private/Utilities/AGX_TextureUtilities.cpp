@@ -248,5 +248,10 @@ bool AGX_TextureUtilities::AreTexturesEqual(UTexture2D* TextureA, UTexture2D* Te
 	}
 #endif
 
+#if !WITH_EDITOR
 	return ArePlatformDataEqual(TextureA->GetPlatformData(), TextureB->GetPlatformData());
+#else
+	// In-editor textues may not have Platform data yet, for example for textures just imported.
+	return true; 
+#endif
 }
