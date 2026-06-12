@@ -120,9 +120,6 @@ namespace
 		const FOpenPLXTextureData& TextureData, TArray<int32>& OutSourceChannels,
 		bool bApplySwizzle)
 	{
-		if (!ValidateOpenPLXTextureData(TextureData))
-			return false;
-
 		if (!bApplySwizzle || TextureData.Swizzle.IsEmpty())
 		{
 			OutSourceChannels.SetNumUninitialized(TextureData.NumChannels);
@@ -241,16 +238,6 @@ namespace
 					break;
 			}
 
-			if (NumChannels < 1 || NumChannels > 4)
-			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Cannot create Unreal texture from OpenPLX texture '%s': unsupported "
-						 "channel count %d."),
-					*TextureData.Name, NumChannels);
-				return false;
-			}
-
 			uint8* Destination = OutPixels.GetData() + PixelIndex * 4;
 			Destination[0] = B;
 			Destination[1] = G;
@@ -266,6 +253,9 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
 	bool bCreateRenderResource)
 {
+	if (!ValidateOpenPLXTextureData(TextureData))
+		return nullptr;
+
 	const bool bScalarTexture = Usage == EOpenPLX_TextureUsage::Scalar;
 	TArray<uint8> TexturePixels;
 	if (bScalarTexture)
