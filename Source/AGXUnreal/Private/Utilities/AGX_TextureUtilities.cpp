@@ -168,6 +168,8 @@ namespace
 		}
 
 		TArray64<uint8> SourceData;
+
+		// GetMipData is not const (which it likely should be), so we const-cast here.
 		FTextureSource& SourceTextureSource = const_cast<FTextureSource&>(Source.Source);
 		if (!SourceTextureSource.GetMipData(SourceData, 0))
 			return false;
