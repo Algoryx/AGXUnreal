@@ -282,15 +282,16 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 		return nullptr;
 
 	Texture->SRGB = Usage == EOpenPLX_TextureUsage::BaseColor;
-	Texture->NeverStream = true;
 
-#if WITH_EDITORONLY_DATA
-	Texture->MipGenSettings = TMGS_NoMipmaps;
+#if WITH_EDITOR
 	Texture->CompressionSettings = GetTextureCompressionSettings(Usage);
+	Texture->MipGenSettings = TMGS_FromTextureGroup;
 	Texture->Source.Init(
 		TextureData.Width, TextureData.Height, 1, 1, bScalarTexture ? TSF_G8 : TSF_BGRA8,
 		TexturePixels.GetData());
-#endif
+	Texture->PostEditChange();
+#else
+	Texture->NeverStream = false;
 
 	Texture->SetPlatformData(new FTexturePlatformData());
 	FTexturePlatformData* PlatformData = Texture->GetPlatformData();
@@ -304,8 +305,8 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	PlatformData->Mips.Add(Mip);
 	Mip->SizeX = TextureData.Width;
 	Mip->SizeY = TextureData.Height;
-	void* MipData = Mip->BulkData.Lock(LOCK_READ_WRITE);
-	MipData = Mip->BulkData.Realloc(TexturePixels.Num());
+	Mip->BulkData.Lock(LOCK_READ_WRITE);
+	void* MipData = Mip->BulkData.Realloc(TexturePixels.Num());
 	if (MipData == nullptr)
 	{
 		UE_LOG(
@@ -317,6 +318,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 
 	FMemory::Memcpy(MipData, TexturePixels.GetData(), TexturePixels.Num());
 	Mip->BulkData.Unlock();
+#endif
 
 	if (bCreateRenderResource)
 		Texture->UpdateResource();

@@ -410,22 +410,6 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	BatchBuildStaticMeshes(Context);
 #endif
 
-	if (Settings.bRuntimeImport)
-	{
-		// Explicitly create render resources for all Textures. This is skipped by
-		// default during Import to avoid issues with transient Textures causing
-		// assert when destroyed because the Render Thread references them.
-		// For runtime imports we know we want to use all Textures (this is not a reimport).
-		if (Context.Textures != nullptr)
-		{
-			for (const auto& [Guid, Texture] : *Context.Textures)
-			{
-				if (Texture != nullptr)
-					Texture->UpdateResource();
-			}
-		}
-	}
-
 	PostImport(SimObjects);
 	return FAGX_ImportResult(Result, Actor, &Context);
 }
