@@ -157,6 +157,8 @@ namespace
 			return true;
 		}
 
+		// Todo: We could possibly support arbitrary NumMips here, but its unclear how the data should
+		// be packed in the Destination.Source.Init farther below in that case.
 		if (Source.Source.GetNumMips() != 1)
 		{
 			UE_LOG(
