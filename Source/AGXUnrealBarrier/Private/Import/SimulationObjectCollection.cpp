@@ -372,6 +372,17 @@ const TArray<FOpenPLX_Output>& FSimulationObjectCollection::GetOpenPLXOutputs() 
 	return PLXOutputs;
 }
 
+TMap<FGuid, FOpenPLXMaterialBarrier>& FSimulationObjectCollection::GetPLXMaterialOverrides()
+{
+	return PLXMaterialOverrides;
+}
+
+const TMap<FGuid, FOpenPLXMaterialBarrier>& FSimulationObjectCollection::GetPLXMaterialOverrides()
+	const
+{
+	return PLXMaterialOverrides;
+}
+
 TArray<FCableBarrier>& FSimulationObjectCollection::GetCables()
 {
 	return Cables;

@@ -8,9 +8,11 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "Cable/CableBarrier.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -23,6 +25,7 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/AllocationUtils.h"
+#include "agxOpenPLX/OpenPlxToAgxVisualsMapper.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -66,6 +69,9 @@
 
 // Unreal Engine inludes.
 #include "Misc/Paths.h"
+
+// Standard library includes.
+#include <memory>
 
 namespace
 {
@@ -619,6 +625,33 @@ namespace
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
 	}
+
+	void ReadOpenPLXMaterials(
+		agxopenplx::LoadResult& Result, FSimulationObjectCollection& OutSimObjects)
+	{
+		auto VisualsMapper = Result.toAgxVisualsMapper();
+		if (VisualsMapper == nullptr)
+			return;
+
+		TMap<FGuid, FOpenPLXMaterialBarrier>& MaterialOverrides =
+			OutSimObjects.GetPLXMaterialOverrides();
+		const auto& MappedMaterials = VisualsMapper->getMappedMaterials();
+		MaterialOverrides.Reserve(
+			MaterialOverrides.Num() + static_cast<int32>(MappedMaterials.size()));
+
+		for (const auto& Pair : MappedMaterials)
+		{
+			const std::shared_ptr<openplx::Physics::Optics::Material>& OpenPLXMaterial = Pair.first;
+			const agxCollide::RenderMaterialRef& RenderMaterial = Pair.second;
+			if (OpenPLXMaterial == nullptr || RenderMaterial == nullptr)
+				continue;
+
+			const FGuid RenderMaterialGuid = Convert(RenderMaterial->getUuid());
+			MaterialOverrides.Add(
+				RenderMaterialGuid,
+				FOpenPLXMaterialBarrier(std::make_shared<FOpenPLXMaterialRef>(OpenPLXMaterial)));
+		}
+	}
 }
 
 bool FAGXSimObjectsReader::ReadAGXArchive(
@@ -726,6 +759,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	agxSDK::AssemblyRef AssemblyAGX = Result.assembly();
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, OutSimObjects);
+	::ReadOpenPLXMaterials(Result, OutSimObjects);
 
 	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());

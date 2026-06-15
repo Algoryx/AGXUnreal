@@ -6,6 +6,7 @@
 // For some reason, these could not be forward declared without compiler error.
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
@@ -19,6 +20,7 @@
 
 // Unreal Engine includes.
 #include "Containers/Array.h"
+#include "Containers/Map.h"
 
 // Standard library includes.
 #include <memory>
@@ -135,6 +137,9 @@ public:
 	TArray<FOpenPLX_Output>& GetOpenPLXOutputs();
 	const TArray<FOpenPLX_Output>& GetOpenPLXOutputs() const;
 
+	TMap<FGuid, FOpenPLXMaterialBarrier>& GetPLXMaterialOverrides();
+	const TMap<FGuid, FOpenPLXMaterialBarrier>& GetPLXMaterialOverrides() const;
+
 	TArray<FCableBarrier>& GetCables();
 	const TArray<FCableBarrier>& GetCables() const;
 
@@ -179,6 +184,7 @@ private:
 
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;
+	TMap<FGuid, FOpenPLXMaterialBarrier> PLXMaterialOverrides;
 
 	FString ModelName;
 };

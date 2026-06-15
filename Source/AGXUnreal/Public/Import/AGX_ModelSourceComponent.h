@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "AGX Reimport Model Info")
 	bool bIgnoreDisabledTrimeshes = false;
 
+	UPROPERTY(EditAnywhere, Category = "AGX Reimport Model Info")
+	bool bAdditionalyImportUnmodifiedTextures = false;
+
 	// The reason why these Guid maps are stored in this Component is
 	// that we cannot store an ImportGuid into Static Mesh Components as we do for any imported
 	// AGXUnreal Components.

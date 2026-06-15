@@ -51,7 +51,8 @@ namespace AGX_ImportDialog_helpers
 
 void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 {
-	FileTypes = ".agx"
+	FileTypes =
+		".agx"
 		";*.openplx"
 		";*.urdf";
 
@@ -82,12 +83,6 @@ void SAGX_ImportDialog::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				CreateAGXFileGui()
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(5.0f, 0.0f))
-			.AutoHeight()
-			[
-				CreatePLXFileGui()
 			]
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(5.0f, 0.0f))
@@ -139,6 +134,7 @@ TOptional<FAGX_ImportSettings> SAGX_ImportDialog::ToImportSettings()
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
 	Settings.ImportType = ImportType;
 	Settings.bOpenBlueprintEditorAfterImport = true;
+	Settings.bAdditionalyImportUnmodifiedTextures = bAdditionalyImportUnmodifiedTextures;
 	Settings.UrdfPackagePath = UrdfPackagePath;
 	Settings.UrdfInitialJoints = AGX_ImportDialog_helpers::JointsStrToArray(UrdfInitJoints);
 	return Settings;
@@ -151,6 +147,33 @@ TSharedRef<SBorder> SAGX_ImportDialog::CreateSettingsGui()
 		return MakeShared<SBorder>();
 	}
 
+	TSharedRef<SVerticalBox> Settings = SNew(SVerticalBox);
+	Settings->AddSlot()
+		.Padding(FMargin(10.0f, 10.0f, 10.f, 10.f))
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("SettingsText", "Settings"))
+			.Font(FAGX_SlateUtilities::CreateFont(12))
+		];
+
+	Settings->AddSlot()
+		.Padding(FMargin(50.0f, 10.0f, 10.f, 10.f))
+		.AutoHeight()
+		[
+			CreateIgnoreDisabledTrimeshGui()
+		];
+
+	if (ImportType == EAGX_ImportType::Plx)
+	{
+		Settings->AddSlot()
+			.Padding(FMargin(50.0f, 0.0f, 10.f, 10.f))
+			.AutoHeight()
+			[
+				CreateAdditionalImportUnmodifiedTexturesGui()
+			];
+	}
+
 	// clang-format off
 	return SNew(SBorder)
 		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f))
@@ -158,21 +181,7 @@ TSharedRef<SBorder> SAGX_ImportDialog::CreateSettingsGui()
 		.Padding(FMargin(5.0f, 5.0f))
 		.Content()
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(10.0f, 10.0f, 10.f, 10.f))
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("SettingsText", "Settings"))
-				.Font(FAGX_SlateUtilities::CreateFont(12))
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(50.0f, 10.0f, 10.f, 10.f))
-			.AutoHeight()
-			[
-				CreateIgnoreDisabledTrimeshGui()
-			]
+			Settings
 		];
 	// clang-format on
 }

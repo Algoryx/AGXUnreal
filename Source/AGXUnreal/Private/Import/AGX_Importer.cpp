@@ -33,6 +33,7 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -62,6 +63,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/Package.h"
@@ -355,6 +357,8 @@ FAGX_Importer::FAGX_Importer()
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
+	Context.Textures = MakeUnique<TMap<FGuid, UTexture2D*>>();
+	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
 	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.MSThresholds = MakeUnique<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>>();
@@ -388,6 +392,9 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	FSimulationObjectCollection SimObjects;
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
+
+	if (Settings.ImportType == EAGX_ImportType::Plx)
+		*Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
 
 	Context.RootModelName = SimObjects.GetModelName();
 
@@ -463,6 +470,8 @@ EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
 	Component->SourceFilePath = Context.Settings->SourceFilePath;
 	Component->bRuntimeImport = Context.Settings->bRuntimeImport;
 	Component->bIgnoreDisabledTrimeshes = Context.Settings->bIgnoreDisabledTrimeshes;
+	Component->bAdditionalyImportUnmodifiedTextures =
+		Context.Settings->bAdditionalyImportUnmodifiedTextures;
 	Component->Rename(*Name);
 
 	/*
@@ -885,5 +894,14 @@ void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
 		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
+
+		if (Context.Settings->bRuntimeImport)
+		{
+			// Todo: This is a workaround for runtime imported materials using Textures.
+			// For some reason, it seems Mips are not generated/selected correctly
+			// for textures that have NeverStream false when doing runtime imports.
+			for (auto [FGuid, Texture] : *Context.Textures)
+				Texture->NeverStream = true;
+		}
 	}
 }
