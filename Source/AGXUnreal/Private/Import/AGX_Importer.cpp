@@ -894,5 +894,14 @@ void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
 		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
+
+		if (Context.Settings->bRuntimeImport)
+		{
+			// Todo: This is a workaround for runtime imported materials using Textures.
+			// For some reason, it seems Mips are not generated/selected correctly
+			// for textures that have NeverStream false when doing runtime imports.
+			for (auto [FGuid, Texture] : *Context.Textures)
+				Texture->NeverStream = true;
+		}
 	}
 }
