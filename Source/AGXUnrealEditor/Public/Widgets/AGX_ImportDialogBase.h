@@ -10,7 +10,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SBorder.h"
 
-class SAGX_ImportDialogBase : public SCompoundWidget
+class AGXUNREALEDITOR_API SAGX_ImportDialogBase : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SAGX_ImportDialogBase)

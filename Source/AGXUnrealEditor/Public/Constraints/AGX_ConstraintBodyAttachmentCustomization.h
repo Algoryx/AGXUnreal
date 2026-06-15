@@ -10,7 +10,7 @@
 #include "IPropertyTypeCustomization.h"
 #include "PropertyHandle.h"
 
-class FAGX_ConstraintBodyAttachmentCustomization : public IPropertyTypeCustomization
+class AGXUNREALEDITOR_API FAGX_ConstraintBodyAttachmentCustomization : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();

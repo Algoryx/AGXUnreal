@@ -11,7 +11,7 @@
  * scientific notation for very small and very large, in magnitude, values as well as support for
  * infinity.
  */
-class FAGX_RealDetails : public IPropertyTypeCustomization
+class AGXUNREALEDITOR_API FAGX_RealDetails : public IPropertyTypeCustomization
 {
 public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
