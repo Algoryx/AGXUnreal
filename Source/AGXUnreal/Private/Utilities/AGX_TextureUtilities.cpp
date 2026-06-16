@@ -157,6 +157,8 @@ namespace
 			return true;
 		}
 
+		// Todo: We could possibly support arbitrary NumMips here, but its unclear how the data should
+		// be packed in the Destination.Source.Init farther below in that case.
 		if (Source.Source.GetNumMips() != 1)
 		{
 			UE_LOG(
@@ -168,6 +170,8 @@ namespace
 		}
 
 		TArray64<uint8> SourceData;
+
+		// GetMipData is not const (which it likely should be), so we const-cast here.
 		FTextureSource& SourceTextureSource = const_cast<FTextureSource&>(Source.Source);
 		if (!SourceTextureSource.GetMipData(SourceData, 0))
 			return false;
@@ -248,5 +252,10 @@ bool AGX_TextureUtilities::AreTexturesEqual(UTexture2D* TextureA, UTexture2D* Te
 	}
 #endif
 
+#if !WITH_EDITOR
 	return ArePlatformDataEqual(TextureA->GetPlatformData(), TextureB->GetPlatformData());
+#else
+	// In-editor textues may not have Platform data yet, for example for textures just imported.
+	return true; 
+#endif
 }

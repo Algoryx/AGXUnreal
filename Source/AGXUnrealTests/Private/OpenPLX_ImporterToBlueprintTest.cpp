@@ -147,19 +147,6 @@ namespace OpenPLX_ImporterToBlueprintTest_helpers
 		return bDeleted;
 	}
 
-	UAGX_ModelSourceComponent* GetModelSource(UBlueprint& Blueprint)
-	{
-		TArray<UActorComponent*> Components =
-			FAGX_BlueprintUtilities::GetTemplateComponents(Blueprint, EAGX_Inherited::Include);
-		for (UActorComponent* Component : Components)
-		{
-			if (UAGX_ModelSourceComponent* ModelSource = Cast<UAGX_ModelSourceComponent>(Component))
-				return ModelSource;
-		}
-
-		return nullptr;
-	}
-
 	void AddCommonOpenPLXImportCommands(FOpenPLXImportState& State, FAutomationTestBase& Test);
 	void AddCommonOpenPLXCleanupCommands(FOpenPLXImportState& State, FAutomationTestBase& Test);
 }
@@ -214,7 +201,9 @@ bool FCheckOpenPLXBlueprintImportedCommand::Update()
 		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
 	Test.TestTrue(TEXT("OpenPLX import created component templates"), Components.Num() > 1);
 
-	UAGX_ModelSourceComponent* ModelSource = GetModelSource(*State.Blueprint);
+	UAGX_ModelSourceComponent* ModelSource =
+		AgxAutomationCommon::GetByName<UAGX_ModelSourceComponent>(
+			Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("AGX_ModelSource")));
 	Test.TestNotNull(TEXT("AGX_ModelSource"), ModelSource);
 	if (ModelSource == nullptr)
 		return true;
@@ -259,8 +248,15 @@ bool FClearOpenPLXBlueprintImportCommand::Update()
 
 	if (State.CopiedFilePath.IsEmpty())
 	{
-		if (UAGX_ModelSourceComponent* ModelSource = GetModelSource(*State.Blueprint))
+		TArray<UActorComponent*> Components = FAGX_BlueprintUtilities::GetTemplateComponents(
+			*State.Blueprint, EAGX_Inherited::Include);
+		if (UAGX_ModelSourceComponent* ModelSource =
+				AgxAutomationCommon::GetByName<UAGX_ModelSourceComponent>(
+					Components,
+					*FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("AGX_ModelSource"))))
+		{
 			State.CopiedFilePath = ModelSource->FilePath;
+		}
 	}
 
 	if (!State.CopiedFilePath.IsEmpty())
@@ -612,8 +608,8 @@ public:
 		State.OpenPLXFile = TEXT("OpenPLX/agx_icon_masked/agx_icon_masked.openplx");
 		State.ExpectedCopiedOpenPLXFiles = {
 			TEXT("agx_icon_masked.openplx"), TEXT("agx_icon.obj"),
-			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"), TEXT("T_agx_icon_ORM.png"),
-			TEXT("T_agx_icon_Mask.png")};
+			TEXT("T_agx_icon_D.png"),		 TEXT("T_agx_icon_N.png"),
+			TEXT("T_agx_icon_ORM.png"),		 TEXT("T_agx_icon_Mask.png")};
 		State.ExpectedImportedAssetsExcludingBaseBP = {
 			TEXT("Blueprint"),
 			TEXT("RenderMaterial"),

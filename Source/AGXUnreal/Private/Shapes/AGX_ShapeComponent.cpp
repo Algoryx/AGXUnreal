@@ -12,6 +12,7 @@
 #include "AGX_Simulation.h"
 #include "Contacts/AGX_ShapeContact.h"
 #include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/ShapeMaterialBarrier.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
@@ -315,16 +316,24 @@ namespace AGX_ShapeComponent_helpers
 	{
 		check(Context.Outer != nullptr);
 		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
-		const bool bCreateTextureRenderResources =
-			false; // These are set up later by the Importer calling us.
+		const bool bCreateTextureRenderResources = Context.Settings->bRuntimeImport;
+		TSet<FGuid> ExistingTextureGuids;
+		if (Context.Textures != nullptr)
+		{
+			for (const auto& TextureEntry : *Context.Textures)
+				ExistingTextureGuids.Add(TextureEntry.Key);
+		}
+
 		UMaterialInterface* Material = AGX_MeshUtilities::CreateRenderMaterial(
 			Barrier, Base, *Context.Outer, Context.Textures.Get(), bCreateTextureRenderResources);
 		if (Context.Textures != nullptr)
 		{
 			for (const auto& [Guid, Texture] : *Context.Textures)
 			{
-				if (Texture != nullptr)
+				if (Texture != nullptr && !ExistingTextureGuids.Contains(Guid))
+				{
 					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
+				}
 			}
 		}
 		return Material;

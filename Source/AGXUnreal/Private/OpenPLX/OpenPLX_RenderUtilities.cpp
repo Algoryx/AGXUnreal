@@ -13,6 +13,9 @@
 #include "PixelFormat.h"
 #include "TextureResource.h"
 
+// Standard library includes.
+#include <limits>
+
 namespace
 {
 	TextureCompressionSettings GetTextureCompressionSettings(EOpenPLX_TextureUsage Usage)
@@ -35,6 +38,32 @@ namespace
 		return TC_Default;
 	}
 
+	bool GetTextureElementCounts(
+		const FOpenPLXTextureData& TextureData, int32 ElementsPerPixel, int32& OutNumPixels,
+		int32& OutNumElements)
+	{
+		if (ElementsPerPixel < 1)
+			return false;
+
+		const int64 NumPixels =
+			static_cast<int64>(TextureData.Width) * static_cast<int64>(TextureData.Height);
+		const int64 NumElements = NumPixels * ElementsPerPixel;
+		constexpr int64 MaxTArrayElements = static_cast<int64>(std::numeric_limits<int32>::max());
+		if (NumElements > MaxTArrayElements)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': size=%dx%d with %d "
+					 "elements per pixel exceeds the maximum number of elements in a TArray."),
+				*TextureData.Name, TextureData.Width, TextureData.Height, ElementsPerPixel);
+			return false;
+		}
+
+		OutNumPixels = static_cast<int32>(NumPixels);
+		OutNumElements = static_cast<int32>(NumElements);
+		return true;
+	}
+
 	bool ValidateOpenPLXTextureData(const FOpenPLXTextureData& TextureData)
 	{
 		if (TextureData.Width <= 0 || TextureData.Height <= 0 || TextureData.NumChannels <= 0 ||
@@ -48,15 +77,21 @@ namespace
 			return false;
 		}
 
-		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
-		const int64 ExpectedNumBytes = NumPixels * TextureData.NumChannels;
-		if (TextureData.Pixels.Num() != ExpectedNumBytes)
+		int32 NumPixels = 0;
+		int32 ExpectedNumElements = 0;
+		if (!GetTextureElementCounts(
+				TextureData, TextureData.NumChannels, NumPixels, ExpectedNumElements))
+		{
+			return false;
+		}
+
+		if (TextureData.Pixels.Num() != ExpectedNumElements)
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': got %d bytes, "
-					 "expected %lld."),
-				*TextureData.Name, TextureData.Pixels.Num(), ExpectedNumBytes);
+				TEXT("Cannot create Unreal texture from OpenPLX texture '%s': got %d elements, "
+					 "expected %d."),
+				*TextureData.Name, TextureData.Pixels.Num(), ExpectedNumElements);
 			return false;
 		}
 
@@ -85,9 +120,6 @@ namespace
 		const FOpenPLXTextureData& TextureData, TArray<int32>& OutSourceChannels,
 		bool bApplySwizzle)
 	{
-		if (!ValidateOpenPLXTextureData(TextureData))
-			return false;
-
 		if (!bApplySwizzle || TextureData.Swizzle.IsEmpty())
 		{
 			OutSourceChannels.SetNumUninitialized(TextureData.NumChannels);
@@ -133,9 +165,13 @@ namespace
 		if (!GetTextureSourceChannels(TextureData, SourceChannels, true))
 			return false;
 
-		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
-		OutPixels.SetNumUninitialized(NumPixels);
-		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+		int32 NumPixels = 0;
+		int32 NumOutputElements = 0;
+		if (!GetTextureElementCounts(TextureData, 1, NumPixels, NumOutputElements))
+			return false;
+
+		OutPixels.SetNumUninitialized(NumOutputElements);
+		for (int32 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
 			const uint8* Source =
 				TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
@@ -165,9 +201,13 @@ namespace
 			return false;
 		}
 
-		const int64 NumPixels = static_cast<int64>(TextureData.Width) * TextureData.Height;
-		OutPixels.SetNumUninitialized(NumPixels * 4);
-		for (int64 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+		int32 NumPixels = 0;
+		int32 NumOutputElements = 0;
+		if (!GetTextureElementCounts(TextureData, 4, NumPixels, NumOutputElements))
+			return false;
+
+		OutPixels.SetNumUninitialized(NumOutputElements);
+		for (int32 PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
 		{
 			const uint8* Source =
 				TextureData.Pixels.GetData() + PixelIndex * TextureData.NumChannels;
@@ -198,16 +238,6 @@ namespace
 					break;
 			}
 
-			if (NumChannels < 1 || NumChannels > 4)
-			{
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT("Cannot create Unreal texture from OpenPLX texture '%s': unsupported "
-						 "channel count %d."),
-					*TextureData.Name, NumChannels);
-				return false;
-			}
-
 			uint8* Destination = OutPixels.GetData() + PixelIndex * 4;
 			Destination[0] = B;
 			Destination[1] = G;
@@ -223,6 +253,9 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
 	bool bCreateRenderResource)
 {
+	if (!ValidateOpenPLXTextureData(TextureData))
+		return nullptr;
+
 	const bool bScalarTexture = Usage == EOpenPLX_TextureUsage::Scalar;
 	TArray<uint8> TexturePixels;
 	if (bScalarTexture)
@@ -249,15 +282,15 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 		return nullptr;
 
 	Texture->SRGB = Usage == EOpenPLX_TextureUsage::BaseColor;
-	Texture->NeverStream = true;
 
-#if WITH_EDITORONLY_DATA
-	Texture->MipGenSettings = TMGS_NoMipmaps;
+#if WITH_EDITOR
 	Texture->CompressionSettings = GetTextureCompressionSettings(Usage);
+	Texture->MipGenSettings = TMGS_FromTextureGroup;
 	Texture->Source.Init(
 		TextureData.Width, TextureData.Height, 1, 1, bScalarTexture ? TSF_G8 : TSF_BGRA8,
 		TexturePixels.GetData());
-#endif
+#else
+	Texture->NeverStream = false;
 
 	Texture->SetPlatformData(new FTexturePlatformData());
 	FTexturePlatformData* PlatformData = Texture->GetPlatformData();
@@ -271,8 +304,8 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 	PlatformData->Mips.Add(Mip);
 	Mip->SizeX = TextureData.Width;
 	Mip->SizeY = TextureData.Height;
-	void* MipData = Mip->BulkData.Lock(LOCK_READ_WRITE);
-	MipData = Mip->BulkData.Realloc(TexturePixels.Num());
+	Mip->BulkData.Lock(LOCK_READ_WRITE);
+	void* MipData = Mip->BulkData.Realloc(TexturePixels.Num());
 	if (MipData == nullptr)
 	{
 		UE_LOG(
@@ -284,6 +317,7 @@ UTexture2D* FOpenPLX_RenderUtilities::CreateTexture(
 
 	FMemory::Memcpy(MipData, TexturePixels.GetData(), TexturePixels.Num());
 	Mip->BulkData.Unlock();
+#endif
 
 	if (bCreateRenderResource)
 		Texture->UpdateResource();

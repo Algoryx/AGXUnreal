@@ -418,22 +418,6 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	BatchBuildStaticMeshes(Context);
 #endif
 
-	if (Settings.bRuntimeImport)
-	{
-		// Explicitly create render resources for all Textures. This is skipped by
-		// default during Import to avoid issues with transient Textures causing
-		// assert when destroyed because the Render Thread references them.
-		// For runtime imports we know we want to use all Textures (this is not a reimport).
-		if (Context.Textures != nullptr)
-		{
-			for (const auto& [Guid, Texture] : *Context.Textures)
-			{
-				if (Texture != nullptr)
-					Texture->UpdateResource();
-			}
-		}
-	}
-
 	PostImport(SimObjects);
 	return FAGX_ImportResult(Result, Actor, &Context);
 }
@@ -930,5 +914,14 @@ void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
 		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
+
+		if (Context.Settings->bRuntimeImport)
+		{
+			// Todo: This is a workaround for runtime imported materials using Textures.
+			// For some reason, it seems Mips are not generated/selected correctly
+			// for textures that have NeverStream false when doing runtime imports.
+			for (auto [FGuid, Texture] : *Context.Textures)
+				Texture->NeverStream = true;
+		}
 	}
 }

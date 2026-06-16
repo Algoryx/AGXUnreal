@@ -105,11 +105,6 @@ namespace
 		Material.BasePropertyOverrides.BlendMode = BLEND_Masked;
 	}
 
-	void SetAGXRenderMaterialParameters(
-		UMaterialInstanceDynamic& Material, const FAGX_RenderMaterial& MaterialBarrier)
-	{
-	}
-
 	UMaterialInterface* CreateRenderMaterialRuntime(
 		const FAGX_RenderMaterial& MaterialBarrier, UMaterial& Base, UObject& Owner)
 	{
