@@ -738,7 +738,6 @@ bool UAGX_Simulation::GetEnableAMOR()
 void UAGX_Simulation::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	CreateNative();
 }
 
 void UAGX_Simulation::Deinitialize()
