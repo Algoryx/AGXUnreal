@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGXBarrierFactories.h"
+#include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
@@ -18,6 +19,9 @@
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
+
+// Standard libary includes.
+#include <memory>
 
 namespace MaterialLibraryBarrier_helpers
 {

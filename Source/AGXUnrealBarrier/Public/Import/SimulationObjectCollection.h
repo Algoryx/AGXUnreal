@@ -46,6 +46,7 @@ class FTrackBarrier;
 struct FCableBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
+struct FTerrainWheelBarrier;
 
 struct AGXUNREALBARRIER_API FSimulationObjectCollection
 {
@@ -125,6 +126,9 @@ public:
 	TArray<FShovelBarrier>& GetShovels();
 	const TArray<FShovelBarrier>& GetShovels() const;
 
+	TArray<FTerrainWheelBarrier>& GetTerrainWheels();
+	const TArray<FTerrainWheelBarrier>& GetTerrainWheels() const;
+
 	TArray<FTrackBarrier>& GetTracks();
 	const TArray<FTrackBarrier>& GetTracks() const;
 
@@ -180,6 +184,7 @@ private:
 	TArray<FWireBarrier> Wires;
 	TArray<FShovelBarrier> Shovels;
 	TArray<FSteeringBarrier> Steerings;
+	TArray<FTerrainWheelBarrier> TerrainWheels;
 	TArray<FTrackBarrier> Tracks;
 
 	TArray<FOpenPLX_Input> PLXInputs;

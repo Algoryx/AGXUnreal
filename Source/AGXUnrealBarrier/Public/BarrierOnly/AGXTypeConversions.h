@@ -18,6 +18,7 @@
 #include "Sensors/AGX_CustomPatternInterval.h"
 #include "Sensors/AGX_LidarEnums.h"
 #include "Terrain/AGX_ShovelEnums.h"
+#include "Terrain/AGX_TerrainWheelEnums.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/DoubleInterval.h"
 #include "Vehicle/AGX_TrackEnums.h"
@@ -52,6 +53,7 @@
 #include <agxSensor/LidarRayPatternGenerator.h>
 #include <agxSDK/ContactEventListener.h>
 #include <agxTerrain/Shovel.h>
+#include <agxTerrain/TerrainWheelSettings.h>
 #include <agxUtil/agxUtil.h>
 #include <agxVehicle/TrackInternalMergeProperties.h>
 #include <agxVehicle/TrackWheel.h>
@@ -1461,6 +1463,44 @@ inline FTwoBodyTireBarrier::DeformationMode Convert(agxModel::TwoBodyTire::Defor
 //
 // Enumerations, Terrain.
 //
+
+inline agxTerrain::TerrainWheelSettings::PressureSinkageModel Convert(
+	EAGX_TerrainWheelPressureSinkageModel Model)
+{
+	switch (Model)
+	{
+		case EAGX_TerrainWheelPressureSinkageModel::Bekker:
+			return agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER;
+		case EAGX_TerrainWheelPressureSinkageModel::Reece:
+			return agxTerrain::TerrainWheelSettings::PressureSinkageModel::REECE;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Conversion failed: Tried to convert an unknown "
+			 "EAGX_TerrainWheelPressureSinkageModel literal to an "
+			 "agxTerrain::TerrainWheelSettings::PressureSinkageModel. Returning Bekker."));
+	return agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER;
+}
+
+inline EAGX_TerrainWheelPressureSinkageModel Convert(
+	agxTerrain::TerrainWheelSettings::PressureSinkageModel Model)
+{
+	switch (Model)
+	{
+		case agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER:
+			return EAGX_TerrainWheelPressureSinkageModel::Bekker;
+		case agxTerrain::TerrainWheelSettings::PressureSinkageModel::REECE:
+			return EAGX_TerrainWheelPressureSinkageModel::Reece;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Conversion failed: Tried to convert an unknown "
+			 "agxTerrain::TerrainWheelSettings::PressureSinkageModel literal to an "
+			 "EAGX_TerrainWheelPressureSinkageModel. Returning Bekker."));
+	return EAGX_TerrainWheelPressureSinkageModel::Bekker;
+}
 
 inline EAGX_ExcavationMode Convert(agxTerrain::Shovel::ExcavationMode Mode)
 {

@@ -133,10 +133,7 @@ bool UAGX_ShapeComponent::UpdateNativeMaterial()
 		static_cast<UAGX_ShapeMaterial*>(ShapeMaterial->GetOrCreateInstance(World));
 	check(Instance);
 
-	if (ShapeMaterial != Instance)
-	{
-		ShapeMaterial = Instance;
-	}
+	ShapeMaterial = Instance;
 
 	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(World);
 	check(MaterialBarrier);

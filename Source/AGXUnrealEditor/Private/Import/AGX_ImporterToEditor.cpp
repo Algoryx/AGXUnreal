@@ -24,6 +24,8 @@
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
@@ -170,6 +172,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_SteeringParameters>)
 			return FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_TerrainWheelSettings>)
+			return FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_TrackProperties>)
 			return FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName();
@@ -708,6 +713,11 @@ namespace AGX_ImporterToEditor_helpers
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_SteeringParameters>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName())));
 
+		CollectForRemoval(
+			FAGX_EditorUtilities::FindAssets<UAGX_TerrainWheelSettings>(FPaths::Combine(
+				RootDirectory,
+				FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_TrackProperties>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName())));
 
@@ -848,6 +858,16 @@ namespace AGX_ImporterToEditor_helpers
 			for (const auto& [Guid, Sp] : *Context->SteeringParameters)
 			{
 				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
+			}
+		}
+
+		if (Context->TerrainWheelSettings != nullptr)
+		{
+			const FString AssetType =
+				FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
+			for (const auto& [Guid, Tws] : *Context->TerrainWheelSettings)
+			{
+				WriteAssetToDisk(RootDir, AssetType, *Tws, *Context);
 			}
 		}
 
@@ -1056,6 +1076,12 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context.SteeringParameters != nullptr)
 		{
 			for (auto& [Unused, Obj] : *Context.SteeringParameters)
+				DestroyIfOwnedByContextOuter(Obj);
+		}
+
+		if (Context.TerrainWheelSettings != nullptr)
+		{
+			for (auto& [Unused, Obj] : *Context.TerrainWheelSettings)
 				DestroyIfOwnedByContextOuter(Obj);
 		}
 
@@ -1638,6 +1664,17 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 		}
 	}
 
+	if (Context.TerrainWheelSettings != nullptr)
+	{
+		for (const auto& [Guid, Tws] : *Context.TerrainWheelSettings)
+		{
+			const auto A = UpdateOrCreateAsset(*Tws, Context);
+			AGX_CHECK(A != nullptr);
+			if (A == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		}
+	}
+
 	if (Context.TrackProperties != nullptr)
 	{
 		for (const auto& [Guid, Tp] : *Context.TrackProperties)
@@ -1699,6 +1736,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Constraints)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Constraints, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.TerrainWheels != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.TerrainWheels)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TerrainWheels, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else

@@ -43,8 +43,11 @@
 #include "Shapes/AGX_SphereShapeComponent.h"
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
@@ -184,6 +187,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_ConstraintComponent, T>)
 			return *Context.Constraints.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_TerrainWheelComponent, T>)
+			return *Context.TerrainWheels.Get();
+
 		if constexpr (std::is_base_of_v<UAGX_TwoBodyTireComponent, T>)
 			return *Context.Tires.Get();
 
@@ -282,7 +288,7 @@ namespace AGX_Importer_helpers
 			}
 		}
 	}
-	
+
 	void ConditionallyDisableConstraints(
 		const FSimulationObjectCollection& SimObjects, FAGX_ImportContext& Context)
 	{
@@ -346,6 +352,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.RigidBodies = MakeUnique<TMap<FGuid, UAGX_RigidBodyComponent*>>();
 	Context.Shapes = MakeUnique<TMap<FGuid, UAGX_ShapeComponent*>>();
 	Context.Constraints = MakeUnique<TMap<FGuid, UAGX_ConstraintComponent*>>();
+	Context.TerrainWheels = MakeUnique<TMap<FGuid, UAGX_TerrainWheelComponent*>>();
 	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
 	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
@@ -366,6 +373,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.ContactMaterials = MakeUnique<TMap<FGuid, UAGX_ContactMaterial*>>();
 	Context.ShovelProperties = MakeUnique<TMap<FGuid, UAGX_ShovelProperties*>>();
 	Context.SteeringParameters = MakeUnique<TMap<FGuid, UAGX_SteeringParameters*>>();
+	Context.TerrainWheelSettings = MakeUnique<TMap<FGuid, UAGX_TerrainWheelSettings*>>();
 	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
 	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
 }
@@ -730,6 +738,18 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 			T.EnterProgressFrame(
 				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *W.GetName())));
 			Res |= AddComponent<UAGX_WheelJointComponent, FConstraintBarrier>(W, *Root, OutActor);
+		}
+	}
+
+	{
+		FScopedSlowTask T(
+			(float) SimObjects.GetTerrainWheels().Num(), FText::FromString("TerrainWheels"));
+		for (const auto& Wheel : SimObjects.GetTerrainWheels())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Wheel.GetName())));
+			Res |= AddComponent<UAGX_TerrainWheelComponent, FTerrainWheelBarrier>(
+				Wheel, *Root, OutActor);
 		}
 	}
 

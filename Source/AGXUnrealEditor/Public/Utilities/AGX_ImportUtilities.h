@@ -24,6 +24,7 @@ class UAGX_ConstraintMergeSplitThresholds;
 class UAGX_ContactMaterial;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ShapeMaterial;
+class UAGX_TerrainWheelSettings;
 class UAGX_TrackInternalMergeProperties;
 class UAGX_TrackProperties;
 class UAGX_WireMergeSplitThresholds;
@@ -111,6 +112,7 @@ public:
 	static FString GetImportRenderStaticMeshDirectoryName();
 	static FString GetImportShovelPropertiesDirectoryName();
 	static FString GetImportSteeringParametersDirectoryName();
+	static FString GetImportTerrainWheelSettingsDirectoryName();
 	static FString GetImportTrackPropertiesDirectoryName();
 	static FString GetImportTrackMergePropertiesDirectoryName();
 

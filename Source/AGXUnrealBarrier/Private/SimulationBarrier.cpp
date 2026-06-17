@@ -21,6 +21,7 @@
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Tires/TireBarrier.h"
 #include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/TrackBarrier.h"
@@ -140,6 +141,13 @@ bool FSimulationBarrier::Add(FTerrainPagerBarrier& TerrainPager)
 	return NativeRef->Native->add(TerrainPager.GetNative()->Native);
 }
 
+bool FSimulationBarrier::Add(FTerrainWheelBarrier& Wheel)
+{
+	check(HasNative());
+	check(Wheel.HasNative());
+	return NativeRef->Native->add(Wheel.GetNative()->Native);
+}
+
 bool FSimulationBarrier::Add(FTireBarrier& Tire)
 {
 	check(HasNative());
@@ -236,6 +244,13 @@ bool FSimulationBarrier::Remove(FTerrainPagerBarrier& TerrainPager)
 	check(HasNative());
 	check(TerrainPager.HasNative());
 	return NativeRef->Native->remove(TerrainPager.GetNative()->Native);
+}
+
+bool FSimulationBarrier::Remove(FTerrainWheelBarrier& Wheel)
+{
+	check(HasNative());
+	check(Wheel.HasNative());
+	return NativeRef->Native->remove(Wheel.GetNative()->Native);
 }
 
 bool FSimulationBarrier::Remove(FTireBarrier& Tire)

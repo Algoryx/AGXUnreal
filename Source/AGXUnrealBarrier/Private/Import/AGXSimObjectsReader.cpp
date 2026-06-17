@@ -18,6 +18,7 @@
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -43,6 +44,7 @@
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -108,6 +110,15 @@ namespace
 					agxCollide::Capsule* Capsule {Shape->as<agxCollide::Capsule>()};
 					OutSimObjects.GetCapsuleShapes().Add(
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
+					break;
+				}
+				case agxCollide::Shape::TIRE_SHAPE:
+				{
+					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// internally by TerrainWheel and still uses type Cylinder.
+					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
+					OutSimObjects.GetCylinderShapes().Add(
+						AGXBarrierFactories::CreateCylinderShapeBarrier(Cylinder));
 					break;
 				}
 				case agxCollide::Shape::TRIMESH:
@@ -250,6 +261,20 @@ namespace
 				continue;
 			}
 			OutSimObjects.GetRigidBodies().Add(AGXBarrierFactories::CreateRigidBodyBarrier(Body));
+		}
+	}
+
+	void ReadTerrainWheels(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxTerrain::TerrainWheelPtrVector Wheels = agxTerrain::TerrainWheel::findAll(&Simulation);
+		for (agxTerrain::TerrainWheel* Wheel : Wheels)
+		{
+			if (Wheel == nullptr)
+				continue;
+
+			OutSimObjects.GetTerrainWheels().Add(
+				AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
 		}
 	}
 
@@ -618,6 +643,7 @@ namespace
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
+		ReadTerrainWheels(Simulation, OutSimObjects);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
