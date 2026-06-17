@@ -267,16 +267,14 @@ namespace
 	void ReadTerrainWheels(
 		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
 	{
-		agxTerrain::TerrainWheelPtrVector Wheels;
-
-		const auto& Assemblies = Simulation.getAssemblies();
-		for (auto Assembly : Assemblies)
+		agxTerrain::TerrainWheelPtrVector Wheels = agxTerrain::TerrainWheel::findAll(&Simulation);
+		for (agxTerrain::TerrainWheel* Wheel : Wheels)
 		{
-			if (auto Wheel = Assembly.first->asSafe<agxTerrain::TerrainWheel>())
-			{
-				OutSimObjects.GetTerrainWheels().Add(
-					AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
-			}
+			if (Wheel == nullptr)
+				continue;
+
+			OutSimObjects.GetTerrainWheels().Add(
+				AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
 		}
 	}
 
