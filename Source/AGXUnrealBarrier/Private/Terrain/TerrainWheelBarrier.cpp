@@ -79,9 +79,6 @@ void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)
 		dynamic_cast<agxCollide::Cylinder*>(Cylinder.GetNative()->NativeShape.get());
 	AGX_CHECK(CylinderAGX != nullptr);
 	NativeRef->Native = new agxTerrain::TerrainWheel(CylinderAGX);
-
-	auto Mat = Cylinder.GetNative()->NativeGeometry->getMaterial();
-	NativeRef->Native->setMaterial(Mat);
 }
 
 FGuid FTerrainWheelBarrier::GetGuid() const
