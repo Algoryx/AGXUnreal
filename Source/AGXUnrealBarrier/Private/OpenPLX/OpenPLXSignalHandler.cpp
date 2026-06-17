@@ -649,9 +649,7 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_signed_v<ValueT>)
 			return Marshalling.write_int(Field.Name, Field.Value);
 		else
-			static_assert(
-				false,
-				"InterfaceWriteFields only supports bool, floating point, and integer fields.");
+			static_assert(false, "InterfaceWriteField was called with an unsupported type.");
 	}
 
 	template <typename ValueT>
@@ -671,9 +669,7 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_signed_v<ValueT>)
 			ValueMaybe = Marshalling.read_int<ValueT>(Field.Name);
 		else
-			static_assert(
-				false,
-				"InterfaceWriteFields only supports bool, floating point, and integer fields.");
+			static_assert(false, "InterfaceReadField was called with an unsupported type.");
 
 		if (!ValueMaybe)
 		{
