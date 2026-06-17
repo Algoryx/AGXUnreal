@@ -452,7 +452,7 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 
 	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
 	{
-		LogTypeMismatchWarning("SendVectorInterface", Input.Name.ToString(), "Input");
+		LogTypeMismatchWarning("SendVector2Interface", Input.Name.ToString(), "Input");
 		return false;
 	}
 
