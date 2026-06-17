@@ -17,14 +17,14 @@
 namespace
 {
 	void DrawTerrainWheelPrimitive(
-		const FTransform& TerrainWheelTransform, float Radius, float Wdith, const FSceneView* View,
+		const FTransform& TerrainWheelTransform, float Radius, float Width, const FSceneView* View,
 		FPrimitiveDrawInterface* PDI, FColor Color)
 	{
-		if (Radius <= 0.f)
+		if (Radius <= SMALL_NUMBER || Width <= SMALL_NUMBER)
 			return;
 
 		constexpr int32 NUM_SIDES {64};
-		const float OuterCylinderHalfHeight = 0.5f * Wdith;
+		const float OuterCylinderHalfHeight = 0.5f * Width;
 
 		DrawWireCylinder(
 			PDI, TerrainWheelTransform.GetLocation(), TerrainWheelTransform.GetUnitAxis(EAxis::Z),
