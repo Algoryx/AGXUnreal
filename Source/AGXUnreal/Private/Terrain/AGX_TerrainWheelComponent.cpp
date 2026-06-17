@@ -390,8 +390,11 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	if (Body == nullptr)
 	{
 		UE_LOG(
-			LogAGX, Warning, TEXT("Invalid Rigid Body selected for '%s' in '%s'."), *GetName(),
-			*GetNameSafe(GetOwner()));
+			LogAGX, Warning,
+			TEXT("Terrain Wheel '%s' in '%s' got invalid Rigid Body Reference '%s' with owner "
+				 "'%s'."),
+			*GetName(), *GetNameSafe(GetOwner()), *RigidBody.Name.ToString(),
+			*GetNameSafe(RigidBody.LocalScope));
 		ShowFailNotification();
 		return;
 	}
@@ -415,8 +418,9 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get Rigid Body Barrier for RigidBody in '%s' in '%s'."), *GetName(),
-			*GetNameSafe(GetOwner()));
+			TEXT("Terrain Wheel '%s' in '%s' was unable to get Rigid Body Barrier for Rigid Body "
+				 "'%s' with owner '%s'."),
+			*GetName(), *GetNameSafe(GetOwner()), *Body->GetName(), *GetNameSafe(Body->GetOwner()));
 		ShowFailNotification();
 		return;
 	}
@@ -427,9 +431,10 @@ void UAGX_TerrainWheelComponent::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to get Cylinder Shape Barrier from Cylinder in Body selected in '%s' in "
-				 "'%s'."),
-			*GetName(), *GetNameSafe(GetOwner()));
+			TEXT("Terrain Wheel '%s' in '%s' was unable to get Cylinder Shape Barrier for Cylinder "
+				 "'%s' with owner '%s'."),
+			*GetName(), *GetNameSafe(GetOwner()), *Cylinders[0]->GetName(),
+			*GetNameSafe(Cylinders[0]->GetOwner()));
 		ShowFailNotification();
 		return;
 	}
