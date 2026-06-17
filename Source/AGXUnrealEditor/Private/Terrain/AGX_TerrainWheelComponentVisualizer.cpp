@@ -62,7 +62,7 @@ namespace
 
 		auto Cylinder = Cylinders[0];
 		const FTransform Transform(Cylinder->GetComponentTransform());
-
+		// TODO Support scaling in the Component hierarchy.
 		DrawTerrainWheelPrimitive(
 			Transform, static_cast<float>(Cylinder->GetRadius()),
 			static_cast<float>(Cylinder->GetHeight()), View, PDI, TerrainWheelPrimitiveColor);
