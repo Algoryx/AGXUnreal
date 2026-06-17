@@ -452,11 +452,11 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 
 	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
 	{
-		LogTypeMismatchWarning("SendVector", Input.Name.ToString(), "Input");
+		LogTypeMismatchWarning("SendVectorInterface", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
