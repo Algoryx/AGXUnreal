@@ -76,7 +76,7 @@ public:
 	bool IsTerrainDisplacementEnabled() const;
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
-	bool Visible {true};
+	bool bVisible {true};
 
 	/*
 	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.

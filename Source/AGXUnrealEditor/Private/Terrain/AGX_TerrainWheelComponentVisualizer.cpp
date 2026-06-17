@@ -74,7 +74,7 @@ void FAGX_TerrainWheelComponentVisualizer::DrawVisualization(
 {
 	const UAGX_TerrainWheelComponent* TerrainWheel =
 		Cast<const UAGX_TerrainWheelComponent>(Component);
-	if (TerrainWheel == nullptr || TerrainWheel->Visible == false)
+	if (TerrainWheel == nullptr || TerrainWheel->bVisible == false)
 		return;
 
 	DrawTerrainWheel(TerrainWheel, View, PDI);
