@@ -21,8 +21,6 @@
 #include "Vehicle/AGX_SteeringComponent.h"
 
 // Unreal Engine includes.
-#include "NiagaraDebuggerCommon.h"
-#include "NiagaraShared.h"
 #include "Misc/Paths.h"
 
 UOpenPLX_SignalHandlerComponent::UOpenPLX_SignalHandlerComponent()
@@ -443,7 +441,14 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Signal Handler Component '%s' tried to send a Vector2 to '%s' through "
+				 "the Control Interface but the Signal Handler has not been initialized."),
+			*GetName(), *Input.Alias.ToString());
 		return false;
+	}
 
 	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
 	{
