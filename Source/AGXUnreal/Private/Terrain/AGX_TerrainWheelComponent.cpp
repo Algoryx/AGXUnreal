@@ -343,6 +343,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
 }
+
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
