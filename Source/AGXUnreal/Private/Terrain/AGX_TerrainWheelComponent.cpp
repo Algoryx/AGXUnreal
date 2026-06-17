@@ -393,7 +393,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 			TEXT("Terrain Wheel '%s' in '%s' got invalid Rigid Body Reference '%s' with owner "
 				 "'%s'."),
 			*GetName(), *GetNameSafe(GetOwner()), *RigidBody.Name.ToString(),
-			*GetNameSafe(RigidBody.LocalScope));
+			*GetNameSafe(RigidBody.GetScope()));
 		ShowFailNotification();
 		return;
 	}
