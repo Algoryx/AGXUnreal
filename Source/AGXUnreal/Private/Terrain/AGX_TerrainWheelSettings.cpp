@@ -14,6 +14,7 @@
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+#include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace AGX_TerrainWheelSettings_helpers
