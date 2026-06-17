@@ -16,6 +16,12 @@
 struct FAGX_ImportContext;
 class UAGX_TerrainWheelSettings;
 
+/**
+ * The Terrain Wheel Component is used to model the interaction between a rolling wheel and a
+ * Terrain. The Terrain Wheel computes terramechanics quantities such as slip, sinkage, normal
+ * pressure, shear stress and terrain displacement. This makes it suitable for off-road wheels where
+ * the terrain deformation and soil response are important parts of the simulation.
+ */
 UCLASS(ClassGroup = "AGX_Terrain", meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_TerrainWheelComponent : public UActorComponent, public IAGX_NativeOwner
 {
