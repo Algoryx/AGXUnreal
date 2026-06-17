@@ -222,8 +222,7 @@ void UAGX_TerrainWheelComponent::EndPlay(const EEndPlayReason::Type Reason)
 	{
 		// Another UAGX_TerrainWheelComponent will inherit this one's Native, so don't wreck it.
 		// The call to NativeBarrier.ReleaseNative below is safe because the AGX Dynamics
-		// Simulation will retain a reference counted pointer to the AGX Dynamics Observer
-		// Frame.
+		// Simulation will retain a reference counted pointer to the AGX Dynamics object.
 	}
 	else if (
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
@@ -292,8 +291,7 @@ FTerrainWheelBarrier* UAGX_TerrainWheelComponent::GetOrCreateNative()
 			UE_LOG(
 				LogAGX, Error,
 				TEXT("A request for the AGX Dynamics instance for TerrainWheel '%s' in '%s' was "
-					 "made "
-					 "but we are in the middle of a Blueprint Reconstruction and the requested "
+					 "made but we are in the middle of a Blueprint Reconstruction and the requested "
 					 "instance has not yet been restored. The instance cannot be returned, "
 					 "which may lead to incorrect scene configuration."),
 				*GetName(), *GetLabelSafe(GetOwner()));
@@ -345,6 +343,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
 }
+
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
