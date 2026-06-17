@@ -4030,7 +4030,7 @@ bool FCheckTerrainWheelImportedCommand::Update()
 
 	// 1 SceneRoot, 2 Body, 1 Cylinder, 1 Box, 1 TerrainWheel, 1 ModelSource, 1
 	// ContactMaterialRegistrar.
-	Test.TestTrue(TEXT("Number of imported Components"), Components.Num() == 8);
+	Test.TestEqual(TEXT("Number of imported Components"), Components.Num(), 8);
 
 	UAGX_RigidBodyComponent* Body = GetByName<UAGX_RigidBodyComponent>(
 		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Body")));
