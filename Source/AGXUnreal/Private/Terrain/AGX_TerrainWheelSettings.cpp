@@ -32,97 +32,84 @@ namespace AGX_TerrainWheelSettings_helpers
 
 void UAGX_TerrainWheelSettings::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		SlipRatioVxAngularEquivalentThreshold, InThreshold,
-		SetSlipRatioVxAngularEquivalentThreshold);
+	AGX_ASSET_SETTER(SlipRatioVxAngularEquivalentThreshold, InThreshold);
 }
 
 double UAGX_TerrainWheelSettings::GetSlipRatioVxAngularEquivalentThreshold() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		SlipRatioVxAngularEquivalentThreshold, GetSlipRatioVxAngularEquivalentThreshold);
+	AGX_ASSET_GETTER(SlipRatioVxAngularEquivalentThreshold);
 }
 
 void UAGX_TerrainWheelSettings::SetSlipRatioOmegaYThreshold(double InThreshold)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		SlipRatioOmegaYThreshold, InThreshold, SetSlipRatioOmegaYThreshold);
+	AGX_ASSET_SETTER(SlipRatioOmegaYThreshold, InThreshold);
 }
 
 double UAGX_TerrainWheelSettings::GetSlipRatioOmegaYThreshold() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SlipRatioOmegaYThreshold, GetSlipRatioOmegaYThreshold);
+	AGX_ASSET_GETTER(SlipRatioOmegaYThreshold);
 }
 
 void UAGX_TerrainWheelSettings::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		SlipRatioSmoothingAngularSpeed, InSpeed, SetSlipRatioSmoothingAngularSpeed);
+	AGX_ASSET_SETTER(SlipRatioSmoothingAngularSpeed, InSpeed);
 }
 
 double UAGX_TerrainWheelSettings::GetSlipRatioSmoothingAngularSpeed() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		SlipRatioSmoothingAngularSpeed, GetSlipRatioSmoothingAngularSpeed);
+	AGX_ASSET_GETTER(SlipRatioSmoothingAngularSpeed);
 }
 
 void UAGX_TerrainWheelSettings::SetAngularIntegrationStep(double InStep)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(AngularIntegrationStep, InStep, SetAngularIntegrationStep);
+	AGX_ASSET_SETTER(AngularIntegrationStep, InStep);
 }
 
 double UAGX_TerrainWheelSettings::GetAngularIntegrationStep() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(AngularIntegrationStep, GetAngularIntegrationStep);
+	AGX_ASSET_GETTER(AngularIntegrationStep);
 }
 
 void UAGX_TerrainWheelSettings::SetPressureSinkageModel(
 	EAGX_TerrainWheelPressureSinkageModel InModel)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(PressureSinkageModel, InModel, SetPressureSinkageModel);
+	AGX_ASSET_SETTER(PressureSinkageModel, InModel);
 }
 
 EAGX_TerrainWheelPressureSinkageModel UAGX_TerrainWheelSettings::GetPressureSinkageModel() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(PressureSinkageModel, GetPressureSinkageModel);
+	AGX_ASSET_GETTER(PressureSinkageModel);
 }
 
 void UAGX_TerrainWheelSettings::SetEnableComputeRearAngleFromFrontAngle(bool InEnable)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		bEnableComputeRearAngleFromFrontAngle, InEnable,
-		SetEnableComputeRearAngleFromFrontAngle);
+	AGX_ASSET_SETTER_BOOL(EnableComputeRearAngleFromFrontAngle, InEnable);
 }
 
 bool UAGX_TerrainWheelSettings::GetEnableComputeRearAngleFromFrontAngle() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		bEnableComputeRearAngleFromFrontAngle, GetEnableComputeRearAngleFromFrontAngle);
+	AGX_ASSET_GETTER_BOOL(EnableComputeRearAngleFromFrontAngle);
 }
 
 void UAGX_TerrainWheelSettings::SetEnableComputeMaximumNormalStressAngleFromFrontAngle(
 	bool InEnable)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(
-		bEnableComputeMaximumNormalStressAngleFromFrontAngle, InEnable,
-		SetEnableComputeMaximumNormalStressAngleFromFrontAngle);
+	AGX_ASSET_SETTER_BOOL(EnableComputeMaximumNormalStressAngleFromFrontAngle, InEnable);
 }
 
 bool UAGX_TerrainWheelSettings::GetEnableComputeMaximumNormalStressAngleFromFrontAngle() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(
-		bEnableComputeMaximumNormalStressAngleFromFrontAngle,
-		GetEnableComputeMaximumNormalStressAngleFromFrontAngle);
+	AGX_ASSET_GETTER_BOOL(EnableComputeMaximumNormalStressAngleFromFrontAngle);
 }
 
 void UAGX_TerrainWheelSettings::SetEnableAGXDebugRendering(bool InEnable)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(bEnableAGXDebugRendering, InEnable, SetEnableAGXDebugRendering);
+	AGX_ASSET_SETTER_BOOL(EnableAGXDebugRendering, InEnable);
 }
 
 bool UAGX_TerrainWheelSettings::GetEnableAGXDebugRendering() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(bEnableAGXDebugRendering, GetEnableAGXDebugRendering);
+	AGX_ASSET_GETTER_BOOL(EnableAGXDebugRendering);
 }
 
 void UAGX_TerrainWheelSettings::CommitToAsset()
