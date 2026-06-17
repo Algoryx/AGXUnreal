@@ -222,8 +222,7 @@ void UAGX_TerrainWheelComponent::EndPlay(const EEndPlayReason::Type Reason)
 	{
 		// Another UAGX_TerrainWheelComponent will inherit this one's Native, so don't wreck it.
 		// The call to NativeBarrier.ReleaseNative below is safe because the AGX Dynamics
-		// Simulation will retain a reference counted pointer to the AGX Dynamics Observer
-		// Frame.
+		// Simulation will retain a reference counted pointer to the AGX Dynamics object.
 	}
 	else if (
 		HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
