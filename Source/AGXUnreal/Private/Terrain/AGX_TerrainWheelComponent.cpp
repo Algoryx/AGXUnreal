@@ -474,10 +474,7 @@ bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelSettings()
 	UAGX_TerrainWheelSettings* Instance = TerrainWheelSettings->GetOrCreateInstance(World);
 	check(Instance);
 
-	if (TerrainWheelSettings != Instance)
-	{
-		TerrainWheelSettings = Instance;
-	}
+	TerrainWheelSettings = Instance;
 
 	FTerrainWheelSettingsBarrier* SettingsBarrier = Instance->GetOrCreateNative();
 	check(SettingsBarrier);
