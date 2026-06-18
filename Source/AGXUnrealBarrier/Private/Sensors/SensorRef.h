@@ -5,6 +5,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
+#include <agxSensor/CameraBackend.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
@@ -18,6 +19,11 @@
 #include "EndAGXIncludes.h"
 
 #include <memory>
+
+struct FCameraBackendRef
+{
+	agxSensor::CameraBackend Native;
+};
 
 struct FCameraRef
 {
