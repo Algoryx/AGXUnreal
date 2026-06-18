@@ -82,6 +82,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendReal(const FOpenPLX_Input& Input, double Value);
 
+	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
 
@@ -99,6 +106,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveReal(const FOpenPLX_Output& Output, double& OutValue);
 
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
 
@@ -116,6 +130,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value);
 
+	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
 
@@ -133,6 +154,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
@@ -144,10 +172,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue);
 
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
-
+	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
 
@@ -157,6 +198,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendVector(const FOpenPLX_Input& Input, FVector Value);
 
+	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
 
@@ -174,6 +222,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue);
 
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
