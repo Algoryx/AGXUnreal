@@ -8,14 +8,17 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "Cable/CableBarrier.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -23,6 +26,7 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/AllocationUtils.h"
+#include "agxOpenPLX/OpenPlxToAgxVisualsMapper.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -40,6 +44,7 @@
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -66,6 +71,9 @@
 
 // Unreal Engine inludes.
 #include "Misc/Paths.h"
+
+// Standard library includes.
+#include <memory>
 
 namespace
 {
@@ -102,6 +110,15 @@ namespace
 					agxCollide::Capsule* Capsule {Shape->as<agxCollide::Capsule>()};
 					OutSimObjects.GetCapsuleShapes().Add(
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
+					break;
+				}
+				case agxCollide::Shape::TIRE_SHAPE:
+				{
+					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// internally by TerrainWheel and still uses type Cylinder.
+					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
+					OutSimObjects.GetCylinderShapes().Add(
+						AGXBarrierFactories::CreateCylinderShapeBarrier(Cylinder));
 					break;
 				}
 				case agxCollide::Shape::TRIMESH:
@@ -244,6 +261,20 @@ namespace
 				continue;
 			}
 			OutSimObjects.GetRigidBodies().Add(AGXBarrierFactories::CreateRigidBodyBarrier(Body));
+		}
+	}
+
+	void ReadTerrainWheels(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxTerrain::TerrainWheelPtrVector Wheels = agxTerrain::TerrainWheel::findAll(&Simulation);
+		for (agxTerrain::TerrainWheel* Wheel : Wheels)
+		{
+			if (Wheel == nullptr)
+				continue;
+
+			OutSimObjects.GetTerrainWheels().Add(
+				AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
 		}
 	}
 
@@ -612,12 +643,40 @@ namespace
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
+		ReadTerrainWheels(Simulation, OutSimObjects);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
+	}
+
+	void ReadOpenPLXMaterials(
+		agxopenplx::LoadResult& Result, FSimulationObjectCollection& OutSimObjects)
+	{
+		auto VisualsMapper = Result.toAgxVisualsMapper();
+		if (VisualsMapper == nullptr)
+			return;
+
+		TMap<FGuid, FOpenPLXMaterialBarrier>& MaterialOverrides =
+			OutSimObjects.GetPLXMaterialOverrides();
+		const auto& MappedMaterials = VisualsMapper->getMappedMaterials();
+		MaterialOverrides.Reserve(
+			MaterialOverrides.Num() + static_cast<int32>(MappedMaterials.size()));
+
+		for (const auto& Pair : MappedMaterials)
+		{
+			const std::shared_ptr<openplx::Physics::Optics::Material>& OpenPLXMaterial = Pair.first;
+			const agxCollide::RenderMaterialRef& RenderMaterial = Pair.second;
+			if (OpenPLXMaterial == nullptr || RenderMaterial == nullptr)
+				continue;
+
+			const FGuid RenderMaterialGuid = Convert(RenderMaterial->getUuid());
+			MaterialOverrides.Add(
+				RenderMaterialGuid,
+				FOpenPLXMaterialBarrier(std::make_shared<FOpenPLXMaterialRef>(OpenPLXMaterial)));
+		}
 	}
 }
 
@@ -726,6 +785,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	agxSDK::AssemblyRef AssemblyAGX = Result.assembly();
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, OutSimObjects);
+	::ReadOpenPLXMaterials(Result, OutSimObjects);
 
 	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());

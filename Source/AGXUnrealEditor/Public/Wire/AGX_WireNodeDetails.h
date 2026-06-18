@@ -22,7 +22,7 @@ class IDetailLayoutBuilder;
  * route node. Created by AGX_WireDetails and controlled by the node selections handled by
  * AGX_WireComponentVisualizer.
  */
-class FAGX_WireNodeDetails : public IDetailCustomNodeBuilder,
+class AGXUNREALEDITOR_API FAGX_WireNodeDetails : public IDetailCustomNodeBuilder,
 							 public TSharedFromThis<FAGX_WireNodeDetails>
 {
 	/*

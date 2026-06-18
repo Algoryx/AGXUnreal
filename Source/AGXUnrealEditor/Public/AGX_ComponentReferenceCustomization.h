@@ -16,7 +16,7 @@ struct FAGX_ComponentReference;
 /**
  * Handles the creation and logic of the Details panel widgets for an FAGX_ComponentReference.
  */
-class FAGX_ComponentReferenceCustomization : public IPropertyTypeCustomization
+class AGXUNREALEDITOR_API FAGX_ComponentReferenceCustomization : public IPropertyTypeCustomization
 {
 public:
 	/// Factory function registered with FPropertyEditorModule::RegisterCustomPropertyTypeLayout.

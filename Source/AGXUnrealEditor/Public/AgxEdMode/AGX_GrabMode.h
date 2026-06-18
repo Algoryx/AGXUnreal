@@ -13,7 +13,7 @@ class UAGX_RigidBodyComponent;
 
 struct FViewportCursorLocation;
 
-class FAGX_GrabMode : public FAGX_ClickDragMode
+class AGXUNREALEDITOR_API FAGX_GrabMode : public FAGX_ClickDragMode
 {
 public:
 	const static FEditorModeID EM_AGX_GrabModeId;

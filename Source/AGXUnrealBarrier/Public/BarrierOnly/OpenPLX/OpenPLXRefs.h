@@ -5,9 +5,10 @@
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxCache.h"
+#include "agxOpenPLX/AgxObjectMap.h"
 #include "agxOpenPLX/InputSignalListener.h"
 #include "agxOpenPLX/OutputSignalListener.h"
-#include "agxOpenPLX/AgxObjectMap.h"
+#include "openplx/Physics/Optics/Material.h"
 #include "openplx/Physics3D/System.h"
 #include "openplx/HeapControlInterface.h"
 #include "EndAGXIncludes.h"
@@ -20,8 +21,9 @@
 
 // Standard library includes.
 #include <memory>
-#include <vector>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 struct FInputSignalListenerRef
 {
@@ -71,4 +73,15 @@ struct FOpenPLXModelData
 struct FOpenPLXModelDataArray
 {
 	std::vector<FOpenPLXModelData> ModelData;
+};
+
+struct FOpenPLXMaterialRef
+{
+	std::shared_ptr<openplx::Physics::Optics::Material> Native;
+
+	FOpenPLXMaterialRef() = default;
+	FOpenPLXMaterialRef(std::shared_ptr<openplx::Physics::Optics::Material> InNative)
+		: Native(std::move(InNative))
+	{
+	}
 };

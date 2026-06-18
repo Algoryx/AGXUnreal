@@ -18,7 +18,7 @@ class UAGX_AgxEdModeConstraints;
 /**
  * Defines the design of the Constraints Sub-Mode of AGX Editor Mode.
  */
-class FAGX_AgxEdModeConstraintsCustomization : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_AgxEdModeConstraintsCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();

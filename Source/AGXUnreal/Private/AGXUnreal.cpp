@@ -205,6 +205,7 @@ void FAGXUnrealModule::LoadRuntimeAssets()
 	// Render Materials.
 	LoadWCheck(TEXT("Material'/AGXUnreal/Runtime/Materials/M_SensorMaterial.M_SensorMaterial'"));
 	LoadWCheck(TEXT("Material'/AGXUnreal/Runtime/Materials/M_ImportedBase.M_ImportedBase'"));
+	LoadWCheck(TEXT("Material'/AGXUnreal/Runtime/Materials/M_PLXImportedBase.M_PLXImportedBase'"));
 	LoadWCheck(TEXT("Material'/AGXUnreal/Track/Materials/MI_TrackDefault.MI_TrackDefault'"));
 	LoadWCheck(TEXT("Material'/AGXUnreal/Wire/MI_GrayWire.MI_GrayWire'"));
 

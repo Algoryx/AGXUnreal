@@ -26,6 +26,8 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -347,6 +349,12 @@ bool UAGX_Simulation::Add(AAGX_Terrain& Terrain)
 	return Result;
 }
 
+bool UAGX_Simulation::Add(UAGX_TerrainWheelComponent& Wheel)
+{
+	EnsureStepperCreated();
+	return AGX_Simulation_helpers::Add(*this, Wheel);
+}
+
 void UAGX_Simulation::Add(UAGX_MovableTerrainComponent& MovableTerrain)
 {
 	EnsureStepperCreated();
@@ -476,6 +484,11 @@ bool UAGX_Simulation::Remove(AAGX_Terrain& Terrain)
 	}();
 
 	return Result;
+}
+
+bool UAGX_Simulation::Remove(UAGX_TerrainWheelComponent& Wheel)
+{
+	return AGX_Simulation_helpers::Remove(*this, Wheel);
 }
 
 void UAGX_Simulation::Remove(UAGX_MovableTerrainComponent& MovableTerrain)
@@ -738,7 +751,6 @@ bool UAGX_Simulation::GetEnableAMOR()
 void UAGX_Simulation::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	CreateNative();
 }
 
 void UAGX_Simulation::Deinitialize()
@@ -768,6 +780,7 @@ void UAGX_Simulation::Deinitialize()
 
 		CloseInstancedAssetEditors<UAGX_ShovelProperties>();
 		CloseInstancedAssetEditors<UAGX_SteeringParameters>();
+		CloseInstancedAssetEditors<UAGX_TerrainWheelSettings>();
 	}
 #endif
 

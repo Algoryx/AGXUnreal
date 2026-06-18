@@ -1425,8 +1425,7 @@ bool AAGX_Terrain::UpdateNativeTerrainProperties()
 	if (HasNativeTerrainPager())
 		Instance->RegisterTerrainPager(*this);
 
-	if (TerrainProperties != Instance)
-		TerrainProperties = Instance;
+	TerrainProperties = Instance;
 
 	FTerrainPropertiesBarrier* TerrainPropertiesBarrier = Instance->GetOrCreateNative();
 	check(TerrainPropertiesBarrier);
