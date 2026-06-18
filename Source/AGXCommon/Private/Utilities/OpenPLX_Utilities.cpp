@@ -213,7 +213,7 @@ const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_InputType Type)
 		return TEXT("Vector2");
 	if (IsVectorType(Type))
 		return TEXT("Vector");
-	return TEXT("(unknown");
+	return TEXT("(unknown)");
 }
 
 const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
@@ -232,5 +232,5 @@ const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
 		return TEXT("Vector2");
 	if (IsVectorType(Type))
 		return TEXT("Vector");
-	return TEXT("(unknown");
+	return TEXT("(unknown)");
 }
