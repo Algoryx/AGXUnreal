@@ -195,3 +195,42 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 			return false;
 	}
 }
+
+
+const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_InputType Type)
+{
+	if (IsBooleanType(Type))
+		return TEXT("Boolean");
+	if (IsIntegerType(Type))
+		return TEXT("Integer");
+	if (IsUnsignedIntegerType(Type))
+		return TEXT("UnsignedInteger");
+	if (IsRealType(Type))
+		return TEXT("Real");
+	if (IsRangeType(Type))
+		return TEXT("RangeReal");
+	if (IsVector2Type(Type))
+		return TEXT("Vector2");
+	if (IsVectorType(Type))
+		return TEXT("Vector");
+	return TEXT("(unknown");
+}
+
+const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
+{
+	if (IsBooleanType(Type))
+		return TEXT("Boolean");
+	if (IsIntegerType(Type))
+		return TEXT("Integer");
+	if (IsUnsignedIntegerType(Type))
+		return TEXT("UnsignedInteger");
+	if (IsRealType(Type))
+		return TEXT("Real");
+	if (IsRangeType(Type))
+		return TEXT("RangeReal");
+	if (IsVector2Type(Type))
+		return TEXT("Vector2");
+	if (IsVectorType(Type))
+		return TEXT("Vector");
+	return TEXT("(unknown");
+}

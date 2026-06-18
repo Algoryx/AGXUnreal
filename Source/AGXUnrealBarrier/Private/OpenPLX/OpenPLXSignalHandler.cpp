@@ -178,9 +178,6 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		switch (Input.Type)
 		{
-			case EOpenPLX_InputType::AngleInput:
-			case EOpenPLX_InputType::AngularVelocity1DInput:
-				return ConvertAngleToAGX(Value);
 			case EOpenPLX_InputType::DurationInput:
 			case EOpenPLX_InputType::AutomaticClutchEngagementDurationInput:
 			case EOpenPLX_InputType::AutomaticClutchDisengagementDurationInput:
@@ -188,6 +185,9 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_InputType::Force1DInput:
 			case EOpenPLX_InputType::Torque1DInput:
 				return Value;
+			case EOpenPLX_InputType::AngleInput:
+			case EOpenPLX_InputType::AngularVelocity1DInput:
+				return ConvertAngleToAGX(Value);
 			case EOpenPLX_InputType::Position1DInput:
 			case EOpenPLX_InputType::LinearVelocity1DInput:
 				return ConvertDistanceToAGX(Value);
@@ -1163,9 +1163,13 @@ namespace OpenPLXSignalHandler_helpers
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT(
-					"OpenPLX Control Interface: Type and unit conversion from Unreal to OpenPLX "
-					"failed for input '%s' ('%s')."),
-				*Input.Name.ToString(), *Input.Alias.ToString());
+					"OpenPLX Signal Handler: Type and unit conversion from Unreal to OpenPLX "
+					"failed for input '%s' ('%s') of type %s. This can mean that the input was "
+					"used with the wrong value type, e.g. using SendVector2Interface and passing "
+					"in an input expecting a Real value. This input expects values of type %s."),
+				*Input.Name.ToString(), *Input.Alias.ToString(),
+				*AGX_EnumUtilities::GetEnumName(Input.Type),
+				FOpenPLX_Utilities::GetPrimitiveTypeName(Input.Type));
 			return false;
 		}
 
@@ -1275,13 +1279,16 @@ namespace OpenPLXSignalHandler_helpers
 		TOptional<ValueUnrealT> ConvertedMaybe = ConvertFunc(Output, *ValuePLXMaybe);
 		if (!ConvertedMaybe)
 		{
-			const FString TypeName = AGX_EnumUtilities::GetEnumName(Output.Type);
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT(
-					"OpenPLX Signal Handler: Could not convert output signal '%s' ('%s') of type "
-					"'%s' from OpenPLX type and unit to Unreal type and unit."),
-				*Output.Name.ToString(), *Output.Alias.ToString(), *TypeName);
+					"OpenPLX Signal Handler: Type and unit conversion from OpenPLX to Unreal "
+					"failed for output '%s' ('%s') of type %s. This can mean that the output was "
+					"used with the wrong value type, e.g. using ReceiveVector2Interface and passing "
+					"in an output providing a Real value. This output provides values of type %s."),
+				*Output.Name.ToString(), *Output.Alias.ToString(),
+				*AGX_EnumUtilities::GetEnumName(Output.Type),
+				FOpenPLX_Utilities::GetPrimitiveTypeName(Output.Type));
 			return false;
 		}
 
@@ -1521,8 +1528,8 @@ void FOpenPLXSignalHandler::SetNativeAddresses(
 	OutputSignalListenerRef->Native =
 		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
 	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
-	HeapControlInterfaceRef->Native = OpenPLXSignalHandler_helpers::TakeHeapControlInterface(
-		Addresses.ControlInterfaceAddress);
+	HeapControlInterfaceRef->Native =
+		OpenPLXSignalHandler_helpers::TakeHeapControlInterface(Addresses.ControlInterfaceAddress);
 	ModelHandle = Addresses.ModelHandle;
 	bIsInitialized = true;
 }

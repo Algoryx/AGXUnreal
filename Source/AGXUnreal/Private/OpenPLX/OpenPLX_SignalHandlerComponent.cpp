@@ -68,9 +68,50 @@ namespace OpenPLX_SignalHandlerComponent_helpers
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("SignalHandlerComponent %s called with %s %s with unexpected %s type. Check the "
-				 "type used."),
+			TEXT(
+				"SignalHandlerComponent %s called with %s %s with unexpected %s type. Check the "
+				"type used."),
 			*FunctionName, *InputOrOutput, *InputOutputName, *InputOrOutput);
+	}
+
+	/**
+	 * Print a log message if the Signal Handler has not yet been initialized.
+	 *
+	 * @return true if a log message was printed.
+	 */
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* SendOrReceive,
+		const TCHAR* ComponentName, const TCHAR* TypeName, const TCHAR* ControlName,
+		const TCHAR* ControlAlias)
+	{
+		if (SignalHandler.IsInitialized())
+			return false;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Signal Handler Component '%s' tried to %s a %s using '%s' ('%s') through "
+				"the Control Interface but the Signal Handler has not been initialized."),
+			ComponentName, SendOrReceive, TypeName, ControlName, ControlAlias);
+		return true;
+	}
+
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* ComponentName,
+		const TCHAR* TypeName, const FOpenPLX_Input& Input)
+	{
+		return LogIfNotInitialized(
+			SignalHandler, ComponentName, TEXT("send"), TypeName, *Input.Name.ToString(),
+			*Input.Alias.ToString());
+	}
+
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* ComponentName,
+		const TCHAR* TypeName, const FOpenPLX_Output& Output)
+	{
+		return LogIfNotInitialized(
+			SignalHandler, ComponentName, TEXT("receive"), TypeName, *Output.Name.ToString(),
+			*Output.Alias.ToString());
 	}
 }
 
@@ -93,11 +134,11 @@ bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutIn
 		return true;
 	}
 
-
 	UE_LOG(
 		LogAGX, Warning,
-		TEXT("Signal Handler Component: Cannot find OpenPLX input named '%s'. This input will "
-			 "not be able to send signals."),
+		TEXT(
+			"Signal Handler Component: Cannot find OpenPLX input named '%s'. This input will "
+			"not be able to send signals."),
 		*Name.ToString());
 
 	OutInput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
@@ -156,8 +197,9 @@ bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& Out
 
 	UE_LOG(
 		LogAGX, Warning,
-		TEXT("Signal Handler Component: Cannot find OpenPLX output named '%s'. This output will "
-			 "not be able to receive signals."),
+		TEXT(
+			"Signal Handler Component: Cannot find OpenPLX output named '%s'. This output will "
+			"not be able to receive signals."),
 		*Name.ToString());
 
 	OutOutput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
@@ -212,22 +254,8 @@ bool UOpenPLX_SignalHandlerComponent::SendReal(const FOpenPLX_Input& Input, doub
 bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& Input, double Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to send a real to '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Input.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Input))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsRealType(Input.Type))
-	{
-		LogTypeMismatchWarning("SendRealInterface", Input.Alias.ToString(), "Input");
-		return false;
-	}
-
 	return SignalHandler.SendInterface(Input, Value);
 }
 
@@ -267,22 +295,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to receive a real from '%s' through the "
-				 "Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Output.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Output))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsRealType(Output.Type))
-	{
-		LogTypeMismatchWarning("ReceiveRealInterface", Output.Alias.ToString(), "Output");
-		return false;
-	}
-
 	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
@@ -321,22 +335,8 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
 	const FOpenPLX_Input& Input, FVector2D Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to send a range real to '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Input.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Input))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsRangeType(Input.Type))
-	{
-		LogTypeMismatchWarning("SendRangeRealInterface", Input.Alias.ToString(), "Input");
-		return false;
-	}
-
 	return SignalHandler.SendInterface(Input, Value);
 }
 
@@ -377,22 +377,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to receive a range real from '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Output.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Output))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsRangeType(Output.Type))
-	{
-		LogTypeMismatchWarning("ReceiveRangeRealInterface", Output.Alias.ToString(), "Output");
-		return false;
-	}
-
 	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
@@ -417,22 +403,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to receive a FVector2 from '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Output.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Output))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsVector2Type(Output.Type))
-	{
-		LogTypeMismatchWarning("ReceiveVector2Interface", Output.Alias.ToString(), "Output");
-		return false;
-	}
-
 	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
@@ -440,22 +412,8 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 	const FOpenPLX_Input& Input, FVector2D Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to send a Vector2 to '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Input.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Input))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
-	{
-		LogTypeMismatchWarning("SendVector2Interface", Input.Name.ToString(), "Input");
-		return false;
-	}
-
 	return SignalHandler.SendInterface(Input, Value);
 }
 
@@ -478,22 +436,8 @@ bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
 	const FOpenPLX_Input& Input, FVector Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to send a vector to '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Input.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Input))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsVectorType(Input.Type))
-	{
-		LogTypeMismatchWarning("SendVectorInterface", Input.Alias.ToString(), "Input");
-		return false;
-	}
-
 	return SignalHandler.SendInterface(Input, Value);
 }
 
@@ -534,22 +478,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
-	if (!SignalHandler.IsInitialized())
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Signal Handler Component '%s' tried to receive a vector from '%s' through "
-				 "the Control Interface but the Signal Handler has not been initialized."),
-			*GetName(), *Output.Alias.ToString());
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Output))
 		return false;
-	}
-
-	if (!FOpenPLX_Utilities::IsVectorType(Output.Type))
-	{
-		LogTypeMismatchWarning("ReceiveVectorInterface", Output.Alias.ToString(), "Output");
-		return false;
-	}
-
 	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
@@ -706,8 +636,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("UOpenPLX_SignalHandlerComponent '%s' in '%s' was unable to get OpenPLX file path "
-				 "from UAGX_ModelSourceComponent. OpenPLX Signals will not work properly."),
+			TEXT(
+				"UOpenPLX_SignalHandlerComponent '%s' in '%s' was unable to get OpenPLX file path "
+				"from UAGX_ModelSourceComponent. OpenPLX Signals will not work properly."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -718,8 +649,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
-				 "Simulation. Signal handling may not work."),
+			TEXT(
+				"OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
+				"Simulation. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -731,8 +663,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
-				 "barrier object. Signal handling may not work."),
+			TEXT(
+				"OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
+				"barrier object. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
