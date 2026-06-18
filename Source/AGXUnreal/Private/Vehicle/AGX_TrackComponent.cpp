@@ -32,6 +32,7 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"
 #include "Math/Quat.h"
+#include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "AGX_TrackRenderer"
 
@@ -1445,7 +1446,11 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 			if (FAGX_NotificationUtilities::YesNoQuestion(AskEnableUseWithInstancedSM))
 			{
 				Material->Modify();
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
+				Material->bUsedWithInstancedStaticMeshes = true;
+#else
 				Material->SetMaterialUsage(MATUSAGE_InstancedStaticMeshes);
+#endif
 				Material->PostEditChange();
 				FAGX_ObjectUtilities::SaveAsset(*Material);
 			}
