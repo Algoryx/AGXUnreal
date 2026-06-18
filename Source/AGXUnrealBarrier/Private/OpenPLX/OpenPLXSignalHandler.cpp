@@ -1466,6 +1466,52 @@ void FOpenPLXSignalHandler::ReleaseNatives()
 	OutputSignalListenerRef->Native = nullptr;
 }
 
+namespace OpenPLXSignalHandler_helpers
+{
+
+	/*
+	 * During Blueprint Reconstruction Unreal Engine destroys all Components and recreates them from
+	 * scratch and restores the state using the regular serialization framework. If the Component
+	 * contains data that is not part of the regular serialization for the type, such as pointers to
+	 * non-managed memory, then the Component can use the Instance Data system to store a
+	 * representation of that non-serialized data for Blueprint Reconstruction specifically. For
+	 * Native Owner types we use this to store the bit pattern of the pointer to the underlying
+	 * Native object, often an AGX Dynamics type that inherits from agx::Referenced. These types
+	 * carry their own reference count so storing them is easy, we extract the pointer and bump the
+	 * reference count before Blueprint Reconstruction and then do the reverse on after
+	 * Reconstruction.
+	 *
+	 * For OpenPLX things aren't so easy. That API uses std::shared_ptr as their smart pointer type
+	 * and std::shared_ptr does not support creating new instances that participate in shared
+	 * ownership of an object without having access to a std::shared_ptr pointing to that object.
+	 * This is because the new std::shared_ptr must, somehow, find the control block for the object.
+	 *
+	 * Since we, in general, don't have access to a repository of std::shared_ptrs to OpenPLX types,
+	 * and even worse, the std::shared_ptr that the Component owns may well be the only
+	 * std::shared_ptr to the object and we cannot do explicit incref / decref on the control
+	 * block, we must store temporary std::shared_ptr instances for the duration of the Blueprint
+	 * Reconstruction. We store those instances here.
+	 *
+	 * TODO Is there a way to make this table pointed-to-type agnostic and move it somewhere more
+	 * central? Don't want to keep a table for each type we have a std::shared_ptr to.
+	 */
+	static TMap<uint64, std::shared_ptr<openplx::HeapControlInterface>> InstanceDataOwned;
+
+	int64 StoreHeapControlInterface(std::shared_ptr<openplx::HeapControlInterface> Instance)
+	{
+		const uint64 Key = reinterpret_cast<uint64>(Instance.get());
+		InstanceDataOwned.Add(Key, Instance);
+		return Key;
+	}
+
+	std::shared_ptr<openplx::HeapControlInterface> TakeHeapControlInterface(uint64 Key)
+	{
+		std::shared_ptr<openplx::HeapControlInterface> Instance;
+		InstanceDataOwned.RemoveAndCopyValue(Key, Instance);
+		return Instance;
+	}
+}
+
 void FOpenPLXSignalHandler::SetNativeAddresses(
 	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
 {
@@ -1475,6 +1521,8 @@ void FOpenPLXSignalHandler::SetNativeAddresses(
 	OutputSignalListenerRef->Native =
 		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
 	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
+	HeapControlInterfaceRef->Native = OpenPLXSignalHandler_helpers::TakeHeapControlInterface(
+		Addresses.ControlInterfaceAddress);
 	ModelHandle = Addresses.ModelHandle;
 	bIsInitialized = true;
 }
@@ -1495,6 +1543,10 @@ FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses(
 
 	if (ModelRegistry != nullptr)
 		Addresses.ModelRegistryAddress = reinterpret_cast<uint64>(ModelRegistry);
+
+	if (HeapControlInterfaceRef->Native != nullptr)
+		Addresses.ControlInterfaceAddress = OpenPLXSignalHandler_helpers::StoreHeapControlInterface(
+			HeapControlInterfaceRef->Native);
 
 	Addresses.ModelHandle = ModelHandle;
 
