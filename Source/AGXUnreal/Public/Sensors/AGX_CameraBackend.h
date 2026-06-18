@@ -2,13 +2,14 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Sensors/CameraBackendBarrier.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
 
 #include "AGX_CameraBackend.generated.h"
-
-struct FCameraBackendBarrier;
 
 /**
  * Todo: add API comment.
