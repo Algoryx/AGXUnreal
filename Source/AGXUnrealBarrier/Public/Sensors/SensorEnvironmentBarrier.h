@@ -15,6 +15,7 @@ class FTerrainBarrier;
 class FTerrainPagerBarrier;
 class FWireBarrier;
 
+struct FCameraBarrier;
 struct FIMUBarrier;
 struct FLidarBarrier;
 struct FSensorEnvironmentRef;
@@ -33,12 +34,14 @@ public:
 	const FSensorEnvironmentRef* GetNative() const;
 	void ReleaseNative();
 
+	bool Add(FCameraBarrier& Camera);
 	bool Add(FLidarBarrier& Lidar);
 	bool Add(FIMUBarrier& IMU);
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Pager);
 	bool Add(FWireBarrier& Wire);
 
+	bool Remove(FCameraBarrier& Camera);
 	bool Remove(FLidarBarrier& Lidar);
 	bool Remove(FIMUBarrier& IMU);
 	bool Remove(FTerrainBarrier& Terrain);

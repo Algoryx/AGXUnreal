@@ -8,6 +8,7 @@
 #include "AGX_MeshWithTransform.h"
 #include "AGX_Simulation.h"
 #include "Materials/AGX_TerrainMaterial.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarLambertianOpaqueMaterial.h"
@@ -322,6 +323,40 @@ FVector UAGX_SensorEnvironmentSubsystem::GetMagneticField() const
 		return NativeBarrier.GetMagneticField();
 
 	return MagneticField;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddCamera(UAGX_CameraSensorComponent* Camera)
+{
+	if (Camera == nullptr)
+		return false;
+
+	if (TrackedCameras.Contains(Camera))
+		return false;
+
+	if (!Camera->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SensorEnvironmentSubsystem::AddCamera was called for Camera Sensor Component "
+				 "'%s' in '%s' but it does not have a Native. The Sensor Environment will not "
+				 "create sensor Natives."),
+			*Camera->GetName(), *GetLabelSafe(Camera->GetOwner()));
+		return false;
+	}
+
+	EnsureNativeInitialized();
+	if (!HasNative())
+		return false;
+
+	FCameraBarrier* Barrier = Camera->GetNativeAsCamera();
+	if (Barrier == nullptr)
+		return false;
+
+	if (!NativeBarrier.Add(*Barrier))
+		return false;
+
+	TrackedCameras.Add(Camera);
+	return true;
 }
 
 bool UAGX_SensorEnvironmentSubsystem::AddLidar(UAGX_LidarSensorComponent* Lidar)
@@ -688,6 +723,22 @@ bool UAGX_SensorEnvironmentSubsystem::AddWire(UAGX_WireComponent* Wire)
 	return true;
 }
 
+bool UAGX_SensorEnvironmentSubsystem::RemoveCamera(UAGX_CameraSensorComponent* Camera)
+{
+	bool DidRemove = false;
+
+	if (Camera == nullptr)
+		return DidRemove;
+
+	DidRemove |= TrackedCameras.Remove(Camera) > 0;
+
+	if (!HasNative() || !Camera->HasNative())
+		return DidRemove;
+
+	DidRemove |= NativeBarrier.Remove(*Camera->GetNativeAsCamera());
+	return DidRemove;
+}
+
 bool UAGX_SensorEnvironmentSubsystem::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 {
 	bool DidRemove = false;
@@ -894,6 +945,7 @@ void UAGX_SensorEnvironmentSubsystem::Deinitialize()
 	}
 
 	TrackedIMUs.Empty();
+	TrackedCameras.Empty();
 	TrackedLidars.Empty();
 	TrackedMeshes.Empty();
 	TrackedInstancedMeshes.Empty();
@@ -923,6 +975,7 @@ void UAGX_SensorEnvironmentSubsystem::Tick(float DeltaTime)
 	if (!HasNative())
 		return;
 
+	UpdateTrackedCameras();
 	UpdateTrackedLidars();
 	UpdateTrackedIMUs();
 	UpdateTrackedMeshes();
@@ -931,6 +984,7 @@ void UAGX_SensorEnvironmentSubsystem::Tick(float DeltaTime)
 		UpdateTrackedInstancedMeshes();
 
 	UpdateTrackedAGXMeshes();
+	TickTrackedCameras();
 	TickTrackedLidars();
 	TickTrackedIMUs();
 }
@@ -1011,6 +1065,15 @@ void UAGX_SensorEnvironmentSubsystem::InitializeNative()
 
 	// In case the Level has no other AGX types in it.
 	Sim->EnsureStepperCreated();
+}
+
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedCameras()
+{
+	for (auto It = TrackedCameras.CreateIterator(); It; ++It)
+	{
+		if (!IsValid(It->Get()))
+			It.RemoveCurrent();
+	}
 }
 
 void UAGX_SensorEnvironmentSubsystem::UpdateTrackedLidars()
@@ -1115,6 +1178,15 @@ bool UAGX_SensorEnvironmentSubsystem::UpdateAmbientMaterial()
 
 	NativeBarrier.SetAmbientMaterial(Native);
 	return true;
+}
+
+void UAGX_SensorEnvironmentSubsystem::TickTrackedCameras() const
+{
+	for (auto CameraRef : TrackedCameras)
+	{
+		if (auto Camera = CameraRef.Get())
+			Camera->UpdateNativeTransform();
+	}
 }
 
 void UAGX_SensorEnvironmentSubsystem::TickTrackedLidars() const

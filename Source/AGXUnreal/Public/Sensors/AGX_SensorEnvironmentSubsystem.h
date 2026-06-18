@@ -15,6 +15,7 @@
 
 class AAGX_Terrain;
 class AActor;
+class UAGX_CameraSensorComponent;
 class UAGX_IMUSensorComponent;
 class UAGX_LidarAmbientMaterial;
 class UAGX_LidarSensorComponent;
@@ -124,6 +125,9 @@ public:
 	FVector GetMagneticField() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool AddCamera(UAGX_CameraSensorComponent* Camera);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddLidar(UAGX_LidarSensorComponent* Lidar);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
@@ -149,6 +153,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddWire(UAGX_WireComponent* Wire);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool RemoveCamera(UAGX_CameraSensorComponent* Camera);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveLidar(UAGX_LidarSensorComponent* Lidar);
@@ -203,12 +210,14 @@ public:
 
 private:
 	void InitializeNative();
+	void UpdateTrackedCameras();
 	void UpdateTrackedLidars();
 	void UpdateTrackedIMUs();
 	void UpdateTrackedMeshes();
 	void UpdateTrackedInstancedMeshes();
 	void UpdateTrackedAGXMeshes();
 	bool UpdateAmbientMaterial();
+	void TickTrackedCameras() const;
 	void TickTrackedLidars() const;
 	void TickTrackedIMUs() const;
 
@@ -248,6 +257,7 @@ private:
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
 
 private:
+	TSet<TWeakObjectPtr<UAGX_CameraSensorComponent>> TrackedCameras;
 	TMap<TWeakObjectPtr<UAGX_LidarSensorComponent>, TObjectPtr<USphereComponent>> TrackedLidars;
 	TMap<TWeakObjectPtr<UStaticMeshComponent>, FAGX_RtShapeInstanceData> TrackedMeshes;
 	TMap<TWeakObjectPtr<UInstancedStaticMeshComponent>, FAGX_RtInstancedShapeInstanceData>
