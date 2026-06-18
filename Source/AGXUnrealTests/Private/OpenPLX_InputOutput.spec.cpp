@@ -43,7 +43,7 @@ void FOpenPLX_InputOutputSpec::Define()
 			   [this]()
 			   {
 				   const UEnum* InputTypeEnum =
-					   FindObject<UEnum>(nullptr, TEXT("EOpenPLX_InputType"));
+					   FindObject<UEnum>(nullptr, TEXT("/Script/AGXCommon.EOpenPLX_InputType"));
 				   TestNotNull("Input enum exists", InputTypeEnum);
 				   if (InputTypeEnum == nullptr)
 					   return;
@@ -74,7 +74,7 @@ void FOpenPLX_InputOutputSpec::Define()
 			   [this]()
 			   {
 				   const UEnum* OutputTypeEnum =
-					   FindObject<UEnum>(nullptr, TEXT("EOpenPLX_OutputType"));
+					   FindObject<UEnum>(nullptr, TEXT("/Script/AGXCommon.EOpenPLX_OutputType"));
 				   TestNotNull("Output enum exists", OutputTypeEnum);
 				   if (OutputTypeEnum == nullptr)
 					   return;
