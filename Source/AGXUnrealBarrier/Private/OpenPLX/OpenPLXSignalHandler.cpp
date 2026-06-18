@@ -38,7 +38,6 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
 	, InputSignalListenerRef {new FInputSignalListenerRef()}
 	, OutputSignalListenerRef {new FOutputSignalListenerRef()}
-	, HeapControlInterfaceRef {std::make_shared<FHeapControlInterfaceRef>()}
 {
 }
 
@@ -146,8 +145,9 @@ void FOpenPLXSignalHandler::Init(
 		ControlInterface->add_controls_from_signal_interface(SignalInterface);
 	}
 	ControlInterface->prepare_controls();
-	HeapControlInterfaceRef->Native =
-		std::make_shared<openplx::HeapControlInterface>(ControlInterface);
+	ModelData->HeapControlInterfaces.insert(
+		{AssemblyRef->Native.get(),
+		 std::make_shared<openplx::HeapControlInterface>(ControlInterface)});
 
 	bIsInitialized = true;
 }
@@ -610,10 +610,7 @@ namespace OpenPLXSignalHandler_helpers
 	TOptional<agx::Real> InterfaceReadReal(
 		openplx::HeapControlInterface& Interface, const std::string& Alias)
 	{
-		std::optional<double> ValueMaybe = Interface.read<double>(Alias);
-		if (!ValueMaybe)
-			return {};
-		return {ValueMaybe.value()};
+		return Convert(Interface.read<double>(Alias));
 	}
 
 	// Control Interface write / read functions for compound types, which must use marshalling.
@@ -1131,20 +1128,8 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool SendInterfaceImpl(
 		const FOpenPLX_Input& Input, ValueUnrealT ValueUnreal,
-		FHeapControlInterfaceRef* HeapControlInterfaceRef, ConvertFuncT ConvertFunc)
+		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
 	{
-		if (HeapControlInterfaceRef == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Tried to send OpenPLX Output signal for output '%s' "
-					"('%s'), but don't have a Control Interface wrapper reference"),
-				*Input.Name.ToString(), *Input.Alias.ToString());
-			return false;
-		}
-
-		openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
 		if (Interface == nullptr)
 		{
 			UE_LOG(
@@ -1232,23 +1217,9 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool ReceiveInterfaceImpl(
 		const FOpenPLX_Output& Output, ValueUnrealT& OutValue,
-		FHeapControlInterfaceRef* HeapControlInterfaceRef, ConvertFuncT ConvertFunc)
+		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
 	{
 		OutValue = {};
-
-		if (HeapControlInterfaceRef == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Tried to receive OpenPLX Output signal for output "
-					"'%s' ('%s') through the Control Interface, but don't have a Control "
-					"Interface wrapper reference."),
-				*Output.Name.ToString(), *Output.Alias.ToString());
-			return false;
-		}
-
-		openplx::HeapControlInterface* Interface = HeapControlInterfaceRef->Native.get();
 		if (Interface == nullptr)
 		{
 			UE_LOG(
@@ -1284,8 +1255,9 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT(
 					"OpenPLX Signal Handler: Type and unit conversion from OpenPLX to Unreal "
 					"failed for output '%s' ('%s') of type %s. This can mean that the output was "
-					"used with the wrong value type, e.g. using ReceiveVector2Interface and passing "
-					"in an output providing a Real value. This output provides values of type %s."),
+					"used with the wrong value type, e.g. using ReceiveVector2Interface and "
+					"passing in an output providing a Real value. This output provides values of "
+					"type %s."),
 				*Output.Name.ToString(), *Output.Alias.ToString(),
 				*AGX_EnumUtilities::GetEnumName(Output.Type),
 				FOpenPLX_Utilities::GetPrimitiveTypeName(Output.Type));
@@ -1315,7 +1287,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, double Va
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::SendInterfaceImpl<agx::Real>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertRealToPLX);
+		Input, Value, GetHeapControlInterface(), ConvertRealToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
@@ -1332,7 +1304,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, doub
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Real>(
-		Output, OutValue, HeapControlInterfaceRef.get(), ConvertRealToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertRealToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
@@ -1349,7 +1321,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec2>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector2ToPLXValue);
+		Input, Value, GetHeapControlInterface(), ConvertVector2ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
@@ -1366,7 +1338,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVec
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Vec2>(
-		Output, OutValue, HeapControlInterfaceRef.get(), ConvertVector2ValueToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertVector2ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
@@ -1382,7 +1354,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVe
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendInterfaceImpl<agx::Vec3>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertVector3ToPLXValue);
+		Input, Value, GetHeapControlInterface(), ConvertVector3ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
@@ -1398,7 +1370,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVec
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<agx::Vec3>(
-		Output, OutValue, HeapControlInterfaceRef.get(), ConvertVector3ValueToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertVector3ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
@@ -1413,8 +1385,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, int64 Val
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<int64_t>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertIntegerToPLX);
+	return SendInterfaceImpl<int64_t>(Input, Value, GetHeapControlInterface(), ConvertIntegerToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
@@ -1430,7 +1401,7 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, int6
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<int64_t>(
-		Output, OutValue, HeapControlInterfaceRef.get(), ConvertIntegerToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertIntegerToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
@@ -1445,8 +1416,7 @@ bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, bool Valu
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<bool>(
-		Input, Value, HeapControlInterfaceRef.get(), ConvertBooleanToPLX);
+	return SendInterfaceImpl<bool>(Input, Value, GetHeapControlInterface(), ConvertBooleanToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
@@ -1462,61 +1432,42 @@ bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, bool
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveInterfaceImpl<bool>(
-		Output, OutValue, HeapControlInterfaceRef.get(), ConvertBooleanToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertBooleanToUnreal);
+}
+
+FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface()
+{
+	return const_cast<const FOpenPLXSignalHandler*>(this)->GetHeapControlInterface();
+}
+
+const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() const
+{
+	if (ModelRegistry == nullptr)
+		return {nullptr};
+
+	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
+	if (ModelData == nullptr)
+		return {nullptr};
+
+	auto It = ModelData->HeapControlInterfaces.find(AssemblyRef->Native.get());
+	if (It == ModelData->HeapControlInterfaces.end())
+		return {nullptr};
+
+	return {It->second.get()};
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()
 {
+	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
+	if (ModelData)
+	{
+		ModelData->HeapControlInterfaces.erase(AssemblyRef->Native.get());
+	}
+
 	ModelRegistry = nullptr;
 	AssemblyRef->Native = nullptr;
 	InputSignalListenerRef->Native = nullptr;
 	OutputSignalListenerRef->Native = nullptr;
-}
-
-namespace OpenPLXSignalHandler_helpers
-{
-
-	/*
-	 * During Blueprint Reconstruction Unreal Engine destroys all Components and recreates them from
-	 * scratch and restores the state using the regular serialization framework. If the Component
-	 * contains data that is not part of the regular serialization for the type, such as pointers to
-	 * non-managed memory, then the Component can use the Instance Data system to store a
-	 * representation of that non-serialized data for Blueprint Reconstruction specifically. For
-	 * Native Owner types we use this to store the bit pattern of the pointer to the underlying
-	 * Native object, often an AGX Dynamics type that inherits from agx::Referenced. These types
-	 * carry their own reference count so storing them is easy, we extract the pointer and bump the
-	 * reference count before Blueprint Reconstruction and then do the reverse on after
-	 * Reconstruction.
-	 *
-	 * For OpenPLX things aren't so easy. That API uses std::shared_ptr as their smart pointer type
-	 * and std::shared_ptr does not support creating new instances that participate in shared
-	 * ownership of an object without having access to a std::shared_ptr pointing to that object.
-	 * This is because the new std::shared_ptr must, somehow, find the control block for the object.
-	 *
-	 * Since we, in general, don't have access to a repository of std::shared_ptrs to OpenPLX types,
-	 * and even worse, the std::shared_ptr that the Component owns may well be the only
-	 * std::shared_ptr to the object and we cannot do explicit incref / decref on the control
-	 * block, we must store temporary std::shared_ptr instances for the duration of the Blueprint
-	 * Reconstruction. We store those instances here.
-	 *
-	 * TODO Is there a way to make this table pointed-to-type agnostic and move it somewhere more
-	 * central? Don't want to keep a table for each type we have a std::shared_ptr to.
-	 */
-	static TMap<uint64, std::shared_ptr<openplx::HeapControlInterface>> InstanceDataOwned;
-
-	int64 StoreHeapControlInterface(std::shared_ptr<openplx::HeapControlInterface> Instance)
-	{
-		const uint64 Key = reinterpret_cast<uint64>(Instance.get());
-		InstanceDataOwned.Add(Key, Instance);
-		return Key;
-	}
-
-	std::shared_ptr<openplx::HeapControlInterface> TakeHeapControlInterface(uint64 Key)
-	{
-		std::shared_ptr<openplx::HeapControlInterface> Instance;
-		InstanceDataOwned.RemoveAndCopyValue(Key, Instance);
-		return Instance;
-	}
 }
 
 void FOpenPLXSignalHandler::SetNativeAddresses(
@@ -1528,8 +1479,6 @@ void FOpenPLXSignalHandler::SetNativeAddresses(
 	OutputSignalListenerRef->Native =
 		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
 	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
-	HeapControlInterfaceRef->Native =
-		OpenPLXSignalHandler_helpers::TakeHeapControlInterface(Addresses.ControlInterfaceAddress);
 	ModelHandle = Addresses.ModelHandle;
 	bIsInitialized = true;
 }
@@ -1550,10 +1499,6 @@ FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses(
 
 	if (ModelRegistry != nullptr)
 		Addresses.ModelRegistryAddress = reinterpret_cast<uint64>(ModelRegistry);
-
-	if (HeapControlInterfaceRef->Native != nullptr)
-		Addresses.ControlInterfaceAddress = OpenPLXSignalHandler_helpers::StoreHeapControlInterface(
-			HeapControlInterfaceRef->Native);
 
 	Addresses.ModelHandle = ModelHandle;
 

@@ -113,7 +113,7 @@
 // we need a float, or a float composite.
 
 template <typename T>
-TOptional<T> Convert(std::optional<T>& Value)
+TOptional<T> Convert(const std::optional<T>& Value)
 {
 	if (Value)
 		return *Value;

@@ -14,7 +14,7 @@ class FSimulationBarrier;
 
 struct FAssemblyRef;
 struct FControlInterfaceRef;
-struct FHeapControlInterfaceRef;
+struct FHeapControlInterfacePtr;
 struct FInputSignalListenerRef;
 struct FInputSignalQueuePtr;
 struct FOutputSignalListenerRef;
@@ -69,6 +69,9 @@ public:
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
 	bool ReceiveInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
+	FHeapControlInterfacePtr GetHeapControlInterface();
+	const FHeapControlInterfacePtr GetHeapControlInterface() const;
+
 	void ReleaseNatives();
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
@@ -84,7 +87,4 @@ private:
 	// Queue-based signals.
 	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
 	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
-
-	// ControlInterface-based signals.
-	std::shared_ptr<FHeapControlInterfaceRef> HeapControlInterfaceRef;
 };
