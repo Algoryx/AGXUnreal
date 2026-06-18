@@ -59,7 +59,7 @@ namespace AGX_TrackRenderer_helpers
 				continue;
 
 			UMaterial* Material = MatInterface->GetMaterial();
-			if (Material == nullptr || Material->bUsedWithInstancedStaticMeshes)
+			if (Material == nullptr || Material->GetUsageByFlag(MATUSAGE_InstancedStaticMeshes))
 				return;
 
 			if (Material->GetPathName().StartsWith("/Game/"))
@@ -75,7 +75,7 @@ namespace AGX_TrackRenderer_helpers
 				if (FAGX_NotificationUtilities::YesNoQuestion(AskEnableUseWithInstancedSM))
 				{
 					Material->Modify();
-					Material->bUsedWithInstancedStaticMeshes = true;
+					Material->SetMaterialUsage(MATUSAGE_InstancedStaticMeshes);
 					Material->PostEditChange();
 					FAGX_ObjectUtilities::SaveAsset(*Material);
 				}

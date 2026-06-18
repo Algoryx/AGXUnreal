@@ -268,7 +268,8 @@ void UAGX_TrackProperties::SetNumNodesIncludedInAverageDirection(int32 NumInclud
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"Zero or negative value passed to SetNumNodesIncludedInAverageDirection, ignored."),
+				"Zero or negative value (%d) passed to "
+				"SetNumNodesIncludedInAverageDirection, ignored."),
 			NumIncludedNodes)
 		return;
 	}

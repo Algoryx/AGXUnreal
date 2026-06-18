@@ -27,15 +27,22 @@ TSharedRef<IDetailCustomization> FOpenPLX_SignalHandlerComponentCustomization::M
 
 namespace SignalHandlerComponentCustomization_helpers
 {
+	static const UEnum* GetEnum(EOpenPLX_InputType)
+	{
+		return FindObject<UEnum>(nullptr, TEXT("EOpenPLX_InputType"));
+	}
+
+	static const UEnum* GetEnum(EOpenPLX_OutputType)
+	{
+		return FindObject<UEnum>(nullptr, TEXT("EOpenPLX_OutputType"));
+	}
+
 	template <typename TEnum>
 	static FString GetEnumDisplayName(TEnum Value)
 	{
-		if (const UEnum* Enum = StaticEnum<TEnum>())
-		{
-			return Enum->GetDisplayNameTextByValue(static_cast<int64>(Value)).ToString();
-		}
-
-		return UEnum::GetValueAsString(Value);
+		const UEnum* Enum = GetEnum(Value);
+		return Enum != nullptr ? Enum->GetDisplayNameTextByValue(static_cast<int64>(Value)).ToString()
+							   : FString::FromInt(static_cast<int32>(Value));
 	}
 }
 

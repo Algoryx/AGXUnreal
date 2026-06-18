@@ -1429,7 +1429,7 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 			continue;
 
 		UMaterial* Material = RenderMaterials[Elem]->GetMaterial();
-		if (Material == nullptr || Material->bUsedWithInstancedStaticMeshes)
+		if (Material == nullptr || Material->GetUsageByFlag(MATUSAGE_InstancedStaticMeshes))
 			continue;
 
 		if (Material->GetPathName().StartsWith("/Game/"))
@@ -1445,7 +1445,7 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 			if (FAGX_NotificationUtilities::YesNoQuestion(AskEnableUseWithInstancedSM))
 			{
 				Material->Modify();
-				Material->bUsedWithInstancedStaticMeshes = true;
+				Material->SetMaterialUsage(MATUSAGE_InstancedStaticMeshes);
 				Material->PostEditChange();
 				FAGX_ObjectUtilities::SaveAsset(*Material);
 			}
