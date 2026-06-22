@@ -18,14 +18,23 @@ public:
 	static bool IsRangeType(EOpenPLX_InputType Type);
 	static bool IsRangeType(EOpenPLX_OutputType Type);
 
+	static bool IsVector2Type(EOpenPLX_InputType Type);
+	static bool IsVector2Type(EOpenPLX_OutputType Type);
+
 	static bool IsVectorType(EOpenPLX_InputType Type);
 	static bool IsVectorType(EOpenPLX_OutputType Type);
 
 	static bool IsIntegerType(EOpenPLX_InputType Type);
 	static bool IsIntegerType(EOpenPLX_OutputType Type);
 
+	static bool IsUnsignedIntegerType(EOpenPLX_InputType Type);
+	static bool IsUnsignedIntegerType(EOpenPLX_OutputType Type);
+
 	static bool IsBooleanType(EOpenPLX_InputType Type);
 	static bool IsBooleanType(EOpenPLX_OutputType Type);
-
+	
 	static bool IsLidarOutputType(EOpenPLX_OutputType Type);
+
+	static const TCHAR* GetPrimitiveTypeName(EOpenPLX_InputType Type);
+	static const TCHAR* GetPrimitiveTypeName(EOpenPLX_OutputType Type);
 };

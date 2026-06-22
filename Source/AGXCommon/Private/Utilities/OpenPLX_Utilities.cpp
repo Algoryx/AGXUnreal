@@ -72,6 +72,26 @@ bool FOpenPLX_Utilities::IsRangeType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_InputType Type)
+{
+	switch (Type)
+	{
+		// Add 'case' statements here once we identify an input with Vector2 type.
+		default:
+			return false;
+	}
+}
+
+bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		// Add 'case' statements here once we identify an output with Vector2 type.
+		default:
+			return false;
+	}
+}
+
 bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_InputType Type)
 {
 	switch (Type)
@@ -126,6 +146,26 @@ bool FOpenPLX_Utilities::IsIntegerType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_InputType Type)
+{
+	switch (Type)
+	{
+		// Add 'case' statements here once we identify an input with unsigned integer type.
+		default:
+			return false;
+	}
+}
+
+bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		// Are there any unsigned integer output types?
+		default:
+			return false;
+	}
+}
+
 bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_InputType Type)
 {
 	switch (Type)
@@ -154,6 +194,45 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 		default:
 			return false;
 	}
+}
+
+
+const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_InputType Type)
+{
+	if (IsBooleanType(Type))
+		return TEXT("Boolean");
+	if (IsIntegerType(Type))
+		return TEXT("Integer");
+	if (IsUnsignedIntegerType(Type))
+		return TEXT("UnsignedInteger");
+	if (IsRealType(Type))
+		return TEXT("Real");
+	if (IsRangeType(Type))
+		return TEXT("RangeReal");
+	if (IsVector2Type(Type))
+		return TEXT("Vector2");
+	if (IsVectorType(Type))
+		return TEXT("Vector");
+	return TEXT("(unknown)");
+}
+
+const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
+{
+	if (IsBooleanType(Type))
+		return TEXT("Boolean");
+	if (IsIntegerType(Type))
+		return TEXT("Integer");
+	if (IsUnsignedIntegerType(Type))
+		return TEXT("UnsignedInteger");
+	if (IsRealType(Type))
+		return TEXT("Real");
+	if (IsRangeType(Type))
+		return TEXT("RangeReal");
+	if (IsVector2Type(Type))
+		return TEXT("Vector2");
+	if (IsVectorType(Type))
+		return TEXT("Vector");
+	return TEXT("(unknown)");
 }
 
 bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)

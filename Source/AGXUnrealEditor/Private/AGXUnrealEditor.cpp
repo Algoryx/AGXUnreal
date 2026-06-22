@@ -112,6 +112,9 @@
 #include "Terrain/AGX_TerrainMaterialPatchComponentCustomization.h"
 #include "Terrain/AGX_TerrainMaterialPatchComponentVisualizer.h"
 #include "Terrain/AGX_TerrainPropertiesActions.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelComponentVisualizer.h"
+#include "Terrain/AGX_TerrainWheelSettingsActions.h"
 #include "Tires/AGX_TireComponentVisualizer.h"
 #include "Tires/AGX_TireComponent.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
@@ -356,6 +359,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		AssetTools, MakeShareable(new FAGX_TerrainMaterialAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_TerrainPropertiesActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_TerrainWheelSettingsActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_TrackInternalMergePropertiesAssetTypeActions(AgxAssetCategoryBit)));
@@ -766,6 +771,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 	RegisterComponentVisualizer(
 		UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_TerrainMaterialPatchComponentVisualizer));
+		
+	RegisterComponentVisualizer(
+		UAGX_TerrainWheelComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_TerrainWheelComponentVisualizer));
 
 	RegisterComponentVisualizer(
 		UAGX_TireComponent::StaticClass()->GetFName(),
@@ -797,6 +806,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_ShovelComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_SteeringComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TerrainMaterialPatchComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_TerrainWheelComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TireComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TrackComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireComponent::StaticClass()->GetFName());

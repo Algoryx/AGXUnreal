@@ -1,0 +1,153 @@
+// Copyright 2026, Algoryx Simulation AB.
+
+#include "Terrain/TerrainWheelBarrier.h"
+
+// AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
+#include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
+#include "RigidBodyBarrier.h"
+#include "Shapes/CylinderShapeBarrier.h"
+#include "Terrain/TerrainWheelSettingsBarrier.h"
+
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include "agxCollide/Cylinder.h"
+#include "agxTerrain/WheelDeformationProperties.h"
+#include "EndAGXIncludes.h"
+
+FTerrainWheelBarrier::FTerrainWheelBarrier()
+	: NativeRef {new FTerrainWheelRef}
+{
+}
+
+FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InNativeRef)
+	: NativeRef {std::move(InNativeRef)}
+{
+}
+
+void FTerrainWheelBarrier::SetEnableTerrainDeformation(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->getWheelDeformationProperties()->setEnableDeformation(InEnable);
+}
+
+bool FTerrainWheelBarrier::GetEnableTerrainDeformation() const
+{
+	check(HasNative());
+	return NativeRef->Native->getWheelDeformationProperties()->getEnableDeformation();
+}
+
+void FTerrainWheelBarrier::SetEnableTerrainDisplacement(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->getWheelDeformationProperties()->setEnableDisplacement(InEnable);
+}
+
+bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
+{
+	check(HasNative());
+	return NativeRef->Native->getWheelDeformationProperties()->getEnableDisplacement();
+}
+
+void FTerrainWheelBarrier::SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings)
+{
+	check(HasNative());
+	check(Settings.HasNative());
+	NativeRef->Native->setTerrainWheelSettings(Settings.GetNative()->Native);
+}
+
+FTerrainWheelSettingsBarrier FTerrainWheelBarrier::GetTerrainWheelSettings() const
+{
+	check(HasNative());
+	return FTerrainWheelSettingsBarrier(
+		std::make_shared<FTerrainWheelSettingsRef>(
+			NativeRef->Native->getTerrainWheelSettings()));
+}
+
+void FTerrainWheelBarrier::ResetTerrainWheelSettings()
+{
+	check(HasNative());
+	NativeRef->Native->setTerrainWheelSettings(new agxTerrain::TerrainWheelSettings());
+}
+
+void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)
+{
+	check(!HasNative());
+	check(Cylinder.HasNative());
+	agxCollide::Cylinder* CylinderAGX =
+		dynamic_cast<agxCollide::Cylinder*>(Cylinder.GetNative()->NativeShape.get());
+	AGX_CHECK(CylinderAGX != nullptr);
+	NativeRef->Native = new agxTerrain::TerrainWheel(CylinderAGX);
+}
+
+FGuid FTerrainWheelBarrier::GetGuid() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getUuid());
+}
+
+void FTerrainWheelBarrier::SetName(const FString& NameUnreal)
+{
+	check(HasNative());
+	agx::String NameAGX = Convert(NameUnreal);
+	NativeRef->Native->setName(NameAGX);
+}
+
+FString FTerrainWheelBarrier::GetName() const
+{
+	check(HasNative());
+	FString NameUnreal(Convert(NativeRef->Native->getName()));
+	return NameUnreal;
+}
+
+bool FTerrainWheelBarrier::HasNative() const
+{
+	return NativeRef->Native != nullptr;
+}
+
+FTerrainWheelRef* FTerrainWheelBarrier::GetNative()
+{
+	check(HasNative());
+	return NativeRef.get();
+}
+
+const FTerrainWheelRef* FTerrainWheelBarrier::GetNative() const
+{
+	check(HasNative());
+	return NativeRef.get();
+}
+
+uint64 FTerrainWheelBarrier::GetNativeAddress() const
+{
+	return HasNative() ? reinterpret_cast<uint64>(NativeRef->Native.get()) : 0;
+}
+
+void FTerrainWheelBarrier::SetNativeAddress(uint64 Address)
+{
+	NativeRef->Native = reinterpret_cast<agxTerrain::TerrainWheel*>(Address);
+}
+
+void FTerrainWheelBarrier::ReleaseNative()
+{
+	check(HasNative());
+	NativeRef->Native = nullptr;
+}
+
+FRigidBodyBarrier FTerrainWheelBarrier::GetRigidBody() const
+{
+	check(HasNative());
+	return FRigidBodyBarrier(std::make_shared<FRigidBodyRef>(NativeRef->Native->getWheelBody()));
+}
+
+void FTerrainWheelBarrier::IncrementRefCount() const
+{
+	check(HasNative());
+	NativeRef->Native->reference();
+}
+
+void FTerrainWheelBarrier::DecrementRefCount() const
+{
+	check(HasNative());
+	NativeRef->Native->unreference();
+}

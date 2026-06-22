@@ -985,10 +985,13 @@ void UAGX_SensorEnvironmentSubsystem::InitializeNative()
 			}
 		}
 
-		// Set positions integrated in PRE so that they are "seen" in the Lidar output in the same
-		// step.
-		// This is the same procedure as used in AGX Dynamics tutorials and examples using Lidar.
-		Sim->SetPreIntegratePositions(true);
+		if (bSetPreIntegratePosition)
+		{
+			// Set positions integrated in PRE so that they are "seen" in the Lidar output in the
+			// same step. This is the same procedure as used in AGX Dynamics tutorials and examples
+			// using Lidar.
+			Sim->SetPreIntegratePositions(true);
+		}
 	}
 
 	NativeBarrier.AllocateNative(*Sim->GetNative());

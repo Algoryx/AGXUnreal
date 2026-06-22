@@ -1004,8 +1004,7 @@ bool UAGX_CableComponent::UpdateNativeCableProperties()
 		static_cast<UAGX_CableProperties*>(CableProperties->GetOrCreateInstance(World));
 	check(Instance);
 
-	if (CableProperties != Instance)
-		CableProperties = Instance;
+	CableProperties = Instance;
 
 	FCablePropertiesBarrier* MaterialBarrier = Instance->GetOrCreateNative();
 	check(MaterialBarrier);
