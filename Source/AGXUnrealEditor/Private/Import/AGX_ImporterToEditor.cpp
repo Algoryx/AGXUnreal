@@ -22,6 +22,7 @@
 #include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Sensors/AGX_LidarModelParameters.h"
+#include "Sensors/AGX_SensorComponentBase.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -1856,6 +1857,18 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		for (const auto& [Guid, Component] : *Context.Tracks)
 		{
 			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Tracks, Blueprint);
+			if (N == nullptr)
+				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			else
+				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
+		}
+	}
+
+	if (Context.Sensors != nullptr)
+	{
+		for (const auto& [Guid, Component] : *Context.Sensors)
+		{
+			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Sensors, Blueprint);
 			if (N == nullptr)
 				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 			else

@@ -15,6 +15,7 @@
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "Sensors/AGX_SensorComponentBase.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
@@ -142,6 +143,12 @@ FAGX_SCSNodeCollection::FAGX_SCSNodeCollection(const UBlueprint& Bp)
 			AGX_CHECK(!ObserverFrames.Contains(Ob->ImportGuid));
 			if (Ob->ImportGuid.IsValid())
 				ObserverFrames.Add(Ob->ImportGuid, Node);
+		}
+		else if (auto Sensor = Cast<UAGX_SensorComponentBase>(Component))
+		{
+			AGX_CHECK(!Sensors.Contains(Sensor->ImportGuid))
+			if (Sensor->ImportGuid.IsValid())
+				Sensors.Add(Sensor->ImportGuid, Node);
 		}
 		else if (auto Shovel = Cast<UAGX_ShovelComponent>(Component))
 		{
