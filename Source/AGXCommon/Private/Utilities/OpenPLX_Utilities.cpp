@@ -74,22 +74,14 @@ bool FOpenPLX_Utilities::IsRangeType(EOpenPLX_OutputType Type)
 
 bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_InputType Type)
 {
-	switch (Type)
-	{
-		// Add 'case' statements here once we identify an input with Vector2 type.
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an input with Vector2 type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_OutputType Type)
 {
-	switch (Type)
-	{
-		// Add 'case' statements here once we identify an output with Vector2 type.
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an output with Vector2 type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_InputType Type)
@@ -148,22 +140,14 @@ bool FOpenPLX_Utilities::IsIntegerType(EOpenPLX_OutputType Type)
 
 bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_InputType Type)
 {
-	switch (Type)
-	{
-		// Add 'case' statements here once we identify an input with unsigned integer type.
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an input with unsigned integer type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_OutputType Type)
 {
-	switch (Type)
-	{
-		// Are there any unsigned integer output types?
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an output with unsigned integer type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_InputType Type)
@@ -190,6 +174,17 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 		case EOpenPLX_OutputType::InteractionEnabledOutput:
 		case EOpenPLX_OutputType::EngagedOutput:
 		case EOpenPLX_OutputType::TorqueConverterLockedUpOutput:
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::LidarOutput:
 			return true;
 		default:
 			return false;
@@ -232,16 +227,7 @@ const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
 		return TEXT("Vector2");
 	if (IsVectorType(Type))
 		return TEXT("Vector");
+	if (IsLidarOutputType(Type))
+		return TEXT("Lidar Output");
 	return TEXT("(unknown)");
-}
-
-bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
-{
-	switch (Type)
-	{
-		case EOpenPLX_OutputType::LidarOutput:
-			return true;
-		default:
-			return false;
-	}
 }

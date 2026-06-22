@@ -108,5 +108,5 @@ enum class EOpenPLX_OutputType : uint8
 		DisplayName = "Torque Converter Locked Up Output [Boolean]"), // Child of BoolOutput
 
 	/* Others */
-	LidarOutput UMETA(DisplayName = "Lidar Output [Composite]")
+	LidarOutput UMETA(DisplayName = "Lidar Output [Lidar Output]")
 };

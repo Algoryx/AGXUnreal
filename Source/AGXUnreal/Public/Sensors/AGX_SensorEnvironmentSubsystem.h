@@ -129,9 +129,6 @@ public:
 	void SetMagneticField(const FVector& Field);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
-	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	FVector GetMagneticField() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")

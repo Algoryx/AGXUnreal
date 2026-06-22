@@ -21,20 +21,17 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
+#include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/AgxObjectMap.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "openplx/ControlDispatch.h"
 #include "openplx/ControlInterface.h"
-#include <openplx/HeapControlInterface.h>
+#include "openplx/HeapControlInterface.h"
 #include "openplx/Math/Vec3.h"
-#include "openplx/Physics/Signals/AngleOutput.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
 #include "openplx/Physics/Signals/RealInputSignal.h"
 #include "openplx/Physics/Signals/Vec3InputSignal.h"
-#include "openplx/Sensors/Signals/LidarOutput.h"
-#include "openplx/Sensors/Signals/LidarOutputField.h"
-#include "openplx/Sensors/Signals/SensorOutputSignal.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -106,8 +103,6 @@ void FOpenPLXSignalHandler::Init(
 
 	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
 	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
-	std::shared_ptr<agxopenplx::AgxMetadata> AgxMetadata =
-		std::make_shared<agxopenplx::AgxMetadata>();
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -127,7 +122,6 @@ void FOpenPLXSignalHandler::Init(
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 		InputSignalListenerRef->Native =
 			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, Metadata);
-			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, AgxMetadata);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -136,7 +130,6 @@ void FOpenPLXSignalHandler::Init(
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
 			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, Metadata);
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, AgxMetadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -146,7 +139,7 @@ void FOpenPLXSignalHandler::Init(
 
 	std::shared_ptr<openplx::ControlDispatch> ControlDispatch =
 		std::make_shared<openplx::ControlDispatch>();
-	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
+	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, Metadata);
 	std::shared_ptr<openplx::ControlInterface> ControlInterface =
 		std::make_shared<openplx::ControlInterface>(ControlDispatch);
 	std::vector<std::shared_ptr<openplx::Physics::Signals::SignalInterface>> SignalInterfaces =
@@ -1472,8 +1465,7 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 bool FOpenPLXSignalHandler::ReceiveLidarOutput(const FOpenPLX_Output& Output)
 {
 	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::ReceiveLidarOutput(
-		Output, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue());
+	return false;
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()
