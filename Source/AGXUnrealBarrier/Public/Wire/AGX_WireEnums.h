@@ -19,8 +19,8 @@ enum class EWireNodeType : uint8
 	Free,
 	Eye,
 	BodyFixed,
+	Connecting,
 	NUM_USER_CREATABLE UMETA(HIDDEN),
-	Connecting UMETA(HIDDEN),
 	Stop UMETA(HIDDEN), // Internal node created by Wire Winch.
 	Contact UMETA(HIDDEN), // Internal node created by dynamics contacts.
 	ShapeContact UMETA(HIDDEN), // Internal node created by dynamics contacts.

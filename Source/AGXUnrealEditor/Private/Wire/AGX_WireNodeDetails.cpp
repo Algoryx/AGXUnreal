@@ -31,6 +31,7 @@
 #include "Widgets/Colors/SColorBlock.h"
 #include "Widgets/Input/SVectorInputBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
 
 #define LOCTEXT_NAMESPACE "AGX_WireNodeDetails"
 
@@ -217,6 +218,7 @@ void FAGX_WireNodeDetails::GenerateChildContent(IDetailChildrenBuilder& Children
 		]
 	];
 
+
 	// clang-format on
 }
 
@@ -251,7 +253,7 @@ namespace AGX_WireNodeDetails_helpers
 {
 	bool NodeTypeHasBody(EWireNodeType NodeType)
 	{
-		return NodeType == EWireNodeType::BodyFixed || NodeType == EWireNodeType::Eye;
+		return NodeType == EWireNodeType::BodyFixed || NodeType == EWireNodeType::Eye || NodeType == EWireNodeType::Connecting;
 	}
 
 	/**
@@ -853,6 +855,7 @@ EVisibility FAGX_WireNodeDetails::NodeHasRigidBody() const
 	return FAGX_EditorUtilities::VisibleIf(
 		NodeType.IsSet() && NodeTypeHasBody(NodeType.GetValue()));
 }
+
 
 FString FAGX_WireNodeDetails::RebuildRigidBodyComboBox_Edit(const FString& ToSelect, AActor* Actor)
 {
