@@ -140,22 +140,14 @@ bool FOpenPLX_Utilities::IsIntegerType(EOpenPLX_OutputType Type)
 
 bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_InputType Type)
 {
-	switch (Type)
-	{
-		// Add 'case' statements here once we identify an input with unsigned integer type.
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an input with unsigned integer type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsUnsignedIntegerType(EOpenPLX_OutputType Type)
 {
-	switch (Type)
-	{
-		// Are there any unsigned integer output types?
-		default:
-			return false;
-	}
+	// Add switch statement here once we identify an output with unsigned integer type.
+	return false;
 }
 
 bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_InputType Type)
