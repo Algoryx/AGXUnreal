@@ -845,6 +845,32 @@ namespace OpenPLXSignalHandler_helpers
 		return bSuccess ? Value : TOptional<agx::Vec2>();
 	}
 
+	bool InterfaceWriteRPY(openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
+	{
+		// clang-format off
+		return InterfaceWriteFields(
+			Interface, Alias,
+			FWriteField {"r", Value.x()},
+			FWriteField {"p", Value.y()},
+			FWriteField {"y", Value.z()});
+		// clang-format on
+	}
+
+	TOptional<agx::Vec3> InterfaceReadRPY(
+		openplx::HeapControlInterface& Interface, const std::string& Alias)
+	{
+		agx::Vec3 Value;
+		// clang-format off
+		const bool bSuccess =
+			InterfaceReadFields(
+				Interface, Alias,
+				FReadField{"r", &Value.x()},
+				FReadField{"p", &Value.y()},
+				FReadField{"y", &Value.z()});
+		// clang-format on
+		return bSuccess ? Value : TOptional<agx::Vec3>();
+	}
+
 	bool InterfaceWriteVector3(
 		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
 	{
@@ -1066,13 +1092,29 @@ namespace OpenPLXSignalHandler_helpers
 	template <>
 	Vec3WriteFuncPtr GetInterfaceWriteFunction<agx::Vec3>(const FOpenPLX_Input& Input)
 	{
-		return FOpenPLX_Utilities::IsVectorType(Input.Type) ? InterfaceWriteVector3 : nullptr;
+		if (FOpenPLX_Utilities::IsRPYType(Input.Type))
+		{
+			return InterfaceWriteRPY;
+		}
+		if (FOpenPLX_Utilities::IsVectorType(Input.Type))
+		{
+			return InterfaceWriteVector3;
+		}
+		return nullptr;
 	}
 
 	template <>
 	Vec3ReadFuncPtr GetInterfaceReadFunction<agx::Vec3>(const FOpenPLX_Output& Output)
 	{
-		return FOpenPLX_Utilities::IsVectorType(Output.Type) ? InterfaceReadVector3 : nullptr;
+		if (FOpenPLX_Utilities::IsRPYType(Output.Type))
+		{
+			return InterfaceReadRPY;
+		}
+		if (FOpenPLX_Utilities::IsVectorType(Output.Type))
+		{
+			return InterfaceReadVector3;
+		}
+		return nullptr;
 	}
 
 	//
