@@ -20,6 +20,7 @@ struct FInputSignalListenerRef;
 struct FInputSignalQueuePtr;
 struct FOutputSignalListenerRef;
 struct FOutputSignalQueuePtr;
+struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
@@ -75,7 +76,7 @@ public:
 	const FHeapControlInterfacePtr GetHeapControlInterface() const;
 
 	/// Lidar outputs.
-	bool ReceiveLidarOutput(const FOpenPLX_Output& Output);
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
 
 	void ReleaseNatives();
 

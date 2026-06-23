@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
 // Unreal Engine includes.
@@ -300,7 +301,7 @@ public:
 	 * Uses the given Output to receive a Signal of Lidar Output type.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveLidarOutput(const FOpenPLX_Output& Output);
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Lidar Output type.
@@ -308,7 +309,7 @@ public:
 	 * Output to use.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveLidarOutputByName(FName NameOrAlias);
+	bool ReceiveLidarOutputByName(FName NameOrAlias, FOpenPLXLidarOutputView& OutView);
 
 	UPROPERTY(Transient)
 	bool bShowDisabledOutputs {false};

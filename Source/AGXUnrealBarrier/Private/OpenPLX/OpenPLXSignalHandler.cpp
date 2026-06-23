@@ -5,10 +5,11 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
@@ -1462,10 +1463,37 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 	return {It->second.get()};
 }
 
-bool FOpenPLXSignalHandler::ReceiveLidarOutput(const FOpenPLX_Output& Output)
+bool FOpenPLXSignalHandler::ReceiveLidarOutput(
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput)
 {
 	check(IsInitialized());
-	return false;
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive Lidar output '%s' ('%s') through the "
+				"Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXLidarOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Alias.ToString()));
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read Lidar output '%s' ('%s') through the "
+				"Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()
