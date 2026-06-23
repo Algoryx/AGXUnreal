@@ -21,6 +21,10 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 		return View.HasNative();
 	}
 
+	/**
+	 * Read the Lidar point positions.
+	 * The returned positions are in Unreal coordinates and local to the Lidar transform.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
 	static bool ReadPositions(
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<FVector>& OutPositions)
@@ -30,7 +34,6 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 
 	/**
 	 * Copy the underlying Lidar output data into memory owned by this view.
-	 *
 	 * A newly received Lidar output view references memory owned by the OpenPLX Control Interface
 	 * and is only valid until another read reuses that buffer. Call this before storing the view
 	 * for later use. This copies the complete Lidar output buffer.
