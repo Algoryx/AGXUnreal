@@ -30,11 +30,26 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 
 	bool HasNative() const;
 
+	/// Returns true if this view contains Lidar point positions.
+	bool HasPositions() const;
+
+	/// Returns true if this view contains Lidar point intensities.
+	bool HasIntensities() const;
+
 	/**
 	 * Read the Lidar point positions.
 	 * The returned positions are in Unreal coordinates and local to the Lidar transform.
 	 */
 	bool ReadPositions(TArray<FVector>& OutPositions);
+
+	/**
+	 * Read the Lidar point positions transformed by RelativeTo.
+	 * The returned positions are in Unreal coordinates.
+	 */
+	bool ReadPositionsTransformed(const FTransform& RelativeTo, TArray<FVector>& OutPositions);
+
+	/// Read the Lidar point intensities.
+	bool ReadIntensities(TArray<float>& OutIntensities);
 
 	/**
 	 * Copy the underlying Lidar output data into memory owned by this view.
