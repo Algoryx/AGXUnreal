@@ -36,6 +36,21 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 	/// Returns true if this view contains Lidar point intensities.
 	bool HasIntensities() const;
 
+	/// Returns true if this view contains Lidar point timestamps.
+	bool HasTimeStamps() const;
+
+	/// Returns true if this view contains Lidar point distances.
+	bool HasDistances() const;
+
+	/// Returns true if this view contains Lidar ray poses.
+	bool HasRayPoses() const;
+
+	/// Returns true if this view contains Lidar hit flags.
+	bool HasIsHits() const;
+
+	/// Returns true if this view contains Lidar entity IDs.
+	bool HasEntityIds() const;
+
 	/**
 	 * Read the Lidar point positions.
 	 * The returned positions are in Unreal coordinates and local to the Lidar transform.
@@ -50,6 +65,21 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 
 	/// Read the Lidar point intensities.
 	bool ReadIntensities(TArray<float>& OutIntensities);
+
+	/// Read the Lidar point timestamps [s].
+	bool ReadTimeStamps(TArray<double>& OutTimeStamps);
+
+	/// Read the Lidar point distances [cm].
+	bool ReadDistances(TArray<double>& OutDistances);
+
+	/// Read the Lidar ray poses in Unreal coordinates.
+	bool ReadRayPoses(TArray<FTransform>& OutRayPoses);
+
+	/// Read the Lidar hit flags.
+	bool ReadIsHits(TArray<bool>& OutIsHits);
+
+	/// Read the Lidar entity IDs.
+	bool ReadEntityIds(TArray<int32>& OutEntityIds);
 
 	/**
 	 * Copy the underlying Lidar output data into memory owned by this view.

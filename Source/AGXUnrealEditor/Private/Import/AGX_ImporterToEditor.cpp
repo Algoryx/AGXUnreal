@@ -1025,6 +1025,13 @@ namespace AGX_ImporterToEditor_helpers
 			}
 		}
 
+		if constexpr (std::is_same_v<TComponent, UAGX_SensorComponentBase>)
+		{
+			// A Sensor can have a RigidBody or Root as parent.
+			if (auto Body = Cast<UAGX_RigidBodyComponent>(Parent))
+				return Nodes.RigidBodies.FindRef(Body->ImportGuid);
+		}
+
 		return Nodes.RootComponent; // Default.
 	}
 

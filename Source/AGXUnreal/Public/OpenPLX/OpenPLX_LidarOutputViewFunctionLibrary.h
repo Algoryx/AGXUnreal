@@ -35,6 +35,36 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 		return View.HasIntensities();
 	}
 
+	UFUNCTION(BlueprintPure, Category = "OpenPLX Lidar Output View")
+	static bool HasTimeStamps(const FOpenPLXLidarOutputView& View)
+	{
+		return View.HasTimeStamps();
+	}
+
+	UFUNCTION(BlueprintPure, Category = "OpenPLX Lidar Output View")
+	static bool HasDistances(const FOpenPLXLidarOutputView& View)
+	{
+		return View.HasDistances();
+	}
+
+	UFUNCTION(BlueprintPure, Category = "OpenPLX Lidar Output View")
+	static bool HasRayPoses(const FOpenPLXLidarOutputView& View)
+	{
+		return View.HasRayPoses();
+	}
+
+	UFUNCTION(BlueprintPure, Category = "OpenPLX Lidar Output View")
+	static bool HasIsHits(const FOpenPLXLidarOutputView& View)
+	{
+		return View.HasIsHits();
+	}
+
+	UFUNCTION(BlueprintPure, Category = "OpenPLX Lidar Output View")
+	static bool HasEntityIds(const FOpenPLXLidarOutputView& View)
+	{
+		return View.HasEntityIds();
+	}
+
 	/**
 	 * Read the Lidar point positions.
 	 * The returned positions are in Unreal coordinates and local to the Lidar transform.
@@ -63,6 +93,41 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<float>& OutIntensities)
 	{
 		return View.ReadIntensities(OutIntensities);
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
+	static bool ReadTimeStamps(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<double>& OutTimeStamps)
+	{
+		return View.ReadTimeStamps(OutTimeStamps);
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
+	static bool ReadDistances(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<double>& OutDistances)
+	{
+		return View.ReadDistances(OutDistances);
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
+	static bool ReadRayPoses(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<FTransform>& OutRayPoses)
+	{
+		return View.ReadRayPoses(OutRayPoses);
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
+	static bool ReadIsHits(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<bool>& OutIsHits)
+	{
+		return View.ReadIsHits(OutIsHits);
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
+	static bool ReadEntityIds(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<int32>& OutEntityIds)
+	{
+		return View.ReadEntityIds(OutEntityIds);
 	}
 
 	/**
