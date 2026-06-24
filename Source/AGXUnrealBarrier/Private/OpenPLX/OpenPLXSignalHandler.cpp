@@ -343,10 +343,10 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			case EOpenPLX_OutputType::AngularVelocity3DOutput:
 			case EOpenPLX_OutputType::MateConnectorAngularAcceleration3DOutput:
-				// TODO Are we sure RPY should use the Angular Velocity conversion?
+				return ConvertAngularVelocity(Value);
 			case EOpenPLX_OutputType::MateConnectorRPYOutput:
 			case EOpenPLX_OutputType::RPYOutput:
-				return ConvertAngularVelocity(Value);
+				return ConvertRPY(Value);
 			case EOpenPLX_OutputType::LinearVelocity3DOutput:
 			case EOpenPLX_OutputType::MateConnectorAcceleration3DOutput:
 			case EOpenPLX_OutputType::MateConnectorPositionOutput:
