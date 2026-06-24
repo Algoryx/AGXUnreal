@@ -18,7 +18,7 @@
  * and AGX_Real.h from AGXUnrealBarrier to AGXUnrealCommon?
  */
 UCLASS()
-class AGXUNREALBARRIER_API UAGX_RealInterval_FL : public UBlueprintFunctionLibrary
+class AGXUNREAL_API UAGX_RealInterval_FL : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
