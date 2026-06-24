@@ -87,7 +87,7 @@
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponentCustomization.h"
 #include "Sensors/AGX_LidarSensorComponentVisualizer.h"
-#include "Sensors/AGX_LidarSensorLineTraceComponent.h"
+#include "Deprecated/AGX_LidarSensorLineTraceComponent.h"
 #include "Sensors/AGX_LidarSensorLineTraceComponentVisualizer.h"
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_CustomRayPatternParametersTypeActions.h"
