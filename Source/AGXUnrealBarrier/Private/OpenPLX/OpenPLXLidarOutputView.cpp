@@ -310,6 +310,20 @@ bool FOpenPLXLidarOutputView::HasNative() const
 	return NativeRef != nullptr && NativeRef->Marshalling != nullptr;
 }
 
+int32 FOpenPLXLidarOutputView::GetNumPoints() const
+{
+	using namespace OpenPLXLidarOutputView_helpers;
+
+	if (!HasNative())
+		return 0;
+
+	WindowLayout Layout;
+	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
+		return 0;
+
+	return CanConvert(Layout.NumWindows) ? static_cast<int32>(Layout.NumWindows) : 0;
+}
+
 bool FOpenPLXLidarOutputView::HasPositions() const
 {
 	using namespace OpenPLXLidarOutputView_helpers;

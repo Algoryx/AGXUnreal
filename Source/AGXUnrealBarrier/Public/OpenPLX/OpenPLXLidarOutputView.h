@@ -30,6 +30,9 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 
 	bool HasNative() const;
 
+	/// Return the number of points in this Lidar output view.
+	int32 GetNumPoints() const;
+
 	/// Returns true if this view contains Lidar point positions.
 	bool HasPositions() const;
 
