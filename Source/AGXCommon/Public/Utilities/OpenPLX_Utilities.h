@@ -21,6 +21,9 @@ public:
 	static bool IsVector2Type(EOpenPLX_InputType Type);
 	static bool IsVector2Type(EOpenPLX_OutputType Type);
 
+	static bool IsRPYType(EOpenPLX_InputType Type);
+	static bool IsRPYType(EOpenPLX_OutputType Type);
+
 	static bool IsVectorType(EOpenPLX_InputType Type);
 	static bool IsVectorType(EOpenPLX_OutputType Type);
 

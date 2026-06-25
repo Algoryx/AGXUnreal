@@ -84,6 +84,24 @@ bool FOpenPLX_Utilities::IsVector2Type(EOpenPLX_OutputType Type)
 	return false;
 }
 
+bool FOpenPLX_Utilities::IsRPYType(EOpenPLX_InputType Type)
+{
+	// Add switch statement here once we identify an output with RPY type.
+	return false;
+}
+
+bool FOpenPLX_Utilities::IsRPYType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::MateConnectorRPYOutput:
+		case EOpenPLX_OutputType::RPYOutput:
+			return true;
+		default:
+			return false;
+	}
+}
+
 bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_InputType Type)
 {
 	switch (Type)
