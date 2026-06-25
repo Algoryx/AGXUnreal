@@ -42,9 +42,12 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	/// Returns the Rigid Body this IMU is attached to, if it exists.
 	FRigidBodyBarrier GetRigidBody() const;
 
+
 	//
 	// Accelerometer
 	//
+
+	bool HasAccelerometer() const;
 
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetAccelerometerRange() const;
@@ -78,6 +81,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	// Gyroscope
 	//
 
+	bool HasGyroscope() const;
+
 	void SetGyroscopeRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetGyroscopeRange() const;
 
@@ -110,6 +115,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	//
 	// Magnetometer
 	//
+
+	bool HasMagnetometer() const;
 
 	void SetMagnetometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetMagnetometerRange() const;

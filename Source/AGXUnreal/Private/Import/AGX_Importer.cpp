@@ -953,15 +953,9 @@ EAGX_ImportResult FAGX_Importer::AddIMU(const FSensorBarrier& Sensor, AActor& Ou
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	FRigidBodyBarrier BodyBarrier = IMU.GetRigidBody();
+	// Note: an IMU Sensor should never be child of a Rigid Body.
+	// The Rigid Body is selected from its Details Panel.
 	USceneComponent* Parent = OutActor.GetRootComponent();
-	if (BodyBarrier.HasNative())
-	{
-		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
-		check(Body != nullptr);
-		Parent = Body;
-	}
-
 	return AddComponent<UAGX_IMUSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 

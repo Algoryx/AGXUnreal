@@ -679,6 +679,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX IMU")
 	FQuat GetRotation() const;
 
+	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+
 	void UpdateTransformFromNative();
 
 	FSensorBarrier* CreateNativeImpl() override;

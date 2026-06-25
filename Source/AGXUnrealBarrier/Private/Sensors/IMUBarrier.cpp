@@ -232,6 +232,27 @@ FRigidBodyBarrier FIMUBarrier::GetRigidBody() const
 	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
 }
 
+bool FIMUBarrier::HasAccelerometer() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetAccelerometer(*GetIMUNative(*this)) != nullptr;
+}
+
+bool FIMUBarrier::HasGyroscope() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetGyroscope(*GetIMUNative(*this)) != nullptr;
+}
+
+bool FIMUBarrier::HasMagnetometer() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetMagnetometer(*GetIMUNative(*this)) != nullptr;
+}
+
 void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
 {
 	using namespace IMUBarrier_helpers;
