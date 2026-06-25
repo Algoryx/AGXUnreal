@@ -170,6 +170,9 @@ bool FOpenPLXSignalHandler::IsInitialized() const
 
 namespace OpenPLXSignalHandler_helpers
 {
+	template <typename>
+	inline constexpr bool TDependentFalse = false;
+
 	//
 	// Here follows a bunch of type conversion functions that convert OpenPLX typed values to and
 	// from Unreal typed values. The functions ensure that Input or Output type makes sense for the
@@ -658,7 +661,9 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_signed_v<ValueT>)
 			return Marshalling.write_int(Field.Name, Field.Value);
 		else
-			static_assert(false, "InterfaceWriteField was called with an unsupported type.");
+			static_assert(
+				TDependentFalse<ValueT>,
+				"InterfaceWriteField was called with an unsupported type.");
 	}
 
 	template <typename ValueT>
@@ -678,7 +683,9 @@ namespace OpenPLXSignalHandler_helpers
 		else if constexpr (std::is_signed_v<ValueT>)
 			ValueMaybe = Marshalling.read_int<ValueT>(Field.Name);
 		else
-			static_assert(false, "InterfaceReadField was called with an unsupported type.");
+			static_assert(
+				TDependentFalse<ValueT>,
+				"InterfaceReadField was called with an unsupported type.");
 
 		if (!ValueMaybe)
 		{
@@ -1012,13 +1019,17 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValueT>
 	SelectInterfaceFunction<ValueT>::Write GetInterfaceWriteFunction(const FOpenPLX_Input& Input)
 	{
-		static_assert(false, "GetInterfaceWriteFunction not implemented for this type");
+		static_assert(
+			TDependentFalse<ValueT>,
+			"GetInterfaceWriteFunction not implemented for this type");
 	}
 
 	template <typename ValueT>
 	SelectInterfaceFunction<ValueT>::Read GetInterfaceReadFunction(const FOpenPLX_Output& Output)
 	{
-		static_assert(false, "GetInterfaceReadFunction not implemented for this type");
+		static_assert(
+			TDependentFalse<ValueT>,
+			"GetInterfaceReadFunction not implemented for this type");
 	}
 
 	template <>
