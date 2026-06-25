@@ -661,7 +661,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(
 	return ReceiveLidarOutput(Output, OutView);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutput(const FOpenPLX_Output& Output)
+bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutput(
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
@@ -673,10 +674,11 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutput(const FOpenPLX_Output& Ou
 		return false;
 	}
 
-	return SignalHandler.ReceiveIMUOutput(Output);
+	return SignalHandler.ReceiveIMUOutput(Output, OutView);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(FName NameOrAlias)
+bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(
+	FName NameOrAlias, FOpenPLXIMUOutputView& OutView)
 {
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
@@ -689,7 +691,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(FName NameOrAlias)
 		return false;
 	}
 
-	return ReceiveIMUOutput(Output);
+	return ReceiveIMUOutput(Output, OutView);
 }
 
 void UOpenPLX_SignalHandlerComponent::BeginPlay()

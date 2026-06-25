@@ -9,6 +9,7 @@
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXIMUOutputView.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
@@ -37,7 +38,6 @@
 
 // Standard library includes.
 #include <cstdint>
-#include <limits>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
@@ -1591,7 +1591,8 @@ bool FOpenPLXSignalHandler::ReceiveLidarOutput(
 	return true;
 }
 
-bool FOpenPLXSignalHandler::ReceiveIMUOutput(const FOpenPLX_Output& Output)
+bool FOpenPLXSignalHandler::ReceiveIMUOutput(
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput)
 {
 	check(IsInitialized());
 
@@ -1607,8 +1608,9 @@ bool FOpenPLXSignalHandler::ReceiveIMUOutput(const FOpenPLX_Output& Output)
 		return false;
 	}
 
-	auto Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
-	if (Marshalling == nullptr)
+	OutOutput = FOpenPLXIMUOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	if (!OutOutput.HasNative())
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -1617,56 +1619,6 @@ bool FOpenPLXSignalHandler::ReceiveIMUOutput(const FOpenPLX_Output& Output)
 				"Control Interface because a marshalling object could not be created."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return false;
-	}
-
-	if (Marshalling->get_buffer_size() == 0)
-		return true;
-
-	auto& Window = Marshalling->get_or_add_nested_marshalling("window");
-	Marshalling->calculate_nested_buffer_sizes();
-
-	if (Window == nullptr || Window->get_stride() == 0)
-		return false;
-
-	const size_t BufferSize = Marshalling->get_buffer_size();
-	const size_t WindowStride = Window->get_stride();
-	if (BufferSize % WindowStride != 0)
-		return false;
-
-	const size_t NumSamples = BufferSize / WindowStride;
-
-	auto& Accelerometer = Window->get_or_add_nested_marshalling("accelerometer_logic");
-	auto& Gyroscope = Window->get_or_add_nested_marshalling("gyroscope_logic");
-	auto& Magnetometer = Window->get_or_add_nested_marshalling("magnetometer_logic");
-	if (Accelerometer == nullptr || Gyroscope == nullptr || Magnetometer == nullptr)
-		return false;
-
-	for (size_t I = 0; I < NumSamples; ++I)
-	{
-		auto AccelerationX = Accelerometer->read_real_indexed<double>("x", I, 0);
-		auto AccelerationY = Accelerometer->read_real_indexed<double>("y", I, 0);
-		auto AccelerationZ = Accelerometer->read_real_indexed<double>("z", I, 0);
-
-		auto AngularVelocityX = Gyroscope->read_real_indexed<double>("x", I, 0);
-		auto AngularVelocityY = Gyroscope->read_real_indexed<double>("y", I, 0);
-		auto AngularVelocityZ = Gyroscope->read_real_indexed<double>("z", I, 0);
-
-		auto MagneticFieldX = Magnetometer->read_real_indexed<double>("x", I, 0);
-		auto MagneticFieldY = Magnetometer->read_real_indexed<double>("y", I, 0);
-		auto MagneticFieldZ = Magnetometer->read_real_indexed<double>("z", I, 0);
-
-		constexpr double Missing = std::numeric_limits<double>::quiet_NaN();
-		UE_LOG(
-			LogAGX, Log,
-			TEXT(
-				"OpenPLX IMU output '%s' sample %llu: accel=(%.17g, %.17g, %.17g), gyro=(%.17g, "
-				"%.17g, %.17g), magnetometer=(%.17g, %.17g, %.17g)"),
-			*Output.Name.ToString(), static_cast<unsigned long long>(I),
-			AccelerationX.value_or(Missing), AccelerationY.value_or(Missing),
-			AccelerationZ.value_or(Missing), AngularVelocityX.value_or(Missing),
-			AngularVelocityY.value_or(Missing), AngularVelocityZ.value_or(Missing),
-			MagneticFieldX.value_or(Missing), MagneticFieldY.value_or(Missing),
-			MagneticFieldZ.value_or(Missing));
 	}
 
 	return true;
