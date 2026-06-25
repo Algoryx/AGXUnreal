@@ -78,6 +78,9 @@ public:
 	/// Lidar outputs.
 	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
 
+	/// IMU outputs.
+	bool ReceiveIMUOutput(const FOpenPLX_Output& Output);
+
 	void ReleaseNatives();
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);

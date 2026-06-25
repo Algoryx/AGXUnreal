@@ -11,8 +11,9 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
-#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -21,6 +22,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSDK/Simulation.h>
+#include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
@@ -67,6 +69,7 @@
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
 #include "openplx/Physics3D/Signals/Torque3DOutput.h"
+#include "openplx/Sensors/IMULogic.h"
 #include "openplx/Sensors/Signals/LidarOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
@@ -703,12 +706,13 @@ void FPLXUtilitiesInternal::MapSensorOutput(
 	const FOpenPLXMappingBarriersCollection& Barriers,
 	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
 {
-	if (Barriers.Lidars.Num() == 0)
+	if (Barriers.Lidars.Num() == 0 && Barriers.IMUs.Num() == 0)
 		return;
 
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
 
+	// Lidars.
 	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);
 	for (const auto& LidarPLX : LidarsPLX)
 	{
@@ -743,6 +747,42 @@ void FPLXUtilitiesInternal::MapSensorOutput(
 		auto LidarMetaData = agxopenplx::OpenPlxSensorsMapper::createLidarMetadata();
 		Metadata->registerMetadata(LidarAGX, LidarMetaData);
 		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX);
+	}
+
+	// IMUs.
+	auto IMUsPLX = GetNestedObjects<openplx::Sensors::IMULogic>(*System);
+	for (const auto& IMUPLX : IMUsPLX)
+	{
+		const FString Name = Convert(IMUPLX->getName());
+		auto SensorBarrier = Barriers.IMUs.FindByPredicate(
+			[&Name](FSensorBarrier* B) { return B != nullptr && B->GetName().Equals(Name); });
+		if (SensorBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for IMU '%s', could not find a matching AGX IMU "
+					 "with that Import Name."),
+				*Name);
+			continue;
+		}
+
+		AGX_CHECK(FIMUBarrier::IsIMU(**SensorBarrier));
+		FIMUBarrier* IMUBarrier = static_cast<FIMUBarrier*>(*SensorBarrier);
+		agxSensor::IMURef IMUAGX =
+			dynamic_cast<agxSensor::IMU*>(IMUBarrier->GetNative()->Native.get());
+
+		if (IMUAGX == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for IMU '%s', could not get a valid AGX IMU object."),
+				*Name);
+			continue;
+		}
+
+		auto IMUMetaData = agxopenplx::OpenPlxSensorsMapper::createIMUMetadata();
+		Metadata->registerMetadata(IMUAGX, IMUMetaData);
+		SensorMapper->mapIMULogicOutputs(IMUPLX, IMUAGX);
 	}
 
 	if (ErrorReporter->getErrorCount() > 0)
