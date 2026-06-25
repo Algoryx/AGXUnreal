@@ -138,7 +138,8 @@ void FOpenPLXSignalHandler::Init(
 		std::make_shared<openplx::ControlInterface>(ControlDispatch);
 
 	uint32_t I = 0;
-	auto Inputs = FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System);
+	auto Inputs =
+		FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System);
 	for (auto& Input : Inputs)
 	{
 		agx::String NameUnrealAllocated = Input->getName();
@@ -170,6 +171,8 @@ bool FOpenPLXSignalHandler::IsInitialized() const
 
 namespace OpenPLXSignalHandler_helpers
 {
+	// Visual Studio versions before 14.44 have a 'static_assert' bug causing assert that shouldn't
+	// fire to fire, which we work around by making a template-type dependent 'false' literal.
 	template <typename>
 	inline constexpr bool TDependentFalse = false;
 
@@ -210,8 +213,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert Real value for Input '%s' ('%s'), but "
-				"the type is either not of Real type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Real value for Input '%s' ('%s') to the "
+				"corresponding OpenPLX value, but the Input is either not of Real type or is "
+				"unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -244,9 +248,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert Real value for Output '%s' ('%s') from "
-				"AGX Dynamics units to Unreal units, but the type is either not of Real type or is "
-				"unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Real value for Output '%s' ('%s') to the "
+				"corresponding Unreal value, but the Output is either not of Real type or "
+				"is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -268,9 +272,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert an Unreal Vec2 type to an OpenPLX "
-				"Vec2 type for Input '%s' ('%s'), but the input is either not of Vec2 vector "
-				"type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Vector2 value for Input '%s' ('%s'), to "
+				"the corresponding OpenPLX value, but the Input is either not of Vector2 type or "
+				"is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -300,8 +304,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to read Vec2 vector type from signal for Output "
-				"'%s' ('%s'), but the type is either not of Vec2 vector type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Vector2 value for Output '%s' ('%s'), to "
+				"the corresponding Unreal value, but Output is either not of Vector2 type or is "
+				"unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -331,8 +336,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to read Vec3 type for input '%s' ('%s'), but "
-				"the type is either not of Vec3 vector type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Vector value for Input '%s' ('%s'), to "
+				"the corresponding OpenPLX value, but the Input is either not of Vector type or "
+				"is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -375,8 +381,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to read Vec3 vector type from signal for Output "
-				"'%s' ('%s'), but the type is either not of Vec3 vector type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Vector value Output '%s' ('%s') to the "
+				"corresponding Unreal value, but the Output is either not of Vector type or is "
+				"unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -403,8 +410,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert integer value for Input '%s' ('%s'), "
-				"but the type is either not of integer type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Integer value for Input '%s' ('%s') to "
+				"the corresponding OpenPLX value, but the Input is either not of integer type or "
+				"is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -420,9 +428,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert Integer value for Output '%s' ('%s') "
-				"from AGX Dynamics units to Unreal units, but the type is either not of integer "
-				"type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Integer value for Output '%s' ('%s') to"
+				"the corresponding Unreal value, but the Output is either not of Integer type or "
+				"is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -446,8 +454,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert Boolean value for Input '%s' ('%s'), "
-				"but the type is either not of Boolean type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Boolean value for Input '%s' ('%s') to "
+				"the corresponding OpenPLX value, but the Input is either not of Boolean type or "
+				"is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
 	}
@@ -467,9 +476,9 @@ namespace OpenPLXSignalHandler_helpers
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
-				"OpenPLX Signal Handler: Tried to convert Boolean value for Output '%s' "
-				"('%s') from AGX Dynamics units to Unreal units, but the type is "
-				"either not of Boolean type or is unsupported."),
+				"OpenPLX Signal Handler: Tried to convert Boolean value for Output '%s' ('%s') to "
+				"the corresponding Unreal value, but the Output is either not of Boolean type or "
+				"is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
 	}
@@ -684,8 +693,7 @@ namespace OpenPLXSignalHandler_helpers
 			ValueMaybe = Marshalling.read_int<ValueT>(Field.Name);
 		else
 			static_assert(
-				TDependentFalse<ValueT>,
-				"InterfaceReadField was called with an unsupported type.");
+				TDependentFalse<ValueT>, "InterfaceReadField was called with an unsupported type.");
 
 		if (!ValueMaybe)
 		{
@@ -864,7 +872,8 @@ namespace OpenPLXSignalHandler_helpers
 		return bSuccess ? Value : TOptional<agx::Vec2>();
 	}
 
-	bool InterfaceWriteRPY(openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec3 Value)
+	bool InterfaceWriteRPY(
+		openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec3 Value)
 	{
 		// clang-format off
 		return InterfaceWriteFields(
@@ -1020,16 +1029,14 @@ namespace OpenPLXSignalHandler_helpers
 	SelectInterfaceFunction<ValueT>::Write GetInterfaceWriteFunction(const FOpenPLX_Input& Input)
 	{
 		static_assert(
-			TDependentFalse<ValueT>,
-			"GetInterfaceWriteFunction not implemented for this type");
+			TDependentFalse<ValueT>, "GetInterfaceWriteFunction not implemented for this type");
 	}
 
 	template <typename ValueT>
 	SelectInterfaceFunction<ValueT>::Read GetInterfaceReadFunction(const FOpenPLX_Output& Output)
 	{
 		static_assert(
-			TDependentFalse<ValueT>,
-			"GetInterfaceReadFunction not implemented for this type");
+			TDependentFalse<ValueT>, "GetInterfaceReadFunction not implemented for this type");
 	}
 
 	template <>
@@ -1230,8 +1237,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Unable to match write function for the given Input "
-					 "'%s' ('%s'). Make sure the Input type and the Send type matches."),
+				TEXT(
+					"OpenPLX Signal Handler: Unable to match write function for the given Input "
+					"'%s' ('%s'). Make sure the Input type and the Send type matches."),
 				*Input.Name.ToString(), *Input.Alias.ToString());
 			return false;
 		}
@@ -1313,8 +1321,9 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("OpenPLX Signal Handler: Unable to match read function for the given output "
-					 "'%s' ('%s'). Make sure the Output type and the Receive type matches."),
+				TEXT(
+					"OpenPLX Signal Handler: Unable to match read function for the given output "
+					"'%s' ('%s'). Make sure the Output type and the Receive type matches."),
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return false;
 		}
