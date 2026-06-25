@@ -39,6 +39,9 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	void SetRotation(FQuat Rotation);
 	FQuat GetRotation() const;
 
+	/// Returns the Rigid Body this IMU is attached to, if it exists.
+	FRigidBodyBarrier GetRigidBody() const;
+
 	//
 	// Accelerometer
 	//
@@ -135,4 +138,12 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	FVector GetMagnetometerData() const;
 
 	void MarkOutputAsRead();
+
+	/**
+	 * Returns true if this IMU has no more than one subsensor of each type, for example no more
+	 * than one Accelerometer.
+	 */
+	bool HasAtMostOneSubsensorOfSameType() const;
+
+	static bool IsIMU(const FSensorBarrier& Sensor);
 };

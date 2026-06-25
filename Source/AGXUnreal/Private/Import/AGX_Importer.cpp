@@ -35,7 +35,9 @@
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -233,8 +235,8 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.IsEmpty() && !Settings.FilePath.StartsWith(
-					FOpenPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.IsEmpty() &&
+				!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
@@ -826,11 +828,14 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		for (const auto& Sensor : SimObjects.GetSensors())
 		{
 			T.EnterProgressFrame(
-				1.f,
-				FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
 			if (FLidarBarrier::IsLidar(Sensor))
 			{
 				Res |= AddLidar(Sensor, OutActor);
+			}
+			else if (FIMUBarrier::IsIMU(Sensor))
+			{
+				Res |= AddIMU(Sensor, OutActor);
 			}
 			else
 			{
@@ -931,6 +936,33 @@ EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& 
 	}
 
 	return AddComponent<UAGX_LidarSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
+}
+
+EAGX_ImportResult FAGX_Importer::AddIMU(const FSensorBarrier& Sensor, AActor& OutActor)
+{
+	const FIMUBarrier& IMU = static_cast<const FIMUBarrier&>(Sensor);
+	if (!IMU.HasAtMostOneSubsensorOfSameType())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("IMU sensor '%s' has more than one subsensor of the same type. This configuration "
+				 "is not supported and the IMU will not be imported. You may instead create "
+				 "several IMU sensors to ensure at most one subsensor of a certain type is used in "
+				 "each IMU sensor."),
+			*IMU.GetName());
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	FRigidBodyBarrier BodyBarrier = IMU.GetRigidBody();
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	if (BodyBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		check(Body != nullptr);
+		Parent = Body;
+	}
+
+	return AddComponent<UAGX_IMUSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(

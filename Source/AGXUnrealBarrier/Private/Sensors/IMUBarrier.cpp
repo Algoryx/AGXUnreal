@@ -3,6 +3,7 @@
 #include "Sensors/IMUBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
@@ -100,6 +101,16 @@ namespace IMUBarrier_helpers
 	{
 		AGX_CHECK(IMU.HasNative());
 		return IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
+	}
+
+	template <typename T>
+	size_t CountChildrenOfType(const agxSensor::IMU& IMU)
+	{
+		size_t Count = 0;
+		IMU.visitChildrenOfType<T>(
+			[&Count](const T&) { ++Count; },
+			/*recurse*/ true);
+		return Count;
 	}
 }
 
@@ -202,6 +213,23 @@ FQuat FIMUBarrier::GetRotation() const
 {
 	check(HasNative());
 	return Convert(IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->getRotate());
+}
+
+FRigidBodyBarrier FIMUBarrier::GetRigidBody() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+
+	agx::RigidBody* Body = nullptr;
+	for (agx::Frame* Frame = GetIMUNative(*this)->getFrame(); Frame != nullptr;
+		 Frame = Frame->getParent())
+	{
+		Body = Frame->getRigidBody();
+		if (Body != nullptr)
+			break;
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
 }
 
 void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
@@ -1001,4 +1029,20 @@ void FIMUBarrier::MarkOutputAsRead()
 		if (auto Output = GetIMUNative(*this)->getOutputHandler()->get(ID))
 			Output->hasUnreadData(/*markAsRead*/ true);
 	}
+}
+
+bool FIMUBarrier::IsIMU(const FSensorBarrier& Sensor)
+{
+	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::IMU>();
+}
+
+bool FIMUBarrier::HasAtMostOneSubsensorOfSameType() const
+{
+	check(HasNative());
+	using namespace IMUBarrier_helpers;
+
+	const agxSensor::IMU& IMU = *GetIMUNative(*this);
+	return CountChildrenOfType<agxSensor::Accelerometer>(IMU) <= 1 &&
+		   CountChildrenOfType<agxSensor::Gyroscope>(IMU) <= 1 &&
+		   CountChildrenOfType<agxSensor::Magnetometer>(IMU) <= 1;
 }
