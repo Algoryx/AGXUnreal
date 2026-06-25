@@ -516,6 +516,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	{
 		return EOpenPLX_OutputType::BoolOutput;
 	}
+	if (dynamic_cast<const IMUOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::IMUOutput;
+	}
 	if (dynamic_cast<const LidarOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::LidarOutput;
