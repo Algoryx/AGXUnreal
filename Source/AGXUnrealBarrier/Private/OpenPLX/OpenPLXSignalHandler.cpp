@@ -136,14 +136,25 @@ void FOpenPLXSignalHandler::Init(
 	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
 	std::shared_ptr<openplx::ControlInterface> ControlInterface =
 		std::make_shared<openplx::ControlInterface>(ControlDispatch);
-	std::vector<std::shared_ptr<openplx::Physics::Signals::SignalInterface>> SignalInterfaces =
-		FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::SignalInterface>(
-			*System);
-	for (std::shared_ptr<openplx::Physics::Signals::SignalInterface>& SignalInterface :
-		 SignalInterfaces)
+
+	uint32_t I = 0;
+	auto Inputs = FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System);
+	for (auto& Input : Inputs)
 	{
-		ControlInterface->add_controls_from_signal_interface(SignalInterface);
+		agx::String NameUnrealAllocated = Input->getName();
+		std::string NameAGXAllocated = agxUtil::copyContainerMemory(NameUnrealAllocated);
+		ControlInterface->add_input(I++, std::move(NameAGXAllocated), Input);
 	}
+
+	auto Outputs =
+		FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Output>(*System);
+	for (auto& Output : Outputs)
+	{
+		agx::String NameUnrealAllocated = Output->getName();
+		std::string NameAGXAllocated = agxUtil::copyContainerMemory(NameUnrealAllocated);
+		ControlInterface->add_output(I++, std::move(NameAGXAllocated), Output);
+	}
+
 	ControlInterface->prepare_controls();
 	ModelData->HeapControlInterfaces.insert(
 		{AssemblyRef->Native.get(),
@@ -561,56 +572,56 @@ namespace OpenPLXSignalHandler_helpers
 	// Control Interface write / read functions for primitive types.
 
 	bool InterfaceWriteBool(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, bool Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, bool Value)
 	{
-		return Interface.write(Alias, Value);
+		return Interface.write(Name, Value);
 	}
 
 	TOptional<bool> InterfaceReadBool(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
-		std::optional<bool> ValueMaybe = Interface.read<bool>(Alias);
+		std::optional<bool> ValueMaybe = Interface.read<bool>(Name);
 		if (!ValueMaybe)
 			return {};
 		return {ValueMaybe.value()};
 	}
 
 	bool InterfaceWriteSignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const int64_t Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const int64_t Value)
 	{
-		return Interface.write(Alias, Value);
+		return Interface.write(Name, Value);
 	}
 
 	TOptional<int64_t> InterfaceReadSignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
-		std::optional<int64_t> ValueMaybe = Interface.read<int64_t>(Alias);
+		std::optional<int64_t> ValueMaybe = Interface.read<int64_t>(Name);
 		return Convert(ValueMaybe);
 	}
 
 	bool InterfaceWriteUnsignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const uint64_t Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const uint64_t Value)
 	{
-		return Interface.write(Alias, Value);
+		return Interface.write(Name, Value);
 	}
 
 	TOptional<uint64_t> InterfaceReadUnsignedInteger(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
-		std::optional<uint64_t> ValueMaybe = Interface.read<uint64_t>(Alias);
+		std::optional<uint64_t> ValueMaybe = Interface.read<uint64_t>(Name);
 		return Convert(ValueMaybe);
 	}
 
 	bool InterfaceWriteReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Real Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Real Value)
 	{
-		return Interface.write(Alias, Value);
+		return Interface.write(Name, Value);
 	}
 
 	TOptional<agx::Real> InterfaceReadReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
-		return Convert(Interface.read<double>(Alias));
+		return Convert(Interface.read<double>(Name));
 	}
 
 	// Control Interface write / read functions for compound types, which must use marshalling.
@@ -637,6 +648,7 @@ namespace OpenPLXSignalHandler_helpers
 		// The order is important here because there are overlaps in the Venn diagram of the types.
 		// For example, both int and double are signed but only double is floating-point so we must
 		// check for write_real before write_int.
+
 		if constexpr (std::is_floating_point_v<ValueT>)
 			return Marshalling.write_real(Field.Name, Field.Value);
 		else if constexpr (std::is_same_v<ValueT, bool>)
@@ -685,10 +697,10 @@ namespace OpenPLXSignalHandler_helpers
 
 	template <typename... FWriteFields>
 	bool InterfaceWriteFields(
-		openplx::HeapControlInterface& Interface, const std::string& Alias,
+		openplx::HeapControlInterface& Interface, const std::string& Name,
 		FWriteFields... InterfaceFields)
 	{
-		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Alias);
+		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_write(Name);
 		if (Marshalling == nullptr)
 		{
 			UE_LOG(
@@ -697,7 +709,7 @@ namespace OpenPLXSignalHandler_helpers
 					"OpenPLX Signal Handler: Could not write to '%s' through the Control "
 					"Interface because a marshalling object could not be created. This may be "
 					"caused by a type handler not being registered in AgxOpenPlxApi.cpp."),
-				UTF8_TO_TCHAR(Alias.c_str()));
+				UTF8_TO_TCHAR(Name.c_str()));
 			return false;
 		}
 
@@ -721,7 +733,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT(
 					"OpenPLX Signal Handler: Could not marshall value to '%s' through the "
 					"Control Interface because one or more write errors occurred:"),
-				UTF8_TO_TCHAR(Alias.c_str()));
+				UTF8_TO_TCHAR(Name.c_str()));
 
 			for (auto [FieldName, Error] : Errors)
 			{
@@ -742,10 +754,10 @@ namespace OpenPLXSignalHandler_helpers
 
 	template <typename... FReadFields>
 	bool InterfaceReadFields(
-		openplx::HeapControlInterface& Interface, const std::string& Alias,
+		openplx::HeapControlInterface& Interface, const std::string& Name,
 		FReadFields... ReadFields)
 	{
-		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_read(Alias);
+		std::shared_ptr<openplx::Marshalling> Marshalling = Interface.prepare_read(Name);
 		if (Marshalling == nullptr)
 		{
 			UE_LOG(
@@ -754,7 +766,7 @@ namespace OpenPLXSignalHandler_helpers
 					"OpenPLX Signal Handler: Could not read from '%s' through the Control "
 					"Interface because a marshalling object could not be created. This may be "
 					"caused by a type handler not being registered in AgxOpenPlxApi.cpp"),
-				UTF8_TO_TCHAR(Alias.c_str()));
+				UTF8_TO_TCHAR(Name.c_str()));
 			return {};
 		}
 
@@ -778,7 +790,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT(
 					"OpenPLX Signal Handler: Could not marshal value to '%s' through the "
 					"Control Interface because one or more read errors occurred:"),
-				UTF8_TO_TCHAR(Alias.c_str()));
+				UTF8_TO_TCHAR(Name.c_str()));
 			for (auto [FieldName, Error] : Errors)
 			{
 				UE_LOG(LogAGX, Warning, TEXT("    %s: %s"), *FieldName, *Error);
@@ -796,24 +808,24 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	bool InterfaceWriteRangeReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec2 Value)
 	{
 		// clang-format off
 		return InterfaceWriteFields(
-			Interface, Alias,
+			Interface, Name,
 			FWriteField {"min", Value.x()},
 			FWriteField {"max", Value.y()});
 		// clang-format on
 	}
 
 	TOptional<agx::Vec2> InterfaceReadRangeReal(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
 		agx::Vec2 Value;
 		// clang-format off
 		const bool bSuccess =
 			InterfaceReadFields(
-				Interface, Alias,
+				Interface, Name,
 				FReadField{"min", &Value.x()},
 				FReadField{"max", &Value.y()});
 		// clang-format on
@@ -821,35 +833,35 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	bool InterfaceWriteVector2(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec2 Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec2 Value)
 	{
 		// clang-format off
 		return InterfaceWriteFields(
-			Interface, Alias,
+			Interface, Name,
 			FWriteField {"x", Value.x()},
 			FWriteField {"y", Value.y()});
 		// clang-format on
 	}
 
 	TOptional<agx::Vec2> InterfaceReadVector2(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
 		agx::Vec2 Value;
 		// clang-format off
 		const bool bSuccess =
 			InterfaceReadFields(
-				Interface, Alias,
+				Interface, Name,
 				FReadField{"x", &Value.x()},
 				FReadField{"y", &Value.y()});
 		// clang-format on
 		return bSuccess ? Value : TOptional<agx::Vec2>();
 	}
 
-	bool InterfaceWriteRPY(openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
+	bool InterfaceWriteRPY(openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec3 Value)
 	{
 		// clang-format off
 		return InterfaceWriteFields(
-			Interface, Alias,
+			Interface, Name,
 			FWriteField {"r", Value.x()},
 			FWriteField {"p", Value.y()},
 			FWriteField {"y", Value.z()});
@@ -857,13 +869,13 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	TOptional<agx::Vec3> InterfaceReadRPY(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
 		agx::Vec3 Value;
 		// clang-format off
 		const bool bSuccess =
 			InterfaceReadFields(
-				Interface, Alias,
+				Interface, Name,
 				FReadField{"r", &Value.x()},
 				FReadField{"p", &Value.y()},
 				FReadField{"y", &Value.z()});
@@ -872,11 +884,11 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	bool InterfaceWriteVector3(
-		openplx::HeapControlInterface& Interface, const std::string& Alias, const agx::Vec3 Value)
+		openplx::HeapControlInterface& Interface, const std::string& Name, const agx::Vec3 Value)
 	{
 		// clang-format off
 		return InterfaceWriteFields(
-			Interface, Alias,
+			Interface, Name,
 			FWriteField {"x", Value.x()},
 			FWriteField {"y", Value.y()},
 			FWriteField {"z", Value.z()});
@@ -884,13 +896,13 @@ namespace OpenPLXSignalHandler_helpers
 	}
 
 	TOptional<agx::Vec3> InterfaceReadVector3(
-		openplx::HeapControlInterface& Interface, const std::string& Alias)
+		openplx::HeapControlInterface& Interface, const std::string& Name)
 	{
 		agx::Vec3 Value;
 		// clang-format off
 		const bool bSuccess =
 			InterfaceReadFields(
-				Interface, Alias,
+				Interface, Name,
 				FReadField{"x", &Value.x()},
 				FReadField{"y", &Value.y()},
 				FReadField{"z", &Value.z()});
@@ -1201,9 +1213,9 @@ namespace OpenPLXSignalHandler_helpers
 		}
 
 		ValuePLXT ValuePLX = *ValuePLXMaybe;
-		std::string Alias = Convert(Input.Alias.ToString());
+		std::string Name = Convert(Input.Name.ToString());
 		auto WriteFunc = GetInterfaceWriteFunction<ValuePLXT>(Input);
-		const bool bWritten = WriteFunc(*Interface, Alias, ValuePLX);
+		const bool bWritten = WriteFunc(*Interface, Name, ValuePLX);
 		if (!bWritten)
 		{
 			UE_LOG(
@@ -1274,9 +1286,9 @@ namespace OpenPLXSignalHandler_helpers
 			return false;
 		}
 
-		std::string Alias = Convert(Output.Alias.ToString());
+		std::string Name = Convert(Output.Name.ToString());
 		auto ReadFunc = GetInterfaceReadFunction<ValuePLXT>(Output);
-		TOptional<ValuePLXT> ValuePLXMaybe = ReadFunc(*Interface, Alias);
+		TOptional<ValuePLXT> ValuePLXMaybe = ReadFunc(*Interface, Name);
 		if (!ValuePLXMaybe)
 		{
 			const FString TypeName = AGX_EnumUtilities::GetEnumName(Output.Type);
