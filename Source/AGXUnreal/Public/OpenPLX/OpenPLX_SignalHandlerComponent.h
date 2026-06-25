@@ -247,6 +247,16 @@ public:
 	bool SendInteger(const FOpenPLX_Input& Input, int64 Value);
 
 	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
+	bool SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value);
+
+	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Integer type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
@@ -259,6 +269,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue);
+
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
+	bool ReceiveIntegerInterface(const FOpenPLX_Output& Output, int64& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Integer type.
@@ -275,6 +295,16 @@ public:
 	bool SendBoolean(const FOpenPLX_Input& Input, bool Value);
 
 	/**
+	 * Send the given value to the given input using the OpenPLX Control Interface API.
+	 *
+	 * @param Input OpenPLX Input to send a value to.
+	 * @param Value The value to sent to the input.
+	 * @return True if the send could be performed.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
+	bool SendBooleanInterface(const FOpenPLX_Input& Input, bool Value);
+
+	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Boolean type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
@@ -287,6 +317,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue);
+
+	/**
+	 * Receive a value from the given output using the OpenPLX Control Interface API.
+	 *
+	 * @param Output OpenPLX Input to send a value to.
+	 * @param OutValue Storage location for the received value.
+	 * @return True if the receive could be performed.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveBooleanInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Boolean type.
