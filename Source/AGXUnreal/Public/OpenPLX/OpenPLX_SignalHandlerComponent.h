@@ -89,7 +89,7 @@ public:
 	 * @param Value The value to sent to the input.
 	 * @return True if the send could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
 
 	/**
@@ -113,7 +113,7 @@ public:
 	 * @param OutValue Storage location for the received value.
 	 * @return True if the receive could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
 
 	/**
@@ -137,7 +137,7 @@ public:
 	 * @param Value The value to sent to the input.
 	 * @return True if the send could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
 
 	/**
@@ -161,7 +161,7 @@ public:
 	 * @param OutValue Storage location for the received value.
 	 * @return True if the receive could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/**
@@ -179,7 +179,7 @@ public:
 	 * @param OutValue Storage location for the received value.
 	 * @return True if the receive could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/**
@@ -189,7 +189,7 @@ public:
 	 * @param Value The value to sent to the input.
 	 * @return True if the send could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
 
 	/**
@@ -205,7 +205,7 @@ public:
 	 * @param Value The value to sent to the input.
 	 * @return True if the send could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
 
 	/**
@@ -229,7 +229,7 @@ public:
 	 * @param OutValue Storage location for the received value.
 	 * @return True if the receive could be performed.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
 	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	/**
