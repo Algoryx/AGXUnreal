@@ -42,14 +42,14 @@ struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
 	/// Returns true if this view contains magnetometer samples.
 	bool HasMagnetometer() const;
 
-	/// Read accelerometer samples in Unreal coordinates [cm/s^2].
-	bool ReadAccelerometer(TArray<FVector>& OutAccelerometer);
+	/// Get accelerometer data in Unreal coordinates [cm/s^2].
+	bool GetAccelerometerData(FVector& OutAccelerometerData);
 
-	/// Read gyroscope samples in Unreal coordinates [deg/s].
-	bool ReadGyroscope(TArray<FVector>& OutGyroscope);
+	/// Get gyroscope data in Unreal coordinates [deg/s].
+	bool GetGyroscopeData(FVector& OutGyroscopeData);
 
-	/// Read magnetometer samples in Unreal coordinates [T].
-	bool ReadMagnetometer(TArray<FVector>& OutMagnetometer);
+	/// Get magnetometer data in Unreal coordinates [T].
+	bool GetMagnetometerData(FVector& OutMagnetometerData);
 
 	/**
 	 * Copy the underlying IMU output data into memory owned by this view.

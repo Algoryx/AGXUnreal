@@ -50,29 +50,47 @@ class AGXUNREAL_API UOpenPLX_IMUOutputView : public UBlueprintFunctionLibrary
 		return View.HasMagnetometer();
 	}
 
-	/// Read accelerometer samples in Unreal coordinates [cm/s^2].
+	/// Get accelerometer data in IMU-local Unreal coordinates [cm/s^2].
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
-	static bool ReadAccelerometer(
-		UPARAM(Ref) FOpenPLXIMUOutputView& View, TArray<FVector>& OutAccelerometer)
+	static bool GetAccelerometerDataLocal(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, FVector& OutAccelerometerData)
 	{
-		return View.ReadAccelerometer(OutAccelerometer);
+		return View.GetAccelerometerData(OutAccelerometerData);
 	}
 
-	/// Read gyroscope samples in Unreal coordinates [deg/s].
+	/// Get accelerometer data in world Unreal coordinates [cm/s^2].
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
-	static bool ReadGyroscope(
-		UPARAM(Ref) FOpenPLXIMUOutputView& View, TArray<FVector>& OutGyroscope)
+	static bool GetAccelerometerDataWorld(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, const FTransform& IMUTransform,
+		FVector& OutAccelerometerData);
+
+	/// Get gyroscope data in IMU-local Unreal coordinates [deg/s].
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
+	static bool GetGyroscopeDataLocal(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, FVector& OutGyroscopeData)
 	{
-		return View.ReadGyroscope(OutGyroscope);
+		return View.GetGyroscopeData(OutGyroscopeData);
 	}
 
-	/// Read magnetometer samples in Unreal coordinates [T].
+	/// Get gyroscope data in world Unreal coordinates [deg/s].
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
-	static bool ReadMagnetometer(
-		UPARAM(Ref) FOpenPLXIMUOutputView& View, TArray<FVector>& OutMagnetometer)
+	static bool GetGyroscopeDataWorld(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, const FTransform& IMUTransform,
+		FVector& OutGyroscopeData);
+
+	/// Get magnetometer data in IMU-local Unreal coordinates [T].
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
+	static bool GetMagnetometerDataLocal(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, FVector& OutMagnetometerData)
 	{
-		return View.ReadMagnetometer(OutMagnetometer);
+		return View.GetMagnetometerData(OutMagnetometerData);
 	}
+
+	/// Get magnetometer data in world Unreal coordinates [T].
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX IMU Output View")
+	static bool GetMagnetometerDataWorld(
+		UPARAM(Ref) FOpenPLXIMUOutputView& View, const FTransform& IMUTransform,
+		FVector& OutMagnetometerData);
 
 	/**
 	 * Copy the underlying IMU output data into memory owned by this view.
