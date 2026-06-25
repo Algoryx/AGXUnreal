@@ -1575,7 +1575,7 @@ bool FOpenPLXSignalHandler::ReceiveLidarOutput(
 	}
 
 	OutOutput = FOpenPLXLidarOutputView();
-	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Alias.ToString()));
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
 	if (!OutOutput.HasNative())
 	{
 		UE_LOG(

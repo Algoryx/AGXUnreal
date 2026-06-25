@@ -246,8 +246,10 @@ UNiagaraComponent* UAGX_LidarSensorComponent::GetSpawnedNiagaraSystemComponent()
 
 void UAGX_LidarSensorComponent::UpdateNativeTransform()
 {
+	// The Native AGX Lidars Frame is always owned by the Lidar itself and root to the World.
+	// Therefore we can use the LocalTransform setter below.
 	if (HasNative())
-		GetNativeAsLidar()->SetTransform(GetComponentTransform());
+		GetNativeAsLidar()->SetLocalTransform(GetComponentTransform());
 }
 
 bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
@@ -408,8 +410,8 @@ namespace AGX_LidarSensorComponent_helpers
 		AGX_CHECK(!Context.LidarModelParameters->Contains(Guid));
 
 		UObject* Outer = Context.Outer != nullptr ? Context.Outer : GetTransientPackage();
-		const FString Name = CreateModelParametersName(
-			Lidar, Barrier, Context, *ModelParametersType, *Outer);
+		const FString Name =
+			CreateModelParametersName(Lidar, Barrier, Context, *ModelParametersType, *Outer);
 		auto Parameters = NewObject<UAGX_LidarModelParameters>(
 			Outer, ModelParametersType, FName(*Name), RF_Public | RF_Standalone);
 		if (Parameters == nullptr)
@@ -480,6 +482,8 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
 		*this, LidarBarrier, *Context, ImportedModel);
+
+	SetRelativeTransform(LidarBarrier.GetLocalTransform());
 
 	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
 	Context->Sensors->Add(ImportGuid, this);

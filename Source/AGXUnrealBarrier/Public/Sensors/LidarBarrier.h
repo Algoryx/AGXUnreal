@@ -42,8 +42,8 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params);
 	void AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& PatternFetcher);
 
-	void SetTransform(const FTransform& Transform);
-	FTransform GetTransform() const;
+	void SetLocalTransform(const FTransform& Transform);
+	FTransform GetLocalTransform() const;
 
 	void SetRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetRange() const;
