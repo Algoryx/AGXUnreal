@@ -749,9 +749,9 @@ namespace OpenPLXSignalHandler_helpers
 			const std::unordered_map<std::string, openplx::Field>& Fields =
 				Marshalling->get_field_map();
 			UE_LOG(LogAGX, Warning, TEXT("  Known fields:"));
-			for (const auto& [Name, Field] : Fields)
+			for (const auto& [Str, Field] : Fields)
 			{
-				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Name.c_str()));
+				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Str.c_str()));
 			}
 			return false;
 		}
@@ -804,9 +804,9 @@ namespace OpenPLXSignalHandler_helpers
 			}
 			const std::unordered_map<std::string, openplx::Field>& Fields =
 				Marshalling->get_field_map();
-			for (const auto& [Name, Field] : Fields)
+			for (const auto& [Str, Field] : Fields)
 			{
-				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Name.c_str()));
+				UE_LOG(LogAGX, Warning, TEXT("    %s"), UTF8_TO_TCHAR(Str.c_str()));
 			}
 			return false;
 		}
@@ -1226,6 +1226,16 @@ namespace OpenPLXSignalHandler_helpers
 		ValuePLXT ValuePLX = *ValuePLXMaybe;
 		std::string Name = Convert(Input.Name.ToString());
 		auto WriteFunc = GetInterfaceWriteFunction<ValuePLXT>(Input);
+		if (WriteFunc == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Signal Handler: Unable to match write function for the given Input "
+					 "'%s' ('%s'). Make sure the Input type and the Send type matches."),
+				*Input.Name.ToString(), *Input.Alias.ToString());
+			return false;
+		}
+
 		const bool bWritten = WriteFunc(*Interface, Name, ValuePLX);
 		if (!bWritten)
 		{
@@ -1299,6 +1309,16 @@ namespace OpenPLXSignalHandler_helpers
 
 		std::string Name = Convert(Output.Name.ToString());
 		auto ReadFunc = GetInterfaceReadFunction<ValuePLXT>(Output);
+		if (ReadFunc == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Signal Handler: Unable to match read function for the given output "
+					 "'%s' ('%s'). Make sure the Output type and the Receive type matches."),
+				*Output.Name.ToString(), *Output.Alias.ToString());
+			return false;
+		}
+
 		TOptional<ValuePLXT> ValuePLXMaybe = ReadFunc(*Interface, Name);
 		if (!ValuePLXMaybe)
 		{
