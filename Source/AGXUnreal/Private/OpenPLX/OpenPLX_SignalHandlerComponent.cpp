@@ -519,6 +519,14 @@ bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, i
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64 Value)
 {
 	FOpenPLX_Input Input;
@@ -548,6 +556,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(const FOpenPLX_Output& Outp
 	}
 
 	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerInterface(
+	const FOpenPLX_Output& Output, int64& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, int64& OutValue)
@@ -581,6 +599,14 @@ bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, b
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(const FOpenPLX_Input& Input, bool Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool Value)
 {
 	FOpenPLX_Input Input;
@@ -610,6 +636,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBoolean(const FOpenPLX_Output& Outp
 	}
 
 	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanInterface(
+	const FOpenPLX_Output& Output, bool& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bool& OutValue)

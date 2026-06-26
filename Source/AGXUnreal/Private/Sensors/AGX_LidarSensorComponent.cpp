@@ -254,6 +254,18 @@ void UAGX_LidarSensorComponent::UpdateNativeTransform()
 
 bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
 {
+	if (bOpenPLXImported)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Outputs cannot be manually added to Lidar Sensor '%s' in '%s' because it "
+					 "was imported from an OpenPLX file which define its outputs. OpenPLX outputs "
+					 "are added automatically at BeginPlay for this Lidar Sensor."),
+				*GetName(), *GetLabelSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+		return false;
+	}
+
 	auto Native = static_cast<FLidarBarrier*>(GetOrCreateNative());
 	if (Native == nullptr)
 		return false;

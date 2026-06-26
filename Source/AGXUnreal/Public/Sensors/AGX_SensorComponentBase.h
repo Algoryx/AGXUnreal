@@ -73,6 +73,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
 	FString ImportName;
 
+	/*
+	 * Whether this Component was imported from an OpenPLX file.
+	 * Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	bool bOpenPLXImported {false};
+
 	// ~Begin AGX NativeOwner interface.
 	virtual uint64 GetNativeAddress() const override;
 	virtual void SetNativeAddress(uint64 NativeAddress) override;
