@@ -22,13 +22,6 @@ class AGXUNREAL_API UOpenPLX_IMUOutputView : public UBlueprintFunctionLibrary
 		return View.HasNative();
 	}
 
-	/// Return the number of samples in this IMU output view.
-	UFUNCTION(BlueprintPure, Category = "OpenPLX IMU Output View")
-	static int32 GetNumSamples(const FOpenPLXIMUOutputView& View)
-	{
-		return View.GetNumSamples();
-	}
-
 	/// Returns true if this view contains accelerometer samples.
 	UFUNCTION(BlueprintPure, Category = "OpenPLX IMU Output View")
 	static bool HasAccelerometer(const FOpenPLXIMUOutputView& View)

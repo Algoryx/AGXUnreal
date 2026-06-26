@@ -79,20 +79,6 @@ bool FOpenPLXIMUOutputView::HasNative() const
 	return NativeRef != nullptr && NativeRef->Marshalling != nullptr;
 }
 
-int32 FOpenPLXIMUOutputView::GetNumSamples() const
-{
-	using namespace OpenPLXIMUOutputView_helpers;
-
-	if (!HasNative())
-		return 0;
-
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
-		return 0;
-
-	return CanConvert(Layout.NumWindows) ? static_cast<int32>(Layout.NumWindows) : 0;
-}
-
 bool FOpenPLXIMUOutputView::HasAccelerometer() const
 {
 	using namespace OpenPLXIMUOutputView_helpers;

@@ -30,9 +30,6 @@ struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
 
 	bool HasNative() const;
 
-	/// Return the number of samples in this IMU output view.
-	int32 GetNumSamples() const;
-
 	/// Returns true if this view contains accelerometer samples.
 	bool HasAccelerometer() const;
 
