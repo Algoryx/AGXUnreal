@@ -10,6 +10,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 UAGX_SensorComponentBase::UAGX_SensorComponentBase()
@@ -113,6 +114,9 @@ void UAGX_SensorComponentBase::CopyFrom(
 
 	if (Barrier.HasStepStrideNative())
 		StepStride = Barrier.GetStepStride();
+
+	if (Context != nullptr && Context->Settings != nullptr)
+		bOpenPLXImported = Context->Settings->ImportType == EAGX_ImportType::Plx;
 }
 
 void UAGX_SensorComponentBase::BeginPlay()
