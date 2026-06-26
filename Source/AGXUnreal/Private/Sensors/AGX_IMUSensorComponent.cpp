@@ -862,7 +862,8 @@ FSensorBarrier* UAGX_IMUSensorComponent::CreateNativeImpl()
 	Params.LocalTransform = GetComponentTransform().GetRelativeTransform(BodyTransform);
 
 	auto IMUBarrier = static_cast<FIMUBarrier*>(NativeBarrier.Get());
-	IMUBarrier->AllocateNative(Params, *BodyBarrier);
+	const bool bAddOutputs = !bOpenPLXImported;
+	IMUBarrier->AllocateNative(Params, *BodyBarrier, bAddOutputs);
 	if (HasNative())
 		UpdateNativeProperties();
 

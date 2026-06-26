@@ -114,7 +114,8 @@ namespace IMUBarrier_helpers
 	}
 }
 
-void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
+void FIMUBarrier::AllocateNative(
+	const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body, bool bAddOutputs)
 {
 	check(!HasNative());
 	check(Body.HasNative());
@@ -148,32 +149,34 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 
 	// clang-format off
 
-	// Add Outputs.
-	if (Params.bUseAccelerometer)
+	if (bAddOutputs)
 	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::ACCELEROMETER_X_F64,
-			agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
-			agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
-	}
+		if (Params.bUseAccelerometer)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::ACCELEROMETER_X_F64,
+				agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
+				agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
+		}
 
-	if (Params.bUseGyroscope)
-	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::GYROSCOPE_X_F64,
-			agxSensor::IMUOutput::GYROSCOPE_Y_F64,
-			agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
-	}
+		if (Params.bUseGyroscope)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::GYROSCOPE_X_F64,
+				agxSensor::IMUOutput::GYROSCOPE_Y_F64,
+				agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
+		}
 
-	if (Params.bUseMagnetometer)
-	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::MAGNETOMETER_X_F64,
-			agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
-			agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
+		if (Params.bUseMagnetometer)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::MAGNETOMETER_X_F64,
+				agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
+				agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
+		}
 	}
 	// clang-format on
 }

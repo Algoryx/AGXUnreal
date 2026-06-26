@@ -25,7 +25,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 
 	virtual ~FIMUBarrier() override = default;
 
-	void AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body);
+	void AllocateNative(
+		const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body, bool bAddOutputs);
 
 	/// Set the transform in world coordinate system.
 	void SetTransform(const FTransform& Transform);
@@ -41,7 +42,6 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 
 	/// Returns the Rigid Body this IMU is attached to, if it exists.
 	FRigidBodyBarrier GetRigidBody() const;
-
 
 	//
 	// Accelerometer
