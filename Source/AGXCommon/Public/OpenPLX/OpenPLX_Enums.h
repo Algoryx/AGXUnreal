@@ -105,5 +105,9 @@ enum class EOpenPLX_OutputType : uint8
 		DisplayName = "Interaction Enabled Output [Boolean]"), // Child of BoolOutput
 	EngagedOutput UMETA(DisplayName = "Engaged Output [Boolean]"), // Child of BoolOutput
 	TorqueConverterLockedUpOutput UMETA(
-		DisplayName = "Torque Converter Locked Up Output [Boolean]") // Child of BoolOutput
+		DisplayName = "Torque Converter Locked Up Output [Boolean]"), // Child of BoolOutput
+
+	/* Others */
+	LidarOutput UMETA(DisplayName = "Lidar Output [Lidar Output]"),
+	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]")
 };

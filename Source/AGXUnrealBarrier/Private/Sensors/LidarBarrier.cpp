@@ -5,7 +5,9 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "AGX_RealInterval.h"
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "RigidBodyBarrier.h"
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
@@ -88,14 +90,73 @@ namespace LidarBarrier_helpers
 	agxSensor::Lidar* GetLidarNative(FLidarBarrier& Lidar)
 	{
 		AGX_CHECK(Lidar.HasNative());
-		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+		return Lidar.GetNative()->Native->asSafe<agxSensor::Lidar>();
 	}
 
 	agxSensor::Lidar* GetLidarNative(const FLidarBarrier& Lidar)
 	{
 		AGX_CHECK(Lidar.HasNative());
-		return Lidar.GetNative()->Native->as<agxSensor::Lidar>();
+		return Lidar.GetNative()->Native->asSafe<agxSensor::Lidar>();
 	}
+
+	const agxSensor::LidarModel* GetLidarModel(const FLidarBarrier& Lidar)
+	{
+		return GetLidarNative(Lidar)->getModel();
+	}
+
+	const agxSensor::LidarModelOusterOS* GetOusterOSModel(const FLidarBarrier& Lidar)
+	{
+		const agxSensor::LidarModel* Model = GetLidarModel(Lidar);
+		return Model != nullptr ? Model->asSafe<agxSensor::LidarModelOusterOS>() : nullptr;
+	}
+
+	void ReadOusterOSModelParameters(
+		const agxSensor::LidarModelOusterOS& Model, EAGX_OusterOSChannelCount& ChannelCount,
+		EAGX_OusterOSBeamSpacing& BeamSpacing, EAGX_OusterOSMode& Mode)
+	{
+		ChannelCount = Convert(Model.getChannelCount());
+		BeamSpacing = Convert(Model.getBeamSpacing());
+		Mode = Convert(Model.getLidarMode());
+	}
+
+	double CalculateAngularResolution(double Fov, agx::UInt Resolution)
+	{
+		return Resolution > 1 ? Fov / static_cast<double>(Resolution - 1.0) : 0.0;
+	}
+}
+
+FLidarBarrier::FLidarBarrier(
+	std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride)
+	: FSensorBarrier(std::move(Native), std::move(StepStride))
+{
+}
+
+bool FLidarBarrier::IsLidar(const FSensorBarrier& Sensor)
+{
+	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::Lidar>();
+}
+
+EAGX_LidarModel FLidarBarrier::GetModel() const
+{
+	check(HasNative());
+
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarNative(*this)->getModel();
+	if (Model == nullptr)
+		return EAGX_LidarModel::Invalid;
+
+	if (Model->is<agxSensor::LidarModelHorizontalSweep>())
+		return EAGX_LidarModel::GenericHorizontalSweep;
+
+	if (Model->is<agxSensor::LidarModelOusterOS0>())
+		return EAGX_LidarModel::OusterOS0;
+
+	if (Model->is<agxSensor::LidarModelOusterOS1>())
+		return EAGX_LidarModel::OusterOS1;
+
+	if (Model->is<agxSensor::LidarModelOusterOS2>())
+		return EAGX_LidarModel::OusterOS2;
+
+	return EAGX_LidarModel::Invalid;
 }
 
 void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params)
@@ -127,6 +188,8 @@ void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelP
 			NativeRef->Native =
 				CreateAGXLidar(*static_cast<const UAGX_OusterOS2Parameters*>(&Params));
 			return;
+		case EAGX_LidarModel::Invalid:
+			break;
 	}
 
 	UE_LOG(LogAGX, Error, TEXT("Unknown Lidar Model given to to FLidarBarrier::AllocateNative."));
@@ -140,13 +203,13 @@ void FLidarBarrier::AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& Pa
 	NativeRef->Native = CreateAGXLidar(&PatternFetcher);
 }
 
-void FLidarBarrier::SetTransform(const FTransform& Transform)
+void FLidarBarrier::SetLocalTransform(const FTransform& Transform)
 {
 	check(HasNative());
 	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setMatrix(Convert(Transform));
 }
 
-FTransform FLidarBarrier::GetTransform() const
+FTransform FLidarBarrier::GetLocalTransform() const
 {
 	check(HasNative());
 	return Convert(LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->getMatrix());
@@ -303,6 +366,22 @@ bool FLidarBarrier::GetEnableDistanceGaussianNoise() const
 	return GetDistanceNoise(*GetLidarNative(*this)) != nullptr;
 }
 
+FAGX_DistanceGaussianNoiseSettings FLidarBarrier::GetDistanceGaussianNoiseSettings() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	FAGX_DistanceGaussianNoiseSettings Settings;
+	agxSensor::RtDistanceGaussianNoise* DistanceNoise = GetDistanceNoise(*GetLidarNative(*this));
+	if (DistanceNoise == nullptr)
+		return Settings;
+
+	Settings.Mean = ConvertDistanceToUnreal<double>(DistanceNoise->getMean());
+	Settings.StandardDeviation = ConvertDistanceToUnreal<double>(DistanceNoise->getStdDevBase());
+	Settings.StandardDeviationSlope = DistanceNoise->getStdDevSlope();
+	return Settings;
+}
+
 void FLidarBarrier::EnableOrUpdateRayAngleGaussianNoise(
 	const FAGX_RayAngleGaussianNoiseSettings& Settings)
 {
@@ -342,6 +421,142 @@ bool FLidarBarrier::GetEnableRayAngleGaussianNoise() const
 	return GetRayAngleNoise(*GetLidarNative(*this)) != nullptr;
 }
 
+FAGX_RayAngleGaussianNoiseSettings FLidarBarrier::GetRayAngleGaussianNoiseSettings() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	FAGX_RayAngleGaussianNoiseSettings Settings;
+	agxSensor::LidarRayAngleGaussianNoise* Noise = GetRayAngleNoise(*GetLidarNative(*this));
+	if (Noise == nullptr)
+		return Settings;
+
+	Settings.Axis = Convert(Noise->getAxis());
+	Settings.Mean = ConvertAngleToUnreal<double>(Noise->getMean());
+	Settings.StandardDeviation = ConvertAngleToUnreal<double>(Noise->getStandardDeviation());
+	return Settings;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_CustomRayPatternParameters&) const
+{
+	check(HasNative());
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_GenericHorizontalSweepParameters& Parameters) const
+{
+	check(HasNative());
+
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr)
+		return false;
+
+	const auto PatternGenerator = Model->getRayPatternGenerator();
+	if (PatternGenerator == nullptr)
+		return false;
+
+	const auto Pattern = PatternGenerator->asSafe<agxSensor::LidarRayPatternHorizontalSweep>();
+	if (Pattern == nullptr)
+		return false;
+
+	const auto HFovAGX = Pattern->getHorizontalFov();
+	const auto VFovAGX = Pattern->getVerticalFov();
+	const double HorizontalFov =
+		ConvertAngleToUnreal<double>(FMath::Abs(HFovAGX.upper() - HFovAGX.lower()));
+	const double VerticalFov =
+		ConvertAngleToUnreal<double>(FMath::Abs(VFovAGX.upper() - VFovAGX.lower()));
+	const agx::Vec2u ResolutionAGX = Pattern->getResolution();
+
+	Parameters.FOV = {HorizontalFov, VerticalFov};
+	Parameters.Resolution = {
+		LidarBarrier_helpers::CalculateAngularResolution(HorizontalFov, ResolutionAGX.x()),
+		LidarBarrier_helpers::CalculateAngularResolution(VerticalFov, ResolutionAGX.y())};
+	Parameters.Frequency = Pattern->getFrequency();
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS0Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS0>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS1Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS1>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS2Parameters& Parameters) const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarModel(*this);
+	if (Model == nullptr || !Model->is<agxSensor::LidarModelOusterOS2>())
+		return false;
+
+	const agxSensor::LidarModelOusterOS* OusterModel =
+		LidarBarrier_helpers::GetOusterOSModel(*this);
+	if (OusterModel == nullptr)
+		return false;
+
+	LidarBarrier_helpers::ReadOusterOSModelParameters(
+		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
+	return true;
+}
+
+bool FLidarBarrier::UsesHorizontalSweepRayPattern() const
+{
+	check(HasNative());
+	const agxSensor::LidarModel* Model = LidarBarrier_helpers::GetLidarNative(*this)->getModel();
+	if (Model == nullptr)
+		return false;
+
+	const auto PatternGenerator = Model->getRayPatternGenerator();
+	if (PatternGenerator == nullptr)
+		return false;
+
+	return PatternGenerator->is<agxSensor::LidarRayPatternHorizontalSweep>();
+}
+
+FRigidBodyBarrier FLidarBarrier::GetRigidBody() const
+{
+	using namespace LidarBarrier_helpers;
+	check(HasNative());
+
+	agx::RigidBody* Body = nullptr;
+	for (agx::Frame* Frame = GetLidarNative(*this)->getFrame(); Frame != nullptr;
+		 Frame = Frame->getParent())
+	{
+		Body = Frame->getRigidBody();
+		if (Body != nullptr)
+			break;
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
+}
+
 void FLidarBarrier::AddOutput(FLidarOutputBarrier& Output)
 {
 	check(HasNative());
@@ -358,8 +573,5 @@ void FLidarBarrier::MarkOutputAsRead()
 	using namespace LidarBarrier_helpers;
 
 	GetLidarNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::RtOutput>(
-		[](agxSensor::RtOutput& Output)
-		{
-			Output.hasUnreadData(/*markAsRead*/ true);
-		});
+		[](agxSensor::RtOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
 }

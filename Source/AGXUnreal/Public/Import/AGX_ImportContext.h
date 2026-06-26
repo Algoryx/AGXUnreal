@@ -17,6 +17,7 @@ class UAGX_CollisionGroupDisablerComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ContactMaterialRegistrarComponent;
+class UAGX_LidarModelParameters;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ModelSourceComponent;
 class UAGX_ObserverFrameComponent;
@@ -25,6 +26,7 @@ class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
 class UAGX_ShovelProperties;
+class UAGX_SensorComponentBase;
 class UAGX_SteeringComponent;
 class UAGX_SteeringParameters;
 class UAGX_TerrainWheelComponent;
@@ -59,6 +61,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_WireComponent*>> Wires;
 	TUniquePtr<TMap<FGuid, UAGX_TrackComponent*>> Tracks;
 	TUniquePtr<TMap<FGuid, UAGX_ObserverFrameComponent*>> ObserverFrames;
+	TUniquePtr<TMap<FGuid, UAGX_SensorComponentBase*>> Sensors;
 
 	// The key is the GUID of the Shape for which the render data Static Mesh
 	// Component has been created.
@@ -92,6 +95,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_TerrainWheelSettings*>> TerrainWheelSettings;
 	TUniquePtr<TMap<FGuid, UAGX_TrackProperties*>> TrackProperties;
 	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
+
+	// Lidar Model Parameters are unique per Lidar on import. The key is the GUID of the Lidar.
+	TUniquePtr<TMap<FGuid, UAGX_LidarModelParameters*>> LidarModelParameters;
 
 	UAGX_ModelSourceComponent* ModelSourceComponent {nullptr};
 	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar {nullptr};

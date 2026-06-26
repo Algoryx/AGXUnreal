@@ -35,6 +35,10 @@
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
+#include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/IMUBarrier.h"
+#include "Sensors/LidarBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_CapsuleShapeComponent.h"
@@ -208,6 +212,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_TrackComponent, T>)
 			return *Context.Tracks.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_SensorComponentBase, T>)
+			return *Context.Sensors.Get();
+
 		// Unsupported types will yield compile errors.
 	}
 
@@ -228,8 +235,8 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.IsEmpty() && !Settings.FilePath.StartsWith(
-					FOpenPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.IsEmpty() &&
+				!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
@@ -361,6 +368,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
 	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
 	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
+	Context.Sensors = MakeUnique<TMap<FGuid, UAGX_SensorComponentBase*>>();
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
@@ -376,6 +384,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.TerrainWheelSettings = MakeUnique<TMap<FGuid, UAGX_TerrainWheelSettings*>>();
 	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
 	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
+	Context.LidarModelParameters = MakeUnique<TMap<FGuid, UAGX_LidarModelParameters*>>();
 }
 
 FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UObject& Outer)
@@ -814,6 +823,32 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		}
 	}
 
+	{
+		FScopedSlowTask T((float) SimObjects.GetSensors().Num(), FText::FromString("Sensors"));
+		for (const auto& Sensor : SimObjects.GetSensors())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
+			if (FLidarBarrier::IsLidar(Sensor))
+			{
+				Res |= AddLidar(Sensor, OutActor);
+			}
+			else if (FIMUBarrier::IsIMU(Sensor))
+			{
+				Res |= AddIMU(Sensor, OutActor);
+			}
+			else
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Unsupported Sensor '%s' encountered during import. It will not be "
+						 "imported."),
+					*Sensor.GetName());
+				Res |= EAGX_ImportResult::RecoverableErrorsOccured;
+			}
+		}
+	}
+
 	if (SimObjects.GetContactMaterials().Num() > 0)
 	{
 		Res |= AddContactMaterialRegistrarComponent(SimObjects, OutActor);
@@ -886,6 +921,42 @@ EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	using namespace AGX_Importer_helpers;
 	auto Parent = GetOwningRigidBodyOrRoot(Shovel, Context, OutActor);
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
+}
+
+EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& OutActor)
+{
+	const FLidarBarrier& Lidar = static_cast<const FLidarBarrier&>(Sensor);
+	FRigidBodyBarrier BodyBarrier = Lidar.GetRigidBody();
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	if (BodyBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		check(Body != nullptr);
+		Parent = Body;
+	}
+
+	return AddComponent<UAGX_LidarSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
+}
+
+EAGX_ImportResult FAGX_Importer::AddIMU(const FSensorBarrier& Sensor, AActor& OutActor)
+{
+	const FIMUBarrier& IMU = static_cast<const FIMUBarrier&>(Sensor);
+	if (!IMU.HasAtMostOneSubsensorOfSameType())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("IMU sensor '%s' has more than one subsensor of the same type. This configuration "
+				 "is not supported and the IMU will not be imported. You may instead create "
+				 "several IMU sensors to ensure at most one subsensor of a certain type is used in "
+				 "each IMU sensor."),
+			*IMU.GetName());
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	// Note: an IMU Sensor should never be child of a Rigid Body.
+	// The Rigid Body is selected from its Details Panel.
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	return AddComponent<UAGX_IMUSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(

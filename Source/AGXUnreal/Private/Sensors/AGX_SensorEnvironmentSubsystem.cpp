@@ -1,21 +1,20 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_SensorEnvironment.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_MeshWithTransform.h"
-#include "AGX_PropertyChangedDispatcher.h"
-#include "Shapes/AGX_SimpleMeshComponent.h"
 #include "AGX_Simulation.h"
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarAmbientMaterial.h"
 #include "Sensors/AGX_LidarLambertianOpaqueMaterial.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
-#include "Sensors/AGX_SensorEnvironmentSpriteComponent.h"
+#include "Sensors/AGX_LidarSurfaceMaterial.h"
 #include "Sensors/AGX_SurfaceMaterialAssetUserData.h"
+#include "Shapes/AGX_SimpleMeshComponent.h"
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Utilities/AGX_MeshUtilities.h"
@@ -29,14 +28,36 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
+#include "GameFramework/Actor.h"
 #include "Landscape.h"
 
+// Standard library includes.
 #include <algorithm>
 
-namespace AGX_SensorEnvironment_helpers
+namespace AGX_SensorEnvironmentSubsystem_helpers
 {
+#if WITH_EDITOR
+	bool IsPlaying(const UAGX_SensorEnvironmentSubsystem& SensorEnvironment)
+	{
+		if (const UWorld* World = SensorEnvironment.GetWorld())
+			return World->IsGameWorld();
+
+		if (GEngine == nullptr)
+			return false;
+
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			if (Context.WorldType == EWorldType::PIE || Context.WorldType == EWorldType::Game)
+				return true;
+		}
+
+		return false;
+	}
+#endif
+
 	FRtLambertianOpaqueMaterialBarrier* GetLambertianOpaqueMaterialBarrierFrom(
 		UAGX_LidarSurfaceMaterial* SurfaceMaterial, UWorld* World)
 	{
@@ -56,15 +77,20 @@ namespace AGX_SensorEnvironment_helpers
 		return LambertianOpaqueMaterial->GetOrCreateNative();
 	}
 
-	FRtLambertianOpaqueMaterialBarrier* GetDefaultLambertianOpaqueMaterialBarrier(
-		const AAGX_SensorEnvironment& SensorEnvironment)
+	UAGX_LidarSurfaceMaterial* GetSurfaceMaterialFrom(const FSoftObjectPath& Path)
 	{
-		UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(&SensorEnvironment);
-		if (Simulation == nullptr)
+		if (!Path.IsAsset())
 			return nullptr;
 
+		return LoadObject<UAGX_LidarSurfaceMaterial>(
+			GetTransientPackage(), *Path.GetAssetPathString());
+	}
+
+	FRtLambertianOpaqueMaterialBarrier* GetDefaultLambertianOpaqueMaterialBarrier(
+		const UAGX_SensorEnvironmentSubsystem& SensorEnvironment)
+	{
 		UAGX_LidarSurfaceMaterial* DefaultSurfaceMaterial =
-			Cast<UAGX_LidarSurfaceMaterial>(Simulation->DefaultLidarSurfaceMaterial.TryLoad());
+			GetSurfaceMaterialFrom(SensorEnvironment.DefaultLidarSurfaceMaterial);
 		if (DefaultSurfaceMaterial == nullptr)
 			return nullptr;
 
@@ -133,15 +159,6 @@ namespace AGX_SensorEnvironment_helpers
 
 		// Chosen arbitrarily, too large will cause Unreal warnings/errors.
 		static constexpr double MaxRadius = 1.0e8;
-		if (Lidar->Range.Max > MaxRadius)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Lidar %s has a Max Range of %f, but the maximum supported Range is %f. Using "
-					 "%f."),
-				*Lidar->GetName(), Lidar->Range.Max.GetValue(), MaxRadius, MaxRadius);
-		}
-
 		const float Radius = std::min(Lidar->Range.Max.GetValue(), MaxRadius);
 		if (!FMath::IsNearlyEqual(Sphere->GetUnscaledSphereRadius(), Radius))
 		{
@@ -246,27 +263,42 @@ namespace AGX_SensorEnvironment_helpers
 
 		return Landscapes;
 	}
+
+	UAGX_LidarAmbientMaterial* GetAmbientMaterialFrom(const FSoftObjectPath& Path)
+	{
+		if (!Path.IsAsset())
+			return nullptr;
+
+		return LoadObject<UAGX_LidarAmbientMaterial>(
+			GetTransientPackage(), *Path.GetAssetPathString());
+	}
+
 }
 
-AAGX_SensorEnvironment::AAGX_SensorEnvironment()
-{
-	PrimaryActorTick.bCanEverTick = true;
-
-	RootComponent = CreateDefaultSubobject<UAGX_SensorEnvironmentSpriteComponent>(
-		USceneComponent::GetDefaultSceneRootVariableName());
-}
-
-void AAGX_SensorEnvironment::SetMagneticField(const FVector& Field)
+void UAGX_SensorEnvironmentSubsystem::SetMagneticField(const FVector& Field)
 {
 	MagneticField = Field;
 	if (HasNative())
 		NativeBarrier.SetMagneticField(Field);
 }
 
-bool AAGX_SensorEnvironment::SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial)
+bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
+	UAGX_LidarAmbientMaterial* InAmbientMaterial)
 {
-	UAGX_LidarAmbientMaterial* AmbientMaterialOrig = AmbientMaterial;
-	AmbientMaterial = InAmbientMaterial;
+	const FSoftObjectPath AmbientMaterialOrig = AmbientMaterial;
+	UAGX_LidarAmbientMaterial* AmbientMaterialInstanceOrig = AmbientMaterialInstance;
+
+	if (InAmbientMaterial != nullptr && InAmbientMaterial->IsInstance())
+	{
+		AmbientMaterial = FSoftObjectPath();
+		AmbientMaterialInstance = InAmbientMaterial;
+	}
+	else
+	{
+		AmbientMaterial =
+			InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) : FSoftObjectPath();
+		AmbientMaterialInstance = nullptr;
+	}
 
 	if (!HasNative())
 	{
@@ -274,19 +306,17 @@ bool AAGX_SensorEnvironment::SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmb
 		return true;
 	}
 
-	// UpdateAmbientMaterial is responsible to create an instance if none exists and do the
-	// asset/instance swap.
 	if (!UpdateAmbientMaterial())
 	{
-		// Something went wrong, restore original AmbientMaterial.
 		AmbientMaterial = AmbientMaterialOrig;
+		AmbientMaterialInstance = AmbientMaterialInstanceOrig;
 		return false;
 	}
 
 	return true;
 }
 
-FVector AAGX_SensorEnvironment::GetMagneticField() const
+FVector UAGX_SensorEnvironmentSubsystem::GetMagneticField() const
 {
 	if (HasNative())
 		return NativeBarrier.GetMagneticField();
@@ -294,62 +324,133 @@ FVector AAGX_SensorEnvironment::GetMagneticField() const
 	return MagneticField;
 }
 
-bool AAGX_SensorEnvironment::AddLidar(UAGX_LidarSensorComponent* Lidar)
+bool UAGX_SensorEnvironmentSubsystem::AddLidar(UAGX_LidarSensorComponent* Lidar)
 {
 	if (Lidar == nullptr)
 		return false;
 
-	for (const auto& L : LidarSensors)
+	if (TrackedLidars.Contains(Lidar))
+		return false;
+
+	if (!FSensorEnvironmentBarrier::IsRaytraceSupported())
 	{
-		if (L.GetLidarComponent() == Lidar)
-			return false;
+		const FString Message =
+			"Lidar raytracing (RTX) not supported on this computer, the Lidar Sensor will not "
+			"work. To enable Lidar raytracing (RTX) support, use an RTX "
+			"Graphical Processing Unit (GPU) with updated driver.";
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
+		return false;
 	}
 
-	FAGX_LidarSensorReference LidarRef;
-	LidarRef.SetComponent(Lidar);
-	LidarSensors.Add(LidarRef);
+	if (!Lidar->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SensorEnvironmentSubsystem::AddLidar was called for Lidar Sensor Component "
+				 "'%s' in '%s' but it does not have a Native. The Sensor Environment will not "
+				 "create sensor Natives."),
+			*Lidar->GetName(), *GetLabelSafe(Lidar->GetOwner()));
+		return false;
+	}
 
-	if (HasNative())
-		RegisterLidar(LidarRef);
+	EnsureNativeInitialized();
+	if (!HasNative())
+		return false;
 
+	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
+	if (Barrier == nullptr)
+		return false;
+
+	if (!NativeBarrier.Add(*Barrier))
+		return false;
+
+	// Associate each Lidar with a USphereComponent used to detect objects in the world to
+	// give to AGX Dynamics during Play.
+	USphereComponent* CollSph = nullptr;
+	if (bAutoAddObjects)
+	{
+		AActor* LidarOwner = Lidar->GetOwner();
+		if (LidarOwner == nullptr)
+			return false;
+
+		CollSph = NewObject<USphereComponent>(LidarOwner);
+		CollSph->OnComponentBeginOverlap.AddDynamic(
+			this, &UAGX_SensorEnvironmentSubsystem::OnLidarBeginOverlapComponent);
+		CollSph->OnComponentEndOverlap.AddDynamic(
+			this, &UAGX_SensorEnvironmentSubsystem::OnLidarEndOverlapComponent);
+
+		// Ensure we don't miss overlap events by setting radius zero now. All collision
+		// Collision spheres are updated in Tick(), and the overlap events will be triggered
+		// for any object within that radius.
+		CollSph->SetSphereRadius(0.f, false);
+
+		// = true yields bugs of mutliple begin/end overlaps. See internal issue 957.
+		CollSph->bTraceComplexOnMove = false;
+
+		// Ignore Landscapes, these will otherwise be terrible for performance.
+		for (auto Landscape :
+			 AGX_SensorEnvironmentSubsystem_helpers::GetLandscapeActors(GetWorld()))
+		{
+			CollSph->IgnoreActorWhenMoving(Landscape, true);
+		}
+
+		if (USceneComponent* RootComponent = LidarOwner->GetRootComponent())
+			CollSph->AttachToComponent(
+				RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+		LidarOwner->AddInstanceComponent(CollSph);
+		CollSph->RegisterComponent();
+	}
+
+	TrackedLidars.Add(Lidar, CollSph);
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddIMU(UAGX_IMUSensorComponent* IMU)
+bool UAGX_SensorEnvironmentSubsystem::AddIMU(UAGX_IMUSensorComponent* IMU)
 {
 	if (IMU == nullptr)
 		return false;
 
-	for (const auto& L : IMUSensors)
+	if (TrackedIMUs.Contains(IMU))
+		return false;
+
+	if (!IMU->HasNative())
 	{
-		if (L.GetIMUComponent() == IMU)
-			return false;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SensorEnvironmentSubsystem::AddIMU was called for IMU Sensor Component "
+				 "'%s' in '%s' but it does not have a Native. The Sensor Environment will not "
+				 "create sensor Natives."),
+			*IMU->GetName(), *GetLabelSafe(IMU->GetOwner()));
+		return false;
 	}
 
-	FAGX_IMUSensorReference IMURef;
-	IMURef.SetComponent(IMU);
-	IMUSensors.Add(IMURef);
+	EnsureNativeInitialized();
+	if (!HasNative())
+		return false;
 
-	if (HasNative())
-		RegisterIMU(IMURef);
+	FIMUBarrier* Barrier = IMU->GetNativeAsIMU();
+	if (Barrier == nullptr)
+		return false;
 
+	if (!NativeBarrier.Add(*Barrier))
+		return false;
+
+	TrackedIMUs.Add(IMU);
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
+bool UAGX_SensorEnvironmentSubsystem::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
 {
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	TArray<FVector> OutVerts;
 	TArray<FTriIndices> OutInds;
 	const int32 Lod = InLod < 0 ? DefaultLODIndex : InLod;
 
-	if (!AGX_SensorEnvironment_helpers::GetVerticesIndices(Mesh, OutVerts, OutInds, Lod))
+	if (!AGX_SensorEnvironmentSubsystem_helpers::GetVerticesIndices(Mesh, OutVerts, OutInds, Lod))
 		return false;
 
 	if (!AddMesh(Mesh, OutVerts, OutInds))
@@ -358,59 +459,58 @@ bool AAGX_SensorEnvironment::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added Static Mesh Component '%s' in '%s'."),
-			*GetName(), *Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
-	}
-
-	return true;
-}
-
-bool AAGX_SensorEnvironment::AddAGXMesh(UAGX_SimpleMeshComponent* Mesh)
-{
-	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
-
-	TArray<FVector> OutVerts;
-	TArray<FTriIndices> OutInds;
-	if (!AGX_SensorEnvironment_helpers::GetVerticesIndices(Mesh, OutVerts, OutInds))
-		return false;
-
-	if (!AddMesh(Mesh, OutVerts, OutInds))
-		return false;
-
-	if (DebugLogOnAdd)
-	{
-		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added AGX Shape '%s' in '%s'."), *GetName(),
+			LogAGX, Log,
+			TEXT("Sensor Environment Subsystem added Static Mesh Component '%s' in '%s'."),
 			*Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
 	}
 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddInstancedMesh(UInstancedStaticMeshComponent* Mesh, int32 InLod)
+bool UAGX_SensorEnvironmentSubsystem::AddAGXMesh(UAGX_SimpleMeshComponent* Mesh)
+{
+	EnsureNativeInitialized();
+	if (!HasNative())
+		return false;
+
+	TArray<FVector> OutVerts;
+	TArray<FTriIndices> OutInds;
+	if (!AGX_SensorEnvironmentSubsystem_helpers::GetVerticesIndices(Mesh, OutVerts, OutInds))
+		return false;
+
+	if (!AddMesh(Mesh, OutVerts, OutInds))
+		return false;
+
+	if (DebugLogOnAdd)
+	{
+		UE_LOG(
+			LogAGX, Log, TEXT("Sensor Environment Subsystem added AGX Shape '%s' in '%s'."),
+			*Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
+	}
+
+	return true;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddInstancedMesh(
+	UInstancedStaticMeshComponent* Mesh, int32 InLod)
 {
 	if (Mesh == nullptr)
 		return false;
 
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	if (!TrackedInstancedMeshes.Contains(Mesh))
 	{
 		TArray<FVector> OutVertices;
 		TArray<FTriIndices> OutIndices;
 		const int32 Lod = InLod < 0 ? DefaultLODIndex : InLod;
-		if (!AGX_SensorEnvironment_helpers::GetVerticesIndices(Mesh, OutVertices, OutIndices, Lod))
+		if (!AGX_SensorEnvironmentSubsystem_helpers::GetVerticesIndices(
+				Mesh, OutVertices, OutIndices, Lod))
+		{
 			return false;
+		}
 
 		if (!AddInstancedMesh(Mesh, OutVertices, OutIndices))
 			return false;
@@ -429,33 +529,34 @@ bool AAGX_SensorEnvironment::AddInstancedMesh(UInstancedStaticMeshComponent* Mes
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added Instaced Static Mesh '%s' in '%s'."),
-			*GetName(), *Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
+			LogAGX, Log,
+			TEXT("Sensor Environment Subsystem added Instaced Static Mesh '%s' in '%s'."),
+			*Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
 	}
 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddInstancedMeshInstance(
+bool UAGX_SensorEnvironmentSubsystem::AddInstancedMeshInstance(
 	UInstancedStaticMeshComponent* Mesh, int32 Index, int32 InLod)
 {
 	if (Mesh == nullptr || !Mesh->IsValidInstance(Index))
 		return false;
 
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	if (!TrackedInstancedMeshes.Contains(Mesh))
 	{
 		TArray<FVector> OutVertices;
 		TArray<FTriIndices> OutIndices;
 		const int32 Lod = InLod < 0 ? DefaultLODIndex : InLod;
-		if (!AGX_SensorEnvironment_helpers::GetVerticesIndices(Mesh, OutVertices, OutIndices, Lod))
+		if (!AGX_SensorEnvironmentSubsystem_helpers::GetVerticesIndices(
+				Mesh, OutVertices, OutIndices, Lod))
+		{
 			return false;
+		}
 
 		if (!AddInstancedMesh(Mesh, OutVertices, OutIndices))
 			return false;
@@ -465,129 +566,22 @@ bool AAGX_SensorEnvironment::AddInstancedMeshInstance(
 	if (Res && DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added AGX Shape '%s' in '%s'."), *GetName(),
+			LogAGX, Log, TEXT("Sensor Environment Subsystem added AGX Shape '%s' in '%s'."),
 			*Mesh->GetName(), *GetLabelSafe(Mesh->GetOwner()));
 	}
 
 	return Res;
 }
 
-bool AAGX_SensorEnvironment::AddMesh(
-	UStaticMeshComponent* Mesh, const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices)
+bool UAGX_SensorEnvironmentSubsystem::AddTerrain(AAGX_Terrain* Terrain)
 {
-	using namespace AGX_SensorEnvironment_helpers;
-	AGX_CHECK(HasNative());
-
-	if (Mesh == nullptr)
-		return false;
-
-	if (Vertices.Num() <= 0 || Indices.Num() <= 0)
-		return false;
-
-	if (TrackedMeshes.Contains(Mesh))
-		return false;
-
-	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
-		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	auto ShapeInstance =
-		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
-	if (!ShapeInstance.IsSet())
-		return false;
-
-	TrackedMeshes.Add(Mesh, std::move(ShapeInstance.GetValue()));
-	return true;
-}
-
-bool AAGX_SensorEnvironment::AddMesh(
-	UAGX_SimpleMeshComponent* Mesh, const TArray<FVector>& Vertices,
-	const TArray<FTriIndices>& Indices)
-{
-	using namespace AGX_SensorEnvironment_helpers;
-	AGX_CHECK(HasNative());
-
-	if (Mesh == nullptr)
-		return false;
-
-	if (Vertices.Num() <= 0 || Indices.Num() <= 0)
-		return false;
-
-	if (TrackedAGXMeshes.Contains(Mesh))
-		return false;
-
-	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
-		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	auto ShapeInstance =
-		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
-	if (!ShapeInstance.IsSet())
-		return false;
-
-	TrackedAGXMeshes.Add(Mesh, std::move(ShapeInstance.GetValue()));
-	return true;
-}
-
-bool AAGX_SensorEnvironment::AddInstancedMesh(
-	UInstancedStaticMeshComponent* Mesh, const TArray<FVector>& Vertices,
-	const TArray<FTriIndices>& Indices)
-{
-	AGX_CHECK(HasNative());
-	if (Mesh == nullptr || Vertices.Num() <= 0 || Indices.Num() <= 0)
-		return false;
-
-	if (TrackedInstancedMeshes.Contains(Mesh))
-		return false;
-
-	FAGX_RtInstancedShapeInstanceData InstancedShapeInstance;
-	if (!InstancedShapeInstance.Shape.AllocateNative(Vertices, Indices))
-		return false;
-
-	TrackedInstancedMeshes.Add(Mesh, std::move(InstancedShapeInstance));
-	return true;
-}
-
-bool AAGX_SensorEnvironment::AddInstancedMeshInstance_Internal(
-	UInstancedStaticMeshComponent* Mesh, int32 Index)
-{
-	using namespace AGX_SensorEnvironment_helpers;
-	AGX_CHECK(HasNative());
-	AGX_CHECK(Mesh != nullptr);
-	AGX_CHECK(Mesh->IsValidInstance(Index));
-
-	FAGX_RtInstancedShapeInstanceData* InstancedShapeInstance = TrackedInstancedMeshes.Find(Mesh);
-
-	// This function should only be called for known Instanced Static Mesh Components.
-	AGX_CHECK(InstancedShapeInstance != nullptr);
-	if (InstancedShapeInstance == nullptr)
-		return false;
-
-	if (InstancedShapeInstance->InstancesData.Contains(Index))
-		return false; // We already track this instance.
-
-	FAGX_RtInstanceData& InstanceData =
-		InstancedShapeInstance->InstancesData.Add(Index, FAGX_RtInstanceData());
-	InstanceData.Instance.AllocateNative(InstancedShapeInstance->Shape, NativeBarrier);
-	AGX_CHECK(InstanceData.Instance.HasNative());
-	FTransform InstanceTrans;
-	Mesh->GetInstanceTransform(Index, InstanceTrans, true);
-	InstanceData.SetTransform(InstanceTrans);
-	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
-		GetDefaultLambertianOpaqueMaterialBarrier(*this);
-	InstanceData.Instance.SetLidarSurfaceMaterial(
-		GetLambertianOpaqueMaterialBarrierFromOrDefault(*Mesh, DefaultMaterial));
-	return true;
-}
-
-bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
-{
-	using namespace AGX_SensorEnvironment_helpers;
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
 	if (Terrain == nullptr)
 		return false;
 
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	if (Terrain->bEnableTerrainPaging)
 	{
@@ -623,25 +617,22 @@ bool AAGX_SensorEnvironment::AddTerrain(AAGX_Terrain* Terrain)
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added Terrain '%s'."), *GetName(),
+			LogAGX, Log, TEXT("Sensor Environment Subsystem added Terrain '%s'."),
 			*Terrain->GetName());
 	}
 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+bool UAGX_SensorEnvironmentSubsystem::AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
 {
-	using namespace AGX_SensorEnvironment_helpers;
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
 	if (Terrain == nullptr)
 		return false;
 
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	FTerrainBarrier* TerrainBarrier = Terrain->GetOrCreateNative();
 	if (TerrainBarrier == nullptr)
@@ -659,25 +650,22 @@ bool AAGX_SensorEnvironment::AddMovableTerrain(UAGX_MovableTerrainComponent* Ter
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added Movable Terrain '%s'."), *GetName(),
+			LogAGX, Log, TEXT("Sensor Environment Subsystem added Movable Terrain '%s'."),
 			*Terrain->GetName());
 	}
 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
+bool UAGX_SensorEnvironmentSubsystem::AddWire(UAGX_WireComponent* Wire)
 {
-	using namespace AGX_SensorEnvironment_helpers;
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
 	if (Wire == nullptr)
 		return false;
 
+	EnsureNativeInitialized();
 	if (!HasNative())
-	{
-		InitializeNative();
-		if (!HasNative())
-			return false;
-	}
+		return false;
 
 	FWireBarrier* Barrier = Wire->GetOrCreateNative();
 	if (Barrier == nullptr)
@@ -694,81 +682,54 @@ bool AAGX_SensorEnvironment::AddWire(UAGX_WireComponent* Wire)
 	if (DebugLogOnAdd)
 	{
 		UE_LOG(
-			LogAGX, Log, TEXT("Sensor Environment '%s' added Wire '%s'."), *GetName(),
-			*Wire->GetName());
+			LogAGX, Log, TEXT("Sensor Environment Subsystem added Wire '%s'."), *Wire->GetName());
 	}
 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
+bool UAGX_SensorEnvironmentSubsystem::RemoveLidar(UAGX_LidarSensorComponent* Lidar)
 {
 	bool DidRemove = false;
 
 	if (Lidar == nullptr)
 		return DidRemove;
 
-	for (int32 i = LidarSensors.Num() - 1; i >= 0; --i)
+	if (TObjectPtr<USphereComponent>* Sphere = TrackedLidars.Find(Lidar))
 	{
-		if (LidarSensors[i].GetLidarComponent() == Lidar)
+		if (*Sphere != nullptr)
 		{
-			LidarSensors.RemoveAt(i);
-			DidRemove = true;
+			(*Sphere)->DestroyComponent();
 		}
+
+		TrackedLidars.Remove(Lidar);
+		DidRemove = true;
 	}
 
 	if (!HasNative() || !Lidar->HasNative())
 		return DidRemove;
 
 	DidRemove |= NativeBarrier.Remove(*Lidar->GetNativeAsLidar());
-
-	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
-	{
-		if (It.Key().GetLidarComponent() == Lidar)
-		{
-			It.RemoveCurrent();
-			DidRemove = true;
-			break;
-		}
-	}
-
 	return DidRemove;
 }
 
-bool AAGX_SensorEnvironment::RemoveIMU(UAGX_IMUSensorComponent* IMU)
+bool UAGX_SensorEnvironmentSubsystem::RemoveIMU(UAGX_IMUSensorComponent* IMU)
 {
 	bool DidRemove = false;
 
 	if (IMU == nullptr)
 		return DidRemove;
 
-	for (int32 i = IMUSensors.Num() - 1; i >= 0; --i)
-	{
-		if (IMUSensors[i].GetIMUComponent() == IMU)
-		{
-			IMUSensors.RemoveAt(i);
-			DidRemove = true;
-		}
-	}
+	DidRemove |= TrackedIMUs.Remove(IMU) > 0;
 
 	if (!HasNative() || !IMU->HasNative())
 		return DidRemove;
 
 	DidRemove |= NativeBarrier.Remove(*IMU->GetNativeAsIMU());
-	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
-	{
-		if (It->GetIMUComponent() == IMU)
-		{
-			It.RemoveCurrent();
-			DidRemove = true;
-			break;
-		}
-	}
-
 	return DidRemove;
 }
 
-bool AAGX_SensorEnvironment::RemoveMesh(UStaticMeshComponent* Mesh)
+bool UAGX_SensorEnvironmentSubsystem::RemoveMesh(UStaticMeshComponent* Mesh)
 {
 	if (Mesh == nullptr)
 		return false;
@@ -776,7 +737,7 @@ bool AAGX_SensorEnvironment::RemoveMesh(UStaticMeshComponent* Mesh)
 	return TrackedMeshes.Remove(Mesh) > 0;
 }
 
-bool AAGX_SensorEnvironment::RemoveInstancedMesh(UInstancedStaticMeshComponent* Mesh)
+bool UAGX_SensorEnvironmentSubsystem::RemoveInstancedMesh(UInstancedStaticMeshComponent* Mesh)
 {
 	if (Mesh == nullptr || !TrackedInstancedMeshes.Contains(Mesh))
 		return false;
@@ -785,7 +746,7 @@ bool AAGX_SensorEnvironment::RemoveInstancedMesh(UInstancedStaticMeshComponent* 
 	return true;
 }
 
-bool AAGX_SensorEnvironment::RemoveInstancedMeshInstance(
+bool UAGX_SensorEnvironmentSubsystem::RemoveInstancedMeshInstance(
 	UInstancedStaticMeshComponent* Mesh, int32 Index)
 {
 	if (Mesh == nullptr)
@@ -802,7 +763,7 @@ bool AAGX_SensorEnvironment::RemoveInstancedMeshInstance(
 	return true;
 }
 
-bool AAGX_SensorEnvironment::RemoveTerrain(AAGX_Terrain* Terrain)
+bool UAGX_SensorEnvironmentSubsystem::RemoveTerrain(AAGX_Terrain* Terrain)
 {
 	if (!HasNative() || Terrain == nullptr || !Terrain->HasNative())
 		return false;
@@ -813,7 +774,7 @@ bool AAGX_SensorEnvironment::RemoveTerrain(AAGX_Terrain* Terrain)
 		return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
 }
 
-bool AAGX_SensorEnvironment::RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
+bool UAGX_SensorEnvironmentSubsystem::RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain)
 {
 	if (!HasNative() || Terrain == nullptr || !Terrain->HasNative())
 		return false;
@@ -821,7 +782,7 @@ bool AAGX_SensorEnvironment::RemoveMovableTerrain(UAGX_MovableTerrainComponent* 
 	return NativeBarrier.Remove(*Terrain->GetOrCreateNative());
 }
 
-bool AAGX_SensorEnvironment::RemoveWire(UAGX_WireComponent* Wire)
+bool UAGX_SensorEnvironmentSubsystem::RemoveWire(UAGX_WireComponent* Wire)
 {
 	if (!HasNative() || Wire == nullptr || !Wire->HasNative())
 		return false;
@@ -829,12 +790,20 @@ bool AAGX_SensorEnvironment::RemoveWire(UAGX_WireComponent* Wire)
 	return NativeBarrier.Remove(*Wire->GetNative());
 }
 
-bool AAGX_SensorEnvironment::HasNative() const
+bool UAGX_SensorEnvironmentSubsystem::HasNative() const
 {
 	return NativeBarrier.HasNative();
 }
 
-FSensorEnvironmentBarrier* AAGX_SensorEnvironment::GetNative()
+void UAGX_SensorEnvironmentSubsystem::EnsureNativeInitialized()
+{
+	if (HasNative())
+		return;
+
+	InitializeNative();
+}
+
+FSensorEnvironmentBarrier* UAGX_SensorEnvironmentSubsystem::GetNative()
 {
 	if (!HasNative())
 		return nullptr;
@@ -842,16 +811,57 @@ FSensorEnvironmentBarrier* AAGX_SensorEnvironment::GetNative()
 	return &NativeBarrier;
 }
 
-const FSensorEnvironmentBarrier* AAGX_SensorEnvironment::GetNative() const
+const FSensorEnvironmentBarrier* UAGX_SensorEnvironmentSubsystem::GetNative() const
 {
 	if (!HasNative())
 		return nullptr;
 
 	return &NativeBarrier;
+}
+
+UAGX_SensorEnvironmentSubsystem* UAGX_SensorEnvironmentSubsystem::GetFrom(
+	const UActorComponent* Component)
+{
+	if (!Component)
+		return nullptr;
+
+	return GetFrom(Component->GetOwner());
+}
+
+UAGX_SensorEnvironmentSubsystem* UAGX_SensorEnvironmentSubsystem::GetFrom(const AActor* Actor)
+{
+	if (!Actor)
+		return nullptr;
+
+	UGameInstance* GameInstance = Actor->GetGameInstance();
+	if (!GameInstance)
+		return nullptr;
+
+	return GetFrom(GameInstance);
+}
+
+UAGX_SensorEnvironmentSubsystem* UAGX_SensorEnvironmentSubsystem::GetFrom(const UWorld* World)
+{
+	if (!World)
+		return nullptr;
+
+	if (World->IsGameWorld())
+		return GetFrom(World->GetGameInstance());
+
+	return nullptr;
+}
+
+UAGX_SensorEnvironmentSubsystem* UAGX_SensorEnvironmentSubsystem::GetFrom(
+	const UGameInstance* GameInstance)
+{
+	if (!GameInstance)
+		return nullptr;
+
+	return GameInstance->GetSubsystem<UAGX_SensorEnvironmentSubsystem>();
 }
 
 #if WITH_EDITOR
-bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
+bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty) const
 {
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
 	if (!SuperCanEditChange)
@@ -860,27 +870,55 @@ bool AAGX_SensorEnvironment::CanEditChange(const FProperty* InProperty) const
 	if (InProperty == nullptr)
 		return SuperCanEditChange;
 
-	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
-	if (bIsPlaying)
+	if (AGX_SensorEnvironmentSubsystem_helpers::IsPlaying(*this))
 	{
-		// List of names of properties that does not support editing after initialization.
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
-			GET_MEMBER_NAME_CHECKED(ThisClass, LidarSensors),
-			GET_MEMBER_NAME_CHECKED(ThisClass, IMUSensors),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bAutoAddObjects),
-			GET_MEMBER_NAME_CHECKED(ThisClass, AmbientMaterial),
-			GET_MEMBER_NAME_CHECKED(ThisClass, bSetPreIntegratePosition)};
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bAutoAddObjects),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, AmbientMaterial),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
-		{
 			return false;
-		}
 	}
+
 	return SuperCanEditChange;
 }
 #endif
 
-void AAGX_SensorEnvironment::Tick(float DeltaSeconds)
+void UAGX_SensorEnvironmentSubsystem::Deinitialize()
+{
+	for (auto& TrackedLidar : TrackedLidars)
+	{
+		if (TrackedLidar.Value != nullptr)
+			TrackedLidar.Value->DestroyComponent();
+	}
+
+	TrackedIMUs.Empty();
+	TrackedLidars.Empty();
+	TrackedMeshes.Empty();
+	TrackedInstancedMeshes.Empty();
+	TrackedAGXMeshes.Empty();
+
+	if (AmbientMaterialInstance != nullptr && AmbientMaterialInstance->HasNative())
+		AmbientMaterialInstance->ReleaseNative();
+
+	AmbientMaterialInstance = nullptr;
+
+	if (UAGX_LidarSurfaceMaterial* SurfaceMaterial =
+			AGX_SensorEnvironmentSubsystem_helpers::GetSurfaceMaterialFrom(
+				DefaultLidarSurfaceMaterial))
+	{
+		if (SurfaceMaterial->HasNative())
+			SurfaceMaterial->ReleaseNative();
+	}
+
+	if (HasNative())
+		NativeBarrier.ReleaseNative();
+
+	Super::Deinitialize();
+}
+
+void UAGX_SensorEnvironmentSubsystem::Tick(float DeltaTime)
 {
 	if (!HasNative())
 		return;
@@ -897,85 +935,36 @@ void AAGX_SensorEnvironment::Tick(float DeltaSeconds)
 	TickTrackedIMUs();
 }
 
-void AAGX_SensorEnvironment::BeginPlay()
+TStatId UAGX_SensorEnvironmentSubsystem::GetStatId() const
 {
-	Super::BeginPlay();
-	const bool RaytraceRTXSupported = FSensorEnvironmentBarrier::IsRaytraceSupported();
-	if (LidarSensors.Num() > 0 && !RaytraceRTXSupported)
-	{
-		const FString Message =
-			"Lidar raytracing (RTX) not supported on this computer, the Lidar Sensors will not "
-			"work. To enable Lidar raytracing (RTX) support, use an RTX "
-			"Graphical Processing Unit (GPU) with updated driver.";
-		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail, 8.f);
-	}
-
-	if (!HasNative())
-		InitializeNative();
-
-	if (RaytraceRTXSupported)
-	{
-		UpdateAmbientMaterial();
-		RegisterLidars();
-	}
-
-	RegisterIMUs();
-
-	if (bAutoAddObjects)
-	{
-		// Add Terrains.
-		for (TActorIterator<AActor> ActorIt(GetWorld()); ActorIt; ++ActorIt)
-		{
-			if (auto SceneRoot = ActorIt->GetRootComponent())
-			{
-				for (auto MovableTerrain :
-					 FAGX_ObjectUtilities::GetChildrenOfType<UAGX_MovableTerrainComponent>(
-						 *SceneRoot, /*recursive*/ true))
-				{
-					AddMovableTerrain(MovableTerrain);
-				}
-			}
-
-			if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
-			{
-				AddTerrain(Terrain);
-			}
-		}
-	}
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UAGX_SensorEnvironmentSubsystem, STATGROUP_Tickables);
 }
 
-void AAGX_SensorEnvironment::EndPlay(const EEndPlayReason::Type Reason)
+bool UAGX_SensorEnvironmentSubsystem::IsTickable() const
 {
-	Super::EndPlay(Reason);
-
-	TrackedIMUs.Empty();
-	TrackedLidars.Empty();
-	TrackedMeshes.Empty();
-	TrackedInstancedMeshes.Empty();
-	TrackedAGXMeshes.Empty();
-
-	if (AmbientMaterial != nullptr && AmbientMaterial->HasNative())
-		AmbientMaterial->ReleaseNative();
-
-	if (HasNative())
-		NativeBarrier.ReleaseNative();
+	const UWorld* World = GetWorld();
+	return !IsTemplate() && World != nullptr && World->IsGameWorld();
 }
 
-void AAGX_SensorEnvironment::InitializeNative()
+UWorld* UAGX_SensorEnvironmentSubsystem::GetTickableGameObjectWorld() const
+{
+	return GetWorld();
+}
+
+void UAGX_SensorEnvironmentSubsystem::InitializeNative()
 {
 	AGX_CHECK(!HasNative());
 	if (HasNative())
 		return;
 
-	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(this);
+	UAGX_Simulation* Sim = UAGX_Simulation::GetFrom(GetGameInstance());
 	if (Sim == nullptr || !Sim->HasNative())
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("AGX_SensorEnvironment '%s' was unable to get a UAGX_Simulation with Native "
+			TEXT("AGX_SensorEnvironmentSubsystem was unable to get a UAGX_Simulation with Native "
 				 "in InitializeNative. Correct behavior of the SensorEnvironment cannot be "
-				 "guaranteed."),
-			*GetName());
+				 "guaranteed."));
 		return;
 	}
 
@@ -1010,170 +999,60 @@ void AAGX_SensorEnvironment::InitializeNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("AGX_SensorEnvironment '%s' was unable to create a Native AGX Dynamics "
-				 "agxSensor::Environment. The Output Log may contain more information."),
-			*GetName());
+			TEXT("AGX_SensorEnvironmentSubsystem was unable to create a Native AGX Dynamics "
+				 "agxSensor::Environment. The Output Log may contain more information."));
+		return;
 	}
 
 	NativeBarrier.SetMagneticField(MagneticField);
+
+	if (FSensorEnvironmentBarrier::IsRaytraceSupported())
+		(void) UpdateAmbientMaterial();
+
+	if (bAutoAddObjects)
+		AddAutoDetectedTerrains();
 
 	// In case the Level has no other AGX types in it.
 	Sim->EnsureStepperCreated();
 }
 
-void AAGX_SensorEnvironment::RegisterLidars()
-{
-	AGX_CHECK(HasNative());
-	if (!HasNative())
-		return;
-
-	for (FAGX_LidarSensorReference& LidarRef : LidarSensors)
-	{
-		RegisterLidar(LidarRef);
-	}
-}
-
-bool AAGX_SensorEnvironment::RegisterLidar(FAGX_LidarSensorReference& LidarRef)
-{
-	if (TrackedLidars.Contains(LidarRef))
-		return false;
-
-	UAGX_LidarSensorComponent* Lidar = LidarRef.GetLidarComponent();
-	if (Lidar == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("SensorEnvironment::RegisterLidar tried to get Lidar Sensor Component given Lidar "
-				 "Sensor Reference '%s' but the returned Component was nullptr."),
-			*LidarRef.Name.ToString());
-		return false;
-	}
-
-	auto SensorBarrier = Lidar->GetOrCreateNative();
-	if (SensorBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("SensorEnvironment::RegisterLidar tried to get Native for Lidar Sensor Component "
-				 "'%s' in '%s' but got nullptr."),
-			*Lidar->GetName(), *GetLabelSafe(Lidar->GetOwner()));
-		return false;
-	}
-
-	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
-	NativeBarrier.Add(*Barrier);
-
-	// Associate each Lidar with a USphereComponent used to detect objects in the world to
-	// give to AGX Dynamics during Play.
-	USphereComponent* CollSph = nullptr;
-	if (bAutoAddObjects)
-	{
-		CollSph = NewObject<USphereComponent>(this);
-		CollSph->OnComponentBeginOverlap.AddDynamic(
-			this, &AAGX_SensorEnvironment::OnLidarBeginOverlapComponent);
-		CollSph->OnComponentEndOverlap.AddDynamic(
-			this, &AAGX_SensorEnvironment::OnLidarEndOverlapComponent);
-
-		// Ensure we don't miss overlap events by setting radius zero now. All collision
-		// Collision spheres are updated in Step(), and the overlap events will be triggered
-		// for any object within that radius.
-		CollSph->SetSphereRadius(0.f, false);
-
-		// = true yields bugs of mutliple begin/end overlaps. See internal issue 957.
-		CollSph->bTraceComplexOnMove = false;
-
-		// Ignore Landscapes, these will otherwise be terrible for performance.
-		for (auto Landscape : AGX_SensorEnvironment_helpers::GetLandscapeActors(GetWorld()))
-		{
-			CollSph->IgnoreActorWhenMoving(Landscape, true);
-		}
-
-		CollSph->RegisterComponent();
-	}
-
-	TrackedLidars.Add(LidarRef, CollSph);
-	return true;
-}
-
-void AAGX_SensorEnvironment::RegisterIMUs()
-{
-	AGX_CHECK(HasNative());
-	if (!HasNative())
-		return;
-
-	for (FAGX_IMUSensorReference& IMURef : IMUSensors)
-		RegisterIMU(IMURef);
-}
-
-bool AAGX_SensorEnvironment::RegisterIMU(FAGX_IMUSensorReference& IMURef)
-{
-	if (TrackedIMUs.Contains(IMURef))
-		return false;
-
-	UAGX_IMUSensorComponent* IMU = IMURef.GetIMUComponent();
-	if (IMU == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("SensorEnvironment::RegisterIMU tried to get IMU Sensor Component given IMU "
-				 "Sensor Reference '%s' but the returned Component was nullptr."),
-			*IMURef.Name.ToString());
-		return false;
-	}
-
-	auto SensorBarrier = IMU->GetOrCreateNative();
-	if (SensorBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("SensorEnvironment::RegisterIMU tried to get Native for IMU Sensor Component "
-				 "'%s' in '%s' but got nullptr."),
-			*IMU->GetName(), *GetLabelSafe(IMU->GetOwner()));
-		return false;
-	}
-
-	FIMUBarrier* Barrier = IMU->GetNativeAsIMU();
-	NativeBarrier.Add(*Barrier);
-	TrackedIMUs.Add(IMURef);
-	return true;
-}
-
-void AAGX_SensorEnvironment::UpdateTrackedLidars()
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedLidars()
 {
 	// Update Collision Spheres and remove any destroyed Lidars.
 	// Notice that overlap events will likely be triggered when updating the collision spheres radii
 	// and transform.
 	for (auto It = TrackedLidars.CreateIterator(); It; ++It)
 	{
-		if (!IsValid(It->Key.GetLidarComponent()))
+		if (!IsValid(It->Key.Get()))
 		{
+			if (It->Value != nullptr)
+				It->Value->DestroyComponent();
+
 			It.RemoveCurrent();
 			continue;
 		}
 
 		if (bAutoAddObjects)
-			AGX_SensorEnvironment_helpers::UpdateCollisionSphere(
-				It->Key.GetLidarComponent(), It->Value.Get());
+			AGX_SensorEnvironmentSubsystem_helpers::UpdateCollisionSphere(
+				It->Key.Get(), It->Value.Get());
 	}
 }
 
-void AAGX_SensorEnvironment::UpdateTrackedIMUs()
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedIMUs()
 {
 	for (auto It = TrackedIMUs.CreateIterator(); It; ++It)
 	{
-		if (!IsValid(It->GetIMUComponent()))
-		{
+		if (!IsValid(It->Get()))
 			It.RemoveCurrent();
-		}
 	}
 }
 
-void AAGX_SensorEnvironment::UpdateTrackedMeshes()
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedMeshes()
 {
-	AGX_SensorEnvironment_helpers::UpdateTrackedMeshes(TrackedMeshes);
+	AGX_SensorEnvironmentSubsystem_helpers::UpdateTrackedMeshes(TrackedMeshes);
 }
 
-void AAGX_SensorEnvironment::UpdateTrackedInstancedMeshes()
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedInstancedMeshes()
 {
 	for (auto It = TrackedInstancedMeshes.CreateIterator(); It; ++It)
 	{
@@ -1202,35 +1081,38 @@ void AAGX_SensorEnvironment::UpdateTrackedInstancedMeshes()
 	}
 }
 
-void AAGX_SensorEnvironment::UpdateTrackedAGXMeshes()
+void UAGX_SensorEnvironmentSubsystem::UpdateTrackedAGXMeshes()
 {
-	AGX_SensorEnvironment_helpers::UpdateTrackedMeshes(TrackedAGXMeshes);
+	AGX_SensorEnvironmentSubsystem_helpers::UpdateTrackedMeshes(TrackedAGXMeshes);
 }
 
-bool AAGX_SensorEnvironment::UpdateAmbientMaterial()
+bool UAGX_SensorEnvironmentSubsystem::UpdateAmbientMaterial()
 {
 	AGX_CHECK(HasNative());
 	if (!HasNative())
 		return false;
 
-	if (AmbientMaterial == nullptr)
-	{
-		NativeBarrier.SetAmbientMaterial(nullptr);
-		return true;
-	}
-
-	UWorld* World = GetWorld();
-	UAGX_LidarAmbientMaterial* Instance = AmbientMaterial->GetOrCreateInstance(World);
+	UAGX_LidarAmbientMaterial* Instance = AmbientMaterialInstance;
 	if (Instance == nullptr)
-		return false;
-
-	// Swap asset to instance as we are now in-game.
-	if (AmbientMaterial != Instance)
 	{
-		AmbientMaterial = Instance;
+		UAGX_LidarAmbientMaterial* AmbientMaterialAsset =
+			AGX_SensorEnvironmentSubsystem_helpers::GetAmbientMaterialFrom(AmbientMaterial);
+		if (AmbientMaterialAsset == nullptr)
+		{
+			NativeBarrier.SetAmbientMaterial(nullptr);
+			AmbientMaterialInstance = nullptr;
+			return true;
+		}
+
+		UWorld* World = GetWorld();
+		Instance = AmbientMaterialAsset->GetOrCreateInstance(World);
+		if (Instance == nullptr)
+			return false;
+
+		AmbientMaterialInstance = Instance;
 	}
 
-	FRtAmbientMaterialBarrier* Native = AmbientMaterial->GetNative();
+	FRtAmbientMaterialBarrier* Native = AmbientMaterialInstance->GetOrCreateNative();
 	if (Native == nullptr)
 		return false;
 
@@ -1238,25 +1120,156 @@ bool AAGX_SensorEnvironment::UpdateAmbientMaterial()
 	return true;
 }
 
-void AAGX_SensorEnvironment::TickTrackedLidars() const
+void UAGX_SensorEnvironmentSubsystem::TickTrackedLidars() const
 {
 	for (auto It = TrackedLidars.CreateConstIterator(); It; ++It)
 	{
-		if (auto Lidar = It->Key.GetLidarComponent())
+		if (auto Lidar = It->Key.Get())
 			Lidar->UpdateNativeTransform();
 	}
 }
 
-void AAGX_SensorEnvironment::TickTrackedIMUs() const
+void UAGX_SensorEnvironmentSubsystem::TickTrackedIMUs() const
 {
 	for (auto IMURef : TrackedIMUs)
 	{
-		if (auto IMU = IMURef.GetIMUComponent())
+		if (auto IMU = IMURef.Get())
 			IMU->UpdateTransformFromNative();
 	}
 }
 
-void AAGX_SensorEnvironment::OnLidarBeginOverlapComponent(
+bool UAGX_SensorEnvironmentSubsystem::AddMesh(
+	UStaticMeshComponent* Mesh, const TArray<FVector>& Vertices, const TArray<FTriIndices>& Indices)
+{
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
+	AGX_CHECK(HasNative());
+
+	if (Mesh == nullptr)
+		return false;
+
+	if (Vertices.Num() <= 0 || Indices.Num() <= 0)
+		return false;
+
+	if (TrackedMeshes.Contains(Mesh))
+		return false;
+
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	auto ShapeInstance =
+		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
+	if (!ShapeInstance.IsSet())
+		return false;
+
+	TrackedMeshes.Add(Mesh, std::move(ShapeInstance.GetValue()));
+	return true;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddMesh(
+	UAGX_SimpleMeshComponent* Mesh, const TArray<FVector>& Vertices,
+	const TArray<FTriIndices>& Indices)
+{
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
+	AGX_CHECK(HasNative());
+
+	if (Mesh == nullptr)
+		return false;
+
+	if (Vertices.Num() <= 0 || Indices.Num() <= 0)
+		return false;
+
+	if (TrackedAGXMeshes.Contains(Mesh))
+		return false;
+
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	auto ShapeInstance =
+		CreateShapeInstanceData(Vertices, Indices, *Mesh, NativeBarrier, DefaultMaterial);
+	if (!ShapeInstance.IsSet())
+		return false;
+
+	TrackedAGXMeshes.Add(Mesh, std::move(ShapeInstance.GetValue()));
+	return true;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddInstancedMesh(
+	UInstancedStaticMeshComponent* Mesh, const TArray<FVector>& Vertices,
+	const TArray<FTriIndices>& Indices)
+{
+	AGX_CHECK(HasNative());
+	if (Mesh == nullptr || Vertices.Num() <= 0 || Indices.Num() <= 0)
+		return false;
+
+	if (TrackedInstancedMeshes.Contains(Mesh))
+		return false;
+
+	FAGX_RtInstancedShapeInstanceData InstancedShapeInstance;
+	if (!InstancedShapeInstance.Shape.AllocateNative(Vertices, Indices))
+		return false;
+
+	TrackedInstancedMeshes.Add(Mesh, std::move(InstancedShapeInstance));
+	return true;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddInstancedMeshInstance_Internal(
+	UInstancedStaticMeshComponent* Mesh, int32 Index)
+{
+	using namespace AGX_SensorEnvironmentSubsystem_helpers;
+	AGX_CHECK(HasNative());
+	AGX_CHECK(Mesh != nullptr);
+	AGX_CHECK(Mesh->IsValidInstance(Index));
+
+	FAGX_RtInstancedShapeInstanceData* InstancedShapeInstance = TrackedInstancedMeshes.Find(Mesh);
+
+	// This function should only be called for known Instanced Static Mesh Components.
+	AGX_CHECK(InstancedShapeInstance != nullptr);
+	if (InstancedShapeInstance == nullptr)
+		return false;
+
+	if (InstancedShapeInstance->InstancesData.Contains(Index))
+		return false; // We already track this instance.
+
+	FAGX_RtInstanceData& InstanceData =
+		InstancedShapeInstance->InstancesData.Add(Index, FAGX_RtInstanceData());
+	InstanceData.Instance.AllocateNative(InstancedShapeInstance->Shape, NativeBarrier);
+	AGX_CHECK(InstanceData.Instance.HasNative());
+	FTransform InstanceTrans;
+	Mesh->GetInstanceTransform(Index, InstanceTrans, true);
+	InstanceData.SetTransform(InstanceTrans);
+	FRtLambertianOpaqueMaterialBarrier* DefaultMaterial =
+		GetDefaultLambertianOpaqueMaterialBarrier(*this);
+	InstanceData.Instance.SetLidarSurfaceMaterial(
+		GetLambertianOpaqueMaterialBarrierFromOrDefault(*Mesh, DefaultMaterial));
+	return true;
+}
+
+bool UAGX_SensorEnvironmentSubsystem::AddAutoDetectedTerrains()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+		return false;
+
+	for (TActorIterator<AActor> ActorIt(World); ActorIt; ++ActorIt)
+	{
+		if (auto SceneRoot = ActorIt->GetRootComponent())
+		{
+			for (auto MovableTerrain :
+				 FAGX_ObjectUtilities::GetChildrenOfType<UAGX_MovableTerrainComponent>(
+					 *SceneRoot, /*recursive*/ true))
+			{
+				AddMovableTerrain(MovableTerrain);
+			}
+		}
+
+		if (AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(*ActorIt))
+		{
+			AddTerrain(Terrain);
+		}
+	}
+
+	return true;
+}
+
+void UAGX_SensorEnvironmentSubsystem::OnLidarBeginOverlapComponent(
 	UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -1291,7 +1304,8 @@ void AAGX_SensorEnvironment::OnLidarBeginOverlapComponent(
 	}
 }
 
-void AAGX_SensorEnvironment::OnLidarBeginOverlapStaticMeshComponent(UStaticMeshComponent& Mesh)
+void UAGX_SensorEnvironmentSubsystem::OnLidarBeginOverlapStaticMeshComponent(
+	UStaticMeshComponent& Mesh)
 {
 	FAGX_RtShapeInstanceData* ShapeInstanceData = TrackedMeshes.Find(&Mesh);
 	if (ShapeInstanceData == nullptr)
@@ -1300,7 +1314,7 @@ void AAGX_SensorEnvironment::OnLidarBeginOverlapStaticMeshComponent(UStaticMeshC
 		ShapeInstanceData->InstanceData.RefCount++;
 }
 
-void AAGX_SensorEnvironment::OnLidarBeginOverlapInstancedStaticMeshComponent(
+void UAGX_SensorEnvironmentSubsystem::OnLidarBeginOverlapInstancedStaticMeshComponent(
 	UInstancedStaticMeshComponent& Mesh, int32 Index)
 {
 	auto InstancedMeshData = TrackedInstancedMeshes.Find(&Mesh);
@@ -1317,7 +1331,8 @@ void AAGX_SensorEnvironment::OnLidarBeginOverlapInstancedStaticMeshComponent(
 		InstanceData->RefCount++;
 }
 
-void AAGX_SensorEnvironment::OnLidarBeginOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh)
+void UAGX_SensorEnvironmentSubsystem::OnLidarBeginOverlapAGXMeshComponent(
+	UAGX_SimpleMeshComponent& Mesh)
 {
 	FAGX_RtShapeInstanceData* ShapeInstanceData = TrackedAGXMeshes.Find(&Mesh);
 	if (ShapeInstanceData == nullptr)
@@ -1326,7 +1341,7 @@ void AAGX_SensorEnvironment::OnLidarBeginOverlapAGXMeshComponent(UAGX_SimpleMesh
 		ShapeInstanceData->InstanceData.RefCount++;
 }
 
-void AAGX_SensorEnvironment::OnLidarEndOverlapComponent(
+void UAGX_SensorEnvironmentSubsystem::OnLidarEndOverlapComponent(
 	UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 	int32 OtherBodyIndex)
 {
@@ -1352,7 +1367,8 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapComponent(
 	}
 }
 
-void AAGX_SensorEnvironment::OnLidarEndOverlapStaticMeshComponent(UStaticMeshComponent& Mesh)
+void UAGX_SensorEnvironmentSubsystem::OnLidarEndOverlapStaticMeshComponent(
+	UStaticMeshComponent& Mesh)
 {
 	FAGX_RtShapeInstanceData* ShapeInstanceData = TrackedMeshes.Find(&Mesh);
 	if (ShapeInstanceData == nullptr)
@@ -1364,7 +1380,7 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapStaticMeshComponent(UStaticMeshCom
 		TrackedMeshes.Remove(&Mesh);
 }
 
-void AAGX_SensorEnvironment::OnLidarEndOverlapInstancedStaticMeshComponent(
+void UAGX_SensorEnvironmentSubsystem::OnLidarEndOverlapInstancedStaticMeshComponent(
 	UInstancedStaticMeshComponent& Mesh, int32 Index)
 {
 	if (!Mesh.IsValidInstance(Index))
@@ -1389,7 +1405,8 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapInstancedStaticMeshComponent(
 		RemoveInstancedMesh(&Mesh);
 }
 
-void AAGX_SensorEnvironment::OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh)
+void UAGX_SensorEnvironmentSubsystem::OnLidarEndOverlapAGXMeshComponent(
+	UAGX_SimpleMeshComponent& Mesh)
 {
 	FAGX_RtShapeInstanceData* ShapeInstanceData = TrackedAGXMeshes.Find(&Mesh);
 	if (ShapeInstanceData == nullptr)
@@ -1400,29 +1417,3 @@ void AAGX_SensorEnvironment::OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshCo
 	if (ShapeInstanceData->InstanceData.RefCount == 0)
 		TrackedAGXMeshes.Remove(&Mesh);
 }
-
-#if WITH_EDITOR
-void AAGX_SensorEnvironment::PostInitProperties()
-{
-	Super::PostInitProperties();
-	InitPropertyDispatcher();
-}
-
-void AAGX_SensorEnvironment::InitPropertyDispatcher()
-{
-	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
-		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
-	if (PropertyDispatcher.IsInitialized())
-	{
-		return;
-	}
-
-	AGX_COMPONENT_DEFAULT_DISPATCHER(MagneticField);
-}
-
-void AAGX_SensorEnvironment::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
-{
-	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
-	Super::PostEditChangeChainProperty(Event);
-}
-#endif // WITH_EDITOR

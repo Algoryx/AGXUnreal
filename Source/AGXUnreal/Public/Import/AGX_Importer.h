@@ -18,6 +18,7 @@ class UAGX_RigidBodyComponent;
 
 struct FAGX_ImportSettings;
 struct FObserverFrameBarrier;
+struct FSensorBarrier;
 struct FSimulationObjectCollection;
 
 struct AGXUNREAL_API FAGX_ImportResult
@@ -83,6 +84,9 @@ private:
 	EAGX_ImportResult AddTrimeshShape(const FShapeBarrier& Shape, AActor& OutActor);
 
 	EAGX_ImportResult AddShovel(const FShovelBarrier& Shovel, AActor& OutActor);
+
+	EAGX_ImportResult AddLidar(const FSensorBarrier& Sensor, AActor& OutActor);
+	EAGX_ImportResult AddIMU(const FSensorBarrier& Sensor, AActor& OutActor);
 
 	EAGX_ImportResult AddSignalHandlerComponent(
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);

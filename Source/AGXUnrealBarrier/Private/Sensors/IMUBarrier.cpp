@@ -3,6 +3,7 @@
 #include "Sensors/IMUBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
@@ -93,17 +94,28 @@ namespace IMUBarrier_helpers
 	agxSensor::IMU* GetIMUNative(FIMUBarrier& IMU)
 	{
 		AGX_CHECK(IMU.HasNative());
-		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+		return IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
 	}
 
 	agxSensor::IMU* GetIMUNative(const FIMUBarrier& IMU)
 	{
 		AGX_CHECK(IMU.HasNative());
-		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+		return IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
+	}
+
+	template <typename T>
+	size_t CountChildrenOfType(const agxSensor::IMU& IMU)
+	{
+		size_t Count = 0;
+		IMU.visitChildrenOfType<T>(
+			[&Count](const T&) { ++Count; },
+			/*recurse*/ true);
+		return Count;
 	}
 }
 
-void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body)
+void FIMUBarrier::AllocateNative(
+	const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body, bool bAddOutputs)
 {
 	check(!HasNative());
 	check(Body.HasNative());
@@ -137,32 +149,34 @@ void FIMUBarrier::AllocateNative(const FIMUAllocationParameters& Params, FRigidB
 
 	// clang-format off
 
-	// Add Outputs.
-	if (Params.bUseAccelerometer)
+	if (bAddOutputs)
 	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::ACCELEROMETER_X_F64,
-			agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
-			agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
-	}
+		if (Params.bUseAccelerometer)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::ACCELEROMETER_X_F64,
+				agxSensor::IMUOutput::ACCELEROMETER_Y_F64,
+				agxSensor::IMUOutput::ACCELEROMETER_Z_F64>(IMUBarrier_helpers::AccelerometerID);
+		}
 
-	if (Params.bUseGyroscope)
-	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::GYROSCOPE_X_F64,
-			agxSensor::IMUOutput::GYROSCOPE_Y_F64,
-			agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
-	}
+		if (Params.bUseGyroscope)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::GYROSCOPE_X_F64,
+				agxSensor::IMUOutput::GYROSCOPE_Y_F64,
+				agxSensor::IMUOutput::GYROSCOPE_Z_F64>(IMUBarrier_helpers::GyroscopeID);
+		}
 
-	if (Params.bUseMagnetometer)
-	{
-		GetIMUNative(*this)->getOutputHandler()->add<
-			IMUOut3Dof,
-			agxSensor::IMUOutput::MAGNETOMETER_X_F64,
-			agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
-			agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
+		if (Params.bUseMagnetometer)
+		{
+			GetIMUNative(*this)->getOutputHandler()->add<
+				IMUOut3Dof,
+				agxSensor::IMUOutput::MAGNETOMETER_X_F64,
+				agxSensor::IMUOutput::MAGNETOMETER_Y_F64,
+				agxSensor::IMUOutput::MAGNETOMETER_Z_F64>(IMUBarrier_helpers::MagnetometerID);
+		}
 	}
 	// clang-format on
 }
@@ -202,6 +216,44 @@ FQuat FIMUBarrier::GetRotation() const
 {
 	check(HasNative());
 	return Convert(IMUBarrier_helpers::GetIMUNative(*this)->getFrame()->getRotate());
+}
+
+FRigidBodyBarrier FIMUBarrier::GetRigidBody() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+
+	agx::RigidBody* Body = nullptr;
+	for (agx::Frame* Frame = GetIMUNative(*this)->getFrame(); Frame != nullptr;
+		 Frame = Frame->getParent())
+	{
+		Body = Frame->getRigidBody();
+		if (Body != nullptr)
+			break;
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
+}
+
+bool FIMUBarrier::HasAccelerometer() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetAccelerometer(*GetIMUNative(*this)) != nullptr;
+}
+
+bool FIMUBarrier::HasGyroscope() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetGyroscope(*GetIMUNative(*this)) != nullptr;
+}
+
+bool FIMUBarrier::HasMagnetometer() const
+{
+	using namespace IMUBarrier_helpers;
+	check(HasNative());
+	return GetMagnetometer(*GetIMUNative(*this)) != nullptr;
 }
 
 void FIMUBarrier::SetAccelerometerRange(FAGX_RealInterval Range)
@@ -1001,4 +1053,20 @@ void FIMUBarrier::MarkOutputAsRead()
 		if (auto Output = GetIMUNative(*this)->getOutputHandler()->get(ID))
 			Output->hasUnreadData(/*markAsRead*/ true);
 	}
+}
+
+bool FIMUBarrier::IsIMU(const FSensorBarrier& Sensor)
+{
+	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::IMU>();
+}
+
+bool FIMUBarrier::HasAtMostOneSubsensorOfSameType() const
+{
+	check(HasNative());
+	using namespace IMUBarrier_helpers;
+
+	const agxSensor::IMU& IMU = *GetIMUNative(*this);
+	return CountChildrenOfType<agxSensor::Accelerometer>(IMU) <= 1 &&
+		   CountChildrenOfType<agxSensor::Gyroscope>(IMU) <= 1 &&
+		   CountChildrenOfType<agxSensor::Magnetometer>(IMU) <= 1;
 }

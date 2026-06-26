@@ -4,10 +4,14 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
+#include "AGX_Check.h"
 #include "AGX_InternalDelegateAccessor.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 
 UAGX_SensorComponentBase::UAGX_SensorComponentBase()
 {
@@ -96,11 +100,28 @@ const FSensorBarrier* UAGX_SensorComponentBase::GetNative() const
 	return NativeBarrier.Get();
 }
 
+void UAGX_SensorComponentBase::CopyFrom(
+	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	ImportName = Barrier.GetName();
+	ImportGuid = Barrier.GetGuid();
+
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
+	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+		GetOuter(), CleanBarrierName, UAGX_SensorComponentBase::StaticClass());
+	Rename(*Name);
+
+	if (Barrier.HasStepStrideNative())
+		StepStride = Barrier.GetStepStride();
+
+	if (Context != nullptr && Context->Settings != nullptr)
+		bOpenPLXImported = Context->Settings->ImportType == EAGX_ImportType::Plx;
+}
+
 void UAGX_SensorComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!HasNative() && !GIsReconstructingBlueprintInstances)
-		CreateNativeImpl();
 
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
@@ -123,7 +144,7 @@ void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
 
-	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
+	if (PreStepForwardHandle.IsValid() && Reason != EEndPlayReason::EndPlayInEditor &&
 		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
 	{
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
@@ -131,6 +152,7 @@ void UAGX_SensorComponentBase::EndPlay(const EEndPlayReason::Type Reason)
 			FAGX_InternalDelegateAccessor::GetOnPreStepForwardInternal(*Simulation)
 				.Remove(PreStepForwardHandle);
 		}
+		PreStepForwardHandle.Reset();
 	}
 
 	if (HasNative())
@@ -186,6 +208,7 @@ void UAGX_SensorComponentBase::UpdateNativeProperties()
 	AGX_CHECK(HasNative());
 	NativeBarrier->SetEnabled(bEnabled);
 	NativeBarrier->SetStepStride(static_cast<uint32>(StepStride));
+	NativeBarrier->SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 }
 
 FSensorBarrier* UAGX_SensorComponentBase::CreateNativeImpl()

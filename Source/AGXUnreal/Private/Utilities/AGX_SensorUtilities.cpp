@@ -26,6 +26,8 @@ UClass* FAGX_SensorUtilities::GetParameterTypeFrom(
 			return UAGX_OusterOS1Parameters::StaticClass();
 		case EAGX_LidarModel::OusterOS2:
 			return UAGX_OusterOS2Parameters::StaticClass();
+		case EAGX_LidarModel::Invalid:
+			return nullptr;
 	}
 
 	UE_LOG(

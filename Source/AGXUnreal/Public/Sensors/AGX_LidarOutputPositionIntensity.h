@@ -74,7 +74,7 @@ class AGXUNREAL_API UAGX_LidarOutputPositionIntensity_LF : public UBlueprintFunc
 	 *
 	 * ZeroDistanceSize is the minimum apparent size of a point [cm].
 	 *
-	 * Intensity Scale Factor is a (non-phisical) scaling factor that is multiplied with all
+	 * Intensity Scale Factor is a (non-physical) scaling factor that is multiplied with all
 	 * intensity values before calculating a color for the corresponding points. I.e. it changes the
 	 * sentitivity of the intensity coloration (blue to red).
 	 */

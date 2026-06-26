@@ -15,6 +15,8 @@
 
 #include "AGX_SensorComponentBase.generated.h"
 
+struct FAGX_ImportContext;
+
 /**
  * Base class for Sensor Components such as Lidar and IMU.
  */
@@ -57,6 +59,28 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Sensor")
 	int32 GetStepStride() const;
 
+	/**
+	 * The import Guid of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
+
+	/*
+	 * The import name of this Component. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FString ImportName;
+
+	/*
+	 * Whether this Component was imported from an OpenPLX file.
+	 * Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	bool bOpenPLXImported {false};
+
 	// ~Begin AGX NativeOwner interface.
 	virtual uint64 GetNativeAddress() const override;
 	virtual void SetNativeAddress(uint64 NativeAddress) override;
@@ -66,6 +90,8 @@ public:
 	FSensorBarrier* GetOrCreateNative();
 	FSensorBarrier* GetNative();
 	const FSensorBarrier* GetNative() const;
+
+	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
