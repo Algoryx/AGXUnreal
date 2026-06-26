@@ -207,7 +207,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
-		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	// Steering
 	Style->Set(
 		"ClassIcon.AGX_SteeringComponent", new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));

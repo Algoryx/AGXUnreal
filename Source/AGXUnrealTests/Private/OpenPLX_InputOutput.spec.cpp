@@ -27,6 +27,13 @@ namespace OpenPLX_InputOutputSpec_helpers
 			   FOpenPLX_Utilities::IsVectorType(Type) || FOpenPLX_Utilities::IsIntegerType(Type) ||
 			   FOpenPLX_Utilities::IsBooleanType(Type);
 	}
+
+	bool IsKnown(EOpenPLX_OutputType Type)
+	{
+		return FOpenPLX_Utilities::IsRealType(Type) || FOpenPLX_Utilities::IsRangeType(Type) ||
+			   FOpenPLX_Utilities::IsVectorType(Type) || FOpenPLX_Utilities::IsIntegerType(Type) ||
+			   FOpenPLX_Utilities::IsBooleanType(Type) || FOpenPLX_Utilities::IsLidarOutputType(Type);
+	}
 }
 
 void FOpenPLX_InputOutputSpec::Define()

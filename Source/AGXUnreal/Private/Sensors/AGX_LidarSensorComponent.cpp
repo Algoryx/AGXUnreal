@@ -8,9 +8,19 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
+#include "Import/AGX_ImportContext.h"
+#include "Import/AGX_ImportSettings.h"
+#include "Sensors/AGX_CustomRayPatternParameters.h"
+#include "Sensors/AGX_GenericHorizontalSweepParameters.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/AGX_OusterOS0Parameters.h"
+#include "Sensors/AGX_OusterOS1Parameters.h"
+#include "Sensors/AGX_OusterOS2Parameters.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_SensorUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -236,8 +246,10 @@ UNiagaraComponent* UAGX_LidarSensorComponent::GetSpawnedNiagaraSystemComponent()
 
 void UAGX_LidarSensorComponent::UpdateNativeTransform()
 {
+	// The Native AGX Lidars Frame is always owned by the Lidar itself and root to the World.
+	// Therefore we can use the LocalTransform setter below.
 	if (HasNative())
-		GetNativeAsLidar()->SetTransform(GetComponentTransform());
+		GetNativeAsLidar()->SetLocalTransform(GetComponentTransform());
 }
 
 bool UAGX_LidarSensorComponent::AddOutput(FAGX_LidarOutputBase& InOutput)
@@ -267,6 +279,17 @@ FSensorBarrier* UAGX_LidarSensorComponent::CreateNativeImpl()
 			"work. To enable Lidar raytracing (RTX) support, use an RTX "
 			"Graphical Processing Unit (GPU) with updated driver.";
 		UE_LOG(LogAGX, Warning, TEXT("%s"), *Message);
+		return nullptr;
+	}
+
+	if (Model == EAGX_LidarModel::Invalid)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Invalid Model selected for Lidar Sensor '%s' in '%s'. Make sure a valid "
+					 "Model has been selected."),
+				*GetName(), *GetLabelSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
 		return nullptr;
 	}
 
@@ -337,9 +360,152 @@ void UAGX_LidarSensorComponent::CopyFrom(const UAGX_LidarSensorComponent& Source
 	RayAngleNoiseSettings = Source.RayAngleNoiseSettings;
 }
 
+namespace AGX_LidarSensorComponent_helpers
+{
+	bool ReadModelParameters(
+		const FLidarBarrier& Barrier, UAGX_LidarModelParameters& ModelParameters)
+	{
+		if (auto Parameters = Cast<UAGX_OusterOS0Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_OusterOS1Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_OusterOS2Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_GenericHorizontalSweepParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_CustomRayPatternParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		return false;
+	}
+
+	FString CreateModelParametersName(
+		const UAGX_LidarSensorComponent& Lidar, const FLidarBarrier& Barrier,
+		FAGX_ImportContext& Context, UClass& ModelParametersType, UObject& Outer)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Lidar, Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty() ? ModelParametersType.GetName() : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			&Outer, FString::Printf(TEXT("LMP_%s"), *BaseName),
+			UAGX_LidarModelParameters::StaticClass());
+	}
+
+	UAGX_LidarModelParameters* CreateModelParameters(
+		const UAGX_LidarSensorComponent& Lidar, const FLidarBarrier& Barrier,
+		FAGX_ImportContext& Context, EAGX_LidarModel Model)
+	{
+		UClass* ModelParametersType = FAGX_SensorUtilities::GetParameterTypeFrom(Model);
+		if (ModelParametersType == nullptr)
+			return nullptr;
+
+		const FGuid Guid = Barrier.GetGuid();
+		AGX_CHECK(Context.LidarModelParameters != nullptr);
+		AGX_CHECK(!Context.LidarModelParameters->Contains(Guid));
+
+		UObject* Outer = Context.Outer != nullptr ? Context.Outer : GetTransientPackage();
+		const FString Name =
+			CreateModelParametersName(Lidar, Barrier, Context, *ModelParametersType, *Outer);
+		auto Parameters = NewObject<UAGX_LidarModelParameters>(
+			Outer, ModelParametersType, FName(*Name), RF_Public | RF_Standalone);
+		if (Parameters == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Parameters, Context.SessionGuid);
+		Parameters->ImportGuid = Guid;
+
+		if (!ReadModelParameters(Barrier, *Parameters))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to read Lidar Model Parameters for imported Lidar Sensor '%s'. The "
+					 "parameters of Model Parameters asset '%s' may be incorrect."),
+				*Barrier.GetName(), *Parameters->GetName());
+		}
+
+		Context.LidarModelParameters->Add(Guid, Parameters);
+		return Parameters;
+	}
+}
+
+void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	Super::CopyFrom(Barrier, Context);
+
+	const FLidarBarrier& LidarBarrier = static_cast<const FLidarBarrier&>(Barrier);
+
+	bEnabled = LidarBarrier.GetEnabled();
+
+	EAGX_LidarModel ImportedModel = LidarBarrier.GetModel();
+	if (ImportedModel == EAGX_LidarModel::Invalid)
+	{
+		// Lidar Model unknown, but we can match against GenericHorizontalSweep if the
+		// ray pattern generator is the Horizontal Sweep Pattern.
+		if (LidarBarrier.UsesHorizontalSweepRayPattern())
+			ImportedModel = EAGX_LidarModel::GenericHorizontalSweep;
+	}
+
+	if (ImportedModel == EAGX_LidarModel::Invalid)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Unable to determine Lidar Model when importing Lidar Sensor Component '%s'. "
+				 "Keeping default Model."),
+			*GetName());
+	}
+	else
+	{
+		Model = ImportedModel;
+	}
+
+	Range = LidarBarrier.GetRange();
+	BeamDivergence = LidarBarrier.GetBeamDivergence();
+	BeamExitRadius = LidarBarrier.GetBeamExitRadius();
+	bEnableDistanceGaussianNoise = LidarBarrier.GetEnableDistanceGaussianNoise();
+	DistanceNoiseSettings = LidarBarrier.GetDistanceGaussianNoiseSettings();
+	bEnableRayAngleGaussianNoise = LidarBarrier.GetEnableRayAngleGaussianNoise();
+	RayAngleNoiseSettings = LidarBarrier.GetRayAngleGaussianNoiseSettings();
+
+	bEnableRemovePointsMisses = LidarBarrier.GetEnableRemoveRayMisses();
+	RaytraceDepth = static_cast<int32>(std::min(
+		LidarBarrier.GetRaytraceDepth(), static_cast<size_t>(std::numeric_limits<int32>::max())));
+
+	if (Context == nullptr || Context->Sensors == nullptr ||
+		Context->LidarModelParameters == nullptr)
+		return; // We are done.
+
+	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
+		*this, LidarBarrier, *Context, ImportedModel);
+
+	SetRelativeTransform(LidarBarrier.GetLocalTransform());
+
+	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
+	Context->Sensors->Add(ImportGuid, this);
+}
+
 void UAGX_LidarSensorComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNativeImpl();
+
+	if (HasNative())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddLidar(this);
+		}
+	}
 
 	if (bEnableRendering && NiagaraSystemAsset != nullptr)
 	{
@@ -348,6 +514,21 @@ void UAGX_LidarSensorComponent::BeginPlay()
 			FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
 			ENCPoolMethod::None);
 	}
+}
+
+void UAGX_LidarSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (!GIsReconstructingBlueprintInstances && HasNative() &&
+		Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		Reason != EEndPlayReason::LevelTransition)
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->RemoveLidar(this);
+		}
+	}
+
+	Super::EndPlay(Reason);
 }
 
 void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)

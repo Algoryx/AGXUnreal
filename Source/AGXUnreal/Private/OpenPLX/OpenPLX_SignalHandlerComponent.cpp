@@ -14,6 +14,10 @@
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/SensorBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -659,6 +663,39 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 	return ReceiveBoolean(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsLidarOutputType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveLidarOutput", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveLidarOutput(Output, OutView);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(
+	FName NameOrAlias, FOpenPLXLidarOutputView& OutView)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveLidarOutputByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveLidarOutput(Output, OutView);
+}
+
 void UOpenPLX_SignalHandlerComponent::BeginPlay()
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -713,10 +750,13 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	Barriers.Bodies = CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
-	Barriers.Steerings = CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
+	Barriers.Lidars = CollectBarriers<FSensorBarrier, UAGX_LidarSensorComponent>(GetOwner());
+	Barriers.Steerings =
+		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());
+	auto Env = UAGX_SensorEnvironmentSubsystem::GetFrom(this);
 
 	// Initialize SignalHandler in Barrier module.
-	SignalHandler.Init(*PLXFile, *SimulationBarrier, *PLXModelRegistryBarrier, Barriers);
+	SignalHandler.Init(*PLXFile, *SimulationBarrier, Env->GetNative(), *PLXModelRegistryBarrier, Barriers);
 }
 
 void UOpenPLX_SignalHandlerComponent::EndPlay(const EEndPlayReason::Type Reason)

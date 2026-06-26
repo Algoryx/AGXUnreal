@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "Sensors/AGX_LidarOutputPosition.h"
 #include "Sensors/AGX_LidarOutputPositionIntensity.h"
@@ -96,6 +97,18 @@ namespace AGX_ROS2Utilities_helpers
 		}
 	}
 
+	void AppendInt32ToUint8Array(int32 Val, TArray<uint8>& OutData)
+	{
+		uint32 Bits;
+		static_assert(sizeof(Bits) == sizeof(Val));
+		std::memcpy(&Bits, &Val, sizeof(Bits));
+		for (int i = 0; i < sizeof(Val); i++)
+		{
+			OutData.Add(static_cast<uint8_t>(Bits & 0xFF));
+			Bits >>= 8;
+		}
+	}
+
 	auto AppendUint32ToUint8Array(uint32 Val, TArray<uint8>& OutData)
 	{
 		for (int i = 0; i < sizeof(uint32); i++)
@@ -114,6 +127,25 @@ namespace AGX_ROS2Utilities_helpers
 	{
 		return Val * 100.0;
 	}
+
+	template <typename T>
+	bool OptionalFieldHasMatchingPointCount(
+		const TArray<T>& Values, int32 NumPoints, const TCHAR* FieldName)
+	{
+		if (Values.Num() == NumPoints)
+			return true;
+
+		if (Values.Num() > 0)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("ConvertOpenPLXLidarOutput read %d values for field '%s' but there are %d "
+					 "points. The field will be skipped."),
+				Values.Num(), FieldName, NumPoints);
+		}
+		return false;
+	}
+
 }
 
 FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
@@ -419,6 +451,113 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
 	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
 
+	return Msg;
+}
+
+FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
+	FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsPointCloud2 Msg;
+
+	const int32 NumPoints = View.GetNumPoints();
+
+	TArray<FVector> Positions;
+	const bool bWritePositions =
+		View.HasPositions() && View.ReadPositions(Positions) &&
+		OptionalFieldHasMatchingPointCount(Positions, NumPoints, TEXT("position"));
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+	Msg.IsBigendian = false;
+	Msg.IsDense = true;
+
+	int64 Offset = 0;
+	auto AddField = [&Msg, &Offset](
+						const FString& Name, EAGX_PointFieldType Datatype, int64 Count,
+						int64 ElementSize)
+	{
+		Msg.Fields.Add(MakePointField(Name, Offset, Datatype, Count));
+		Offset += Count * ElementSize;
+	};
+
+	if (bWritePositions)
+	{
+		AddField("x", EAGX_PointFieldType::Float32, 1, sizeof(float));
+		AddField("y", EAGX_PointFieldType::Float32, 1, sizeof(float));
+		AddField("z", EAGX_PointFieldType::Float32, 1, sizeof(float));
+	}
+
+	TArray<float> Intensities;
+	const bool bWriteIntensities =
+		View.HasIntensities() && View.ReadIntensities(Intensities) &&
+		OptionalFieldHasMatchingPointCount(Intensities, NumPoints, TEXT("intensity"));
+	if (bWriteIntensities)
+		AddField("intensity", EAGX_PointFieldType::Float32, 1, sizeof(float));
+
+	TArray<double> TimeStamps;
+	const bool bWriteTimeStamps =
+		View.HasTimeStamps() && View.ReadTimeStamps(TimeStamps) &&
+		OptionalFieldHasMatchingPointCount(TimeStamps, NumPoints, TEXT("timestamp"));
+	if (bWriteTimeStamps)
+		AddField("timestamp", EAGX_PointFieldType::Float64, 1, sizeof(double));
+
+	TArray<double> Distances;
+	const bool bWriteDistances =
+		View.HasDistances() && View.ReadDistances(Distances) &&
+		OptionalFieldHasMatchingPointCount(Distances, NumPoints, TEXT("distance"));
+	if (bWriteDistances)
+		AddField("distance", EAGX_PointFieldType::Float32, 1, sizeof(float));
+
+	TArray<bool> IsHits;
+	const bool bWriteIsHits =
+		View.HasIsHits() && View.ReadIsHits(IsHits) &&
+		OptionalFieldHasMatchingPointCount(IsHits, NumPoints, TEXT("is_hit"));
+	if (bWriteIsHits)
+		AddField("is_hit", EAGX_PointFieldType::Int32, 1, sizeof(int32));
+
+	TArray<int32> EntityIds;
+	const bool bWriteEntityIds =
+		View.HasEntityIds() && View.ReadEntityIds(EntityIds) &&
+		OptionalFieldHasMatchingPointCount(EntityIds, NumPoints, TEXT("entity_id"));
+	if (bWriteEntityIds)
+		AddField("entity_id", EAGX_PointFieldType::Int32, 1, sizeof(int32));
+
+	Msg.PointStep = Offset;
+	Msg.Data.Reserve(NumPoints * Msg.PointStep);
+	for (int32 I = 0; I < NumPoints; ++I)
+	{
+		if (bWritePositions)
+		{
+			const FVector PositionROS = ConvertPositionToROS(Positions[I]);
+			AppendFloatToUint8Array(static_cast<float>(PositionROS.X), Msg.Data);
+			AppendFloatToUint8Array(static_cast<float>(PositionROS.Y), Msg.Data);
+			AppendFloatToUint8Array(static_cast<float>(PositionROS.Z), Msg.Data);
+		}
+
+		if (bWriteIntensities)
+			AppendFloatToUint8Array(Intensities[I], Msg.Data);
+
+		if (bWriteTimeStamps)
+			AppendDoubleToUint8Array(TimeStamps[I], Msg.Data);
+
+		if (bWriteDistances)
+			AppendFloatToUint8Array(static_cast<float>(CmToM(Distances[I])), Msg.Data);
+
+		if (bWriteIsHits)
+		{
+			AppendInt32ToUint8Array(IsHits[I] ? 1 : 0, Msg.Data);
+			if (!IsHits[I])
+				Msg.IsDense = false;
+		}
+
+		if (bWriteEntityIds)
+			AppendInt32ToUint8Array(EntityIds[I], Msg.Data);
+	}
+
+	Msg.Height = 1;
+	Msg.Width = NumPoints;
+	Msg.RowStep = Msg.Data.Num();
 	return Msg;
 }
 
