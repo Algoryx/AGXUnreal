@@ -42,18 +42,22 @@ void FOpenPLX_InputOutputSpec::Define()
 			It("should be handled by one of the Is...Type functions in FOpenPLX_Utilities",
 			   [this]()
 			   {
-				   for (int32 Index = 0; Index < StaticEnum<EOpenPLX_InputType>()->NumEnums() - 1;
-						++Index)
+				   const UEnum* InputTypeEnum =
+					   FindObject<UEnum>(nullptr, TEXT("/Script/AGXCommon.EOpenPLX_InputType"));
+				   TestNotNull("Input enum exists", InputTypeEnum);
+				   if (InputTypeEnum == nullptr)
+					   return;
+
+				   for (int32 Index = 0; Index < InputTypeEnum->NumEnums() - 1; ++Index)
 				   {
 					   EOpenPLX_InputType Value = static_cast<EOpenPLX_InputType>(
-						   StaticEnum<EOpenPLX_InputType>()->GetValueByIndex(Index));
+						   InputTypeEnum->GetValueByIndex(Index));
 
 					   const bool bIsKnown =
 						   IsKnown(Value) || Value == EOpenPLX_InputType::Unsupported;
 					   if (!bIsKnown)
 					   {
-						   FString Name =
-							   StaticEnum<EOpenPLX_InputType>()->GetNameStringByIndex(Index);
+						   FString Name = InputTypeEnum->GetNameStringByIndex(Index);
 						   UE_LOG(LogAGX, Warning, TEXT("Input '%s' not handled!"), *Name);
 					   }
 
@@ -69,18 +73,22 @@ void FOpenPLX_InputOutputSpec::Define()
 			It("should be handled by one of the Is...Type functions in FOpenPLX_Utilities",
 			   [this]()
 			   {
-				   for (int32 Index = 0; Index < StaticEnum<EOpenPLX_OutputType>()->NumEnums() - 1;
-						++Index)
+				   const UEnum* OutputTypeEnum =
+					   FindObject<UEnum>(nullptr, TEXT("/Script/AGXCommon.EOpenPLX_OutputType"));
+				   TestNotNull("Output enum exists", OutputTypeEnum);
+				   if (OutputTypeEnum == nullptr)
+					   return;
+
+				   for (int32 Index = 0; Index < OutputTypeEnum->NumEnums() - 1; ++Index)
 				   {
 					   EOpenPLX_OutputType Value = static_cast<EOpenPLX_OutputType>(
-						   StaticEnum<EOpenPLX_OutputType>()->GetValueByIndex(Index));
+						   OutputTypeEnum->GetValueByIndex(Index));
 
 					   const bool bIsKnown =
 						   IsKnown(Value) || Value == EOpenPLX_OutputType::Unsupported;
 					   if (!bIsKnown)
 					   {
-						   FString Name =
-							   StaticEnum<EOpenPLX_OutputType>()->GetNameStringByIndex(Index);
+						   FString Name = OutputTypeEnum->GetNameStringByIndex(Index);
 						   UE_LOG(LogAGX, Warning, TEXT("Output '%s' not handled!"), *Name);
 					   }
 

@@ -741,8 +741,8 @@ bool UAGX_ConstraintComponent::AreFramesInViolatedState(float Tolerance, FString
 			return;
 		}
 
-		UEnum* DofEnum = FindObject<UEnum>(nullptr, TEXT("EDofFlag"));
-		FString DofString = DofEnum->GetValueAsString(Dof);
+		const FString DofString =
+			UEnum::GetDisplayValueAsText(TEXT("/Script/AGXUnreal.EDofFlag"), Dof).ToString();
 		*OutMessage += FString::Printf(TEXT("%s has violation %f."), *DofString, Error);
 	};
 

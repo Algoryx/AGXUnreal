@@ -11,6 +11,7 @@
 
 // Unreal Engine includes.
 #include "Materials/Material.h"
+#include "Misc/EngineVersionComparison.h"
 #if WITH_EDITOR
 #include "Editor.h"
 #endif
@@ -59,7 +60,7 @@ namespace AGX_TrackRenderer_helpers
 				continue;
 
 			UMaterial* Material = MatInterface->GetMaterial();
-			if (Material == nullptr || Material->bUsedWithInstancedStaticMeshes)
+			if (Material == nullptr || Material->GetUsageByFlag(MATUSAGE_InstancedStaticMeshes))
 				return;
 
 			if (Material->GetPathName().StartsWith("/Game/"))
@@ -75,7 +76,11 @@ namespace AGX_TrackRenderer_helpers
 				if (FAGX_NotificationUtilities::YesNoQuestion(AskEnableUseWithInstancedSM))
 				{
 					Material->Modify();
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 					Material->bUsedWithInstancedStaticMeshes = true;
+#else
+					Material->SetMaterialUsage(MATUSAGE_InstancedStaticMeshes);
+#endif
 					Material->PostEditChange();
 					FAGX_ObjectUtilities::SaveAsset(*Material);
 				}
