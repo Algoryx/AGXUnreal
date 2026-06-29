@@ -24,5 +24,6 @@ struct AGXCOMMON_API FOpenPLX_SignalHandlerNativeAddresses
 	uint64 InputSignalListenerAddress {0};
 	uint64 OutputSignalListenerAddress {0};
 	uint64 ModelRegistryAddress {0};
+	uint64 ControlInterfaceAddress {0};
 	int32 ModelHandle {-1};
 };
