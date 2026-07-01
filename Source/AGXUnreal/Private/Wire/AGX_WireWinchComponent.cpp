@@ -240,7 +240,7 @@ void UAGX_WireWinchComponent::OnRegister()
 	WireWinch.BodyAttachment.SetLocalScope(GetTypedOuter<AActor>());
 
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GIsEditor && !IsRunningCommandlet() && SpriteComponent)
 	{
 		FName NewName = MakeUniqueObjectName(
 			SpriteComponent->GetOuter(), SpriteComponent->GetClass(), TEXT("WireWinchIcon"));
