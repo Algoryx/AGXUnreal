@@ -15,6 +15,7 @@
 #include "AGX_CableComponent.generated.h"
 
 class UAGX_CableProperties;
+class UAGX_ShapeMaterial;
 class UInstancedStaticMeshComponent;
 class UMaterialInterface;
 
@@ -68,6 +69,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
 	bool SetCableProperties(UAGX_CableProperties* Properties);
+
+	/**
+	 * Defines physical properties of the Cable.
+	 *
+	 * This determines things such as the density of the Cable and how it behaves when in contact
+	 * with Shapes in the world.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
+	UAGX_ShapeMaterial* ShapeMaterial;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
+	bool SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Cable")
 	UMaterialInterface* RenderMaterial {nullptr};
@@ -297,6 +310,7 @@ private:
 #endif
 	void UpdateNativeProperties();
 	bool UpdateNativeCableProperties();
+	bool UpdateNativeMaterial();
 	void CreateNative();
 	void CreateVisuals();
 	bool ShouldRenderSelf() const;

@@ -13,6 +13,7 @@
 #include "Cable/AGX_CableProperties.h"
 #include "Cable/CableNodeBarrier.h"
 #include "Import/AGX_ImportContext.h"
+#include "Materials/AGX_ShapeMaterial.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -115,6 +116,29 @@ bool UAGX_CableComponent::SetCableProperties(UAGX_CableProperties* Properties)
 	{
 		// Something went wrong, restore original CableProperties.
 		CableProperties = CablePropertiesOrig;
+		return false;
+	}
+
+	return true;
+}
+
+bool UAGX_CableComponent::SetShapeMaterial(UAGX_ShapeMaterial* InShapeMaterial)
+{
+	UAGX_ShapeMaterial* ShapeMaterialOrig = ShapeMaterial;
+	ShapeMaterial = InShapeMaterial;
+
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeMaterial is responsible to create an instance if none exists and do the
+	// asset/instance swap.
+	if (!UpdateNativeMaterial())
+	{
+		// Something went wrong, restore original ShapeMaterial.
+		ShapeMaterial = ShapeMaterialOrig;
 		return false;
 	}
 
@@ -369,6 +393,16 @@ namespace AGX_CableComponent_helpers
 		Properties->CopyFrom(Barrier, &Context);
 		return Properties;
 	}
+
+	UAGX_ShapeMaterial* GetOrCreateShapeMaterial(
+		const FCableBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FShapeMaterialBarrier SMB = Barrier.GetMaterial();
+		if (!SMB.HasNative())
+			return nullptr;
+
+		return FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(SMB, &Context);
+	}
 }
 
 void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportContext* Context)
@@ -398,7 +432,8 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 		SetWorldTransform(CableTransform);
 	}
 
-	if (Context == nullptr || Context->Cables == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || Context->Cables == nullptr || Context->RigidBodies == nullptr ||
+		Context->ShapeMaterials == nullptr)
 		return; // We are done.
 
 	ImportName = Barrier.GetName();
@@ -441,6 +476,7 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 	AGX_CHECK(!Context->Cables->Contains(ImportGuid));
 	Context->Cables->Add(ImportGuid, this);
 	CableProperties = CreateCableProperties(Barrier, *Context);
+	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
 }
 
 FCableBarrier* UAGX_CableComponent::GetNative()
@@ -667,6 +703,8 @@ void UAGX_CableComponent::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_CableComponent, CableProperties),
 		[](ThisClass* Self) { Self->UpdateNativeCableProperties(); });
+
+	AGX_COMPONENT_DEFAULT_DISPATCHER(ShapeMaterial);
 }
 
 bool UAGX_CableComponent::DoesPropertyAffectVisuals(const FName& MemberPropertyName) const
@@ -698,6 +736,36 @@ void UAGX_CableComponent::UpdateNativeProperties()
 
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
+
+	if (!UpdateNativeMaterial())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UpdateNativeMaterial returned false in AGX_CableComponent. "
+				 "Ensure the selected Shape Material is valid."));
+	}
+}
+
+bool UAGX_CableComponent::UpdateNativeMaterial()
+{
+	if (!HasNative())
+		return false;
+
+	if (ShapeMaterial == nullptr)
+	{
+		GetNative()->ClearMaterial();
+		return true;
+	}
+
+	UWorld* World = GetWorld();
+	UAGX_ShapeMaterial* Instance = ShapeMaterial->GetOrCreateInstance(World);
+	check(Instance);
+	ShapeMaterial = Instance;
+
+	FShapeMaterialBarrier* MaterialBarrier = Instance->GetOrCreateShapeMaterialNative(World);
+	check(MaterialBarrier);
+	GetNative()->SetMaterial(*MaterialBarrier);
+	return true;
 }
 
 #if WITH_EDITOR
