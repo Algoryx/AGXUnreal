@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ShapeEnums.generated.h"
+
 /**
  * Enum that specify how much contact data the should be generated for a geometry that has been
  * marked as a sensor.
