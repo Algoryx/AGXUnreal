@@ -1949,7 +1949,7 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		else
 		{
 			CopyProperties(
-				*Component, *Nodes.ContactMaterialRegistrarComponent->ComponentTemplate,
+				*Component, *N->ComponentTemplate,
 				TransientToAsset, OverwriteRule);
 
 			// We need to update CM pointers of the re-imported Contact Material Registrar since
@@ -1970,7 +1970,7 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		else
 		{
 			CopyProperties(
-				*Component, *Nodes.CollisionGroupDisablerComponent->ComponentTemplate,
+				*Component, *N->ComponentTemplate,
 				TransientToAsset, OverwriteRule);
 		}
 	}
@@ -1985,7 +1985,7 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 		else
 		{
 			CopyProperties(
-				*Component, *Nodes.SignalHandler->ComponentTemplate, TransientToAsset,
+				*Component, *N->ComponentTemplate, TransientToAsset,
 				OverwriteRule);
 		}
 	}

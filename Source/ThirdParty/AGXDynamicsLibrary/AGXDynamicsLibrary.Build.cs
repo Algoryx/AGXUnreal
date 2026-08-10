@@ -262,6 +262,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
+			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
 			RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
@@ -1215,6 +1216,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		//
 		// The above description may be incorrect. More investigation needed.
 		var DontTouch = new HashSet<String>();
+		DontTouch.Add("libcudart.so.13");
 		DontTouch.Add("libprotobuf.so");
 		DontTouch.Add("libprotobuf.so.32");
 		DontTouch.Add("libprotobuf.so.3.21.12.0");
@@ -1337,6 +1339,15 @@ public class AGXDynamicsLibrary : ModuleRules
 				RunProcess("patchelf", String.Format("--replace-needed {0} {1} {2}", OldName, NewName, Library));
 			}
 		}
+
+
+		// TODO Remove 'runpath $ORIGIN' hack for libAlgoryxGPUSensorsImpl.so.
+		//
+		// A packaging bug in Algoryx GPU Sensors produced libAlgoryxGPUSensorsImpl.so with incorrect runpath. This has
+		// been fixed upstream but not in time for release of AGX Dynamics for Unreal 2.3. Therefor we do this temporary
+		// local patch here to fix it until we get that release.
+		string AGPUImplPath = Path.Combine(LibraryDirectory, "libAlgoryxGPUSensorsImpl.so");
+		RunProcess("patchelf", String.Format("--set-rpath {0} {1}", "$ORIGIN", AGPUImplPath));
 	}
 
 	private void CleanBundledAGXDynamicsResources()
