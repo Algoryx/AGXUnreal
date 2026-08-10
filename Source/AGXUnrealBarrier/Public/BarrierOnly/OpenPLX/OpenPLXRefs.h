@@ -4,18 +4,13 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
-#include "agxOpenPLX/AgxCache.h"
-#include "agxOpenPLX/AgxObjectMap.h"
-#include "agxOpenPLX/InputSignalListener.h"
-#include "agxOpenPLX/OutputSignalListener.h"
+#include "openplx/HeapControlInterface.h"
 #include "openplx/Physics/Optics/Material.h"
 #include "openplx/Physics3D/System.h"
-#include "openplx/HeapControlInterface.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
-#include <agx/ref_ptr.h>
 #include <agxSDK/Assembly.h>
 #include "EndAGXIncludes.h"
 
@@ -24,35 +19,6 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-struct FInputSignalListenerRef
-{
-	agx::ref_ptr<agxopenplx::InputSignalListener> Native;
-
-	FInputSignalListenerRef() = default;
-	FInputSignalListenerRef(
-		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue,
-		std::shared_ptr<agxopenplx::AgxObjectMap>& Mapper)
-		: Native(new agxopenplx::InputSignalListener(
-			  InputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
-	{
-	}
-};
-
-struct FOutputSignalListenerRef
-{
-	agx::ref_ptr<agxopenplx::OutputSignalListener> Native;
-
-	FOutputSignalListenerRef() = default;
-	FOutputSignalListenerRef(
-		const std::shared_ptr<openplx::Core::Object>& PlxModel,
-		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue,
-		std::shared_ptr<agxopenplx::AgxObjectMap> Mapper)
-		: Native(new agxopenplx::OutputSignalListener(
-			  PlxModel, OutputQueue, Mapper, std::make_shared<agxopenplx::AgxMetadata>()))
-	{
-	}
-};
 
 struct FHeapControlInterfacePtr
 {
@@ -71,7 +37,6 @@ struct FHeapControlInterfacePtr
 struct FOpenPLXModelData
 {
 	openplx::Core::ObjectPtr OpenPLXModel;
-	std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>> Inputs;
 
 	/**
 	 * HeapControlInterface pointers are stored here instead of in FOpenPLXSignalHandler because of
