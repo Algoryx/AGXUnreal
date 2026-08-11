@@ -18,7 +18,7 @@ void UAGX_SensorEnvironmentSpriteComponent::OnRegister()
 {
 	Super::OnRegister();
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GIsEditor && !IsRunningCommandlet() && SpriteComponent)
 	{
 		FName NewName = MakeUniqueObjectName(
 			SpriteComponent->GetOuter(), SpriteComponent->GetClass(), TEXT("SensorEnvironmentIcon"));

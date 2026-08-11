@@ -4347,10 +4347,21 @@ bool FClearCableImportedCommand::Update()
 	const FString BaseBlueprintName = Test.Contents->GetName() + FString(".uasset");
 	TArray<const TCHAR*> ExpectedFiles = {
 		TEXT("BP_cable_build.uasset"),
-			*BaseBlueprintName,
 		TEXT("Blueprint"),
+			*BaseBlueprintName,
 		TEXT("CableProperties"),
-			TEXT("AGX_CP_Cable.uasset")
+			TEXT("AGX_CP_Cable.uasset"),
+		// Unclear how we should handle a default Shape Material. These are auto-created by the
+		// agxCable::Cable constructor so one thought is to not create an asset for it and let the
+		// new agxCable::Cable create and initialize it on Begin Play. However, there is no reliable
+		// way to detect that the Shape Material is unchanged from the default settings. Also, if we
+		// don't import the default Shape Material then no Contact Materials created for the cable
+		// will work. Also, adding the default Shape Material to NonFreeMaterials in
+		// AGXSimObjectsReader.cpp > ReadAll is not sufficient since UAGX_CableComponent::CopyFrom
+		// will create the Shape Material regardless. Combined it seems best to import the default
+		// Shape Material. They will all have the same name, which may case problems.
+		TEXT("ShapeMaterial"),
+			TEXT("DefaultCableMaterial.uasset")
 	};
 	// clang-format on
 
