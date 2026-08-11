@@ -259,6 +259,7 @@ void FAGX_RealDetails::CustomizeHeader(
 			.OnValueChanged(this, &FAGX_RealDetails::OnSpinChanged)
 			.OnValueCommitted(this, &FAGX_RealDetails::OnSpinCommitted)
 			.Value(this, &FAGX_RealDetails::GetDoubleValue)
+			.IsEnabled(this, &FAGX_RealDetails::IsEditable)
 			.Visibility(this, &FAGX_RealDetails::VisibleWhenSingleSelection)
 		]
 		+ SOverlay::Slot()
@@ -270,6 +271,7 @@ void FAGX_RealDetails::CustomizeHeader(
 			.Text(this, &FAGX_RealDetails::GetTextValue)
 			.OnTextCommitted(this, &FAGX_RealDetails::OnTextCommitted)
 			.OnTextChanged(this, &FAGX_RealDetails::OnTextChanged)
+			.IsEnabled(this, &FAGX_RealDetails::IsEditable)
 			.Visibility(this, &FAGX_RealDetails::VisibleWhenMultiSelection)
 		]
 		+ SOverlay::Slot()
@@ -282,6 +284,11 @@ void FAGX_RealDetails::CustomizeHeader(
 		]
 	];
 	// clang-format on
+}
+
+bool FAGX_RealDetails::IsEditable() const
+{
+	return StructHandle.IsValid() && StructHandle->IsValidHandle() && StructHandle->IsEditable();
 }
 
 void FAGX_RealDetails::CustomizeChildren(
@@ -439,6 +446,10 @@ void AGX_RealDetails_helpers::NewValueSet(
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("Cannot commit new Spin value to AGX Real, the handle is invalid."));
+		return;
+	}
+	if (!StructHandle->IsEditable())
+	{
 		return;
 	}
 
