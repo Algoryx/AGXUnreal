@@ -647,7 +647,7 @@ namespace
 	{
 		// These contain objects that are not free-standing but owned by something else and will
 		// be created by that something else. Should not result in Actor Components in the imported
-		// Actor or Blueprint.
+		// Actor or Blueprint, or new Assets in the Content Browser.
 		TSet<const agx::RigidBody*> NonFreeBodies;
 		TSet<const agxCollide::Geometry*> NonFreeGeometries;
 		TSet<const agx::Constraint*> NonFreeConstraints;
