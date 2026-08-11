@@ -25,7 +25,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 
 	virtual ~FIMUBarrier() override = default;
 
-	void AllocateNative(const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body);
+	void AllocateNative(
+		const FIMUAllocationParameters& Params, FRigidBodyBarrier& Body, bool bAddOutputs);
 
 	/// Set the transform in world coordinate system.
 	void SetTransform(const FTransform& Transform);
@@ -39,9 +40,14 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	void SetRotation(FQuat Rotation);
 	FQuat GetRotation() const;
 
+	/// Returns the Rigid Body this IMU is attached to, if it exists.
+	FRigidBodyBarrier GetRigidBody() const;
+
 	//
 	// Accelerometer
 	//
+
+	bool HasAccelerometer() const;
 
 	void SetAccelerometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetAccelerometerRange() const;
@@ -74,6 +80,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	//
 	// Gyroscope
 	//
+
+	bool HasGyroscope() const;
 
 	void SetGyroscopeRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetGyroscopeRange() const;
@@ -108,6 +116,8 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	// Magnetometer
 	//
 
+	bool HasMagnetometer() const;
+
 	void SetMagnetometerRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetMagnetometerRange() const;
 
@@ -135,4 +145,12 @@ struct AGXUNREALBARRIER_API FIMUBarrier : public FSensorBarrier
 	FVector GetMagnetometerData() const;
 
 	void MarkOutputAsRead();
+
+	/**
+	 * Returns true if this IMU has no more than one subsensor of each type, for example no more
+	 * than one Accelerometer.
+	 */
+	bool HasAtMostOneSubsensorOfSameType() const;
+
+	static bool IsIMU(const FSensorBarrier& Sensor);
 };

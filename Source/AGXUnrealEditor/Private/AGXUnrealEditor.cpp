@@ -87,7 +87,7 @@
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponentCustomization.h"
 #include "Sensors/AGX_LidarSensorComponentVisualizer.h"
-#include "Sensors/AGX_LidarSensorLineTraceComponent.h"
+#include "Deprecated/AGX_LidarSensorLineTraceComponent.h"
 #include "Sensors/AGX_LidarSensorLineTraceComponentVisualizer.h"
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_CustomRayPatternParametersTypeActions.h"
@@ -95,7 +95,7 @@
 #include "Sensors/AGX_OusterOS0ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
-#include "Sensors/AGX_SensorEnvironment.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
@@ -256,6 +256,15 @@ void FAGXUnrealEditorModule::RegisterProjectSettings()
 				"UAGX_Simulation_ProjectSettingsDesc",
 				"Configure the simulation settings of the AGX Unreal plugin."),
 			GetMutableDefault<UAGX_Simulation>());
+
+		SettingsModule->RegisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem",
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsName", "AGX Sensor Environment"),
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsDesc",
+				"Configure the sensor environment settings of the AGX Unreal plugin."),
+			GetMutableDefault<UAGX_SensorEnvironmentSubsystem>());
 	}
 }
 
@@ -264,6 +273,8 @@ void FAGXUnrealEditorModule::UnregisterProjectSettings()
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "Plugins", "UAGX_Simulation");
+		SettingsModule->UnregisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem");
 	}
 }
 
@@ -874,7 +885,6 @@ void FAGXUnrealEditorModule::RegisterPlacementCategory()
 	RegisterPlaceableItem(AAGX_HingeConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_LockConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_PrismaticConstraintActor::StaticClass());
-	RegisterPlaceableItem(AAGX_SensorEnvironment::StaticClass());
 	RegisterPlaceableItem(AAGX_Terrain::StaticClass());
 	RegisterPlaceableItem(AAGX_CollisionGroupDisablerActor::StaticClass());
 	RegisterPlaceableItem(AAGX_RigidBodyActor::StaticClass());

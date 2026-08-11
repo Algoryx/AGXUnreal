@@ -4,18 +4,26 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/IMUBarrier.h"
+#include "Sensors/LidarBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agxSDK/Simulation.h>
+#include <agxSensor/IMU.h>
+#include <agxSensor/Lidar.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
@@ -25,8 +33,10 @@
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
+#include "agxOpenPLX/AgxMetadata.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/OpenPlxDriveTrainMapper.h"
+#include "agxOpenPLX/OpenPlxSensorsMapper.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchEngagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchDisengagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/TorqueConverterPumpTorqueOutput.h"
@@ -59,11 +69,14 @@
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
 #include "openplx/Physics3D/Signals/Torque3DOutput.h"
+#include "openplx/Sensors/IMULogic.h"
+#include "openplx/Sensors/Signals/LidarOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
 #include "openplx/Robotics/Robotics_all.h"
 #include "openplx/Simulation/Simulation_all.h"
 #include "openplx/Vehicles/Vehicles_all.h"
+#include "openplx/Sensors/Sensors_all.h"
 #include "openplx/Terrain/Terrain_all.h"
 #include "openplx/Visuals/Visuals_all.h"
 #include "openplx/Urdf/Urdf_all.h"
@@ -71,6 +84,9 @@
 
 // Unreal Engine includes.
 #include "Misc/Paths.h"
+
+// Standard library includes.
+#include <unordered_set>
 
 namespace PLXUtilities_helpers
 {
@@ -92,6 +108,7 @@ namespace PLXUtilities_helpers
 		Robotics_register_factories(EvalCtx);
 		Simulation_register_factories(EvalCtx);
 		Vehicles_register_factories(EvalCtx);
+		Sensors_register_factories(EvalCtx);
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
@@ -364,6 +381,7 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	using namespace openplx::Physics::Signals;
 	using namespace openplx::Physics3D::Signals;
 	using namespace openplx::DriveTrain::Signals;
+	using namespace openplx::Sensors::Signals;
 
 	if (dynamic_cast<const AutomaticClutchEngagementDurationOutput*>(&Output))
 	{
@@ -500,6 +518,14 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const BoolOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::BoolOutput;
+	}
+	if (dynamic_cast<const IMUOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::IMUOutput;
+	}
+	if (dynamic_cast<const LidarOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::LidarOutput;
 	}
 
 	return EOpenPLX_OutputType::Unsupported;
@@ -673,6 +699,99 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	}
 
 	return Assembly;
+}
+
+void FPLXUtilitiesInternal::MapSensorOutput(
+	std::shared_ptr<openplx::Physics3D::System> System,
+	const FOpenPLXMappingBarriersCollection& Barriers,
+	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
+{
+	if (Barriers.Lidars.Num() == 0 && Barriers.IMUs.Num() == 0)
+		return;
+
+	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
+	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
+
+	// Lidars.
+	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);
+	for (const auto& LidarPLX : LidarsPLX)
+	{
+		const FString Name = Convert(LidarPLX->getName());
+		auto SensorBarrier = Barriers.Lidars.FindByPredicate(
+			[&Name](FSensorBarrier* B) { return B != nullptr && B->GetName().Equals(Name); });
+		if (SensorBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Lidar '%s', could not find a matching AGX Lidar "
+					 "with that Import Name."),
+				*Name);
+			continue;
+		}
+
+		AGX_CHECK(FLidarBarrier::IsLidar(**SensorBarrier));
+		FLidarBarrier* LidarBarrier = static_cast<FLidarBarrier*>(*SensorBarrier);
+		agxSensor::LidarRef LidarAGX =
+			dynamic_cast<agxSensor::Lidar*>(LidarBarrier->GetNative()->Native.get());
+
+		if (LidarAGX == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Lidar '%s', could not get a valid AGX Lidar "
+					 "object."),
+				*Name);
+			continue;
+		}
+
+		auto LidarMetaData = agxopenplx::OpenPlxSensorsMapper::createLidarMetadata();
+		Metadata->registerMetadata(LidarAGX, LidarMetaData);
+		SensorMapper->mapLidarLogicOutputs(LidarPLX, LidarAGX);
+	}
+
+	// IMUs.
+	auto IMUsPLX = GetNestedObjects<openplx::Sensors::IMULogic>(*System);
+	for (const auto& IMUPLX : IMUsPLX)
+	{
+		const FString Name = Convert(IMUPLX->getName());
+		auto SensorBarrier = Barriers.IMUs.FindByPredicate(
+			[&Name](FSensorBarrier* B) { return B != nullptr && B->GetName().Equals(Name); });
+		if (SensorBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for IMU '%s', could not find a matching AGX IMU "
+					 "with that Import Name."),
+				*Name);
+			continue;
+		}
+
+		AGX_CHECK(FIMUBarrier::IsIMU(**SensorBarrier));
+		FIMUBarrier* IMUBarrier = static_cast<FIMUBarrier*>(*SensorBarrier);
+		agxSensor::IMURef IMUAGX =
+			dynamic_cast<agxSensor::IMU*>(IMUBarrier->GetNative()->Native.get());
+
+		if (IMUAGX == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for IMU '%s', could not get a valid AGX IMU object."),
+				*Name);
+			continue;
+		}
+
+		auto IMUMetaData = agxopenplx::OpenPlxSensorsMapper::createIMUMetadata();
+		Metadata->registerMetadata(IMUAGX, IMUMetaData);
+		SensorMapper->mapIMULogicOutputs(IMUPLX, IMUAGX);
+	}
+
+	if (ErrorReporter->getErrorCount() > 0)
+	{
+		for (auto Err : FPLXUtilitiesInternal::GetErrorStrings(ErrorReporter->getErrors()))
+		{
+			UE_LOG(LogAGX, Warning, TEXT("MapSensorOutputs got error: %s"), *Err);
+		}
+	}
 }
 
 std::string FPLXUtilitiesInternal::GetDefaultPowerLineName()
