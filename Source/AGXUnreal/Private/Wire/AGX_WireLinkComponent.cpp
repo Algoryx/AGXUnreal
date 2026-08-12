@@ -6,6 +6,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -77,12 +78,12 @@ void UAGX_WireLinkComponent::BeginPlay()
 
 	if (!HasNative())
 	{
-		UE_LOG(
-			LogAGX, Error,
+		const FString Message = FString::Printf(
 			TEXT("UAGX_WireLinkComponent '%s' in '%s': Failed to create native agxWire::Link. "
 				 "Check that this component is attached to a UAGX_RigidBodyComponent, "
 				 "and that the AgX-WireLink license module is active."),
 			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
 	}
 }
@@ -161,22 +162,22 @@ void UAGX_WireLinkComponent::CreateNative()
 	UAGX_RigidBodyComponent* BodyComponent = GetRigidBody();
 	if (BodyComponent == nullptr)
 	{
-		UE_LOG(
-			LogAGX, Error,
+		const FString Message = FString::Printf(
 			TEXT("UAGX_WireLinkComponent '%s' in '%s': Cannot create native — this component "
 				 "must be attached as a child of the UAGX_RigidBodyComponent it wraps."),
 			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
 	}
 
 	FRigidBodyBarrier* BodyBarrier = BodyComponent->GetOrCreateNative();
 	if (BodyBarrier == nullptr || !BodyBarrier->HasNative())
 	{
-		UE_LOG(
-			LogAGX, Error,
+		const FString Message = FString::Printf(
 			TEXT("UAGX_WireLinkComponent '%s' in '%s': Cannot create native — the attached "
 				 "body '%s' does not have a native AGX rigid body."),
 			*GetName(), *GetLabelSafe(GetOwner()), *BodyComponent->GetName());
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 		return;
 	}
 
@@ -184,11 +185,11 @@ void UAGX_WireLinkComponent::CreateNative()
 
 	if (!HasNative())
 	{
-		UE_LOG(
-			LogAGX, Error,
+		const FString Message = FString::Printf(
 			TEXT("UAGX_WireLinkComponent '%s' in '%s': FWireLinkBarrier::AllocateNative "
 				 "succeeded but HasNative() is still false. The AgX-WireLink license module "
 				 "may be missing from the active license."),
 			*GetName(), *GetLabelSafe(GetOwner()));
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 	}
 }
