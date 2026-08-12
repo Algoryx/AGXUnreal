@@ -47,13 +47,11 @@ public:
 	UAGX_WireLinkComponent();
 
 	/**
-	 * Runtime list of Wire Components that have routed through this Link.
-	 *
-	 * Populated automatically during BeginPlay as wire components call RegisterConnectedWire().
-	 * Read-only from Blueprints.
+	 * Returns the Wire Components connected to this Link in the current Level.
+	 * This funciton is only valid during Play.
 	 */
-	UPROPERTY(BlueprintReadOnly, Transient, Category = "AGX Wire Link")
-	TArray<UAGX_WireComponent*> ConnectedWires;
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Wire Link")
+	TArray<UAGX_WireComponent*> GetConnectedWires() const;
 
 	/**
 	 * Returns the UAGX_RigidBodyComponent this link wraps, found by walking the attachment
@@ -73,12 +71,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire Link",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real Radius = 0.0;
-
-	/**
-	 * Called by UAGX_WireComponent during its own CreateNative to register itself as a wire
-	 * that routes through this link. Entries are deduplicated.
-	 */
-	void RegisterConnectedWire(UAGX_WireComponent* Wire);
 
 	//~ Begin IAGX_NativeOwner interface.
 	virtual bool HasNative() const override;

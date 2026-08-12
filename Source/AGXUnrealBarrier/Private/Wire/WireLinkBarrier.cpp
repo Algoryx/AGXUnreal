@@ -139,3 +139,30 @@ FGuid FWireLinkBarrier::GetGuid() const
 	return Convert(UuidAGX);
 }
 
+TArray<FWireBarrier> FWireLinkBarrier::GetConnectedWires() const
+{
+	check(HasNative());
+
+	const agxWire::Link::ConnectionsContainer& Connections = NativeRef->Native->getConnections();
+	TArray<agxWire::Wire*> NativeWires;
+	NativeWires.Reserve(static_cast<int32>(Connections.size()));
+
+	for (const agxWire::ConnectingNode* Connection : Connections)
+	{
+		agxWire::Wire* Wire = agxWire::Link::getWire(Connection);
+		if (Wire != nullptr)
+		{
+			NativeWires.AddUnique(Wire);
+		}
+	}
+
+	TArray<FWireBarrier> Wires;
+	Wires.Reserve(NativeWires.Num());
+	for (agxWire::Wire* Wire : NativeWires)
+	{
+		Wires.Add(AGXBarrierFactories::CreateWireBarrier(Wire));
+	}
+
+	return Wires;
+}
+

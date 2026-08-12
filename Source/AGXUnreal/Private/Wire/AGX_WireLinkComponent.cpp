@@ -9,9 +9,12 @@
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Wire/AGX_WireComponent.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
+#include "Engine/Level.h"
+#include "GameFramework/Actor.h"
 
 UAGX_WireLinkComponent::UAGX_WireLinkComponent()
 {
@@ -23,23 +26,48 @@ UAGX_RigidBodyComponent* UAGX_WireLinkComponent::GetRigidBody() const
 	return FAGX_ObjectUtilities::FindFirstAncestorOfType<UAGX_RigidBodyComponent>(*this);
 }
 
-void UAGX_WireLinkComponent::RegisterConnectedWire(UAGX_WireComponent* Wire)
+TArray<UAGX_WireComponent*> UAGX_WireLinkComponent::GetConnectedWires() const
 {
-	if (Wire == nullptr)
+	TArray<UAGX_WireComponent*> Wires;
+	if (!HasNative())
+		return Wires;
+
+	const TArray<FWireBarrier> ConnectedWireBarriers = NativeBarrier.GetConnectedWires();
+	if (ConnectedWireBarriers.IsEmpty())
+		return Wires;
+
+	TSet<FGuid> ConnectedWireGuids;
+	ConnectedWireGuids.Reserve(ConnectedWireBarriers.Num());
+	for (const FWireBarrier& ConnectedWireBarrier : ConnectedWireBarriers)
 	{
-		return;
+		ConnectedWireGuids.Add(ConnectedWireBarrier.GetGuid());
 	}
 
-	// Deduplicate.
-	for (UAGX_WireComponent* const Existing : ConnectedWires)
+	const AActor* Owner = GetOwner();
+	const ULevel* Level = Owner != nullptr ? Owner->GetLevel() : nullptr;
+	if (Level == nullptr)
+		return Wires;
+
+	for (AActor* Actor : Level->Actors)
 	{
-		if (Existing == Wire)
+		if (Actor == nullptr)
+			continue;
+
+		TArray<UAGX_WireComponent*> WireComponents;
+		Actor->GetComponents<UAGX_WireComponent>(WireComponents, false);
+		for (UAGX_WireComponent* WireComponent : WireComponents)
 		{
-			return;
+			const FWireBarrier* WireBarrier =
+				WireComponent != nullptr ? WireComponent->GetNative() : nullptr;
+			if (WireBarrier == nullptr)
+				continue;
+
+			if (ConnectedWireGuids.Contains(WireBarrier->GetGuid()))
+				Wires.AddUnique(WireComponent);
 		}
 	}
 
-	ConnectedWires.Add(Wire);
+	return Wires;
 }
 
 bool UAGX_WireLinkComponent::HasNative() const
@@ -96,8 +124,6 @@ void UAGX_WireLinkComponent::EndPlay(const EEndPlayReason::Type Reason)
 		{
 			NativeBarrier.ReleaseNative();
 		}
-
-		ConnectedWires.Empty();
 	}
 	// If GIsReconstructingBlueprintInstances, another WireLinkComponent will inherit
 	// the native via Component Instance Data — do not release it here.

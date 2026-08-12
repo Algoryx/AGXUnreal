@@ -2,7 +2,11 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Wire/WireBarrier.h"
+
 // Unreal Engine includes.
+#include "Containers/Array.h"
 #include "Math/Vector.h"
 #include "Misc/Guid.h"
 
@@ -11,7 +15,6 @@
 
 struct FRigidBodyBarrier;
 struct FWireLinkRef;
-class FWireBarrier;
 
 class AGXUNREALBARRIER_API FWireLinkBarrier
 {
@@ -72,6 +75,8 @@ public:
 
 	FRigidBodyBarrier GetRigidBody() const;
 	FGuid GetGuid() const;
+
+	TArray<FWireBarrier> GetConnectedWires() const;
 
 private:
 	FWireLinkBarrier(const FWireLinkBarrier&) = delete;

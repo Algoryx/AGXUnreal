@@ -2406,8 +2406,7 @@ void UAGX_WireComponent::CreateNative()
 				LinkBarrier->SetConnectingNodeRadius(NativeBarrier, LinkComp->Radius.Value);
 			}
 
-			LinkComp->RegisterConnectedWire(this);
-				continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
+			continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
 			}
 			case EWireNodeType::Other:
 				UE_LOG(
