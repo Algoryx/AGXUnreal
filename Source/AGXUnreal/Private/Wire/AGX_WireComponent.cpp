@@ -1353,8 +1353,8 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 
 	ImportGuid = Barrier.GetGuid();
 
-	const FString CleanBarrierName =
-		FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(*this, Barrier.GetName(), Context);
+	const FString CleanBarrierName = FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+		*this, Barrier.GetName(), Context);
 	const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 		GetOwner(), CleanBarrierName, UAGX_WireComponent::StaticClass());
 	Rename(*Name);
@@ -2336,8 +2336,7 @@ void UAGX_WireComponent::CreateNative()
 						/*bIncludeAllDescendants=*/false, Children);
 					for (USceneComponent* Child : Children)
 					{
-						if (UAGX_WireLinkComponent* Candidate =
-								Cast<UAGX_WireLinkComponent>(Child))
+						if (UAGX_WireLinkComponent* Candidate = Cast<UAGX_WireLinkComponent>(Child))
 						{
 							LinkComp = Candidate;
 							break;
@@ -2369,44 +2368,45 @@ void UAGX_WireComponent::CreateNative()
 					break;
 				}
 
-			// Derive the wire side from the node's position in the route:
-			// - First node (index 0)     → WIRE_BEGIN
-			// - Last  node (LastIndex)   → WIRE_END
-			// A Connecting node that is neither first nor last is invalid.
-			const int32 LastIndex = RouteNodes.Num() - 1;
-			const bool bIsWireBegin = (I == 0);
-			const bool bIsWireEnd = (I == LastIndex);
-			if (!bIsWireBegin && !bIsWireEnd)
-			{
-				ErrorMessages.Add(FString::Printf(
-					TEXT("Wire node at index %d is a Connecting node but is neither the first "
-						 "nor the last node in the route (route has %d nodes). A Connecting "
-						 "node must be at index 0 (WIRE_BEGIN) or at the last index (WIRE_END). "
-						 "Creating Free Node instead."),
-					I, RouteNodes.Num()));
-				const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
-				NodeBarrier.AllocateNativeFreeNode(WorldLocation);
-				break;
-			}
+				// Derive the wire side from the node's position in the route:
+				// - First node (index 0)     → WIRE_BEGIN
+				// - Last  node (LastIndex)   → WIRE_END
+				// A Connecting node that is neither first nor last is invalid.
+				const int32 LastIndex = RouteNodes.Num() - 1;
+				const bool bIsWireBegin = (I == 0);
+				const bool bIsWireEnd = (I == LastIndex);
+				if (!bIsWireBegin && !bIsWireEnd)
+				{
+					ErrorMessages.Add(FString::Printf(
+						TEXT(
+							"Wire node at index %d is a Connecting node but is neither the first "
+							"nor the last node in the route (route has %d nodes). A Connecting "
+							"node must be at index 0 (WIRE_BEGIN) or at the last index (WIRE_END). "
+							"Creating Free Node instead."),
+						I, RouteNodes.Num()));
+					const FVector WorldLocation = RouteNode.Frame.GetWorldLocation(*this);
+					NodeBarrier.AllocateNativeFreeNode(WorldLocation);
+					break;
+				}
 
-			// Register which wire attaches at which body-local offset and on which side.
-			LinkBarrier->Connect(NativeBarrier, LocalLocation, bIsWireBegin);
+				// Register which wire attaches at which body-local offset and on which side.
+				LinkBarrier->Connect(NativeBarrier, LocalLocation, bIsWireBegin);
 
-			// Insert the link into the wire route. AGX creates the ConnectingNode
-			// internally; the node must not also be added via AddRouteNode.
-			LinkBarrier->AddToWireRoute(NativeBarrier);
+				// Insert the link into the wire route. AGX creates the ConnectingNode
+				// internally; the node must not also be added via AddRouteNode.
+				LinkBarrier->AddToWireRoute(NativeBarrier);
 
-			// Apply the link-level radius to the newly created ConnectingNode.
-			// This must be a post-creation call: the AGX Link API (link->connect +
-			// wire->add(link)) provides no radius parameter, so AGX always constructs
-			// the ConnectingNode with radius 0 internally. setRadius is the only hook
-			// available. Skip when 0 since that is already the AGX default.
-			if (LinkComp->Radius.Value > 0.0)
-			{
-				LinkBarrier->SetConnectingNodeRadius(NativeBarrier, LinkComp->Radius.Value);
-			}
+				// Apply the link-level radius to the newly created ConnectingNode.
+				// This must be a post-creation call: the AGX Link API (link->connect +
+				// wire->add(link)) provides no radius parameter, so AGX always constructs
+				// the ConnectingNode with radius 0 internally. setRadius is the only hook
+				// available. Skip when 0 since that is already the AGX default.
+				if (LinkComp->Radius.Value > 0.0)
+				{
+					LinkBarrier->SetConnectingNodeRadius(NativeBarrier, LinkComp->Radius.Value);
+				}
 
-			continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
+				continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
 			}
 			case EWireNodeType::Other:
 				UE_LOG(

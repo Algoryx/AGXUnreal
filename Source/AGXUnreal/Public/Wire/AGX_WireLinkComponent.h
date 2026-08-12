@@ -36,9 +36,9 @@ class UAGX_WireComponent;
  */
 UCLASS(
 	ClassGroup = "AGX", BlueprintType, Meta = (BlueprintSpawnableComponent),
-	HideCategories = ("Rendering", "Physics", "LOD", "Activation", "Cooking", "Collision",
-					  "Navigation", "ComponentTick", "ComponentReplication", "Events",
-					  "AssetUserData", "Mobile"))
+	HideCategories =
+		("Rendering", "Physics", "LOD", "Activation", "Cooking", "Collision", "Navigation",
+		 "ComponentTick", "ComponentReplication", "Events", "AssetUserData", "Mobile"))
 class AGXUNREAL_API UAGX_WireLinkComponent : public USceneComponent, public IAGX_NativeOwner
 {
 	GENERATED_BODY()
@@ -48,7 +48,7 @@ public:
 
 	/**
 	 * Returns the Wire Components connected to this Link in the current Level.
-	 * This funciton is only valid during Play.
+	 * This function is only valid during Play.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Wire Link")
 	TArray<UAGX_WireComponent*> GetConnectedWires() const;
@@ -68,7 +68,8 @@ public:
 	 * nodes when the simulation is initialized (BeginPlay). A value of 0 uses the default AGX
 	 * connecting-node radius (no override).
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Wire Link",
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire Link",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real Radius = 0.0;
 
@@ -109,7 +110,6 @@ private:
 	 * creates the barrier. Logs an error and does nothing if no body is found.
 	 */
 	void CreateNative();
-
 
 	FWireLinkBarrier NativeBarrier;
 };

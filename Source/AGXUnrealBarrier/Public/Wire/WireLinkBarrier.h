@@ -85,4 +85,3 @@ private:
 private:
 	std::unique_ptr<FWireLinkRef> NativeRef;
 };
-

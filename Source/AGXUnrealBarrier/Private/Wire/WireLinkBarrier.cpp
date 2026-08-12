@@ -117,8 +117,7 @@ void FWireLinkBarrier::SetConnectingNodeRadius(FWireBarrier& Wire, double Radius
 {
 	check(HasNative());
 	check(Wire.HasNative());
-	agxWire::ILinkNode* ConnNode =
-		NativeRef->Native->getConnectingNode(Wire.GetNative()->Native);
+	agxWire::ILinkNode* ConnNode = NativeRef->Native->getConnectingNode(Wire.GetNative()->Native);
 	if (ConnNode != nullptr)
 	{
 		ConnNode->setRadius(ConvertDistanceToAGX(RadiusCm));
@@ -165,4 +164,3 @@ TArray<FWireBarrier> FWireLinkBarrier::GetConnectedWires() const
 
 	return Wires;
 }
-
