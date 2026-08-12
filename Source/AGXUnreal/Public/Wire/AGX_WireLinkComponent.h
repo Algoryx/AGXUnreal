@@ -28,11 +28,6 @@ class UAGX_WireComponent;
  *
  * The component can also be used standalone (no wires) to add stabilization constraints
  * to a body that sits between two heavy bodies connected via regular AGX constraints.
- *
- * ⚠️ NOTE: agxWire::Link requires the AgX-WireLink license module. This component will
- * log an error at BeginPlay and do nothing if the module is not in the active license.
- * See the implementation plan for details: Documentation/AGXWireSimulatingWires/
- * agxwire_connecting_node_implementation_plan.md
  */
 UCLASS(
 	ClassGroup = "AGX", BlueprintType, Meta = (BlueprintSpawnableComponent),
