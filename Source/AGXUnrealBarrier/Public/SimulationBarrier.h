@@ -64,6 +64,7 @@ public:
 	bool Add(FTireBarrier& Tire);
 	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
+	bool Add(FWireLinkBarrier& Link);
 
 	bool Remove(FCableBarrier& Cable);
 	bool Remove(FConstraintBarrier& Constraint);
