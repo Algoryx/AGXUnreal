@@ -110,10 +110,16 @@ void FAGX_EditorUtilities::ReimportModel(UBlueprint& Blueprint, bool bOpenBluepr
 			const bool IgnoreDisabledTrimeshes =
 				ModelSourceComponent != nullptr ? ModelSourceComponent->bIgnoreDisabledTrimeshes
 												: false;
+			const bool bAdditionalyImportUnmodifiedTextures =
+				ModelSourceComponent != nullptr
+					? ModelSourceComponent->bAdditionalyImportUnmodifiedTextures
+					: false;
 
 			TSharedRef<SAGX_ReimportModelDialog> ReimportDialog = SNew(SAGX_ReimportModelDialog);
 			ReimportDialog->SetFilePath(FilePath);
 			ReimportDialog->SetIgnoreDisabledTrimeshes(IgnoreDisabledTrimeshes);
+			ReimportDialog->SetAdditionalyImportUnmodifiedTextures(
+				bAdditionalyImportUnmodifiedTextures);
 			ReimportDialog->RefreshGui();
 			Window->SetContent(ReimportDialog);
 			FSlateApplication::Get().AddModalWindow(Window, nullptr);

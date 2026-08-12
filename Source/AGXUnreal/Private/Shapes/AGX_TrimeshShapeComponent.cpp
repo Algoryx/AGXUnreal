@@ -194,7 +194,7 @@ void UAGX_TrimeshShapeComponent::CopyFrom(
 
 	UMaterialInterface* Material = RenderMeshCom != nullptr
 									   ? RenderMeshCom->GetMaterial(0)
-									   : AGX_MeshUtilities::GetDefaultRenderMaterial(false);
+									   : AGX_MeshUtilities::GetAGXBaseRenderMaterial(false);
 
 	UStaticMeshComponent* MeshCom = CreateStaticMeshComponent(
 		*static_cast<const FTrimeshShapeBarrier*>(&ShapeBarrier), *GetOwner(), Material, *Context);

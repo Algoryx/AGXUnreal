@@ -9,7 +9,7 @@
 
 struct FAGX_Shape;
 
-class SShapeWidget : public SCompoundWidget
+class AGXUNREALEDITOR_API SShapeWidget : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SShapeWidget)

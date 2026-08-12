@@ -21,11 +21,21 @@
 void SAGX_ImportDialogBase::SetFilePath(const FString& InFilePath)
 {
 	FilePath = InFilePath;
+	ImportType = FAGX_ImportRuntimeUtilities::GetImportTypeFrom(FilePath);
+	RefreshGui();
 }
 
 void SAGX_ImportDialogBase::SetIgnoreDisabledTrimeshes(bool bInIgnoreDisabledTrimesh)
 {
 	bIgnoreDisabledTrimesh = bInIgnoreDisabledTrimesh;
+	RefreshGui();
+}
+
+void SAGX_ImportDialogBase::SetAdditionalyImportUnmodifiedTextures(
+	bool bInAdditionalyImportUnmodifiedTextures)
+{
+	bAdditionalyImportUnmodifiedTextures = bInAdditionalyImportUnmodifiedTextures;
+	RefreshGui();
 }
 
 TSharedRef<SWidget> SAGX_ImportDialogBase::CreateBrowseFileGui()
@@ -84,36 +94,7 @@ TSharedRef<SBorder> SAGX_ImportDialogBase::CreateAGXFileGui()
 
 TSharedRef<SBorder> SAGX_ImportDialogBase::CreatePLXFileGui()
 {
-	if (ImportType != EAGX_ImportType::Plx)
-	{
-		return MakeShared<SBorder>();
-	}
-
-	// clang-format off
-	return SNew(SBorder)
-				.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f))
-				.BorderImage(FAGX_EditorUtilities::GetBrush("ToolPanel.GroupBorder"))
-				.Padding(FMargin(5.0f, 15.0f))
-				.Content()
-				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(FMargin(0.f, 0.f, 33.f, 0.f))
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor(1.0f, 0.45f, 0, 1.0f))
-							.Text(LOCTEXT("PLXChangeText", "Note: OpenPLX is under development and is subject to change. "
-								"Backwards compatibility cannot be guaranteed."))
-							.Font(FAGX_SlateUtilities::CreateFont(10))
-						]
-					]
-				];
-	// clang-format on
+	return MakeShared<SBorder>();
 }
 
 TSharedRef<SWidget> SAGX_ImportDialogBase::CreateIgnoreDisabledTrimeshGui()
@@ -141,6 +122,38 @@ TSharedRef<SWidget> SAGX_ImportDialogBase::CreateIgnoreDisabledTrimeshGui()
 			[
 				SNew(STextBlock)
 				.Text(LOCTEXT("IgnoreDisabledTrimeshText", "Ignore disabled Trimeshes (recommended for large models)"))
+				.Font(FAGX_SlateUtilities::CreateFont(10))
+			]
+		];
+	// clang-format on
+}
+
+TSharedRef<SWidget> SAGX_ImportDialogBase::CreateAdditionalImportUnmodifiedTexturesGui()
+{
+	// clang-format off
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(0.f, 0.f, 5.f, 0.f))
+			.AutoWidth()
+			[
+				SNew(SCheckBox)
+					.ToolTipText(LOCTEXT("AdditionalImportUnmodifiedTexturesCheckBoxTooltip",
+						"Additionally imports the original, unmodified OpenPLX texture files. "
+						"Useful when creating custom Render Materials from the original texture files."))
+					.OnCheckStateChanged(
+						this, &SAGX_ImportDialogBase::OnAdditionalImportUnmodifiedTexturesCheckboxClicked)
+					.IsChecked(bAdditionalyImportUnmodifiedTextures)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(FMargin(0.f, 0.f, 33.f, 0.f))
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("AdditionalImportUnmodifiedTexturesText", "Additionally import unmodified textures"))
 				.Font(FAGX_SlateUtilities::CreateFont(10))
 			]
 		];
@@ -183,6 +196,12 @@ FText SAGX_ImportDialogBase::GetFilePathTextIfFileExists() const
 void SAGX_ImportDialogBase::OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState)
 {
 	bIgnoreDisabledTrimesh = NewCheckedState == ECheckBoxState::Checked;
+}
+
+void SAGX_ImportDialogBase::OnAdditionalImportUnmodifiedTexturesCheckboxClicked(
+	ECheckBoxState NewCheckedState)
+{
+	bAdditionalyImportUnmodifiedTextures = NewCheckedState == ECheckBoxState::Checked;
 }
 
 void SAGX_ImportDialogBase::RefreshGui()

@@ -20,7 +20,7 @@ class IDetailLayoutBuilder;
  */
 using FWireWinchGetter = TFunction<FAGX_WireWinch*(UObject*)>;
 
-class FAGX_WireWinchDetailsRuntime : public IDetailCustomNodeBuilder
+class AGXUNREALEDITOR_API FAGX_WireWinchDetailsRuntime : public IDetailCustomNodeBuilder
 {
 public:
 	FAGX_WireWinchDetailsRuntime(

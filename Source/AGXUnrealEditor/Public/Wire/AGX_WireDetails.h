@@ -9,7 +9,7 @@
 #include "IDetailCustomization.h"
 #include "UObject/WeakObjectPtrTemplates.h"
 
-class FAGX_WireDetails : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_WireDetails : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();

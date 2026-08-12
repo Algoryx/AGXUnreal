@@ -10,7 +10,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SBorder.h"
 
-class SAGX_ImportDialogBase : public SCompoundWidget
+class AGXUNREALEDITOR_API SAGX_ImportDialogBase : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SAGX_ImportDialogBase)
@@ -21,6 +21,7 @@ public:
 	virtual void Construct(const FArguments& InArgs) = 0;
 	void SetFilePath(const FString& InFilePath);
 	void SetIgnoreDisabledTrimeshes(bool bInIgnoreDisabledTrimesh);
+	void SetAdditionalyImportUnmodifiedTextures(bool bInAdditionalyImportUnmodifiedTextures);
 	void RefreshGui();
 
 protected:
@@ -28,16 +29,19 @@ protected:
 	TSharedRef<SBorder> CreateAGXFileGui();
 	TSharedRef<SBorder> CreatePLXFileGui();
 	TSharedRef<SWidget> CreateIgnoreDisabledTrimeshGui();
+	TSharedRef<SWidget> CreateAdditionalImportUnmodifiedTexturesGui();
 
 	FReply OnBrowseFileButtonClicked();
 	FText GetFilePathText() const;
 	FText GetFilePathTextIfFileExists() const;
 	void OnIgnoreDisabledTrimeshCheckboxClicked(ECheckBoxState NewCheckedState);
+	void OnAdditionalImportUnmodifiedTexturesCheckboxClicked(ECheckBoxState NewCheckedState);
 	void OnFilePathTextCommitted(const FText& InNewText, ETextCommit::Type InCommitType);
 
 	FString FileTypes;
 	EAGX_ImportType ImportType = EAGX_ImportType::Invalid;
 	FString FilePath;
 	bool bIgnoreDisabledTrimesh = true;
+	bool bAdditionalyImportUnmodifiedTextures = false;
 	bool bUserHasPressedImportOrReimport = false;
 };

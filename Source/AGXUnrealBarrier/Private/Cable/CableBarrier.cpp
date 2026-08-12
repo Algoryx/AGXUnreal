@@ -3,12 +3,13 @@
 #include "Cable/CableBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGXBarrierFactories.h"
+#include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Cable/CableRef.h"
 #include "Cable/AGX_CableNodeInfo.h"
 #include "Cable/CableNodeBarrier.h"
 #include "Cable/CablePropertiesBarrier.h"
+#include "Materials/ShapeMaterialBarrier.h"
 
 // Standard library inludes.
 #include <algorithm>
@@ -62,6 +63,28 @@ void FCableBarrier::SetCablePropertiesToDefault()
 	FCablePropertiesBarrier Default;
 	Default.AllocateNative();
 	NativeRef->Native->setCableProperties(Default.GetNative()->Native);
+}
+
+void FCableBarrier::ClearMaterial()
+{
+	check(HasNative());
+	// TODO Determine if we need to pass agx::Material::getDefaultMaterial() here, like
+	// FTrackBarrier does.
+	NativeRef->Native->setMaterial(nullptr);
+}
+
+void FCableBarrier::SetMaterial(const FShapeMaterialBarrier& Material)
+{
+	check(HasNative());
+	check(Material.HasNative());
+	NativeRef->Native->setMaterial(Material.GetNative()->Native);
+}
+
+FShapeMaterialBarrier FCableBarrier::GetMaterial() const
+{
+	check(HasNative());
+	agx::Material* Material = NativeRef->Native->getMaterial();
+	return FShapeMaterialBarrier(std::make_unique<FMaterialRef>(Material));
 }
 
 namespace CableBarrier_helpers

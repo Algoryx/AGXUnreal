@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "Widgets/SCompoundWidget.h"
 
-class SAGX_OfflineActivationDialog : public SCompoundWidget
+class AGXUNREALEDITOR_API SAGX_OfflineActivationDialog : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SAGX_OfflineActivationDialog)

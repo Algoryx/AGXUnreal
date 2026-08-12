@@ -21,7 +21,6 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UTextureRenderTarget2D;
 
-struct FAGX_ImportContext;
 struct FAGX_LidarOutputBase;
 struct FAGX_SensorMsgsPointCloud2;
 

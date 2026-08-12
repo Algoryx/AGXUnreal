@@ -14,10 +14,11 @@
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/SensorBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
-#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -72,9 +73,50 @@ namespace OpenPLX_SignalHandlerComponent_helpers
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("SignalHandlerComponent %s called with %s %s with unexpected %s type. Check the "
-				 "type used."),
+			TEXT(
+				"SignalHandlerComponent %s called with %s %s with unexpected %s type. Check the "
+				"type used."),
 			*FunctionName, *InputOrOutput, *InputOutputName, *InputOrOutput);
+	}
+
+	/**
+	 * Print a log message if the Signal Handler has not yet been initialized.
+	 *
+	 * @return true if a log message was printed.
+	 */
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* SendOrReceive,
+		const TCHAR* ComponentName, const TCHAR* TypeName, const TCHAR* ControlName,
+		const TCHAR* ControlAlias)
+	{
+		if (SignalHandler.IsInitialized())
+			return false;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Signal Handler Component '%s' tried to %s a %s using '%s' ('%s') through "
+				"the Control Interface but the Signal Handler has not been initialized."),
+			ComponentName, SendOrReceive, TypeName, ControlName, ControlAlias);
+		return true;
+	}
+
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* ComponentName,
+		const TCHAR* TypeName, const FOpenPLX_Input& Input)
+	{
+		return LogIfNotInitialized(
+			SignalHandler, ComponentName, TEXT("send"), TypeName, *Input.Name.ToString(),
+			*Input.Alias.ToString());
+	}
+
+	bool LogIfNotInitialized(
+		const FOpenPLXSignalHandler& SignalHandler, const TCHAR* ComponentName,
+		const TCHAR* TypeName, const FOpenPLX_Output& Output)
+	{
+		return LogIfNotInitialized(
+			SignalHandler, ComponentName, TEXT("receive"), TypeName, *Output.Name.ToString(),
+			*Output.Alias.ToString());
 	}
 }
 
@@ -96,6 +138,16 @@ bool UOpenPLX_SignalHandlerComponent::GetInput(FName Name, FOpenPLX_Input& OutIn
 		OutInput = *Input;
 		return true;
 	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Signal Handler Component: Cannot find OpenPLX input named '%s'. This input will "
+			"not be able to send signals."),
+		*Name.ToString());
+
+	OutInput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
+	OutInput.Alias = OutInput.Name;
 
 	return false;
 }
@@ -148,6 +200,15 @@ bool UOpenPLX_SignalHandlerComponent::GetOutput(FName Name, FOpenPLX_Output& Out
 		return true;
 	}
 
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Signal Handler Component: Cannot find OpenPLX output named '%s'. This output will "
+			"not be able to receive signals."),
+		*Name.ToString());
+
+	OutOutput.Name = FName(FString::Printf(TEXT("NOT_FOUND ('%s')"), *Name.ToString()));
+	OutOutput.Alias = OutOutput.Name;
 	return false;
 }
 
@@ -195,6 +256,14 @@ bool UOpenPLX_SignalHandlerComponent::SendReal(const FOpenPLX_Input& Input, doub
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& Input, double Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double Value)
 {
 	FOpenPLX_Input Input;
@@ -226,6 +295,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveReal(const FOpenPLX_Output& Output,
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
+	const FOpenPLX_Output& Output, double& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, double& Value)
 {
 	FOpenPLX_Output Output;
@@ -255,6 +334,15 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeReal(const FOpenPLX_Input& Input,
 	}
 
 	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
@@ -289,6 +377,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue)
 {
 	FOpenPLX_Output Output;
@@ -305,6 +403,25 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, 
 	return ReceiveRangeReal(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -318,6 +435,15 @@ bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FV
 	}
 
 	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
+	const FOpenPLX_Input& Input, FVector Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVector Value)
@@ -352,6 +478,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVector(
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
+	const FOpenPLX_Output& Output, FVector& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVector& OutValue)
 {
 	FOpenPLX_Output Output;
@@ -381,6 +517,14 @@ bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, i
 	}
 
 	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64 Value)
@@ -414,6 +558,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(const FOpenPLX_Output& Outp
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerInterface(
+	const FOpenPLX_Output& Output, int64& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, int64& OutValue)
 {
 	FOpenPLX_Output Output;
@@ -443,6 +597,14 @@ bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, b
 	}
 
 	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(const FOpenPLX_Input& Input, bool Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Input))
+		return false;
+	return SignalHandler.SendInterface(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool Value)
@@ -476,6 +638,16 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBoolean(const FOpenPLX_Output& Outp
 	return SignalHandler.Receive(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanInterface(
+	const FOpenPLX_Output& Output, bool& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	OutValue = {};
+	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Output))
+		return false;
+	return SignalHandler.ReceiveInterface(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bool& OutValue)
 {
 	FOpenPLX_Output Output;
@@ -492,7 +664,8 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 	return ReceiveBoolean(Output, OutValue);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(const FOpenPLX_Output& Output)
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
@@ -504,10 +677,11 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(const FOpenPLX_Output& 
 		return false;
 	}
 
-	return SignalHandler.ReceiveLidarOutput(Output);
+	return SignalHandler.ReceiveLidarOutput(Output, OutView);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(FName NameOrAlias)
+bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(
+	FName NameOrAlias, FOpenPLXLidarOutputView& OutView)
 {
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
@@ -520,7 +694,40 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(FName NameOrAlias
 		return false;
 	}
 
-	return ReceiveLidarOutput(Output);
+	return ReceiveLidarOutput(Output, OutView);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutput(
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsIMUOutputType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveIMUOutput", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveIMUOutput(Output, OutView);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(
+	FName NameOrAlias, FOpenPLXIMUOutputView& OutView)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveIMUOutputByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveIMUOutput(Output, OutView);
 }
 
 void UOpenPLX_SignalHandlerComponent::BeginPlay()
@@ -536,8 +743,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("UOpenPLX_SignalHandlerComponent '%s' in '%s' was unable to get OpenPLX file path "
-				 "from UAGX_ModelSourceComponent. OpenPLX Signals will not work properly."),
+			TEXT(
+				"UOpenPLX_SignalHandlerComponent '%s' in '%s' was unable to get OpenPLX file path "
+				"from UAGX_ModelSourceComponent. OpenPLX Signals will not work properly."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -548,8 +756,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
-				 "Simulation. Signal handling may not work."),
+			TEXT(
+				"OpenPLX Signal Hander Component in '%s' was unable to get the native AGX "
+				"Simulation. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -561,8 +770,9 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
-				 "barrier object. Signal handling may not work."),
+			TEXT(
+				"OpenPLX Signal Hander Component in '%s' was unable to get the model registry "
+				"barrier object. Signal handling may not work."),
 			*GetLabelSafe(GetOwner()));
 		return;
 	}
@@ -571,10 +781,10 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	FOpenPLXMappingBarriersCollection Barriers;
 	Barriers.Constraints =
 		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
-	Barriers.Bodies =
-		CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+	Barriers.Bodies = CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
+	Barriers.IMUs = CollectBarriers<FSensorBarrier, UAGX_IMUSensorComponent>(GetOwner());
 	Barriers.Lidars = CollectBarriers<FSensorBarrier, UAGX_LidarSensorComponent>(GetOwner());
 	Barriers.Steerings =
 		CollectBarriers<FSteeringBarrier, UAGX_SteeringComponent>(GetOwner());

@@ -84,45 +84,41 @@ float UAGX_LidarAmbientMaterial::GetReturnGammaDistributionScaleParameter() cons
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsAir(float VisibilityKm)
 {
-	FRtAmbientMaterialBarrier* Native = GetNative();
-	if (Native == nullptr)
+	if (!HasNative())
 		return false;
 
-	Native->ConfigureAsAir(VisibilityKm);
-	CopyFrom(*Native);
+	NativeBarrier.ConfigureAsAir(VisibilityKm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsFog(float VisibilityKm, float WavelengthNm)
 {
-	FRtAmbientMaterialBarrier* Native = GetNative();
-	if (Native == nullptr)
+	if (!HasNative())
 		return false;
 
-	Native->ConfigureAsFog(VisibilityKm, WavelengthNm);
-	CopyFrom(*Native);
+	NativeBarrier.ConfigureAsFog(VisibilityKm, WavelengthNm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsRainfall(float RateMmPerHour)
 {
-	FRtAmbientMaterialBarrier* Native = GetNative();
-	if (Native == nullptr)
+	if (!HasNative())
 		return false;
 
-	Native->ConfigureAsRainfall(RateMmPerHour);
-	CopyFrom(*Native);
+	NativeBarrier.ConfigureAsRainfall(RateMmPerHour);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 
 bool UAGX_LidarAmbientMaterial::ConfigureAsSnowfall(float RateMmPerHour, float WavelengthNm)
 {
-	FRtAmbientMaterialBarrier* Native = GetNative();
-	if (Native == nullptr)
+	if (!HasNative())
 		return false;
 
-	Native->ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
-	CopyFrom(*Native);
+	NativeBarrier.ConfigureAsSnowfall(RateMmPerHour, WavelengthNm);
+	CopyFrom(NativeBarrier);
 	return true;
 }
 

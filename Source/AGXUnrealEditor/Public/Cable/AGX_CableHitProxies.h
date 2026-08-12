@@ -11,7 +11,7 @@
 /**
  * Data associated with clickable node visualization elements.
  */
-class HAGX_CableNodeProxy : public HComponentVisProxy
+class AGXUNREALEDITOR_API HAGX_CableNodeProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
 

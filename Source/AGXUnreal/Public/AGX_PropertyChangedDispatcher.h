@@ -195,6 +195,17 @@ private:
 		[](ThisClass* This) { AGX_ASSET_DISPATCHER_LAMBDA_BODY(PropertyName, Set##PropertyName) })
 
 /**
+ * Helper-macro to create a complete Property Dispatcher callback in an AGX asset type for a bool
+ * property. Is aware that bool properties has a 'b' appended to the property name but not the
+ * setter function name.
+ */
+#define AGX_ASSET_DEFAULT_DISPATCHER_BOOL(PropertyName) \
+	PropertyDispatcher.Add(                             \
+		AGX_MEMBER_NAME(b##PropertyName),               \
+		[](ThisClass* This) {                           \
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(b##PropertyName, Set##PropertyName) })
+
+/**
  * Default implementation for adding a Property Dispatcher callback to a Component, i.e. not an
  * asset. Call the corresponding Set member function, passing in that very same property member
  * variable.

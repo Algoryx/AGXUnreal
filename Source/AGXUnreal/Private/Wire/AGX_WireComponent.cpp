@@ -1877,7 +1877,7 @@ void UAGX_WireComponent::OnRegister()
 	AGX_WireComponent_helpers::SetLocalScope(*this);
 
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (GIsEditor && !IsRunningCommandlet() && SpriteComponent)
 	{
 		FName NewName = MakeUniqueObjectName(
 			SpriteComponent->GetOuter(), SpriteComponent->GetClass(), TEXT("WireIcon"));

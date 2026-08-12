@@ -70,7 +70,7 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetSpeed(static_cast<double>(Speed));
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Target Speed Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Target Speed Controller")
 	static float GetSpeed(UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpeed());
@@ -83,7 +83,7 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetLockedAtZeroSpeed(bInLockedAtZeroSpeed);
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Target Speed Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Target Speed Controller")
 	static bool GetLocedAtZeroSpeed(UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return Controller.GetLockedAtZeroSpeed();
@@ -104,7 +104,7 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		return Controller.SetEnable(Enable);
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static bool GetEnable(UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return Controller.GetEnable();
@@ -117,7 +117,7 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetCompliance(static_cast<double>(Compliance));
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetCompliance(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetCompliance());
@@ -130,7 +130,7 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetSpookDamping(static_cast<double>(SpookDamping));
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetSpookDamping(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpookDamping());
@@ -144,21 +144,28 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetForceRange(MinForce, MaxForce);
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
+	static FAGX_RealInterval GetForceRange(UPARAM(ref)
+	const FAGX_ConstraintTargetSpeedController& Controller)
+	{
+		return Controller.GetForceRange();
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetForceRangeMin(UPARAM(ref)
 									  const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return Controller.GetForceRange().Min;
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetForceRangeMax(UPARAM(ref)
 									  const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return Controller.GetForceRange().Max;
 	}
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetForce(UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetForce());

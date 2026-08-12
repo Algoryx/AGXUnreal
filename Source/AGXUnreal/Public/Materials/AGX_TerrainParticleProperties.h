@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include <AGX_Real.h>
+#include "AGX_Real.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"

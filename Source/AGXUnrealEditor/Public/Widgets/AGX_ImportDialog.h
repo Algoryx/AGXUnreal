@@ -7,7 +7,7 @@
 
 struct FAGX_ImportSettings;
 
-class SAGX_ImportDialog : public SAGX_ImportDialogBase
+class AGXUNREALEDITOR_API SAGX_ImportDialog : public SAGX_ImportDialogBase
 {
 public:
 	void Construct(const FArguments& InArgs) override;

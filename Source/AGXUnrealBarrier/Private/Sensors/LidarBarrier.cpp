@@ -203,13 +203,13 @@ void FLidarBarrier::AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& Pa
 	NativeRef->Native = CreateAGXLidar(&PatternFetcher);
 }
 
-void FLidarBarrier::SetTransform(const FTransform& Transform)
+void FLidarBarrier::SetLocalTransform(const FTransform& Transform)
 {
 	check(HasNative());
 	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setMatrix(Convert(Transform));
 }
 
-FTransform FLidarBarrier::GetTransform() const
+FTransform FLidarBarrier::GetLocalTransform() const
 {
 	check(HasNative());
 	return Convert(LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->getMatrix());

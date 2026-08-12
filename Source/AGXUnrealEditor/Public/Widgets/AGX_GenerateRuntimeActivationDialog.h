@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "Widgets/SCompoundWidget.h"
 
-class SAGX_GenerateRuntimeActivationDialog : public SCompoundWidget
+class AGXUNREALEDITOR_API SAGX_GenerateRuntimeActivationDialog : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SAGX_GenerateRuntimeActivationDialog)

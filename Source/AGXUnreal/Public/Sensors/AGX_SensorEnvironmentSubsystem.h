@@ -86,10 +86,21 @@ public:
 		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
 	FSoftObjectPath DefaultLidarSurfaceMaterial;
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
+
 	/**
-	 * Whether or not the transform of added Instanced Static Meshes should be updated each Tick.
-	 * Updating Instanced Static Mesh transforms comes with some perfomance cost, especially if
-	 * a large number of instances are present.
+	 * Set positions integrated in PRE so that they are "seen" in the Lidar output in the
+	 * same step.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadWrite, Category = "AGX Sensor Environment", AdvancedDisplay)
+	bool bSetPreIntegratePosition {true};
+
+	/**
+	 * Whether or not the transform of added Instanced Static Meshes should be updated each
+	 * Tick. Updating Instanced Static Mesh transforms comes with some perfomance cost,
+	 * especially if a large number of instances are present.
 	 * As an optimization, this can be disabled by setting this property to false. Note that any
 	 * transformation change of an Instanced Static Mesh Instance during Play will not be reflected
 	 * in the Lidar simulation.
@@ -117,9 +128,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	void SetMagneticField(const FVector& Field);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
-	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	FVector GetMagneticField() const;

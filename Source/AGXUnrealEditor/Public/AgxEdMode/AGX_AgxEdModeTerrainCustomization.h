@@ -4,7 +4,7 @@
 
 #include "IDetailCustomization.h"
 
-class FAGX_AgxEdModeTerrainCustomization : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_AgxEdModeTerrainCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();

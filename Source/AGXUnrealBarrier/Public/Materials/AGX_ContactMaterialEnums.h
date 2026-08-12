@@ -116,6 +116,13 @@ enum class EAGX_FrictionModel : uint8
 	 * from interacting tracks.
 	 */
 	TrackIterativeProjectedConeFriction,
+
+	/**
+	 * Terrain Wheel Force model, used for TerrainWheel only.
+	 * When using this, some properties in the Contact Material such as bUseContactAreaApproach,
+	 * Restitution and ContactSolver will be overridden in AGX.
+	 */
+	TerrainWheelForceModel,
 };
 
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)

@@ -17,7 +17,7 @@ class UAGX_RigidBodyComponent;
  *
  * See comment in FAGX_ComponentReference for usage instructions and limitations.
  */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct AGXUNREAL_API FAGX_RigidBodyReference : public FAGX_ComponentReference
 {
 	GENERATED_BODY()

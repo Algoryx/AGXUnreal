@@ -7,7 +7,7 @@
 
 class IDetailLayoutBuilder;
 
-class FAGX_WireDetailsRuntime : public IDetailCustomNodeBuilder
+class AGXUNREALEDITOR_API FAGX_WireDetailsRuntime : public IDetailCustomNodeBuilder
 {
 public:
 	FAGX_WireDetailsRuntime(IDetailLayoutBuilder& InDetailBuilder);

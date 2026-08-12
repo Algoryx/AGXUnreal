@@ -69,6 +69,7 @@ struct AGXUNREALBARRIER_API FShapeBarrier
 	void SetLocalPosition(const FVector& Position);
 	void SetLocalRotation(const FQuat& Rotation);
 
+	// Relative a Rigid Body (if it exists).
 	FVector GetLocalPosition() const;
 	FQuat GetLocalRotation() const;
 	std::tuple<FVector, FQuat> GetLocalPositionAndRotation() const;

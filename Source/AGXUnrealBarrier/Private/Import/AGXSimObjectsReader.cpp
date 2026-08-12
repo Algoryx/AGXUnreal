@@ -8,9 +8,11 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "Cable/CableBarrier.h"
 #include "Import/SimulationObjectCollection.h"
 #include "ObserverFrameBarrier.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/SensorRef.h"
@@ -18,6 +20,7 @@
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
@@ -25,6 +28,7 @@
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/AllocationUtils.h"
+#include "agxOpenPLX/OpenPlxToAgxVisualsMapper.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -43,7 +47,9 @@
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
 #include <agxSensor/Environment.h>
+#include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
@@ -70,6 +76,9 @@
 
 // Unreal Engine inludes.
 #include "Misc/Paths.h"
+
+// Standard library includes.
+#include <memory>
 
 namespace
 {
@@ -106,6 +115,15 @@ namespace
 					agxCollide::Capsule* Capsule {Shape->as<agxCollide::Capsule>()};
 					OutSimObjects.GetCapsuleShapes().Add(
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
+					break;
+				}
+				case agxCollide::Shape::TIRE_SHAPE:
+				{
+					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// internally by TerrainWheel and still uses type Cylinder.
+					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
+					OutSimObjects.GetCylinderShapes().Add(
+						AGXBarrierFactories::CreateCylinderShapeBarrier(Cylinder));
 					break;
 				}
 				case agxCollide::Shape::TRIMESH:
@@ -248,6 +266,20 @@ namespace
 				continue;
 			}
 			OutSimObjects.GetRigidBodies().Add(AGXBarrierFactories::CreateRigidBodyBarrier(Body));
+		}
+	}
+
+	void ReadTerrainWheels(
+		agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxTerrain::TerrainWheelPtrVector Wheels = agxTerrain::TerrainWheel::findAll(&Simulation);
+		for (agxTerrain::TerrainWheel* Wheel : Wheels)
+		{
+			if (Wheel == nullptr)
+				continue;
+
+			OutSimObjects.GetTerrainWheels().Add(
+				AGXBarrierFactories::CreateTerrainWheelBarrier(Wheel));
 		}
 	}
 
@@ -602,12 +634,21 @@ namespace
 			return;
 
 		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
-		OutSimObjects.GetSensors().Reserve(Lidars.size());
+		agxSensor::IMUPtrVector IMUs = agxSensor::IMU::findAll(Env);
+		OutSimObjects.GetSensors().Reserve(Lidars.size() + IMUs.size());
 		for (agxSensor::Lidar* LidarAGX : Lidars)
 		{
 			auto StepStride = LidarAGX->findParent<agxSensor::SensorGroupStepStride>();
 			OutSimObjects.GetSensors().Emplace(
 				std::make_shared<FSensorRef>(LidarAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
+		}
+
+		for (agxSensor::IMU* IMUAGX : IMUs)
+		{
+			auto StepStride = IMUAGX->findParent<agxSensor::SensorGroupStepStride>();
+			OutSimObjects.GetSensors().Emplace(
+				std::make_shared<FSensorRef>(IMUAGX),
 				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
 		}
 	}
@@ -616,7 +657,7 @@ namespace
 	{
 		// These contain objects that are not free-standing but owned by something else and will
 		// be created by that something else. Should not result in Actor Components in the imported
-		// Actor or Blueprint.
+		// Actor or Blueprint, or new Assets in the Content Browser.
 		TSet<const agx::RigidBody*> NonFreeBodies;
 		TSet<const agxCollide::Geometry*> NonFreeGeometries;
 		TSet<const agx::Constraint*> NonFreeConstraints;
@@ -633,6 +674,7 @@ namespace
 		ReadMaterials(Simulation, OutSimObjects, NonFreeMaterials, NonFreeContactMaterials);
 		ReadGeometries(Simulation, OutSimObjects, NonFreeGeometries);
 		ReadRigidBodies(Simulation, OutSimObjects, NonFreeBodies);
+		ReadTerrainWheels(Simulation, OutSimObjects);
 		ReadTracks(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadCables(Simulation, OutSimObjects, NonFreeConstraints);
 		ReadConstraints(Simulation, OutSimObjects, NonFreeConstraints);
@@ -640,6 +682,33 @@ namespace
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
 		ReadSensors(Simulation, OutSimObjects);
+	}
+
+	void ReadOpenPLXMaterials(
+		agxopenplx::LoadResult& Result, FSimulationObjectCollection& OutSimObjects)
+	{
+		auto VisualsMapper = Result.toAgxVisualsMapper();
+		if (VisualsMapper == nullptr)
+			return;
+
+		TMap<FGuid, FOpenPLXMaterialBarrier>& MaterialOverrides =
+			OutSimObjects.GetPLXMaterialOverrides();
+		const auto& MappedMaterials = VisualsMapper->getMappedMaterials();
+		MaterialOverrides.Reserve(
+			MaterialOverrides.Num() + static_cast<int32>(MappedMaterials.size()));
+
+		for (const auto& Pair : MappedMaterials)
+		{
+			const std::shared_ptr<openplx::Physics::Optics::Material>& OpenPLXMaterial = Pair.first;
+			const agxCollide::RenderMaterialRef& RenderMaterial = Pair.second;
+			if (OpenPLXMaterial == nullptr || RenderMaterial == nullptr)
+				continue;
+
+			const FGuid RenderMaterialGuid = Convert(RenderMaterial->getUuid());
+			MaterialOverrides.Add(
+				RenderMaterialGuid,
+				FOpenPLXMaterialBarrier(std::make_shared<FOpenPLXMaterialRef>(OpenPLXMaterial)));
+		}
 	}
 }
 
@@ -748,6 +817,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	agxSDK::AssemblyRef AssemblyAGX = Result.assembly();
 	Simulation->add(AssemblyAGX);
 	::ReadAll(*Simulation, OutSimObjects);
+	::ReadOpenPLXMaterials(Result, OutSimObjects);
 
 	// Read OpenPLX inputs.
 	auto System = std::dynamic_pointer_cast<openplx::Physics3D::System>(Result.scene());

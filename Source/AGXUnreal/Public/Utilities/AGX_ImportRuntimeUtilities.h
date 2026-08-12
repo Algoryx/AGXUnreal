@@ -50,6 +50,15 @@ public:
 	/**
 	 * In some cases, for example in the case of OpenPLX imports, many Barrier names will start with
 	 * the root model name (the System name). This function returns the Barrier name with the root
+	 * model name removed from the beginning (if applicable). This overload should only be used on
+	 * names that are associated with Component-type objects.
+	 */
+	static FString RemoveModelNameFromBarrierName(
+		const FString& BarrierName, FAGX_ImportContext* Context);
+
+	/**
+	 * In some cases, for example in the case of OpenPLX imports, many Barrier names will start with
+	 * the root model name (the System name). This function returns the Barrier name with the root
 	 * model name removed from the beginning (if applicable).
 	 */
 	template <typename ObjectType>
@@ -61,10 +70,6 @@ public:
 			std::is_base_of_v<UActorComponent, ObjectT>,
 			"RemoveModelNameFromBarrierName can only be called with UActorComponent-derived types.");
 		(void) Object; // Unused warning fix.
-		return RemoveModelNameFromBarrierNameImpl(BarrierName, Context);
+		return RemoveModelNameFromBarrierName(BarrierName, Context);
 	}
-
-private:
-	static FString RemoveModelNameFromBarrierNameImpl(
-		const FString& BarrierName, FAGX_ImportContext* Context);
 };

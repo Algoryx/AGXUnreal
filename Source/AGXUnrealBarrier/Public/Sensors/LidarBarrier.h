@@ -35,15 +35,13 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 		std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride);
 	virtual ~FLidarBarrier() override = default;
 
-	static bool IsLidar(const FSensorBarrier& Sensor);
-
 	EAGX_LidarModel GetModel() const;
 
 	void AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelParameters& Params);
 	void AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& PatternFetcher);
 
-	void SetTransform(const FTransform& Transform);
-	FTransform GetTransform() const;
+	void SetLocalTransform(const FTransform& Transform);
+	FTransform GetLocalTransform() const;
 
 	void SetRange(FAGX_RealInterval Range);
 	FAGX_RealInterval GetRange() const;
@@ -84,4 +82,6 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 	void AddOutput(FLidarOutputBarrier& Output);
 
 	void MarkOutputAsRead();
+
+	static bool IsLidar(const FSensorBarrier& Sensor);
 };

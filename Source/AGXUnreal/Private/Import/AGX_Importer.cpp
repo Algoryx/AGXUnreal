@@ -33,8 +33,11 @@
 #include "Materials/ShapeMaterialBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
@@ -44,8 +47,11 @@
 #include "Shapes/AGX_SphereShapeComponent.h"
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
+#include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainWheelBarrier.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
@@ -64,6 +70,7 @@
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Engine/Texture2D.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopedSlowTask.h"
 #include "UObject/Package.h"
@@ -184,6 +191,9 @@ namespace AGX_Importer_helpers
 		if constexpr (std::is_base_of_v<UAGX_ConstraintComponent, T>)
 			return *Context.Constraints.Get();
 
+		if constexpr (std::is_base_of_v<UAGX_TerrainWheelComponent, T>)
+			return *Context.TerrainWheels.Get();
+
 		if constexpr (std::is_base_of_v<UAGX_TwoBodyTireComponent, T>)
 			return *Context.Tires.Get();
 
@@ -225,8 +235,8 @@ namespace AGX_Importer_helpers
 	{
 		if (Settings.ImportType == EAGX_ImportType::Plx)
 		{
-			if (!Settings.FilePath.IsEmpty() && !Settings.FilePath.StartsWith(
-					FOpenPLXUtilities::GetModelsDirectory()))
+			if (!Settings.FilePath.IsEmpty() &&
+				!Settings.FilePath.StartsWith(FOpenPLXUtilities::GetModelsDirectory()))
 			{
 				UE_LOG(
 					LogAGX, Error, TEXT("OpenPLX file must reside in '%s'."),
@@ -285,7 +295,7 @@ namespace AGX_Importer_helpers
 			}
 		}
 	}
-	
+
 	void ConditionallyDisableConstraints(
 		const FSimulationObjectCollection& SimObjects, FAGX_ImportContext& Context)
 	{
@@ -349,6 +359,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.RigidBodies = MakeUnique<TMap<FGuid, UAGX_RigidBodyComponent*>>();
 	Context.Shapes = MakeUnique<TMap<FGuid, UAGX_ShapeComponent*>>();
 	Context.Constraints = MakeUnique<TMap<FGuid, UAGX_ConstraintComponent*>>();
+	Context.TerrainWheels = MakeUnique<TMap<FGuid, UAGX_TerrainWheelComponent*>>();
 	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
 	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
 	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
@@ -361,6 +372,8 @@ FAGX_Importer::FAGX_Importer()
 	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
 	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
+	Context.Textures = MakeUnique<TMap<FGuid, UTexture2D*>>();
+	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
 	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
 	Context.MSThresholds = MakeUnique<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>>();
@@ -368,6 +381,7 @@ FAGX_Importer::FAGX_Importer()
 	Context.ContactMaterials = MakeUnique<TMap<FGuid, UAGX_ContactMaterial*>>();
 	Context.ShovelProperties = MakeUnique<TMap<FGuid, UAGX_ShovelProperties*>>();
 	Context.SteeringParameters = MakeUnique<TMap<FGuid, UAGX_SteeringParameters*>>();
+	Context.TerrainWheelSettings = MakeUnique<TMap<FGuid, UAGX_TerrainWheelSettings*>>();
 	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
 	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
 	Context.LidarModelParameters = MakeUnique<TMap<FGuid, UAGX_LidarModelParameters*>>();
@@ -395,6 +409,9 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	FSimulationObjectCollection SimObjects;
 	if (!CreateSimulationObjectCollection(Settings, SimObjects))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
+
+	if (Settings.ImportType == EAGX_ImportType::Plx)
+		*Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
 
 	Context.RootModelName = SimObjects.GetModelName();
 
@@ -470,6 +487,8 @@ EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
 	Component->SourceFilePath = Context.Settings->SourceFilePath;
 	Component->bRuntimeImport = Context.Settings->bRuntimeImport;
 	Component->bIgnoreDisabledTrimeshes = Context.Settings->bIgnoreDisabledTrimeshes;
+	Component->bAdditionalyImportUnmodifiedTextures =
+		Context.Settings->bAdditionalyImportUnmodifiedTextures;
 	Component->Rename(*Name);
 
 	/*
@@ -733,6 +752,18 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 
 	{
 		FScopedSlowTask T(
+			(float) SimObjects.GetTerrainWheels().Num(), FText::FromString("TerrainWheels"));
+		for (const auto& Wheel : SimObjects.GetTerrainWheels())
+		{
+			T.EnterProgressFrame(
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Wheel.GetName())));
+			Res |= AddComponent<UAGX_TerrainWheelComponent, FTerrainWheelBarrier>(
+				Wheel, *Root, OutActor);
+		}
+	}
+
+	{
+		FScopedSlowTask T(
 			(float) SimObjects.GetTwoBodyTires().Num(), FText::FromString("TwoBodyTires"));
 		for (const auto& Tire : SimObjects.GetTwoBodyTires())
 		{
@@ -797,11 +828,14 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 		for (const auto& Sensor : SimObjects.GetSensors())
 		{
 			T.EnterProgressFrame(
-				1.f,
-				FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
+				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
 			if (FLidarBarrier::IsLidar(Sensor))
 			{
 				Res |= AddLidar(Sensor, OutActor);
+			}
+			else if (FIMUBarrier::IsIMU(Sensor))
+			{
+				Res |= AddIMU(Sensor, OutActor);
 			}
 			else
 			{
@@ -904,6 +938,27 @@ EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& 
 	return AddComponent<UAGX_LidarSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
+EAGX_ImportResult FAGX_Importer::AddIMU(const FSensorBarrier& Sensor, AActor& OutActor)
+{
+	const FIMUBarrier& IMU = static_cast<const FIMUBarrier&>(Sensor);
+	if (!IMU.HasAtMostOneSubsensorOfSameType())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("IMU sensor '%s' has more than one subsensor of the same type. This configuration "
+				 "is not supported and the IMU will not be imported. You may instead create "
+				 "several IMU sensors to ensure at most one subsensor of a certain type is used in "
+				 "each IMU sensor."),
+			*IMU.GetName());
+		return EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	// Note: an IMU Sensor should never be child of a Rigid Body.
+	// The Rigid Body is selected from its Details Panel.
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	return AddComponent<UAGX_IMUSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
+}
+
 EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
@@ -930,5 +985,14 @@ void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
 		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
+
+		if (Context.Settings->bRuntimeImport)
+		{
+			// Todo: This is a workaround for runtime imported materials using Textures.
+			// For some reason, it seems Mips are not generated/selected correctly
+			// for textures that have NeverStream false when doing runtime imports.
+			for (auto [FGuid, Texture] : *Context.Textures)
+				Texture->NeverStream = true;
+		}
 	}
 }

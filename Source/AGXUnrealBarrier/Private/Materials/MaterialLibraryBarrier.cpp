@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Environment.h"
 #include "AGXBarrierFactories.h"
+#include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 
 // AGX Dynamics includes.
@@ -19,6 +20,9 @@
 // Unreal Engine includes.
 #include "Misc/Paths.h"
 
+// Standard libary includes.
+#include <memory>
+
 namespace MaterialLibraryBarrier_helpers
 {
 	TArray<FString> GetAvailableLibraryMaterialsAny(agx::MaterialLibrary::LibraryItemType Type)
@@ -28,11 +32,7 @@ namespace MaterialLibraryBarrier_helpers
 		NamesUnreal.Reserve(NamesAGX.size());
 		for (const agx::String& NameAGX : NamesAGX)
 		{
-			const FString NameUnreal = Convert(NameAGX);
-			if (NameUnreal.StartsWith(TEXT("internal"))) // TODO: internal issue 1189
-				continue;
-
-			NamesUnreal.Add(NameUnreal);
+			NamesUnreal.Add(Convert(NameAGX));
 		}
 
 		// Must be called to avoid crash due to different allocators used by AGX Dynamics and
