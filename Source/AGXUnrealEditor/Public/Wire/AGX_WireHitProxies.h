@@ -19,7 +19,7 @@ class UAGX_WireWinchComponent;
 /**
  * Data associated with clickable node visualization elements.
  */
-class HAGX_WireNodeProxy : public HComponentVisProxy
+class AGXUNREALEDITOR_API HAGX_WireNodeProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
 
@@ -34,7 +34,7 @@ class HAGX_WireNodeProxy : public HComponentVisProxy
 	int32 NodeIndex;
 };
 
-class HWinchLocationProxy : public HComponentVisProxy
+class AGXUNREALEDITOR_API HWinchLocationProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY();
 
@@ -54,7 +54,7 @@ class HWinchLocationProxy : public HComponentVisProxy
 	EWireSide Side;
 };
 
-class HWinchDirectionProxy : public HComponentVisProxy
+class AGXUNREALEDITOR_API HWinchDirectionProxy : public HComponentVisProxy
 {
 	DECLARE_HIT_PROXY()
 

@@ -14,6 +14,7 @@ struct FAGX_CableNodeInfo;
 struct FCableNodeBarrier;
 struct FCablePropertiesBarrier;
 struct FCableRef;
+class FShapeMaterialBarrier;
 
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FCableBarrier
@@ -30,6 +31,10 @@ struct AGXUNREALBARRIER_API FCableBarrier
 	FCablePropertiesBarrier GetCableProperties() const;
 
 	void SetCablePropertiesToDefault();
+
+	void ClearMaterial();
+	void SetMaterial(const FShapeMaterialBarrier& Material);
+	FShapeMaterialBarrier GetMaterial() const;
 
 	TArray<FAGX_CableNodeInfo> GetNodeInfo() const;
 

@@ -37,6 +37,15 @@ struct AGXUNREAL_API FAGX_ImportSettings
 	bool bOpenBlueprintEditorAfterImport = true;
 
 	/**
+	 * Only relevant when importing OpenPLX files.
+	 * All textures are imported "raw"/unmodified as a separate step.
+	 * Useful when you want to create your own Render Materials using the original Texture files
+	 * present in the model.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGX Import")
+	bool bAdditionalyImportUnmodifiedTextures = false;
+
+	/**
 	 * Only relevant for URDF files.
 	 * The path to the URDF package directory. Corresponds to the `package` part of any filepath
 	 * in the .urdf file, typically used for pointing at mesh files. Can be left empty if the

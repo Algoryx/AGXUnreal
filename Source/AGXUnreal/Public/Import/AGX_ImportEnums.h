@@ -17,7 +17,7 @@ enum class EAGX_ImportType : uint8
 	Agx,
 
 	/** Imported type is an OpenPLX model. */
-	Plx,
+	Plx UMETA(DisplayName = "OpenPLX"),
 
 	/** Imported type is a URDF (Unified Robotic Description Format) model. */
 	Urdf

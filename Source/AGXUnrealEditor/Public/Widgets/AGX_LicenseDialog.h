@@ -5,7 +5,7 @@
 // Unreal Engine includes.
 #include "Widgets/SCompoundWidget.h"
 
-class SAGX_LicenseDialog : public SCompoundWidget
+class AGXUNREALEDITOR_API SAGX_LicenseDialog : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SAGX_LicenseDialog)

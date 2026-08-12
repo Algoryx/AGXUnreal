@@ -40,7 +40,7 @@ struct FAutoFitMeshLocation
 	const enum EAGX_MeshLocation MeshLocation;
 };
 
-class FAGX_AutoFitShapeDetails : public IDetailCustomNodeBuilder,
+class AGXUNREALEDITOR_API FAGX_AutoFitShapeDetails : public IDetailCustomNodeBuilder,
 								 public TSharedFromThis<FAGX_AutoFitShapeDetails>
 {
 public:

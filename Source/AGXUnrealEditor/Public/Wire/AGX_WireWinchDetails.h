@@ -14,7 +14,7 @@ class UAGX_WireWinchComponent;
 
 class IDetailLayoutBuilder;
 
-class FAGX_WireWinchDetails : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_WireWinchDetails : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();

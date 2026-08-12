@@ -11,7 +11,7 @@ class IDetailLayoutBuilder;
  * A group in the Details panel for Rigid Body that displays data that isn't an Unreal Engine
  * property, things that are internal to the simulation but still interesting for the user.
  */
-class FAGX_RigidBodyCustomizationRuntime : public IDetailCustomNodeBuilder
+class AGXUNREALEDITOR_API FAGX_RigidBodyCustomizationRuntime : public IDetailCustomNodeBuilder
 {
 public:
 	FAGX_RigidBodyCustomizationRuntime(IDetailLayoutBuilder& InDetailBuilder);

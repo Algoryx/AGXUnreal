@@ -18,6 +18,7 @@
 #include "Sensors/AGX_CustomPatternInterval.h"
 #include "Sensors/AGX_LidarEnums.h"
 #include "Terrain/AGX_ShovelEnums.h"
+#include "Terrain/AGX_TerrainWheelEnums.h"
 #include "Tires/TwoBodyTireBarrier.h"
 #include "Utilities/DoubleInterval.h"
 #include "Vehicle/AGX_TrackEnums.h"
@@ -52,6 +53,7 @@
 #include <agxSensor/LidarRayPatternGenerator.h>
 #include <agxSDK/ContactEventListener.h>
 #include <agxTerrain/Shovel.h>
+#include <agxTerrain/TerrainWheelSettings.h>
 #include <agxUtil/agxUtil.h>
 #include <agxVehicle/TrackInternalMergeProperties.h>
 #include <agxVehicle/TrackWheel.h>
@@ -104,11 +106,29 @@
 // distance in an Unreal Engine type.
 //
 //
-// ConvertUNITFloat
+// Convert<UNIT>Float
 //
 // The Float-suffix is added when the parameter type based overload produces the correct unit
 // conversion but where the default conversion would produce a double, or double composite type, but
 // we need a float, or a float composite.
+
+template <typename T>
+TOptional<T> Convert(const std::optional<T>& Value)
+{
+	if (Value)
+		return *Value;
+	else
+		return {};
+}
+
+template <typename T>
+std::optional<T> Convert(TOptional<T>& Value)
+{
+	if (Value)
+		return *Value;
+	else
+		return {};
+}
 
 template <typename T>
 constexpr T AGX_TO_UNREAL_DISTANCE_FACTOR = T(100.0);
@@ -434,6 +454,25 @@ inline agx::VectorPOD<DestT> ConvertArray(const TArray<SourceT>& V)
 
 // Rotation-related.
 
+inline FVector ConvertAngle(const agx::Vec3& V)
+{
+	// clang-format off
+	return FVector(
+		 ConvertAngleToUnreal<decltype(FVector::X)>(V.x()),
+		-ConvertAngleToUnreal<decltype(FVector::X)>(V.y()),
+		-ConvertAngleToUnreal<decltype(FVector::X)>(V.z()));
+	// clang-format on
+}
+
+inline FVector ConvertRPY(const agx::Vec3& V)
+{
+	return FVector(
+		ConvertAngleToUnreal<decltype(FVector::X)>(V.x()),
+		ConvertAngleToUnreal<decltype(FVector::X)>(V.y()),
+		ConvertAngleToUnreal<decltype(FVector::X)>(V.z()));
+}
+
+
 inline FVector ConvertAngularVelocity(const agx::Vec3& V)
 {
 	/*
@@ -559,12 +598,33 @@ inline agx::Vec3f ConvertFloatDisplacement(const FVector& V)
 
 // Rotation-related.
 
+inline agx::Vec3 ConvertAngle(const FVector& V)
+{
+	// See comment in the AGX-to-Unreal version of this function.
+	// clang-format off
+	return agx::Vec3(
+		 ConvertAngleToAGX(V.X),
+		-ConvertAngleToAGX(V.Y),
+		-ConvertAngleToAGX(V.Z));
+	// clang-format on
+}
+
+inline agx::Vec3 ConvertRPY(const FVector& V)
+{
+	// clang-format off
+	return agx::Vec3(
+		ConvertAngleToAGX(V.X),
+		ConvertAngleToAGX(V.Y),
+		ConvertAngleToAGX(V.Z));
+	// clang-format on
+}
+
 inline agx::Vec3 ConvertAngularVelocity(const FVector& V)
 {
 	// See comment in the AGX-to-Unreal version of this function.
 	// clang-format off
 	return agx::Vec3(
-		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		 ConvertToAGX(FMath::DegreesToRadians(V.X)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
 	// clang-format on
@@ -575,7 +635,7 @@ inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
 	// Similar to ConvertAngularVelocity.
 	// clang-format off
 	return agx::Vec3(
-		ConvertToAGX(FMath::DegreesToRadians(V.X)),
+		 ConvertToAGX(FMath::DegreesToRadians(V.X)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Y)),
 		-ConvertToAGX(FMath::DegreesToRadians(V.Z)));
 	// clang-format on
@@ -583,11 +643,14 @@ inline agx::Vec3 ConvertAngularAcceleration(const FVector& V)
 
 inline agx::Vec3 ConvertTorque(const FVector& V)
 {
-	/*
-	 * Following a similar logic as ConvertAngularVelocity for the axis directions, but no unit
-	 * conversion since we use Nm in both AGX Dynamics and Unreal Engine.
-	 */
-	return {ConvertToAGX(V.X), -ConvertToAGX(V.Y), -ConvertToAGX(V.Z)};
+	// Following a similar logic as ConvertAngularVelocity for the axis directions, but no unit
+	// conversion since we use Nm in both AGX Dynamics and Unreal Engine.
+	// clang-format off
+	return {
+		 ConvertToAGX(V.X),
+		-ConvertToAGX(V.Y),
+		-ConvertToAGX(V.Z)};
+	// clang-format on
 }
 
 //
@@ -1066,9 +1129,10 @@ inline agxVehicle::WheelJoint::SecondaryConstraint Convert(EAGX_WheelJointSecond
 
 	UE_LOG(
 		LogAGX, Warning,
-		TEXT("Conversion failed: tried to convert an EAGX_WheelJointSecondaryConstraint enum "
-			 "literal to a agxVehicle::WheelJoint::SecondaryConstraint enum literal, but got "
-			 "unsupported or unknown enum literal. Returning Steering."));
+		TEXT(
+			"Conversion failed: tried to convert an EAGX_WheelJointSecondaryConstraint enum "
+			"literal to a agxVehicle::WheelJoint::SecondaryConstraint enum literal, but got "
+			"unsupported or unknown enum literal. Returning Steering."));
 	return agxVehicle::WheelJoint::STEERING;
 }
 
@@ -1091,9 +1155,10 @@ inline EAGX_WheelJointSecondaryConstraint Convert(agxVehicle::WheelJoint::Second
 
 	UE_LOG(
 		LogAGX, Warning,
-		TEXT("Conversion failed: tried to convert a agxVehicle::WheelJoint::SecondaryConstraint "
-			 "enum literal to a EAGX_WheelJointSecondaryConstraint enum literal, but got "
-			 "unsupported or unknown enum literal. Returning Steering."));
+		TEXT(
+			"Conversion failed: tried to convert a agxVehicle::WheelJoint::SecondaryConstraint "
+			"enum literal to a EAGX_WheelJointSecondaryConstraint enum literal, but got "
+			"unsupported or unknown enum literal. Returning Steering."));
 	return EAGX_WheelJointSecondaryConstraint::Steering;
 }
 
@@ -1115,9 +1180,10 @@ inline agxSensor::LidarRayAngleGaussianNoise::Axis Convert(EAGX_LidarRayAngleDis
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "EAGX_LidarRayAngleDistortionAxis literal with unknown value to "
-			 "an agxSensor::LidarRayAngleGaussianNoise::Axis literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"EAGX_LidarRayAngleDistortionAxis literal with unknown value to "
+			"an agxSensor::LidarRayAngleGaussianNoise::Axis literal."));
 	return agxSensor::LidarRayAngleGaussianNoise::Axis::AXIS_X;
 }
 
@@ -1135,9 +1201,10 @@ inline EAGX_LidarRayAngleDistortionAxis Convert(agxSensor::LidarRayAngleGaussian
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "agxSensor::LidarRayAngleGaussianNoise::Axis literal with unknown value to "
-			 "an EAGX_LidarRayAngleDistortionAxis literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"agxSensor::LidarRayAngleGaussianNoise::Axis literal with unknown value to "
+			"an EAGX_LidarRayAngleDistortionAxis literal."));
 	return EAGX_LidarRayAngleDistortionAxis::AxisX;
 }
 
@@ -1155,9 +1222,10 @@ inline agxSensor::LidarModelOusterOS::ChannelCount Convert(EAGX_OusterOSChannelC
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "EAGX_OusterOSChannelCount literal with unknown value to "
-			 "an agxSensor::LidarModelOusterOS::ChannelCount literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"EAGX_OusterOSChannelCount literal with unknown value to "
+			"an agxSensor::LidarModelOusterOS::ChannelCount literal."));
 	return agxSensor::LidarModelOusterOS::ch_32;
 }
 
@@ -1175,9 +1243,10 @@ inline EAGX_OusterOSChannelCount Convert(agxSensor::LidarModelOusterOS::ChannelC
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "agxSensor::LidarModelOusterOS::ChannelCount literal with unknown value to "
-			 "an EAGX_OusterOSChannelCount literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"agxSensor::LidarModelOusterOS::ChannelCount literal with unknown value to "
+			"an EAGX_OusterOSChannelCount literal."));
 	return EAGX_OusterOSChannelCount::CH_32;
 }
 
@@ -1195,9 +1264,10 @@ inline agxSensor::LidarModelOusterOS::BeamSpacing Convert(EAGX_OusterOSBeamSpaci
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "EAGX_OusterOSBeamSpacing literal with unknown value to "
-			 "an agxSensor::LidarModelOusterOS::BeamSpacing literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"EAGX_OusterOSBeamSpacing literal with unknown value to "
+			"an agxSensor::LidarModelOusterOS::BeamSpacing literal."));
 	return agxSensor::LidarModelOusterOS::Uniform;
 }
 
@@ -1215,9 +1285,10 @@ inline EAGX_OusterOSBeamSpacing Convert(agxSensor::LidarModelOusterOS::BeamSpaci
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "agxSensor::LidarModelOusterOS::BeamSpacing literal with unknown value to "
-			 "an EAGX_OusterOSBeamSpacing literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"agxSensor::LidarModelOusterOS::BeamSpacing literal with unknown value to "
+			"an EAGX_OusterOSBeamSpacing literal."));
 	return EAGX_OusterOSBeamSpacing::Uniform;
 }
 
@@ -1239,9 +1310,10 @@ inline agxSensor::LidarModelOusterOS::LidarMode Convert(EAGX_OusterOSMode Mode)
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "EAGX_OusterOSMode literal with unknown value to "
-			 "an agxSensor::LidarModelOusterOS::LidarMode literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"EAGX_OusterOSMode literal with unknown value to "
+			"an agxSensor::LidarModelOusterOS::LidarMode literal."));
 	return agxSensor::LidarModelOusterOS::Mode_512x10;
 }
 
@@ -1263,9 +1335,10 @@ inline EAGX_OusterOSMode Convert(agxSensor::LidarModelOusterOS::LidarMode Mode)
 
 	UE_LOG(
 		LogAGX, Error,
-		TEXT("Conversion failed: Tried to convert an "
-			 "agxSensor::LidarModelOusterOS::LidarMode literal with unknown value to "
-			 "an EAGX_OusterOSMode literal."));
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"agxSensor::LidarModelOusterOS::LidarMode literal with unknown value to "
+			"an EAGX_OusterOSMode literal."));
 	return EAGX_OusterOSMode::Mode_512x10;
 }
 
@@ -1290,9 +1363,10 @@ inline agx::FrictionModel::SolveType Convert(EAGX_ContactSolver ContactSolver)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an "
-					 "EAGX_ContactSolver literal with unknown value to "
-					 "an agxModel::FrictionModel::SolveType literal."));
+				TEXT(
+					"Conversion failed: Tried to convert an "
+					"EAGX_ContactSolver literal with unknown value to "
+					"an agxModel::FrictionModel::SolveType literal."));
 			return agx::FrictionModel::SolveType::NOT_DEFINED;
 	}
 }
@@ -1314,9 +1388,10 @@ inline EAGX_ContactSolver Convert(agx::FrictionModel::SolveType SolveType)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an "
-					 "EAGX_ContactSolver literal with unknown value to "
-					 "an agxModel::FrictionModel::SolveType literal."));
+				TEXT(
+					"Conversion failed: Tried to convert an "
+					"EAGX_ContactSolver literal with unknown value to "
+					"an agxModel::FrictionModel::SolveType literal."));
 			return EAGX_ContactSolver::NotDefined;
 	}
 }
@@ -1334,8 +1409,9 @@ inline agx::ContactMaterial::ContactReductionMode Convert(EAGX_ContactReductionM
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an EAGX_ContactReductionMode literal "
-					 "with unknown value to an agx::ContactMaterial::ContactReductionMode."))
+				TEXT(
+					"Conversion failed: Tried to convert an EAGX_ContactReductionMode literal "
+					"with unknown value to an agx::ContactMaterial::ContactReductionMode."))
 			return agx::ContactMaterial::ContactReductionMode::REDUCE_NONE;
 	}
 }
@@ -1357,9 +1433,10 @@ inline agx::UInt8 ConvertContactReductionLevelToAGX(
 		{
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an EAGX_ContactReductionLevel literal "
-					 "with unknown value to an agx::UInt8. Default contact reduction level is "
-					 "returned."))
+				TEXT(
+					"Conversion failed: Tried to convert an EAGX_ContactReductionLevel literal "
+					"with unknown value to an agx::UInt8. Default contact reduction level is "
+					"returned."))
 			return 0;
 		}
 	}
@@ -1378,9 +1455,10 @@ inline EAGX_ContactReductionMode Convert(agx::ContactMaterial::ContactReductionM
 		default:
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Conversion failed: Tried to convert an "
-					 "agx::ContactMaterial::ContactReductionMode "
-					 "with unknown value to an EAGX_ContactReductionMode."));
+				TEXT(
+					"Conversion failed: Tried to convert an "
+					"agx::ContactMaterial::ContactReductionMode "
+					"with unknown value to an EAGX_ContactReductionMode."));
 			return EAGX_ContactReductionMode::None;
 	}
 }
@@ -1400,9 +1478,10 @@ inline EAGX_ContactReductionLevel ConvertContactReductionLevelToUnreal(agx::UInt
 		default:
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Tried to convert an agx::UInt8: %d to an EAGX_ContactReductionLevel, but the "
-					 "value is larger than the corresponding largest enum literal. Returning "
-					 "EAGX_ContactReductionLevel::Minimal."),
+				TEXT(
+					"Tried to convert an agx::UInt8: %d to an EAGX_ContactReductionLevel, but the "
+					"value is larger than the corresponding largest enum literal. Returning "
+					"EAGX_ContactReductionLevel::Minimal."),
 				Level);
 			AGX_CHECK(Level > static_cast<agx::UInt8>(EAGX_ContactReductionLevel::Minimal));
 			return EAGX_ContactReductionLevel::Minimal;
@@ -1428,9 +1507,10 @@ inline agxModel::TwoBodyTire::DeformationMode Convert(FTwoBodyTireBarrier::Defor
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an FTwoBodyTireBarrier::DeformationMode "
-					 "literal of unknown type to an agxModel::TwoBodyTire::DeformationMode "
-					 "literal. Returning agxModel::TwoBodyTire::RADIAL."));
+				TEXT(
+					"Conversion failed: Tried to convert an FTwoBodyTireBarrier::DeformationMode "
+					"literal of unknown type to an agxModel::TwoBodyTire::DeformationMode "
+					"literal. Returning agxModel::TwoBodyTire::RADIAL."));
 			return agxModel::TwoBodyTire::RADIAL;
 	}
 }
@@ -1450,10 +1530,11 @@ inline FTwoBodyTireBarrier::DeformationMode Convert(agxModel::TwoBodyTire::Defor
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an "
-					 "agxModel::TwoBodyTire::DeformationMode "
-					 "literal of unknown type to an FTwoBodyTireBarrier::DeformationMode "
-					 "literal. Returning FTwoBodyTireBarrier::DeformationMode::RADIAL."));
+				TEXT(
+					"Conversion failed: Tried to convert an "
+					"agxModel::TwoBodyTire::DeformationMode "
+					"literal of unknown type to an FTwoBodyTireBarrier::DeformationMode "
+					"literal. Returning FTwoBodyTireBarrier::DeformationMode::RADIAL."));
 			return FTwoBodyTireBarrier::DeformationMode::RADIAL;
 	}
 }
@@ -1461,6 +1542,46 @@ inline FTwoBodyTireBarrier::DeformationMode Convert(agxModel::TwoBodyTire::Defor
 //
 // Enumerations, Terrain.
 //
+
+inline agxTerrain::TerrainWheelSettings::PressureSinkageModel Convert(
+	EAGX_TerrainWheelPressureSinkageModel Model)
+{
+	switch (Model)
+	{
+		case EAGX_TerrainWheelPressureSinkageModel::Bekker:
+			return agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER;
+		case EAGX_TerrainWheelPressureSinkageModel::Reece:
+			return agxTerrain::TerrainWheelSettings::PressureSinkageModel::REECE;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown "
+			"EAGX_TerrainWheelPressureSinkageModel literal to an "
+			"agxTerrain::TerrainWheelSettings::PressureSinkageModel. Returning Bekker."));
+	return agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER;
+}
+
+inline EAGX_TerrainWheelPressureSinkageModel Convert(
+	agxTerrain::TerrainWheelSettings::PressureSinkageModel Model)
+{
+	switch (Model)
+	{
+		case agxTerrain::TerrainWheelSettings::PressureSinkageModel::BEKKER:
+			return EAGX_TerrainWheelPressureSinkageModel::Bekker;
+		case agxTerrain::TerrainWheelSettings::PressureSinkageModel::REECE:
+			return EAGX_TerrainWheelPressureSinkageModel::Reece;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown "
+			"agxTerrain::TerrainWheelSettings::PressureSinkageModel literal to an "
+			"EAGX_TerrainWheelPressureSinkageModel. Returning Bekker."));
+	return EAGX_TerrainWheelPressureSinkageModel::Bekker;
+}
 
 inline EAGX_ExcavationMode Convert(agxTerrain::Shovel::ExcavationMode Mode)
 {
@@ -1477,9 +1598,10 @@ inline EAGX_ExcavationMode Convert(agxTerrain::Shovel::ExcavationMode Mode)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown "
-					 "agxTerrain::Shovel::ExcavationMode "
-					 "literal to an EAGX_ExcavationMode."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown "
+					"agxTerrain::Shovel::ExcavationMode "
+					"literal to an EAGX_ExcavationMode."));
 			return EAGX_ExcavationMode::Primary;
 	}
 }
@@ -1499,8 +1621,9 @@ inline agxTerrain::Shovel::ExcavationMode Convert(EAGX_ExcavationMode Mode)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown EAGX_ExcavationMode "
-					 "literal to an agxTerrain::Shovel::ExcavationMode."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown EAGX_ExcavationMode "
+					"literal to an agxTerrain::Shovel::ExcavationMode."));
 			return agxTerrain::Shovel::ExcavationMode::PRIMARY;
 	}
 }
@@ -1522,8 +1645,9 @@ inline EAGX_TrackWheelModel Convert(agxVehicle::TrackWheel::Model Model)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown agxVehicle::TrackWheel::Model "
-					 "literal to an EAGX_TrackWheelModel."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown agxVehicle::TrackWheel::Model "
+					"literal to an EAGX_TrackWheelModel."));
 			return EAGX_TrackWheelModel::Idler;
 	}
 }
@@ -1541,8 +1665,9 @@ inline agxVehicle::TrackWheel::Model Convert(EAGX_TrackWheelModel Model)
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown EAGX_TrackWheelModel "
-					 "literal to an agxVehicle::TrackWheel::Model."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown EAGX_TrackWheelModel "
+					"literal to an agxVehicle::TrackWheel::Model."));
 			return agxVehicle::TrackWheel::IDLER;
 	}
 }
@@ -1563,9 +1688,10 @@ inline EAGX_MergedTrackNodeContactReduction Convert(
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown "
-					 "agxVehicle::TrackInternalMergeProperties::ContactReduction "
-					 "literal to an EAGX_MergedTrackNodeContactReduction."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown "
+					"agxVehicle::TrackInternalMergeProperties::ContactReduction "
+					"literal to an EAGX_MergedTrackNodeContactReduction."));
 			return EAGX_MergedTrackNodeContactReduction::None;
 	}
 }
@@ -1586,9 +1712,10 @@ inline agxVehicle::TrackInternalMergeProperties::ContactReduction Convert(
 		default:
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Conversion failed: Tried to convert an unknown "
-					 "EAGX_MergedTrackNodeContactReduction"
-					 "literal to an agxVehicle::TrackInternalMergeProperties::ContactReduction."));
+				TEXT(
+					"Conversion failed: Tried to convert an unknown "
+					"EAGX_MergedTrackNodeContactReduction"
+					"literal to an agxVehicle::TrackInternalMergeProperties::ContactReduction."));
 			return agxVehicle::TrackInternalMergeProperties::NONE;
 	}
 }
@@ -1693,8 +1820,9 @@ inline agx::Notify::NotifyLevel ConvertLogLevelVerbosity(ELogVerbosity::Type Log
 		default:
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("ConvertLogLevelVerbosity: unknown verbosity level: %d. Verbosity level "
-					 "'NOTIFY_INFO' will be used instead."),
+				TEXT(
+					"ConvertLogLevelVerbosity: unknown verbosity level: %d. Verbosity level "
+					"'NOTIFY_INFO' will be used instead."),
 				LogVerbosity);
 
 			// Use NOTIFY_INFO as default, if unknown log verbosity is given

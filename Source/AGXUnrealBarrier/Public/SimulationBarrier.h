@@ -32,6 +32,7 @@ struct FRigidBodyBarrier;
 struct FShapeBarrier;
 struct FSimulationRef;
 struct FSteeringBarrier;
+struct FTerrainWheelBarrier;
 
 class AGXUNREALBARRIER_API FSimulationBarrier
 {
@@ -59,6 +60,7 @@ public:
 	bool Add(FSteeringBarrier& Steering);
 	bool Add(FTerrainBarrier& Terrain);
 	bool Add(FTerrainPagerBarrier& Terrain);
+	bool Add(FTerrainWheelBarrier& Wheel);
 	bool Add(FTireBarrier& Tire);
 	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
@@ -79,6 +81,7 @@ public:
 	bool Remove(FSteeringBarrier& Steering);
 	bool Remove(FTerrainBarrier& Terrain);
 	bool Remove(FTerrainPagerBarrier& Terrain);
+	bool Remove(FTerrainWheelBarrier& Wheel);
 	bool Remove(FTireBarrier& Tire);
 	bool Remove(FTrackBarrier& Track);
 	bool Remove(FWireBarrier& Wire);

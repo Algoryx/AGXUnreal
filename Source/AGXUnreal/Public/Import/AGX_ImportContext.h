@@ -2,10 +2,14 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "OpenPLX/OpenPLXMaterialBarrier.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
 struct FAGX_ImportSettings;
+struct FOpenPLXMaterialBarrier;
 
 class UAGX_CableComponent;
 class UAGX_CableProperties;
@@ -23,6 +27,8 @@ class UAGX_ShovelComponent;
 class UAGX_ShovelProperties;
 class UAGX_SteeringComponent;
 class UAGX_SteeringParameters;
+class UAGX_TerrainWheelComponent;
+class UAGX_TerrainWheelSettings;
 class UAGX_TrackComponent;
 class UAGX_TrackInternalMergeProperties;
 class UAGX_TrackProperties;
@@ -33,6 +39,7 @@ class UMaterialInterface;
 class UOpenPLX_SignalHandlerComponent;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UTexture2D;
 class UWorld;
 
 /**
@@ -43,6 +50,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_RigidBodyComponent*>> RigidBodies;
 	TUniquePtr<TMap<FGuid, UAGX_ShapeComponent*>> Shapes;
 	TUniquePtr<TMap<FGuid, UAGX_ConstraintComponent*>> Constraints;
+	TUniquePtr<TMap<FGuid, UAGX_TerrainWheelComponent*>> TerrainWheels;
 	TUniquePtr<TMap<FGuid, UAGX_TwoBodyTireComponent*>> Tires;
 	TUniquePtr<TMap<FGuid, UAGX_ShovelComponent*>> Shovels;
 	TUniquePtr<TMap<FGuid, UAGX_SteeringComponent*>> Steerings;
@@ -62,6 +70,14 @@ struct AGXUNREAL_API FAGX_ImportContext
 	// The key is the GUID of the RenderMaterial.
 	TUniquePtr<TMap<FGuid, UMaterialInterface*>> RenderMaterials;
 
+	// The key is the GUID of the source texture.
+	TUniquePtr<TMap<FGuid, UTexture2D*>> Textures;
+
+	// This is a holder of material overrides coming from OpenPLX.
+	// Key is the GUID of a RenderMaterial in AGX, and the value is the
+	// corresponing OpenPLX Visual Material that will replace the AGX RenderMaterial.
+	TUniquePtr<TMap<FGuid, FOpenPLXMaterialBarrier>> PLXMaterialOverrides;
+
 	// For render meshes, the GUID is taken from the RenderData.
 	TUniquePtr<TMap<FGuid, UStaticMesh*>> RenderStaticMeshes;
 
@@ -73,6 +89,7 @@ struct AGXUNREAL_API FAGX_ImportContext
 	TUniquePtr<TMap<FGuid, UAGX_ContactMaterial*>> ContactMaterials;
 	TUniquePtr<TMap<FGuid, UAGX_ShovelProperties*>> ShovelProperties;
 	TUniquePtr<TMap<FGuid, UAGX_SteeringParameters*>> SteeringParameters;
+	TUniquePtr<TMap<FGuid, UAGX_TerrainWheelSettings*>> TerrainWheelSettings;
 	TUniquePtr<TMap<FGuid, UAGX_TrackProperties*>> TrackProperties;
 	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
 

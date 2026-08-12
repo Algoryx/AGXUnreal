@@ -20,7 +20,8 @@ bool UAGX_TerrainMaterial::operator==(const UAGX_TerrainMaterial& Other) const
 {
 	return TerrainBulk == Other.TerrainBulk && TerrainCompaction == Other.TerrainCompaction &&
 		   TerrainParticles == Other.TerrainParticles &&
-		   TerrainExcavationContact == Other.TerrainExcavationContact && Bulk == Other.Bulk &&
+		   TerrainExcavationContact == Other.TerrainExcavationContact &&
+		   TerrainTerramechanics == Other.TerrainTerramechanics && Bulk == Other.Bulk &&
 		   Surface == Other.Surface && Wire == Other.Wire;
 }
 
@@ -152,7 +153,8 @@ void UAGX_TerrainMaterial::SetDeltaReposeAngle(double DeltaReposeAngle)
 {
 	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
 		TerrainBulk.DeltaReposeAngle, DeltaReposeAngle, SetDeltaReposeAngle,
-		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+		HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
 }
 
 double UAGX_TerrainMaterial::GetDeltaReposeAngle() const
@@ -547,6 +549,214 @@ double UAGX_TerrainMaterial::GetMaximumContactDepth() const
 		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
 }
 
+// Terrain Terramechanics properties.
+
+void UAGX_TerrainMaterial::SetSinkageExponentParameterA(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.SinkageExponentParameterA, Value, SetSinkageExponentParameterA,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetSinkageExponentParameterA() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.SinkageExponentParameterA, GetSinkageExponentParameterA,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetSinkageExponentParameterB(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.SinkageExponentParameterB, Value, SetSinkageExponentParameterB,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetSinkageExponentParameterB() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.SinkageExponentParameterB, GetSinkageExponentParameterB,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetShearModulusTangentialParameterA(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusTangentialParameterA, Value,
+		SetShearModulusTangentialParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetShearModulusTangentialParameterA() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusTangentialParameterA,
+		GetShearModulusTangentialParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetShearModulusTangentialParameterB(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusTangentialParameterB, Value,
+		SetShearModulusTangentialParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetShearModulusTangentialParameterB() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusTangentialParameterB,
+		GetShearModulusTangentialParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetShearModulusLateralParameterA(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusLateralParameterA, Value,
+		SetShearModulusLateralParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetShearModulusLateralParameterA() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusLateralParameterA, GetShearModulusLateralParameterA,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetShearModulusLateralParameterB(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusLateralParameterB, Value,
+		SetShearModulusLateralParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetShearModulusLateralParameterB() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.ShearModulusLateralParameterB, GetShearModulusLateralParameterB,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetCohesiveModulusBekker(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.CohesiveModulusBekker, Value, SetCohesiveModulusBekker,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetCohesiveModulusBekker() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.CohesiveModulusBekker, GetCohesiveModulusBekker,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetFrictionalModulusBekker(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.FrictionalModulusBekker, Value, SetFrictionalModulusBekker,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetFrictionalModulusBekker() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.FrictionalModulusBekker, GetFrictionalModulusBekker,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetCohesiveModulusReece(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.CohesiveModulusReece, Value, SetCohesiveModulusReece,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetCohesiveModulusReece() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.CohesiveModulusReece, GetCohesiveModulusReece,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetFrictionalModulusReece(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.FrictionalModulusReece, Value, SetFrictionalModulusReece,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetFrictionalModulusReece() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.FrictionalModulusReece, GetFrictionalModulusReece,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetMaximumNormalStressAngleParameterA(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.MaximumNormalStressAngleParameterA, Value,
+		SetMaximumNormalStressAngleParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetMaximumNormalStressAngleParameterA() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.MaximumNormalStressAngleParameterA,
+		GetMaximumNormalStressAngleParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetMaximumNormalStressAngleParameterB(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.MaximumNormalStressAngleParameterB, Value,
+		SetMaximumNormalStressAngleParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetMaximumNormalStressAngleParameterB() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.MaximumNormalStressAngleParameterB,
+		GetMaximumNormalStressAngleParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetRearAngleParameterA(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.RearAngleParameterA, Value, SetRearAngleParameterA,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetRearAngleParameterA() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.RearAngleParameterA, GetRearAngleParameterA, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
+void UAGX_TerrainMaterial::SetRearAngleParameterB(double Value)
+{
+	AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.RearAngleParameterB, Value, SetRearAngleParameterB,
+		HasTerrainMaterialNative, TerrainMaterialNativeBarrier);
+}
+
+double UAGX_TerrainMaterial::GetRearAngleParameterB() const
+{
+	AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(
+		TerrainTerramechanics.RearAngleParameterB, GetRearAngleParameterB, HasTerrainMaterialNative,
+		TerrainMaterialNativeBarrier);
+}
+
 void UAGX_TerrainMaterial::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);
@@ -879,6 +1089,145 @@ void UAGX_TerrainMaterial::InitPropertyDispatcher()
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
 				TerrainExcavationContact.MaximumContactDepth, SetMaximumContactDepth)
 		});
+
+	// Terrain Terramechanics properties.
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, SinkageExponentParameterA),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.SinkageExponentParameterA, SetSinkageExponentParameterA)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, SinkageExponentParameterB),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.SinkageExponentParameterB, SetSinkageExponentParameterB)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusTangentialParameterA),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.ShearModulusTangentialParameterA,
+				SetShearModulusTangentialParameterA)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusTangentialParameterB),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.ShearModulusTangentialParameterB,
+				SetShearModulusTangentialParameterB)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusLateralParameterA),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.ShearModulusLateralParameterA,
+				SetShearModulusLateralParameterA)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, ShearModulusLateralParameterB),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.ShearModulusLateralParameterB,
+				SetShearModulusLateralParameterB)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, CohesiveModulusBekker),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.CohesiveModulusBekker, SetCohesiveModulusBekker)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, FrictionalModulusBekker),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.FrictionalModulusBekker, SetFrictionalModulusBekker)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, CohesiveModulusReece),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.CohesiveModulusReece, SetCohesiveModulusReece)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, FrictionalModulusReece),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.FrictionalModulusReece, SetFrictionalModulusReece)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, MaximumNormalStressAngleParameterA),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.MaximumNormalStressAngleParameterA,
+				SetMaximumNormalStressAngleParameterA)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(
+			FAGX_TerrainTerramechanicsProperties, MaximumNormalStressAngleParameterB),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.MaximumNormalStressAngleParameterB,
+				SetMaximumNormalStressAngleParameterB)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, RearAngleParameterA),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.RearAngleParameterA, SetRearAngleParameterA)
+		});
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_TerrainMaterial, TerrainTerramechanics),
+		GET_MEMBER_NAME_CHECKED(FAGX_TerrainTerramechanicsProperties, RearAngleParameterB),
+		[](ThisClass* This)
+		{
+			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
+				TerrainTerramechanics.RearAngleParameterB, SetRearAngleParameterB)
+		});
 }
 #endif
 
@@ -976,6 +1325,7 @@ void UAGX_TerrainMaterial::CopyTerrainMaterialProperties(const UAGX_TerrainMater
 		TerrainCompaction = Source->TerrainCompaction;
 		TerrainParticles = Source->TerrainParticles;
 		TerrainExcavationContact = Source->TerrainExcavationContact;
+		TerrainTerramechanics = Source->TerrainTerramechanics;
 
 		// The rest of the properties are legacy and should not be used. Still copied to maintain
 		// consistency, and to keep our unit tests passing.
@@ -1056,6 +1406,36 @@ void UAGX_TerrainMaterial::UpdateTerrainMaterialNativeProperties()
 			TerrainExcavationContact.MaximumAggregateNormalForce);
 		TerrainMaterialNativeBarrier.SetMaximumContactDepth(
 			TerrainExcavationContact.MaximumContactDepth);
+
+		// Terrain Terramechanics properties.
+		TerrainMaterialNativeBarrier.SetSinkageExponentParameterA(
+			TerrainTerramechanics.SinkageExponentParameterA);
+		TerrainMaterialNativeBarrier.SetSinkageExponentParameterB(
+			TerrainTerramechanics.SinkageExponentParameterB);
+		TerrainMaterialNativeBarrier.SetShearModulusTangentialParameterA(
+			TerrainTerramechanics.ShearModulusTangentialParameterA);
+		TerrainMaterialNativeBarrier.SetShearModulusTangentialParameterB(
+			TerrainTerramechanics.ShearModulusTangentialParameterB);
+		TerrainMaterialNativeBarrier.SetShearModulusLateralParameterA(
+			TerrainTerramechanics.ShearModulusLateralParameterA);
+		TerrainMaterialNativeBarrier.SetShearModulusLateralParameterB(
+			TerrainTerramechanics.ShearModulusLateralParameterB);
+		TerrainMaterialNativeBarrier.SetCohesiveModulusBekker(
+			TerrainTerramechanics.CohesiveModulusBekker);
+		TerrainMaterialNativeBarrier.SetFrictionalModulusBekker(
+			TerrainTerramechanics.FrictionalModulusBekker);
+		TerrainMaterialNativeBarrier.SetCohesiveModulusReece(
+			TerrainTerramechanics.CohesiveModulusReece);
+		TerrainMaterialNativeBarrier.SetFrictionalModulusReece(
+			TerrainTerramechanics.FrictionalModulusReece);
+		TerrainMaterialNativeBarrier.SetMaximumNormalStressAngleParameterA(
+			TerrainTerramechanics.MaximumNormalStressAngleParameterA);
+		TerrainMaterialNativeBarrier.SetMaximumNormalStressAngleParameterB(
+			TerrainTerramechanics.MaximumNormalStressAngleParameterB);
+		TerrainMaterialNativeBarrier.SetRearAngleParameterA(
+			TerrainTerramechanics.RearAngleParameterA);
+		TerrainMaterialNativeBarrier.SetRearAngleParameterB(
+			TerrainTerramechanics.RearAngleParameterB);
 	}
 }
 
@@ -1113,11 +1493,34 @@ void UAGX_TerrainMaterial::CopyFrom(const FTerrainMaterialBarrier& Source)
 	TerrainExcavationContact.DepthAngleThreshold = Source.GetDepthAngleThreshold();
 	TerrainExcavationContact.MaximumAggregateNormalForce = Source.GetMaximumAggregateNormalForce();
 	TerrainExcavationContact.MaximumContactDepth = Source.GetMaximumContactDepth();
+
+	// Copy Terrain Terramechanics properties.
+	TerrainTerramechanics = FAGX_TerrainTerramechanicsProperties();
+	TerrainTerramechanics.SinkageExponentParameterA = Source.GetSinkageExponentParameterA();
+	TerrainTerramechanics.SinkageExponentParameterB = Source.GetSinkageExponentParameterB();
+	TerrainTerramechanics.ShearModulusTangentialParameterA =
+		Source.GetShearModulusTangentialParameterA();
+	TerrainTerramechanics.ShearModulusTangentialParameterB =
+		Source.GetShearModulusTangentialParameterB();
+	TerrainTerramechanics.ShearModulusLateralParameterA =
+		Source.GetShearModulusLateralParameterA();
+	TerrainTerramechanics.ShearModulusLateralParameterB =
+		Source.GetShearModulusLateralParameterB();
+	TerrainTerramechanics.CohesiveModulusBekker = Source.GetCohesiveModulusBekker();
+	TerrainTerramechanics.FrictionalModulusBekker = Source.GetFrictionalModulusBekker();
+	TerrainTerramechanics.CohesiveModulusReece = Source.GetCohesiveModulusReece();
+	TerrainTerramechanics.FrictionalModulusReece = Source.GetFrictionalModulusReece();
+	TerrainTerramechanics.MaximumNormalStressAngleParameterA =
+		Source.GetMaximumNormalStressAngleParameterA();
+	TerrainTerramechanics.MaximumNormalStressAngleParameterB =
+		Source.GetMaximumNormalStressAngleParameterB();
+	TerrainTerramechanics.RearAngleParameterA = Source.GetRearAngleParameterA();
+	TerrainTerramechanics.RearAngleParameterB = Source.GetRearAngleParameterB();
 }
 
 bool UAGX_TerrainMaterial::IsInstance() const
-{   
-    // This is the case for runtime imported instances.
+{
+	// This is the case for runtime imported instances.
 	if (GetOuter() == GetTransientPackage() || Cast<UWorld>(GetOuter()) != nullptr)
 		return true;
 

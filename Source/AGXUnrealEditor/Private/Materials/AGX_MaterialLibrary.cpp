@@ -34,7 +34,7 @@ namespace AGX_MaterialLibrary_helpers
 	{
 		ContactMaterial,
 		ShapeMaterial,
-		TerrainMaterial
+		TerrainMaterial,
 	};
 
 	FString ToAssetName(const FString& NameAGX, LibraryMaterialType Type)

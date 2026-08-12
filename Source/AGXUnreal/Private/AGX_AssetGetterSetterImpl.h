@@ -123,6 +123,13 @@ namespace AGX_WithEditorWrappers
 	AGX_ASSET_SETTER_IMPL_VALUE(PropertyName, InVar, Set##PropertyName)
 
 /**
+ * @brief Set a bool property named b<PropertyName> where the setter function name is
+ * Set<PropertyName>.
+ */
+#define AGX_ASSET_SETTER_BOOL(PropertyName, InVar) \
+	AGX_ASSET_SETTER_IMPL_VALUE(b##PropertyName, InVar, Set##PropertyName)
+
+/**
  * @brief Set a new Property value on one of our asset/instance types, where there are two NativeBarriers
  * and the one we want is a pointer.
  * @param PropertyName The name of the property to set. May be a StructNAme.MemberVariableName identifier.
@@ -181,6 +188,13 @@ namespace AGX_WithEditorWrappers
  */
 #define AGX_ASSET_GETTER(PropertyName) \
 	AGX_ASSET_GETTER_IMPL_VALUE(PropertyName, Get##PropertyName)
+
+/**
+ * @brief Get a bool property named b<PropertyName> where the getter function name is
+ * Get<PropertyName>.
+ */
+#define AGX_ASSET_GETTER_BOOL(PropertyName) \
+	AGX_ASSET_GETTER_IMPL_VALUE(b##PropertyName, Get##PropertyName)
 
 #define AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_POINTER(PropertyName, GetFunc, HasNativeFunc, NativeName) \
 	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNativeFunc, NativeName, ->)

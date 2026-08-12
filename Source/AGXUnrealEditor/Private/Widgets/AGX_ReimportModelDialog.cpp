@@ -22,7 +22,8 @@ void SAGX_ReimportModelDialog::Construct(const FArguments& InArgs)
 	FileTypes = ".agx"
 		";*.openplx"
 	;
-	ImportType = EAGX_ImportType::Agx;
+	if (ImportType == EAGX_ImportType::Invalid)
+		ImportType = EAGX_ImportType::Agx;
 
 	// clang-format off
 	ChildSlot
@@ -89,6 +90,7 @@ TOptional<FAGX_ReimportSettings> SAGX_ReimportModelDialog::ToReimportSettings()
 	Settings.FilePath = FilePath;
 	Settings.SourceFilePath = FilePath;
 	Settings.bIgnoreDisabledTrimeshes = bIgnoreDisabledTrimesh;
+	Settings.bAdditionalyImportUnmodifiedTextures = bAdditionalyImportUnmodifiedTextures;
 	Settings.bForceOverwriteProperties = bForceOverwriteProperties;
 	Settings.bForceReassignRenderMaterials = bForceReassignRenderMaterials;
 	return Settings;
@@ -101,6 +103,47 @@ TSharedRef<SBorder> SAGX_ReimportModelDialog::CreateSettingsGui()
 		return MakeShared<SBorder>();
 	}
 
+	TSharedRef<SVerticalBox> Settings = SNew(SVerticalBox);
+	Settings->AddSlot()
+		.Padding(FMargin(10.0f, 10.0f, 10.f, 10.f))
+		.AutoHeight()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("SettingsText", "Settings"))
+			.Font(FAGX_SlateUtilities::CreateFont(12))
+		];
+
+	Settings->AddSlot()
+		.Padding(FMargin(50.0f, 10.0f, 0.f, 10.f))
+		.AutoHeight()
+		[
+			CreateIgnoreDisabledTrimeshGui()
+		];
+
+	if (ImportType == EAGX_ImportType::Plx)
+	{
+		Settings->AddSlot()
+			.Padding(FMargin(50.0f, 0.0f, 0.f, 10.f))
+			.AutoHeight()
+			[
+				CreateAdditionalImportUnmodifiedTexturesGui()
+			];
+	}
+
+	Settings->AddSlot()
+		.Padding(FMargin(50.0f, 0.0f, 0.f, 10.f))
+		.AutoHeight()
+		[
+			CreateForceOverwritePropertiesGui()
+		];
+
+	Settings->AddSlot()
+		.Padding(FMargin(50.0f, 0.0f, 10.f, 10.f))
+		.AutoHeight()
+		[
+			CreateForceReassignRenderMaterialsGui()
+		];
+
 	// clang-format off
 	return SNew(SBorder)
 		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f))
@@ -108,33 +151,7 @@ TSharedRef<SBorder> SAGX_ReimportModelDialog::CreateSettingsGui()
 		.Padding(FMargin(5.0f, 5.0f))
 		.Content()
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(10.0f, 10.0f, 10.f, 10.f))
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("SettingsText", "Settings"))
-				.Font(FAGX_SlateUtilities::CreateFont(12))
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(50.0f, 10.0f, 0.f, 10.f))
-			.AutoHeight()
-			[
-				CreateIgnoreDisabledTrimeshGui()
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(50.0f, 0.0f, 0.f, 10.f))
-			.AutoHeight()
-			[
-				CreateForceOverwritePropertiesGui()
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(50.0f, 0.0f, 10.f, 10.f))
-			.AutoHeight()
-			[
-				CreateForceReassignRenderMaterialsGui()
-			]
+			Settings
 		];
 	// clang-format on
 }

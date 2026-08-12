@@ -14,7 +14,7 @@ class IDetailLayoutBuilder;
 /**
  *
  */
-class FAGX_AgxEdModeFileCustomization : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_AgxEdModeFileCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();

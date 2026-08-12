@@ -14,6 +14,8 @@
 #include <agx/FrictionModel.h>
 #include <agx/OrientedFrictionModels.h>
 #include <agx/RigidBody.h>
+#include <agx/TerrainWheelForceModel.h>
+#include <agxTerrain/TerrainWheel.h>
 #include <agxVehicle/TrackFrictionModels.h>
 #include "EndAGXIncludes.h"
 
@@ -36,6 +38,8 @@ namespace
 				return nullptr; // "not defined"
 			case EAGX_FrictionModel::BoxFriction:
 				return new agx::BoxFrictionModel();
+			case EAGX_FrictionModel::TerrainWheelForceModel:
+				return new agx::TerrainWheelForceModel();
 			case EAGX_FrictionModel::ScaledBoxFriction:
 				return new agx::ScaleBoxFrictionModel();
 			case EAGX_FrictionModel::IterativeProjectedConeFriction:
@@ -102,6 +106,10 @@ namespace
 		else if (dynamic_cast<const agx::IterativeProjectedConeFriction*>(FrictionModel))
 		{
 			return EAGX_FrictionModel::IterativeProjectedConeFriction;
+		}
+		else if (dynamic_cast<const agx::TerrainWheelForceModel*>(FrictionModel))
+		{
+			return EAGX_FrictionModel::TerrainWheelForceModel;
 		}
 		else if (dynamic_cast<const agx::ScaleBoxFrictionModel*>(FrictionModel))
 		{
@@ -236,7 +244,7 @@ void FContactMaterialBarrier::SetFrictionModel(EAGX_FrictionModel FrictionModel)
 
 	agx::FrictionModelRef NativeFrictionModel = ConvertFrictionModelToAgx(FrictionModel);
 
-	if (NativeFrictionModel)
+	if (NativeFrictionModel != nullptr)
 	{
 		if (agx::FrictionModel* PreviousModel = NativeRef->Native->getFrictionModel())
 		{
@@ -246,6 +254,11 @@ void FContactMaterialBarrier::SetFrictionModel(EAGX_FrictionModel FrictionModel)
 	}
 
 	NativeRef->Native->setFrictionModel(NativeFrictionModel); // seems friction model can be null
+
+	// This is a bit ugly to have here, but there was no obvious clean solution for this.
+	// This call is required when using the TerrainWheelForceModel model.
+	if (FrictionModel == EAGX_FrictionModel::TerrainWheelForceModel)
+		agxTerrain::TerrainWheel::configureContactMaterial(NativeRef->Native);
 }
 
 EAGX_FrictionModel FContactMaterialBarrier::GetFrictionModel() const

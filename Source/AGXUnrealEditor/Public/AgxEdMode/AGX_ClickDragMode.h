@@ -8,7 +8,7 @@
 
 struct FViewportCursorLocation;
 
-class FAGX_ClickDragMode : public FEdMode
+class AGXUNREALEDITOR_API FAGX_ClickDragMode : public FEdMode
 {
 public:
 

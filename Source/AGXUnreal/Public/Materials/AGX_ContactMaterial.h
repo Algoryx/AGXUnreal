@@ -66,7 +66,9 @@ public:
 	 * Solvers to use to calculate the normal and friction equations when objects with this contact
 	 * material collide.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Contacts Processing")
+	UPROPERTY(
+		EditAnywhere, Category = "Contacts Processing",
+		Meta = (EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	EAGX_ContactSolver ContactSolver {EAGX_ContactSolver::Split};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -109,7 +111,9 @@ public:
 	 * Young’s modulus value usually has to be increased to get a similar simulation results as
 	 * running the simulation without the contact area approach.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Contacts Processing")
+	UPROPERTY(
+		EditAnywhere, Category = "Contacts Processing",
+		Meta = (EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	FAGX_ContactMaterialMechanicsApproach MechanicsApproach;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -205,7 +209,11 @@ public:
 	 * Friction in all directions if 'Secondary Friction Coefficient' is disabled, else only in the
 	 * primary direction.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(
+		EditAnywhere, Category = "Friction",
+		Meta =
+			(ClampMin = "0.0", UIMin = "0.0",
+			 EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	FAGX_Real FrictionCoefficient {0.25 / (2 * 0.3)};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -213,7 +221,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetFrictionCoefficient() const;
-
+	// clang-format off
 	/**
 	 * Friction in the secondary direction, if enabled.
 	 *
@@ -226,8 +234,9 @@ public:
 			 // We would like to include a check for oriented friction model here, but Unreal
 			 // Engine 4.26 doesn't support that in combination with InlineEditConditionToggle on
 			 // bUseSecondaryFrictionCoefficient.
-			 EditCondition = "bUseSecondaryFrictionCoefficient"))
+			 EditCondition = "bUseSecondaryFrictionCoefficient && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	FAGX_Real SecondaryFrictionCoefficient {0.25 / (2 * 0.3)};
+	// clang-format on
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	void SetSecondaryFrictionCoefficient(double InFrictionCoefficient);
@@ -248,7 +257,11 @@ public:
 	 * Note that secondary direction friction coefficient is only used by friction models that
 	 * support primary and secondary directions.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
+	UPROPERTY(
+		EditAnywhere, Category = "Friction",
+		Meta =
+			(InlineEditConditionToggle,
+			 EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	bool bUseSecondaryFrictionCoefficient {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -399,7 +412,11 @@ public:
 	 *
 	 * A value of 1.0 means that the body does not lose energy during normal-collisions.
 	 */
-	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(
+		EditAnywhere, Category = "General",
+		Meta =
+			(ClampMin = "0.0", UIMin = "0.0",
+			 EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	FAGX_Real Restitution {0.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
