@@ -2249,6 +2249,7 @@ void UAGX_WireComponent::CreateNative()
 	// The intention is to add the equivalent edit-time checks and display in the wire's Details
 	// Panel so the user can be informed before clicking Play.
 	TArray<FString> ErrorMessages;
+	TArray<FString> WarningMessages;
 
 	if (HasBeginWinch())
 	{
@@ -2389,6 +2390,19 @@ void UAGX_WireComponent::CreateNative()
 					break;
 				}
 
+				if (LocalLocation.IsNearlyZero(1.0) &&
+					(LinkComp->GetBendStiffness() > 0.0 || LinkComp->GetTwistStiffness() > 0.0))
+				{
+					WarningMessages.Add(FString::Printf(
+						TEXT(
+							"Wire node at index %d connects Wire '%s' to WireLinkComponent '%s' "
+							"at the rigid body origin. Bend and twist stiffness need a non-zero "
+							"offset between the rigid body location and the wire Connecting node "
+							"location to behave as expected. Use a non-zero Connecting node "
+							"offset from the rigid body."),
+						I, *GetName(), *LinkComp->GetName()));
+				}
+
 				// Register which wire attaches at which body-local offset and on which side.
 				LinkBarrier->Connect(NativeBarrier, LocalLocation, bIsWireBegin);
 
@@ -2438,6 +2452,18 @@ void UAGX_WireComponent::CreateNative()
 			Message += Line + '\n';
 		}
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+	}
+
+	if (WarningMessages.Num() > 0)
+	{
+		FString Message = FString::Printf(
+			TEXT("Warnings detected during initialization of wire '%s' in '%s':\n"), *GetName(),
+			*GetLabelSafe(GetOwner()));
+		for (const FString& Line : WarningMessages)
+		{
+			Message += Line + '\n';
+		}
+		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_None, 8.0f);
 	}
 
 	{

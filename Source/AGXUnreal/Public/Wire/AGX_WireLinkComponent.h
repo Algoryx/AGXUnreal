@@ -20,6 +20,9 @@ class UAGX_WireComponent;
  *
  * An agxWire::Link connects the ends of two separate wires through a common rigid body,
  * routing physical tension from one wire to the other.
+ * The WireLinkComponent's own location has no effect on the native agxWire::Link. The location
+ * that matters is the wrapped UAGX_RigidBodyComponent's world location, together with each wire's
+ * Connecting route node offset relative to that body.
  *
  * Usage:
  *  1. Attach this component as a child of the UAGX_RigidBodyComponent that the link wraps.
