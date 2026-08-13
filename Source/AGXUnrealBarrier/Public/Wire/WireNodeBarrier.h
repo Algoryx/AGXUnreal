@@ -27,7 +27,13 @@ public:
 
 	bool HasNative() const;
 	void AllocateNativeFreeNode(const FVector& WorldLocation);
-	void AllocateNativeEyeNode(FRigidBodyBarrier& RigidBody, const FVector& LocalLocation);
+	/**
+	 * Allocate a native agxWire::EyeNode.
+	 * @param RadiusCm  Eye hole radius in centimetres (Unreal units). Converted to metres
+	 *                  internally. Pass 0 to use the AGX default (no radius).
+	 */
+	void AllocateNativeEyeNode(
+		FRigidBodyBarrier& RigidBody, const FVector& LocalLocation, double RadiusCm = 0.0);
 	void AllocateNativeBodyFixedNode(FRigidBodyBarrier& RigidBody, const FVector& LocalLocation);
 	FWireNodeRef* GetNative();
 	const FWireNodeRef* GetNative() const;

@@ -242,6 +242,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_TrackRenderer", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	// Wire.
 	Style->Set("ClassIcon.AGX_WireComponent", new IMAGE_BRUSH("Icons/wire_32x32", IconSize16));
+	Style->Set("ClassIcon.AGX_WireLinkComponent", new IMAGE_BRUSH("Icons/wire_link_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_WireWinchComponent", new IMAGE_BRUSH("Icons/wire_winch_32x32", IconSize16));
 	// OpenPLX

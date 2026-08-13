@@ -306,6 +306,7 @@ namespace AGX_WireComponentVisualizer_helpers
 		WireNodeColors[(int) EWireNodeType::Free] = FLinearColor::Red;
 		WireNodeColors[(int) EWireNodeType::Eye] = FLinearColor::Green;
 		WireNodeColors[(int) EWireNodeType::BodyFixed] = FLinearColor::Blue;
+		WireNodeColors[(int) EWireNodeType::Connecting] = FLinearColor::Yellow;
 		WireNodeColors[(int) EWireNodeType::Other] = FLinearColor::White;
 		return WireNodeColors;
 	}

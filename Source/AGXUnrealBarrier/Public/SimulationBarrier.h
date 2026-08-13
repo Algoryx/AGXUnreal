@@ -24,6 +24,7 @@ class FTerrainPagerBarrier;
 class FTireBarrier;
 class FTrackBarrier;
 class FWireBarrier;
+class FWireLinkBarrier;
 
 struct FCableBarrier;
 struct FObserverFrameBarrier;
@@ -63,6 +64,7 @@ public:
 	bool Add(FTireBarrier& Tire);
 	bool Add(FTrackBarrier& Track);
 	bool Add(FWireBarrier& Wire);
+	bool Add(FWireLinkBarrier& Link);
 
 	bool Remove(FCableBarrier& Cable);
 	bool Remove(FConstraintBarrier& Constraint);
@@ -84,7 +86,7 @@ public:
 	bool Remove(FTireBarrier& Tire);
 	bool Remove(FTrackBarrier& Track);
 	bool Remove(FWireBarrier& Wire);
-
+	bool Remove(FWireLinkBarrier& Link);
 	void SetEnableCollisionGroupPair(const FName& Group1, const FName& Group2, bool CanCollide);
 
 	static void SetEnableCollision(FRigidBodyBarrier& Body1, FRigidBodyBarrier& Body2, bool Enable);
