@@ -13,6 +13,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agxWire/ILinkNode.h>
 #include <agxWire/Link.h>
 #include <agxWire/Wire.h>
 #include "EndAGXIncludes.h"
@@ -121,6 +122,39 @@ void FWireLinkBarrier::SetConnectingNodeRadius(FWireBarrier& Wire, double Radius
 	if (ConnNode != nullptr)
 	{
 		ConnNode->setRadius(ConvertDistanceToAGX(RadiusCm));
+	}
+}
+
+void FWireLinkBarrier::SetWireConnectionBendStiffness(double BendStiffness)
+{
+	check(HasNative());
+	for (agxWire::ILinkNode* Connection : NativeRef->Native->getConnections())
+	{
+		agxWire::Wire* Wire = agxWire::Link::getWire(Connection);
+		if (Wire == nullptr)
+			continue;
+
+		agxWire::ILinkNode* ConnectingNode = NativeRef->Native->getConnectingNode(Wire);
+		if (ConnectingNode != nullptr)
+		{
+			agxWire::ILinkNode::ConnectionProperties* Properties =
+				ConnectingNode->getConnectionProperties();
+			Properties->setBendStiffness(BendStiffness);
+		}
+	}
+}
+
+void FWireLinkBarrier::SetWireConnectionTwistStiffness(double TwistStiffness)
+{
+	check(HasNative());
+	for (agxWire::ILinkNode* Connection : NativeRef->Native->getConnections())
+	{
+		if (agxWire::Link::getWire(Connection) == nullptr)
+			continue;
+
+		agxWire::ILinkNode::ConnectionProperties* Properties =
+			Connection->getConnectionProperties();
+		Properties->setTwistStiffness(TwistStiffness);
 	}
 }
 

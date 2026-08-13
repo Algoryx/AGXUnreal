@@ -57,8 +57,7 @@ public:
 	UAGX_RigidBodyComponent* GetRigidBody() const;
 
 	/**
-	 * Radius [cm] applied to every ConnectingNode created for wires that route through this link.
-	 *
+	 * Radius applied to every ConnectingNode created for wires that route through this link [cm].
 	 * Each WireLinkComponent carries a single radius value that is forwarded to all connecting
 	 * nodes when the simulation is initialized (BeginPlay). A value of 0 uses the default AGX
 	 * connecting-node radius (no override).
@@ -67,6 +66,42 @@ public:
 		EditAnywhere, BlueprintReadWrite, Category = "AGX Wire Link",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	FAGX_Real Radius = 0.0;
+
+	/**
+	 * Bend stiffness used for wire to link connections.
+	 * Interpreted as Young's modulus. The final stiffness is dependent on the wire radius and
+	 * segment lengths. A value of 0.0 disables bend stiffness, which is the AGX Dynamics default.
+	 * Runtime updates affect both future and existing wire connections.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Wire Link", Meta = (ClampMin = "0.0", UIMin = "0.0"))
+	FAGX_Real BendStiffness = 0.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Wire Link")
+	void SetBendStiffness(double InBendStiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Wire Link")
+	double GetBendStiffness() const;
+
+	/**
+	 * Twist stiffness used for wire to link connections.
+	 *
+	 * Interpreted as Young's
+	 * modulus. The final stiffness is dependent on the wire radius, and AGX
+	 * Dynamics assumes
+	 * a segment length of 1 meter. A value of 0.0 disables twist stiffness, which
+	 * is the AGX
+	 * Dynamics default. Runtime updates affect both future and existing wire
+	 * connections.
+
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Wire Link", Meta = (ClampMin = "0.0", UIMin = "0.0"))
+	FAGX_Real TwistStiffness = 0.0;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Wire Link")
+	void SetTwistStiffness(double InTwistStiffness);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Wire Link")
+	double GetTwistStiffness() const;
 
 	//~ Begin IAGX_NativeOwner interface.
 	virtual bool HasNative() const override;
@@ -79,6 +114,13 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	//~ End UActorComponent interface.
+
+	//~ Begin UObject interface.
+#if WITH_EDITOR
+	virtual void PostInitProperties() override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
+	//~ End UObject interface.
 
 	/**
 	 * Returns the FWireLinkBarrier if one has been allocated, nullptr otherwise.
@@ -99,10 +141,17 @@ public:
 	 */
 	FWireLinkBarrier* GetOrCreateNative();
 
+	void UpdateNativeProperties();
+
 private:
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
+
 	/**
 	 * Allocate the agxWire::Link native. Resolves the body via attachment hierarchy and
-	 * creates the barrier. Logs an error and does nothing if no body is found.
+
+	 * * creates the barrier. Logs an error and does nothing if no body is found.
 	 */
 	void CreateNative();
 

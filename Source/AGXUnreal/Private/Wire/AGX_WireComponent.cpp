@@ -2406,6 +2406,9 @@ void UAGX_WireComponent::CreateNative()
 					LinkBarrier->SetConnectingNodeRadius(NativeBarrier, LinkComp->Radius.Value);
 				}
 
+				// For bending/twist stiffness to propagate to the new connection.
+				LinkComp->UpdateNativeProperties();
+
 				continue; // Skip AddRouteNode — node insertion was handled by AddToWireRoute.
 			}
 			case EWireNodeType::Other:

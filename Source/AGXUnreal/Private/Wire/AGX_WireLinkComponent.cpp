@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
+#include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -68,6 +69,30 @@ TArray<UAGX_WireComponent*> UAGX_WireLinkComponent::GetConnectedWires() const
 	}
 
 	return Wires;
+}
+
+void UAGX_WireLinkComponent::SetBendStiffness(double InBendStiffness)
+{
+	BendStiffness = InBendStiffness;
+	if (HasNative())
+		NativeBarrier.SetWireConnectionBendStiffness(BendStiffness.Value);
+}
+
+double UAGX_WireLinkComponent::GetBendStiffness() const
+{
+	return BendStiffness.Value;
+}
+
+void UAGX_WireLinkComponent::SetTwistStiffness(double InTwistStiffness)
+{
+	TwistStiffness = InTwistStiffness;
+	if (HasNative())
+		NativeBarrier.SetWireConnectionTwistStiffness(TwistStiffness.Value);
+}
+
+double UAGX_WireLinkComponent::GetTwistStiffness() const
+{
+	return TwistStiffness.Value;
 }
 
 bool UAGX_WireLinkComponent::HasNative() const
@@ -140,6 +165,35 @@ UAGX_WireLinkComponent::GetComponentInstanceData() const
 		[](UActorComponent* Component) -> IAGX_NativeOwner*
 		{ return Cast<UAGX_WireLinkComponent>(Component); });
 }
+
+#if WITH_EDITOR
+void UAGX_WireLinkComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
+}
+
+void UAGX_WireLinkComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+	Super::PostEditChangeChainProperty(Event);
+}
+
+void UAGX_WireLinkComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_WireLinkComponent, BendStiffness),
+		[](ThisClass* This) { This->SetBendStiffness(This->BendStiffness.Value); });
+	PropertyDispatcher.Add(
+		GET_MEMBER_NAME_CHECKED(UAGX_WireLinkComponent, TwistStiffness),
+		[](ThisClass* This) { This->SetTwistStiffness(This->TwistStiffness.Value); });
+}
+#endif
 
 FWireLinkBarrier* UAGX_WireLinkComponent::GetNative()
 {
@@ -217,5 +271,14 @@ void UAGX_WireLinkComponent::CreateNative()
 				 "may be missing from the active license."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
+		return;
 	}
+
+	UpdateNativeProperties();
+}
+
+void UAGX_WireLinkComponent::UpdateNativeProperties()
+{
+	NativeBarrier.SetWireConnectionBendStiffness(BendStiffness.Value);
+	NativeBarrier.SetWireConnectionTwistStiffness(TwistStiffness.Value);
 }

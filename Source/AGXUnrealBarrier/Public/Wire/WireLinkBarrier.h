@@ -73,6 +73,9 @@ public:
 	 */
 	void SetConnectingNodeRadius(FWireBarrier& Wire, double RadiusCm);
 
+	void SetWireConnectionBendStiffness(double BendStiffness);
+	void SetWireConnectionTwistStiffness(double TwistStiffness);
+
 	FRigidBodyBarrier GetRigidBody() const;
 	FGuid GetGuid() const;
 
