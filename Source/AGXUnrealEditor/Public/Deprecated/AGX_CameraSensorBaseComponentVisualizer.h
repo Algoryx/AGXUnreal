@@ -10,7 +10,7 @@ class FPrimitiveDrawInterface;
 class FSceneView;
 class UActorComponent;
 
-class AGXUNREALEDITOR_API FAGX_CameraSensorComponentVisualizer : public FComponentVisualizer
+class AGXUNREALEDITOR_API FAGX_CameraSensorBaseComponentVisualizer : public FComponentVisualizer
 {
 public:
 	virtual void DrawVisualization(

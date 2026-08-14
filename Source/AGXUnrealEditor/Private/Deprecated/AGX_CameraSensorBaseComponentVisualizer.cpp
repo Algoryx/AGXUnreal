@@ -1,18 +1,18 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_CameraSensorComponentVisualizer.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Sensors/AGX_CameraSensorBase.h"
+#include "Deprecated/AGX_CameraSensorBase.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
 // Unreal Engine includes.
-#include "SceneView.h"
 #include "SceneManagement.h"
+#include "SceneView.h"
 
-#define LOCTEXT_NAMESPACE "FAGX_CameraSensorComponentVisualizer"
+#define LOCTEXT_NAMESPACE "FAGX_CameraSensorBaseComponentVisualizer"
 
-void FAGX_CameraSensorComponentVisualizer::DrawVisualization(
+void FAGX_CameraSensorBaseComponentVisualizer::DrawVisualization(
 	const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
 	const UAGX_CameraSensorBase* Cam = Cast<const UAGX_CameraSensorBase>(Component);

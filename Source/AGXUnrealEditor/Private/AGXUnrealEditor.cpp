@@ -18,7 +18,6 @@
 #include "AGX_RuntimeStyle.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
-#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_StaticMeshComponentCustomization.h"
 #include "AGX_TopMenu.h"
 #include "AgxEdMode/AGX_AgxEdMode.h"
@@ -55,6 +54,10 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Deprecated/AGX_CameraSensorBase.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentCustomization.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentVisualizer.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
@@ -73,9 +76,6 @@
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
-#include "Sensors/AGX_CameraSensorBase.h"
-#include "Sensors/AGX_CameraSensorComponentCustomization.h"
-#include "Sensors/AGX_CameraSensorComponentVisualizer.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
@@ -486,7 +486,7 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FAGX_CameraSensorComponentCustomization::MakeInstance));
+			&FAGX_CameraSensorBaseComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_CollisionGroupAdderComponent::StaticClass()->GetFName(),
@@ -734,7 +734,7 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 
 	RegisterComponentVisualizer(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
-		MakeShareable(new FAGX_CameraSensorComponentVisualizer));
+		MakeShareable(new FAGX_CameraSensorBaseComponentVisualizer));
 
 	RegisterComponentVisualizer(
 		UAGX_ConstraintComponent::StaticClass()->GetFName(),

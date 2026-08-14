@@ -3,8 +3,8 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Deprecated/AGX_CameraSensorBase.h"
 #include "ROS2/AGX_ROS2Messages.h"
-#include "Sensors/AGX_CameraSensorBase.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
