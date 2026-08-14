@@ -21,10 +21,12 @@ class UTextureRenderTarget2D;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnNewImagePixels16Bit, const TArray<FFloat16Color>& /*Image*/);
 
 /**
+ * This Component is deprecated. Use the AGX_CameraSensor instead.
+ * 
  * Camera Sensor Component, allowing to extract camera pixel information in runtime.
  * The captured image is encoded in 16-bit RGB in linear color space.
  */
-UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent))
+UCLASS(ClassGroup = "Deprecated", Category = "AGX", Meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_CameraSensor16BitComponent : public UAGX_CameraSensorBase
 {
 	GENERATED_BODY()
