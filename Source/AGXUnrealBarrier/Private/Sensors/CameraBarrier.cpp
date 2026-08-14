@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -36,14 +37,18 @@ FCameraBarrier::FCameraBarrier(
 {
 }
 
-void FCameraBarrier::AllocateNative(const FTransform& Transform)
+void FCameraBarrier::AllocateNative(
+	const FTransform& Transform, const FCameraBackendBarrier& CameraBackend)
 {
 	check(!HasNative());
+	check(CameraBackend.HasNative());
+
+	auto Frame = new agx::Frame(Convert(Transform));
+	auto Model = new agxSensor::CameraModel(
+		new agxSensor::CameraLensSingleElement(), new agxSensor::CameraCMOSSensor());
 
 	NativeRef->Native = new agxSensor::Camera(
-		new agx::Frame(Convert(Transform)),
-		new agxSensor::CameraModel(
-			new agxSensor::CameraLensSingleElement(), new agxSensor::CameraCMOSSensor()));
+		Frame, Model, CameraBackend.GetNative()->Native);
 }
 
 void FCameraBarrier::SetTransform(const FTransform& Transform)

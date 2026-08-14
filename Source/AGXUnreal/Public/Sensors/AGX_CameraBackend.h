@@ -11,6 +11,10 @@
 
 #include "AGX_CameraBackend.generated.h"
 
+class AActor;
+class UActorComponent;
+class UWorld;
+
 /**
  * Todo: add API comment.
  */
@@ -23,6 +27,10 @@ public:
 	virtual ~UAGX_CameraBackend() override;
 
 	FCameraBackendBarrier* GetOrCreateNative();
+
+	static UAGX_CameraBackend* GetFrom(const UActorComponent* Component);
+	static UAGX_CameraBackend* GetFrom(const AActor* Actor);
+	static UAGX_CameraBackend* GetFrom(const UWorld* World);
 
 private:
 	// ~Begin USubsystem interface.

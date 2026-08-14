@@ -4,8 +4,11 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_LogCategory.h"
+#include "Sensors/AGX_CameraBackend.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBarrier.h"
+#include "Utilities/AGX_StringUtilities.h"
 
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
@@ -26,8 +29,24 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 	if (HasNative())
 		return NativeBarrier.Get();
 
-	auto CameraBarrier = GetNativeAsCamera();
-	CameraBarrier->AllocateNative(GetComponentTransform());
+	auto CameraBackend = UAGX_CameraBackend::GetFrom(this);
+	if (CameraBackend == nullptr)
+		return nullptr;
+
+	auto CameraBackendBarrier = CameraBackend->GetOrCreateNative();
+	if (CameraBackendBarrier == nullptr || !CameraBackendBarrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_CameraSensorComponent::CreateNativeImpl called on Camera Sensor Component "
+				 "'%s' in '%s' but the Camera Backend does not have a valid Native Object. Native "
+				 "Camera Sensor will not be created."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return nullptr;
+	}
+
+	auto CameraBarrier = static_cast<FCameraBarrier*>(NativeBarrier.Get());
+	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier);
 	if (HasNative())
 		UpdateNativeProperties();
 
