@@ -76,6 +76,8 @@
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
+#include "Sensors/AGX_CameraSensorComponentVisualizer.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
@@ -737,6 +739,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_CameraSensorBaseComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_CameraSensorComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_CameraSensorComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_ConstraintComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_ConstraintComponentVisualizer));
 
@@ -797,6 +803,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 {
 	UnregisterComponentVisualizer(UAGX_CableComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_CameraSensorBase::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_CameraSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
