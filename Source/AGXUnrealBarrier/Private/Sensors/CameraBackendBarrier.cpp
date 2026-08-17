@@ -12,80 +12,80 @@ namespace CameraBackendBarrier_helpers
 {
 	void Synchronize(agxSensor::Camera*, agx::Real)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Synchronize"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Synchronize"));
 	}
 
 	void Execute(agxSensor::Camera*, agx::Real)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Execute"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Execute"));
 	}
 
 	void Complete(agxSensor::Camera*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Complete"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Complete"));
 	}
 
 	void Result(agxSensor::Camera*, agx::Real)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Result"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Result"));
 	}
 
 	void SynchronizeGraphics(agxSensor::Camera*, agxSensor::Matrix4x4*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
 	}
 
 	void Cleanup(agxSensor::Camera*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Cleanup"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Cleanup"));
 	}
 
 	void SetCameraLensSingleElement(
 		agxSensor::Camera*, agxSensor::CameraLensSingleElement*,
 		agxSensor::CameraLensSingleElementParameters*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensSingleElement"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensSingleElement"));
 	}
 
 	void SetCameraCMOSSensor(
 		agxSensor::Camera*, agxSensor::CameraCMOSSensor*, agxSensor::CameraCMOSSensorParameters*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
 	}
 
 	void SetCameraLensDistortionNone(agxSensor::Camera*, agxSensor::CameraLens*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
 	}
 
 	void SetCameraLensDistortionBrownConrady(
 		agxSensor::Camera*, agxSensor::CameraLens*,
 		agxSensor::LensDistortionBrownConradyCoefficients*)
 	{
-		UE_LOG(
-			LogTemp, Log,
-			TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionBrownConrady"));
+		// UE_LOG(
+		// 	LogTemp, Log,
+		// 	TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionBrownConrady"));
 	}
 
 	void SetCameraColorOutput(
 		agxSensor::Camera*, agxSensor::CameraColorOutput*, agxSensor::CameraColorOutputParameters*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
 	}
 
 	void SetCameraColorOutputAddress(agxSensor::Camera*, agxSensor::CameraColorOutput*, void*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
 	}
 
 	void CaptureCameraColorOutput(agxSensor::Camera*, agxSensor::CameraColorOutput*)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::CaptureCameraColorOutput"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::CaptureCameraColorOutput"));
 	}
 
 	bool HasCameraColorOutputUnreadData(agxSensor::Camera*, agxSensor::CameraColorOutput*, bool)
 	{
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
+		// UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
 		return false;
 	}
 }
