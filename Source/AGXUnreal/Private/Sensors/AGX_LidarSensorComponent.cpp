@@ -619,6 +619,9 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 
 void UAGX_LidarSensorComponent::MarkOutputAsRead()
 {
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
 	if (HasNative())
 		GetNativeAsLidar()->MarkOutputAsRead();
 }

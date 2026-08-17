@@ -14,6 +14,7 @@
 #include <agxSensor/CameraCMOSSensor.h>
 #include <agxSensor/CameraLensSingleElement.h>
 #include <agxSensor/CameraModel.h>
+#include <agxSensor/CameraOutput.h>
 #include "EndAGXIncludes.h"
 
 namespace CameraBarrier_helpers
@@ -61,4 +62,13 @@ FTransform FCameraBarrier::GetTransform() const
 {
 	check(HasNative());
 	return Convert(CameraBarrier_helpers::GetCameraNative(*this)->getFrame()->getMatrix());
+}
+
+void FCameraBarrier::MarkOutputAsRead()
+{
+	check(HasNative());
+	using namespace CameraBarrier_helpers;
+
+	GetCameraNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::ICameraOutput>(
+		[](agxSensor::ICameraOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
 }

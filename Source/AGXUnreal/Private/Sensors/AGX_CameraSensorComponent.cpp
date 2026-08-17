@@ -149,6 +149,11 @@ const FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera() const
 
 void UAGX_CameraSensorComponent::MarkOutputAsRead()
 {
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
+	if (HasNative())
+		GetNativeAsCamera()->MarkOutputAsRead();
 }
 
 void UAGX_CameraSensorComponent::UpdateNativeProperties()

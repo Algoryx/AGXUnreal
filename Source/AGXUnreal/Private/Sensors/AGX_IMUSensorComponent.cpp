@@ -183,6 +183,9 @@ const FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU() const
 
 void UAGX_IMUSensorComponent::MarkOutputAsRead()
 {
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
 	if (HasNative())
 		GetNativeAsIMU()->MarkOutputAsRead();
 }
@@ -802,8 +805,7 @@ void UAGX_IMUSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Impor
 	const FRigidBodyBarrier BodyBarrier = IMUBarrier.GetRigidBody();
 	if (BodyBarrier.HasNative())
 	{
-		if (UAGX_RigidBodyComponent* Body =
-				Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
+		if (UAGX_RigidBodyComponent* Body = Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
 		{
 			RigidBody.Name = Body->GetFName();
 		}

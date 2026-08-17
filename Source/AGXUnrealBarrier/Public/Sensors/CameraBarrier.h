@@ -23,4 +23,6 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
+
+	void MarkOutputAsRead();
 };
