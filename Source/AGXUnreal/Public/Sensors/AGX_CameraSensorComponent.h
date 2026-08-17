@@ -8,6 +8,7 @@
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
+class USceneCaptureComponent2D;
 
 /**
  * Todo: add API comment.
@@ -27,9 +28,25 @@ public:
 
 	FSensorBarrier* CreateNativeImpl() override;
 
+	/**
+	 * Get the Scene Capture Component 2D used by this Camera Sensor.
+	 * Only valid during Play.
+	 * Returns nullptr if the Camera Sensor has not been initialized.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	USceneCaptureComponent2D* GetSceneCaptureComponent2D() const;
+
+	/**
+	 * Whether this Camera Sensor has both a Native object and a Scene Capture Component 2D.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool IsCameraSensorValid() const;
+
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void PostApplyToComponent() override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	//~ End UActorComponent Interface
 
 	FCameraBarrier* GetNativeAsCamera();
@@ -40,4 +57,9 @@ protected:
 
 private:
 	virtual void UpdateNativeProperties() override;
+
+	void SetupSceneCapture();
+
+	UPROPERTY(Transient)
+	TObjectPtr<USceneCaptureComponent2D> CaptureComponent2D {nullptr};
 };

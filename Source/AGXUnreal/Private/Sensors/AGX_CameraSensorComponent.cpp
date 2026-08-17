@@ -10,6 +10,11 @@
 #include "Sensors/CameraBarrier.h"
 #include "Utilities/AGX_StringUtilities.h"
 
+// Unreal Engine includes.
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
+
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
 	NativeBarrier.Reset(new FCameraBarrier());
@@ -19,6 +24,16 @@ void UAGX_CameraSensorComponent::UpdateNativeTransform()
 {
 	if (HasNative())
 		GetNativeAsCamera()->SetTransform(GetComponentTransform());
+}
+
+USceneCaptureComponent2D* UAGX_CameraSensorComponent::GetSceneCaptureComponent2D() const
+{
+	return CaptureComponent2D;
+}
+
+bool UAGX_CameraSensorComponent::IsCameraSensorValid() const
+{
+	return CaptureComponent2D != nullptr && HasNative();
 }
 
 FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
@@ -63,6 +78,8 @@ void UAGX_CameraSensorComponent::BeginPlay()
 	if (!HasNative())
 		CreateNativeImpl();
 
+	SetupSceneCapture();
+
 	if (HasNative())
 	{
 		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
@@ -85,6 +102,29 @@ void UAGX_CameraSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 	}
 
 	Super::EndPlay(Reason);
+}
+
+void UAGX_CameraSensorComponent::PostApplyToComponent()
+{
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && GetWorld() && GetWorld()->IsGameWorld())
+	{
+		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
+		// during Play, so recreate the runtime Scene Capture Component on the new instance.
+		SetupSceneCapture();
+	}
+}
+
+void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
+
+	if (CaptureComponent2D != nullptr)
+	{
+		CaptureComponent2D->DestroyComponent();
+		CaptureComponent2D = nullptr;
+	}
 }
 
 FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
@@ -113,4 +153,24 @@ void UAGX_CameraSensorComponent::UpdateNativeProperties()
 
 	Super::UpdateNativeProperties();
 	UpdateNativeTransform();
+}
+
+void UAGX_CameraSensorComponent::SetupSceneCapture()
+{
+	if (CaptureComponent2D != nullptr)
+		return;
+
+	AActor* Owner = GetOwner();
+	if (Owner == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+		return;
+
+	CaptureComponent2D = NewObject<USceneCaptureComponent2D>(Owner, NAME_None);
+	CaptureComponent2D->SetupAttachment(this);
+	CaptureComponent2D->SetCanEverAffectNavigation(false);
+	CaptureComponent2D->CreationMethod = CreationMethod;
+	CaptureComponent2D->RegisterComponentWithWorld(World);
 }
