@@ -130,7 +130,6 @@ public:
 
 	void ReleaseNative();
 
-
 private:
 	FWireBarrier(const FWireBarrier&) = delete;
 	void operator=(const FWireBarrier&) = delete;

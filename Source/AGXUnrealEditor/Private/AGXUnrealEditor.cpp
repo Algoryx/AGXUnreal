@@ -141,6 +141,8 @@
 #include "Wire/AGX_WireComponent.h"
 #include "Wire/AGX_WireComponentVisualizer.h"
 #include "Wire/AGX_WireDetails.h"
+#include "Wire/AGX_WireLinkComponent.h"
+#include "Wire/AGX_WireLinkComponentVisualizer.h"
 #include "Wire/AGX_WireWinchActor.h"
 #include "Wire/AGX_WireWinchComponent.h"
 #include "Wire/AGX_WireWinchDetails.h"
@@ -778,6 +780,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_WireComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_WireLinkComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_WireLinkComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_WireWinchComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_WireWinchVisualizer));
 }
@@ -799,6 +805,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_TireComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_TrackComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_WireLinkComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_WireWinchComponent::StaticClass()->GetFName());
 }
 

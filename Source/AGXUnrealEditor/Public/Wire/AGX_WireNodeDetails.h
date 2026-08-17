@@ -10,6 +10,7 @@
 #include "IDetailCustomNodeBuilder.h"
 #include "Misc/EngineVersionComparison.h"
 #include "SceneOutlinerFilters.h"
+#include "Styling/SlateTypes.h"
 #include "Widgets/Input/SComboBox.h"
 
 class FAGX_WireComponentVisualizer;
@@ -160,6 +161,7 @@ private:
 	/// Called when the end-user selects an entry in the rigid body combo box.
 	void OnSetRigidBody(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 
+
 	/*
 	 * STORAGE
 	 * The getter callbacks, prefixed with OnGet, should only read these values, not from the object
@@ -184,6 +186,7 @@ private:
 	TArray<TSharedPtr<FString>> RigidBodyNames;
 	FText RigidBodyNameText;
 	FText RigidBodyOwnerLabelText;
+
 
 	void ClearStorage();
 
@@ -260,6 +263,7 @@ private:
 
 	/// Widgets with this visibility is only shown when the selected wire node type needs a body.
 	EVisibility NodeHasRigidBody() const;
+
 
 private:
 	/// Delegate that the Slate system provides for us. When executed a rebuild of all widgets is
