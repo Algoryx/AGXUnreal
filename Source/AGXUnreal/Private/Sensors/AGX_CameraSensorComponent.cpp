@@ -42,7 +42,7 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 
 	AGX_CHECK(!HasNative());
 	if (HasNative())
-		return NativeBarrier.Get();
+		return GetNativeAsCamera();
 
 	auto CameraBackend = UAGX_CameraBackend::GetFrom(this);
 	if (CameraBackend == nullptr)
@@ -60,7 +60,10 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		return nullptr;
 	}
 
-	auto CameraBarrier = static_cast<FCameraBarrier*>(NativeBarrier.Get());
+	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	if (CameraBarrier == nullptr)
+		return nullptr;
+
 	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier);
 	if (HasNative())
 		UpdateNativeProperties();
@@ -78,10 +81,10 @@ void UAGX_CameraSensorComponent::BeginPlay()
 	if (!HasNative())
 		CreateNativeImpl();
 
-	SetupSceneCapture();
-
 	if (HasNative())
 	{
+		SetupSceneCapture();
+
 		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
 		{
 			Se->AddCamera(this);
@@ -108,7 +111,8 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 {
 	Super::PostApplyToComponent();
 
-	if (GIsReconstructingBlueprintInstances && GetWorld() && GetWorld()->IsGameWorld())
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
 	{
 		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
 		// during Play, so recreate the runtime Scene Capture Component on the new instance.
@@ -129,7 +133,7 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 
 FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
 {
-	if (!HasNative())
+	if (NativeBarrier == nullptr)
 		return nullptr;
 
 	return static_cast<FCameraBarrier*>(NativeBarrier.Get());
@@ -137,7 +141,7 @@ FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
 
 const FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera() const
 {
-	if (!HasNative())
+	if (NativeBarrier == nullptr)
 		return nullptr;
 
 	return static_cast<const FCameraBarrier*>(NativeBarrier.Get());
