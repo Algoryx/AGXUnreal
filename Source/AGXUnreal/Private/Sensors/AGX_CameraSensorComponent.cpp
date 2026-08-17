@@ -324,14 +324,17 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	if (World == nullptr)
 		return;
 
-	CaptureComponent2D = NewObject<USceneCaptureComponent2D>(Owner, NAME_None);
-	CaptureComponent2D->SetupAttachment(this);
+	CaptureComponent2D =
+		NewObject<USceneCaptureComponent2D>(this, FName(TEXT("SceneCaptureComponent2D")));
+	CaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
+	CaptureComponent2D->RegisterComponent();
+	CaptureComponent2D->AttachToComponent(
+		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
 	CaptureComponent2D->SetCanEverAffectNavigation(false);
 	CaptureComponent2D->bCaptureEveryFrame = false;
 	CaptureComponent2D->bCaptureOnMovement = false;
 	CaptureComponent2D->bAlwaysPersistRenderingState = true;
-	CaptureComponent2D->CreationMethod = CreationMethod;
-	CaptureComponent2D->RegisterComponentWithWorld(World);
 }
 
 void UAGX_CameraSensorComponent::SetupRenderPasses()
