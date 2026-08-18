@@ -20,6 +20,7 @@
 UAGX_WireLinkComponent::UAGX_WireLinkComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	bWantsOnUpdateTransform = true;
 }
 
 UAGX_RigidBodyComponent* UAGX_WireLinkComponent::GetRigidBody() const
@@ -164,6 +165,21 @@ UAGX_WireLinkComponent::GetComponentInstanceData() const
 		this, this,
 		[](UActorComponent* Component) -> IAGX_NativeOwner*
 		{ return Cast<UAGX_WireLinkComponent>(Component); });
+}
+
+void UAGX_WireLinkComponent::OnUpdateTransform(
+	EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport)
+{
+	Super::OnUpdateTransform(UpdateTransformFlags, Teleport);
+	if (GetRigidBody() != nullptr && !GetRelativeTransform().Equals(FTransform::Identity))
+		SetRelativeTransform(FTransform::Identity);
+}
+
+void UAGX_WireLinkComponent::OnAttachmentChanged()
+{
+	Super::OnAttachmentChanged();
+	if (GetRigidBody() != nullptr && !GetRelativeTransform().Equals(FTransform::Identity))
+		SetRelativeTransform(FTransform::Identity);
 }
 
 #if WITH_EDITOR
