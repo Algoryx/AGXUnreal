@@ -79,7 +79,8 @@ public:
 	/**
 	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this
 	 * Camera Sensor Component. When set, this component's existing render target is used as the
-	 * camera pipeline input.
+	 * camera pipeline input. Note that when using the CaptureSourceOverride, the location
+	 * of this AGX Camera Sensor Component has no effect.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
 	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
