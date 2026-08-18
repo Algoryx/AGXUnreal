@@ -158,7 +158,8 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 	if (SceneRenderTarget == nullptr)
 		return nullptr;
 
-	CaptureSource->CaptureScene();
+	if (!CaptureSource->bCaptureEveryFrame)
+		CaptureSource->CaptureScene();
 
 	UTexture* InputTexture = SceneRenderTarget;
 	UTextureRenderTarget2D* FinalRenderTarget = SceneRenderTarget;
