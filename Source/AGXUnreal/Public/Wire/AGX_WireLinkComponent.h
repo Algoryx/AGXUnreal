@@ -118,6 +118,12 @@ public:
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
 	//~ End UActorComponent interface.
 
+	//~ Begin USceneComponent interface.
+	virtual void OnUpdateTransform(
+		EUpdateTransformFlags UpdateTransformFlags, ETeleportType Teleport) override;
+	virtual void OnAttachmentChanged() override;
+	//~ End USceneComponent interface.
+
 	//~ Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
