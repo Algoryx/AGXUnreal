@@ -97,6 +97,7 @@
 #include "Sensors/AGX_OusterOS0ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
+#include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
@@ -430,6 +431,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
+	// Scene Capture Component 2D Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_SceneCaptureComponent2DReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_Real::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAGX_RealDetails::MakeInstance));
@@ -636,6 +643,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName());
+
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_SceneCaptureComponent2DReference::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(FAGX_Real::StaticStruct()->GetFName());
 

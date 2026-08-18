@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
 
 #include "AGX_CameraSensorComponent.generated.h"
@@ -75,18 +76,33 @@ public:
 
 	void UpdateNativeTransform();
 
+	/**
+	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this
+	 * Camera Sensor Component. When set, this component's existing render target is used as the
+	 * camera pipeline input.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
+	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void SetCaptureSourceOverride(USceneCaptureComponent2D* InCaptureSourceOverride);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool HasCaptureSourceOverride() const;
+
 	FSensorBarrier* CreateNativeImpl() override;
 
 	/**
-	 * Get the Scene Capture Component 2D used by this Camera Sensor.
-	 * Only valid during Play.
-	 * Returns nullptr if the Camera Sensor has not been initialized.
+	 * Get the active Scene Capture Component 2D used by this Camera Sensor. Returns the
+	 * CaptureSourceOverride if one is set, otherwise returns the internally created capture source.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
-	USceneCaptureComponent2D* GetSceneCaptureComponent2D() const;
+	USceneCaptureComponent2D* GetCaptureSource() const;
 
 	/**
-	 * Whether this Camera Sensor has both a Native object and a Scene Capture Component 2D.
+	 * Whether this Camera Sensor has both a Native object and a Scene Capture Component 2D. If
+	 * CaptureSourceOverride is set, the referenced Scene Capture Component 2D must also have a
+	 * render target.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
 	bool IsCameraSensorValid() const;
@@ -99,6 +115,10 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void PostApplyToComponent() override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
+	virtual void OnRegister() override;
 	//~ End UActorComponent Interface
 
 	//~ Begin UObject Interface
@@ -120,8 +140,13 @@ private:
 	void SetupSceneCapture();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
-	UTextureRenderTarget2D* CreateRenderTarget();
-	bool IsRenderTargetUpToDate(const UTextureRenderTarget2D* RenderTarget) const;
+
+	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
+	FIntPoint GetActiveResolution() const;
+
+	UTextureRenderTarget2D* CreateRenderTarget(const FIntPoint& InResolution);
+	bool IsRenderTargetUpToDate(
+		const UTextureRenderTarget2D* RenderTarget, const FIntPoint& InResolution) const;
 	static bool IsResolutionValid(const FIntPoint& InResolution);
 
 #if WITH_EDITOR
@@ -129,7 +154,7 @@ private:
 #endif
 
 	UPROPERTY(Transient)
-	TObjectPtr<USceneCaptureComponent2D> CaptureComponent2D {nullptr};
+	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget {nullptr};

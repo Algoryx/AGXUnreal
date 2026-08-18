@@ -9,6 +9,7 @@
 #include "Sensors/AGX_CameraBackend.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBarrier.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
 // Unreal Engine includes.
@@ -25,6 +26,15 @@
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
 	NativeBarrier.Reset(new FCameraBarrier());
+}
+
+namespace AGX_CameraSensorComponent_helpers
+{
+	void SetLocalScope(UAGX_CameraSensorComponent& Component)
+	{
+		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		Component.CaptureSourceOverride.LocalScope = Owner;
+	}
 }
 
 void UAGX_CameraSensorComponent::SetResolution(FIntPoint InResolution)
@@ -68,11 +78,8 @@ bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface
 bool UAGX_CameraSensorComponent::RemoveMaterialPass(UMaterialInterface* Material)
 {
 	const int32 NumRemoved =
-		MaterialPasses.RemoveAll(
-			[Material](const TObjectPtr<UMaterialInterface>& ExistingMaterial)
-			{
-				return ExistingMaterial.Get() == Material;
-			});
+		MaterialPasses.RemoveAll([Material](const TObjectPtr<UMaterialInterface>& ExistingMaterial)
+								 { return ExistingMaterial.Get() == Material; });
 	if (NumRemoved == 0)
 		return false;
 
@@ -102,26 +109,56 @@ void UAGX_CameraSensorComponent::UpdateNativeTransform()
 		GetNativeAsCamera()->SetTransform(GetComponentTransform());
 }
 
-USceneCaptureComponent2D* UAGX_CameraSensorComponent::GetSceneCaptureComponent2D() const
+void UAGX_CameraSensorComponent::SetCaptureSourceOverride(
+	USceneCaptureComponent2D* InCaptureSourceOverride)
 {
-	return CaptureComponent2D;
+	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
+	CaptureSourceOverride.SetComponent(InCaptureSourceOverride);
+	SceneRenderTarget = nullptr;
+	RenderTargets.Empty();
+	SetupSceneCapture();
+	SetupRenderPasses();
+}
+
+bool UAGX_CameraSensorComponent::HasCaptureSourceOverride() const
+{
+	return CaptureSourceOverride.GetSceneCaptureComponent2D() != nullptr;
+}
+
+USceneCaptureComponent2D* UAGX_CameraSensorComponent::GetCaptureSource() const
+{
+	if (USceneCaptureComponent2D* CaptureSource =
+			CaptureSourceOverride.GetSceneCaptureComponent2D())
+	{
+		return CaptureSource;
+	}
+
+	return OwnedCaptureComponent2D;
 }
 
 bool UAGX_CameraSensorComponent::IsCameraSensorValid() const
 {
-	return CaptureComponent2D != nullptr && HasNative();
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr || !HasNative())
+		return false;
+
+	if (HasCaptureSourceOverride() && CaptureSource->TextureTarget == nullptr)
+		return false;
+
+	return true;
 }
 
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 {
-	if (CaptureComponent2D == nullptr)
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr)
 		return nullptr;
 
 	EnsureRenderTargets();
 	if (SceneRenderTarget == nullptr)
 		return nullptr;
 
-	CaptureComponent2D->CaptureScene();
+	CaptureSource->CaptureScene();
 
 	UTexture* InputTexture = SceneRenderTarget;
 	UTextureRenderTarget2D* FinalRenderTarget = SceneRenderTarget;
@@ -147,8 +184,8 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 		{
 			FCanvasTileItem Item(
 				FVector2D::ZeroVector, MaterialInstance->GetRenderProxy(),
-				FVector2D(Resolution.X, Resolution.Y), FVector2D(0.0f, 0.0f),
-				FVector2D(1.0f, 1.0f));
+				FVector2D(OutputRenderTarget->SizeX, OutputRenderTarget->SizeY),
+				FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
 			Item.BlendMode = SE_BLEND_Opaque;
 			Canvas->DrawItem(Item);
 		}
@@ -252,10 +289,10 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
-	if (CaptureComponent2D != nullptr)
+	if (OwnedCaptureComponent2D != nullptr)
 	{
-		CaptureComponent2D->DestroyComponent();
-		CaptureComponent2D = nullptr;
+		OwnedCaptureComponent2D->DestroyComponent();
+		OwnedCaptureComponent2D = nullptr;
 	}
 
 	MaterialInstances.Empty();
@@ -264,6 +301,24 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 }
 
 #if WITH_EDITOR
+bool UAGX_CameraSensorComponent::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, Resolution) &&
+		HasCaptureSourceOverride())
+	{
+		return false;
+	}
+
+	return SuperCanEditChange;
+}
+
 void UAGX_CameraSensorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
 {
 	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
@@ -277,6 +332,15 @@ void UAGX_CameraSensorComponent::PostInitProperties()
 	InitPropertyDispatcher();
 }
 #endif
+
+void UAGX_CameraSensorComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// On Register is called after object initialization has completed, so it is safe to set the
+	// local scope used by Component References.
+	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
+}
 
 FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
 {
@@ -313,7 +377,17 @@ void UAGX_CameraSensorComponent::UpdateNativeProperties()
 
 void UAGX_CameraSensorComponent::SetupSceneCapture()
 {
-	if (CaptureComponent2D != nullptr)
+	if (HasCaptureSourceOverride())
+	{
+		if (OwnedCaptureComponent2D != nullptr)
+		{
+			OwnedCaptureComponent2D->DestroyComponent();
+			OwnedCaptureComponent2D = nullptr;
+		}
+		return;
+	}
+
+	if (OwnedCaptureComponent2D != nullptr)
 		return;
 
 	AActor* Owner = GetOwner();
@@ -324,27 +398,31 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	if (World == nullptr)
 		return;
 
-	CaptureComponent2D =
+	// No CaptureSourceOverride set by the user, create a USceneCaptureComponent2D that we own
+	// completely and use that when rendering.
+
+	OwnedCaptureComponent2D =
 		NewObject<USceneCaptureComponent2D>(this, FName(TEXT("SceneCaptureComponent2D")));
-	CaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
-	CaptureComponent2D->RegisterComponent();
-	CaptureComponent2D->AttachToComponent(
+	OwnedCaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
+	OwnedCaptureComponent2D->RegisterComponent();
+	OwnedCaptureComponent2D->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-	CaptureComponent2D->SetCanEverAffectNavigation(false);
-	CaptureComponent2D->bCaptureEveryFrame = false;
-	CaptureComponent2D->bCaptureOnMovement = false;
-	CaptureComponent2D->bAlwaysPersistRenderingState = true;
+	OwnedCaptureComponent2D->SetCanEverAffectNavigation(false);
+	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
+	OwnedCaptureComponent2D->bCaptureOnMovement = false;
+	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
 }
 
 void UAGX_CameraSensorComponent::SetupRenderPasses()
 {
 	MaterialInstances.Empty();
 
-	if (CaptureComponent2D == nullptr)
+	if (GetCaptureSource() == nullptr)
 		return;
 
-	if (!IsResolutionValid(Resolution))
+	const FIntPoint ActiveResolution = GetActiveResolution();
+	if (!IsResolutionValid(ActiveResolution))
 		return;
 
 	for (const TObjectPtr<UMaterialInterface>& Material : MaterialPasses)
@@ -360,42 +438,75 @@ void UAGX_CameraSensorComponent::SetupRenderPasses()
 
 void UAGX_CameraSensorComponent::EnsureRenderTargets()
 {
-	if (CaptureComponent2D == nullptr)
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr)
 		return;
 
-	if (!IsResolutionValid(Resolution))
+	if (HasCaptureSourceOverride())
+	{
+		SceneRenderTarget = CaptureSource->TextureTarget;
+		if (SceneRenderTarget == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' in '%s' is using CaptureSourceOverride but "
+					 "the referenced Scene Capture Component 2D '%s' does not have a render "
+					 "target. Camera pipeline rendering will be skipped."),
+				*GetName(), *GetLabelSafe(GetOwner()), *CaptureSource->GetName());
+			return;
+		}
+	}
+
+	const FIntPoint ActiveResolution = GetActiveResolution();
+	if (!IsResolutionValid(ActiveResolution))
 		return;
 
-	if (!IsRenderTargetUpToDate(SceneRenderTarget))
-		SceneRenderTarget = CreateRenderTarget();
+	if (!HasCaptureSourceOverride())
+	{
+		if (!IsRenderTargetUpToDate(SceneRenderTarget, ActiveResolution))
+			SceneRenderTarget = CreateRenderTarget(ActiveResolution);
 
-	CaptureComponent2D->TextureTarget = SceneRenderTarget;
+		CaptureSource->TextureTarget = SceneRenderTarget;
+	}
 
 	if (RenderTargets.Num() < MaterialInstances.Num())
 		RenderTargets.SetNum(MaterialInstances.Num());
 
 	for (int32 Index = 0; Index < MaterialInstances.Num(); ++Index)
 	{
-		if (!IsRenderTargetUpToDate(RenderTargets[Index]))
-			RenderTargets[Index] = CreateRenderTarget();
+		if (!IsRenderTargetUpToDate(RenderTargets[Index], ActiveResolution))
+			RenderTargets[Index] = CreateRenderTarget(ActiveResolution);
 	}
 }
 
-UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget()
+FIntPoint UAGX_CameraSensorComponent::GetActiveResolution() const
+{
+	if (!HasCaptureSourceOverride())
+		return Resolution;
+
+	const USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr || CaptureSource->TextureTarget == nullptr)
+		return {0, 0};
+
+	return {CaptureSource->TextureTarget->SizeX, CaptureSource->TextureTarget->SizeY};
+}
+
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
+	const FIntPoint& InResolution)
 {
 	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 	RenderTarget->bGPUSharedFlag = true;
 	RenderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
 	RenderTarget->TargetGamma = 2.2f;
-	RenderTarget->InitAutoFormat(Resolution.X, Resolution.Y);
+	RenderTarget->InitAutoFormat(InResolution.X, InResolution.Y);
 	return RenderTarget;
 }
 
 bool UAGX_CameraSensorComponent::IsRenderTargetUpToDate(
-	const UTextureRenderTarget2D* RenderTarget) const
+	const UTextureRenderTarget2D* RenderTarget, const FIntPoint& InResolution) const
 {
-	return RenderTarget != nullptr && RenderTarget->SizeX == Resolution.X &&
-		   RenderTarget->SizeY == Resolution.Y;
+	return RenderTarget != nullptr && RenderTarget->SizeX == InResolution.X &&
+		   RenderTarget->SizeY == InResolution.Y;
 }
 
 bool UAGX_CameraSensorComponent::IsResolutionValid(const FIntPoint& InResolution)
@@ -413,6 +524,13 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(Resolution);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MaterialInputTextureParameterName);
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(CaptureSourceOverride),
+		[](ThisClass* This)
+		{
+			This->SetCaptureSourceOverride(
+				This->CaptureSourceOverride.GetSceneCaptureComponent2D());
+		});
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(MaterialPasses), [](ThisClass* This) { This->SetupRenderPasses(); });
 }
