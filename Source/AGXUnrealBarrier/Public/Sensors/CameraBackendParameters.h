@@ -17,4 +17,3 @@ struct AGXUNREALBARRIER_API FCameraLensSingleElementParameters
 	} focus {0.0};
 	bool autofocus {false};
 };
-

@@ -348,7 +348,7 @@ void UAGX_CameraSensorComponent::OnRegister()
 
 FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
 {
-	if (NativeBarrier == nullptr)
+	if (!HasNative())
 		return nullptr;
 
 	return static_cast<FCameraBarrier*>(NativeBarrier.Get());
@@ -356,7 +356,7 @@ FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
 
 const FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera() const
 {
-	if (NativeBarrier == nullptr)
+	if (!HasNative())
 		return nullptr;
 
 	return static_cast<const FCameraBarrier*>(NativeBarrier.Get());
