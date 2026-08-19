@@ -229,6 +229,7 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		return nullptr;
 
 	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier);
+	SetupCameraBackendPropagator();
 	if (HasNative())
 		UpdateNativeProperties();
 
@@ -281,6 +282,7 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 	{
 		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
 		// during Play, so recreate the runtime Scene Capture Component on the new instance.
+		SetupCameraBackendPropagator();
 		SetupSceneCapture();
 		SetupRenderPasses();
 	}
@@ -413,6 +415,22 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
 	OwnedCaptureComponent2D->bCaptureOnMovement = false;
 	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
+}
+
+void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()
+{
+	CameraBackendPropagator.SetCameraSensor(this);
+
+	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
+		CameraBarrier->SetBackendPropagator(&CameraBackendPropagator);
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
+	FCameraLensSingleElementParametersBarrier& Barrier)
+{
+	UE_LOG(
+		LogAGX, Warning, TEXT("UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement %d"),
+		Barrier.HasNative());
 }
 
 void UAGX_CameraSensorComponent::SetupRenderPasses()

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraLensSingleElementParametersBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -41,8 +42,9 @@ namespace CameraBackendBarrier_helpers
 		if (FCameraBarrier* CameraBarrier =
 				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
 		{
-			FCameraLensSingleElementParametersRef ParametersRef(Parameters);
-			CameraBarrier->OnBackendSetCameraLensSingleElement(ParametersRef);
+			FCameraLensSingleElementParametersBarrier ParametersBarrier(
+				std::make_shared<FCameraLensSingleElementParametersRef>(Parameters));
+			CameraBarrier->OnBackendSetCameraLensSingleElement(ParametersBarrier);
 		}
 	}
 
@@ -95,7 +97,8 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*, bool)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
+		UE_LOG(
+			LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
 		return false;
 	}
 }
@@ -189,8 +192,7 @@ const FCameraBarrier* FCameraBackendBarrier::FindCamera(uint64 NativeCameraAddre
 	if (NativeCameraAddress == 0)
 		return nullptr;
 
-	if (FCameraBarrier* const* CameraBarrier =
-			CameraBarriers.Find(NativeCameraAddress))
+	if (FCameraBarrier* const* CameraBarrier = CameraBarriers.Find(NativeCameraAddress))
 		return *CameraBarrier;
 
 	return nullptr;

@@ -8,7 +8,8 @@
 #include "CameraBarrier.generated.h"
 
 struct FCameraBackendBarrier;
-struct FCameraLensSingleElementParametersRef;
+struct FCameraLensSingleElementParametersBarrier;
+class FCameraBackendPropagatorBase;
 
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
@@ -28,6 +29,12 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	void MarkOutputAsRead();
 
+	void SetBackendPropagator(FCameraBackendPropagatorBase* InPropagator);
+	FCameraBackendPropagatorBase* GetBackendPropagator() const;
+
 	/** Internal functions, only called by the CameraBackendBarrier. */
-	void OnBackendSetCameraLensSingleElement(FCameraLensSingleElementParametersRef& Parameters);
+	void OnBackendSetCameraLensSingleElement(FCameraLensSingleElementParametersBarrier& Parameters);
+
+private:
+	FCameraBackendPropagatorBase* BackendPropagator = nullptr;
 };

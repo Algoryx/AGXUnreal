@@ -3,12 +3,14 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_CameraBackendPropagator.h"
 #include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
 
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
+struct FCameraLensSingleElementParametersBarrier;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class USceneCaptureComponent2D;
@@ -135,14 +137,18 @@ public:
 	const FCameraBarrier* GetNativeAsCamera() const;
 
 private:
+	friend class FAGX_CameraBackendPropagator;
+
 	//~ Begin UAGX_SensorComponentBase Interface
 	virtual void MarkOutputAsRead() override;
 	virtual void UpdateNativeProperties() override;
 	//~ End UAGX_SensorComponentBase Interface
 
 	void SetupSceneCapture();
+	void SetupCameraBackendPropagator();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
+	void OnBackendSetCameraLensSingleElement(FCameraLensSingleElementParametersBarrier& Parameters);
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
 	FIntPoint GetActiveResolution() const;
@@ -167,4 +173,6 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+
+	FAGX_CameraBackendPropagator CameraBackendPropagator;
 };

@@ -6,6 +6,8 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CameraBackendBarrier.h"
+#include "Sensors/CameraBackendPropagatorBase.h"
+#include "Sensors/CameraLensSingleElementParametersBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -48,8 +50,7 @@ void FCameraBarrier::AllocateNative(
 	auto Model = new agxSensor::CameraModel(
 		new agxSensor::CameraLensSingleElement(), new agxSensor::CameraCMOSSensor());
 
-	NativeRef->Native = new agxSensor::Camera(
-		Frame, Model, CameraBackend.GetNative()->Native);
+	NativeRef->Native = new agxSensor::Camera(Frame, Model, CameraBackend.GetNative()->Native);
 	CameraBackend.Add(*this);
 }
 
@@ -59,6 +60,7 @@ void FCameraBarrier::ReleaseNative()
 		FCameraBackendBarrier::GetInstance().Remove(*this);
 
 	FSensorBarrier::ReleaseNative();
+	BackendPropagator = nullptr;
 }
 
 void FCameraBarrier::SetTransform(const FTransform& Transform)
@@ -82,13 +84,23 @@ void FCameraBarrier::MarkOutputAsRead()
 		[](agxSensor::ICameraOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
 }
 
+void FCameraBarrier::SetBackendPropagator(FCameraBackendPropagatorBase* InPropagator)
+{
+	BackendPropagator = InPropagator;
+}
+
+FCameraBackendPropagatorBase* FCameraBarrier::GetBackendPropagator() const
+{
+	return BackendPropagator;
+}
 
 /// Camera Backend Callbacks.
 
 void FCameraBarrier::OnBackendSetCameraLensSingleElement(
-	FCameraLensSingleElementParametersRef& Parameters)
+	FCameraLensSingleElementParametersBarrier& Parameters)
 {
-	AGX_CHECK(Parameters.Native != nullptr);
+	AGX_CHECK(Parameters.HasNative());
 
-	UE_LOG(LogTemp, Warning, TEXT("FCameraBarrier::OnBackendSetCameraLensSingleElement"));
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendSetCameraLensSingleElement(Parameters);
 }
