@@ -8,6 +8,7 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Sensors/AGX_CameraBackend.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
+#include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -426,11 +427,11 @@ void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
-	FCameraLensSingleElementParametersBarrier& Barrier)
+	const FCameraLensSingleElementParameters& Parameters)
 {
 	UE_LOG(
 		LogAGX, Warning, TEXT("UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement %d"),
-		Barrier.HasNative());
+		Parameters.autofocus);
 }
 
 void UAGX_CameraSensorComponent::SetupRenderPasses()

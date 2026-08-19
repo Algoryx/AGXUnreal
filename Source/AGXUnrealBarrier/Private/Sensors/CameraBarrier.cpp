@@ -6,8 +6,8 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CameraBackendBarrier.h"
+#include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
-#include "Sensors/CameraLensSingleElementParametersBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -97,10 +97,8 @@ FCameraBackendPropagatorBase* FCameraBarrier::GetBackendPropagator() const
 /// Camera Backend Callbacks.
 
 void FCameraBarrier::OnBackendSetCameraLensSingleElement(
-	FCameraLensSingleElementParametersBarrier& Parameters)
+	const FCameraLensSingleElementParameters& Parameters)
 {
-	AGX_CHECK(Parameters.HasNative());
-
 	if (BackendPropagator != nullptr)
 		BackendPropagator->OnBackendSetCameraLensSingleElement(Parameters);
 }

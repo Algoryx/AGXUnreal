@@ -9,13 +9,13 @@
 #include "CoreMinimal.h"
 
 class UAGX_CameraSensorComponent;
-struct FCameraLensSingleElementParametersBarrier;
+struct FCameraLensSingleElementParameters;
 
 class FAGX_CameraBackendPropagator : public FCameraBackendPropagatorBase
 {
 public:
 	virtual void OnBackendSetCameraLensSingleElement(
-		FCameraLensSingleElementParametersBarrier& Parameters) override;
+		const FCameraLensSingleElementParameters& Parameters) override;
 
 	void SetCameraSensor(UAGX_CameraSensorComponent* InCameraSensor);
 	UAGX_CameraSensorComponent* GetCameraSensor() const;

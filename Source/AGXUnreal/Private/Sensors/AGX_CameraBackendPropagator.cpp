@@ -7,7 +7,7 @@
 #include "Sensors/AGX_CameraSensorComponent.h"
 
 void FAGX_CameraBackendPropagator::OnBackendSetCameraLensSingleElement(
-	FCameraLensSingleElementParametersBarrier& Parameters)
+	const FCameraLensSingleElementParameters& Parameters)
 {
 	if (!CameraSensor.IsValid())
 	{

@@ -3,8 +3,9 @@
 #include "Sensors/CameraBackendBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CameraBarrier.h"
-#include "Sensors/CameraLensSingleElementParametersBarrier.h"
+#include "Sensors/CameraBackendParameters.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -29,6 +30,25 @@ namespace CameraBackendBarrier_helpers
 		return GetCameraNativeAddress(NativeCamera);
 	}
 
+	FCameraLensSingleElementParameters Convert(
+		const agxSensor::CameraLensSingleElementParameters& Parameters)
+	{
+		FCameraLensSingleElementParameters Result;
+		Result.focalLength = ConvertDistanceToUnreal<double>(Parameters.focalLength);
+		Result.fStop = Parameters.fStop;
+		Result.autofocus = Parameters.autofocus;
+		if (Result.autofocus)
+		{
+			Result.focus.minimumDistance =
+				ConvertDistanceToUnreal<double>(Parameters.focus.minimumDistance);
+		}
+		else
+		{
+			Result.focus.distance = ConvertDistanceToUnreal<double>(Parameters.focus.distance);
+		}
+		return Result;
+	}
+
 	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
@@ -39,12 +59,12 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::Camera* Camera, agxSensor::CameraLensSingleElement*,
 		agxSensor::CameraLensSingleElementParameters* Parameters)
 	{
+		check(Parameters != nullptr);
+
 		if (FCameraBarrier* CameraBarrier =
 				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
 		{
-			FCameraLensSingleElementParametersBarrier ParametersBarrier(
-				std::make_shared<FCameraLensSingleElementParametersRef>(Parameters));
-			CameraBarrier->OnBackendSetCameraLensSingleElement(ParametersBarrier);
+			CameraBarrier->OnBackendSetCameraLensSingleElement(Convert(*Parameters));
 		}
 	}
 

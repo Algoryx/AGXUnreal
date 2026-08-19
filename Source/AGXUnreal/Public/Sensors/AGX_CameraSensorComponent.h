@@ -10,7 +10,7 @@
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
-struct FCameraLensSingleElementParametersBarrier;
+struct FCameraLensSingleElementParameters;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class USceneCaptureComponent2D;
@@ -148,7 +148,7 @@ private:
 	void SetupCameraBackendPropagator();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
-	void OnBackendSetCameraLensSingleElement(FCameraLensSingleElementParametersBarrier& Parameters);
+	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
 	FIntPoint GetActiveResolution() const;
