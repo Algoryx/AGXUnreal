@@ -39,7 +39,7 @@ FCameraBarrier::FCameraBarrier(
 }
 
 void FCameraBarrier::AllocateNative(
-	const FTransform& Transform, const FCameraBackendBarrier& CameraBackend)
+	const FTransform& Transform, FCameraBackendBarrier& CameraBackend)
 {
 	check(!HasNative());
 	check(CameraBackend.HasNative());
@@ -50,6 +50,15 @@ void FCameraBarrier::AllocateNative(
 
 	NativeRef->Native = new agxSensor::Camera(
 		Frame, Model, CameraBackend.GetNative()->Native);
+	CameraBackend.Add(*this);
+}
+
+void FCameraBarrier::ReleaseNative()
+{
+	if (HasNative())
+		FCameraBackendBarrier::GetInstance().Remove(*this);
+
+	FSensorBarrier::ReleaseNative();
 }
 
 void FCameraBarrier::SetTransform(const FTransform& Transform)

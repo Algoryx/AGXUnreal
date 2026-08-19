@@ -14,17 +14,7 @@ UAGX_CameraBackend::~UAGX_CameraBackend() = default;
 
 FCameraBackendBarrier* UAGX_CameraBackend::GetOrCreateNative()
 {
-	if (NativeBarrier == nullptr)
-	{
-		NativeBarrier.Reset(new FCameraBackendBarrier());
-	}
-
-	if (!NativeBarrier->HasNative())
-	{
-		NativeBarrier->AllocateNative();
-	}
-
-	return NativeBarrier.Get();
+	return &FCameraBackendBarrier::GetInstance();
 }
 
 UAGX_CameraBackend* UAGX_CameraBackend::GetFrom(const UActorComponent* Component)
@@ -58,6 +48,5 @@ void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 
 void UAGX_CameraBackend::Deinitialize()
 {
-	NativeBarrier.Reset();
 	Super::Deinitialize();
 }

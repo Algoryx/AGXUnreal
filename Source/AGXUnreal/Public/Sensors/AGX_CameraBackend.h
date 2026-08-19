@@ -2,9 +2,6 @@
 
 #pragma once
 
-// AGX Dynamics for Unreal includes.
-#include "Sensors/CameraBackendBarrier.h"
-
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "LevelInstance/LevelInstanceSubsystem.h"
@@ -14,6 +11,7 @@
 class AActor;
 class UActorComponent;
 class UWorld;
+struct FCameraBackendBarrier;
 
 /**
  * Todo: add API comment.
@@ -37,6 +35,4 @@ private:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	// ~End USubsystem interface.
-
-	TUniquePtr<FCameraBackendBarrier> NativeBarrier;
 };

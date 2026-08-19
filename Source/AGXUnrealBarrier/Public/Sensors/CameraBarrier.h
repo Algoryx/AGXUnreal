@@ -19,7 +19,8 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 		std::shared_ptr<FSensorRef> Native, std::shared_ptr<FSensorGroupStepStrideRef> StepStride);
 	virtual ~FCameraBarrier() override = default;
 
-	void AllocateNative(const FTransform& Transform, const FCameraBackendBarrier& CameraBackend);
+	void AllocateNative(const FTransform& Transform, FCameraBackendBarrier& CameraBackend);
+	virtual void ReleaseNative() override;
 
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;

@@ -91,7 +91,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
 	bool HasCaptureSourceOverride() const;
 
+	//~ Begin UAGX_SensorComponentBase Interface
 	FSensorBarrier* CreateNativeImpl() override;
+	//~ End UAGX_SensorComponentBase Interface
 
 	/**
 	 * Get the active Scene Capture Component 2D used by this Camera Sensor. Returns the
@@ -132,11 +134,11 @@ public:
 	FCameraBarrier* GetNativeAsCamera();
 	const FCameraBarrier* GetNativeAsCamera() const;
 
-protected:
-	virtual void MarkOutputAsRead() override;
-
 private:
+	//~ Begin UAGX_SensorComponentBase Interface
+	virtual void MarkOutputAsRead() override;
 	virtual void UpdateNativeProperties() override;
+	//~ End UAGX_SensorComponentBase Interface
 
 	void SetupSceneCapture();
 	void SetupRenderPasses();
