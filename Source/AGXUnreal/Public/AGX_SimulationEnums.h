@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_SimulationEnums.generated.h"
+
 UENUM()
 enum EAGX_StepMode
 {

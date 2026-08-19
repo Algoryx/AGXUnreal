@@ -1500,8 +1500,9 @@ void AAGX_Terrain::InitializeDisplacementMap()
 		UE_LOG(
 			LogAGX, Error,
 			TEXT("Landscape displacement map for terrain '%s' could not be resized. "
-				 "There may be rendering issues."),
-			*GetName(), LandscapeDisplacementMap->SizeX, LandscapeDisplacementMap->SizeY);
+				 "Expected size is %dx%d, current size is %dx%d. There may be rendering issues."),
+			*GetName(), NumVerticesX, NumVerticesY, LandscapeDisplacementMap->SizeX,
+			LandscapeDisplacementMap->SizeY);
 	}
 
 	DisplacementData.SetNum(NumVerticesX * NumVerticesY);
