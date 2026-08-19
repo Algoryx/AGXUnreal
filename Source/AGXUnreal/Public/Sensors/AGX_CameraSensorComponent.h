@@ -34,7 +34,7 @@ public:
 	 * Output resolution of the Camera Sensor [pixels].
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ClampMin = "1"))
-	FIntPoint Resolution {256, 256};
+	FIntPoint Resolution {256, 256}; // TODO: remove this, resolution will be set on CameraCMOSSensor instead.
 
 	/**
 	 * Set the output resolution of the Camera Sensor.
@@ -148,7 +148,6 @@ private:
 	void SetupCameraBackendPropagator();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
-	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
 	FIntPoint GetActiveResolution() const;
@@ -161,6 +160,9 @@ private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
+
+	/// Internal functions called by the Camera Backend.
+	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};

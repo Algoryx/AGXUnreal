@@ -36,6 +36,15 @@ namespace AGX_CameraSensorComponent_helpers
 		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
 		Component.CaptureSourceOverride.LocalScope = Owner;
 	}
+
+	float CalculateHorizontalFOVDegrees(double SensorWidth, double FocalLength)
+	{
+		if (SensorWidth <= 0.0 || FocalLength <= 0.0)
+			return 0.0f;
+
+		return static_cast<float>(
+			FMath::RadiansToDegrees(2.0 * FMath::Atan(SensorWidth / (2.0 * FocalLength))));
+	}
 }
 
 void UAGX_CameraSensorComponent::SetResolution(FIntPoint InResolution)
@@ -210,6 +219,7 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		return GetNativeAsCamera();
 
 	auto CameraBackend = UAGX_CameraBackend::GetFrom(this);
+	AGX_CHECK(CameraBackend != nullptr);
 	if (CameraBackend == nullptr)
 		return nullptr;
 
@@ -225,7 +235,7 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		return nullptr;
 	}
 
-	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	FCameraBarrier* CameraBarrier = static_cast<FCameraBarrier*>(NativeBarrier.Get());
 	if (CameraBarrier == nullptr)
 		return nullptr;
 
@@ -426,14 +436,6 @@ void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()
 		CameraBarrier->SetBackendPropagator(&CameraBackendPropagator);
 }
 
-void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
-	const FCameraLensSingleElementParameters& Parameters)
-{
-	UE_LOG(
-		LogAGX, Warning, TEXT("UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement %d"),
-		Parameters.autofocus);
-}
-
 void UAGX_CameraSensorComponent::SetupRenderPasses()
 {
 	MaterialInstances.Empty();
@@ -555,3 +557,46 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 		AGX_MEMBER_NAME(MaterialPasses), [](ThisClass* This) { This->SetupRenderPasses(); });
 }
 #endif
+
+/// Camera Backend Callbacks.
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
+	const FCameraLensSingleElementParameters& Parameters)
+{
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	if (HasCaptureSourceOverride())
+		return; // Never modify users camera.
+
+	USceneCaptureComponent2D* SceneCapture = OwnedCaptureComponent2D.Get();
+	AGX_CHECK(SceneCapture != nullptr);
+	if (SceneCapture == nullptr)
+		return;
+
+	constexpr double DefaultCMOSSensorWidth {
+		0.27288}; // TODO: read from CameraCMOSSensor asset instead!
+	const float FOVAngle =
+		CalculateHorizontalFOVDegrees(DefaultCMOSSensorWidth, Parameters.focalLength);
+	if (FOVAngle > 0.0f)
+		SceneCapture->FOVAngle = FOVAngle;
+
+	// SceneCapture->PostProcessBlendWeight = 1.0f;
+	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldEnabled = true;
+	// SceneCapture->PostProcessSettings.DepthOfFieldEnabled = true;
+	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
+	// SceneCapture->PostProcessSettings.DepthOfFieldFstop = static_cast<float>(Parameters.fStop);
+	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
+	// SceneCapture->PostProcessSettings.DepthOfFieldSensorWidth =
+	//	AGX_CameraSensorComponent_helpers::DefaultCMOSSensorWidthMillimeters;
+
+	// if (Parameters.autofocus)
+	//{
+	//	SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = false;
+	// }
+	// else
+	//{
+	//	SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
+	//	SceneCapture->PostProcessSettings.DepthOfFieldFocalDistance =
+	//		static_cast<float>(Parameters.focus.distance);
+	// }
+}
