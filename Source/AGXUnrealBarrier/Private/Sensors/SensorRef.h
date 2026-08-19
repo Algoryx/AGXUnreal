@@ -35,6 +35,16 @@ struct FCameraRef
 	}
 };
 
+struct FCameraLensSingleElementParametersRef
+{
+	agxSensor::CameraLensSingleElementParameters* Native = nullptr;
+	FCameraLensSingleElementParametersRef() = default;
+	FCameraLensSingleElementParametersRef(agxSensor::CameraLensSingleElementParameters* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
 struct FIMURef
 {
 	agxSensor::IMURef Native;

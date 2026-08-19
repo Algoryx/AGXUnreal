@@ -27,6 +27,8 @@ struct AGXUNREALBARRIER_API FCameraBackendBarrier
 	void Add(FCameraBarrier& Camera);
 	bool Remove(FCameraBarrier& Camera);
 
+	void ClearCameras();
+
 	FCameraBarrier* FindCamera(uint64 NativeCameraAddress);
 	const FCameraBarrier* FindCamera(uint64 NativeCameraAddress) const;
 

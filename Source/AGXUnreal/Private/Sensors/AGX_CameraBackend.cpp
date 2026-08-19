@@ -48,5 +48,6 @@ void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 
 void UAGX_CameraBackend::Deinitialize()
 {
+	FCameraBackendBarrier::GetInstance().ClearCameras();
 	Super::Deinitialize();
 }

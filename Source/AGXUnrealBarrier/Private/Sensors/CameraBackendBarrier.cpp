@@ -31,24 +31,19 @@ namespace CameraBackendBarrier_helpers
 	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
-	}
-
-	void Cleanup(agxSensor::Camera* Camera)
-	{
-		if (FCameraBarrier* CameraBarrier =
-				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
-			FCameraBackendBarrier::GetInstance().Remove(*CameraBarrier);
-
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::Cleanup"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
 	}
 
 	void SetCameraLensSingleElement(
 		agxSensor::Camera* Camera, agxSensor::CameraLensSingleElement*,
-		agxSensor::CameraLensSingleElementParameters*)
+		agxSensor::CameraLensSingleElementParameters* Parameters)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensSingleElement"));
+		if (FCameraBarrier* CameraBarrier =
+				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			FCameraLensSingleElementParametersRef ParametersRef(Parameters);
+			CameraBarrier->OnBackendSetCameraLensSingleElement(ParametersRef);
+		}
 	}
 
 	void SetCameraCMOSSensor(
@@ -56,13 +51,13 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::CameraCMOSSensorParameters*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
 	}
 
 	void SetCameraLensDistortionNone(agxSensor::Camera* Camera, agxSensor::CameraLens*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
 	}
 
 	void SetCameraLensDistortionBrownConrady(
@@ -71,7 +66,7 @@ namespace CameraBackendBarrier_helpers
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(
-			LogTemp, Log,
+			LogTemp, Warning,
 			TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionBrownConrady"));
 	}
 
@@ -80,27 +75,27 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::CameraColorOutputParameters*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
 	}
 
 	void SetCameraColorOutputAddress(
 		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*, void*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
 	}
 
 	void CaptureCameraColorOutput(agxSensor::Camera* Camera, agxSensor::CameraColorOutput*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::CaptureCameraColorOutput"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::CaptureCameraColorOutput"));
 	}
 
 	bool HasCameraColorOutputUnreadData(
 		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*, bool)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Log, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
 		return false;
 	}
 }
@@ -133,7 +128,6 @@ void FCameraBackendBarrier::AllocateNative()
 	check(!HasNative());
 	NativeRef = std::make_shared<FCameraBackendRef>();
 	NativeRef->Native.synchronizeGraphics = SynchronizeGraphics;
-	NativeRef->Native.cleanup = Cleanup;
 	NativeRef->Native.setCameraLensSingleElement = SetCameraLensSingleElement;
 	NativeRef->Native.setCameraCMOSSensor = SetCameraCMOSSensor;
 	NativeRef->Native.setCameraLensDistortionNone = SetCameraLensDistortionNone;
@@ -169,6 +163,11 @@ bool FCameraBackendBarrier::Remove(FCameraBarrier& Camera)
 		return false;
 
 	return CameraBarriers.Remove(GetCameraNativeAddress(Camera)) > 0;
+}
+
+void FCameraBackendBarrier::ClearCameras()
+{
+	CameraBarriers.Empty();
 }
 
 void FCameraBackendBarrier::ReleaseNative()

@@ -81,3 +81,14 @@ void FCameraBarrier::MarkOutputAsRead()
 	GetCameraNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::ICameraOutput>(
 		[](agxSensor::ICameraOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
 }
+
+
+/// Camera Backend Callbacks.
+
+void FCameraBarrier::OnBackendSetCameraLensSingleElement(
+	FCameraLensSingleElementParametersRef& Parameters)
+{
+	AGX_CHECK(Parameters.Native != nullptr);
+
+	UE_LOG(LogTemp, Warning, TEXT("FCameraBarrier::OnBackendSetCameraLensSingleElement"));
+}
