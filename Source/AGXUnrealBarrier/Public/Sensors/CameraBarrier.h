@@ -8,6 +8,7 @@
 #include "CameraBarrier.generated.h"
 
 struct FCameraBackendBarrier;
+struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
 struct FCameraPhotodetectorBarrier;
 class FCameraBackendPropagatorBase;
@@ -24,7 +25,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	void AllocateNative(
 		const FTransform& Transform, FCameraBackendBarrier& CameraBackend,
-		FCameraPhotodetectorBarrier* Photodetector);
+		FCameraLensBarrier* Lens, FCameraPhotodetectorBarrier* Photodetector);
 	virtual void ReleaseNative() override;
 
 	void SetTransform(const FTransform& Transform);

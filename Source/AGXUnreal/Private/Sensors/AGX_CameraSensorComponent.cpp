@@ -7,10 +7,12 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Sensors/AGX_CameraBackend.h"
+#include "Sensors/AGX_CameraLensBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraLensBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -242,10 +244,14 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		return nullptr;
 
 	UpdateCameraPhotoDetector();
+	UpdateCameraLens();
+	FCameraLensBarrier* LensBarrier =
+		CameraLens != nullptr && CameraLens->HasNative() ? CameraLens->GetNative() : nullptr;
 	FCameraPhotodetectorBarrier* PhotoDetectorBarrier =
 		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative() : nullptr;
 
-	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier, PhotoDetectorBarrier);
+	CameraBarrier->AllocateNative(
+		GetComponentTransform(), *CameraBackendBarrier, LensBarrier, PhotoDetectorBarrier);
 	SetupCameraBackendPropagator();
 	if (HasNative())
 		UpdateNativeProperties();
@@ -336,9 +342,15 @@ bool UAGX_CameraSensorComponent::CanEditChange(const FProperty* InProperty) cons
 		return false;
 	}
 
-	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, PhotoDetector) && HasNative())
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
 	{
-		return false;
+		static const TArray<FName> PropertiesNotEditableDuringPlay {
+			GET_MEMBER_NAME_CHECKED(ThisClass, PhotoDetector),
+			GET_MEMBER_NAME_CHECKED(ThisClass, CameraLens)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+			return false;
 	}
 
 	return SuperCanEditChange;
@@ -474,6 +486,36 @@ void UAGX_CameraSensorComponent::UpdateCameraPhotoDetector()
 			TEXT("Camera Sensor Component '%s' in '%s' failed to create a native PhotoDetector "
 				 "from instance '%s'. Default AGX CMOS Sensor will be used."),
 			*GetName(), *GetLabelSafe(GetOwner()), *PhotoDetector->GetName());
+	}
+}
+
+void UAGX_CameraSensorComponent::UpdateCameraLens()
+{
+	if (CameraLens == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	UAGX_CameraLensBase* Instance = CameraLens->GetOrCreateInstance(World);
+	if (Instance == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a CameraLens instance "
+				 "from '%s'. Default AGX single element lens will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *CameraLens->GetName());
+		return;
+	}
+
+	CameraLens = Instance;
+
+	FCameraLensBarrier* Barrier = CameraLens->GetOrCreateNative();
+	if (Barrier == nullptr || !Barrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a native CameraLens "
+				 "from instance '%s'. Default AGX single element lens will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *CameraLens->GetName());
 	}
 }
 

@@ -8,6 +8,7 @@
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
+#include "Sensors/CameraLensBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Sensors/SensorRef.h"
 
@@ -43,18 +44,20 @@ FCameraBarrier::FCameraBarrier(
 
 void FCameraBarrier::AllocateNative(
 	const FTransform& Transform, FCameraBackendBarrier& CameraBackend,
-	FCameraPhotodetectorBarrier* Photodetector)
+	FCameraLensBarrier* Lens, FCameraPhotodetectorBarrier* Photodetector)
 {
 	check(!HasNative());
 	check(CameraBackend.HasNative());
+	check(Lens == nullptr || Lens->HasNative());
 	check(Photodetector == nullptr || Photodetector->HasNative());
 
 	auto Frame = new agx::Frame(Convert(Transform));
+	agxSensor::CameraLens* NativeLens =
+		Lens != nullptr ? Lens->GetNative()->Native.get() : new agxSensor::CameraLensSingleElement();
 	agxSensor::CameraPhotodetector* NativePhotodetector = Photodetector != nullptr
 															  ? Photodetector->GetNative()->Native.get()
 															  : new agxSensor::CameraCMOSSensor();
-	auto Model =
-		new agxSensor::CameraModel(new agxSensor::CameraLensSingleElement(), NativePhotodetector);
+	auto Model = new agxSensor::CameraModel(NativeLens, NativePhotodetector);
 
 	NativeRef->Native = new agxSensor::Camera(Frame, Model, CameraBackend.GetNative()->Native);
 	CameraBackend.Add(*this);

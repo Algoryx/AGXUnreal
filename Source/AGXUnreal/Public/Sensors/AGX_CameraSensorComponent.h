@@ -10,10 +10,12 @@
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
+struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
 struct FCameraPhotodetectorBarrier;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
+class UAGX_CameraLensBase;
 class UAGX_CameraPhotodetectorBase;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
@@ -38,6 +40,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
 	UAGX_CameraPhotodetectorBase* PhotoDetector {nullptr};
+
+	/**
+	 * Camera lens to use when creating the native AGX Camera. If unset, a default AGX single
+	 * element lens is created.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
+	UAGX_CameraLensBase* CameraLens {nullptr};
 
 	/**
 	 * Output resolution of the Camera Sensor [pixels].
@@ -156,6 +165,7 @@ private:
 	void SetupSceneCapture();
 	void SetupCameraBackendPropagator();
 	void UpdateCameraPhotoDetector();
+	void UpdateCameraLens();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
 

@@ -79,6 +79,7 @@
 #include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_CameraSensorComponentVisualizer.h"
 #include "Sensors/AGX_CameraCMOSSensorTypeActions.h"
+#include "Sensors/AGX_CameraLensSingleElementTypeActions.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
@@ -324,6 +325,9 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		AssetTools, MakeShareable(new FAGX_CablePropertiesAssetTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_CameraCMOSSensorTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
+		MakeShareable(new FAGX_CameraLensSingleElementTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_ConstraintMergeSplitThresholdsTypeActions(AgxAssetCategoryBit)));
