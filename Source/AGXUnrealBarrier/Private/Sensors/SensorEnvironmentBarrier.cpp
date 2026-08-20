@@ -6,6 +6,7 @@
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/RtAmbientMaterialBarrier.h"
@@ -81,6 +82,13 @@ void FSensorEnvironmentBarrier::ReleaseNative()
 {
 }
 
+bool FSensorEnvironmentBarrier::Add(FCameraBarrier& Camera)
+{
+	check(HasNative());
+	check(Camera.HasNative());
+	return Camera.AddToEnvironment(*this);
+}
+
 bool FSensorEnvironmentBarrier::Add(FLidarBarrier& Lidar)
 {
 	check(HasNative());
@@ -114,6 +122,13 @@ bool FSensorEnvironmentBarrier::Add(FWireBarrier& Wire)
 	check(HasNative());
 	check(Wire.HasNative());
 	return NativeRef->Native->add(Wire.GetNative()->Native);
+}
+
+bool FSensorEnvironmentBarrier::Remove(FCameraBarrier& Camera)
+{
+	check(HasNative());
+	check(Camera.HasNative());
+	return Camera.RemoveFromEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FLidarBarrier& Lidar)

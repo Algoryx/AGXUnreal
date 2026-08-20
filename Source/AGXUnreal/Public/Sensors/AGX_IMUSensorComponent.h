@@ -19,8 +19,8 @@
  * To get the latest data from the sub-sensors, the GetAccelerometerData, GetGyroscopeData and
  * GetMagnetometer data can be called respectively.
  *
- * Note that to use the IMU Sensor Component, it must be registered with an AGX Sensor Environment
- * Actor.
+ * During play the IMU Sensor Component registers itself with the AGX Sensor Environment
+ * Subsystem.
  */
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Meta = (BlueprintSpawnableComponent),
@@ -679,11 +679,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX IMU")
 	FQuat GetRotation() const;
 
+	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+
 	void UpdateTransformFromNative();
 
 	FSensorBarrier* CreateNativeImpl() override;
 
 	//~ Begin UActorComponent Interface
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif

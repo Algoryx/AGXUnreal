@@ -13,7 +13,7 @@ class IDetailCategoryBuilder;
 /**
  * Defines the design of the Camera Sensor Component in the Editor's details panel.
  */
-class AGXUNREALEDITOR_API FAGX_CameraSensorComponentCustomization : public IDetailCustomization
+class AGXUNREALEDITOR_API FAGX_CameraSensorBaseComponentCustomization : public IDetailCustomization
 {
 public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
