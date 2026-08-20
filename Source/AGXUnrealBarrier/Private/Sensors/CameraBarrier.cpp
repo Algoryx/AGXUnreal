@@ -8,6 +8,7 @@
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
+#include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -41,14 +42,19 @@ FCameraBarrier::FCameraBarrier(
 }
 
 void FCameraBarrier::AllocateNative(
-	const FTransform& Transform, FCameraBackendBarrier& CameraBackend)
+	const FTransform& Transform, FCameraBackendBarrier& CameraBackend,
+	FCameraPhotodetectorBarrier* Photodetector)
 {
 	check(!HasNative());
 	check(CameraBackend.HasNative());
+	check(Photodetector == nullptr || Photodetector->HasNative());
 
 	auto Frame = new agx::Frame(Convert(Transform));
-	auto Model = new agxSensor::CameraModel(
-		new agxSensor::CameraLensSingleElement(), new agxSensor::CameraCMOSSensor());
+	agxSensor::CameraPhotodetector* NativePhotodetector = Photodetector != nullptr
+															  ? Photodetector->GetNative()->Native.get()
+															  : new agxSensor::CameraCMOSSensor();
+	auto Model =
+		new agxSensor::CameraModel(new agxSensor::CameraLensSingleElement(), NativePhotodetector);
 
 	NativeRef->Native = new agxSensor::Camera(Frame, Model, CameraBackend.GetNative()->Native);
 	CameraBackend.Add(*this);

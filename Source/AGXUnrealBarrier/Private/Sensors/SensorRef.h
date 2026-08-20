@@ -6,6 +6,7 @@
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraBackend.h>
+#include <agxSensor/CameraPhotodetector.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
@@ -30,6 +31,16 @@ struct FCameraRef
 	agxSensor::CameraRef Native;
 	FCameraRef() = default;
 	FCameraRef(agxSensor::Camera* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FCameraPhotodetectorRef
+{
+	agxSensor::CameraPhotodetectorRef Native;
+	FCameraPhotodetectorRef() = default;
+	FCameraPhotodetectorRef(agxSensor::CameraPhotodetector* InNative)
 		: Native(InNative)
 	{
 	}

@@ -11,8 +11,10 @@
 
 struct FCameraBarrier;
 struct FCameraLensSingleElementParameters;
+struct FCameraPhotodetectorBarrier;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
+class UAGX_CameraPhotodetectorBase;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 
@@ -29,6 +31,13 @@ class AGXUNREAL_API UAGX_CameraSensorComponent : public UAGX_SensorComponentBase
 
 public:
 	UAGX_CameraSensorComponent();
+
+	/**
+	 * Camera photodetector to use when creating the native AGX Camera. If unset, a default AGX
+	 * CMOS Sensor is created.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
+	UAGX_CameraPhotodetectorBase* PhotoDetector {nullptr};
 
 	/**
 	 * Output resolution of the Camera Sensor [pixels].
@@ -146,6 +155,7 @@ private:
 
 	void SetupSceneCapture();
 	void SetupCameraBackendPropagator();
+	void UpdateCameraPhotoDetector();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
 

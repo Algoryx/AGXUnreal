@@ -7,9 +7,11 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Sensors/AGX_CameraBackend.h"
+#include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -239,7 +241,11 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 	if (CameraBarrier == nullptr)
 		return nullptr;
 
-	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier);
+	UpdateCameraPhotoDetector();
+	FCameraPhotodetectorBarrier* PhotoDetectorBarrier =
+		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative() : nullptr;
+
+	CameraBarrier->AllocateNative(GetComponentTransform(), *CameraBackendBarrier, PhotoDetectorBarrier);
 	SetupCameraBackendPropagator();
 	if (HasNative())
 		UpdateNativeProperties();
@@ -326,6 +332,11 @@ bool UAGX_CameraSensorComponent::CanEditChange(const FProperty* InProperty) cons
 
 	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, Resolution) &&
 		HasCaptureSourceOverride())
+	{
+		return false;
+	}
+
+	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, PhotoDetector) && HasNative())
 	{
 		return false;
 	}
@@ -434,6 +445,36 @@ void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()
 
 	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
 		CameraBarrier->SetBackendPropagator(&CameraBackendPropagator);
+}
+
+void UAGX_CameraSensorComponent::UpdateCameraPhotoDetector()
+{
+	if (PhotoDetector == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	UAGX_CameraPhotodetectorBase* Instance = PhotoDetector->GetOrCreateInstance(World);
+	if (Instance == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a PhotoDetector instance "
+				 "from '%s'. Default AGX CMOS Sensor will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *PhotoDetector->GetName());
+		return;
+	}
+
+	PhotoDetector = Instance;
+
+	FCameraPhotodetectorBarrier* Barrier = PhotoDetector->GetOrCreateNative();
+	if (Barrier == nullptr || !Barrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a native PhotoDetector "
+				 "from instance '%s'. Default AGX CMOS Sensor will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *PhotoDetector->GetName());
+	}
 }
 
 void UAGX_CameraSensorComponent::SetupRenderPasses()
