@@ -9,6 +9,7 @@
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
 #include "Sensors/CameraLensBarrier.h"
+#include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Sensors/SensorRef.h"
 
@@ -19,6 +20,7 @@
 #include <agxSensor/CameraLensSingleElement.h>
 #include <agxSensor/CameraModel.h>
 #include <agxSensor/CameraOutput.h>
+#include <agxSensor/CameraOutputHandler.h>
 #include "EndAGXIncludes.h"
 
 namespace CameraBarrier_helpers
@@ -33,6 +35,12 @@ namespace CameraBarrier_helpers
 	{
 		AGX_CHECK(Camera.HasNative());
 		return Camera.GetNative()->Native->asSafe<agxSensor::Camera>();
+	}
+
+	size_t GenerateUniqueOutputId()
+	{
+		static size_t Id = 1;
+		return Id++;
 	}
 }
 
@@ -82,6 +90,16 @@ FTransform FCameraBarrier::GetTransform() const
 {
 	check(HasNative());
 	return Convert(CameraBarrier_helpers::GetCameraNative(*this)->getFrame()->getMatrix());
+}
+
+void FCameraBarrier::AddOutput(FCameraOutputBarrier& Output)
+{
+	check(HasNative());
+	check(Output.HasNative());
+	using namespace CameraBarrier_helpers;
+
+	const size_t Id = GenerateUniqueOutputId();
+	GetCameraNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
 }
 
 void FCameraBarrier::MarkOutputAsRead()

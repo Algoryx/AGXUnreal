@@ -10,6 +10,7 @@
 struct FCameraBackendBarrier;
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
+struct FCameraOutputBarrier;
 struct FCameraPhotodetectorBarrier;
 class FCameraBackendPropagatorBase;
 
@@ -30,6 +31,8 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
+
+	void AddOutput(FCameraOutputBarrier& Output);
 
 	void MarkOutputAsRead();
 

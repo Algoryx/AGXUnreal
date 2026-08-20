@@ -7,6 +7,7 @@
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraBackend.h>
 #include <agxSensor/CameraLens.h>
+#include <agxSensor/CameraOutput.h>
 #include <agxSensor/CameraPhotodetector.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
@@ -42,6 +43,16 @@ struct FCameraLensRef
 	agxSensor::CameraLensRef Native;
 	FCameraLensRef() = default;
 	FCameraLensRef(agxSensor::CameraLens* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FCameraOutputRef
+{
+	agxSensor::ICameraOutputRef Native;
+	FCameraOutputRef() = default;
+	FCameraOutputRef(agxSensor::ICameraOutput* InNative)
 		: Native(InNative)
 	{
 	}

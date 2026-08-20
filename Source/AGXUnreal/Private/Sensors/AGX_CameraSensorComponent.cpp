@@ -8,12 +8,15 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Sensors/AGX_CameraBackend.h"
 #include "Sensors/AGX_CameraLensBase.h"
+#include "Sensors/AGX_CameraOutputBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
+#include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
+#include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -121,6 +124,32 @@ void UAGX_CameraSensorComponent::UpdateNativeTransform()
 {
 	if (HasNative())
 		GetNativeAsCamera()->SetTransform(GetComponentTransform());
+}
+
+bool UAGX_CameraSensorComponent::AddOutput(FAGX_CameraOutputBase& InOutput)
+{
+	if (bOpenPLXImported)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Outputs cannot be manually added to Camera Sensor '%s' in '%s' because it "
+					 "was imported from an OpenPLX file which define its outputs. OpenPLX outputs "
+					 "are added automatically at BeginPlay for this Camera Sensor."),
+				*GetName(), *GetLabelSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+		return false;
+	}
+
+	FCameraBarrier* Native = GetNativeAsCamera();
+	if (Native == nullptr)
+		return false;
+
+	FCameraOutputBarrier* OutputNative = InOutput.GetOrCreateNative();
+	if (OutputNative == nullptr)
+		return false;
+
+	Native->AddOutput(*OutputNative);
+	return true;
 }
 
 void UAGX_CameraSensorComponent::SetCaptureSourceOverride(

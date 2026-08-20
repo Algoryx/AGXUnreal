@@ -1,0 +1,17 @@
+// Copyright 2026, Algoryx Simulation AB.
+
+#pragma once
+
+// AGX Dynamics for Unreal includes.
+#include "Sensors/CameraOutputBarrier.h"
+
+struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarrier
+{
+	FCameraOutputColorBarrier() = default;
+	FCameraOutputColorBarrier(std::shared_ptr<FCameraOutputRef> Native);
+	virtual ~FCameraOutputColorBarrier() override = default;
+
+	virtual void AllocateNative() override;
+
+	static bool IsColorOutput(const FCameraOutputBarrier& Output);
+};
