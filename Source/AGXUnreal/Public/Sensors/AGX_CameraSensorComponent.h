@@ -36,14 +36,14 @@ public:
 
 	/**
 	 * Camera photodetector to use when creating the native AGX Camera. If unset, a default AGX
-	 * CMOS Sensor is created.
+	 * CMOS Sensor is used.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
 	UAGX_CameraPhotodetectorBase* PhotoDetector {nullptr};
 
 	/**
 	 * Camera lens to use when creating the native AGX Camera. If unset, a default AGX single
-	 * element lens is created.
+	 * element lens is used.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
 	UAGX_CameraLensBase* CameraLens {nullptr};
