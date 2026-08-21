@@ -11,6 +11,7 @@
 #include "Sensors/AGX_CameraOutputBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
+#include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
@@ -30,6 +31,9 @@
 #include "Kismet/KismetRenderingLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "PixelFormat.h"
+#include "RHI.h"
+#include "RenderingThread.h"
 
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
@@ -51,6 +55,11 @@ namespace AGX_CameraSensorComponent_helpers
 
 		return static_cast<float>(
 			FMath::RadiansToDegrees(2.0 * FMath::Atan(SensorWidth / (2.0 * FocalLength))));
+	}
+
+	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
+	{
+		return GPixelFormats[PixelFormat].BlockBytes == sizeof(FColor);
 	}
 }
 
@@ -243,6 +252,205 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 	return FinalRenderTarget;
 }
 
+bool UAGX_CameraSensorComponent::RequestCapture()
+{
+	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	if (CameraBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because it does "
+				 "not have a native Camera."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	FAGX_CameraSensorCaptureData* Slot = CaptureHelper.GetFreeSlot();
+	if (Slot == nullptr) // No free slots, deny the request.
+		return false;
+
+	UTextureRenderTarget2D* FinalRenderTarget = RenderCameraPipeline();
+	if (FinalRenderTarget == nullptr)
+		return false; // Slot is still "Free" for future requests.
+
+	const EPixelFormat PixelFormat = FinalRenderTarget->GetFormat();
+	if (!AGX_CameraSensorComponent_helpers::IsSupportedReadbackFormat(PixelFormat))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot read back Render Target '%s' "
+				 "because pixel format '%s' does not match FColor-sized output."),
+			*GetName(), *GetLabelSafe(GetOwner()), *FinalRenderTarget->GetName(),
+			GPixelFormats[PixelFormat].Name);
+		return false; // Slot is still "Free" for future requests.
+	}
+
+	const FIntPoint ImageSize {FinalRenderTarget->SizeX, FinalRenderTarget->SizeY};
+	FTextureRenderTargetResource* FinalRenderTargetResource =
+		FinalRenderTarget->GameThread_GetRenderTargetResource();
+
+	if (FinalRenderTargetResource == nullptr)
+		return false; // Slot is still "Free" for future requests.
+
+	const FString NameBase = GetName();
+	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
+	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
+	(
+		// TODO, some of these captures are note safe for Blueprint reconstruction.
+		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
+		 PixelFormat](FRHICommandListImmediate& RHICmdList)
+		{
+			// TODO: if size/format can change, we need to verify those also, not just IsValid.
+			if (!Slot->StagingTexture.IsValid())
+			{
+				const FRHITextureCreateDesc Desc =
+					FRHITextureCreateDesc::Create2D(
+						*FString::Printf(TEXT("%s CameraCaptureStagingTexture"), *NameBase))
+						.SetExtent(ImageSize.X, ImageSize.Y)
+						.SetFormat(PixelFormat)
+						.SetFlags(ETextureCreateFlags::Shared | ETextureCreateFlags::CPUReadback);
+
+				Slot->StagingTexture = RHICreateTexture(Desc);
+			}
+
+			if (!Slot->StagingTexture.IsValid())
+			{
+				// Fail. Give back the slot for future requests.
+				Slot->CopyFence.SafeRelease();
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+				return;
+			}
+
+			FRHITexture* SourceTexture = FinalRenderTargetResource->GetRenderTargetTexture();
+			if (SourceTexture == nullptr)
+			{
+				// Fail. Give back the slot for future requests.
+				Slot->CopyFence.SafeRelease();
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+				return;
+			}
+
+			RHICmdList.Transition(
+				FRHITransitionInfo(SourceTexture, ERHIAccess::Unknown, ERHIAccess::CopySrc));
+			RHICmdList.CopyTexture(SourceTexture, Slot->StagingTexture, FRHICopyTextureInfo());
+
+			Slot->CopyFence.SafeRelease();
+			Slot->CopyFence = RHICreateGPUFence(TEXT("AGXCameraCaptureCopyFence"));
+			RHICmdList.WriteGPUFence(Slot->CopyFence);
+			Slot->SetState(EAGX_CameraSensorSlotState::AwaitingCopyFence);
+		});
+
+	return true;
+}
+
+void UAGX_CameraSensorComponent::PollCapture()
+{
+	TArray<FAGX_CameraSensorCaptureData*> Slots = CaptureHelper.GetAwaitingCopyFenceSlots();
+	if (Slots.Num() == 0)
+		return; // Nothing to do yet.
+
+	for (auto Slot : Slots)
+		Slot->SetState(EAGX_CameraSensorSlotState::PollCopyFence); // Claim slot for polling.
+
+	ENQUEUE_RENDER_COMMAND(AGXCameraPollCapture)
+	(
+		// TODO: 'this' capture is not safe from Blueprint reconstruction.
+		[Slots, this](FRHICommandListImmediate& RHICmdList)
+		{
+			for (auto Slot : Slots)
+			{
+				if (Slot->GetState() != EAGX_CameraSensorSlotState::PollCopyFence)
+					continue;
+
+				if (!Slot->StagingTexture.IsValid() || !Slot->CopyFence.IsValid())
+				{
+					// Fail. Give back the slot for future requests.
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				if (!Slot->CopyFence->Poll())
+				{
+					// Not yet ready, put slot back to AwaitingCopyFence and it will be processed
+					// again next call to this function.
+					Slot->SetState(EAGX_CameraSensorSlotState::AwaitingCopyFence);
+					continue;
+				}
+
+				// At this point the StagingTexture has been written to on the GPU and we are ready
+				// to read the pixel data from it.
+				void* PixelBuffer = nullptr;
+				int32 SurfaceWidth = 0;
+				int32 SurfaceHeight = 0;
+
+				// This does not copy bytes into PixelBuffer, it simply assigns the pointer so that
+				// we can read off of it from the CPU. This ptr becomes invalid after the
+				// UnmapStagingSurface call further down.
+				GDynamicRHI->RHIMapStagingSurface(
+					Slot->StagingTexture, Slot->CopyFence, PixelBuffer, SurfaceWidth, SurfaceHeight,
+					RHICmdList.GetGPUMask().ToIndex());
+
+				if (PixelBuffer == nullptr) // TODO: if size can change during runtime, verify size.
+				{
+					// Fail. Give back the slot for future requests.
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int32 NumPixels = SurfaceWidth * SurfaceHeight;
+
+				// TODO: unsafe write from renderthread.
+				FCameraLatestImage& LatestImage =
+					static_cast<FCameraBarrier*>(NativeBarrier.Get())->LatestImage;
+				LatestImage.Resolution = {SurfaceWidth, SurfaceHeight};
+				LatestImage.Pixels.SetNumUninitialized(NumPixels, false);
+
+				// Todo: ensure correct width/height if they may differ between capture and source.
+				const int32 SourcePitch = SurfaceWidth * sizeof(FColor);
+				const int32 DestinationPitch = SurfaceWidth * sizeof(FColor);
+				const uint8* SourceRow = static_cast<const uint8*>(PixelBuffer);
+				uint8* DestinationRow = reinterpret_cast<uint8*>(LatestImage.Pixels.GetData());
+
+				for (int32 Row = 0; Row < SurfaceHeight; ++Row)
+				{
+					FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+					SourceRow += SourcePitch;
+					DestinationRow += DestinationPitch;
+				}
+
+				RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+				Slot->CopyFence.SafeRelease();
+				LatestImage.bHasImage = true;
+
+				// We are done, give back the slot.
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+			}
+		});
+}
+
+void UAGX_CameraSensorComponent::JosefDebug() const
+{
+	const FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	if (CameraBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' JosefDebug: no native Camera."), *GetName(),
+			*GetLabelSafe(GetOwner()));
+		return;
+	}
+
+	const FCameraLatestImage& LatestImage = CameraBarrier->LatestImage;
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT("Camera Sensor Component '%s' in '%s' JosefDebug: LatestImage has %d pixels, "
+			 "Resolution '%s', bHasImage %s."),
+		*GetName(), *GetLabelSafe(GetOwner()), LatestImage.Pixels.Num(),
+		*LatestImage.Resolution.ToString(), LatestImage.bHasImage ? TEXT("true") : TEXT("false"));
+}
+
 FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 {
 	Super::CreateNativeImpl();
@@ -277,7 +485,8 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 	FCameraLensBarrier* LensBarrier =
 		CameraLens != nullptr && CameraLens->HasNative() ? CameraLens->GetNative() : nullptr;
 	FCameraPhotodetectorBarrier* PhotoDetectorBarrier =
-		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative() : nullptr;
+		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative()
+															   : nullptr;
 
 	CameraBarrier->AllocateNative(
 		GetComponentTransform(), *CameraBackendBarrier, LensBarrier, PhotoDetectorBarrier);
@@ -322,6 +531,9 @@ void UAGX_CameraSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 		}
 	}
 
+	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
+		CameraBarrier->LatestImage.Reset();
+
 	Super::EndPlay(Reason);
 }
 
@@ -353,6 +565,10 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	MaterialInstances.Empty();
 	RenderTargets.Empty();
 	SceneRenderTarget = nullptr;
+	// TODO: consider CaptureHelper and in-flight requests here.
+
+	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
+		CameraBarrier->LatestImage.Reset();
 }
 
 #if WITH_EDITOR

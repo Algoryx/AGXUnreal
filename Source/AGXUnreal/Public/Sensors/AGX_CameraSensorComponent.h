@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/AGX_CameraBackendPropagator.h"
+#include "Sensors/AGX_CameraSensorCaptureHelper.h"
 #include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
 
@@ -53,7 +54,8 @@ public:
 	 * Output resolution of the Camera Sensor [pixels].
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ClampMin = "1"))
-	FIntPoint Resolution {256, 256}; // TODO: remove this, resolution will be set on CameraCMOSSensor instead.
+	FIntPoint Resolution {
+		256, 256}; // TODO: remove this, resolution will be set on CameraCMOSSensor instead.
 
 	/**
 	 * Set the output resolution of the Camera Sensor.
@@ -136,6 +138,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	UTextureRenderTarget2D* RenderCameraPipeline();
 
+	/**
+	 * Request a new Camera capture. This will return immediately without blocking, and the output
+	 * will be produced in the future, possibly several frames after this call was made.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	bool RequestCapture(); // TODO: this should likely be private.
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void JosefDebug() const; // TODO: remove completely.
+
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -184,6 +196,8 @@ private:
 	void InitPropertyDispatcher();
 #endif
 
+	void PollCapture();
+
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
 
@@ -200,4 +214,5 @@ private:
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
 
 	FAGX_CameraBackendPropagator CameraBackendPropagator;
+	FAGX_CameraSensorCaptureHelper CaptureHelper;
 };
