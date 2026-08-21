@@ -38,6 +38,7 @@
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
 	NativeBarrier.Reset(new FCameraBarrier());
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
 namespace AGX_CameraSensorComponent_helpers
@@ -250,6 +251,17 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 	}
 
 	return FinalRenderTarget;
+}
+
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget() const
+{
+	for (int32 Index = RenderTargets.Num() - 1; Index >= 0; --Index)
+	{
+		if (RenderTargets[Index] != nullptr)
+			return RenderTargets[Index].Get();
+	}
+
+	return SceneRenderTarget.Get();
 }
 
 bool UAGX_CameraSensorComponent::RequestCapture()
@@ -550,6 +562,14 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 		SetupSceneCapture();
 		SetupRenderPasses();
 	}
+}
+
+void UAGX_CameraSensorComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	PollCapture();
 }
 
 void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)

@@ -135,15 +135,20 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
 	bool IsCameraSensorValid() const;
 
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	UTextureRenderTarget2D* RenderCameraPipeline();
-
 	/**
 	 * Request a new Camera capture. This will return immediately without blocking, and the output
 	 * will be produced in the future, possibly several frames after this call was made.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	bool RequestCapture(); // TODO: this should likely be private.
+
+	/**
+	 * Get the Render Target containing the latest output from the Camera pipeline.
+	 * The returned Render Target may stop being the active output if MaterialPasses is modified
+	 * during Play.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	UTextureRenderTarget2D* GetOutputRenderTarget() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	void JosefDebug() const; // TODO: remove completely.
@@ -152,6 +157,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void PostApplyToComponent() override;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType,
+		FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
@@ -183,6 +191,11 @@ private:
 	void UpdateCameraLens();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
+	
+	/// Executes the MaterialPasses and returns the final render target.
+	UTextureRenderTarget2D* RenderCameraPipeline();
+
+	void PollCapture();
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
 	FIntPoint GetActiveResolution() const;
@@ -195,8 +208,6 @@ private:
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
 #endif
-
-	void PollCapture();
 
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
