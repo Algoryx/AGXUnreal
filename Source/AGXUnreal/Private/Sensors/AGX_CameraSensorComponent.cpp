@@ -500,8 +500,7 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative()
 															   : nullptr;
 
-	CameraBarrier->AllocateNative(
-		GetComponentTransform(), *CameraBackendBarrier, LensBarrier, PhotoDetectorBarrier);
+	CameraBarrier->AllocateNative(GetComponentTransform(), LensBarrier, PhotoDetectorBarrier);
 	SetupCameraBackendPropagator();
 	if (HasNative())
 		UpdateNativeProperties();
@@ -558,6 +557,7 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 	{
 		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
 		// during Play, so recreate the runtime Scene Capture Component on the new instance.
+		GetNativeAsCamera()->AddToBackend();
 		SetupCameraBackendPropagator();
 		SetupSceneCapture();
 		SetupRenderPasses();

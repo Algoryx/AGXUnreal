@@ -51,33 +51,45 @@ FCameraBarrier::FCameraBarrier(
 }
 
 void FCameraBarrier::AllocateNative(
-	const FTransform& Transform, FCameraBackendBarrier& CameraBackend,
-	FCameraLensBarrier* Lens, FCameraPhotodetectorBarrier* Photodetector)
+	const FTransform& Transform, FCameraLensBarrier* Lens,
+	FCameraPhotodetectorBarrier* Photodetector)
 {
 	check(!HasNative());
-	check(CameraBackend.HasNative());
 	check(Lens == nullptr || Lens->HasNative());
 	check(Photodetector == nullptr || Photodetector->HasNative());
 
 	auto Frame = new agx::Frame(Convert(Transform));
-	agxSensor::CameraLens* NativeLens =
-		Lens != nullptr ? Lens->GetNative()->Native.get() : new agxSensor::CameraLensSingleElement();
-	agxSensor::CameraPhotodetector* NativePhotodetector = Photodetector != nullptr
-															  ? Photodetector->GetNative()->Native.get()
-															  : new agxSensor::CameraCMOSSensor();
+	agxSensor::CameraLens* NativeLens = Lens != nullptr ? Lens->GetNative()->Native.get()
+														: new agxSensor::CameraLensSingleElement();
+	agxSensor::CameraPhotodetector* NativePhotodetector =
+		Photodetector != nullptr ? Photodetector->GetNative()->Native.get()
+								 : new agxSensor::CameraCMOSSensor();
 	auto Model = new agxSensor::CameraModel(NativeLens, NativePhotodetector);
 
-	NativeRef->Native = new agxSensor::Camera(Frame, Model, CameraBackend.GetNative()->Native);
-	CameraBackend.Add(*this);
+	NativeRef->Native = new agxSensor::Camera(
+		Frame, Model, FCameraBackendBarrier::GetInstance().GetNative()->Native);
+	AddToBackend();
 }
 
 void FCameraBarrier::ReleaseNative()
 {
 	if (HasNative())
-		FCameraBackendBarrier::GetInstance().Remove(*this);
+		RemoveFromBackend();
 
 	FSensorBarrier::ReleaseNative();
 	BackendPropagator = nullptr;
+}
+
+void FCameraBarrier::AddToBackend()
+{
+	if (FCameraBackendBarrier::GetInstance().HasNative())
+		FCameraBackendBarrier::GetInstance().Add(*this);
+}
+
+void FCameraBarrier::RemoveFromBackend()
+{
+	if (FCameraBackendBarrier::GetInstance().HasNative())
+		FCameraBackendBarrier::GetInstance().Remove(*this);
 }
 
 void FCameraBarrier::SetTransform(const FTransform& Transform)
