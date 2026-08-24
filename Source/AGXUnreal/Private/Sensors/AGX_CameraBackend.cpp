@@ -3,6 +3,7 @@
 #include "Sensors/AGX_CameraBackend.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "Sensors/CameraBackendBarrier.h"
 
 // Unreal Engine includes.
@@ -48,6 +49,7 @@ void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 
 void UAGX_CameraBackend::Deinitialize()
 {
-	FCameraBackendBarrier::GetInstance().ClearCameras();
+	AGX_CHECK(FCameraBackendBarrier::GetInstance().GetNumCameras() == 0);
+	FCameraBackendBarrier::GetInstance().ClearCameras(); // Mostly for good measures.
 	Super::Deinitialize();
 }

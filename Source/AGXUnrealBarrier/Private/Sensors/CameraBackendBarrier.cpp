@@ -49,6 +49,12 @@ namespace CameraBackendBarrier_helpers
 		return Result;
 	}
 
+	void Synchronize(agxSensor::Camera* Camera, agx::Real dt)
+	{
+		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
+		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::Synchronize"));
+	}
+
 	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
 	{
 		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
@@ -150,6 +156,7 @@ void FCameraBackendBarrier::AllocateNative()
 {
 	check(!HasNative());
 	NativeRef = std::make_shared<FCameraBackendRef>();
+	NativeRef->Native.synchronize = Synchronize;
 	NativeRef->Native.synchronizeGraphics = SynchronizeGraphics;
 	NativeRef->Native.setCameraLensSingleElement = SetCameraLensSingleElement;
 	NativeRef->Native.setCameraCMOSSensor = SetCameraCMOSSensor;
@@ -191,6 +198,11 @@ bool FCameraBackendBarrier::Remove(FCameraBarrier& Camera)
 void FCameraBackendBarrier::ClearCameras()
 {
 	CameraBarriers.Empty();
+}
+
+int32 FCameraBackendBarrier::GetNumCameras() const
+{
+	return CameraBarriers.Num();
 }
 
 void FCameraBackendBarrier::ReleaseNative()
