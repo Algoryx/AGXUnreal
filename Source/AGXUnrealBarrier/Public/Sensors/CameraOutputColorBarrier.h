@@ -13,5 +13,7 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 
 	virtual void AllocateNative() override;
 
+	void GetData(TArray<FColor>& OutData) const;
+
 	static bool IsColorOutput(const FCameraOutputBarrier& Output);
 };

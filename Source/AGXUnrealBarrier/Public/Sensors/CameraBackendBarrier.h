@@ -21,6 +21,15 @@ struct AGXUNREALBARRIER_API FAGX_CameraCaptureState
 	double LastCaptureTime {0.0};
 };
 
+struct AGXUNREALBARRIER_API FAGX_CameraOutputState
+{
+	// Writable AGX-owned output buffer received from the camera backend address callback.
+	void* NativeBuffer {nullptr};
+
+	// Corresponds to the user-facing Output->hasUnreadData().
+	bool IsUnread {false};
+};
+
 struct AGXUNREALBARRIER_API FAGX_CameraOutputRawData
 {
 	TArray<uint8> RawData;
@@ -84,6 +93,11 @@ struct AGXUNREALBARRIER_API FCameraBackendBarrier
 	TArray<FAGX_CameraCaptureState>* FindCaptureStates(FCameraBarrier* Camera);
 	const TArray<FAGX_CameraCaptureState>* FindCaptureStates(FCameraBarrier* Camera) const;
 
+	FAGX_CameraOutputState* FindOutputState(uint64 NativeOutputAddress);
+	const FAGX_CameraOutputState* FindOutputState(uint64 NativeOutputAddress) const;
+
+	bool StageUnreadDataIfExists(uint64 NativeOutputAddress);
+
 	FCameraOutputRawDataWriteAccess LockOutputRawDataForWrite(uint64 OutputAddr);
 
 private:
@@ -98,6 +112,9 @@ private:
 
 	// One Camera may have serveral Outputs, ergo TArray value.
 	TMap<FCameraBarrier*, TArray<FAGX_CameraCaptureState>> CaptureStates;
+
+	// Key is the address of the native AGX Output.
+	TMap<uint64, FAGX_CameraOutputState> OutputStates;
 
 	// Key is the address of the native AGX Output. Will be accessed from both main thread and
 	// render thread. If performance suffers due to waiting for the mutex when many outputs/cameras

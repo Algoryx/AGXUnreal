@@ -12,6 +12,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
+#include <agxSensor/CameraOutput.h>
 #include "EndAGXIncludes.h"
 
 namespace CameraBackendBarrier_helpers
@@ -79,7 +80,6 @@ namespace CameraBackendBarrier_helpers
 
 	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
 	}
 
@@ -100,13 +100,11 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::Camera* Camera, agxSensor::CameraCMOSSensor*,
 		agxSensor::CameraCMOSSensorParameters*)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
 	}
 
 	void SetCameraLensDistortionNone(agxSensor::Camera* Camera, agxSensor::CameraLens*)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
 	}
 
@@ -114,7 +112,6 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::Camera* Camera, agxSensor::CameraLens*,
 		agxSensor::LensDistortionBrownConradyCoefficients*)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(
 			LogTemp, Warning,
 			TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionBrownConrady"));
@@ -124,15 +121,18 @@ namespace CameraBackendBarrier_helpers
 		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*,
 		agxSensor::CameraColorOutputParameters*)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
 		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
 	}
 
 	void SetCameraColorOutputAddress(
-		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*, void*)
+		agxSensor::Camera* Camera, agxSensor::CameraColorOutput* Output, void* OutputAddress)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
+		FCameraBackendBarrier& Backend = FCameraBackendBarrier::GetInstance();
+		if (FAGX_CameraOutputState* OutputState =
+				Backend.FindOutputState(GetOutputNativeAddress(Output)))
+		{
+			OutputState->NativeBuffer = OutputAddress;
+		}
 	}
 
 	void CaptureCameraColorOutput(agxSensor::Camera* Camera, agxSensor::CameraColorOutput* Output)
@@ -149,12 +149,18 @@ namespace CameraBackendBarrier_helpers
 	}
 
 	bool HasCameraColorOutputUnreadData(
-		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*, bool)
+		agxSensor::Camera* Camera, agxSensor::CameraColorOutput* Output, bool bMarkAsRead)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(
-			LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::HasCameraColorOutputUnreadData"));
-		return false;
+		FCameraBackendBarrier& Backend = FCameraBackendBarrier::GetInstance();
+		FAGX_CameraOutputState* OutputState = Backend.FindOutputState(GetOutputNativeAddress(Output));
+		if (OutputState == nullptr)
+			return false;
+
+		const bool bHasUnreadData = OutputState->IsUnread;
+		if (bMarkAsRead)
+			OutputState->IsUnread = false;
+
+		return bHasUnreadData;
 	}
 }
 
@@ -286,11 +292,12 @@ void FCameraBackendBarrier::UnregisterCamera(FCameraBarrier& Camera)
 {
 	if (TArray<FAGX_CameraCaptureState>* CameraCaptureStates = CaptureStates.Find(&Camera))
 	{
+		for (const FAGX_CameraCaptureState& CaptureState : *CameraCaptureStates)
+			OutputStates.Remove(CaptureState.OutputAddr);
+
 		FScopeLock Lock(&OutputRawDataMutex);
 		for (const FAGX_CameraCaptureState& CaptureState : *CameraCaptureStates)
-		{
 			OutputRawData.Remove(CaptureState.OutputAddr);
-		}
 	}
 
 	CaptureStates.Remove(&Camera);
@@ -316,9 +323,11 @@ void FCameraBackendBarrier::RegisterOutput(FCameraBarrier& Camera, FCameraOutput
 		NewCaptureState.OutputAddr = OutputAddr;
 	}
 
+	OutputStates.FindOrAdd(OutputAddr).IsUnread = false;
+
 	{
 		FScopeLock Lock(&OutputRawDataMutex);
-		OutputRawData.FindOrAdd(OutputAddr);
+		OutputRawData.FindOrAdd(OutputAddr).IsUnread = false;
 	}
 }
 
@@ -337,6 +346,8 @@ void FCameraBackendBarrier::UnregisterOutput(FCameraBarrier& Camera, FCameraOutp
 			CaptureStates.Remove(&Camera);
 	}
 
+	OutputStates.Remove(OutputAddr);
+
 	{
 		FScopeLock Lock(&OutputRawDataMutex);
 		OutputRawData.Remove(OutputAddr);
@@ -347,6 +358,8 @@ void FCameraBackendBarrier::Clear()
 {
 	CameraBarriers.Empty();
 	CaptureStates.Empty();
+	OutputStates.Empty();
+
 	{
 		FScopeLock Lock(&OutputRawDataMutex);
 		OutputRawData.Empty();
@@ -398,6 +411,69 @@ const TArray<FAGX_CameraCaptureState>* FCameraBackendBarrier::FindCaptureStates(
 		return nullptr;
 
 	return CaptureStates.Find(Camera);
+}
+
+FAGX_CameraOutputState* FCameraBackendBarrier::FindOutputState(uint64 NativeOutputAddress)
+{
+	if (NativeOutputAddress == 0)
+		return nullptr;
+
+	return OutputStates.Find(NativeOutputAddress);
+}
+
+const FAGX_CameraOutputState* FCameraBackendBarrier::FindOutputState(
+	uint64 NativeOutputAddress) const
+{
+	if (NativeOutputAddress == 0)
+		return nullptr;
+
+	return OutputStates.Find(NativeOutputAddress);
+}
+
+bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
+{
+	FAGX_CameraOutputState* OutputState = FindOutputState(NativeOutputAddress);
+	if (OutputState == nullptr || OutputState->NativeBuffer == nullptr)
+		return false;
+	void* NativeBuffer = OutputState->NativeBuffer;
+
+	const agxSensor::ICameraOutput* Output =
+		reinterpret_cast<const agxSensor::ICameraOutput*>(NativeOutputAddress);
+	if (Output == nullptr)
+		return false;
+
+	const agx::Vec2i OutputResolution = Output->getResolution();
+	if (OutputResolution.x() <= 0 || OutputResolution.y() <= 0 || Output->getElementSize() == 0)
+		return false;
+
+	const size_t ExpectedNumBytes =
+		static_cast<size_t>(OutputResolution.x()) * static_cast<size_t>(OutputResolution.y()) *
+		Output->getElementSize();
+
+	bool bStagedData = false;
+	{
+		FScopeLock Lock(&OutputRawDataMutex);
+		FAGX_CameraOutputRawData* RawData = OutputRawData.Find(NativeOutputAddress);
+		if (RawData == nullptr || !RawData->IsUnread || RawData->RawData.Num() == 0)
+			return false;
+
+		if (ExpectedNumBytes != static_cast<size_t>(RawData->RawData.Num()))
+		{
+			UE_LOG(
+				LogTemp, Warning,
+				TEXT("FCameraBackendBarrier::StageUnreadDataIfExists cannot stage camera output "
+					 "because the raw buffer size does not match the native AGX output buffer "
+					 "size. Raw size: %d. Native size: %llu."),
+				RawData->RawData.Num(), static_cast<uint64>(ExpectedNumBytes));
+			return false;
+		}
+
+		FMemory::Memcpy(NativeBuffer, RawData->RawData.GetData(), RawData->RawData.Num());
+		RawData->IsUnread = false;
+		bStagedData = true;
+	}
+
+	return bStagedData;
 }
 
 FCameraOutputRawDataWriteAccess FCameraBackendBarrier::LockOutputRawDataForWrite(

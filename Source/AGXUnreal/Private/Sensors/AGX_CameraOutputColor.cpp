@@ -20,3 +20,9 @@ bool FAGX_CameraOutputColor::operator==(const FAGX_CameraOutputColor& Other) con
 {
 	return FAGX_CameraOutputBase::operator==(Other);
 }
+
+void FAGX_CameraOutputColor::GetData(TArray<FColor>& OutData)
+{
+	if (HasNative())
+		static_cast<FCameraOutputColorBarrier*>(GetNative())->GetData(OutData);
+}
