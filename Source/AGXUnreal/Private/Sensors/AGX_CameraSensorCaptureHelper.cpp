@@ -16,6 +16,7 @@ FAGX_CameraSensorCaptureData& FAGX_CameraSensorCaptureData::operator=(
 	// Unreal requires this to exist, but runtime RHI resources and slot states are not copied.
 	StagingTexture.SafeRelease();
 	CopyFence.SafeRelease();
+	OutputNativeAddress = 0;
 	SetState(EAGX_CameraSensorSlotState::Free);
 	return *this;
 }

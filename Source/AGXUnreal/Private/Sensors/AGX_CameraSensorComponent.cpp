@@ -264,7 +264,7 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget() cons
 	return SceneRenderTarget.Get();
 }
 
-bool UAGX_CameraSensorComponent::RequestCapture()
+bool UAGX_CameraSensorComponent::RequestCapture(uint64 OutputNativeAddress)
 {
 	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
 	if (CameraBarrier == nullptr)
@@ -306,14 +306,17 @@ bool UAGX_CameraSensorComponent::RequestCapture()
 
 	const FString NameBase = GetName();
 	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
+	Slot->OutputNativeAddress = OutputNativeAddress;
 	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
 	(
 		// TODO, some of these captures are note safe for Blueprint reconstruction.
 		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
 		 PixelFormat](FRHICommandListImmediate& RHICmdList)
 		{
-			// TODO: if size/format can change, we need to verify those also, not just IsValid.
-			if (!Slot->StagingTexture.IsValid())
+			const bool bNeedsNewStagingTexture = !Slot->StagingTexture.IsValid() ||
+												 Slot->StagingTexture->GetSizeXY() != ImageSize ||
+												 Slot->StagingTexture->GetFormat() != PixelFormat;
+			if (bNeedsNewStagingTexture)
 			{
 				const FRHITextureCreateDesc Desc =
 					FRHITextureCreateDesc::Create2D(
@@ -403,7 +406,7 @@ void UAGX_CameraSensorComponent::PollCapture()
 					Slot->StagingTexture, Slot->CopyFence, PixelBuffer, SurfaceWidth, SurfaceHeight,
 					RHICmdList.GetGPUMask().ToIndex());
 
-				if (PixelBuffer == nullptr) // TODO: if size can change during runtime, verify size.
+				if (PixelBuffer == nullptr)
 				{
 					// Fail. Give back the slot for future requests.
 					Slot->CopyFence.SafeRelease();
@@ -411,56 +414,64 @@ void UAGX_CameraSensorComponent::PollCapture()
 					continue;
 				}
 
-				const int32 NumPixels = SurfaceWidth * SurfaceHeight;
-
-				// TODO: unsafe write from renderthread.
-				FCameraLatestImage& LatestImage =
-					static_cast<FCameraBarrier*>(NativeBarrier.Get())->LatestImage;
-				LatestImage.Resolution = {SurfaceWidth, SurfaceHeight};
-				LatestImage.Pixels.SetNumUninitialized(NumPixels, false);
-
-				// Todo: ensure correct width/height if they may differ between capture and source.
-				const int32 SourcePitch = SurfaceWidth * sizeof(FColor);
-				const int32 DestinationPitch = SurfaceWidth * sizeof(FColor);
-				const uint8* SourceRow = static_cast<const uint8*>(PixelBuffer);
-				uint8* DestinationRow = reinterpret_cast<uint8*>(LatestImage.Pixels.GetData());
-
-				for (int32 Row = 0; Row < SurfaceHeight; ++Row)
+				const FIntPoint ImageSize = Slot->StagingTexture->GetSizeXY();
+				const int32 LogicalWidth = ImageSize.X;
+				const int32 LogicalHeight = ImageSize.Y;
+				const EPixelFormat PixelFormat = Slot->StagingTexture->GetFormat();
+				const int32 BytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
+				if (LogicalWidth <= 0 || LogicalHeight <= 0 || BytesPerPixel <= 0 ||
+					SurfaceWidth < LogicalWidth || SurfaceHeight < LogicalHeight)
 				{
-					FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
-					SourceRow += SourcePitch;
-					DestinationRow += DestinationPitch;
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				{
+					FCameraOutputRawDataWriteAccess OutputRawData =
+						FCameraBackendBarrier::GetInstance().LockOutputRawDataForWrite(
+							Slot->OutputNativeAddress);
+					if (OutputRawData.Get() == nullptr)
+					{
+						RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+						Slot->CopyFence.SafeRelease();
+						Slot->SetState(EAGX_CameraSensorSlotState::Free);
+						continue;
+					}
+
+					OutputRawData->Resolution = ImageSize;
+					OutputRawData->PixelFormat = PixelFormat;
+					OutputRawData->IsUnread = true;
+
+					const int32 SourcePitch = SurfaceWidth * BytesPerPixel;
+					const int32 DestinationPitch = LogicalWidth * BytesPerPixel;
+					const int32 NumBytes = DestinationPitch * LogicalHeight;
+					OutputRawData->RawData.SetNumUninitialized(NumBytes, false);
+					if (SurfaceWidth == LogicalWidth)
+					{
+						FMemory::Memcpy(OutputRawData->RawData.GetData(), PixelBuffer, NumBytes);
+					}
+					else
+					{
+						const uint8* SourceRow = static_cast<const uint8*>(PixelBuffer);
+						uint8* DestinationRow = OutputRawData->RawData.GetData();
+						for (int32 Row = 0; Row < LogicalHeight; ++Row)
+						{
+							FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+							SourceRow += SourcePitch;
+							DestinationRow += DestinationPitch;
+						}
+					}
 				}
 
 				RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
 				Slot->CopyFence.SafeRelease();
-				LatestImage.bHasImage = true;
 
 				// We are done, give back the slot.
 				Slot->SetState(EAGX_CameraSensorSlotState::Free);
 			}
 		});
-}
-
-void UAGX_CameraSensorComponent::JosefDebug() const
-{
-	const FCameraBarrier* CameraBarrier = GetNativeAsCamera();
-	if (CameraBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Camera Sensor Component '%s' in '%s' JosefDebug: no native Camera."), *GetName(),
-			*GetLabelSafe(GetOwner()));
-		return;
-	}
-
-	const FCameraLatestImage& LatestImage = CameraBarrier->LatestImage;
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("Camera Sensor Component '%s' in '%s' JosefDebug: LatestImage has %d pixels, "
-			 "Resolution '%s', bHasImage %s."),
-		*GetName(), *GetLabelSafe(GetOwner()), LatestImage.Pixels.Num(),
-		*LatestImage.Resolution.ToString(), LatestImage.bHasImage ? TEXT("true") : TEXT("false"));
 }
 
 FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
@@ -542,9 +553,6 @@ void UAGX_CameraSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 		}
 	}
 
-	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
-		CameraBarrier->LatestImage.Reset();
-
 	Super::EndPlay(Reason);
 }
 
@@ -586,9 +594,6 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	RenderTargets.Empty();
 	SceneRenderTarget = nullptr;
 	// TODO: consider CaptureHelper and in-flight requests here.
-
-	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
-		CameraBarrier->LatestImage.Reset();
 }
 
 #if WITH_EDITOR
@@ -947,4 +952,9 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	//	SceneCapture->PostProcessSettings.DepthOfFieldFocalDistance =
 	//		static_cast<float>(Parameters.focus.distance);
 	// }
+}
+
+void UAGX_CameraSensorComponent::OnBackendRequestCapture(uint64 NativeOutputAddress)
+{
+	RequestCapture(NativeOutputAddress);
 }

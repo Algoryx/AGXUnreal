@@ -5,6 +5,7 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "HAL/CriticalSection.h"
+#include "PixelFormat.h"
 
 // Standard library includes.
 #include <memory>
@@ -23,6 +24,35 @@ struct AGXUNREALBARRIER_API FAGX_CameraCaptureState
 struct AGXUNREALBARRIER_API FAGX_CameraOutputRawData
 {
 	TArray<uint8> RawData;
+	FIntPoint Resolution {0, 0};
+	EPixelFormat PixelFormat {PF_Unknown};
+	bool IsUnread {false};
+};
+
+struct AGXUNREALBARRIER_API FCameraOutputRawDataWriteAccess
+{
+	FCameraOutputRawDataWriteAccess(
+		FCriticalSection& InMutex, TMap<uint64, FAGX_CameraOutputRawData>& InOutputRawData,
+		uint64 OutputAddr);
+	~FCameraOutputRawDataWriteAccess();
+
+	FCameraOutputRawDataWriteAccess(const FCameraOutputRawDataWriteAccess&) = delete;
+	FCameraOutputRawDataWriteAccess& operator=(const FCameraOutputRawDataWriteAccess&) = delete;
+
+	FCameraOutputRawDataWriteAccess(FCameraOutputRawDataWriteAccess&& Other) noexcept;
+	FCameraOutputRawDataWriteAccess& operator=(FCameraOutputRawDataWriteAccess&& Other) noexcept;
+
+	FAGX_CameraOutputRawData* Get();
+	const FAGX_CameraOutputRawData* Get() const;
+
+	FAGX_CameraOutputRawData* operator->();
+	const FAGX_CameraOutputRawData* operator->() const;
+
+private:
+	void Release();
+
+	FCriticalSection* Mutex {nullptr};
+	FAGX_CameraOutputRawData* Data {nullptr};
 };
 
 struct AGXUNREALBARRIER_API FCameraBackendBarrier
@@ -54,6 +84,8 @@ struct AGXUNREALBARRIER_API FCameraBackendBarrier
 	TArray<FAGX_CameraCaptureState>* FindCaptureStates(FCameraBarrier* Camera);
 	const TArray<FAGX_CameraCaptureState>* FindCaptureStates(FCameraBarrier* Camera) const;
 
+	FCameraOutputRawDataWriteAccess LockOutputRawDataForWrite(uint64 OutputAddr);
+
 private:
 	FCameraBackendBarrier();
 	~FCameraBackendBarrier();
@@ -68,7 +100,9 @@ private:
 	TMap<FCameraBarrier*, TArray<FAGX_CameraCaptureState>> CaptureStates;
 
 	// Key is the address of the native AGX Output. Will be accessed from both main thread and
-	// render thread.
+	// render thread. If performance suffers due to waiting for the mutex when many outputs/cameras
+	// are used, we might redesign this to have a mutex for each output, but then we should not
+	// store the data in a common TMap.
 	TMap<uint64, FAGX_CameraOutputRawData> OutputRawData;
 	FCriticalSection OutputRawDataMutex;
 

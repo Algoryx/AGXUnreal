@@ -34,6 +34,7 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureData
 	FTextureRHIRef StagingTexture;
 	FGPUFenceRHIRef CopyFence;
 	TAtomic<int32> State {static_cast<int32>(EAGX_CameraSensorSlotState::Free)};
+	uint64 OutputNativeAddress {0};
 };
 
 USTRUCT()

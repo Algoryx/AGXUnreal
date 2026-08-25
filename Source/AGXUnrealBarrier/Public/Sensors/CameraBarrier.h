@@ -14,20 +14,6 @@ struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
 class FCameraBackendPropagatorBase;
 
-struct FCameraLatestImage // TODO: this will be completely removed.
-{
-	TArray<FColor> Pixels;
-	FIntPoint Resolution {0, 0};
-	bool bHasImage {false};
-
-	void Reset()
-	{
-		Pixels.Empty();
-		Resolution = {0, 0};
-		bHasImage = false;
-	}
-};
-
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 {
@@ -61,9 +47,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	/** Internal functions, only called by the CameraBackendBarrier. */
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
-
-
-	FCameraLatestImage LatestImage; // TODO: this will be completely removed.
+	void OnBackendRequestCapture(uint64 NativeOutputAddress);
 
 private:
 	FCameraBackendPropagatorBase* BackendPropagator = nullptr;

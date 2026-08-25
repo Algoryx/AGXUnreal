@@ -191,3 +191,9 @@ void FCameraBarrier::OnBackendSetCameraLensSingleElement(
 	if (BackendPropagator != nullptr)
 		BackendPropagator->OnBackendSetCameraLensSingleElement(Parameters);
 }
+
+void FCameraBarrier::OnBackendRequestCapture(uint64 NativeOutputAddress)
+{
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendRequestCapture(NativeOutputAddress);
+}

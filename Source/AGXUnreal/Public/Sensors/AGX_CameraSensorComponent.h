@@ -136,22 +136,12 @@ public:
 	bool IsCameraSensorValid() const;
 
 	/**
-	 * Request a new Camera capture. This will return immediately without blocking, and the output
-	 * will be produced in the future, possibly several frames after this call was made.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	bool RequestCapture(); // TODO: this should likely be private.
-
-	/**
 	 * Get the Render Target containing the latest output from the Camera pipeline.
 	 * The returned Render Target may stop being the active output if MaterialPasses is modified
 	 * during Play.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
 	UTextureRenderTarget2D* GetOutputRenderTarget() const;
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	void JosefDebug() const; // TODO: remove completely.
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
@@ -195,6 +185,7 @@ private:
 	/// Executes the MaterialPasses and returns the final render target.
 	UTextureRenderTarget2D* RenderCameraPipeline();
 
+	bool RequestCapture(uint64 OutputNativeAddress);
 	void PollCapture();
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
@@ -211,6 +202,7 @@ private:
 
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
+	void OnBackendRequestCapture(uint64 NativeOutputAddress);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};

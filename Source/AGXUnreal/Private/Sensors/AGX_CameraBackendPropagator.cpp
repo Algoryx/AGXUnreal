@@ -21,6 +21,20 @@ void FAGX_CameraBackendPropagator::OnBackendSetCameraLensSingleElement(
 	CameraSensor->OnBackendSetCameraLensSingleElement(Parameters);
 }
 
+void FAGX_CameraBackendPropagator::OnBackendRequestCapture(uint64 NativeOutputAddress)
+{
+	if (!CameraSensor.IsValid())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("OnBackendRequestCapture was called on a Camera Backend Propagator "
+				 "with nullptr Camera Sensor."));
+		return;
+	}
+
+	CameraSensor->OnBackendRequestCapture(NativeOutputAddress);
+}
+
 void FAGX_CameraBackendPropagator::SetCameraSensor(
 	UAGX_CameraSensorComponent* InCameraSensor)
 {

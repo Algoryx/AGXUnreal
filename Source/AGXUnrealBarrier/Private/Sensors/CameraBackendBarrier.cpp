@@ -135,10 +135,17 @@ namespace CameraBackendBarrier_helpers
 		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutputAddress"));
 	}
 
-	void CaptureCameraColorOutput(agxSensor::Camera* Camera, agxSensor::CameraColorOutput*)
+	void CaptureCameraColorOutput(agxSensor::Camera* Camera, agxSensor::CameraColorOutput* Output)
 	{
-		FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera));
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::CaptureCameraColorOutput"));
+		auto& Backend = FCameraBackendBarrier::GetInstance();
+		if (FCameraBarrier* CameraBarrier = Backend.FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			const auto& CaptureStates = Backend.FindCaptureStates(CameraBarrier);
+			if (CaptureStates == nullptr)
+				return;
+
+			CameraBarrier->OnBackendRequestCapture(GetOutputNativeAddress(Output));
+		}
 	}
 
 	bool HasCameraColorOutputUnreadData(
@@ -152,6 +159,73 @@ namespace CameraBackendBarrier_helpers
 }
 
 using namespace CameraBackendBarrier_helpers;
+
+FCameraOutputRawDataWriteAccess::FCameraOutputRawDataWriteAccess(
+	FCriticalSection& InMutex, TMap<uint64, FAGX_CameraOutputRawData>& InOutputRawData,
+	uint64 OutputAddr)
+	: Mutex(&InMutex)
+{
+	Mutex->Lock();
+	Data = InOutputRawData.Find(OutputAddr);
+}
+
+FCameraOutputRawDataWriteAccess::~FCameraOutputRawDataWriteAccess()
+{
+	Release();
+}
+
+FCameraOutputRawDataWriteAccess::FCameraOutputRawDataWriteAccess(
+	FCameraOutputRawDataWriteAccess&& Other) noexcept
+	: Mutex(Other.Mutex)
+	, Data(Other.Data)
+{
+	Other.Mutex = nullptr;
+	Other.Data = nullptr;
+}
+
+FCameraOutputRawDataWriteAccess& FCameraOutputRawDataWriteAccess::operator=(
+	FCameraOutputRawDataWriteAccess&& Other) noexcept
+{
+	if (this == &Other)
+		return *this;
+
+	Release();
+	Mutex = Other.Mutex;
+	Data = Other.Data;
+	Other.Mutex = nullptr;
+	Other.Data = nullptr;
+	return *this;
+}
+
+FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::Get()
+{
+	return Data;
+}
+
+const FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::Get() const
+{
+	return Data;
+}
+
+FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::operator->()
+{
+	return Data;
+}
+
+const FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::operator->() const
+{
+	return Data;
+}
+
+void FCameraOutputRawDataWriteAccess::Release()
+{
+	if (Mutex != nullptr)
+	{
+		Mutex->Unlock();
+		Mutex = nullptr;
+		Data = nullptr;
+	}
+}
 
 FCameraBackendBarrier& FCameraBackendBarrier::GetInstance()
 {
@@ -234,9 +308,7 @@ void FCameraBackendBarrier::RegisterOutput(FCameraBarrier& Camera, FCameraOutput
 	TArray<FAGX_CameraCaptureState>& CameraCaptureStates = CaptureStates.FindOrAdd(&Camera);
 	FAGX_CameraCaptureState* ExistingCaptureState = CameraCaptureStates.FindByPredicate(
 		[OutputAddr](const FAGX_CameraCaptureState& CaptureState)
-		{
-			return CaptureState.OutputAddr == OutputAddr;
-		});
+		{ return CaptureState.OutputAddr == OutputAddr; });
 
 	if (ExistingCaptureState == nullptr)
 	{
@@ -258,11 +330,8 @@ void FCameraBackendBarrier::UnregisterOutput(FCameraBarrier& Camera, FCameraOutp
 	const uint64 OutputAddr = GetOutputNativeAddress(Output);
 	if (TArray<FAGX_CameraCaptureState>* CameraCaptureStates = CaptureStates.Find(&Camera))
 	{
-		CameraCaptureStates->RemoveAll(
-			[OutputAddr](const FAGX_CameraCaptureState& CaptureState)
-			{
-				return CaptureState.OutputAddr == OutputAddr;
-			});
+		CameraCaptureStates->RemoveAll([OutputAddr](const FAGX_CameraCaptureState& CaptureState)
+									   { return CaptureState.OutputAddr == OutputAddr; });
 
 		if (CameraCaptureStates->IsEmpty())
 			CaptureStates.Remove(&Camera);
@@ -329,4 +398,10 @@ const TArray<FAGX_CameraCaptureState>* FCameraBackendBarrier::FindCaptureStates(
 		return nullptr;
 
 	return CaptureStates.Find(Camera);
+}
+
+FCameraOutputRawDataWriteAccess FCameraBackendBarrier::LockOutputRawDataForWrite(
+	uint64 OutputAddr)
+{
+	return FCameraOutputRawDataWriteAccess(OutputRawDataMutex, OutputRawData, OutputAddr);
 }

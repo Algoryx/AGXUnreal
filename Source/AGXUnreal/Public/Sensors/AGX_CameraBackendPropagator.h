@@ -17,6 +17,8 @@ public:
 	virtual void OnBackendSetCameraLensSingleElement(
 		const FCameraLensSingleElementParameters& Parameters) override;
 
+	virtual void OnBackendRequestCapture(uint64 NativeOutputAddress) override;
+
 	void SetCameraSensor(UAGX_CameraSensorComponent* InCameraSensor);
 	UAGX_CameraSensorComponent* GetCameraSensor() const;
 
