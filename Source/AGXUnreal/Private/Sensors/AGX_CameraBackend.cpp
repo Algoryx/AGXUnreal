@@ -50,6 +50,6 @@ void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 void UAGX_CameraBackend::Deinitialize()
 {
 	AGX_CHECK(FCameraBackendBarrier::GetInstance().GetNumCameras() == 0);
-	FCameraBackendBarrier::GetInstance().ClearCameras(); // Mostly for good measures.
+	FCameraBackendBarrier::GetInstance().Clear(); // Mostly for good measures.
 	Super::Deinitialize();
 }

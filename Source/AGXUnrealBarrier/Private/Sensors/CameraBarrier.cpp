@@ -17,6 +17,7 @@
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraCMOSSensor.h>
+#include <agxSensor/CameraColorOutput.h>
 #include <agxSensor/CameraLensSingleElement.h>
 #include <agxSensor/CameraModel.h>
 #include <agxSensor/CameraOutput.h>
@@ -68,28 +69,28 @@ void FCameraBarrier::AllocateNative(
 
 	NativeRef->Native = new agxSensor::Camera(
 		Frame, Model, FCameraBackendBarrier::GetInstance().GetNative()->Native);
-	AddToBackend();
+	RegisterWithBackend();
 }
 
 void FCameraBarrier::ReleaseNative()
 {
 	if (HasNative())
-		RemoveFromBackend();
+		UnregisterFromBackend();
 
 	FSensorBarrier::ReleaseNative();
 	BackendPropagator = nullptr;
 }
 
-void FCameraBarrier::AddToBackend()
+void FCameraBarrier::RegisterWithBackend()
 {
 	if (FCameraBackendBarrier::GetInstance().HasNative())
-		FCameraBackendBarrier::GetInstance().Add(*this);
+		FCameraBackendBarrier::GetInstance().RegisterCamera(*this);
 }
 
-void FCameraBarrier::RemoveFromBackend()
+void FCameraBarrier::UnregisterFromBackend()
 {
 	if (FCameraBackendBarrier::GetInstance().HasNative())
-		FCameraBackendBarrier::GetInstance().Remove(*this);
+		FCameraBackendBarrier::GetInstance().UnregisterCamera(*this);
 }
 
 void FCameraBarrier::SetTransform(const FTransform& Transform)
@@ -112,6 +113,7 @@ void FCameraBarrier::AddOutput(FCameraOutputBarrier& Output)
 
 	const size_t Id = GenerateUniqueOutputId();
 	GetCameraNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
+	FCameraBackendBarrier::GetInstance().RegisterOutput(*this, Output);
 }
 
 void FCameraBarrier::MarkOutputAsRead()
@@ -133,7 +135,55 @@ FCameraBackendPropagatorBase* FCameraBarrier::GetBackendPropagator() const
 	return BackendPropagator;
 }
 
+namespace FCameraBackend_Helpers
+{
+	double GetNextCaptureDelta(agxSensor::ICameraOutput* Output)
+	{
+		if (auto OptionalFramerate = Output->getFramerate())
+		{
+			if (*OptionalFramerate > 0)
+			{
+				return 1.0 / *OptionalFramerate;
+			}
+		}
+
+		return INFINITY;
+	}
+}
+
 /// Camera Backend Callbacks.
+
+void FCameraBarrier::OnBackendSynchronize(
+	TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime)
+{
+	check(HasNative());
+
+	for (FAGX_CameraCaptureState& CaptureState : CaptureStates)
+	{
+		CaptureState.AccumulatedTime += DeltaTime;
+		if (CaptureState.OutputAddr == 0)
+		{
+			UE_LOG(
+				LogTemp, Warning,
+				TEXT("FCameraBarrier::OnBackendSynchronize found CaptureState with no output "
+					 "address."));
+			continue;
+		}
+
+		agxSensor::ICameraOutput* Output =
+			reinterpret_cast<agxSensor::ICameraOutput*>(CaptureState.OutputAddr);
+
+		double NextCaptureDelta = FCameraBackend_Helpers::GetNextCaptureDelta(Output);
+		double TimeSinceLastCapture = CaptureState.AccumulatedTime - CaptureState.LastCaptureTime;
+
+		if (TimeSinceLastCapture + SMALL_NUMBER >= NextCaptureDelta)
+		{
+			// Time for a new capture.
+			CaptureState.LastCaptureTime = CaptureState.AccumulatedTime;
+			Output->capture();
+		}
+	}
+}
 
 void FCameraBarrier::OnBackendSetCameraLensSingleElement(
 	const FCameraLensSingleElementParameters& Parameters)

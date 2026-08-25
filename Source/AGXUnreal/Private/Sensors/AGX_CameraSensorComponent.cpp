@@ -557,7 +557,7 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 	{
 		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
 		// during Play, so recreate the runtime Scene Capture Component on the new instance.
-		GetNativeAsCamera()->AddToBackend();
+		GetNativeAsCamera()->RegisterWithBackend();
 		SetupCameraBackendPropagator();
 		SetupSceneCapture();
 		SetupRenderPasses();
