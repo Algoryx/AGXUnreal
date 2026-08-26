@@ -206,7 +206,7 @@ void FLidarBarrier::AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& Pa
 void FLidarBarrier::SetLocalTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setMatrix(Convert(Transform));
+	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setLocalMatrix(Convert(Transform));
 }
 
 FTransform FLidarBarrier::GetLocalTransform() const
