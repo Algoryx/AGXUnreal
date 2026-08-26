@@ -59,7 +59,6 @@ bool UOpenPLX_LidarOutputView::Render(
 			LogAGX, Warning,
 			TEXT("UOpenPLX_LidarOutputView::Render could not read intensities from the Lidar "
 				 "output view. Rendering positions without intensity colors."));
-		Intensities.Reset();
 	}
 
 	if (Intensities.Num() != RenderPositions.Num())
