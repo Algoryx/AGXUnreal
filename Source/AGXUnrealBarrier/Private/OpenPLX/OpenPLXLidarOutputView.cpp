@@ -79,9 +79,8 @@ namespace OpenPLXLidarOutputView_helpers
 		openplx::Marshalling& WindowMarshalling, const openplx::Field*& OutXField,
 		const openplx::Field*& OutYField, const openplx::Field*& OutZField)
 	{
-		std::unique_ptr<openplx::Marshalling>& PositionMarshallingPtr =
-			WindowMarshalling.get_or_add_nested_marshalling("position3d");
-		openplx::Marshalling* PositionMarshalling = PositionMarshallingPtr.get();
+		openplx::Marshalling* PositionMarshalling = 
+			WindowMarshalling.get_or_add_nested_marshalling("position3d").get();
 		if (PositionMarshalling == nullptr)
 			return false;
 
