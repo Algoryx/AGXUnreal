@@ -266,7 +266,16 @@ int32 FOpenPLXLidarOutputView::GetNumPoints() const
 	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
 		return 0;
 
-	return CanConvert(Layout.NumWindows) ? static_cast<int32>(Layout.NumWindows) : 0;
+	if (!CanConvert(Layout.NumWindows))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Lidar Output View: Refusing to return the number of points because the "
+				 "number of points is too large for an int32."));
+		return 0;
+	}
+
+	return static_cast<int32>(Layout.NumWindows);
 }
 
 bool FOpenPLXLidarOutputView::HasPositions() const
