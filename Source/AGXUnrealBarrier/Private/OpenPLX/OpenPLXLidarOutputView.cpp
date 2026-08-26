@@ -36,29 +36,6 @@ namespace OpenPLXLidarOutputView_helpers
 		return It != Fields.end() ? &It->second : nullptr;
 	}
 
-	bool IsFieldInsideStride(
-		const openplx::Field* Field, openplx::FieldType FieldType, size_t FieldSize,
-		size_t Stride)
-	{
-		return Field != nullptr && Field->field_type == FieldType && Field->size == FieldSize &&
-			   Field->offset + Field->size <= Stride;
-	}
-
-	bool IsFloatFieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Real, sizeof(float), Stride);
-	}
-
-	bool IsDoubleFieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Real, sizeof(double), Stride);
-	}
-
-	bool IsInt32FieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Int, sizeof(int32), Stride);
-	}
-
 	float ReadFloat(const uint8_t* Data)
 	{
 		float Value;
@@ -99,9 +76,8 @@ namespace OpenPLXLidarOutputView_helpers
 	}
 
 	bool GetPositionFields(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride,
-		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
-		const openplx::Field*& OutZField)
+		openplx::Marshalling& WindowMarshalling, const openplx::Field*& OutXField,
+		const openplx::Field*& OutYField, const openplx::Field*& OutZField)
 	{
 		std::unique_ptr<openplx::Marshalling>& PositionMarshallingPtr =
 			WindowMarshalling.get_or_add_nested_marshalling("position3d");
@@ -114,41 +90,11 @@ namespace OpenPLXLidarOutputView_helpers
 		OutXField = FindField(PositionFields, "x");
 		OutYField = FindField(PositionFields, "y");
 		OutZField = FindField(PositionFields, "z");
-		return IsFloatFieldInsideStride(OutXField, WindowStride) &&
-			   IsFloatFieldInsideStride(OutYField, WindowStride) &&
-			   IsFloatFieldInsideStride(OutZField, WindowStride);
-	}
-
-	const openplx::Field* GetIntensityField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), "intensity");
-		return IsFloatFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetFloatField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsFloatFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetDoubleField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsDoubleFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetInt32Field(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsInt32FieldInsideStride(Field, WindowStride) ? Field : nullptr;
+		return OutXField != nullptr && OutYField != nullptr && OutZField != nullptr;
 	}
 
 	bool GetRayPoseFields(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride,
+		openplx::Marshalling& WindowMarshalling,
 		std::array<const openplx::Field*, 12>& OutFields)
 	{
 		std::unique_ptr<openplx::Marshalling>& RayPoseMarshallingPtr =
@@ -166,7 +112,7 @@ namespace OpenPLXLidarOutputView_helpers
 				const std::string Name =
 					"e" + std::to_string(Row) + std::to_string(Column);
 				const openplx::Field* Field = FindField(RayPoseFields, Name);
-				if (!IsFloatFieldInsideStride(Field, WindowStride))
+				if (Field == nullptr)
 					return false;
 
 				OutFields[Row * 4 + Column] = Field;
@@ -201,7 +147,7 @@ namespace OpenPLXLidarOutputView_helpers
 		const openplx::Field* XField = nullptr;
 		const openplx::Field* YField = nullptr;
 		const openplx::Field* ZField = nullptr;
-		if (!GetPositionFields(*Layout.Marshalling, Layout.Stride, XField, YField, ZField))
+		if (!GetPositionFields(*Layout.Marshalling, XField, YField, ZField))
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -240,9 +186,8 @@ namespace OpenPLXLidarOutputView_helpers
 
 	template <typename OutT, typename NativeT, typename ConvertFuncT>
 	bool ReadScalarFieldInternal(
-		openplx::Marshalling& Marshalling, const std::string& FieldName,
-		openplx::FieldType FieldType, TArray<OutT>& OutValues, ConvertFuncT ConvertFunc,
-		const TCHAR* FieldDisplayName)
+		openplx::Marshalling& Marshalling, const std::string& FieldName, TArray<OutT>& OutValues,
+		ConvertFuncT ConvertFunc, const TCHAR* FieldDisplayName)
 	{
 		OutValues.Reset();
 		if (Marshalling.get_buffer_size() == 0)
@@ -263,7 +208,7 @@ namespace OpenPLXLidarOutputView_helpers
 		}
 
 		const openplx::Field* Field = FindField(Layout.Marshalling->get_field_map(), FieldName);
-		if (!IsFieldInsideStride(Field, FieldType, sizeof(NativeT), Layout.Stride))
+		if (Field == nullptr)
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -338,7 +283,7 @@ bool FOpenPLXLidarOutputView::HasPositions() const
 	const openplx::Field* XField = nullptr;
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
-	return GetPositionFields(*Layout.Marshalling, Layout.Stride, XField, YField, ZField);
+	return GetPositionFields(*Layout.Marshalling, XField, YField, ZField);
 }
 
 bool FOpenPLXLidarOutputView::HasIntensities() const
@@ -350,7 +295,7 @@ bool FOpenPLXLidarOutputView::HasIntensities() const
 
 	WindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetIntensityField(*Layout.Marshalling, Layout.Stride) != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "intensity") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasTimeStamps() const
@@ -362,7 +307,7 @@ bool FOpenPLXLidarOutputView::HasTimeStamps() const
 
 	WindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetDoubleField(*Layout.Marshalling, Layout.Stride, "timestamp") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "timestamp") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasDistances() const
@@ -374,7 +319,7 @@ bool FOpenPLXLidarOutputView::HasDistances() const
 
 	WindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetFloatField(*Layout.Marshalling, Layout.Stride, "distance") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "distance") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasRayPoses() const
@@ -389,7 +334,7 @@ bool FOpenPLXLidarOutputView::HasRayPoses() const
 		return false;
 
 	std::array<const openplx::Field*, 12> Fields;
-	return GetRayPoseFields(*Layout.Marshalling, Layout.Stride, Fields);
+	return GetRayPoseFields(*Layout.Marshalling, Fields);
 }
 
 bool FOpenPLXLidarOutputView::HasIsHits() const
@@ -401,7 +346,7 @@ bool FOpenPLXLidarOutputView::HasIsHits() const
 
 	WindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetInt32Field(*Layout.Marshalling, Layout.Stride, "is_hit") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "is_hit") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasEntityIds() const
@@ -413,7 +358,7 @@ bool FOpenPLXLidarOutputView::HasEntityIds() const
 
 	WindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetInt32Field(*Layout.Marshalling, Layout.Stride, "entity_id") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "entity_id") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::ReadPositions(TArray<FVector>& OutPositions)
@@ -437,56 +382,12 @@ bool FOpenPLXLidarOutputView::ReadPositionsTransformed(
 
 bool FOpenPLXLidarOutputView::ReadIntensities(TArray<float>& OutIntensities)
 {
-	using namespace OpenPLXLidarOutputView_helpers;
-
-	OutIntensities.Reset();
 	if (!HasNative())
 		return false;
 
-	openplx::Marshalling* Marshalling = NativeRef->Marshalling.get();
-	if (Marshalling->get_buffer_size() == 0)
-		return true;
-
-	WindowLayout Layout;
-	if (!GetWindowLayout(*Marshalling, Layout, /*bRequireBuffer*/ true))
-		return false;
-
-	if (!CanConvert(Layout.NumWindows))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT(
-				"OpenPLX Lidar Output View: Refusing to read intensities because the number of "
-				"intensities is too large for a TArray."));
-		return false;
-	}
-
-	const openplx::Field* IntensityField =
-		GetIntensityField(*Layout.Marshalling, Layout.Stride);
-	if (IntensityField == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Tried to read intensities, but this Lidar output "
-				 "does not contain intensities."));
-		return false;
-	}
-
-	const size_t LastWindowOffset =
-		Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
-	const size_t FieldEnd = IntensityField->offset + IntensityField->size;
-	if (Layout.NumWindows > 0 && LastWindowOffset + FieldEnd > Layout.BufferSize)
-		return false;
-
-	const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
-	OutIntensities.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
-	for (int32 I = 0; I < OutIntensities.Num(); ++I)
-	{
-		const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
-		OutIntensities[I] = ReadFloat(Window + IntensityField->offset);
-	}
-
-	return true;
+	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<float, float>(
+		*NativeRef->Marshalling, "intensity", OutIntensities, [](float Value) { return Value; },
+		TEXT("intensities"));
 }
 
 bool FOpenPLXLidarOutputView::ReadTimeStamps(TArray<double>& OutTimeStamps)
@@ -495,8 +396,8 @@ bool FOpenPLXLidarOutputView::ReadTimeStamps(TArray<double>& OutTimeStamps)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, double>(
-		*NativeRef->Marshalling, "timestamp", openplx::FieldType::Real, OutTimeStamps,
-		[](double Value) { return Value; }, TEXT("timestamps"));
+		*NativeRef->Marshalling, "timestamp", OutTimeStamps, [](double Value) { return Value; },
+		TEXT("timestamps"));
 }
 
 bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
@@ -505,7 +406,7 @@ bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, float>(
-		*NativeRef->Marshalling, "distance", openplx::FieldType::Real, OutDistances,
+		*NativeRef->Marshalling, "distance", OutDistances,
 		[](float Value)
 		{
 			return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value));
@@ -539,7 +440,7 @@ bool FOpenPLXLidarOutputView::ReadRayPoses(TArray<FTransform>& OutRayPoses)
 	}
 
 	std::array<const openplx::Field*, 12> Fields;
-	if (!GetRayPoseFields(*Layout.Marshalling, Layout.Stride, Fields))
+	if (!GetRayPoseFields(*Layout.Marshalling, Fields))
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -585,8 +486,8 @@ bool FOpenPLXLidarOutputView::ReadIsHits(TArray<bool>& OutIsHits)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<bool, int32>(
-		*NativeRef->Marshalling, "is_hit", openplx::FieldType::Int, OutIsHits,
-		[](int32 Value) { return Value != 0; }, TEXT("hit flags"));
+		*NativeRef->Marshalling, "is_hit", OutIsHits, [](int32 Value) { return Value != 0; },
+		TEXT("hit flags"));
 }
 
 bool FOpenPLXLidarOutputView::ReadEntityIds(TArray<int32>& OutEntityIds)
@@ -595,8 +496,8 @@ bool FOpenPLXLidarOutputView::ReadEntityIds(TArray<int32>& OutEntityIds)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<int32, int32>(
-		*NativeRef->Marshalling, "entity_id", openplx::FieldType::Int, OutEntityIds,
-		[](int32 Value) { return Value; }, TEXT("entity IDs"));
+		*NativeRef->Marshalling, "entity_id", OutEntityIds, [](int32 Value) { return Value; },
+		TEXT("entity IDs"));
 }
 
 bool FOpenPLXLidarOutputView::MakePersistant()
