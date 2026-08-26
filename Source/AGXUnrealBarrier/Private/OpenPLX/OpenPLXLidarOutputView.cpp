@@ -232,6 +232,70 @@ namespace OpenPLXLidarOutputView_helpers
 
 		return true;
 	}
+
+	bool ReadRayPosesInternal(openplx::Marshalling& Marshalling, TArray<FTransform>& OutRayPoses)
+	{
+		OutRayPoses.Reset();
+		if (Marshalling.get_buffer_size() == 0)
+			return true;
+
+		WindowLayout Layout;
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
+			return false;
+
+		if (!CanConvert(Layout.NumWindows))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Refusing to read ray poses because the number of "
+					 "ray poses is too large for a TArray."));
+			return false;
+		}
+
+		std::array<const openplx::Field*, 12> Fields;
+		if (!GetRayPoseFields(*Layout.Marshalling, Fields))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Tried to read ray poses, but this Lidar output "
+					 "does not contain ray poses."));
+			return false;
+		}
+
+		size_t MaxFieldEnd = 0;
+		for (const openplx::Field* Field : Fields)
+		{
+			MaxFieldEnd = FMath::Max(MaxFieldEnd, Field->offset + Field->size);
+		}
+
+		const size_t LastWindowOffset =
+			Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
+		if (Layout.NumWindows > 0 && LastWindowOffset + MaxFieldEnd > Layout.BufferSize)
+			return false;
+
+		const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
+		OutRayPoses.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
+		for (int32 I = 0; I < OutRayPoses.Num(); ++I)
+		{
+			const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
+			std::array<float, 12> E;
+			for (size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
+			{
+				E[FieldIndex] = ReadFloat(Window + Fields[FieldIndex]->offset);
+			}
+
+			// clang-format off
+			const agx::AffineMatrix4x4 RayPoseAGX {
+				E[0], E[4], E[8],  0.0,
+				E[1], E[5], E[9],  0.0,
+				E[2], E[6], E[10], 0.0,
+				E[3], E[7], E[11], 1.0};
+			// clang-format on
+			OutRayPoses[I] = Convert(RayPoseAGX);
+		}
+
+		return true;
+	}
 }
 
 FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
@@ -417,72 +481,11 @@ bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
 
 bool FOpenPLXLidarOutputView::ReadRayPoses(TArray<FTransform>& OutRayPoses)
 {
-	using namespace OpenPLXLidarOutputView_helpers;
-
-	OutRayPoses.Reset();
 	if (!HasNative())
 		return false;
 
-	openplx::Marshalling* Marshalling = NativeRef->Marshalling.get();
-	if (Marshalling->get_buffer_size() == 0)
-		return true;
-
-	WindowLayout Layout;
-	if (!GetWindowLayout(*Marshalling, Layout, /*bRequireBuffer*/ true))
-		return false;
-
-	if (!CanConvert(Layout.NumWindows))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Refusing to read ray poses because the number of "
-				 "ray poses is too large for a TArray."));
-		return false;
-	}
-
-	std::array<const openplx::Field*, 12> Fields;
-	if (!GetRayPoseFields(*Layout.Marshalling, Fields))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Tried to read ray poses, but this Lidar output "
-				 "does not contain ray poses."));
-		return false;
-	}
-
-	size_t MaxFieldEnd = 0;
-	for (const openplx::Field* Field : Fields)
-	{
-		MaxFieldEnd = FMath::Max(MaxFieldEnd, Field->offset + Field->size);
-	}
-
-	const size_t LastWindowOffset =
-		Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
-	if (Layout.NumWindows > 0 && LastWindowOffset + MaxFieldEnd > Layout.BufferSize)
-		return false;
-
-	const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
-	OutRayPoses.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
-	for (int32 I = 0; I < OutRayPoses.Num(); ++I)
-	{
-		const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
-		std::array<float, 12> E;
-		for (size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
-		{
-			E[FieldIndex] = ReadFloat(Window + Fields[FieldIndex]->offset);
-		}
-
-		// clang-format off
-		const agx::AffineMatrix4x4 RayPoseAGX {
-			E[0], E[4], E[8],  0.0,
-			E[1], E[5], E[9],  0.0,
-			E[2], E[6], E[10], 0.0,
-			E[3], E[7], E[11], 1.0};
-		// clang-format on
-		OutRayPoses[I] = Convert(RayPoseAGX);
-	}
-
-	return true;
+	return OpenPLXLidarOutputView_helpers::ReadRayPosesInternal(
+		*NativeRef->Marshalling, OutRayPoses);
 }
 
 bool FOpenPLXLidarOutputView::ReadIsHits(TArray<bool>& OutIsHits)
