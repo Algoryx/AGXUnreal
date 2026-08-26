@@ -46,7 +46,8 @@ namespace OpenPLXLidarOutputView_helpers
 	bool GetWindowLayout(
 		openplx::Marshalling& Marshalling, WindowLayout& OutLayout, bool bRequireBuffer)
 	{
-		if (bRequireBuffer && Marshalling.get_buffer_size() > 0 && Marshalling.get_buffer() == nullptr)
+		if (bRequireBuffer && Marshalling.get_buffer_size() > 0 &&
+			Marshalling.get_buffer() == nullptr)
 			return false;
 
 		std::unique_ptr<openplx::Marshalling>& WindowMarshallingPtr =
@@ -79,7 +80,7 @@ namespace OpenPLXLidarOutputView_helpers
 		openplx::Marshalling& WindowMarshalling, const openplx::Field*& OutXField,
 		const openplx::Field*& OutYField, const openplx::Field*& OutZField)
 	{
-		openplx::Marshalling* PositionMarshalling = 
+		openplx::Marshalling* PositionMarshalling =
 			WindowMarshalling.get_or_add_nested_marshalling("position3d").get();
 		if (PositionMarshalling == nullptr)
 			return false;
@@ -93,8 +94,7 @@ namespace OpenPLXLidarOutputView_helpers
 	}
 
 	bool GetRayPoseFields(
-		openplx::Marshalling& WindowMarshalling,
-		std::array<const openplx::Field*, 12>& OutFields)
+		openplx::Marshalling& WindowMarshalling, std::array<const openplx::Field*, 12>& OutFields)
 	{
 		std::unique_ptr<openplx::Marshalling>& RayPoseMarshallingPtr =
 			WindowMarshalling.get_or_add_nested_marshalling("raypose");
@@ -108,8 +108,7 @@ namespace OpenPLXLidarOutputView_helpers
 		{
 			for (size_t Column = 0; Column < 4; ++Column)
 			{
-				const std::string Name =
-					"e" + std::to_string(Row) + std::to_string(Column);
+				const std::string Name = "e" + std::to_string(Row) + std::to_string(Column);
 				const openplx::Field* Field = FindField(RayPoseFields, Name);
 				if (Field == nullptr)
 					return false;
@@ -137,9 +136,8 @@ namespace OpenPLXLidarOutputView_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Lidar Output View: Refusing to read positions because the number of "
-					"positions is too large for a TArray."));
+				TEXT("OpenPLX Lidar Output View: Refusing to read positions because the number of "
+					 "positions is too large for a TArray."));
 			return false;
 		}
 
@@ -172,8 +170,7 @@ namespace OpenPLXLidarOutputView_helpers
 			const float Y = ReadFloat(Window + YField->offset);
 			const float Z = ReadFloat(Window + ZField->offset);
 			FVector Position = ConvertDisplacement(
-				static_cast<agx::Real>(X), static_cast<agx::Real>(Y),
-				static_cast<agx::Real>(Z));
+				static_cast<agx::Real>(X), static_cast<agx::Real>(Y), static_cast<agx::Real>(Z));
 			if (RelativeTo != nullptr)
 				Position = RelativeTo->TransformPositionNoScale(Position);
 
@@ -242,8 +239,7 @@ FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
 {
 }
 
-FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(
-	std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
+FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -415,10 +411,7 @@ bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, float>(
 		*NativeRef->Marshalling, "distance", OutDistances,
-		[](float Value)
-		{
-			return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value));
-		},
+		[](float Value) { return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value)); },
 		TEXT("distances"));
 }
 
@@ -479,9 +472,13 @@ bool FOpenPLXLidarOutputView::ReadRayPoses(TArray<FTransform>& OutRayPoses)
 			E[FieldIndex] = ReadFloat(Window + Fields[FieldIndex]->offset);
 		}
 
+		// clang-format off
 		const agx::AffineMatrix4x4 RayPoseAGX {
-			E[0], E[4], E[8], 0.0, E[1], E[5], E[9], 0.0,
-			E[2], E[6], E[10], 0.0, E[3], E[7], E[11], 1.0};
+			E[0], E[4], E[8],  0.0,
+			E[1], E[5], E[9],  0.0,
+			E[2], E[6], E[10], 0.0,
+			E[3], E[7], E[11], 1.0};
+		// clang-format on
 		OutRayPoses[I] = Convert(RayPoseAGX);
 	}
 
