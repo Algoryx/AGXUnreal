@@ -30,8 +30,8 @@ bool UOpenPLX_LidarOutputView::Render(
 		return false;
 	}
 
-	UNiagaraComponent* Nc = Lidar->GetSpawnedNiagaraSystemComponent();
-	if (Nc == nullptr)
+	UNiagaraComponent* Niagara = Lidar->GetSpawnedNiagaraSystemComponent();
+	if (Niagara == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -76,17 +76,17 @@ bool UOpenPLX_LidarOutputView::Render(
 	}
 
 #if UE_VERSION_OLDER_THAN(5, 3, 0)
-	Nc->SetNiagaraVariableInt("User.NumPoints", RenderPositions.Num());
-	Nc->SetNiagaraVariableFloat("User.Lifetime", LifeTime);
-	Nc->SetNiagaraVariableFloat("User.ZeroDistanceSize", ZeroDistanceSize);
+	Niagara->SetNiagaraVariableInt("User.NumPoints", RenderPositions.Num());
+	Niagara->SetNiagaraVariableFloat("User.Lifetime", LifeTime);
+	Niagara->SetNiagaraVariableFloat("User.ZeroDistanceSize", ZeroDistanceSize);
 #else
-	Nc->SetVariableInt(FName("User.NumPoints"), RenderPositions.Num());
-	Nc->SetVariableFloat(FName("User.Lifetime"), LifeTime);
-	Nc->SetVariableFloat(FName("User.ZeroDistanceSize"), ZeroDistanceSize);
+	Niagara->SetVariableInt(FName("User.NumPoints"), RenderPositions.Num());
+	Niagara->SetVariableFloat(FName("User.Lifetime"), LifeTime);
+	Niagara->SetVariableFloat(FName("User.ZeroDistanceSize"), ZeroDistanceSize);
 #endif
 
 	UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayPosition(
-		Nc, "Positions", RenderPositions);
+		Niagara, "Positions", RenderPositions);
 
 	if (Intensities.Num() > 0)
 	{
@@ -109,7 +109,8 @@ bool UOpenPLX_LidarOutputView::Render(
 				std::numeric_limits<uint8>::max())));
 		}
 
-		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(Nc, "Colors", RenderColors);
+		UNiagaraDataInterfaceArrayFunctionLibrary::SetNiagaraArrayColor(
+			Niagara, "Colors", RenderColors);
 	}
 
 	return true;
