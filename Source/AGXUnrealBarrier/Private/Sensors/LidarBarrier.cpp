@@ -121,7 +121,7 @@ namespace LidarBarrier_helpers
 
 	double CalculateAngularResolution(double Fov, agx::UInt Resolution)
 	{
-		return Resolution > 1 ? Fov / static_cast<double>(Resolution - 1.0) : 0.0;
+		return Resolution > 1 ? Fov / (static_cast<double>(Resolution) - 1.0) : 0.0;
 	}
 }
 
