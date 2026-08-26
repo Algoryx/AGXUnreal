@@ -90,11 +90,6 @@ bool UOpenPLX_LidarOutputView::Render(
 	if (Intensities.Num() > 0)
 	{
 		TArray<FLinearColor> RenderColors;
-#if UE_VERSION_OLDER_THAN(5, 5, 0)
-		RenderColors.SetNum(0, false);
-#else
-		RenderColors.SetNum(0, EAllowShrinking::No);
-#endif
 		RenderColors.Reserve(Intensities.Num());
 
 		for (float IntensityValue : Intensities)
