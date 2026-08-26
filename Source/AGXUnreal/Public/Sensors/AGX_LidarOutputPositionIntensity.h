@@ -72,7 +72,7 @@ class AGXUNREAL_API UAGX_LidarOutputPositionIntensity_LF : public UBlueprintFunc
 	 *
 	 * LifeTime is how long each point is visible before disappearing [s].
 	 *
-	 * ZeroDistanceSize is the minimum apparent size of a point [cm].
+	 * ZeroDistanceSize is the minimum apparent size of a point in world space [cm].
 	 *
 	 * Intensity Scale Factor is a (non-physical) scaling factor that is multiplied with all
 	 * intensity values before calculating a color for the corresponding points. I.e. it changes the
