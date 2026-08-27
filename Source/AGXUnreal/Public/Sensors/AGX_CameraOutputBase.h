@@ -22,6 +22,37 @@ public:
 	FAGX_CameraOutputBase(const FAGX_CameraOutputBase& Other);
 	virtual ~FAGX_CameraOutputBase();
 
+	/**
+	 * Output resolution [pixels].
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ClampMin = "1"))
+	FIntPoint Resolution {256, 256};
+
+	void SetResolution(FIntPoint InResolution);
+	FIntPoint GetResolution() const;
+
+	/**
+	 * How often the Camera Sensor should capture a frame [Hz].
+	 * This is only used when Contant Capture is enabled.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Camera",
+		Meta = (ClampMin = "0.0", EditCondition = "bConstantCapture"))
+	double FrameRate {10.0};
+
+	void SetFrameRate(double InFrameRate);
+	double GetFrameRate() const;
+
+	/**
+	 * Whether the Camera Sensor captures continuously according to the set Frame Rate or waits for
+	 * manual capture requests.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
+	bool bConstantCapture {true};
+
+	void SetConstantCapture(bool bInConstantCapture);
+	bool GetConstantCapture() const;
+
 	bool HasNative() const;
 	FCameraOutputBarrier* GetOrCreateNative();
 	const FCameraOutputBarrier* GetNative() const;
@@ -36,6 +67,8 @@ public:
 	bool operator==(const FAGX_CameraOutputBase& Other) const;
 
 protected:
+	void ApplyBasePropertiesToNative(FCameraOutputBarrier& Native) const;
+
 	virtual TUniquePtr<FCameraOutputBarrier> CreateNativeBarrier() const
 		PURE_VIRTUAL(FAGX_CameraOutputBase::CreateNativeBarrier, return nullptr;);
 

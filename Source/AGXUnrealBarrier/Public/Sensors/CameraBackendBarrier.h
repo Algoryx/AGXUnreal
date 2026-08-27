@@ -30,6 +30,9 @@ struct AGXUNREALBARRIER_API FAGX_CameraOutputState
 	bool IsUnread {false};
 };
 
+// Raw data normally written from the RenderThread when a Camera readout has been done.
+// This acts as a staging memory before being passed to the Native Output buffer when the user reads
+// the data.
 struct AGXUNREALBARRIER_API FAGX_CameraOutputRawData
 {
 	TArray<uint8> RawData;
@@ -96,6 +99,7 @@ struct AGXUNREALBARRIER_API FCameraBackendBarrier
 	FAGX_CameraOutputState* FindOutputState(uint64 NativeOutputAddress);
 	const FAGX_CameraOutputState* FindOutputState(uint64 NativeOutputAddress) const;
 
+	/// Copies pixel data from OutputRawData to the Native Output buffer if OutputRawData is unread.
 	bool StageUnreadDataIfExists(uint64 NativeOutputAddress);
 
 	FCameraOutputRawDataWriteAccess LockOutputRawDataForWrite(uint64 OutputAddr);

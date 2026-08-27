@@ -470,6 +470,7 @@ bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
 
 		FMemory::Memcpy(NativeBuffer, RawData->RawData.GetData(), RawData->RawData.Num());
 		RawData->IsUnread = false;
+		OutputState->IsUnread = true;
 		bStagedData = true;
 	}
 

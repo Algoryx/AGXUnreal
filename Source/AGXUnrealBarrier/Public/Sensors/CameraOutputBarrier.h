@@ -23,6 +23,14 @@ struct AGXUNREALBARRIER_API FCameraOutputBarrier
 	const FCameraOutputRef* GetNative() const;
 	void ReleaseNative();
 
+	void SetResolution(FIntPoint InResolution);
+	FIntPoint GetResolution() const;
+
+	void SetConstantCapture(double InFrameRate);
+	void SetManualCapture();
+	bool GetConstantCapture() const;
+	double GetFrameRate() const;
+
 protected:
 	std::shared_ptr<FCameraOutputRef> NativeRef;
 };
