@@ -50,6 +50,33 @@ namespace OpenPLXLidarOutputView_helpers
 		return ReadValue<float>(Data);
 	}
 
+	template <typename T>
+	struct TOpenPLXFieldType;
+
+	template <>
+	struct TOpenPLXFieldType<float>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Real;
+	};
+
+	template <>
+	struct TOpenPLXFieldType<double>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Real;
+	};
+
+	template <>
+	struct TOpenPLXFieldType<int32>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Int;
+	};
+
+	template <typename T>
+	bool DoesFieldMatchNativeType(const openplx::Field& Field)
+	{
+		return Field.field_type == TOpenPLXFieldType<T>::Value && Field.size == sizeof(T);
+	}
+
 	bool GetWindowLayout(
 		openplx::Marshalling& Marshalling, WindowLayout& OutLayout, bool bRequireBuffer)
 	{
@@ -218,6 +245,16 @@ namespace OpenPLXLidarOutputView_helpers
 				TEXT("OpenPLX Lidar Output View: Tried to read %s, but this Lidar output does "
 					 "not contain %s."),
 				FieldDisplayName, FieldDisplayName);
+			return false;
+		}
+
+		if (!DoesFieldMatchNativeType<NativeT>(*Field))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Tried to read %s, but the OpenPLX field "
+					 "type or size does not match the expected scalar layout."),
+				FieldDisplayName);
 			return false;
 		}
 
