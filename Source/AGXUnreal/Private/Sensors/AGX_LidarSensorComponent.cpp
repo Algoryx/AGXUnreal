@@ -452,8 +452,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	const FLidarBarrier& LidarBarrier = static_cast<const FLidarBarrier&>(Barrier);
 
-	bEnabled = LidarBarrier.GetEnabled();
-
 	EAGX_LidarModel ImportedModel = LidarBarrier.GetModel();
 	if (ImportedModel == EAGX_LidarModel::Invalid)
 	{
