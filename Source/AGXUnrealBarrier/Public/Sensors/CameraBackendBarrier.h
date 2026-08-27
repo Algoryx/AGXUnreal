@@ -41,11 +41,17 @@ struct AGXUNREALBARRIER_API FAGX_CameraOutputRawData
 	bool IsUnread {false};
 };
 
+struct AGXUNREALBARRIER_API FAGX_CameraOutputRawDataSlot
+{
+	FCriticalSection Mutex;
+	FAGX_CameraOutputRawData RawData;
+};
+
 struct AGXUNREALBARRIER_API FCameraOutputRawDataWriteAccess
 {
-	FCameraOutputRawDataWriteAccess(
-		FCriticalSection& InMutex, TMap<uint64, FAGX_CameraOutputRawData>& InOutputRawData,
-		uint64 OutputAddr);
+	FCameraOutputRawDataWriteAccess() = default;
+	explicit FCameraOutputRawDataWriteAccess(
+		TSharedPtr<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe> InSlot);
 	~FCameraOutputRawDataWriteAccess();
 
 	FCameraOutputRawDataWriteAccess(const FCameraOutputRawDataWriteAccess&) = delete;
@@ -63,8 +69,7 @@ struct AGXUNREALBARRIER_API FCameraOutputRawDataWriteAccess
 private:
 	void Release();
 
-	FCriticalSection* Mutex {nullptr};
-	FAGX_CameraOutputRawData* Data {nullptr};
+	TSharedPtr<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe> Slot;
 };
 
 struct AGXUNREALBARRIER_API FCameraBackendBarrier
@@ -121,10 +126,9 @@ private:
 	TMap<uint64, FAGX_CameraOutputState> OutputStates;
 
 	// Key is the address of the native AGX Output. Will be accessed from both main thread and
-	// render thread. If performance suffers due to waiting for the mutex when many outputs/cameras
-	// are used, we might redesign this to have a mutex for each output, but then we should not
-	// store the data in a common TMap.
-	TMap<uint64, FAGX_CameraOutputRawData> OutputRawData;
+	// render thread. The map mutex protects the map structure, while each slot mutex protects one
+	// output's raw data.
+	TMap<uint64, TSharedPtr<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe>> OutputRawData;
 	FCriticalSection OutputRawDataMutex;
 
 	std::shared_ptr<FCameraBackendRef> NativeRef;

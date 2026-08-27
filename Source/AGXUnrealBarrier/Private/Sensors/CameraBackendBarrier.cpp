@@ -166,13 +166,37 @@ namespace CameraBackendBarrier_helpers
 
 using namespace CameraBackendBarrier_helpers;
 
-FCameraOutputRawDataWriteAccess::FCameraOutputRawDataWriteAccess(
-	FCriticalSection& InMutex, TMap<uint64, FAGX_CameraOutputRawData>& InOutputRawData,
-	uint64 OutputAddr)
-	: Mutex(&InMutex)
+namespace CameraBackendBarrier_internal_helpers
 {
-	Mutex->Lock();
-	Data = InOutputRawData.Find(OutputAddr);
+	using FCameraOutputRawDataSlotPtr =
+		TSharedPtr<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe>;
+	using FCameraOutputRawDataSlotMap = TMap<uint64, FCameraOutputRawDataSlotPtr>;
+
+	FCameraOutputRawDataSlotPtr FindOutputRawDataSlot(
+		FCriticalSection& Mutex, FCameraOutputRawDataSlotMap& OutputRawData, uint64 OutputAddr)
+	{
+		FScopeLock Lock(&Mutex);
+		return OutputRawData.FindRef(OutputAddr);
+	}
+
+	FCameraOutputRawDataSlotPtr FindOrAddOutputRawDataSlot(
+		FCriticalSection& Mutex, FCameraOutputRawDataSlotMap& OutputRawData, uint64 OutputAddr)
+	{
+		FScopeLock Lock(&Mutex);
+		FCameraOutputRawDataSlotPtr& Slot = OutputRawData.FindOrAdd(OutputAddr);
+		if (!Slot.IsValid())
+			Slot = MakeShared<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe>();
+
+		return Slot;
+	}
+}
+
+FCameraOutputRawDataWriteAccess::FCameraOutputRawDataWriteAccess(
+	TSharedPtr<FAGX_CameraOutputRawDataSlot, ESPMode::ThreadSafe> InSlot)
+	: Slot(MoveTemp(InSlot))
+{
+	if (Slot.IsValid())
+		Slot->Mutex.Lock();
 }
 
 FCameraOutputRawDataWriteAccess::~FCameraOutputRawDataWriteAccess()
@@ -182,11 +206,8 @@ FCameraOutputRawDataWriteAccess::~FCameraOutputRawDataWriteAccess()
 
 FCameraOutputRawDataWriteAccess::FCameraOutputRawDataWriteAccess(
 	FCameraOutputRawDataWriteAccess&& Other) noexcept
-	: Mutex(Other.Mutex)
-	, Data(Other.Data)
+	: Slot(MoveTemp(Other.Slot))
 {
-	Other.Mutex = nullptr;
-	Other.Data = nullptr;
 }
 
 FCameraOutputRawDataWriteAccess& FCameraOutputRawDataWriteAccess::operator=(
@@ -196,40 +217,36 @@ FCameraOutputRawDataWriteAccess& FCameraOutputRawDataWriteAccess::operator=(
 		return *this;
 
 	Release();
-	Mutex = Other.Mutex;
-	Data = Other.Data;
-	Other.Mutex = nullptr;
-	Other.Data = nullptr;
+	Slot = MoveTemp(Other.Slot);
 	return *this;
 }
 
 FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::Get()
 {
-	return Data;
+	return Slot.IsValid() ? &Slot->RawData : nullptr;
 }
 
 const FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::Get() const
 {
-	return Data;
+	return Slot.IsValid() ? &Slot->RawData : nullptr;
 }
 
 FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::operator->()
 {
-	return Data;
+	return Get();
 }
 
 const FAGX_CameraOutputRawData* FCameraOutputRawDataWriteAccess::operator->() const
 {
-	return Data;
+	return Get();
 }
 
 void FCameraOutputRawDataWriteAccess::Release()
 {
-	if (Mutex != nullptr)
+	if (Slot.IsValid())
 	{
-		Mutex->Unlock();
-		Mutex = nullptr;
-		Data = nullptr;
+		Slot->Mutex.Unlock();
+		Slot.Reset();
 	}
 }
 
@@ -325,10 +342,11 @@ void FCameraBackendBarrier::RegisterOutput(FCameraBarrier& Camera, FCameraOutput
 
 	OutputStates.FindOrAdd(OutputAddr).IsUnread = false;
 
-	{
-		FScopeLock Lock(&OutputRawDataMutex);
-		OutputRawData.FindOrAdd(OutputAddr).IsUnread = false;
-	}
+	using namespace CameraBackendBarrier_internal_helpers;
+	FCameraOutputRawDataSlotPtr RawDataSlot =
+		FindOrAddOutputRawDataSlot(OutputRawDataMutex, OutputRawData, OutputAddr);
+	FScopeLock Lock(&RawDataSlot->Mutex);
+	RawDataSlot->RawData.IsUnread = false;
 }
 
 void FCameraBackendBarrier::UnregisterOutput(FCameraBarrier& Camera, FCameraOutputBarrier& Output)
@@ -432,6 +450,8 @@ const FAGX_CameraOutputState* FCameraBackendBarrier::FindOutputState(
 
 bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
 {
+	using namespace CameraBackendBarrier_internal_helpers;
+
 	FAGX_CameraOutputState* OutputState = FindOutputState(NativeOutputAddress);
 	if (OutputState == nullptr || OutputState->NativeBuffer == nullptr)
 		return false;
@@ -451,25 +471,30 @@ bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
 		Output->getElementSize();
 
 	bool bStagedData = false;
+	FCameraOutputRawDataSlotPtr RawDataSlot =
+		FindOutputRawDataSlot(OutputRawDataMutex, OutputRawData, NativeOutputAddress);
+	if (!RawDataSlot.IsValid())
+		return false;
+
 	{
-		FScopeLock Lock(&OutputRawDataMutex);
-		FAGX_CameraOutputRawData* RawData = OutputRawData.Find(NativeOutputAddress);
-		if (RawData == nullptr || !RawData->IsUnread || RawData->RawData.Num() == 0)
+		FScopeLock Lock(&RawDataSlot->Mutex);
+		FAGX_CameraOutputRawData& RawData = RawDataSlot->RawData;
+		if (!RawData.IsUnread || RawData.RawData.Num() == 0)
 			return false;
 
-		if (ExpectedNumBytes != static_cast<size_t>(RawData->RawData.Num()))
+		if (ExpectedNumBytes != static_cast<size_t>(RawData.RawData.Num()))
 		{
 			UE_LOG(
 				LogTemp, Warning,
 				TEXT("FCameraBackendBarrier::StageUnreadDataIfExists cannot stage camera output "
 					 "because the raw buffer size does not match the native AGX output buffer "
 					 "size. Raw size: %d. Native size: %llu."),
-				RawData->RawData.Num(), static_cast<uint64>(ExpectedNumBytes));
+				RawData.RawData.Num(), static_cast<uint64>(ExpectedNumBytes));
 			return false;
 		}
 
-		FMemory::Memcpy(NativeBuffer, RawData->RawData.GetData(), RawData->RawData.Num());
-		RawData->IsUnread = false;
+		FMemory::Memcpy(NativeBuffer, RawData.RawData.GetData(), RawData.RawData.Num());
+		RawData.IsUnread = false;
 		OutputState->IsUnread = true;
 		bStagedData = true;
 	}
@@ -480,5 +505,7 @@ bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
 FCameraOutputRawDataWriteAccess FCameraBackendBarrier::LockOutputRawDataForWrite(
 	uint64 OutputAddr)
 {
-	return FCameraOutputRawDataWriteAccess(OutputRawDataMutex, OutputRawData, OutputAddr);
+	using namespace CameraBackendBarrier_internal_helpers;
+	return FCameraOutputRawDataWriteAccess(
+		FindOutputRawDataSlot(OutputRawDataMutex, OutputRawData, OutputAddr));
 }
