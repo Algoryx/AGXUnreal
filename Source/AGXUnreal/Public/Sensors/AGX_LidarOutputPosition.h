@@ -71,7 +71,7 @@ class AGXUNREAL_API UAGX_LidarOutputPosition_LF : public UBlueprintFunctionLibra
 	 *
 	 * LifeTime is how long each point is visible before disappearing [s].
 	 *
-	 * ZeroDistanceSize is the apparent size, in world space, of a point when the distance between
+	 * ZeroDistanceSize is the size, in world space, of a point when the distance between
 	 * the Lidar and the object being hit is zero. The point will grow with incresed distance
 	 * according to the configured Beam Divergence [cm].
 	 */
