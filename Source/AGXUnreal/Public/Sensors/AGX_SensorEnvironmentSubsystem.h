@@ -280,7 +280,7 @@ public:
 	bool RemoveWire(UAGX_WireComponent* Wire);
 
 	bool HasNative() const;
-	void EnsureNativeInitialized();
+	bool EnsureNativeInitialized();
 	FSensorEnvironmentBarrier* GetNative();
 	const FSensorEnvironmentBarrier* GetNative() const;
 
