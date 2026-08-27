@@ -298,7 +298,8 @@ bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
 	const FSoftObjectPath AmbientMaterialOrig = AmbientMaterial;
 	UAGX_LidarAmbientMaterial* AmbientMaterialInstanceOrig = AmbientMaterialInstance;
 
-	AmbientMaterial = FSoftObjectPath(InAmbientMaterial != nullptr ? InAmbientMaterial->GetAsset() : nullptr);
+	AmbientMaterial =
+		FSoftObjectPath(InAmbientMaterial != nullptr ? InAmbientMaterial->GetAsset() : nullptr);
 	AmbientMaterialInstance =
 		InAmbientMaterial != nullptr ? InAmbientMaterial->GetInstance() : nullptr;
 
@@ -688,12 +689,10 @@ bool UAGX_SensorEnvironmentSubsystem::RemoveLidar(UAGX_LidarSensorComponent* Lid
 	if (Lidar == nullptr)
 		return DidRemove;
 
-	if (TObjectPtr<USphereComponent>* Sphere = TrackedLidars.Find(Lidar))
+	if (TWeakObjectPtr<USphereComponent>* Sphere = TrackedLidars.Find(Lidar))
 	{
-		if (*Sphere != nullptr)
-		{
-			(*Sphere)->DestroyComponent();
-		}
+		if (USphereComponent* SphereComponent = Sphere->Get())
+			SphereComponent->DestroyComponent();
 
 		TrackedLidars.Remove(Lidar);
 		DidRemove = true;
@@ -881,12 +880,6 @@ bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty)
 
 void UAGX_SensorEnvironmentSubsystem::Deinitialize()
 {
-	for (auto& TrackedLidar : TrackedLidars)
-	{
-		if (TrackedLidar.Value != nullptr)
-			TrackedLidar.Value->DestroyComponent();
-	}
-
 	TrackedIMUs.Empty();
 	TrackedLidars.Empty();
 	TrackedMeshes.Empty();
@@ -1019,16 +1012,18 @@ void UAGX_SensorEnvironmentSubsystem::UpdateTrackedLidars()
 	{
 		if (!IsValid(It->Key.Get()))
 		{
-			if (It->Value != nullptr)
-				It->Value->DestroyComponent();
+			if (USphereComponent* Sphere = It->Value.Get())
+				Sphere->DestroyComponent();
 
 			It.RemoveCurrent();
 			continue;
 		}
 
 		if (bAutoAddObjects)
+		{
 			AGX_SensorEnvironmentSubsystem_helpers::UpdateCollisionSphere(
 				It->Key.Get(), It->Value.Get());
+		}
 	}
 }
 
