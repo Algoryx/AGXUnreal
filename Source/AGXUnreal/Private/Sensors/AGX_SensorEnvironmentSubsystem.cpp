@@ -152,14 +152,24 @@ namespace AGX_SensorEnvironmentSubsystem_helpers
 		return true;
 	}
 
-	void UpdateCollisionSphere(const UAGX_LidarSensorComponent* Lidar, USphereComponent* Sphere)
+	void UpdateCollisionSphere(UAGX_LidarSensorComponent* Lidar, USphereComponent* Sphere)
 	{
 		if (Lidar == nullptr || Sphere == nullptr)
 			return;
 
 		// Chosen arbitrarily, too large will cause Unreal warnings/errors.
 		static constexpr double MaxRadius = 1.0e8;
-		const float Radius = std::min(Lidar->Range.Max.GetValue(), MaxRadius);
+		if (Lidar->Range.Max > MaxRadius)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Lidar %s has a Max Range of %f, but the maximum supported Range is %f. "
+					 "Setting the Lidar Range to %f."),
+				*Lidar->GetName(), Lidar->Range.Max.GetValue(), MaxRadius, MaxRadius);
+			Lidar->SetRange({Lidar->Range.Min, MaxRadius});
+		}
+
+		const float Radius = Lidar->Range.Max.GetValue();
 		if (!FMath::IsNearlyEqual(Sphere->GetUnscaledSphereRadius(), Radius))
 		{
 			Sphere->SetSphereRadius(Radius, /*bUpdateOverlaps*/ false);
