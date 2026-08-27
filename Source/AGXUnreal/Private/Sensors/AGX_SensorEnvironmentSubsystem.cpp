@@ -298,17 +298,9 @@ bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
 	const FSoftObjectPath AmbientMaterialOrig = AmbientMaterial;
 	UAGX_LidarAmbientMaterial* AmbientMaterialInstanceOrig = AmbientMaterialInstance;
 
-	if (InAmbientMaterial != nullptr && InAmbientMaterial->IsInstance())
-	{
-		AmbientMaterial = FSoftObjectPath();
-		AmbientMaterialInstance = InAmbientMaterial;
-	}
-	else
-	{
-		AmbientMaterial =
-			InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) : FSoftObjectPath();
-		AmbientMaterialInstance = nullptr;
-	}
+	AmbientMaterial = FSoftObjectPath(InAmbientMaterial != nullptr ? InAmbientMaterial->GetAsset() : nullptr);
+	AmbientMaterialInstance =
+		InAmbientMaterial != nullptr ? InAmbientMaterial->GetInstance() : nullptr;
 
 	if (!HasNative())
 	{
