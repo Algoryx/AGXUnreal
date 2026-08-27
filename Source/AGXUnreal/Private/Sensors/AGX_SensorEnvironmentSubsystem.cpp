@@ -868,7 +868,9 @@ bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty)
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bAutoAddObjects),
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, AmbientMaterial),
-			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, MagneticField),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bSetPreIntegratePosition)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;
