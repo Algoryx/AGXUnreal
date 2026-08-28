@@ -3,13 +3,13 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/SensorBarrier.h"
 
 #include "CameraBarrier.generated.h"
 
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
-struct FCameraOutputBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
 struct FRigidBodyBarrier;
@@ -43,6 +43,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	/// Also registers the output with the CameraBackend.
 	void AddOutput(FCameraOutputBarrier& Output);
+	TArray<FCameraOutputBarrier> GetOutputs() const;
 
 	void MarkOutputAsRead();
 

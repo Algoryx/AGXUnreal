@@ -65,22 +65,6 @@ namespace AGX_CameraSensorComponent_helpers
 	}
 }
 
-void UAGX_CameraSensorComponent::SetResolution(FIntPoint InResolution)
-{
-	if (!IsResolutionValid(InResolution))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Camera Sensor Component '%s' in '%s' received invalid Resolution '%s'. "
-				 "Resolution will not be changed."),
-			*GetName(), *GetLabelSafe(GetOwner()), *InResolution.ToString());
-		return;
-	}
-
-	Resolution = InResolution;
-	SetupRenderPasses();
-}
-
 void UAGX_CameraSensorComponent::SetMaterialInputTextureParameterName(FName InParameterName)
 {
 	MaterialInputTextureParameterName = InParameterName;
@@ -448,7 +432,7 @@ void UAGX_CameraSensorComponent::PollCapture()
 					const int32 SourcePitch = SurfaceWidth * BytesPerPixel;
 					const int32 DestinationPitch = LogicalWidth * BytesPerPixel;
 					const int32 NumBytes = DestinationPitch * LogicalHeight;
-					OutputRawData->RawData.SetNumUninitialized(NumBytes, false);
+					OutputRawData->RawData.SetNumUninitialized(NumBytes, EAllowShrinking::No);
 					if (SurfaceWidth == LogicalWidth)
 					{
 						FMemory::Memcpy(OutputRawData->RawData.GetData(), PixelBuffer, NumBytes);
@@ -615,12 +599,6 @@ bool UAGX_CameraSensorComponent::CanEditChange(const FProperty* InProperty) cons
 
 	if (InProperty == nullptr)
 		return SuperCanEditChange;
-
-	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, Resolution) &&
-		HasCaptureSourceOverride())
-	{
-		return false;
-	}
 
 	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
 	if (bIsPlaying)
@@ -864,10 +842,25 @@ void UAGX_CameraSensorComponent::EnsureRenderTargets()
 	}
 }
 
+FIntPoint UAGX_CameraSensorComponent::GetLargestOutputResolution() const
+{
+	FIntPoint LargestRes(0, 0);
+	if (!HasNative())
+		return LargestRes;
+
+	for (const auto& Output : GetNativeAsCamera()->GetOutputs())
+	{
+		const auto Res = Output.GetResolution();
+		LargestRes.X = FMath::Max(LargestRes.X, Res.X);
+		LargestRes.Y = FMath::Max(LargestRes.Y, Res.Y);
+	}
+	return LargestRes;
+}
+
 FIntPoint UAGX_CameraSensorComponent::GetActiveResolution() const
 {
 	if (!HasCaptureSourceOverride())
-		return Resolution;
+		return GetLargestOutputResolution();
 
 	const USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
 	if (CaptureSource == nullptr || CaptureSource->TextureTarget == nullptr)
@@ -907,7 +900,6 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	AGX_COMPONENT_DEFAULT_DISPATCHER(Resolution);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(MaterialInputTextureParameterName);
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(CaptureSourceOverride),

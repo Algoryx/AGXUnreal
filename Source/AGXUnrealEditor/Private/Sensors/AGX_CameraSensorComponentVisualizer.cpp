@@ -19,9 +19,6 @@ void FAGX_CameraSensorComponentVisualizer::DrawVisualization(
 	if (Cam == nullptr || !Cam->ShouldRender())
 		return;
 
-	if (Cam->Resolution.X < 1 || Cam->Resolution.Y < 1)
-		return;
-
 	// We will draw a rectangle on an imaginary plane according to the FOV of the Camera Sensor.
 	// Also, we will draw lines from the Camera Sensor origin to each corner of the rectangle.
 	static constexpr double PlaneDistance = 30.0;
@@ -29,8 +26,7 @@ void FAGX_CameraSensorComponentVisualizer::DrawVisualization(
 
 	const double FOVRad = FMath::DegreesToRadians(FOV);
 	const double HalfWidth = FMath::Tan(FOVRad / 2.0) * PlaneDistance;
-	const double AspectRatioInv =
-		static_cast<double>(Cam->Resolution.Y) / static_cast<double>(Cam->Resolution.X);
+	const double AspectRatioInv = 9.0/16.0;
 	const double HalfHeight = HalfWidth * AspectRatioInv;
 	const FTransform& Transform = Cam->GetComponentTransform();
 

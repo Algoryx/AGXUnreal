@@ -26,6 +26,9 @@
 #include <agxSensor/CameraOutputHandler.h>
 #include "EndAGXIncludes.h"
 
+// Standard library includes.
+#include <memory>
+
 namespace CameraBarrier_helpers
 {
 	agxSensor::Camera* GetCameraNative(FCameraBarrier& Camera)
@@ -133,6 +136,30 @@ void FCameraBarrier::AddOutput(FCameraOutputBarrier& Output)
 	const size_t Id = GenerateUniqueOutputId();
 	GetCameraNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
 	Output.RegisterWithBackend(*this);
+}
+
+TArray<FCameraOutputBarrier> FCameraBarrier::GetOutputs() const
+{
+	check(HasNative());
+
+	const TArray<FAGX_CameraCaptureState>* CaptureStates =
+		FCameraBackendBarrier::GetInstance().FindCaptureStates(const_cast<FCameraBarrier*>(this));
+	if (CaptureStates == nullptr)
+		return {};
+
+	TArray<FCameraOutputBarrier> Outputs;
+	Outputs.Reserve(CaptureStates->Num());
+	for (const FAGX_CameraCaptureState& CaptureState : *CaptureStates)
+	{
+		if (CaptureState.OutputAddr == 0)
+			continue;
+
+		agxSensor::ICameraOutput* Output =
+			reinterpret_cast<agxSensor::ICameraOutput*>(CaptureState.OutputAddr);
+		Outputs.Emplace(std::make_shared<FCameraOutputRef>(Output));
+	}
+
+	return Outputs;
 }
 
 void FCameraBarrier::MarkOutputAsRead()

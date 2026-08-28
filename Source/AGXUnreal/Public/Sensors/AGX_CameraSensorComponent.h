@@ -52,19 +52,6 @@ public:
 	UAGX_CameraLensBase* CameraLens {nullptr};
 
 	/**
-	 * Output resolution of the Camera Sensor [pixels].
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ClampMin = "1"))
-	FIntPoint Resolution {
-		256, 256}; // TODO: remove this, resolution will be set on CameraCMOSSensor instead.
-
-	/**
-	 * Set the output resolution of the Camera Sensor.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	void SetResolution(FIntPoint InResolution);
-
-	/**
 	 * Name of the texture parameter that receives the previous render pass output.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
@@ -184,6 +171,7 @@ private:
 	void UpdateCameraLens();
 	void SetupRenderPasses();
 	void EnsureRenderTargets();
+	FIntPoint GetLargestOutputResolution() const;
 	
 	/// Executes the MaterialPasses and returns the final render target.
 	UTextureRenderTarget2D* RenderCameraPipeline();
