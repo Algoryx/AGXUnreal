@@ -137,8 +137,7 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 
 	/// Read the Lidar hit flags.
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
-	static bool ReadIsHits(
-		UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<bool>& OutIsHits)
+	static bool ReadIsHits(UPARAM(Ref) FOpenPLXLidarOutputView& View, TArray<bool>& OutIsHits)
 	{
 		return View.ReadIsHits(OutIsHits);
 	}
@@ -157,7 +156,9 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 	 * outputs. Otherwise this renders positions only, matching AGX Lidar position outputs.
 	 *
 	 * LifeTime is how long each point is visible before disappearing [s].
-	 * ZeroDistanceSize is the minimum apparent size of a point [cm].
+	 * ZeroDistanceSize is the size, in world space, of a point when the distance between
+	 * the Lidar and the object being hit is zero. The point will grow with incresed distance
+	 * according to the configured Beam Divergence [cm].
 	 * Intensity Scale Factor is a (non-physical) scaling factor that is multiplied with all
 	 * intensity values before calculating a color for the corresponding points. I.e. it changes the
 	 * sensitivity of the intensity coloration (blue to red).
@@ -165,8 +166,7 @@ class AGXUNREAL_API UOpenPLX_LidarOutputView : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX Lidar Output View")
 	static bool Render(
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, UAGX_LidarSensorComponent* Lidar,
-		float LifeTime = 0.12f, float ZeroDistanceSize = 4.f,
-		float IntensityScaleFactor = 10.f);
+		float LifeTime = 0.12f, float ZeroDistanceSize = 4.f, float IntensityScaleFactor = 10.f);
 
 	/**
 	 * Copy the underlying Lidar output data into memory owned by this view.

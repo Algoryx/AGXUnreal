@@ -153,14 +153,24 @@ namespace AGX_SensorEnvironmentSubsystem_helpers
 		return true;
 	}
 
-	void UpdateCollisionSphere(const UAGX_LidarSensorComponent* Lidar, USphereComponent* Sphere)
+	void UpdateCollisionSphere(UAGX_LidarSensorComponent* Lidar, USphereComponent* Sphere)
 	{
 		if (Lidar == nullptr || Sphere == nullptr)
 			return;
 
 		// Chosen arbitrarily, too large will cause Unreal warnings/errors.
 		static constexpr double MaxRadius = 1.0e8;
-		const float Radius = std::min(Lidar->Range.Max.GetValue(), MaxRadius);
+		if (Lidar->Range.Max > MaxRadius)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Lidar %s has a Max Range of %f, but the maximum supported Range is %f. "
+					 "Setting the Lidar Range to %f."),
+				*Lidar->GetName(), Lidar->Range.Max.GetValue(), MaxRadius, MaxRadius);
+			Lidar->SetRange({Lidar->Range.Min, MaxRadius});
+		}
+
+		const float Radius = Lidar->Range.Max.GetValue();
 		if (!FMath::IsNearlyEqual(Sphere->GetUnscaledSphereRadius(), Radius))
 		{
 			Sphere->SetSphereRadius(Radius, /*bUpdateOverlaps*/ false);
@@ -289,17 +299,10 @@ bool UAGX_SensorEnvironmentSubsystem::SetAmbientMaterial(
 	const FSoftObjectPath AmbientMaterialOrig = AmbientMaterial;
 	UAGX_LidarAmbientMaterial* AmbientMaterialInstanceOrig = AmbientMaterialInstance;
 
-	if (InAmbientMaterial != nullptr && InAmbientMaterial->IsInstance())
-	{
-		AmbientMaterial = FSoftObjectPath();
-		AmbientMaterialInstance = InAmbientMaterial;
-	}
-	else
-	{
-		AmbientMaterial =
-			InAmbientMaterial != nullptr ? FSoftObjectPath(InAmbientMaterial) : FSoftObjectPath();
-		AmbientMaterialInstance = nullptr;
-	}
+	AmbientMaterial =
+		FSoftObjectPath(InAmbientMaterial != nullptr ? InAmbientMaterial->GetAsset() : nullptr);
+	AmbientMaterialInstance =
+		InAmbientMaterial != nullptr ? InAmbientMaterial->GetInstance() : nullptr;
 
 	if (!HasNative())
 	{
@@ -388,8 +391,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddLidar(UAGX_LidarSensorComponent* Lidar)
 		return false;
 	}
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	FLidarBarrier* Barrier = Lidar->GetNativeAsLidar();
@@ -460,8 +462,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddIMU(UAGX_IMUSensorComponent* IMU)
 		return false;
 	}
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	FIMUBarrier* Barrier = IMU->GetNativeAsIMU();
@@ -477,8 +478,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddIMU(UAGX_IMUSensorComponent* IMU)
 
 bool UAGX_SensorEnvironmentSubsystem::AddMesh(UStaticMeshComponent* Mesh, int32 InLod)
 {
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	TArray<FVector> OutVerts;
@@ -504,8 +504,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddMesh(UStaticMeshComponent* Mesh, int32 
 
 bool UAGX_SensorEnvironmentSubsystem::AddAGXMesh(UAGX_SimpleMeshComponent* Mesh)
 {
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	TArray<FVector> OutVerts;
@@ -532,8 +531,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddInstancedMesh(
 	if (Mesh == nullptr)
 		return false;
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	if (!TrackedInstancedMeshes.Contains(Mesh))
@@ -578,8 +576,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddInstancedMeshInstance(
 	if (Mesh == nullptr || !Mesh->IsValidInstance(Index))
 		return false;
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	if (!TrackedInstancedMeshes.Contains(Mesh))
@@ -614,8 +611,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddTerrain(AAGX_Terrain* Terrain)
 	if (Terrain == nullptr)
 		return false;
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	if (Terrain->bEnableTerrainPaging)
@@ -665,8 +661,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddMovableTerrain(UAGX_MovableTerrainCompo
 	if (Terrain == nullptr)
 		return false;
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	FTerrainBarrier* TerrainBarrier = Terrain->GetOrCreateNative();
@@ -698,8 +693,7 @@ bool UAGX_SensorEnvironmentSubsystem::AddWire(UAGX_WireComponent* Wire)
 	if (Wire == nullptr)
 		return false;
 
-	EnsureNativeInitialized();
-	if (!HasNative())
+	if (!EnsureNativeInitialized())
 		return false;
 
 	FWireBarrier* Barrier = Wire->GetOrCreateNative();
@@ -746,12 +740,10 @@ bool UAGX_SensorEnvironmentSubsystem::RemoveLidar(UAGX_LidarSensorComponent* Lid
 	if (Lidar == nullptr)
 		return DidRemove;
 
-	if (TObjectPtr<USphereComponent>* Sphere = TrackedLidars.Find(Lidar))
+	if (TWeakObjectPtr<USphereComponent>* Sphere = TrackedLidars.Find(Lidar))
 	{
-		if (*Sphere != nullptr)
-		{
-			(*Sphere)->DestroyComponent();
-		}
+		if (USphereComponent* SphereComponent = Sphere->Get())
+			SphereComponent->DestroyComponent();
 
 		TrackedLidars.Remove(Lidar);
 		DidRemove = true;
@@ -846,12 +838,13 @@ bool UAGX_SensorEnvironmentSubsystem::HasNative() const
 	return NativeBarrier.HasNative();
 }
 
-void UAGX_SensorEnvironmentSubsystem::EnsureNativeInitialized()
+bool UAGX_SensorEnvironmentSubsystem::EnsureNativeInitialized()
 {
 	if (HasNative())
-		return;
+		return true;
 
 	InitializeNative();
+	return HasNative();
 }
 
 FSensorEnvironmentBarrier* UAGX_SensorEnvironmentSubsystem::GetNative()
@@ -926,7 +919,9 @@ bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty)
 		static const TArray<FName> PropertiesNotEditableDuringPlay = {
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bAutoAddObjects),
 			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, AmbientMaterial),
-			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial)};
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, DefaultLidarSurfaceMaterial),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, MagneticField),
+			GET_MEMBER_NAME_CHECKED(UAGX_SensorEnvironmentSubsystem, bSetPreIntegratePosition)};
 
 		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
 			return false;
@@ -938,12 +933,6 @@ bool UAGX_SensorEnvironmentSubsystem::CanEditChange(const FProperty* InProperty)
 
 void UAGX_SensorEnvironmentSubsystem::Deinitialize()
 {
-	for (auto& TrackedLidar : TrackedLidars)
-	{
-		if (TrackedLidar.Value != nullptr)
-			TrackedLidar.Value->DestroyComponent();
-	}
-
 	TrackedIMUs.Empty();
 	TrackedCameras.Empty();
 	TrackedLidars.Empty();
@@ -1088,16 +1077,18 @@ void UAGX_SensorEnvironmentSubsystem::UpdateTrackedLidars()
 	{
 		if (!IsValid(It->Key.Get()))
 		{
-			if (It->Value != nullptr)
-				It->Value->DestroyComponent();
+			if (USphereComponent* Sphere = It->Value.Get())
+				Sphere->DestroyComponent();
 
 			It.RemoveCurrent();
 			continue;
 		}
 
 		if (bAutoAddObjects)
+		{
 			AGX_SensorEnvironmentSubsystem_helpers::UpdateCollisionSphere(
 				It->Key.Get(), It->Value.Get());
+		}
 	}
 }
 

@@ -121,7 +121,7 @@ namespace LidarBarrier_helpers
 
 	double CalculateAngularResolution(double Fov, agx::UInt Resolution)
 	{
-		return Resolution > 1 ? Fov / static_cast<double>(Resolution - 1.0) : 0.0;
+		return Resolution > 1 ? Fov / (static_cast<double>(Resolution) - 1.0) : 0.0;
 	}
 }
 
@@ -206,7 +206,7 @@ void FLidarBarrier::AllocateNativeCustomRayPattern(FCustomPatternFetcherBase& Pa
 void FLidarBarrier::SetLocalTransform(const FTransform& Transform)
 {
 	check(HasNative());
-	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setMatrix(Convert(Transform));
+	LidarBarrier_helpers::GetLidarNative(*this)->getFrame()->setLocalMatrix(Convert(Transform));
 }
 
 FTransform FLidarBarrier::GetLocalTransform() const

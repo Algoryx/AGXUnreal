@@ -10,55 +10,120 @@
 
 // Standard library includes.
 #include <array>
-#include <memory>
+#include <cstring>
+#include <limits>
 #include <string>
 #include <utility>
 
 namespace OpenPLXLidarOutputView_helpers
 {
-	using namespace PLXMarshallingUtilities;
+	struct WindowLayout
+	{
+		openplx::Marshalling* Marshalling = nullptr;
+		size_t Stride = 0;
+		size_t BufferSize = 0;
+		size_t NumWindows = 0;
+	};
+
+	const openplx::Field* FindField(
+		const std::unordered_map<std::string, openplx::Field>& Fields, const std::string& Name)
+	{
+		const auto It = Fields.find(Name);
+		return It != Fields.end() ? &It->second : nullptr;
+	}
+
+	template <typename T>
+	T ReadValue(const uint8_t* Data)
+	{
+		T Value;
+		std::memcpy(&Value, Data, sizeof(Value));
+		return Value;
+	}
+
+	float ReadFloat(const uint8_t* Data)
+	{
+		return ReadValue<float>(Data);
+	}
+
+	template <typename T>
+	struct TOpenPLXFieldType;
+
+	template <>
+	struct TOpenPLXFieldType<float>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Real;
+	};
+
+	template <>
+	struct TOpenPLXFieldType<double>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Real;
+	};
+
+	template <>
+	struct TOpenPLXFieldType<int32>
+	{
+		static constexpr openplx::FieldType Value = openplx::FieldType::Int;
+	};
+
+	template <typename T>
+	bool DoesFieldMatchNativeType(const openplx::Field& Field)
+	{
+		return Field.field_type == TOpenPLXFieldType<T>::Value && Field.size == sizeof(T);
+	}
+
+	bool GetWindowLayout(
+		openplx::Marshalling& Marshalling, WindowLayout& OutLayout, bool bRequireBuffer)
+	{
+		if (bRequireBuffer && Marshalling.get_buffer_size() > 0 &&
+			Marshalling.get_buffer() == nullptr)
+			return false;
+
+		std::unique_ptr<openplx::Marshalling>& WindowMarshallingPtr =
+			Marshalling.get_or_add_nested_marshalling("window");
+		Marshalling.calculate_nested_buffer_sizes();
+
+		openplx::Marshalling* WindowMarshalling = WindowMarshallingPtr.get();
+		if (WindowMarshalling == nullptr)
+			return false;
+
+		if (bRequireBuffer && WindowMarshalling->get_buffer_size() > 0 &&
+			WindowMarshalling->get_buffer() == nullptr)
+		{
+			return false;
+		}
+
+		const size_t WindowStride = WindowMarshalling->get_stride();
+		const size_t WindowBufferSize = WindowMarshalling->get_buffer_size();
+		if (WindowStride == 0 || WindowBufferSize % WindowStride != 0)
+			return false;
+
+		OutLayout.Marshalling = WindowMarshalling;
+		OutLayout.Stride = WindowStride;
+		OutLayout.BufferSize = WindowBufferSize;
+		OutLayout.NumWindows = WindowBufferSize / WindowStride;
+		return true;
+	}
 
 	bool GetPositionFields(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride,
-		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
-		const openplx::Field*& OutZField)
+		openplx::Marshalling& WindowMarshalling, const openplx::Field*& OutXField,
+		const openplx::Field*& OutYField, const openplx::Field*& OutZField)
 	{
-		return GetNestedVectorFields(
-			WindowMarshalling, WindowStride, "position3d", IsFloatFieldInsideStride, OutXField,
-			OutYField, OutZField);
-	}
+		openplx::Marshalling* PositionMarshalling =
+			WindowMarshalling.get_or_add_nested_marshalling("position3d").get();
+		if (PositionMarshalling == nullptr)
+			return false;
 
-	const openplx::Field* GetIntensityField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), "intensity");
-		return IsFloatFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetFloatField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsFloatFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetDoubleField(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsDoubleFieldInsideStride(Field, WindowStride) ? Field : nullptr;
-	}
-
-	const openplx::Field* GetInt32Field(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride, const std::string& Name)
-	{
-		const openplx::Field* Field = FindField(WindowMarshalling.get_field_map(), Name);
-		return IsInt32FieldInsideStride(Field, WindowStride) ? Field : nullptr;
+		const std::unordered_map<std::string, openplx::Field>& PositionFields =
+			PositionMarshalling->get_field_map();
+		OutXField = FindField(PositionFields, "x");
+		OutYField = FindField(PositionFields, "y");
+		OutZField = FindField(PositionFields, "z");
+		return OutXField != nullptr && OutYField != nullptr && OutZField != nullptr;
 	}
 
 	bool GetRayPoseFields(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride,
-		std::array<const openplx::Field*, 12>& OutFields)
+		openplx::Marshalling& WindowMarshalling, std::array<const openplx::Field*, 12>& OutFields)
 	{
 		std::unique_ptr<openplx::Marshalling>& RayPoseMarshallingPtr =
 			WindowMarshalling.get_or_add_nested_marshalling("raypose");
@@ -71,10 +136,9 @@ namespace OpenPLXLidarOutputView_helpers
 		{
 			for (size_t Column = 0; Column < 4; ++Column)
 			{
-				const std::string Name =
-					"e" + std::to_string(Row) + std::to_string(Column);
+				const std::string Name = "e" + std::to_string(Row) + std::to_string(Column);
 				const openplx::Field* Field = FindField(RayPoseFields, Name);
-				if (!IsFloatFieldInsideStride(Field, WindowStride))
+				if (Field == nullptr)
 					return false;
 
 				OutFields[Row * 4 + Column] = Field;
@@ -100,16 +164,15 @@ namespace OpenPLXLidarOutputView_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Lidar Output View: Refusing to read positions because the number of "
-					"positions is too large for a TArray."));
+				TEXT("OpenPLX Lidar Output View: Refusing to read positions because the number of "
+					 "positions is too large for a TArray."));
 			return false;
 		}
 
 		const openplx::Field* XField = nullptr;
 		const openplx::Field* YField = nullptr;
 		const openplx::Field* ZField = nullptr;
-		if (!GetPositionFields(*Layout.Marshalling, Layout.Stride, XField, YField, ZField))
+		if (!GetPositionFields(*Layout.Marshalling, XField, YField, ZField))
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -135,8 +198,7 @@ namespace OpenPLXLidarOutputView_helpers
 			const float Y = ReadValue<float>(Window + YField->offset);
 			const float Z = ReadValue<float>(Window + ZField->offset);
 			FVector Position = ConvertDisplacement(
-				static_cast<agx::Real>(X), static_cast<agx::Real>(Y),
-				static_cast<agx::Real>(Z));
+				static_cast<agx::Real>(X), static_cast<agx::Real>(Y), static_cast<agx::Real>(Z));
 			if (RelativeTo != nullptr)
 				Position = RelativeTo->TransformPositionNoScale(Position);
 
@@ -148,9 +210,8 @@ namespace OpenPLXLidarOutputView_helpers
 
 	template <typename OutT, typename NativeT, typename ConvertFuncT>
 	bool ReadScalarFieldInternal(
-		openplx::Marshalling& Marshalling, const std::string& FieldName,
-		openplx::FieldType FieldType, TArray<OutT>& OutValues, ConvertFuncT ConvertFunc,
-		const TCHAR* FieldDisplayName)
+		openplx::Marshalling& Marshalling, const std::string& FieldName, TArray<OutT>& OutValues,
+		ConvertFuncT ConvertFunc, const TCHAR* FieldDisplayName)
 	{
 		OutValues.Reset();
 		if (Marshalling.get_buffer_size() == 0)
@@ -171,13 +232,23 @@ namespace OpenPLXLidarOutputView_helpers
 		}
 
 		const openplx::Field* Field = FindField(Layout.Marshalling->get_field_map(), FieldName);
-		if (!IsFieldInsideStride(Field, FieldType, sizeof(NativeT), Layout.Stride))
+		if (Field == nullptr)
 		{
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("OpenPLX Lidar Output View: Tried to read %s, but this Lidar output does "
 					 "not contain %s."),
 				FieldDisplayName, FieldDisplayName);
+			return false;
+		}
+
+		if (!DoesFieldMatchNativeType<NativeT>(*Field))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Tried to read %s, but the OpenPLX field "
+					 "type or size does not match the expected scalar layout."),
+				FieldDisplayName);
 			return false;
 		}
 
@@ -197,6 +268,339 @@ namespace OpenPLXLidarOutputView_helpers
 
 		return true;
 	}
+
+	bool ReadRayPosesInternal(openplx::Marshalling& Marshalling, TArray<FTransform>& OutRayPoses)
+	{
+		OutRayPoses.Reset();
+		if (Marshalling.get_buffer_size() == 0)
+			return true;
+
+		WindowLayout Layout;
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
+			return false;
+
+		if (!CanConvert(Layout.NumWindows))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Refusing to read ray poses because the number of "
+					 "ray poses is too large for a TArray."));
+			return false;
+		}
+
+		std::array<const openplx::Field*, 12> Fields;
+		if (!GetRayPoseFields(*Layout.Marshalling, Fields))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Tried to read ray poses, but this Lidar output "
+					 "does not contain ray poses."));
+			return false;
+		}
+
+		size_t MaxFieldEnd = 0;
+		for (const openplx::Field* Field : Fields)
+		{
+			MaxFieldEnd = FMath::Max(MaxFieldEnd, Field->offset + Field->size);
+		}
+
+		const size_t LastWindowOffset =
+			Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
+		if (Layout.NumWindows > 0 && LastWindowOffset + MaxFieldEnd > Layout.BufferSize)
+			return false;
+
+		const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
+		OutRayPoses.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
+		for (int32 I = 0; I < OutRayPoses.Num(); ++I)
+		{
+			const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
+			std::array<float, 12> E;
+			for (size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
+			{
+				E[FieldIndex] = ReadFloat(Window + Fields[FieldIndex]->offset);
+			}
+
+			// clang-format off
+			const agx::AffineMatrix4x4 RayPoseAGX {
+				E[0], E[4], E[8],  0.0,
+				E[1], E[5], E[9],  0.0,
+				E[2], E[6], E[10], 0.0,
+				E[3], E[7], E[11], 1.0};
+			// clang-format on
+			OutRayPoses[I] = Convert(RayPoseAGX);
+		}
+
+		return true;
+	}
+
+	void UpdateMaxFieldEnd(const openplx::Field* Field, size_t& InOutMaxFieldEnd)
+	{
+		InOutMaxFieldEnd = FMath::Max(InOutMaxFieldEnd, Field->offset + Field->size);
+	}
+
+	struct RawPointFieldCopy
+	{
+		const openplx::Field* SourceField = nullptr;
+		size_t DestinationOffset = 0;
+		size_t Size = 0;
+		bool bIsHit = false;
+	};
+
+	bool ValidateRawField(
+		const openplx::Field* Field, openplx::FieldType ExpectedOpenPLXType,
+		size_t ExpectedSize, const TCHAR* FieldDisplayName)
+	{
+		if (Field->field_type == ExpectedOpenPLXType && Field->size == ExpectedSize)
+			return true;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Lidar Output View: Tried to read raw %s, but the OpenPLX field "
+				 "type or size does not match the expected raw layout."),
+			FieldDisplayName);
+		return false;
+	}
+
+	void AddRawField(
+		const TCHAR* Name, EOpenPLXLidarPackedFieldType Type, const openplx::Field* SourceField,
+		size_t Size, TArray<FOpenPLXLidarPackedField>& OutFields,
+		TArray<RawPointFieldCopy>& OutFieldCopies, size_t& InOutPointStep, bool bIsHit = false)
+	{
+		FOpenPLXLidarPackedField PackedField;
+		PackedField.Name = Name;
+		PackedField.Type = Type;
+		PackedField.Offset = static_cast<int64>(InOutPointStep);
+		OutFields.Add(PackedField);
+
+		RawPointFieldCopy FieldCopy;
+		FieldCopy.SourceField = SourceField;
+		FieldCopy.DestinationOffset = InOutPointStep;
+		FieldCopy.Size = Size;
+		FieldCopy.bIsHit = bIsHit;
+		OutFieldCopies.Add(FieldCopy);
+
+		InOutPointStep += Size;
+	}
+
+	bool AddRequestedRawScalarField(
+		openplx::Marshalling& WindowMarshalling, bool bRequested, const std::string& SourceName,
+		const TCHAR* PackedName, const TCHAR* FieldDisplayName, openplx::FieldType OpenPLXType,
+		EOpenPLXLidarPackedFieldType PackedType, size_t Size,
+		TArray<FOpenPLXLidarPackedField>& OutFields, TArray<RawPointFieldCopy>& OutFieldCopies,
+		size_t& InOutPointStep, size_t& InOutMaxFieldEnd, bool bIsHit = false)
+	{
+		if (!bRequested)
+			return true;
+
+		const openplx::Field* SourceField = FindField(WindowMarshalling.get_field_map(), SourceName);
+		if (SourceField == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Tried to read raw point data, but this Lidar "
+					 "output does not contain %s."),
+				FieldDisplayName);
+			return false;
+		}
+
+		if (!ValidateRawField(SourceField, OpenPLXType, Size, FieldDisplayName))
+			return false;
+
+		UpdateMaxFieldEnd(SourceField, InOutMaxFieldEnd);
+		AddRawField(
+			PackedName, PackedType, SourceField, Size, OutFields, OutFieldCopies, InOutPointStep,
+			bIsHit);
+		return true;
+	}
+
+	bool ReadRawPointDataInternal(
+		openplx::Marshalling& Marshalling, const FOpenPLXLidarPointReadFlags& ReadFlags,
+		TArray<uint8>& OutData, TArray<FOpenPLXLidarPackedField>& OutFields, int64& OutPointStep,
+		bool& bOutAllHits)
+	{
+		OutData.Reset();
+		OutFields.Reset();
+		OutPointStep = 0;
+		bOutAllHits = true;
+
+		WindowLayout Layout;
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
+			return false;
+
+		if (!CanConvert(Layout.NumWindows))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"OpenPLX Lidar Output View: Refusing to read raw point data because the "
+					"number of points is too large for an int32."));
+			return false;
+		}
+
+		size_t MaxFieldEnd = 0;
+		size_t PointStep = 0;
+		TArray<RawPointFieldCopy> FieldCopies;
+		const openplx::Field* XField = nullptr;
+		const openplx::Field* YField = nullptr;
+		const openplx::Field* ZField = nullptr;
+		if (ReadFlags.bPositions)
+		{
+			if (!GetPositionFields(*Layout.Marshalling, XField, YField, ZField))
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT(
+						"OpenPLX Lidar Output View: Tried to read raw point data, but this "
+						"Lidar output does not contain positions."));
+				return false;
+			}
+
+			if (!ValidateRawField(XField, openplx::FieldType::Real, sizeof(float), TEXT("x")) ||
+				!ValidateRawField(YField, openplx::FieldType::Real, sizeof(float), TEXT("y")) ||
+				!ValidateRawField(ZField, openplx::FieldType::Real, sizeof(float), TEXT("z")))
+			{
+				return false;
+			}
+
+			UpdateMaxFieldEnd(XField, MaxFieldEnd);
+			UpdateMaxFieldEnd(YField, MaxFieldEnd);
+			UpdateMaxFieldEnd(ZField, MaxFieldEnd);
+			AddRawField(
+				TEXT("x"), EOpenPLXLidarPackedFieldType::Float32, XField, sizeof(float), OutFields,
+				FieldCopies, PointStep);
+			AddRawField(
+				TEXT("y"), EOpenPLXLidarPackedFieldType::Float32, YField, sizeof(float), OutFields,
+				FieldCopies, PointStep);
+			AddRawField(
+				TEXT("z"), EOpenPLXLidarPackedFieldType::Float32, ZField, sizeof(float), OutFields,
+				FieldCopies, PointStep);
+		}
+
+		if (!AddRequestedRawScalarField(
+				*Layout.Marshalling, ReadFlags.bIntensities, "intensity", TEXT("intensity"),
+				TEXT("intensities"), openplx::FieldType::Real, EOpenPLXLidarPackedFieldType::Float32,
+				sizeof(float), OutFields, FieldCopies, PointStep, MaxFieldEnd))
+		{
+			return false;
+		}
+
+		if (!AddRequestedRawScalarField(
+				*Layout.Marshalling, ReadFlags.bTimeStamps, "timestamp", TEXT("timestamp"),
+				TEXT("timestamps"), openplx::FieldType::Real, EOpenPLXLidarPackedFieldType::Float64,
+				sizeof(double), OutFields, FieldCopies, PointStep, MaxFieldEnd))
+		{
+			return false;
+		}
+
+		if (!AddRequestedRawScalarField(
+				*Layout.Marshalling, ReadFlags.bDistances, "distance", TEXT("distance"),
+				TEXT("distances"), openplx::FieldType::Real, EOpenPLXLidarPackedFieldType::Float32,
+				sizeof(float), OutFields, FieldCopies, PointStep, MaxFieldEnd))
+		{
+			return false;
+		}
+
+		std::array<const openplx::Field*, 12> RayPoseFields;
+		if (ReadFlags.bRayPoses)
+		{
+			if (!GetRayPoseFields(*Layout.Marshalling, RayPoseFields))
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT(
+						"OpenPLX Lidar Output View: Tried to read raw point data, but this "
+						"Lidar output does not contain ray poses."));
+				return false;
+			}
+
+			const size_t RayPoseOffset = PointStep;
+			FOpenPLXLidarPackedField RayPoseField;
+			RayPoseField.Name = TEXT("raypose");
+			RayPoseField.Type = EOpenPLXLidarPackedFieldType::Float32;
+			RayPoseField.Offset = static_cast<int64>(RayPoseOffset);
+			RayPoseField.Count = static_cast<int64>(RayPoseFields.size());
+			OutFields.Add(RayPoseField);
+
+			for (size_t FieldIndex = 0; FieldIndex < RayPoseFields.size(); ++FieldIndex)
+			{
+				const openplx::Field* Field = RayPoseFields[FieldIndex];
+				if (!ValidateRawField(
+						Field, openplx::FieldType::Real, sizeof(float), TEXT("ray poses")))
+				{
+					return false;
+				}
+
+				UpdateMaxFieldEnd(Field, MaxFieldEnd);
+
+				RawPointFieldCopy FieldCopy;
+				FieldCopy.SourceField = Field;
+				FieldCopy.DestinationOffset = RayPoseOffset + FieldIndex * sizeof(float);
+				FieldCopy.Size = sizeof(float);
+				FieldCopies.Add(FieldCopy);
+			}
+
+			PointStep += RayPoseFields.size() * sizeof(float);
+		}
+
+		if (!AddRequestedRawScalarField(
+				*Layout.Marshalling, ReadFlags.bIsHits, "is_hit", TEXT("is_hit"), TEXT("hit flags"),
+				openplx::FieldType::Int, EOpenPLXLidarPackedFieldType::Int32, sizeof(int32),
+				OutFields, FieldCopies, PointStep, MaxFieldEnd, /*bIsHit*/ true))
+		{
+			return false;
+		}
+
+		if (!AddRequestedRawScalarField(
+				*Layout.Marshalling, ReadFlags.bEntityIds, "entity_id", TEXT("entity_id"),
+				TEXT("entity IDs"), openplx::FieldType::Int, EOpenPLXLidarPackedFieldType::Int32,
+				sizeof(int32), OutFields, FieldCopies, PointStep, MaxFieldEnd))
+		{
+			return false;
+		}
+
+		const size_t LastWindowOffset =
+			Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
+		if (Layout.NumWindows > 0 && LastWindowOffset + MaxFieldEnd > Layout.BufferSize)
+			return false;
+
+		if (Layout.NumWindows > 0 && PointStep > 0 &&
+			Layout.NumWindows > std::numeric_limits<size_t>::max() / PointStep)
+		{
+			return false;
+		}
+
+		const size_t DataSize = Layout.NumWindows * PointStep;
+		if (!CanConvert(DataSize))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX Lidar Output View: Refusing to read raw point data because the "
+					 "output data is too large for a TArray."));
+			return false;
+		}
+
+		OutPointStep = static_cast<int64>(PointStep);
+		OutData.SetNumUninitialized(static_cast<int32>(DataSize));
+		if (PointStep == 0)
+			return true;
+
+		const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
+		uint8* DestinationBuffer = OutData.GetData();
+		for (size_t WindowIndex = 0; WindowIndex < Layout.NumWindows; ++WindowIndex)
+		{
+			const uint8_t* Window = WindowBuffer + WindowIndex * Layout.Stride;
+			uint8* DestinationPoint = DestinationBuffer + WindowIndex * PointStep;
+			for (const RawPointFieldCopy& FieldCopy : FieldCopies)
+			{
+				const uint8_t* Source = Window + FieldCopy.SourceField->offset;
+				std::memcpy(DestinationPoint + FieldCopy.DestinationOffset, Source, FieldCopy.Size);
+				if (FieldCopy.bIsHit && ReadValue<int32>(Source) == 0)
+					bOutAllHits = false;
+			}
+		}
+
+		return true;
+	}
 }
 
 FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
@@ -204,8 +608,7 @@ FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
 {
 }
 
-FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(
-	std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
+FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -227,7 +630,16 @@ int32 FOpenPLXLidarOutputView::GetNumPoints() const
 	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
 		return 0;
 
-	return CanConvert(Layout.NumWindows) ? static_cast<int32>(Layout.NumWindows) : 0;
+	if (!CanConvert(Layout.NumWindows))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Lidar Output View: Refusing to return the number of points because the "
+				 "number of points is too large for an int32."));
+		return 0;
+	}
+
+	return static_cast<int32>(Layout.NumWindows);
 }
 
 bool FOpenPLXLidarOutputView::HasPositions() const
@@ -244,7 +656,7 @@ bool FOpenPLXLidarOutputView::HasPositions() const
 	const openplx::Field* XField = nullptr;
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
-	return GetPositionFields(*Layout.Marshalling, Layout.Stride, XField, YField, ZField);
+	return GetPositionFields(*Layout.Marshalling, XField, YField, ZField);
 }
 
 bool FOpenPLXLidarOutputView::HasIntensities() const
@@ -256,7 +668,7 @@ bool FOpenPLXLidarOutputView::HasIntensities() const
 
 	FWindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetIntensityField(*Layout.Marshalling, Layout.Stride) != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "intensity") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasTimeStamps() const
@@ -268,7 +680,7 @@ bool FOpenPLXLidarOutputView::HasTimeStamps() const
 
 	FWindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetDoubleField(*Layout.Marshalling, Layout.Stride, "timestamp") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "timestamp") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasDistances() const
@@ -280,7 +692,7 @@ bool FOpenPLXLidarOutputView::HasDistances() const
 
 	FWindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetFloatField(*Layout.Marshalling, Layout.Stride, "distance") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "distance") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasRayPoses() const
@@ -295,7 +707,7 @@ bool FOpenPLXLidarOutputView::HasRayPoses() const
 		return false;
 
 	std::array<const openplx::Field*, 12> Fields;
-	return GetRayPoseFields(*Layout.Marshalling, Layout.Stride, Fields);
+	return GetRayPoseFields(*Layout.Marshalling, Fields);
 }
 
 bool FOpenPLXLidarOutputView::HasIsHits() const
@@ -307,7 +719,7 @@ bool FOpenPLXLidarOutputView::HasIsHits() const
 
 	FWindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetInt32Field(*Layout.Marshalling, Layout.Stride, "is_hit") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "is_hit") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasEntityIds() const
@@ -319,7 +731,7 @@ bool FOpenPLXLidarOutputView::HasEntityIds() const
 
 	FWindowLayout Layout;
 	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   GetInt32Field(*Layout.Marshalling, Layout.Stride, "entity_id") != nullptr;
+		   FindField(Layout.Marshalling->get_field_map(), "entity_id") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::ReadPositions(TArray<FVector>& OutPositions)
@@ -343,56 +755,12 @@ bool FOpenPLXLidarOutputView::ReadPositionsTransformed(
 
 bool FOpenPLXLidarOutputView::ReadIntensities(TArray<float>& OutIntensities)
 {
-	using namespace OpenPLXLidarOutputView_helpers;
-
-	OutIntensities.Reset();
 	if (!HasNative())
 		return false;
 
-	openplx::Marshalling* Marshalling = NativeRef->Marshalling.get();
-	if (Marshalling->get_buffer_size() == 0)
-		return true;
-
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*Marshalling, Layout, /*bRequireBuffer*/ true))
-		return false;
-
-	if (!CanConvert(Layout.NumWindows))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT(
-				"OpenPLX Lidar Output View: Refusing to read intensities because the number of "
-				"intensities is too large for a TArray."));
-		return false;
-	}
-
-	const openplx::Field* IntensityField =
-		GetIntensityField(*Layout.Marshalling, Layout.Stride);
-	if (IntensityField == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Tried to read intensities, but this Lidar output "
-				 "does not contain intensities."));
-		return false;
-	}
-
-	const size_t LastWindowOffset =
-		Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
-	const size_t FieldEnd = IntensityField->offset + IntensityField->size;
-	if (Layout.NumWindows > 0 && LastWindowOffset + FieldEnd > Layout.BufferSize)
-		return false;
-
-	const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
-	OutIntensities.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
-	for (int32 I = 0; I < OutIntensities.Num(); ++I)
-	{
-		const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
-		OutIntensities[I] = ReadValue<float>(Window + IntensityField->offset);
-	}
-
-	return true;
+	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<float, float>(
+		*NativeRef->Marshalling, "intensity", OutIntensities, [](float Value) { return Value; },
+		TEXT("intensities"));
 }
 
 bool FOpenPLXLidarOutputView::ReadTimeStamps(TArray<double>& OutTimeStamps)
@@ -401,8 +769,8 @@ bool FOpenPLXLidarOutputView::ReadTimeStamps(TArray<double>& OutTimeStamps)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, double>(
-		*NativeRef->Marshalling, "timestamp", openplx::FieldType::Real, OutTimeStamps,
-		[](double Value) { return Value; }, TEXT("timestamps"));
+		*NativeRef->Marshalling, "timestamp", OutTimeStamps, [](double Value) { return Value; },
+		TEXT("timestamps"));
 }
 
 bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
@@ -411,78 +779,18 @@ bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, float>(
-		*NativeRef->Marshalling, "distance", openplx::FieldType::Real, OutDistances,
-		[](float Value)
-		{
-			return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value));
-		},
+		*NativeRef->Marshalling, "distance", OutDistances,
+		[](float Value) { return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value)); },
 		TEXT("distances"));
 }
 
 bool FOpenPLXLidarOutputView::ReadRayPoses(TArray<FTransform>& OutRayPoses)
 {
-	using namespace OpenPLXLidarOutputView_helpers;
-
-	OutRayPoses.Reset();
 	if (!HasNative())
 		return false;
 
-	openplx::Marshalling* Marshalling = NativeRef->Marshalling.get();
-	if (Marshalling->get_buffer_size() == 0)
-		return true;
-
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*Marshalling, Layout, /*bRequireBuffer*/ true))
-		return false;
-
-	if (!CanConvert(Layout.NumWindows))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Refusing to read ray poses because the number of "
-				 "ray poses is too large for a TArray."));
-		return false;
-	}
-
-	std::array<const openplx::Field*, 12> Fields;
-	if (!GetRayPoseFields(*Layout.Marshalling, Layout.Stride, Fields))
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("OpenPLX Lidar Output View: Tried to read ray poses, but this Lidar output "
-				 "does not contain ray poses."));
-		return false;
-	}
-
-	size_t MaxFieldEnd = 0;
-	for (const openplx::Field* Field : Fields)
-	{
-		MaxFieldEnd = FMath::Max(MaxFieldEnd, Field->offset + Field->size);
-	}
-
-	const size_t LastWindowOffset =
-		Layout.NumWindows > 0 ? (Layout.NumWindows - 1) * Layout.Stride : 0;
-	if (Layout.NumWindows > 0 && LastWindowOffset + MaxFieldEnd > Layout.BufferSize)
-		return false;
-
-	const uint8_t* WindowBuffer = Layout.Marshalling->get_buffer();
-	OutRayPoses.SetNumUninitialized(static_cast<int32>(Layout.NumWindows));
-	for (int32 I = 0; I < OutRayPoses.Num(); ++I)
-	{
-		const uint8_t* Window = WindowBuffer + static_cast<size_t>(I) * Layout.Stride;
-		std::array<float, 12> E;
-		for (size_t FieldIndex = 0; FieldIndex < Fields.size(); ++FieldIndex)
-		{
-			E[FieldIndex] = ReadValue<float>(Window + Fields[FieldIndex]->offset);
-		}
-
-		const agx::AffineMatrix4x4 RayPoseAGX {
-			E[0], E[4], E[8], 0.0, E[1], E[5], E[9], 0.0,
-			E[2], E[6], E[10], 0.0, E[3], E[7], E[11], 1.0};
-		OutRayPoses[I] = Convert(RayPoseAGX);
-	}
-
-	return true;
+	return OpenPLXLidarOutputView_helpers::ReadRayPosesInternal(
+		*NativeRef->Marshalling, OutRayPoses);
 }
 
 bool FOpenPLXLidarOutputView::ReadIsHits(TArray<bool>& OutIsHits)
@@ -491,8 +799,8 @@ bool FOpenPLXLidarOutputView::ReadIsHits(TArray<bool>& OutIsHits)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<bool, int32>(
-		*NativeRef->Marshalling, "is_hit", openplx::FieldType::Int, OutIsHits,
-		[](int32 Value) { return Value != 0; }, TEXT("hit flags"));
+		*NativeRef->Marshalling, "is_hit", OutIsHits, [](int32 Value) { return Value != 0; },
+		TEXT("hit flags"));
 }
 
 bool FOpenPLXLidarOutputView::ReadEntityIds(TArray<int32>& OutEntityIds)
@@ -501,8 +809,19 @@ bool FOpenPLXLidarOutputView::ReadEntityIds(TArray<int32>& OutEntityIds)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<int32, int32>(
-		*NativeRef->Marshalling, "entity_id", openplx::FieldType::Int, OutEntityIds,
-		[](int32 Value) { return Value; }, TEXT("entity IDs"));
+		*NativeRef->Marshalling, "entity_id", OutEntityIds, [](int32 Value) { return Value; },
+		TEXT("entity IDs"));
+}
+
+bool FOpenPLXLidarOutputView::ReadRawPointData(
+	const FOpenPLXLidarPointReadFlags& ReadFlags, TArray<uint8>& OutData,
+	TArray<FOpenPLXLidarPackedField>& OutFields, int64& OutPointStep, bool& bOutAllHits)
+{
+	if (!HasNative())
+		return false;
+
+	return OpenPLXLidarOutputView_helpers::ReadRawPointDataInternal(
+		*NativeRef->Marshalling, ReadFlags, OutData, OutFields, OutPointStep, bOutAllHits);
 }
 
 bool FOpenPLXLidarOutputView::MakePersistant()

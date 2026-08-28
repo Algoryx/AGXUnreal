@@ -73,6 +73,24 @@ namespace AGX_ROS2Utilities_helpers
 		return Field;
 	};
 
+	EAGX_PointFieldType ToROSPointFieldType(EOpenPLXLidarPackedFieldType Type)
+	{
+		switch (Type)
+		{
+			case EOpenPLXLidarPackedFieldType::Float32:
+				return EAGX_PointFieldType::Float32;
+			case EOpenPLXLidarPackedFieldType::Float64:
+				return EAGX_PointFieldType::Float64;
+			case EOpenPLXLidarPackedFieldType::Int32:
+				return EAGX_PointFieldType::Int32;
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ConvertOpenPLXLidarOutput got unknown OpenPLX Lidar packed field type."));
+		return EAGX_PointFieldType::Uint8;
+	}
+
 	void AppendDoubleToUint8Array(double Val, TArray<uint8>& OutData)
 	{
 		uint64 Bits;
@@ -86,18 +104,6 @@ namespace AGX_ROS2Utilities_helpers
 	}
 
 	void AppendFloatToUint8Array(float Val, TArray<uint8>& OutData)
-	{
-		uint32 Bits;
-		static_assert(sizeof(Bits) == sizeof(Val));
-		std::memcpy(&Bits, &Val, sizeof(Bits));
-		for (int i = 0; i < sizeof(Val); i++)
-		{
-			OutData.Add(static_cast<uint8_t>(Bits & 0xFF));
-			Bits >>= 8;
-		}
-	}
-
-	void AppendInt32ToUint8Array(int32 Val, TArray<uint8>& OutData)
 	{
 		uint32 Bits;
 		static_assert(sizeof(Bits) == sizeof(Val));
@@ -126,24 +132,6 @@ namespace AGX_ROS2Utilities_helpers
 	constexpr double MToCm(double Val)
 	{
 		return Val * 100.0;
-	}
-
-	template <typename T>
-	bool OptionalFieldHasMatchingPointCount(
-		const TArray<T>& Values, int32 NumPoints, const TCHAR* FieldName)
-	{
-		if (Values.Num() == NumPoints)
-			return true;
-
-		if (Values.Num() > 0)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("ConvertOpenPLXLidarOutput read %d values for field '%s' but there are %d "
-					 "points. The field will be skipped."),
-				Values.Num(), FieldName, NumPoints);
-		}
-		return false;
 	}
 
 }
@@ -462,99 +450,35 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
 
 	const int32 NumPoints = View.GetNumPoints();
 
-	TArray<FVector> Positions;
-	const bool bWritePositions =
-		View.HasPositions() && View.ReadPositions(Positions) &&
-		OptionalFieldHasMatchingPointCount(Positions, NumPoints, TEXT("position"));
+	FOpenPLXLidarPointReadFlags ReadFlags;
+	ReadFlags.bPositions = View.HasPositions();
+	ReadFlags.bIntensities = View.HasIntensities();
+	ReadFlags.bTimeStamps = View.HasTimeStamps();
+	ReadFlags.bDistances = View.HasDistances();
+	ReadFlags.bIsHits = View.HasIsHits();
+	ReadFlags.bEntityIds = View.HasEntityIds();
 
 	Msg.Header.Stamp = ConvertTime(TimeStamp);
 	Msg.Header.FrameId = FrameId;
 	Msg.IsBigendian = false;
-	Msg.IsDense = true;
 
-	int64 Offset = 0;
-	auto AddField = [&Msg, &Offset](
-						const FString& Name, EAGX_PointFieldType Datatype, int64 Count,
-						int64 ElementSize)
+	TArray<FOpenPLXLidarPackedField> RawFields;
+	bool bAllHits = true;
+	if (!View.ReadRawPointData(ReadFlags, Msg.Data, RawFields, Msg.PointStep, bAllHits))
 	{
-		Msg.Fields.Add(MakePointField(Name, Offset, Datatype, Count));
-		Offset += Count * ElementSize;
-	};
-
-	if (bWritePositions)
-	{
-		AddField("x", EAGX_PointFieldType::Float32, 1, sizeof(float));
-		AddField("y", EAGX_PointFieldType::Float32, 1, sizeof(float));
-		AddField("z", EAGX_PointFieldType::Float32, 1, sizeof(float));
+		Msg.Fields.Reset();
+		Msg.PointStep = 0;
+		Msg.Data.Reset();
+		return Msg;
 	}
 
-	TArray<float> Intensities;
-	const bool bWriteIntensities =
-		View.HasIntensities() && View.ReadIntensities(Intensities) &&
-		OptionalFieldHasMatchingPointCount(Intensities, NumPoints, TEXT("intensity"));
-	if (bWriteIntensities)
-		AddField("intensity", EAGX_PointFieldType::Float32, 1, sizeof(float));
-
-	TArray<double> TimeStamps;
-	const bool bWriteTimeStamps =
-		View.HasTimeStamps() && View.ReadTimeStamps(TimeStamps) &&
-		OptionalFieldHasMatchingPointCount(TimeStamps, NumPoints, TEXT("timestamp"));
-	if (bWriteTimeStamps)
-		AddField("timestamp", EAGX_PointFieldType::Float64, 1, sizeof(double));
-
-	TArray<double> Distances;
-	const bool bWriteDistances =
-		View.HasDistances() && View.ReadDistances(Distances) &&
-		OptionalFieldHasMatchingPointCount(Distances, NumPoints, TEXT("distance"));
-	if (bWriteDistances)
-		AddField("distance", EAGX_PointFieldType::Float32, 1, sizeof(float));
-
-	TArray<bool> IsHits;
-	const bool bWriteIsHits =
-		View.HasIsHits() && View.ReadIsHits(IsHits) &&
-		OptionalFieldHasMatchingPointCount(IsHits, NumPoints, TEXT("is_hit"));
-	if (bWriteIsHits)
-		AddField("is_hit", EAGX_PointFieldType::Int32, 1, sizeof(int32));
-
-	TArray<int32> EntityIds;
-	const bool bWriteEntityIds =
-		View.HasEntityIds() && View.ReadEntityIds(EntityIds) &&
-		OptionalFieldHasMatchingPointCount(EntityIds, NumPoints, TEXT("entity_id"));
-	if (bWriteEntityIds)
-		AddField("entity_id", EAGX_PointFieldType::Int32, 1, sizeof(int32));
-
-	Msg.PointStep = Offset;
-	Msg.Data.Reserve(NumPoints * Msg.PointStep);
-	for (int32 I = 0; I < NumPoints; ++I)
+	for (const FOpenPLXLidarPackedField& Field : RawFields)
 	{
-		if (bWritePositions)
-		{
-			const FVector PositionROS = ConvertPositionToROS(Positions[I]);
-			AppendFloatToUint8Array(static_cast<float>(PositionROS.X), Msg.Data);
-			AppendFloatToUint8Array(static_cast<float>(PositionROS.Y), Msg.Data);
-			AppendFloatToUint8Array(static_cast<float>(PositionROS.Z), Msg.Data);
-		}
-
-		if (bWriteIntensities)
-			AppendFloatToUint8Array(Intensities[I], Msg.Data);
-
-		if (bWriteTimeStamps)
-			AppendDoubleToUint8Array(TimeStamps[I], Msg.Data);
-
-		if (bWriteDistances)
-			AppendFloatToUint8Array(static_cast<float>(CmToM(Distances[I])), Msg.Data);
-
-		if (bWriteIsHits)
-		{
-			AppendInt32ToUint8Array(IsHits[I] ? 1 : 0, Msg.Data);
-			if (!IsHits[I])
-				Msg.IsDense = false;
-		}
-
-		if (bWriteEntityIds)
-			AppendInt32ToUint8Array(EntityIds[I], Msg.Data);
+		Msg.Fields.Add(
+			MakePointField(Field.Name, Field.Offset, ToROSPointFieldType(Field.Type), Field.Count));
 	}
 
+	Msg.IsDense = bAllHits;
 	Msg.Height = 1;
 	Msg.Width = NumPoints;
 	Msg.RowStep = Msg.Data.Num();

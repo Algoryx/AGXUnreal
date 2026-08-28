@@ -452,8 +452,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	const FLidarBarrier& LidarBarrier = static_cast<const FLidarBarrier&>(Barrier);
 
-	bEnabled = LidarBarrier.GetEnabled();
-
 	EAGX_LidarModel ImportedModel = LidarBarrier.GetModel();
 	if (ImportedModel == EAGX_LidarModel::Invalid)
 	{
@@ -487,6 +485,7 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 	bEnableRemovePointsMisses = LidarBarrier.GetEnableRemoveRayMisses();
 	RaytraceDepth = static_cast<int32>(std::min(
 		LidarBarrier.GetRaytraceDepth(), static_cast<size_t>(std::numeric_limits<int32>::max())));
+	SetRelativeTransform(LidarBarrier.GetLocalTransform());
 
 	if (Context == nullptr || Context->Sensors == nullptr ||
 		Context->LidarModelParameters == nullptr)
@@ -494,8 +493,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
 		*this, LidarBarrier, *Context, ImportedModel);
-
-	SetRelativeTransform(LidarBarrier.GetLocalTransform());
 
 	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
 	Context->Sensors->Add(ImportGuid, this);
