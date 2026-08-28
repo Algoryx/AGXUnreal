@@ -132,7 +132,7 @@ void FCameraBarrier::AddOutput(FCameraOutputBarrier& Output)
 
 	const size_t Id = GenerateUniqueOutputId();
 	GetCameraNative(*this)->getOutputHandler()->add(Id, Output.GetNative()->Native);
-	FCameraBackendBarrier::GetInstance().RegisterOutput(*this, Output);
+	Output.RegisterWithBackend(*this);
 }
 
 void FCameraBarrier::MarkOutputAsRead()

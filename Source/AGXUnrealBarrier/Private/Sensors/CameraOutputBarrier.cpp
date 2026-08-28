@@ -4,6 +4,8 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -43,6 +45,21 @@ const FCameraOutputRef* FCameraOutputBarrier::GetNative() const
 void FCameraOutputBarrier::ReleaseNative()
 {
 	NativeRef->Native = nullptr;
+}
+
+void FCameraOutputBarrier::RegisterWithBackend(FCameraBarrier& Camera)
+{
+	check(HasNative());
+	check(Camera.HasNative());
+
+	if (FCameraBackendBarrier::GetInstance().HasNative())
+		FCameraBackendBarrier::GetInstance().RegisterOutput(Camera, *this);
+}
+
+void FCameraOutputBarrier::UnregisterFromBackend(FCameraBarrier& Camera)
+{
+	if (FCameraBackendBarrier::GetInstance().HasNative())
+		FCameraBackendBarrier::GetInstance().UnregisterOutput(Camera, *this);
 }
 
 void FCameraOutputBarrier::SetResolution(FIntPoint InResolution)

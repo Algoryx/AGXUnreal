@@ -14,6 +14,7 @@
 #include "OpenPLX/OpenPLX_SignalHandlerInstanceData.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
@@ -664,6 +665,73 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 	return ReceiveBoolean(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendCameraCapture(
+	const FOpenPLX_Input& Input, bool Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (Input.Type != EOpenPLX_InputType::CameraCaptureInput)
+	{
+		LogTypeMismatchWarning("SendCameraCapture", Input.Name.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendCameraCaptureByName(FName NameOrAlias, bool Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendCameraCaptureByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendCameraCapture(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveCameraColorOutput(
+	const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutView)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsCameraColorOutputType(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveCameraColorOutput", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.ReceiveCameraColorOutput(Output, OutView);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveCameraColorOutputByName(
+	FName NameOrAlias, FOpenPLXCameraColorOutputView& OutView)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"ReceiveCameraColorOutputByName: Unable to find Output matching Name or Alias "
+				"'%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveCameraColorOutput(Output, OutView);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(
 	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView)
 {
@@ -782,6 +850,7 @@ void UOpenPLX_SignalHandlerComponent::BeginPlay()
 	Barriers.Constraints =
 		CollectBarriers<FConstraintBarrier, UAGX_ConstraintComponent>(GetOwner());
 	Barriers.Bodies = CollectBarriers<FRigidBodyBarrier, UAGX_RigidBodyComponent>(GetOwner());
+	Barriers.Cameras = CollectBarriers<FSensorBarrier, UAGX_CameraSensorComponent>(GetOwner());
 	Barriers.ObserverFrames =
 		CollectBarriers<FObserverFrameBarrier, UAGX_ObserverFrameComponent>(GetOwner());
 	Barriers.IMUs = CollectBarriers<FSensorBarrier, UAGX_IMUSensorComponent>(GetOwner());

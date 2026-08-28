@@ -8,6 +8,7 @@
 // Standard library includes.
 #include <memory>
 
+struct FCameraBarrier;
 struct FCameraOutputRef;
 
 struct AGXUNREALBARRIER_API FCameraOutputBarrier
@@ -22,6 +23,9 @@ struct AGXUNREALBARRIER_API FCameraOutputBarrier
 	FCameraOutputRef* GetNative();
 	const FCameraOutputRef* GetNative() const;
 	void ReleaseNative();
+
+	void RegisterWithBackend(FCameraBarrier& Camera);
+	void UnregisterFromBackend(FCameraBarrier& Camera);
 
 	void SetResolution(FIntPoint InResolution);
 	FIntPoint GetResolution() const;

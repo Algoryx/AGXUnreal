@@ -9,6 +9,7 @@
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
 #include "OpenPLX/OpenPLXIMUOutputView.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
@@ -1557,6 +1558,39 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 		return {nullptr};
 
 	return {It->second.get()};
+}
+
+bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
+	const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutOutput)
+{
+	check(IsInitialized());
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive Camera Color output '%s' ('%s') through "
+				"the Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXCameraColorOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read Camera Color output '%s' ('%s') through "
+				"the Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 bool FOpenPLXSignalHandler::ReceiveLidarOutput(

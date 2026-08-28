@@ -68,12 +68,12 @@ struct FHeapControlInterfacePtr
 	}
 };
 
-struct FOpenPLXLidarOutputViewRef
+struct FOpenPLXCameraColorOutputViewRef
 {
 	std::shared_ptr<openplx::Marshalling> Marshalling;
 
-	FOpenPLXLidarOutputViewRef() = default;
-	FOpenPLXLidarOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
+	FOpenPLXCameraColorOutputViewRef() = default;
+	FOpenPLXCameraColorOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
 		: Marshalling(std::move(InMarshalling))
 	{
 	}
@@ -85,6 +85,17 @@ struct FOpenPLXIMUOutputViewRef
 
 	FOpenPLXIMUOutputViewRef() = default;
 	FOpenPLXIMUOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
+		: Marshalling(std::move(InMarshalling))
+	{
+	}
+};
+
+struct FOpenPLXLidarOutputViewRef
+{
+	std::shared_ptr<openplx::Marshalling> Marshalling;
+
+	FOpenPLXLidarOutputViewRef() = default;
+	FOpenPLXLidarOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
 		: Marshalling(std::move(InMarshalling))
 	{
 	}

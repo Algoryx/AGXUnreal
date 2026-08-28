@@ -11,6 +11,8 @@
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
@@ -22,6 +24,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSDK/Simulation.h>
+#include <agxSensor/Camera.h>
 #include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
 #include <agxUtil/agxUtil.h>
@@ -716,11 +719,60 @@ void FPLXUtilitiesInternal::MapSensorOutput(
 	const FOpenPLXMappingBarriersCollection& Barriers,
 	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
 {
-	if (Barriers.Lidars.Num() == 0 && Barriers.IMUs.Num() == 0)
+	if (Barriers.Cameras.Num() == 0 && Barriers.Lidars.Num() == 0 && Barriers.IMUs.Num() == 0)
 		return;
 
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 	auto SensorMapper = std::make_shared<agxopenplx::OpenPlxSensorsMapper>(ErrorReporter, Metadata);
+
+	// Cameras.
+	auto CamerasPLX = GetNestedObjects<openplx::Sensors::CameraLogic>(*System);
+	for (const auto& CameraPLX : CamerasPLX)
+	{
+		const FString Name = Convert(CameraPLX->getName());
+		auto SensorBarrier = Barriers.Cameras.FindByPredicate(
+			[&Name](FSensorBarrier* B) { return B != nullptr && B->GetName().Equals(Name); });
+		if (SensorBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Camera '%s', could not find a matching AGX "
+					 "Camera with that Import Name."),
+				*Name);
+			continue;
+		}
+
+		AGX_CHECK(FCameraBarrier::IsCamera(**SensorBarrier));
+		FCameraBarrier* CameraBarrier = static_cast<FCameraBarrier*>(*SensorBarrier);
+		agxSensor::CameraRef CameraAGX =
+			dynamic_cast<agxSensor::Camera*>(CameraBarrier->GetNative()->Native.get());
+
+		if (CameraAGX == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Unable to map outputs for Camera '%s', could not get a valid AGX Camera "
+					 "object."),
+				*Name);
+			continue;
+		}
+
+		auto CameraMetaData = agxopenplx::OpenPlxSensorsMapper::createCameraMetadata();
+		Metadata->registerMetadata(CameraAGX, CameraMetaData);
+		SensorMapper->mapCameraLogicOutputs(CameraPLX, CameraAGX);
+
+		for (const auto& CameraColorOutputPair : CameraMetaData->color_output_mapping)
+		{
+			const agxSensor::CameraColorOutputRef& CameraColorOutputAGX =
+				CameraColorOutputPair.second;
+			if (CameraColorOutputAGX == nullptr)
+				continue;
+
+			FCameraOutputColorBarrier OutputBarrier(
+				std::make_shared<FCameraOutputRef>(CameraColorOutputAGX.get()));
+			OutputBarrier.RegisterWithBackend(*CameraBarrier);
+		}
+	}
 
 	// Lidars.
 	auto LidarsPLX = GetNestedObjects<openplx::Sensors::PulsedLidarLogic>(*System);

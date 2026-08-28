@@ -41,6 +41,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	/// Returns the Rigid Body this Camera is attached to, if it exists.
 	FRigidBodyBarrier GetRigidBody() const;
 
+	/// Also registers the output with the CameraBackend.
 	void AddOutput(FCameraOutputBarrier& Output);
 
 	void MarkOutputAsRead();
