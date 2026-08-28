@@ -26,6 +26,8 @@ namespace AGX_CameraOutputColor_helpers
 
 TUniquePtr<FCameraOutputBarrier> FAGX_CameraOutputColor::CreateNativeBarrier() const
 {
+	using namespace AGX_CameraOutputColor_helpers;
+
 	TUniquePtr<FCameraOutputBarrier> Native = MakeUnique<FCameraOutputColorBarrier>();
 	Native->AllocateNative();
 	ApplyBasePropertiesToNative(*Native);
@@ -33,7 +35,8 @@ TUniquePtr<FCameraOutputBarrier> FAGX_CameraOutputColor::CreateNativeBarrier() c
 	FCameraOutputColorBarrier* ColorNative = static_cast<FCameraOutputColorBarrier*>(Native.Get());
 	ColorNative->SetChannelType(ChannelType);
 	ColorNative->SetGamma(FMath::Max(0.0, Gamma));
-	ColorNative->SetChannelCount(AGX_CameraOutputColor_helpers::ClampChannelCount(ChannelCount));
+	ColorNative->SetColorMappingMatrix(ColorMappingMatrix);
+	ColorNative->SetChannelCount(ClampChannelCount(ChannelCount));
 	return Native;
 }
 
@@ -75,6 +78,25 @@ double FAGX_CameraOutputColor::GetGamma() const
 	return Gamma;
 }
 
+void FAGX_CameraOutputColor::SetColorMappingMatrix(FAGX_ColorMappingMatrix InColorMappingMatrix)
+{
+	using namespace AGX_CameraOutputColor_helpers;
+
+	ColorMappingMatrix = InColorMappingMatrix;
+	if (HasNative())
+		GetNativeAsCameraOutputColor(*this)->SetColorMappingMatrix(ColorMappingMatrix);
+}
+
+FAGX_ColorMappingMatrix FAGX_CameraOutputColor::GetColorMappingMatrix() const
+{
+	using namespace AGX_CameraOutputColor_helpers;
+
+	if (HasNative())
+		return GetNativeAsCameraOutputColor(*this)->GetColorMappingMatrix();
+
+	return ColorMappingMatrix;
+}
+
 void FAGX_CameraOutputColor::SetChannelCount(uint8 InChannelCount)
 {
 	using namespace AGX_CameraOutputColor_helpers;
@@ -99,6 +121,7 @@ FAGX_CameraOutputColor& FAGX_CameraOutputColor::operator=(const FAGX_CameraOutpu
 	FAGX_CameraOutputBase::operator=(Other);
 	ChannelType = Other.ChannelType;
 	Gamma = Other.Gamma;
+	ColorMappingMatrix = Other.ColorMappingMatrix;
 	ChannelCount = Other.ChannelCount;
 	return *this;
 }

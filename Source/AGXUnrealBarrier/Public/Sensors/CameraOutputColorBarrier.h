@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/AGX_CameraEnums.h"
+#include "Sensors/AGX_ColorMappingMatrix.h"
 #include "Sensors/CameraOutputBarrier.h"
 
 struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarrier
@@ -21,6 +22,9 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 
 	void SetGamma(double InGamma);
 	double GetGamma() const;
+
+	void SetColorMappingMatrix(const FAGX_ColorMappingMatrix& InColorMappingMatrix);
+	FAGX_ColorMappingMatrix GetColorMappingMatrix() const;
 
 	void SetChannelCount(uint8 InChannelCount);
 	uint8 GetChannelCount() const;

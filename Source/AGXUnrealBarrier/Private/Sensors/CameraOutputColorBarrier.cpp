@@ -10,11 +10,38 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agx/Matrix4x4.h>
 #include <agxSensor/CameraColorOutput.h>
 #include "EndAGXIncludes.h"
 
 namespace CameraOutputColorBarrier_helpers
 {
+	agx::Matrix4x4 ConvertToAGX(const FAGX_ColorMappingMatrix& Matrix)
+	{
+		return agx::Matrix4x4(
+			Matrix.Row0.R, Matrix.Row0.G, Matrix.Row0.B, Matrix.Row0.A, Matrix.Row1.R,
+			Matrix.Row1.G, Matrix.Row1.B, Matrix.Row1.A, Matrix.Row2.R, Matrix.Row2.G,
+			Matrix.Row2.B, Matrix.Row2.A, Matrix.Row3.R, Matrix.Row3.G, Matrix.Row3.B,
+			Matrix.Row3.A);
+	}
+
+	FLinearColor GetRow(const agx::Matrix4x4& Matrix, int32 RowIndex)
+	{
+		return FLinearColor(
+			static_cast<float>(Matrix(RowIndex, 0)), static_cast<float>(Matrix(RowIndex, 1)),
+			static_cast<float>(Matrix(RowIndex, 2)), static_cast<float>(Matrix(RowIndex, 3)));
+	}
+
+	FAGX_ColorMappingMatrix ConvertToUnreal(const agx::Matrix4x4& Matrix)
+	{
+		FAGX_ColorMappingMatrix Result;
+		Result.Row0 = GetRow(Matrix, 0);
+		Result.Row1 = GetRow(Matrix, 1);
+		Result.Row2 = GetRow(Matrix, 2);
+		Result.Row3 = GetRow(Matrix, 3);
+		return Result;
+	}
+
 	agxSensor::CameraColorOutput* GetCameraColorOutputNative(FCameraOutputColorBarrier& Output)
 	{
 		AGX_CHECK(Output.HasNative());
@@ -93,6 +120,21 @@ double FCameraOutputColorBarrier::GetGamma() const
 {
 	check(HasNative());
 	return CameraOutputColorBarrier_helpers::GetCameraColorOutputNative(*this)->getGamma();
+}
+
+void FCameraOutputColorBarrier::SetColorMappingMatrix(
+	const FAGX_ColorMappingMatrix& InColorMappingMatrix)
+{
+	using namespace CameraOutputColorBarrier_helpers;
+	check(HasNative());
+	GetCameraColorOutputNative(*this)->setColorMappingMatrix(ConvertToAGX(InColorMappingMatrix));
+}
+
+FAGX_ColorMappingMatrix FCameraOutputColorBarrier::GetColorMappingMatrix() const
+{
+	using namespace CameraOutputColorBarrier_helpers;
+	check(HasNative());
+	return ConvertToUnreal(GetCameraColorOutputNative(*this)->getColorMappingMatrix());
 }
 
 void FCameraOutputColorBarrier::SetChannelCount(uint8 InChannelCount)

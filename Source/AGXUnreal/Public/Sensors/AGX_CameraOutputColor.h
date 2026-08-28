@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "Sensors/AGX_CameraEnums.h"
 #include "Sensors/AGX_CameraOutputBase.h"
+#include "Sensors/AGX_ColorMappingMatrix.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
@@ -39,6 +40,15 @@ public:
 
 	void SetGamma(double InGamma);
 	double GetGamma() const;
+
+	/**
+	 * Matrix for remapping color channels from linear RGB to the output linear space.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
+	FAGX_ColorMappingMatrix ColorMappingMatrix;
+
+	void SetColorMappingMatrix(FAGX_ColorMappingMatrix InColorMappingMatrix);
+	FAGX_ColorMappingMatrix GetColorMappingMatrix() const;
 
 	/**
 	 * Number of output channels per pixel, e.g. RGB is 3, RGBA is 4.
@@ -136,6 +146,21 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 	static double GetGamma(UPARAM(ref) const FAGX_CameraOutputColor& Output)
 	{
 		return Output.GetGamma();
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	static void SetColorMappingMatrix(
+		UPARAM(ref) FAGX_CameraOutputColor& Output,
+		FAGX_ColorMappingMatrix ColorMappingMatrix)
+	{
+		Output.SetColorMappingMatrix(ColorMappingMatrix);
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	static FAGX_ColorMappingMatrix GetColorMappingMatrix(
+		UPARAM(ref) const FAGX_CameraOutputColor& Output)
+	{
+		return Output.GetColorMappingMatrix();
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
