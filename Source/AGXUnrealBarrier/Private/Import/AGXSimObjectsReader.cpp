@@ -46,6 +46,7 @@
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
+#include <agxSensor/Camera.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
@@ -633,9 +634,19 @@ namespace
 		if (Env == nullptr)
 			return;
 
-		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
+		agxSensor::CameraPtrVector Cameras = agxSensor::Camera::findAll(Env);
 		agxSensor::IMUPtrVector IMUs = agxSensor::IMU::findAll(Env);
-		OutSimObjects.GetSensors().Reserve(Lidars.size() + IMUs.size());
+		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
+		OutSimObjects.GetSensors().Reserve(Cameras.size() + IMUs.size() + Lidars.size());
+
+		for (agxSensor::Camera* CameraAGX : Cameras)
+		{
+			auto StepStride = CameraAGX->findParent<agxSensor::SensorGroupStepStride>();
+			OutSimObjects.GetSensors().Emplace(
+				std::make_shared<FSensorRef>(CameraAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
+		}
+
 		for (agxSensor::Lidar* LidarAGX : Lidars)
 		{
 			auto StepStride = LidarAGX->findParent<agxSensor::SensorGroupStepStride>();

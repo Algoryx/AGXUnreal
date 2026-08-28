@@ -70,6 +70,7 @@
 #include "openplx/Physics3D/Signals/RPYOutput.h"
 #include "openplx/Physics3D/Signals/Torque3DOutput.h"
 #include "openplx/Sensors/IMULogic.h"
+#include "openplx/Sensors/Signals/CameraCaptureInput.h"
 #include "openplx/Sensors/Signals/LidarOutput.h"
 
 #include "openplx/DriveTrain/DriveTrain_all.h"
@@ -290,6 +291,7 @@ EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
 	using namespace openplx::Physics::Signals;
 	using namespace openplx::Physics3D::Signals;
 	using namespace openplx::DriveTrain::Signals;
+	using namespace openplx::Sensors::Signals;
 
 	if (dynamic_cast<const AutomaticClutchEngagementDurationInput*>(&Input))
 	{
@@ -354,6 +356,10 @@ EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
 	if (dynamic_cast<const TorqueConverterLockUpInput*>(&Input))
 	{
 		return EOpenPLX_InputType::TorqueConverterLockUpInput;
+	}
+	if (dynamic_cast<const CameraCaptureInput*>(&Input))
+	{
+		return EOpenPLX_InputType::CameraCaptureInput;
 	}
 	if (dynamic_cast<const EngageInput*>(&Input))
 	{
@@ -526,6 +532,10 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const LidarOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::LidarOutput;
+	}
+	if (dynamic_cast<const CameraColorOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::CameraColorOutput;
 	}
 
 	return EOpenPLX_OutputType::Unsupported;

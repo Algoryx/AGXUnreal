@@ -12,6 +12,7 @@ struct FCameraLensSingleElementParameters;
 struct FCameraOutputBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
+struct FRigidBodyBarrier;
 class FCameraBackendPropagatorBase;
 
 USTRUCT(BlueprintType)
@@ -37,6 +38,9 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
 
+	/// Returns the Rigid Body this Camera is attached to, if it exists.
+	FRigidBodyBarrier GetRigidBody() const;
+
 	void AddOutput(FCameraOutputBarrier& Output);
 
 	void MarkOutputAsRead();
@@ -48,6 +52,8 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
 	void OnBackendRequestCapture(uint64 NativeOutputAddress);
+
+	static bool IsCamera(const FSensorBarrier& Sensor);
 
 private:
 	FCameraBackendPropagatorBase* BackendPropagator = nullptr;

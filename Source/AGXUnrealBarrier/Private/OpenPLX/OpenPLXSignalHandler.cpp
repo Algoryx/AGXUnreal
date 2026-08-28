@@ -456,6 +456,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_InputType::EnableInteractionInput:
 			case EOpenPLX_InputType::EngageInput:
 			case EOpenPLX_InputType::TorqueConverterLockUpInput:
+			case EOpenPLX_InputType::CameraCaptureInput:
 				return Value;
 		}
 

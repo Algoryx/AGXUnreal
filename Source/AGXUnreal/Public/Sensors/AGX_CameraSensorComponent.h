@@ -15,6 +15,7 @@ struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraOutputBase;
+struct FAGX_ImportContext;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UAGX_CameraLensBase;
@@ -100,6 +101,8 @@ public:
 	void UpdateNativeTransform();
 
 	bool AddOutput(FAGX_CameraOutputBase& InOutput);
+
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	/**
 	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this

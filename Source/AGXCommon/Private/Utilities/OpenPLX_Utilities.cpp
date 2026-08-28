@@ -177,6 +177,7 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_InputType Type)
 		case EOpenPLX_InputType::EnableInteractionInput:
 		case EOpenPLX_InputType::EngageInput:
 		case EOpenPLX_InputType::TorqueConverterLockUpInput:
+		case EOpenPLX_InputType::CameraCaptureInput:
 			return true;
 		default:
 			return false;
@@ -214,6 +215,17 @@ bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
 	switch (Type)
 	{
 		case EOpenPLX_OutputType::LidarOutput:
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool FOpenPLX_Utilities::IsCameraColorOutputType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::CameraColorOutput:
 			return true;
 		default:
 			return false;

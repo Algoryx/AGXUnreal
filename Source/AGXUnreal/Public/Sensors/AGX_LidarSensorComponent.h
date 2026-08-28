@@ -261,7 +261,7 @@ public:
 	bool IsCustomParametersSupported() const;
 
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
-	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	FSensorBarrier* CreateNativeImpl() override;
 

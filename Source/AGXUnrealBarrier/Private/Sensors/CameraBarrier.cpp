@@ -4,7 +4,9 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "RigidBodyBarrier.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
@@ -105,6 +107,23 @@ FTransform FCameraBarrier::GetTransform() const
 	return Convert(CameraBarrier_helpers::GetCameraNative(*this)->getFrame()->getMatrix());
 }
 
+FRigidBodyBarrier FCameraBarrier::GetRigidBody() const
+{
+	using namespace CameraBarrier_helpers;
+	check(HasNative());
+
+	agx::RigidBody* Body = nullptr;
+	for (agx::Frame* Frame = GetCameraNative(*this)->getFrame(); Frame != nullptr;
+		 Frame = Frame->getParent())
+	{
+		Body = Frame->getRigidBody();
+		if (Body != nullptr)
+			break;
+	}
+
+	return AGXBarrierFactories::CreateRigidBodyBarrier(Body);
+}
+
 void FCameraBarrier::AddOutput(FCameraOutputBarrier& Output)
 {
 	check(HasNative());
@@ -123,6 +142,11 @@ void FCameraBarrier::MarkOutputAsRead()
 
 	GetCameraNative(*this)->getOutputHandler()->visitChildrenOfType<agxSensor::ICameraOutput>(
 		[](agxSensor::ICameraOutput& Output) { Output.hasUnreadData(/*markAsRead*/ true); });
+}
+
+bool FCameraBarrier::IsCamera(const FSensorBarrier& Sensor)
+{
+	return Sensor.HasNative() && Sensor.GetNative()->Native->is<agxSensor::Camera>();
 }
 
 void FCameraBarrier::SetBackendPropagator(FCameraBackendPropagatorBase* InPropagator)

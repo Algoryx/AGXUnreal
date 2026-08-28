@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
 #include "Sensors/AGX_CameraBackend.h"
 #include "Sensors/AGX_CameraLensBase.h"
 #include "Sensors/AGX_CameraOutputBase.h"
@@ -517,6 +518,15 @@ FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
 		UpdateNativeProperties();
 
 	return CameraBarrier;
+}
+
+void UAGX_CameraSensorComponent::CopyFrom(
+	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	Super::CopyFrom(Barrier, Context);
+
+	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
+	Context->Sensors->Add(ImportGuid, this);
 }
 
 void UAGX_CameraSensorComponent::BeginPlay()
