@@ -589,7 +589,18 @@ void UAGX_TrackProperties::Serialize(FArchive& Archive)
 
 		FTrackPropertiesBarrier Barrier = FTrackPropertiesBarrier::CreateFromComplianceAndDamping(
 			Compliance, Damping, NodeLength, StepForwardTime);
-		CopyFrom(Barrier);
+		BendingStiffnessLateral = Barrier.GetBendingStiffnessLateral();
+		BendingAttenuationLateral = Barrier.GetBendingAttenuationLateral();
+		BendingStiffnessVertical = Barrier.GetBendingStiffnessVertical();
+		BendingAttenuationVertical = Barrier.GetBendingAttenuationVertical();
+		ShearStiffnessLateral = Barrier.GetShearStiffnessLateral();
+		ShearAttenuationLateral = Barrier.GetShearAttenuationLateral();
+		ShearStiffnessVertical = Barrier.GetShearStiffnessVertical();
+		ShearAttenuationVertical = Barrier.GetShearAttenuationVertical();
+		TensileStiffness = Barrier.GetTensileStiffness();
+		TensileAttenuation = Barrier.GetTensileAttenuation();
+		TorsionalStiffness = Barrier.GetTorsionalStiffness();
+		TorsionalAttenuation = Barrier.GetTorsionalAttenuation();
 
 #if WITH_EDITOR
 		FAGX_ObjectUtilities::MarkAssetDirty(*this);
