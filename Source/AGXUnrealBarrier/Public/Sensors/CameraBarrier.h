@@ -10,6 +10,7 @@
 
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
+struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
 struct FRigidBodyBarrier;
@@ -53,6 +54,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	/** Internal functions, only called by the CameraBackendBarrier. */
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
+	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 
 	static bool IsCamera(const FSensorBarrier& Sensor);

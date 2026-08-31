@@ -10,12 +10,16 @@
 
 class UAGX_CameraSensorComponent;
 struct FCameraLensSingleElementParameters;
+struct FCameraOutputColorBarrier;
 
 class FAGX_CameraBackendPropagator : public FCameraBackendPropagatorBase
 {
 public:
 	virtual void OnBackendSetCameraLensSingleElement(
 		const FCameraLensSingleElementParameters& Parameters) override;
+
+	virtual void OnBackendSetCameraColorOutput(
+		const FCameraOutputColorBarrier& OutputColorBarrier) override;
 
 	virtual void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier) override;
 

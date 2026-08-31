@@ -21,6 +21,21 @@ void FAGX_CameraBackendPropagator::OnBackendSetCameraLensSingleElement(
 	CameraSensor->OnBackendSetCameraLensSingleElement(Parameters);
 }
 
+void FAGX_CameraBackendPropagator::OnBackendSetCameraColorOutput(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	if (!CameraSensor.IsValid())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("OnBackendSetCameraColorOutput was called on a Camera Backend Propagator "
+				 "with nullptr Camera Sensor."));
+		return;
+	}
+
+	CameraSensor->OnBackendSetCameraColorOutput(OutputColorBarrier);
+}
+
 void FAGX_CameraBackendPropagator::OnBackendRequestCapture(
 	const FCameraOutputBarrier& OutputBarrier)
 {

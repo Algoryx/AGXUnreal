@@ -74,7 +74,6 @@ namespace AGX_CameraSensorComponent_helpers
 void UAGX_CameraSensorComponent::AddMaterialPass(UMaterialInterface* Material)
 {
 	MaterialPasses.Add(Material);
-	SetupRenderPasses();
 }
 
 bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface* Material)
@@ -83,7 +82,6 @@ bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface
 		return false;
 
 	MaterialPasses[Index] = Material;
-	SetupRenderPasses();
 	return true;
 }
 
@@ -95,7 +93,6 @@ bool UAGX_CameraSensorComponent::RemoveMaterialPass(UMaterialInterface* Material
 	if (NumRemoved == 0)
 		return false;
 
-	SetupRenderPasses();
 	return true;
 }
 
@@ -105,14 +102,12 @@ bool UAGX_CameraSensorComponent::RemoveMaterialPassAt(int32 Index)
 		return false;
 
 	MaterialPasses.RemoveAt(Index);
-	SetupRenderPasses();
 	return true;
 }
 
 void UAGX_CameraSensorComponent::ClearMaterialPasses()
 {
 	MaterialPasses.Empty();
-	SetupRenderPasses();
 }
 
 void UAGX_CameraSensorComponent::UpdateNativeTransform()
@@ -144,7 +139,19 @@ bool UAGX_CameraSensorComponent::AddOutput(FAGX_CameraOutputBase& InOutput)
 		return false;
 
 	Native->AddOutput(*OutputNative);
-	SetupRenderPasses();
+
+	// If SetCameraColorOutput would have been triggered in the CameraBackend on AddOutput,
+	// we this would be handled for us in OnBackendSetCameraColorOutput. But that gets called
+	// later, and the user may need the Output RenderTarget on BeginPlay, therfore we call this
+	// here immediately to ensure we are all set up.
+	if (FCameraOutputColorBarrier::IsColorOutput(*OutputNative))
+	{
+		FCameraOutputColorBarrier& ColorOutputNative =
+			static_cast<FCameraOutputColorBarrier&>(*OutputNative);
+		auto RenderContext = GetOrCreateOutputRenderContext(ColorOutputNative);
+		UpdateOutputRenderContextNoParams(*RenderContext, ColorOutputNative);
+	}
+
 	return true;
 }
 
@@ -153,10 +160,6 @@ void UAGX_CameraSensorComponent::SetCaptureSourceOverride(
 {
 	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
 	CaptureSourceOverride.SetComponent(InCaptureSourceOverride);
-	SceneRenderTarget = nullptr;
-	RenderTargets.Empty();
-	SetupSceneCapture();
-	SetupRenderPasses();
 }
 
 bool UAGX_CameraSensorComponent::HasCaptureSourceOverride() const
@@ -188,33 +191,38 @@ bool UAGX_CameraSensorComponent::IsCameraSensorValid() const
 }
 
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
+	FCameraOutputRenderContext& OutputRenderContext,
 	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
 	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
 	if (CaptureSource == nullptr)
 		return nullptr;
 
-	EnsureRenderTargets(GetActiveResolution());
-	if (SceneRenderTarget == nullptr)
+	AGX_CHECK(OutputRenderContext.SceneRenderTarget != nullptr);
+	if (OutputRenderContext.SceneRenderTarget == nullptr)
 		return nullptr;
 
 	if (!CaptureSource->bCaptureEveryFrame)
 		CaptureSource->CaptureScene();
 
-	UTexture* InputTexture = SceneRenderTarget;
-	UTextureRenderTarget2D* FinalRenderTarget = SceneRenderTarget;
-	for (int32 Index = 0; Index < MaterialInstances.Num(); ++Index)
+	UTexture* InputTexture = OutputRenderContext.SceneRenderTarget.Get();
+	UTextureRenderTarget2D* FinalRenderTarget = OutputRenderContext.SceneRenderTarget.Get();
+	AGX_CHECK(OutputRenderContext.MaterialInstances.Num() == OutputRenderContext.RenderTargets.Num());
+	for (int32 Index = 0; Index < OutputRenderContext.MaterialInstances.Num(); ++Index)
 	{
-		UMaterialInstanceDynamic* MaterialInstance = MaterialInstances[Index];
+		UMaterialInstanceDynamic* MaterialInstance =
+			OutputRenderContext.MaterialInstances[Index];
 		if (MaterialInstance == nullptr)
 			continue;
 
-		if (!RenderTargets.IsValidIndex(Index) || RenderTargets[Index] == nullptr)
+		AGX_CHECK(OutputRenderContext.RenderTargets.IsValidIndex(Index));
+		if (!OutputRenderContext.RenderTargets.IsValidIndex(Index) ||
+			OutputRenderContext.RenderTargets[Index] == nullptr)
 			continue;
 
-		UTextureRenderTarget2D* OutputRenderTarget = RenderTargets[Index].Get();
+		UTextureRenderTarget2D* OutputRenderTarget =
+			OutputRenderContext.RenderTargets[Index].Get();
 		MaterialInstance->SetTextureParameterValue(TEXT("InputTexture"), InputTexture);
-		MaterialInstance->SetScalarParameterValue(TEXT("Gamma"), OutputColorBarrier.GetGamma());
 
 		UCanvas* Canvas = nullptr;
 		FVector2D CanvasSize(0.0f, 0.0f);
@@ -241,15 +249,112 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
 	return FinalRenderTarget;
 }
 
-UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget() const
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget(
+	const FAGX_CameraOutputColor& Output) const
 {
-	for (int32 Index = RenderTargets.Num() - 1; Index >= 0; --Index)
+	const FCameraOutputBarrier* Native = Output.GetNative();
+	if (Native == nullptr)
+		return nullptr;
+
+	const FCameraOutputRenderContext* Context =
+		OutputRenderContexts.Find(Native->GetNativeAddress());
+	if (Context == nullptr)
+		return nullptr;
+
+	for (int32 Index = Context->RenderTargets.Num() - 1; Index >= 0; --Index)
 	{
-		if (RenderTargets[Index] != nullptr)
-			return RenderTargets[Index].Get();
+		if (Context->RenderTargets[Index] != nullptr)
+			return Context->RenderTargets[Index].Get();
 	}
 
-	return SceneRenderTarget.Get();
+	return Context->SceneRenderTarget.Get();
+}
+
+UAGX_CameraSensorComponent::FCameraOutputRenderContext*
+UAGX_CameraSensorComponent::GetOrCreateOutputRenderContext(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	if (!OutputColorBarrier.HasNative())
+		return nullptr;
+
+	return &OutputRenderContexts.FindOrAdd(OutputColorBarrier.GetNativeAddress());
+}
+
+void UAGX_CameraSensorComponent::UpdateMaterialParameters(
+	const FCameraOutputColorBarrier& OutputColorBarrier,
+	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
+{
+	for (auto& Material : OutMaterials)
+	{
+		if (Material == nullptr)
+			continue;
+
+		Material->SetScalarParameterValue(TEXT("Gamma"), OutputColorBarrier.GetGamma());
+	}
+}
+
+bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
+	FCameraOutputRenderContext& OutputRenderContext,
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	if (!OutputColorBarrier.HasNative())
+		return false;
+
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr)
+		return false;
+
+	const FIntPoint Resolution = OutputColorBarrier.GetResolution();
+	if (!IsResolutionValid(Resolution))
+		return false;
+
+	if (HasCaptureSourceOverride())
+	{
+		OutputRenderContext.SceneRenderTarget = CaptureSource->TextureTarget;
+	}
+	else
+	{
+		if (!IsRenderTargetUpToDate(OutputRenderContext.SceneRenderTarget.Get(), Resolution))
+			OutputRenderContext.SceneRenderTarget = CreateRenderTarget(Resolution);
+	}
+
+	if (OutputRenderContext.MaterialInstances.Num() != MaterialPasses.Num())
+		OutputRenderContext.MaterialInstances.SetNum(MaterialPasses.Num());
+
+	for (int32 Index = 0; Index < MaterialPasses.Num(); ++Index)
+	{
+		UMaterialInterface* Material = MaterialPasses[Index].Get();
+		TObjectPtr<UMaterialInstanceDynamic>& MaterialInstance =
+			OutputRenderContext.MaterialInstances[Index];
+		if (Material == nullptr)
+		{
+			if (MaterialInstance != nullptr)
+				MaterialInstance = nullptr;
+			continue;
+		}
+
+		if (MaterialInstance == nullptr || MaterialInstance->Parent.Get() != Material)
+			MaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
+	}
+
+	if (OutputRenderContext.RenderTargets.Num() != OutputRenderContext.MaterialInstances.Num())
+		OutputRenderContext.RenderTargets.SetNum(OutputRenderContext.MaterialInstances.Num());
+
+	for (int32 Index = 0; Index < OutputRenderContext.MaterialInstances.Num(); ++Index)
+	{
+		TObjectPtr<UTextureRenderTarget2D>& RenderTarget = OutputRenderContext.RenderTargets[Index];
+		if (OutputRenderContext.MaterialInstances[Index] == nullptr)
+		{
+			if (RenderTarget != nullptr)
+				RenderTarget = nullptr;
+			continue;
+		}
+
+		if (!IsRenderTargetUpToDate(RenderTarget.Get(), Resolution))
+			RenderTarget = CreateRenderTarget(Resolution);
+	}
+
+	return true;
 }
 
 bool UAGX_CameraSensorComponent::RequestCapture(
@@ -266,11 +371,31 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 		return false;
 	}
 
+	if (!OutputColorBarrier.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because the "
+				 "Camera Color Output does not have a native output."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	FCameraOutputRenderContext* OutputRenderContext =
+		GetOrCreateOutputRenderContext(OutputColorBarrier);
+
+	if (!UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
+		return false;
+
+	if (!HasCaptureSourceOverride())
+		GetCaptureSource()->TextureTarget = OutputRenderContext->SceneRenderTarget;
+
 	FAGX_CameraSensorCaptureData* Slot = CaptureHelper.GetFreeSlot();
 	if (Slot == nullptr) // No free slots, deny the request.
 		return false;
 
-	UTextureRenderTarget2D* FinalRenderTarget = RenderMaterialPasses(OutputColorBarrier);
+	UTextureRenderTarget2D* FinalRenderTarget =
+		RenderMaterialPasses(*OutputRenderContext, OutputColorBarrier);
 	if (FinalRenderTarget == nullptr)
 		return false; // Slot is still "Free" for future requests.
 
@@ -347,7 +472,7 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 	return true;
 }
 
-void UAGX_CameraSensorComponent::PollCapture()
+void UAGX_CameraSensorComponent::PollCaptures()
 {
 	TArray<FAGX_CameraSensorCaptureData*> Slots = CaptureHelper.GetAwaitingCopyFenceSlots();
 	if (Slots.Num() == 0)
@@ -530,7 +655,6 @@ void UAGX_CameraSensorComponent::BeginPlay()
 	if (HasNative())
 	{
 		SetupSceneCapture();
-		SetupRenderPasses();
 
 		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
 		{
@@ -566,7 +690,6 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 		GetNativeAsCamera()->RegisterWithBackend();
 		SetupCameraBackendPropagator();
 		SetupSceneCapture();
-		SetupRenderPasses();
 	}
 }
 
@@ -575,7 +698,7 @@ void UAGX_CameraSensorComponent::TickComponent(
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	PollCapture();
+	PollCaptures();
 }
 
 void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
@@ -588,9 +711,7 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 		OwnedCaptureComponent2D = nullptr;
 	}
 
-	MaterialInstances.Empty();
-	RenderTargets.Empty();
-	SceneRenderTarget = nullptr;
+	OutputRenderContexts.Empty();
 	// TODO: consider CaptureHelper and in-flight requests here.
 }
 
@@ -781,97 +902,6 @@ void UAGX_CameraSensorComponent::UpdateCameraLens()
 	}
 }
 
-void UAGX_CameraSensorComponent::SetupRenderPasses()
-{
-	MaterialInstances.Empty();
-
-	if (GetCaptureSource() == nullptr)
-		return;
-
-	const FIntPoint ActiveResolution = GetActiveResolution();
-	if (!IsResolutionValid(ActiveResolution))
-		return;
-
-	for (const TObjectPtr<UMaterialInterface>& Material : MaterialPasses)
-	{
-		if (Material == nullptr)
-			continue;
-
-		MaterialInstances.Add(UMaterialInstanceDynamic::Create(Material.Get(), this));
-	}
-
-	EnsureRenderTargets(ActiveResolution);
-}
-
-void UAGX_CameraSensorComponent::EnsureRenderTargets(FIntPoint Resolution)
-{
-	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
-	if (CaptureSource == nullptr)
-		return;
-
-	if (HasCaptureSourceOverride())
-	{
-		SceneRenderTarget = CaptureSource->TextureTarget;
-		if (SceneRenderTarget == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Camera Sensor Component '%s' in '%s' is using CaptureSourceOverride but "
-					 "the referenced Scene Capture Component 2D '%s' does not have a render "
-					 "target. Camera pipeline rendering will be skipped."),
-				*GetName(), *GetLabelSafe(GetOwner()), *CaptureSource->GetName());
-			return;
-		}
-	}
-
-	if (!IsResolutionValid(Resolution))
-		return;
-
-	if (!HasCaptureSourceOverride())
-	{
-		if (!IsRenderTargetUpToDate(SceneRenderTarget, Resolution))
-			SceneRenderTarget = CreateRenderTarget(Resolution);
-
-		CaptureSource->TextureTarget = SceneRenderTarget;
-	}
-
-	if (RenderTargets.Num() < MaterialInstances.Num())
-		RenderTargets.SetNum(MaterialInstances.Num());
-
-	for (int32 Index = 0; Index < MaterialInstances.Num(); ++Index)
-	{
-		if (!IsRenderTargetUpToDate(RenderTargets[Index], Resolution))
-			RenderTargets[Index] = CreateRenderTarget(Resolution);
-	}
-}
-
-FIntPoint UAGX_CameraSensorComponent::GetLargestOutputResolution() const
-{
-	FIntPoint LargestRes(0, 0);
-	if (!HasNative())
-		return LargestRes;
-
-	for (const auto& Output : GetNativeAsCamera()->GetOutputs())
-	{
-		const auto Res = Output.GetResolution();
-		LargestRes.X = FMath::Max(LargestRes.X, Res.X);
-		LargestRes.Y = FMath::Max(LargestRes.Y, Res.Y);
-	}
-	return LargestRes;
-}
-
-FIntPoint UAGX_CameraSensorComponent::GetActiveResolution() const
-{
-	if (!HasCaptureSourceOverride())
-		return GetLargestOutputResolution();
-
-	const USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
-	if (CaptureSource == nullptr || CaptureSource->TextureTarget == nullptr)
-		return {0, 0};
-
-	return {CaptureSource->TextureTarget->SizeX, CaptureSource->TextureTarget->SizeY};
-}
-
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 	const FIntPoint& InResolution)
 {
@@ -910,8 +940,6 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 			This->SetCaptureSourceOverride(
 				This->CaptureSourceOverride.GetSceneCaptureComponent2D());
 		});
-	PropertyDispatcher.Add(
-		AGX_MEMBER_NAME(MaterialPasses), [](ThisClass* This) { This->SetupRenderPasses(); });
 }
 #endif
 
@@ -956,6 +984,18 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	//	SceneCapture->PostProcessSettings.DepthOfFieldFocalDistance =
 	//		static_cast<float>(Parameters.focus.distance);
 	// }
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	FCameraOutputRenderContext* OutputRenderContext =
+		GetOrCreateOutputRenderContext(OutputColorBarrier);
+	if (OutputRenderContext == nullptr)
+		return;
+
+	UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier);
+	UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
 }
 
 void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)

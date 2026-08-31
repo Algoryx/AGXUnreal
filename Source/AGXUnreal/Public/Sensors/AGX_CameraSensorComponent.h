@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/AGX_CameraBackendPropagator.h"
+#include "Sensors/AGX_CameraOutputColor.h"
 #include "Sensors/AGX_CameraSensorCaptureHelper.h"
 #include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
@@ -121,7 +122,8 @@ public:
 	 * during Play.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
-	UTextureRenderTarget2D* GetOutputRenderTarget() const;
+	UTextureRenderTarget2D* GetOutputRenderTarget(UPARAM(ref)
+													  const FAGX_CameraOutputColor& Output) const;
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
@@ -159,19 +161,16 @@ private:
 	void SetupCameraBackendPropagator();
 	void UpdateCameraPhotoDetector();
 	void UpdateCameraLens();
-	void SetupRenderPasses();
-	void EnsureRenderTargets(FIntPoint Resolution);
-	FIntPoint GetLargestOutputResolution() const;
-	
+
+	struct FCameraOutputRenderContext;
+
 	/// Executes the MaterialPasses and returns the final render target.
 	UTextureRenderTarget2D* RenderMaterialPasses(
+		FCameraOutputRenderContext& OutputRenderContext,
 		const FCameraOutputColorBarrier& OutputColorBarrier);
 
 	bool RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier);
-	void PollCapture();
-
-	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
-	FIntPoint GetActiveResolution() const; // TODO: likely remove this.
+	void PollCaptures();
 
 	UTextureRenderTarget2D* CreateRenderTarget(const FIntPoint& InResolution);
 	bool IsRenderTargetUpToDate(
@@ -182,21 +181,43 @@ private:
 	void InitPropertyDispatcher();
 #endif
 
+	FCameraOutputRenderContext* GetOrCreateOutputRenderContext(
+		const FCameraOutputColorBarrier& OutputColorBarrier);
+
+	// Updates the FCameraOutputRenderContext according to the given OutputColorBarrier. Does not
+	// set material parameters, see UpdateMaterialParameters for that.
+	bool UpdateOutputRenderContextNoParams(
+		FCameraOutputRenderContext& OutputRenderContext,
+		const FCameraOutputColorBarrier& OutputColorBarrier);
+
+	/// Write output specific parameters to the given OutMaterials.
+	void UpdateMaterialParameters(
+		const FCameraOutputColorBarrier& OutputColorBarrier,
+		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
+
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
+	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};
 
-	UPROPERTY(Transient)
-	TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget {nullptr};
+	struct FCameraOutputRenderContext
+	{
+		// Given to SceneCaptureComponent before capture.
+		TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget;
 
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
+		// Holds the result of Material Passes.
+		TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
 
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+		// MaterialInstances created from the set MaterialPasses used when executing the Material
+		// Passes.
+		TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+	};
+
+	// Per-output render context. Key is native Output address.
+	TMap<uint64, FCameraOutputRenderContext> OutputRenderContexts;
 
 	FAGX_CameraBackendPropagator CameraBackendPropagator;
 	FAGX_CameraSensorCaptureHelper CaptureHelper;

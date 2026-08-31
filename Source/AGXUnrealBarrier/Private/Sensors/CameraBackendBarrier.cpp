@@ -119,10 +119,19 @@ namespace CameraBackendBarrier_helpers
 	}
 
 	void SetCameraColorOutput(
-		agxSensor::Camera* Camera, agxSensor::CameraColorOutput*,
+		agxSensor::Camera* Camera, agxSensor::CameraColorOutput* Output,
 		agxSensor::CameraColorOutputParameters*)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraColorOutput"));
+		auto& Backend = FCameraBackendBarrier::GetInstance();
+		if (FCameraBarrier* CameraBarrier = Backend.FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			const auto& CaptureStates = Backend.FindCaptureStates(CameraBarrier);
+			if (CaptureStates == nullptr)
+				return;
+
+			FCameraOutputColorBarrier OutputBarrier(std::make_shared<FCameraOutputRef>(Output));
+			CameraBarrier->OnBackendSetCameraColorOutput(OutputBarrier);
+		}
 	}
 
 	void SetCameraColorOutputAddress(

@@ -243,6 +243,13 @@ void FCameraBarrier::OnBackendSetCameraLensSingleElement(
 		BackendPropagator->OnBackendSetCameraLensSingleElement(Parameters);
 }
 
+void FCameraBarrier::OnBackendSetCameraColorOutput(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendSetCameraColorOutput(OutputColorBarrier);
+}
+
 void FCameraBarrier::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)
 {
 	if (BackendPropagator != nullptr)
