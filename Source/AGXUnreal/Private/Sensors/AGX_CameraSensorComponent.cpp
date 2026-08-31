@@ -40,6 +40,11 @@ UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
 	NativeBarrier.Reset(new FCameraBarrier());
 	PrimaryComponentTick.bCanEverTick = true;
+
+	static const TCHAR* CameraPass1AssetPath =
+		TEXT("Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass1.MI_AGX_Camera_Pass1'");
+	MaterialPasses.Add(
+		FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass1AssetPath));
 }
 
 namespace AGX_CameraSensorComponent_helpers
