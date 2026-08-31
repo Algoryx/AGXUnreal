@@ -308,14 +308,25 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	if (!IsResolutionValid(Resolution))
 		return false;
 
+	auto EnsureRenderTarget = [this, &Resolution](TObjectPtr<UTextureRenderTarget2D>& RenderTarget)
+	{
+		if (RenderTarget == nullptr)
+		{
+			RenderTarget = CreateRenderTarget(Resolution);
+			return;
+		}
+
+		if (!IsRenderTargetUpToDate(*RenderTarget, Resolution))
+			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
+	};
+
 	if (HasCaptureSourceOverride())
 	{
 		OutputRenderContext.SceneRenderTarget = CaptureSource->TextureTarget;
 	}
 	else
 	{
-		if (!IsRenderTargetUpToDate(OutputRenderContext.SceneRenderTarget.Get(), Resolution))
-			OutputRenderContext.SceneRenderTarget = CreateRenderTarget(Resolution);
+		EnsureRenderTarget(OutputRenderContext.SceneRenderTarget);
 	}
 
 	if (OutputRenderContext.MaterialInstances.Num() != MaterialPasses.Num())
@@ -350,8 +361,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 			continue;
 		}
 
-		if (!IsRenderTargetUpToDate(RenderTarget.Get(), Resolution))
-			RenderTarget = CreateRenderTarget(Resolution);
+		EnsureRenderTarget(RenderTarget);
 	}
 
 	return true;
@@ -926,10 +936,9 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 }
 
 bool UAGX_CameraSensorComponent::IsRenderTargetUpToDate(
-	const UTextureRenderTarget2D* RenderTarget, const FIntPoint& InResolution) const
+	const UTextureRenderTarget2D& RenderTarget, const FIntPoint& InResolution) const
 {
-	return RenderTarget != nullptr && RenderTarget->SizeX == InResolution.X &&
-		   RenderTarget->SizeY == InResolution.Y;
+	return RenderTarget.SizeX == InResolution.X && RenderTarget.SizeY == InResolution.Y;
 }
 
 bool UAGX_CameraSensorComponent::IsResolutionValid(const FIntPoint& InResolution)

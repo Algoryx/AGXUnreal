@@ -174,7 +174,7 @@ private:
 
 	UTextureRenderTarget2D* CreateRenderTarget(const FIntPoint& InResolution);
 	bool IsRenderTargetUpToDate(
-		const UTextureRenderTarget2D* RenderTarget, const FIntPoint& InResolution) const;
+		const UTextureRenderTarget2D& RenderTarget, const FIntPoint& InResolution) const;
 	static bool IsResolutionValid(const FIntPoint& InResolution);
 
 #if WITH_EDITOR
