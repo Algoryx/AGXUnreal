@@ -21,8 +21,6 @@ struct AGXCOMMON_API FOpenPLX_SignalHandlerNativeAddresses
 	bool operator==(const FOpenPLX_SignalHandlerNativeAddresses& Other) const = default;
 
 	uint64 AssemblyAddress {0};
-	uint64 InputSignalListenerAddress {0};
-	uint64 OutputSignalListenerAddress {0};
 	uint64 ModelRegistryAddress {0};
 	uint64 ControlInterfaceAddress {0};
 	int32 ModelHandle {-1};
