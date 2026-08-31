@@ -17,6 +17,7 @@
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -68,12 +69,6 @@ namespace AGX_CameraSensorComponent_helpers
 	{
 		return GPixelFormats[PixelFormat].BlockBytes == sizeof(FColor);
 	}
-}
-
-void UAGX_CameraSensorComponent::SetMaterialInputTextureParameterName(FName InParameterName)
-{
-	MaterialInputTextureParameterName = InParameterName;
-	SetupRenderPasses();
 }
 
 void UAGX_CameraSensorComponent::AddMaterialPass(UMaterialInterface* Material)
@@ -149,6 +144,7 @@ bool UAGX_CameraSensorComponent::AddOutput(FAGX_CameraOutputBase& InOutput)
 		return false;
 
 	Native->AddOutput(*OutputNative);
+	SetupRenderPasses();
 	return true;
 }
 
@@ -191,13 +187,14 @@ bool UAGX_CameraSensorComponent::IsCameraSensorValid() const
 	return true;
 }
 
-UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
 	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
 	if (CaptureSource == nullptr)
 		return nullptr;
 
-	EnsureRenderTargets();
+	EnsureRenderTargets(GetActiveResolution());
 	if (SceneRenderTarget == nullptr)
 		return nullptr;
 
@@ -216,7 +213,8 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderCameraPipeline()
 			continue;
 
 		UTextureRenderTarget2D* OutputRenderTarget = RenderTargets[Index].Get();
-		MaterialInstance->SetTextureParameterValue(MaterialInputTextureParameterName, InputTexture);
+		MaterialInstance->SetTextureParameterValue(TEXT("InputTexture"), InputTexture);
+		MaterialInstance->SetScalarParameterValue(TEXT("Gamma"), OutputColorBarrier.GetGamma());
 
 		UCanvas* Canvas = nullptr;
 		FVector2D CanvasSize(0.0f, 0.0f);
@@ -254,7 +252,8 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget() cons
 	return SceneRenderTarget.Get();
 }
 
-bool UAGX_CameraSensorComponent::RequestCapture(uint64 OutputNativeAddress)
+bool UAGX_CameraSensorComponent::RequestCapture(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
 	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
 	if (CameraBarrier == nullptr)
@@ -271,7 +270,7 @@ bool UAGX_CameraSensorComponent::RequestCapture(uint64 OutputNativeAddress)
 	if (Slot == nullptr) // No free slots, deny the request.
 		return false;
 
-	UTextureRenderTarget2D* FinalRenderTarget = RenderCameraPipeline();
+	UTextureRenderTarget2D* FinalRenderTarget = RenderMaterialPasses(OutputColorBarrier);
 	if (FinalRenderTarget == nullptr)
 		return false; // Slot is still "Free" for future requests.
 
@@ -296,7 +295,7 @@ bool UAGX_CameraSensorComponent::RequestCapture(uint64 OutputNativeAddress)
 
 	const FString NameBase = GetName();
 	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
-	Slot->OutputNativeAddress = OutputNativeAddress;
+	Slot->OutputNativeAddress = OutputColorBarrier.GetNativeAddress();
 	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
 	(
 		// TODO, some of these captures are note safe for Blueprint reconstruction.
@@ -801,10 +800,10 @@ void UAGX_CameraSensorComponent::SetupRenderPasses()
 		MaterialInstances.Add(UMaterialInstanceDynamic::Create(Material.Get(), this));
 	}
 
-	EnsureRenderTargets();
+	EnsureRenderTargets(ActiveResolution);
 }
 
-void UAGX_CameraSensorComponent::EnsureRenderTargets()
+void UAGX_CameraSensorComponent::EnsureRenderTargets(FIntPoint Resolution)
 {
 	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
 	if (CaptureSource == nullptr)
@@ -825,14 +824,13 @@ void UAGX_CameraSensorComponent::EnsureRenderTargets()
 		}
 	}
 
-	const FIntPoint ActiveResolution = GetActiveResolution();
-	if (!IsResolutionValid(ActiveResolution))
+	if (!IsResolutionValid(Resolution))
 		return;
 
 	if (!HasCaptureSourceOverride())
 	{
-		if (!IsRenderTargetUpToDate(SceneRenderTarget, ActiveResolution))
-			SceneRenderTarget = CreateRenderTarget(ActiveResolution);
+		if (!IsRenderTargetUpToDate(SceneRenderTarget, Resolution))
+			SceneRenderTarget = CreateRenderTarget(Resolution);
 
 		CaptureSource->TextureTarget = SceneRenderTarget;
 	}
@@ -842,8 +840,8 @@ void UAGX_CameraSensorComponent::EnsureRenderTargets()
 
 	for (int32 Index = 0; Index < MaterialInstances.Num(); ++Index)
 	{
-		if (!IsRenderTargetUpToDate(RenderTargets[Index], ActiveResolution))
-			RenderTargets[Index] = CreateRenderTarget(ActiveResolution);
+		if (!IsRenderTargetUpToDate(RenderTargets[Index], Resolution))
+			RenderTargets[Index] = CreateRenderTarget(Resolution);
 	}
 }
 
@@ -905,7 +903,6 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
-	AGX_COMPONENT_DEFAULT_DISPATCHER(MaterialInputTextureParameterName);
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(CaptureSourceOverride),
 		[](ThisClass* This)
@@ -961,7 +958,12 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	// }
 }
 
-void UAGX_CameraSensorComponent::OnBackendRequestCapture(uint64 NativeOutputAddress)
+void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)
 {
-	RequestCapture(NativeOutputAddress);
+	if (!FCameraOutputColorBarrier::IsColorOutput(OutputBarrier))
+		return;
+
+	const FCameraOutputColorBarrier& ColorOutputBarrier =
+		static_cast<const FCameraOutputColorBarrier&>(OutputBarrier);
+	RequestCapture(ColorOutputBarrier);
 }

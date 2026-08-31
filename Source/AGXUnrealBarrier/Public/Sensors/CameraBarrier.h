@@ -53,7 +53,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	/** Internal functions, only called by the CameraBackendBarrier. */
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
-	void OnBackendRequestCapture(uint64 NativeOutputAddress);
+	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 
 	static bool IsCamera(const FSensorBarrier& Sensor);
 

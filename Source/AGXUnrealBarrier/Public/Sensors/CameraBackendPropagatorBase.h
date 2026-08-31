@@ -5,6 +5,7 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
+struct FCameraOutputBarrier;
 struct FCameraLensSingleElementParameters;
 
 class AGXUNREALBARRIER_API FCameraBackendPropagatorBase
@@ -14,5 +15,5 @@ public:
 
 	virtual void OnBackendSetCameraLensSingleElement(
 		const FCameraLensSingleElementParameters& Parameters) = 0;
-	virtual void OnBackendRequestCapture(uint64 NativeOutputAddress) = 0;
+	virtual void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier) = 0;
 };

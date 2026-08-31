@@ -42,6 +42,11 @@ const FCameraOutputRef* FCameraOutputBarrier::GetNative() const
 	return NativeRef.get();
 }
 
+uint64 FCameraOutputBarrier::GetNativeAddress() const
+{
+	return HasNative() ? reinterpret_cast<uint64>(NativeRef->Native.get()) : 0;
+}
+
 void FCameraOutputBarrier::ReleaseNative()
 {
 	NativeRef->Native = nullptr;

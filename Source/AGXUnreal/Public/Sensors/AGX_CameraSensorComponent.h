@@ -13,6 +13,8 @@
 struct FCameraBarrier;
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementParameters;
+struct FCameraOutputBarrier;
+struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraOutputBase;
 struct FAGX_ImportContext;
@@ -52,18 +54,6 @@ public:
 	UAGX_CameraLensBase* CameraLens {nullptr};
 
 	/**
-	 * Name of the texture parameter that receives the previous render pass output.
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
-	FName MaterialInputTextureParameterName {TEXT("InputTexture")};
-
-	/**
-	 * Set the name of the texture parameter that receives the previous render pass output.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	void SetMaterialInputTextureParameterName(FName InParameterName);
-
-	/**
 	 * Materials used as full-screen render passes after the Scene Capture Component has captured
 	 * the scene.
 	 */
@@ -94,8 +84,8 @@ public:
 	/**
 	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this
 	 * Camera Sensor Component. When set, the CaptureSourceOverride's existing render target is used
-	 * as the camera pipeline input. Note that when using the CaptureSourceOverride, the transform
-	 * of this AGX Camera Sensor Component has no effect.
+	 * as the camera material passes input. Note that when using the CaptureSourceOverride, the
+	 * transform of this AGX Camera Sensor Component has no effect.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
 	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
@@ -126,7 +116,7 @@ public:
 	bool IsCameraSensorValid() const;
 
 	/**
-	 * Get the Render Target containing the latest output from the Camera pipeline.
+	 * Get the Render Target containing the latest output from the Material Passes.
 	 * The returned Render Target may stop being the active output if MaterialPasses is modified
 	 * during Play.
 	 */
@@ -170,17 +160,18 @@ private:
 	void UpdateCameraPhotoDetector();
 	void UpdateCameraLens();
 	void SetupRenderPasses();
-	void EnsureRenderTargets();
+	void EnsureRenderTargets(FIntPoint Resolution);
 	FIntPoint GetLargestOutputResolution() const;
 	
 	/// Executes the MaterialPasses and returns the final render target.
-	UTextureRenderTarget2D* RenderCameraPipeline();
+	UTextureRenderTarget2D* RenderMaterialPasses(
+		const FCameraOutputColorBarrier& OutputColorBarrier);
 
-	bool RequestCapture(uint64 OutputNativeAddress);
+	bool RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void PollCapture();
 
 	/// The Resolution property or the Render Target size when CaptureSourceOverride is used.
-	FIntPoint GetActiveResolution() const;
+	FIntPoint GetActiveResolution() const; // TODO: likely remove this.
 
 	UTextureRenderTarget2D* CreateRenderTarget(const FIntPoint& InResolution);
 	bool IsRenderTargetUpToDate(
@@ -193,7 +184,7 @@ private:
 
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
-	void OnBackendRequestCapture(uint64 NativeOutputAddress);
+	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};

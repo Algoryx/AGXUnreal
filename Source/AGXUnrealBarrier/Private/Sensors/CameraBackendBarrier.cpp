@@ -7,6 +7,7 @@
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraOutputBarrier.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -144,7 +145,8 @@ namespace CameraBackendBarrier_helpers
 			if (CaptureStates == nullptr)
 				return;
 
-			CameraBarrier->OnBackendRequestCapture(GetOutputNativeAddress(Output));
+			FCameraOutputColorBarrier OutputBarrier(std::make_shared<FCameraOutputRef>(Output));
+			CameraBarrier->OnBackendRequestCapture(OutputBarrier);
 		}
 	}
 

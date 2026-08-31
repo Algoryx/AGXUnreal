@@ -21,7 +21,8 @@ void FAGX_CameraBackendPropagator::OnBackendSetCameraLensSingleElement(
 	CameraSensor->OnBackendSetCameraLensSingleElement(Parameters);
 }
 
-void FAGX_CameraBackendPropagator::OnBackendRequestCapture(uint64 NativeOutputAddress)
+void FAGX_CameraBackendPropagator::OnBackendRequestCapture(
+	const FCameraOutputBarrier& OutputBarrier)
 {
 	if (!CameraSensor.IsValid())
 	{
@@ -32,7 +33,7 @@ void FAGX_CameraBackendPropagator::OnBackendRequestCapture(uint64 NativeOutputAd
 		return;
 	}
 
-	CameraSensor->OnBackendRequestCapture(NativeOutputAddress);
+	CameraSensor->OnBackendRequestCapture(OutputBarrier);
 }
 
 void FAGX_CameraBackendPropagator::SetCameraSensor(

@@ -22,6 +22,7 @@ struct AGXUNREALBARRIER_API FCameraOutputBarrier
 	bool HasNative() const;
 	FCameraOutputRef* GetNative();
 	const FCameraOutputRef* GetNative() const;
+	uint64 GetNativeAddress() const;
 	void ReleaseNative();
 
 	void RegisterWithBackend(FCameraBarrier& Camera);
