@@ -93,13 +93,13 @@ namespace IMUBarrier_helpers
 	agxSensor::IMU* GetIMUNative(FIMUBarrier& IMU)
 	{
 		AGX_CHECK(IMU.HasNative());
-		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+		return IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
 	}
 
 	agxSensor::IMU* GetIMUNative(const FIMUBarrier& IMU)
 	{
 		AGX_CHECK(IMU.HasNative());
-		return IMU.GetNative()->Native->as<agxSensor::IMU>();
+		return IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
 	}
 }
 

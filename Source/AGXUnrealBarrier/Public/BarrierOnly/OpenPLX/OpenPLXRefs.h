@@ -68,6 +68,17 @@ struct FHeapControlInterfacePtr
 	}
 };
 
+struct FOpenPLXLidarOutputViewRef
+{
+	std::shared_ptr<openplx::Marshalling> Marshalling;
+
+	FOpenPLXLidarOutputViewRef() = default;
+	FOpenPLXLidarOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
+		: Marshalling(std::move(InMarshalling))
+	{
+	}
+};
+
 struct FOpenPLXModelData
 {
 	openplx::Core::ObjectPtr OpenPLXModel;

@@ -13,6 +13,7 @@
 #include "Shapes/SphereShapeBarrier.h"
 #include "Shapes/TrimeshShapeBarrier.h"
 #include "SimulationBarrier.h"
+#include "Sensors/SensorBarrier.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Vehicle/SteeringBarrier.h"
 #include "Vehicle/WheelJointBarrier.h"
@@ -132,6 +133,9 @@ public:
 	TArray<FTrackBarrier>& GetTracks();
 	const TArray<FTrackBarrier>& GetTracks() const;
 
+	TArray<FSensorBarrier>& GetSensors();
+	const TArray<FSensorBarrier>& GetSensors() const;
+
 	std::shared_ptr<FSimulationBarrier>& GetSimulation();
 	const std::shared_ptr<FSimulationBarrier>& GetSimulation() const;
 
@@ -186,6 +190,7 @@ private:
 	TArray<FSteeringBarrier> Steerings;
 	TArray<FTerrainWheelBarrier> TerrainWheels;
 	TArray<FTrackBarrier> Tracks;
+	TArray<FSensorBarrier> Sensors;
 
 	TArray<FOpenPLX_Input> PLXInputs;
 	TArray<FOpenPLX_Output> PLXOutputs;

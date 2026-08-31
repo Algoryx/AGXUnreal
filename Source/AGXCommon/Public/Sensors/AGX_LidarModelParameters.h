@@ -14,4 +14,12 @@ UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Abstract)
 class AGXCOMMON_API UAGX_LidarModelParameters : public UObject
 {
 	GENERATED_BODY()
+
+public:
+	/**
+	 * The import Guid of this asset. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
 };

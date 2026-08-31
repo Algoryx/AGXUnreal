@@ -1,6 +1,6 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_LidarSensorLineTraceComponent.h"
+#include "Deprecated/AGX_LidarSensorLineTraceComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
