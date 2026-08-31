@@ -423,7 +423,6 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 	Slot->OutputNativeAddress = OutputColorBarrier.GetNativeAddress();
 	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
 	(
-		// TODO, some of these captures are note safe for Blueprint reconstruction.
 		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
 		 PixelFormat](FRHICommandListImmediate& RHICmdList)
 		{
@@ -493,8 +492,7 @@ void UAGX_CameraSensorComponent::PollCaptures()
 
 	ENQUEUE_RENDER_COMMAND(AGXCameraPollCapture)
 	(
-		// TODO: 'this' capture is not safe from Blueprint reconstruction.
-		[Slots, this](FRHICommandListImmediate& RHICmdList)
+		[Slots](FRHICommandListImmediate& RHICmdList)
 		{
 			for (const FAGX_CameraSensorCaptureDataPtr& Slot : Slots)
 			{
