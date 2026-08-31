@@ -21,11 +21,29 @@ FAGX_CameraSensorCaptureData& FAGX_CameraSensorCaptureData::operator=(
 	return *this;
 }
 
+FAGX_CameraSensorCaptureData::~FAGX_CameraSensorCaptureData()
+{
+	StagingTexture.SafeRelease();
+	CopyFence.SafeRelease();
+}
+
+FAGX_CameraSensorCaptureHelper::FAGX_CameraSensorCaptureHelper()
+{
+	for (FAGX_CameraSensorCaptureDataPtr& Data : CaptureData)
+	{
+		Data = MakeShared<FAGX_CameraSensorCaptureData, ESPMode::ThreadSafe>();
+	}
+}
+
 FAGX_CameraSensorCaptureHelper::FAGX_CameraSensorCaptureHelper(
 	const FAGX_CameraSensorCaptureHelper& Other)
 {
 	(void) Other;
 	// Unreal requires this to exist, but runtime RHI resources and slot states are not copied.
+	for (FAGX_CameraSensorCaptureDataPtr& Data : CaptureData)
+	{
+		Data = MakeShared<FAGX_CameraSensorCaptureData, ESPMode::ThreadSafe>();
+	}
 }
 
 FAGX_CameraSensorCaptureHelper& FAGX_CameraSensorCaptureHelper::operator=(
@@ -33,9 +51,9 @@ FAGX_CameraSensorCaptureHelper& FAGX_CameraSensorCaptureHelper::operator=(
 {
 	(void) Other;
 	// Unreal requires this to exist, but runtime RHI resources and slot states are not copied.
-	for (FAGX_CameraSensorCaptureData& Data : CaptureData)
+	for (FAGX_CameraSensorCaptureDataPtr& Data : CaptureData)
 	{
-		Data = FAGX_CameraSensorCaptureData();
+		Data = MakeShared<FAGX_CameraSensorCaptureData, ESPMode::ThreadSafe>();
 	}
 
 	return *this;
@@ -51,24 +69,24 @@ void FAGX_CameraSensorCaptureData::SetState(EAGX_CameraSensorSlotState NewState)
 	State = static_cast<int32>(NewState);
 }
 
-FAGX_CameraSensorCaptureData* FAGX_CameraSensorCaptureHelper::GetFreeSlot()
+FAGX_CameraSensorCaptureDataPtr FAGX_CameraSensorCaptureHelper::GetFreeSlot()
 {
-	for (auto& Data : CaptureData)
+	for (FAGX_CameraSensorCaptureDataPtr& Data : CaptureData)
 	{
-		if (Data.GetState() == EAGX_CameraSensorSlotState::Free)
-			return &Data;
+		if (Data.IsValid() && Data->GetState() == EAGX_CameraSensorSlotState::Free)
+			return Data;
 	}
 
 	return nullptr;
 }
 
-TArray<FAGX_CameraSensorCaptureData*> FAGX_CameraSensorCaptureHelper::GetAwaitingCopyFenceSlots()
+TArray<FAGX_CameraSensorCaptureDataPtr> FAGX_CameraSensorCaptureHelper::GetAwaitingCopyFenceSlots()
 {
-	TArray<FAGX_CameraSensorCaptureData*> Slots;
-	for (auto& Data : CaptureData)
+	TArray<FAGX_CameraSensorCaptureDataPtr> Slots;
+	for (FAGX_CameraSensorCaptureDataPtr& Data : CaptureData)
 	{
-		if (Data.GetState() == EAGX_CameraSensorSlotState::AwaitingCopyFence)
-			Slots.Add(&Data);
+		if (Data.IsValid() && Data->GetState() == EAGX_CameraSensorSlotState::AwaitingCopyFence)
+			Slots.Add(Data);
 	}
 
 	return Slots;

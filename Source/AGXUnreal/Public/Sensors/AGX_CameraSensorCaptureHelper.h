@@ -27,6 +27,7 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureData
 	FAGX_CameraSensorCaptureData() = default;
 	FAGX_CameraSensorCaptureData(const FAGX_CameraSensorCaptureData& Other);
 	FAGX_CameraSensorCaptureData& operator=(const FAGX_CameraSensorCaptureData& Other);
+	~FAGX_CameraSensorCaptureData();
 
 	EAGX_CameraSensorSlotState GetState() const;
 	void SetState(EAGX_CameraSensorSlotState NewState);
@@ -37,21 +38,24 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureData
 	uint64 OutputNativeAddress {0};
 };
 
+using FAGX_CameraSensorCaptureDataPtr =
+	TSharedPtr<FAGX_CameraSensorCaptureData, ESPMode::ThreadSafe>;
+
 USTRUCT()
 struct AGXUNREAL_API FAGX_CameraSensorCaptureHelper
 {
 	GENERATED_BODY()
 
-	FAGX_CameraSensorCaptureHelper() = default;
+	FAGX_CameraSensorCaptureHelper();
 	FAGX_CameraSensorCaptureHelper(const FAGX_CameraSensorCaptureHelper& Other);
 	FAGX_CameraSensorCaptureHelper& operator=(const FAGX_CameraSensorCaptureHelper& Other);
 
 	/// Returns nullptr if no free slots exist.
-	FAGX_CameraSensorCaptureData* GetFreeSlot();
+	FAGX_CameraSensorCaptureDataPtr GetFreeSlot();
 
 	/// Returns nullptr if no AwaitingCopyFence slots exist.
-	TArray<FAGX_CameraSensorCaptureData*> GetAwaitingCopyFenceSlots();
+	TArray<FAGX_CameraSensorCaptureDataPtr> GetAwaitingCopyFenceSlots();
 
 private:
-	std::array<FAGX_CameraSensorCaptureData, 5> CaptureData;
+	std::array<FAGX_CameraSensorCaptureDataPtr, 5> CaptureData;
 };

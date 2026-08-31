@@ -390,8 +390,8 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 	if (!HasCaptureSourceOverride())
 		GetCaptureSource()->TextureTarget = OutputRenderContext->SceneRenderTarget;
 
-	FAGX_CameraSensorCaptureData* Slot = CaptureHelper.GetFreeSlot();
-	if (Slot == nullptr) // No free slots, deny the request.
+	FAGX_CameraSensorCaptureDataPtr Slot = OutputRenderContext->CaptureHelper.GetFreeSlot();
+	if (!Slot.IsValid()) // No free slots, deny the request.
 		return false;
 
 	UTextureRenderTarget2D* FinalRenderTarget =
@@ -474,20 +474,33 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 
 void UAGX_CameraSensorComponent::PollCaptures()
 {
-	TArray<FAGX_CameraSensorCaptureData*> Slots = CaptureHelper.GetAwaitingCopyFenceSlots();
+	TArray<FAGX_CameraSensorCaptureDataPtr> Slots;
+	for (auto& Pair : OutputRenderContexts)
+	{
+		Slots.Append(Pair.Value.CaptureHelper.GetAwaitingCopyFenceSlots());
+	}
+
 	if (Slots.Num() == 0)
 		return; // Nothing to do yet.
 
-	for (auto Slot : Slots)
+	for (FAGX_CameraSensorCaptureDataPtr& Slot : Slots)
+	{
+		if (!Slot.IsValid())
+			continue;
+
 		Slot->SetState(EAGX_CameraSensorSlotState::PollCopyFence); // Claim slot for polling.
+	}
 
 	ENQUEUE_RENDER_COMMAND(AGXCameraPollCapture)
 	(
 		// TODO: 'this' capture is not safe from Blueprint reconstruction.
 		[Slots, this](FRHICommandListImmediate& RHICmdList)
 		{
-			for (auto Slot : Slots)
+			for (const FAGX_CameraSensorCaptureDataPtr& Slot : Slots)
 			{
+				if (!Slot.IsValid())
+					continue;
+
 				if (Slot->GetState() != EAGX_CameraSensorSlotState::PollCopyFence)
 					continue;
 
@@ -690,6 +703,8 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 		GetNativeAsCamera()->RegisterWithBackend();
 		SetupCameraBackendPropagator();
 		SetupSceneCapture();
+
+		// TODO: ensure OutputRenderContexts state here!
 	}
 }
 
@@ -712,7 +727,6 @@ void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 	}
 
 	OutputRenderContexts.Empty();
-	// TODO: consider CaptureHelper and in-flight requests here.
 }
 
 #if WITH_EDITOR

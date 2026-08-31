@@ -214,11 +214,12 @@ private:
 		// MaterialInstances created from the set MaterialPasses used when executing the Material
 		// Passes.
 		TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+
+		FAGX_CameraSensorCaptureHelper CaptureHelper;
 	};
 
 	// Per-output render context. Key is native Output address.
 	TMap<uint64, FCameraOutputRenderContext> OutputRenderContexts;
 
 	FAGX_CameraBackendPropagator CameraBackendPropagator;
-	FAGX_CameraSensorCaptureHelper CaptureHelper;
 };
