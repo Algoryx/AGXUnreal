@@ -2116,7 +2116,11 @@ namespace AGX_MeshUtilities_helpers
 					const uint32 NumBytes = Buffer->GetSize();
 					FRHIGPUBufferReadback Readback(TEXT("BufferReadback: Positions"));
 					Readback.EnqueueCopy(RHICmdList, Buffer);
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 					RHICmdList.BlockUntilGPUIdle();
+#else
+					RHICmdList.SubmitAndBlockUntilGPUIdle();
+#endif
 					FVector3f* Data = static_cast<FVector3f*>(Readback.Lock(NumBytes));
 					for (uint32 I = 0; I < NumPositions; I++)
 					{
@@ -2131,7 +2135,11 @@ namespace AGX_MeshUtilities_helpers
 					const uint32 NumBytes = Buffer->GetSize();
 					FRHIGPUBufferReadback Readback(TEXT("BufferReadback: Indices"));
 					Readback.EnqueueCopy(RHICmdList, Buffer);
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 					RHICmdList.BlockUntilGPUIdle();
+#else
+					RHICmdList.SubmitAndBlockUntilGPUIdle();
+#endif
 					void* Data = Readback.Lock(NumBytes);
 					switch (Buffer->GetStride())
 					{

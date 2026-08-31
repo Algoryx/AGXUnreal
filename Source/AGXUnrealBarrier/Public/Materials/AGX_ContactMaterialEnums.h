@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ContactMaterialEnums.generated.h"
+
 /**
  * Specifies in what solvers the normal and friction equations will be calculated.
  */
