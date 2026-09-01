@@ -127,6 +127,9 @@ FAGX_CameraOutputBase& FAGX_CameraOutputBase::operator=(const FAGX_CameraOutputB
 {
 	// This operator is needed to be able to declare e.g. TArray's containing this struct.
 	// It is assumed not to be called during play, therefore no native is copied here.
+	Resolution = Other.Resolution;
+	FrameRate = Other.FrameRate;
+	bConstantCapture = Other.bConstantCapture;
 	return *this;
 }
 

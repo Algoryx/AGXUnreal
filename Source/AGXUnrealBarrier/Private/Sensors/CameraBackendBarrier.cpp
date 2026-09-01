@@ -318,16 +318,6 @@ void FCameraBackendBarrier::RegisterCamera(FCameraBarrier& Camera)
 
 void FCameraBackendBarrier::UnregisterCamera(FCameraBarrier& Camera)
 {
-	if (TArray<FAGX_CameraCaptureState>* CameraCaptureStates = CaptureStates.Find(&Camera))
-	{
-		for (const FAGX_CameraCaptureState& CaptureState : *CameraCaptureStates)
-			OutputStates.Remove(CaptureState.OutputAddr);
-
-		FScopeLock Lock(&OutputRawDataMutex);
-		for (const FAGX_CameraCaptureState& CaptureState : *CameraCaptureStates)
-			OutputRawData.Remove(CaptureState.OutputAddr);
-	}
-
 	CaptureStates.Remove(&Camera);
 
 	if (Camera.HasNative())

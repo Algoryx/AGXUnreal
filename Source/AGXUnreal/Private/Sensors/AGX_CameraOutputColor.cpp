@@ -118,8 +118,11 @@ uint8 FAGX_CameraOutputColor::GetChannelCount() const
 
 FAGX_CameraOutputColor& FAGX_CameraOutputColor::operator=(const FAGX_CameraOutputColor& Other)
 {
-	// This operator is needed to be able to declare e.g. TArray's containing this struct.
-	// It is assumed not to be called during play, therefore no native is copied here.
+	FAGX_CameraOutputBase::operator=(Other);
+	ChannelType = Other.ChannelType;
+	Gamma = Other.Gamma;
+	ColorMappingMatrix = Other.ColorMappingMatrix;
+	ChannelCount = Other.ChannelCount;
 	return *this;
 }
 

@@ -270,8 +270,7 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget(
 	return Context->SceneRenderTarget.Get();
 }
 
-UAGX_CameraSensorComponent::FCameraOutputRenderContext*
-UAGX_CameraSensorComponent::GetOrCreateOutputRenderContext(
+FCameraOutputRenderContext* UAGX_CameraSensorComponent::GetOrCreateOutputRenderContext(
 	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
 	if (!OutputColorBarrier.HasNative())
@@ -872,14 +871,13 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	OwnedCaptureComponent2D =
 		NewObject<USceneCaptureComponent2D>(this, FName(TEXT("SceneCaptureComponent2D")));
 	OwnedCaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
-	OwnedCaptureComponent2D->RegisterComponent();
-	OwnedCaptureComponent2D->AttachToComponent(
-		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-
 	OwnedCaptureComponent2D->SetCanEverAffectNavigation(false);
 	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
 	OwnedCaptureComponent2D->bCaptureOnMovement = false;
 	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
+	OwnedCaptureComponent2D->RegisterComponent();
+	OwnedCaptureComponent2D->AttachToComponent(
+		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 }
 
 void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()

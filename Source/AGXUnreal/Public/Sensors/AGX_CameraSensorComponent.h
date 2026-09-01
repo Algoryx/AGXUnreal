@@ -26,6 +26,27 @@ class UAGX_CameraPhotodetectorBase;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 
+USTRUCT()
+struct AGXUNREAL_API FCameraOutputRenderContext
+{
+	GENERATED_BODY()
+
+	// Given to SceneCaptureComponent before capture.
+	UPROPERTY(Transient)
+	TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget;
+
+	// Holds the result of Material Passes.
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
+
+	// MaterialInstances created from the set MaterialPasses used when executing the Material
+	// Passes.
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+
+	FAGX_CameraSensorCaptureHelper CaptureHelper;
+};
+
 /**
  * Todo: add API comment.
  */
@@ -162,8 +183,6 @@ private:
 	void UpdateCameraPhotoDetector();
 	void UpdateCameraLens();
 
-	struct FCameraOutputRenderContext;
-
 	/// Executes the MaterialPasses and returns the final render target.
 	UTextureRenderTarget2D* RenderMaterialPasses(
 		FCameraOutputRenderContext& OutputRenderContext,
@@ -203,22 +222,8 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};
 
-	struct FCameraOutputRenderContext
-	{
-		// Given to SceneCaptureComponent before capture.
-		TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget;
-
-		// Holds the result of Material Passes.
-		TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
-
-		// MaterialInstances created from the set MaterialPasses used when executing the Material
-		// Passes.
-		TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
-
-		FAGX_CameraSensorCaptureHelper CaptureHelper;
-	};
-
 	// Per-output render context. Key is native Output address.
+	UPROPERTY(Transient)
 	TMap<uint64, FCameraOutputRenderContext> OutputRenderContexts;
 
 	FAGX_CameraBackendPropagator CameraBackendPropagator;
