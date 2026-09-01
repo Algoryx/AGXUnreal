@@ -3,57 +3,47 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "Sensors/SensorEnvironmentBarrier.h"
-#include "Sensors/AGX_IMUSensorReference.h"
-#include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_ShapeInstanceData.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+#include "Tickable.h"
 
-#include "AGX_SensorEnvironment.generated.h"
+#include "AGX_SensorEnvironmentSubsystem.generated.h"
 
 class AAGX_Terrain;
+class AActor;
+class UAGX_IMUSensorComponent;
 class UAGX_LidarAmbientMaterial;
+class UAGX_LidarSensorComponent;
+class UAGX_LidarSurfaceMaterial;
 class UAGX_MovableTerrainComponent;
 class UAGX_SimpleMeshComponent;
 class UAGX_WireComponent;
+class UActorComponent;
+class UGameInstance;
 class UInstancedStaticMeshComponent;
+class UPrimitiveComponent;
 class USphereComponent;
 class UStaticMeshComponent;
+class UWorld;
 
-UCLASS(ClassGroup = "AGX_Sensor", Blueprintable, Category = "AGX")
-class AGXUNREAL_API AAGX_SensorEnvironment : public AActor
+UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX", Config = Engine, DefaultConfig)
+class AGXUNREAL_API UAGX_SensorEnvironmentSubsystem : public UGameInstanceSubsystem,
+													  public FTickableGameObject
 {
 	GENERATED_BODY()
 
 public:
-	AAGX_SensorEnvironment();
-
-	/**
-	 * Array of all Lidar Sensor Components that should be active in the simulation.
-	 * Any Lidar Sensor Components that should be active has to be added by the user to this Array.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
-	TArray<FAGX_LidarSensorReference> LidarSensors;
-
-	/**
-	 * Array of all IMU Sensor Components that should be active in the simulation.
-	 * Any IMU Sensor Components that should be active has to be added by the user to this Array.
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Sensor Environment")
-	TArray<FAGX_IMUSensorReference> IMUSensors;
-
 	/**
 	 * Objects in the Level that gets within the range of any added Lidar will automatically be
 	 * added to this Environment if they can be detected.
 	 * Objects will be detected if they have a Static Mesh Component using "Generate Overlap Events"
 	 * and it has a Static Mesh with "Simple Collision" active.
 	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment",
-		Meta = (ExposeOnSpawn))
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
 	bool bAutoAddObjects {true};
 
 	/**
@@ -64,7 +54,7 @@ public:
 	 * property will not have an affect, and the object will always be added.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment",
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment",
 		Meta = (EditCondition = "bAutoAddObjects"))
 	bool bIgnoreInvisibleObjects {true};
 
@@ -74,16 +64,31 @@ public:
 	 * If this LOD index does not exist for a Mesh that is added, the closest valid (and lower) LOD
 	 * index is selected.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
 	int32 DefaultLODIndex {-1};
 
 	/**
 	 * The Ambient material used by the Sensor Environment.
 	 * This is used to simulate atmospheric effects on the Lidar laser rays, such as rain or fog.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
-	UAGX_LidarAmbientMaterial* AmbientMaterial {nullptr};
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment",
+		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarAmbientMaterial"))
+	FSoftObjectPath AmbientMaterial;
 
+	/**
+	 * Default Lidar Surface Material assigned to all objects added to a Sensor Environment
+	 * when the object has no explicitly assigned Lidar Surface Material.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment",
+		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
+	FSoftObjectPath DefaultLidarSurfaceMaterial;
+
+	/**
+	 * Set the Ambient material used by the Sensor Environment.
+	 * This is used to simulate atmospheric effects on the Lidar laser rays, such as rain or fog.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
 
@@ -104,15 +109,25 @@ public:
 	 * in the Lidar simulation.
 	 */
 	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Sensor Environment", AdvancedDisplay)
+		Config, EditAnywhere, BlueprintReadWrite, Category = "AGX Sensor Environment",
+		AdvancedDisplay)
 	bool UpdateAddedInstancedMeshesTransforms {true};
 
 	/**
 	 * The (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
 	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
 	FVector MagneticField {0.0, 44.754e-6, 0.0};
+
+	/**
+	 * For debugging purposes. If set to true, a message is logged in the Output Console each time
+	 * an object is succesfully added to this Sensor Environment.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadWrite, Category = "AGX Sensor Environment",
+		AdvancedDisplay)
+	bool DebugLogOnAdd {false};
 
 	/**
 	 * Set the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
@@ -129,21 +144,13 @@ public:
 	FVector GetMagneticField() const;
 
 	/**
-	 * For debugging purposes. If set to true, a message is logged in the Output Console each time
-	 * an object is succesfully added to this Sensor Environment.
-	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadWrite, Category = "AGX Sensor Environment", AdvancedDisplay)
-	bool DebugLogOnAdd {false};
-
-	/**
-	 * Manually add a Lidar Sensor Component. This can also be done from the Details Panel.
+	 * Manually add a Lidar Sensor Component.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddLidar(UAGX_LidarSensorComponent* Lidar);
 
 	/**
-	 * Manually add an IMU Sensor Component. This can also be done from the Details Panel.
+	 * Manually add an IMU Sensor Component.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddIMU(UAGX_IMUSensorComponent* IMU);
@@ -199,8 +206,8 @@ public:
 	bool AddTerrain(AAGX_Terrain* Terrain);
 
 	/**
-	 * Manually add a Movable Terrain Componentso that it can be detected by sensors handled by this
-	 * Sensor Environment.
+	 * Manually add a Movable Terrain Component so that it can be detected by sensors handled by
+	 * this Sensor Environment.
 	 * Only valid to call during Play.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
@@ -244,7 +251,7 @@ public:
 	bool RemoveInstancedMesh(UInstancedStaticMeshComponent* Mesh);
 
 	/**
-	 * Manually remove a single Instanced Static Mesh Instace from this Sensor Environment.
+	 * Manually remove a single Instanced Static Mesh Instance from this Sensor Environment.
 	 * Only valid to call during Play.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
@@ -273,8 +280,14 @@ public:
 	bool RemoveWire(UAGX_WireComponent* Wire);
 
 	bool HasNative() const;
+	bool EnsureNativeInitialized();
 	FSensorEnvironmentBarrier* GetNative();
 	const FSensorEnvironmentBarrier* GetNative() const;
+
+	static UAGX_SensorEnvironmentSubsystem* GetFrom(const UActorComponent* Component);
+	static UAGX_SensorEnvironmentSubsystem* GetFrom(const AActor* Actor);
+	static UAGX_SensorEnvironmentSubsystem* GetFrom(const UWorld* World);
+	static UAGX_SensorEnvironmentSubsystem* GetFrom(const UGameInstance* GameInstance);
 
 	// ~Begin UObject interface.
 #if WITH_EDITOR
@@ -282,20 +295,19 @@ public:
 #endif
 	// ~End UObject interface.
 
-	// ~Begin AActor interface.
-	virtual void Tick(float DeltaSeconds) override;
-	// ~End AActor interface.
+	// ~Begin USubsystem interface.
+	virtual void Deinitialize() override;
+	// ~End USubsystem interface.
 
-protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	// ~Begin FTickableGameObject interface.
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override;
+	virtual UWorld* GetTickableGameObjectWorld() const override;
+	// ~End FTickableGameObject interface.
 
 private:
 	void InitializeNative();
-	void RegisterLidars();
-	bool RegisterLidar(FAGX_LidarSensorReference& LidarRef);
-	void RegisterIMUs();
-	bool RegisterIMU(FAGX_IMUSensorReference& IMURef);
 	void UpdateTrackedLidars();
 	void UpdateTrackedIMUs();
 	void UpdateTrackedMeshes();
@@ -318,6 +330,7 @@ private:
 		const TArray<FTriIndices>& Indices);
 
 	bool AddInstancedMeshInstance_Internal(UInstancedStaticMeshComponent* Mesh, int32 Index);
+	bool AddAutoDetectedTerrains();
 
 	UFUNCTION()
 	void OnLidarBeginOverlapComponent(
@@ -339,19 +352,16 @@ private:
 		UInstancedStaticMeshComponent& Mesh, int32 Index);
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
 
-#if WITH_EDITOR
-	virtual void PostInitProperties() override;
-	void InitPropertyDispatcher();
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
-#endif // WITH_EDITOR
-
 private:
-	TMap<FAGX_LidarSensorReference, TObjectPtr<USphereComponent>> TrackedLidars;
+	TMap<TWeakObjectPtr<UAGX_LidarSensorComponent>, TWeakObjectPtr<USphereComponent>>
+		TrackedLidars;
 	TMap<TWeakObjectPtr<UStaticMeshComponent>, FAGX_RtShapeInstanceData> TrackedMeshes;
 	TMap<TWeakObjectPtr<UInstancedStaticMeshComponent>, FAGX_RtInstancedShapeInstanceData>
 		TrackedInstancedMeshes;
 	TMap<TWeakObjectPtr<UAGX_SimpleMeshComponent>, FAGX_RtShapeInstanceData> TrackedAGXMeshes;
-	TSet<FAGX_IMUSensorReference> TrackedIMUs;
+	TSet<TWeakObjectPtr<UAGX_IMUSensorComponent>> TrackedIMUs;
+
+	TObjectPtr<UAGX_LidarAmbientMaterial> AmbientMaterialInstance {nullptr};
 
 	FSensorEnvironmentBarrier NativeBarrier;
 };

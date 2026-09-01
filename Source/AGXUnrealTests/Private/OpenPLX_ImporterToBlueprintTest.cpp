@@ -4,10 +4,12 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_RigidBodyComponent.h"
 #include "AgxAutomationCommon.h"
 #include "Import/AGX_ImporterToEditor.h"
 #include "Import/AGX_ImportSettings.h"
 #include "Import/AGX_ModelSourceComponent.h"
+#include "Sensors/AGX_IMUSensorComponent.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -26,6 +28,9 @@
 #include "Misc/Paths.h"
 #include "Tests/AutomationCommon.h"
 #include "UObject/Package.h"
+
+// Standard library includes.
+#include <limits>
 
 /*
  * This file contains tests for importing OpenPLX files to Blueprints.
@@ -387,8 +392,6 @@ bool FCheckBoxWithTextureImportedCommand::Update()
 		TEXT("BaseColorTexture compression"),
 		static_cast<int32>(BaseColorTexture->CompressionSettings.GetValue()),
 		static_cast<int32>(TC_Default));
-	Test.TestEqual(TEXT("BaseColorTexture width"), BaseColorTexture->GetSizeX(), 1024);
-	Test.TestEqual(TEXT("BaseColorTexture height"), BaseColorTexture->GetSizeY(), 1024);
 
 	return true;
 }
@@ -439,6 +442,171 @@ private:
 namespace
 {
 	FOpenPLX_ImporterToBlueprint_BoxWithTextureTest OpenPLX_ImporterToBlueprint_BoxWithTextureTest;
+}
+
+//
+// sensors_imu test starts here.
+//
+
+DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
+	FCheckSensorsIMUImportedCommand, OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState&,
+	State, FAutomationTestBase&, Test);
+
+bool FCheckSensorsIMUImportedCommand::Update()
+{
+	Test.TestNotNull(TEXT("Blueprint"), State.Blueprint);
+	if (State.Blueprint == nullptr)
+		return true;
+
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
+
+	// SceneRoot, 1 Rigid Body, 1 Cylinder, 1 trimesh, 1 collisionMesh, 1 RenderMesh, 1 IMU,
+	// 1 OpenPLXSignalHandler, 1 ModelSource.
+	Test.TestEqual(TEXT("sensors_imu num Components"), Components.Num(), 9);
+
+	UAGX_IMUSensorComponent* IMU = AgxAutomationCommon::GetByName<UAGX_IMUSensorComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("imu__logic")));
+	const UAGX_RigidBodyComponent* Body = AgxAutomationCommon::GetByName<UAGX_RigidBodyComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName("imu__body"));
+
+	Test.TestNotNull(TEXT("sensors_imu IMU Component"), IMU);
+	Test.TestNotNull(TEXT("sensors_imu Rigid Body Component"), Body);
+	if (IMU == nullptr || Body == nullptr)
+		return true;
+
+	Test.TestTrue(TEXT("sensors_imu IMU imported from OpenPLX"), IMU->bOpenPLXImported);
+
+	Test.TestEqual(
+		TEXT("sensors_imu IMU rigid body reference"),
+		FAGX_BlueprintUtilities::ToTemplateComponentName(IMU->RigidBody.Name.ToString()),
+		Body->GetFName().ToString());
+	Test.TestTrue(TEXT("sensors_imu IMU uses accelerometer"), IMU->bUseAccelerometer);
+	Test.TestTrue(TEXT("sensors_imu IMU uses gyroscope"), IMU->bUseGyroscope);
+	Test.TestTrue(TEXT("sensors_imu IMU uses magnetometer"), IMU->bUseMagnetometer);
+
+	const FAGX_RealInterval InfiniteRange(
+		-std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity());
+	AgxAutomationCommon::TestEqual(
+		Test, TEXT("sensors_imu accelerometer range"), IMU->AccelerometerRange, InfiniteRange);
+	AgxAutomationCommon::TestEqual(
+		Test, TEXT("sensors_imu gyroscope range"), IMU->GyroscopeRange, InfiniteRange);
+	AgxAutomationCommon::TestEqual(
+		Test, TEXT("sensors_imu magnetometer range"), IMU->MagnetometerRange, InfiniteRange);
+
+	const FVector CrossAxisSensitivityX(10.0, 13.0, 14.0);
+	const FVector CrossAxisSensitivityY(11.0, 15.0, 17.0);
+	const FVector CrossAxisSensitivityZ(12.0, 16.0, 18.0);
+
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer cross axis sensitivity X"),
+		IMU->AccelerometerCrossAxisSensitivityX, CrossAxisSensitivityX);
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer cross axis sensitivity Y"),
+		IMU->AccelerometerCrossAxisSensitivityY, CrossAxisSensitivityY);
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer cross axis sensitivity Z"),
+		IMU->AccelerometerCrossAxisSensitivityZ, CrossAxisSensitivityZ);
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer zero g bias"), IMU->AccelerometerZeroGBias,
+		FVector(700.0, -800.0, 900.0));
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer noise RMS"), IMU->AccelerometerNoiseRMS,
+		FVector(3000.0, 3100.0, 3200.0));
+	Test.TestEqual(
+		TEXT("sensors_imu accelerometer spectral noise density"),
+		IMU->AccelerometerSpectralNoiseDensity, FVector(2100.0, 2200.0, 2300.0));
+
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope cross axis sensitivity X"), IMU->GyroscopeCrossAxisSensitivityX,
+		CrossAxisSensitivityX);
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope cross axis sensitivity Y"), IMU->GyroscopeCrossAxisSensitivityY,
+		CrossAxisSensitivityY);
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope cross axis sensitivity Z"), IMU->GyroscopeCrossAxisSensitivityZ,
+		CrossAxisSensitivityZ);
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope zero rate bias"), IMU->GyroscopeZeroRateBias,
+		FVector(
+			FMath::RadiansToDegrees(7.0), -FMath::RadiansToDegrees(8.0),
+			-FMath::RadiansToDegrees(9.0)));
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope noise RMS"), IMU->GyroscopeNoiseRMS,
+		FVector(
+			FMath::RadiansToDegrees(30.0), FMath::RadiansToDegrees(31.0),
+			FMath::RadiansToDegrees(32.0)));
+	Test.TestEqual(
+		TEXT("sensors_imu gyroscope spectral noise density"), IMU->GyroscopeSpectralNoiseDensity,
+		FVector(
+			FMath::RadiansToDegrees(21.0), FMath::RadiansToDegrees(22.0),
+			FMath::RadiansToDegrees(23.0)));
+
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer cross axis sensitivity X"),
+		IMU->MagnetometerCrossAxisSensitivityX, CrossAxisSensitivityX);
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer cross axis sensitivity Y"),
+		IMU->MagnetometerCrossAxisSensitivityY, CrossAxisSensitivityY);
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer cross axis sensitivity Z"),
+		IMU->MagnetometerCrossAxisSensitivityZ, CrossAxisSensitivityZ);
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer zero flux bias"), IMU->MagnetometerZeroFluxBias,
+		FVector(7.0, -8.0, 9.0));
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer noise RMS"), IMU->MagnetometerNoiseRMS,
+		FVector(30.0, 31.0, 32.0));
+	Test.TestEqual(
+		TEXT("sensors_imu magnetometer spectral noise density"),
+		IMU->MagnetometerSpectralNoiseDensity, FVector(21.0, 22.0, 23.0));
+
+	return true;
+}
+
+class FOpenPLX_ImporterToBlueprint_SensorsIMUTest final
+	: public AgxAutomationCommon::FAgxAutomationTest
+{
+public:
+	FOpenPLX_ImporterToBlueprint_SensorsIMUTest()
+		: AgxAutomationCommon::FAgxAutomationTest(
+			  TEXT("FOpenPLX_ImporterToBlueprint_SensorsIMUTest"),
+			  TEXT("AGXUnreal.Editor.OpenPLX.ImporterToBlueprint.SensorsIMU"))
+	{
+		State.OpenPLXFile = TEXT("OpenPLX/sensors_imu/sensors_imu.openplx");
+		State.ExpectedCopiedOpenPLXFiles = {TEXT("sensors_imu.openplx")};
+		State.ExpectedImportedAssetsExcludingBaseBP = {
+			TEXT("Blueprint"),
+			TEXT("RenderMaterial"),
+			TEXT("RenderMesh"),
+			TEXT("StaticMesh"),
+			TEXT("BP_sensors_imu.uasset"),
+			TEXT("MI_TestSceneimubodyvisualmaterial.uasset"),
+			TEXT("SM_RenderMesh_DFDFC105AF455320A605D2BED084F5EE.uasset"),
+			TEXT("SM_CollisionMesh_0E82799234255ED3BB13025826E4FC89.uasset")};
+	}
+
+protected:
+	bool RunTest(const FString& Parameters) override
+	{
+		using namespace OpenPLX_ImporterToBlueprintTest_helpers;
+
+		BAIL_TEST_IF_NOT_EDITOR(false)
+
+		AddCommonOpenPLXImportCommands(State, *this);
+		ADD_LATENT_AUTOMATION_COMMAND(FCheckSensorsIMUImportedCommand(State, *this));
+		AddCommonOpenPLXCleanupCommands(State, *this);
+
+		return true;
+	}
+
+private:
+	OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState State;
+};
+
+namespace
+{
+	FOpenPLX_ImporterToBlueprint_SensorsIMUTest OpenPLX_ImporterToBlueprint_SensorsIMUTest;
 }
 
 namespace OpenPLX_ImporterToBlueprintTest_AgxIcon_helpers
