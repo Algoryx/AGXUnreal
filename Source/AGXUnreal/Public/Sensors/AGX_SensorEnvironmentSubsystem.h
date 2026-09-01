@@ -85,6 +85,10 @@ public:
 		Meta = (AllowedClasses = "/Script/AGXUnreal.AGX_LidarSurfaceMaterial"))
 	FSoftObjectPath DefaultLidarSurfaceMaterial;
 
+	/**
+	 * Set the Ambient material used by the Sensor Environment.
+	 * This is used to simulate atmospheric effects on the Lidar laser rays, such as rain or fog.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool SetAmbientMaterial(UAGX_LidarAmbientMaterial* InAmbientMaterial);
 
@@ -125,65 +129,158 @@ public:
 		AdvancedDisplay)
 	bool DebugLogOnAdd {false};
 
+	/**
+	 * Set the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	void SetMagneticField(const FVector& Field);
 
+	/**
+	 * Get the (uniform) Magnetic Field of this Sensor Environment in Tesla [T].
+	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	FVector GetMagneticField() const;
 
+	/**
+	 * Manually add a Lidar Sensor Component.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddLidar(UAGX_LidarSensorComponent* Lidar);
 
+	/**
+	 * Manually add an IMU Sensor Component.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddIMU(UAGX_IMUSensorComponent* IMU);
 
+	/**
+	 * Manually add a Static Mesh Component so that it can be detected by sensors handled by this
+	 * Sensor Environment. (Optional) LOD determines the LOD index used when reading the given Mesh.
+	 * If left to -1, the DefaultLODIndex is used. See property DefaultLODIndex.
+	 *
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddMesh(UStaticMeshComponent* Mesh, int32 LOD = -1);
 
+	/**
+	 * Manually add an AGX Simple Mesh Component so that it can be detected by sensors handled by
+	 * this Sensor Environment. Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddAGXMesh(UAGX_SimpleMeshComponent* Mesh);
 
+	/**
+	 * Manually add all instances of an Instanced Static Mesh Component so that they can be detected
+	 * by sensors handled by this Sensor Environment.
+	 *
+	 * Instances created after calling this function will not be added to the Sensor Environment.
+	 *
+	 * (Optional) LOD determines the LOD index used when reading the given Mesh. If left to -1,
+	 * the DefaultLODIndex is used. See property DefaultLODIndex.
+	 *
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddInstancedMesh(UInstancedStaticMeshComponent* Mesh, int32 LOD = -1);
 
+	/**
+	 * Manually add a single instance of an Instanced Static Mesh Component so that it can be
+	 * detected by sensors handled by this Sensor Environment. The Index corresponds to the Mesh
+	 * Instance to add. (Optional) LOD determines the LOD index used when reading the given Mesh. If
+	 * left to -1, the DefaultLODIndex is used. See property DefaultLODIndex.
+	 *
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddInstancedMeshInstance(UInstancedStaticMeshComponent* Mesh, int32 Index, int32 LOD = -1);
 
+	/**
+	 * Manually add a Terrain so that it can be detected by sensors handled by this Sensor
+	 * Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddTerrain(AAGX_Terrain* Terrain);
 
+	/**
+	 * Manually add a Movable Terrain Component so that it can be detected by sensors handled by
+	 * this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddMovableTerrain(UAGX_MovableTerrainComponent* Terrain);
 
+	/**
+	 * Manually add a Wire so that it can be detected by sensors handled by this Sensor
+	 * Environment.
+	 * When using this function instead of letting the Sensor Environment 'Auto Add' the Wire, the
+	 * underlying AGX Dynamics Wire will be used for raycast hits instead of the visual
+	 * representation seen in the Viewport.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddWire(UAGX_WireComponent* Wire);
 
+	/**
+	 * Manually remove a Lidar Sensor Component from this Sensor Environment.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveLidar(UAGX_LidarSensorComponent* Lidar);
 
+	/**
+	 * Manually remove an IMU Sensor Component from this Sensor Environment.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveIMU(UAGX_IMUSensorComponent* IMU);
 
+	/**
+	 * Manually remove a Static Mesh Component from this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveMesh(UStaticMeshComponent* Mesh);
 
+	/**
+	 * Manually remove an Instanced Static Mesh Component and all its instances from this Sensor
+	 * Environment. Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveInstancedMesh(UInstancedStaticMeshComponent* Mesh);
 
+	/**
+	 * Manually remove a single Instanced Static Mesh Instance from this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveInstancedMeshInstance(UInstancedStaticMeshComponent* Mesh, int32 Index);
 
+	/**
+	 * Manually remove a Terrain from this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveTerrain(AAGX_Terrain* Terrain);
 
+	/**
+	 * Manually remove a Movable Terrain Component from this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveMovableTerrain(UAGX_MovableTerrainComponent* Terrain);
 
+	/**
+	 * Manually remove a Wire from this Sensor Environment.
+	 * Should only be called for Wires manually added to this Sensor Environment.
+	 * Only valid to call during Play.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveWire(UAGX_WireComponent* Wire);
 
 	bool HasNative() const;
-	void EnsureNativeInitialized();
+	bool EnsureNativeInitialized();
 	FSensorEnvironmentBarrier* GetNative();
 	const FSensorEnvironmentBarrier* GetNative() const;
 
@@ -256,7 +353,8 @@ private:
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
 
 private:
-	TMap<TWeakObjectPtr<UAGX_LidarSensorComponent>, TObjectPtr<USphereComponent>> TrackedLidars;
+	TMap<TWeakObjectPtr<UAGX_LidarSensorComponent>, TWeakObjectPtr<USphereComponent>>
+		TrackedLidars;
 	TMap<TWeakObjectPtr<UStaticMeshComponent>, FAGX_RtShapeInstanceData> TrackedMeshes;
 	TMap<TWeakObjectPtr<UInstancedStaticMeshComponent>, FAGX_RtInstancedShapeInstanceData>
 		TrackedInstancedMeshes;

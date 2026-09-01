@@ -103,6 +103,7 @@ const FSensorBarrier* UAGX_SensorComponentBase::GetNative() const
 void UAGX_SensorComponentBase::CopyFrom(
 	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
 {
+	bEnabled = Barrier.GetEnabled();
 	ImportName = Barrier.GetName();
 	ImportGuid = Barrier.GetGuid();
 
