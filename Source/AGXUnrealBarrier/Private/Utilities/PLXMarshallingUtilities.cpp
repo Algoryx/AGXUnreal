@@ -51,9 +51,8 @@ namespace PLXMarshallingUtilities
 		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
 		const openplx::Field*& OutZField)
 	{
-		std::unique_ptr<openplx::Marshalling>& VectorMarshallingPtr =
-			WindowMarshalling.get_or_add_nested_marshalling(MarshallingName);
-		openplx::Marshalling* VectorMarshalling = VectorMarshallingPtr.get();
+		openplx::Marshalling* VectorMarshalling =
+			WindowMarshalling.get_or_add_nested_marshalling(MarshallingName).get();
 		if (VectorMarshalling == nullptr)
 			return false;
 
