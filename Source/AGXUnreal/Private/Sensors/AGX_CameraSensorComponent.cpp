@@ -953,8 +953,8 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 {
 	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 	RenderTarget->bGPUSharedFlag = true;
+	RenderTarget->SRGB = false;
 	RenderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
-	RenderTarget->TargetGamma = 2.2f;
 	RenderTarget->InitAutoFormat(InResolution.X, InResolution.Y);
 	return RenderTarget;
 }
