@@ -14,29 +14,6 @@ namespace PLXMarshallingUtilities
 		return It != Fields.end() ? &It->second : nullptr;
 	}
 
-	bool IsFieldInsideStride(
-		const openplx::Field* Field, openplx::FieldType FieldType, size_t FieldSize,
-		size_t Stride)
-	{
-		return Field != nullptr && Field->field_type == FieldType && Field->size == FieldSize &&
-			   Field->offset + Field->size <= Stride;
-	}
-
-	bool IsFloatFieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Real, sizeof(float), Stride);
-	}
-
-	bool IsDoubleFieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Real, sizeof(double), Stride);
-	}
-
-	bool IsInt32FieldInsideStride(const openplx::Field* Field, size_t Stride)
-	{
-		return IsFieldInsideStride(Field, openplx::FieldType::Int, sizeof(int32_t), Stride);
-	}
-
 	bool GetWindowLayout(
 		openplx::Marshalling& Marshalling, FWindowLayout& OutLayout, bool bRequireBuffer)
 	{
@@ -70,23 +47,20 @@ namespace PLXMarshallingUtilities
 	}
 
 	bool GetNestedVectorFields(
-		openplx::Marshalling& WindowMarshalling, size_t WindowStride,
-		const std::string& MarshallingName, FFieldStrideValidator FieldValidator,
+		openplx::Marshalling& WindowMarshalling, const std::string& MarshallingName,
 		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
 		const openplx::Field*& OutZField)
 	{
 		std::unique_ptr<openplx::Marshalling>& VectorMarshallingPtr =
 			WindowMarshalling.get_or_add_nested_marshalling(MarshallingName);
 		openplx::Marshalling* VectorMarshalling = VectorMarshallingPtr.get();
-		if (VectorMarshalling == nullptr || FieldValidator == nullptr)
+		if (VectorMarshalling == nullptr)
 			return false;
 
 		const auto& VectorFields = VectorMarshalling->get_field_map();
 		OutXField = FindField(VectorFields, "x");
 		OutYField = FindField(VectorFields, "y");
 		OutZField = FindField(VectorFields, "z");
-		return FieldValidator(OutXField, WindowStride) &&
-			   FieldValidator(OutYField, WindowStride) &&
-			   FieldValidator(OutZField, WindowStride);
+		return OutXField != nullptr && OutYField != nullptr && OutZField != nullptr;
 	}
 }

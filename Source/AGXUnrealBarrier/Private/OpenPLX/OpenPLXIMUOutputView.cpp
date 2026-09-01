@@ -33,8 +33,7 @@ namespace OpenPLXIMUOutputView_helpers
 		const openplx::Field* YField = nullptr;
 		const openplx::Field* ZField = nullptr;
 		if (!GetNestedVectorFields(
-				*Layout.Marshalling, Layout.Stride, Name, IsDoubleFieldInsideStride, XField,
-				YField, ZField))
+				*Layout.Marshalling, Name, XField, YField, ZField))
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -94,8 +93,7 @@ bool FOpenPLXIMUOutputView::HasAccelerometer() const
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
 	return GetNestedVectorFields(
-		*Layout.Marshalling, Layout.Stride, "accelerometer_logic", IsDoubleFieldInsideStride,
-		XField, YField, ZField);
+		*Layout.Marshalling, "accelerometer_logic", XField, YField, ZField);
 }
 
 bool FOpenPLXIMUOutputView::HasGyroscope() const
@@ -113,8 +111,7 @@ bool FOpenPLXIMUOutputView::HasGyroscope() const
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
 	return GetNestedVectorFields(
-		*Layout.Marshalling, Layout.Stride, "gyroscope_logic", IsDoubleFieldInsideStride, XField,
-		YField, ZField);
+		*Layout.Marshalling, "gyroscope_logic", XField, YField, ZField);
 }
 
 bool FOpenPLXIMUOutputView::HasMagnetometer() const
@@ -132,8 +129,7 @@ bool FOpenPLXIMUOutputView::HasMagnetometer() const
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
 	return GetNestedVectorFields(
-		*Layout.Marshalling, Layout.Stride, "magnetometer_logic", IsDoubleFieldInsideStride,
-		XField, YField, ZField);
+		*Layout.Marshalling, "magnetometer_logic", XField, YField, ZField);
 }
 
 bool FOpenPLXIMUOutputView::GetAccelerometerData(FVector& OutAccelerometerData)
