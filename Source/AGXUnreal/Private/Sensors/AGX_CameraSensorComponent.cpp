@@ -708,11 +708,37 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 	{
 		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
 		// during Play, so recreate the runtime Scene Capture Component on the new instance.
-		GetNativeAsCamera()->RegisterWithBackend();
+		FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+		if (CameraBarrier == nullptr)
+			return;
+
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddCamera(this);
+		}
+
+		CameraBarrier->RegisterWithBackend();
 		SetupCameraBackendPropagator();
 		SetupSceneCapture();
 
-		// TODO: ensure OutputRenderContexts state here!
+		OutputRenderContexts.Empty();
+		TArray<FCameraOutputBarrier> OutputBarriers = CameraBarrier->GetOutputs();
+		for (FCameraOutputBarrier& OutputBarrier : OutputBarriers)
+		{
+			OutputBarrier.RegisterWithBackend(*CameraBarrier);
+			if (!FCameraOutputColorBarrier::IsColorOutput(OutputBarrier))
+				continue;
+
+			FCameraOutputColorBarrier OutputColorBarrier =
+				FCameraOutputColorBarrier::CreateFrom(OutputBarrier);
+			FCameraOutputRenderContext* OutputRenderContext =
+				GetOrCreateOutputRenderContext(OutputColorBarrier);
+			if (OutputRenderContext == nullptr)
+				continue;
+
+			UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier);
+			UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+		}
 	}
 }
 

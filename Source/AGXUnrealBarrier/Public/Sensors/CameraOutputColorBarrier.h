@@ -29,5 +29,6 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 	void SetChannelCount(uint8 InChannelCount);
 	uint8 GetChannelCount() const;
 
+	static FCameraOutputColorBarrier CreateFrom(FCameraOutputBarrier& Output);
 	static bool IsColorOutput(const FCameraOutputBarrier& Output);
 };

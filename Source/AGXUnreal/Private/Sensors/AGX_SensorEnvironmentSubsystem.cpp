@@ -355,8 +355,13 @@ bool UAGX_SensorEnvironmentSubsystem::AddCamera(UAGX_CameraSensorComponent* Came
 	if (Barrier == nullptr)
 		return false;
 
-	if (!NativeBarrier.Add(*Barrier))
-		return false;
+	// May be true after Blueprint reconstruction where a Component has a Native and is registered
+	// here again.
+	if (!NativeBarrier.Contains(*Barrier))
+	{
+		if (!NativeBarrier.Add(*Barrier))
+			return false;
+	}
 
 	TrackedCameras.Add(Camera);
 	return true;
@@ -398,8 +403,13 @@ bool UAGX_SensorEnvironmentSubsystem::AddLidar(UAGX_LidarSensorComponent* Lidar)
 	if (Barrier == nullptr)
 		return false;
 
-	if (!NativeBarrier.Add(*Barrier))
-		return false;
+	// May be true after Blueprint reconstruction where a Component has a Native and is registered
+	// here again.
+	if (!NativeBarrier.Contains(*Barrier))
+	{
+		if (!NativeBarrier.Add(*Barrier))
+			return false;
+	}
 
 	// Associate each Lidar with a USphereComponent used to detect objects in the world to
 	// give to AGX Dynamics during Play.
@@ -469,8 +479,13 @@ bool UAGX_SensorEnvironmentSubsystem::AddIMU(UAGX_IMUSensorComponent* IMU)
 	if (Barrier == nullptr)
 		return false;
 
-	if (!NativeBarrier.Add(*Barrier))
-		return false;
+	// May be true after Blueprint reconstruction where a Component has a Native and is registered
+	// here again.
+	if (!NativeBarrier.Contains(*Barrier))
+	{
+		if (!NativeBarrier.Add(*Barrier))
+			return false;
+	}
 
 	TrackedIMUs.Add(IMU);
 	return true;

@@ -81,7 +81,7 @@ namespace CameraBackendBarrier_helpers
 
 	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
+		//UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
 	}
 
 	void SetCameraLensSingleElement(

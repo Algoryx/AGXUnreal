@@ -41,6 +41,10 @@ public:
 	bool Add(FTerrainPagerBarrier& Pager);
 	bool Add(FWireBarrier& Wire);
 
+	bool Contains(const FCameraBarrier& Camera) const;
+	bool Contains(const FLidarBarrier& Lidar) const;
+	bool Contains(const FIMUBarrier& IMU) const;
+
 	bool Remove(FCameraBarrier& Camera);
 	bool Remove(FLidarBarrier& Lidar);
 	bool Remove(FIMUBarrier& IMU);

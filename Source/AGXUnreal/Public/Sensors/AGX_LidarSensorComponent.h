@@ -269,6 +269,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
+	virtual void PostApplyToComponent() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif

@@ -165,6 +165,20 @@ void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
+void UAGX_IMUSensorComponent::PostApplyToComponent()
+{
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddIMU(this);
+		}
+	}
+}
+
 FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU()
 {
 	if (!HasNative())

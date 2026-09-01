@@ -548,6 +548,30 @@ void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)
 	Super::DestroyComponent(bPromoteChildren);
 }
 
+void UAGX_LidarSensorComponent::PostApplyToComponent()
+{
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
+	{
+		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
+		// during Play.
+		if (bEnableRendering && NiagaraSystemAsset != nullptr)
+		{
+			NiagaraSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				NiagaraSystemAsset, this, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+				FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
+				ENCPoolMethod::None);
+		}
+
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddLidar(this);
+		}
+	}
+}
+
 #if WITH_EDITOR
 bool UAGX_LidarSensorComponent::CanEditChange(const FProperty* InProperty) const
 {

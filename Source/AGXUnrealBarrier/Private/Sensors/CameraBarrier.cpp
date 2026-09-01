@@ -142,22 +142,12 @@ TArray<FCameraOutputBarrier> FCameraBarrier::GetOutputs() const
 {
 	check(HasNative());
 
-	const TArray<FAGX_CameraCaptureState>* CaptureStates =
-		FCameraBackendBarrier::GetInstance().FindCaptureStates(const_cast<FCameraBarrier*>(this));
-	if (CaptureStates == nullptr)
-		return {};
-
 	TArray<FCameraOutputBarrier> Outputs;
-	Outputs.Reserve(CaptureStates->Num());
-	for (const FAGX_CameraCaptureState& CaptureState : *CaptureStates)
-	{
-		if (CaptureState.OutputAddr == 0)
-			continue;
-
-		agxSensor::ICameraOutput* Output =
-			reinterpret_cast<agxSensor::ICameraOutput*>(CaptureState.OutputAddr);
-		Outputs.Emplace(std::make_shared<FCameraOutputRef>(Output));
-	}
+	CameraBarrier_helpers::GetCameraNative(*this)
+		->getOutputHandler()
+		->visitChildrenOfType<agxSensor::ICameraOutput>(
+			[&Outputs](agxSensor::ICameraOutput& Output)
+			{ Outputs.Emplace(std::make_shared<FCameraOutputRef>(&Output)); });
 
 	return Outputs;
 }

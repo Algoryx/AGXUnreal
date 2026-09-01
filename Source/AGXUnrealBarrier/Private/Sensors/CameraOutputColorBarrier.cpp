@@ -96,6 +96,13 @@ bool FCameraOutputColorBarrier::IsColorOutput(const FCameraOutputBarrier& Output
 	return Output.GetNative()->Native->is<agxSensor::CameraColorOutput>();
 }
 
+FCameraOutputColorBarrier FCameraOutputColorBarrier::CreateFrom(FCameraOutputBarrier& Output)
+{
+	check(IsColorOutput(Output));
+	std::shared_ptr<FCameraOutputRef> NativeRef(Output.GetNative(), [](FCameraOutputRef*) {});
+	return FCameraOutputColorBarrier(NativeRef);
+}
+
 void FCameraOutputColorBarrier::SetChannelType(EAGX_CameraOutputChannelType InChannelType)
 {
 	check(HasNative());
