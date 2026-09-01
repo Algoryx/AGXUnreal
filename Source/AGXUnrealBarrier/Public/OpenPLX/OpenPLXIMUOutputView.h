@@ -17,8 +17,8 @@ struct FOpenPLXIMUOutputViewRef;
  *
  * By default this struct references memory owned by the OpenPLX Control Interface. No IMU output
  * data is copied until data is requested. A newly received view is only valid until another
- * read operation reuses the underlying Control Interface buffer. Call MakePersistant before storing
- * the view for later use.
+ * OpenPLX signal receive operation is called since it reuses the underlying Control Interface
+ * buffer. Call MakePersistant before storing the view for later use.
  */
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
