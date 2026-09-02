@@ -61,7 +61,6 @@ public:
 	void SetChannelCount(uint8 InChannelCount);
 	uint8 GetChannelCount() const;
 
-	void GetData(TArray<FColor>& OutData);
 	void GetDataU8(TArray<uint8>& OutData);
 	void GetDataF32(TArray<float>& OutData);
 
@@ -175,22 +174,6 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 	static uint8 GetChannelCount(UPARAM(ref) const FAGX_CameraOutputColor& Output)
 	{
 		return Output.GetChannelCount();
-	}
-
-	/**
-	 * Get the latest Camera Color Output data as FColor values.
-	 *
-	 * Only valid for UInt8 output data. Supports 1 to 4 channels by filling missing RGB channels
-	 * with 0 and missing alpha with 255.
-	 * This is an expensive operation because it copies the Camera output data into a TArray<FColor>.
-	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
-	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
-	 * function that operates directly on the underlying Camera output data buffer.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	static void GetData(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<FColor>& OutData)
-	{
-		Output.GetData(OutData);
 	}
 
 	/**

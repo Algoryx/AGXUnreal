@@ -131,14 +131,6 @@ bool FAGX_CameraOutputColor::operator==(const FAGX_CameraOutputColor& Other) con
 	return FAGX_CameraOutputBase::operator==(Other);
 }
 
-void FAGX_CameraOutputColor::GetData(TArray<FColor>& OutData)
-{
-	using namespace AGX_CameraOutputColor_helpers;
-
-	if (HasNative())
-		GetNativeAsCameraOutputColor(*this)->GetData(OutData);
-}
-
 void FAGX_CameraOutputColor::GetDataU8(TArray<uint8>& OutData)
 {
 	using namespace AGX_CameraOutputColor_helpers;
