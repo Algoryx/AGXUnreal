@@ -63,18 +63,41 @@ namespace AGX_TerrainMaterialPatchComponent_helpers
 			return nullptr;
 		}
 
-		for (USceneComponent* Child : Component.GetAttachChildren())
+		for (UAGX_ShapeComponent* ShapeComponent : Component.GetAttachedShapes())
 		{
-			if (UAGX_ShapeComponent* ShapeComponent = Cast<UAGX_ShapeComponent>(Child))
-			{
-				if (GetShapeComponentName(*ShapeComponent) == ShapeName)
-				{
-					return ShapeComponent;
-				}
-			}
+			if (ShapeComponent == nullptr)
+				continue;
+
+			if (GetShapeComponentName(*ShapeComponent) == ShapeName ||
+				ShapeComponent->GetFName() == ShapeName)
+				return ShapeComponent;
 		}
 
 		return nullptr;
+	}
+
+	FAGX_TerrainMaterialPatchData* GetPatchDataByShapeName(
+		UAGX_TerrainMaterialPatchComponent& Component, const FName& ShapeName)
+	{
+		if (ShapeName.IsNone())
+			return nullptr;
+
+		if (FAGX_TerrainMaterialPatchData* PatchData =
+				Component.GetTerrainMaterialPatches().FindByPredicate(
+					[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
+					{ return Data.ShapeComponentName == ShapeName; }))
+		{
+			return PatchData;
+		}
+
+		UAGX_ShapeComponent* Shape = GetAttachedShapeByName(Component, ShapeName);
+		if (Shape == nullptr)
+			return nullptr;
+
+		const FName StoredShapeName = GetShapeComponentName(*Shape);
+		return Component.GetTerrainMaterialPatches().FindByPredicate(
+			[StoredShapeName](const FAGX_TerrainMaterialPatchData& Data)
+			{ return Data.ShapeComponentName == StoredShapeName; });
 	}
 
 	FTerrainMaterialBarrier* GetTerrainMaterialBarrier(
@@ -156,9 +179,7 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	if (ShapeName.IsNone())
 		return false;
 
-	FAGX_TerrainMaterialPatchData* PatchData = TerrainMaterialPatches.FindByPredicate(
-		[ShapeName](const FAGX_TerrainMaterialPatchData& Data)
-		{ return Data.ShapeComponentName == ShapeName; });
+	FAGX_TerrainMaterialPatchData* PatchData = GetPatchDataByShapeName(*this, ShapeName);
 	if (PatchData == nullptr)
 	{
 		UE_LOG(
@@ -172,7 +193,7 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	PatchData->InstancePlacements.Add(Transform);
 
 	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
-		return false;
+		return true; // Case for in editor calls.
 
 	FTerrainBarrier* TerrainBarrier =
 		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
@@ -192,6 +213,41 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 
 	ApplyTerrainMaterialPatch(
 		{Transform}, *TerrainBarrier, Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial);
+	return true;
+}
+
+bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstances(
+	FName ShapeName, const TArray<FTransform>& Transforms)
+{
+	bool bAllAdded = true;
+	for (const FTransform& Transform : Transforms)
+	{
+		const bool bAdded = AddPatchShapeInstance(ShapeName, Transform);
+		bAllAdded = bAllAdded && bAdded;
+	}
+
+	return bAllAdded;
+}
+
+bool UAGX_TerrainMaterialPatchComponent::ClearShapeInstances(FName ShapeName)
+{
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
+	if (ShapeName.IsNone())
+		return false;
+
+	FAGX_TerrainMaterialPatchData* PatchData = GetPatchDataByShapeName(*this, ShapeName);
+	if (PatchData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ClearShapeInstances called on Terrain Material Patch Component '%s' in '%s', "
+				 "but no Patch Data could be matched against given ShapeName '%s'."),
+			*GetName(), *GetLabelSafe(GetOwner()), *ShapeName.ToString());
+		return false;
+	}
+
+	Modify();
+	PatchData->InstancePlacements.Reset();
 	return true;
 }
 
@@ -417,6 +473,7 @@ void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
 
 		const int32 NumVoxels =
 			TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
+
 		if (NumVoxels == 0)
 		{
 			UE_LOG(

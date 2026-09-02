@@ -83,7 +83,7 @@ public:
 	 * attached to this Component.
 	 *
 	 * This data is applied at BeginPlay and changes to it durint Play will generally not have any
-	 * effect. One exception is when adding instances through the AddShapeInstance function.
+	 * effect. One exception is when adding instances through the AddPatchShapeInstance function.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
@@ -113,6 +113,21 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
 	bool AddPatchShapeInstance(FName ShapeName, const FTransform& Transform);
+
+	/**
+	 * Add Shape instances of an existing patch.
+	 * If any instance could not be added, false is returned.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	bool AddPatchShapeInstances(FName ShapeName, const TArray<FTransform>& Transforms);
+
+	/**
+	 * Clear all Shape instances of an existing patch.
+	 * Intended for editor use only. Only the stored instances are cleared; already applied Terrain
+	 * Material patches are not modified.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	bool ClearShapeInstances(FName ShapeName);
 
 	/**
 	 * Apply a Terrain Material patch during Play.
