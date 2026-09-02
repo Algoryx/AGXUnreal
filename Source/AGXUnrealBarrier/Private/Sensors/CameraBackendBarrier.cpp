@@ -79,11 +79,6 @@ namespace CameraBackendBarrier_helpers
 		}
 	}
 
-	void SynchronizeGraphics(agxSensor::Camera* Camera, agxSensor::Matrix4x4*)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SynchronizeGraphics"));
-	}
-
 	void SetCameraLensSingleElement(
 		agxSensor::Camera* Camera, agxSensor::CameraLensSingleElement*,
 		agxSensor::CameraLensSingleElementParameters* Parameters)
@@ -287,7 +282,6 @@ void FCameraBackendBarrier::AllocateNative()
 	check(!HasNative());
 	NativeRef = std::make_shared<FCameraBackendRef>();
 	NativeRef->Native.synchronize = Synchronize;
-	NativeRef->Native.synchronizeGraphics = SynchronizeGraphics;
 	NativeRef->Native.setCameraLensSingleElement = SetCameraLensSingleElement;
 	NativeRef->Native.setCameraCMOSSensor = SetCameraCMOSSensor;
 	NativeRef->Native.setCameraLensDistortionNone = SetCameraLensDistortionNone;
