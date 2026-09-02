@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_CameraEnums.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "RHIResources.h"
@@ -36,6 +39,8 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureData
 	FGPUFenceRHIRef CopyFence;
 	TAtomic<int32> State {static_cast<int32>(EAGX_CameraSensorSlotState::Free)};
 	uint64 OutputNativeAddress {0};
+	EAGX_CameraOutputChannelType ChannelType {EAGX_CameraOutputChannelType::UNSUPPORTED};
+	uint8 ChannelCount {0};
 };
 
 using FAGX_CameraSensorCaptureDataPtr =

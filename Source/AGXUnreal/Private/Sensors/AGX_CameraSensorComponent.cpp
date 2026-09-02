@@ -67,7 +67,67 @@ namespace AGX_CameraSensorComponent_helpers
 
 	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
 	{
-		return GPixelFormats[PixelFormat].BlockBytes == sizeof(FColor);
+		switch (PixelFormat)
+		{
+			case PF_G8: // For U8, 1 channel.
+			case PF_R8G8: // For U8, 2 channels.
+			case PF_B8G8R8A8: // For U8, 3 and 4 channels.
+			case PF_R8G8B8A8: // For U8, 3 and 4 channels.
+			case PF_R32_FLOAT: // For F32, 1 channel.
+			case PF_G32R32F: // For F32, 2 channels.
+			case PF_A32B32G32R32F: // For F32, 3 and 4 channels.
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	TOptional<ETextureRenderTargetFormat> GetRenderTargetFormat(
+		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
+	{
+		if (ChannelCount < 1 || ChannelCount > 4)
+			return {};
+
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				switch (ChannelCount)
+				{
+					case 1:
+						return ETextureRenderTargetFormat::RTF_R8;
+					case 2:
+						return ETextureRenderTargetFormat::RTF_RG8;
+					default:
+						return ETextureRenderTargetFormat::RTF_RGBA8;
+				}
+
+			case EAGX_CameraOutputChannelType::F32:
+				switch (ChannelCount)
+				{
+					case 1:
+						return ETextureRenderTargetFormat::RTF_R32f;
+					case 2:
+						return ETextureRenderTargetFormat::RTF_RG32f;
+					default:
+						return ETextureRenderTargetFormat::RTF_RGBA32f;
+				}
+
+			default:
+				return {};
+		}
+	}
+
+	TOptional<int32> GetChannelSize(EAGX_CameraOutputChannelType ChannelType)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return sizeof(uint8);
+			case EAGX_CameraOutputChannelType::F32:
+				return sizeof(float);
+			default:
+				return {};
+		}
 	}
 }
 
@@ -294,29 +354,72 @@ void UAGX_CameraSensorComponent::UpdateMaterialParameters(
 
 bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	FCameraOutputRenderContext& OutputRenderContext,
-	const FCameraOutputColorBarrier& OutputColorBarrier)
+	const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings)
 {
+	const auto LogWarning =
+		[this, bLogWarnings](const TCHAR* Message)
+	{
+		if (!bLogWarnings)
+			return;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot update Output Render Context: %s"),
+			*GetName(), *GetLabelSafe(GetOwner()), Message);
+	};
+
 	if (!OutputColorBarrier.HasNative())
+	{
+		LogWarning(TEXT("the Camera Color Output does not have a native output."));
 		return false;
+	}
 
 	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
 	if (CaptureSource == nullptr)
+	{
+		LogWarning(TEXT("there is no valid Scene Capture Component 2D."));
 		return false;
+	}
 
 	const FIntPoint Resolution = OutputColorBarrier.GetResolution();
 	if (!IsResolutionValid(Resolution))
+	{
+		LogWarning(TEXT("the Camera Color Output resolution is invalid."));
 		return false;
+	}
 
-	auto EnsureRenderTarget = [this, &Resolution](TObjectPtr<UTextureRenderTarget2D>& RenderTarget)
+	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
+	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
+	const TOptional<ETextureRenderTargetFormat> RenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!RenderTargetFormat.IsSet())
+	{
+		LogWarning(TEXT("the Camera Color Output channel type or channel count is unsupported."));
+		return false;
+	}
+
+	const EPixelFormat PixelFormat =
+		GetPixelFormatFromRenderTargetFormat(RenderTargetFormat.GetValue());
+	auto EnsureRenderTarget =
+		[this, &Resolution, ChannelType, ChannelCount, RenderTargetFormat, PixelFormat](
+			TObjectPtr<UTextureRenderTarget2D>& RenderTarget)
 	{
 		if (RenderTarget == nullptr)
 		{
-			RenderTarget = CreateRenderTarget(Resolution);
-			return;
+			RenderTarget = CreateRenderTarget(Resolution, ChannelType, ChannelCount);
+			return RenderTarget != nullptr;
 		}
 
-		if (!IsRenderTargetUpToDate(*RenderTarget, Resolution))
+		if (RenderTarget->SizeX != Resolution.X || RenderTarget->SizeY != Resolution.Y)
 			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
+
+		if (RenderTarget->GetFormat() != PixelFormat)
+		{
+			RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
+			RenderTarget->InitAutoFormat(RenderTarget->SizeX, RenderTarget->SizeY);
+		}
+
+		return true;
 	};
 
 	if (HasCaptureSourceOverride())
@@ -325,7 +428,11 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	}
 	else
 	{
-		EnsureRenderTarget(OutputRenderContext.SceneRenderTarget);
+		if (!EnsureRenderTarget(OutputRenderContext.SceneRenderTarget))
+		{
+			LogWarning(TEXT("failed to create the Scene Render Target."));
+			return false;
+		}
 	}
 
 	if (OutputRenderContext.MaterialInstances.Num() != MaterialPasses.Num())
@@ -360,7 +467,11 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 			continue;
 		}
 
-		EnsureRenderTarget(RenderTarget);
+		if (!EnsureRenderTarget(RenderTarget))
+		{
+			LogWarning(TEXT("failed to create a Material Pass Render Target."));
+			return false;
+		}
 	}
 
 	return true;
@@ -393,7 +504,7 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 	FCameraOutputRenderContext* OutputRenderContext =
 		GetOrCreateOutputRenderContext(OutputColorBarrier);
 
-	if (!UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
+	if (!UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier, true))
 		return false;
 
 	if (!HasCaptureSourceOverride())
@@ -430,6 +541,8 @@ bool UAGX_CameraSensorComponent::RequestCapture(
 	const FString NameBase = GetName();
 	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
 	Slot->OutputNativeAddress = OutputColorBarrier.GetNativeAddress();
+	Slot->ChannelType = OutputColorBarrier.GetChannelType();
+	Slot->ChannelCount = OutputColorBarrier.GetChannelCount();
 	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
 	(
 		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
@@ -552,9 +665,22 @@ void UAGX_CameraSensorComponent::PollCaptures()
 				const int32 LogicalWidth = ImageSize.X;
 				const int32 LogicalHeight = ImageSize.Y;
 				const EPixelFormat PixelFormat = Slot->StagingTexture->GetFormat();
-				const int32 BytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
-				if (LogicalWidth <= 0 || LogicalHeight <= 0 || BytesPerPixel <= 0 ||
-					SurfaceWidth < LogicalWidth || SurfaceHeight < LogicalHeight)
+				const int32 SourceBytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
+				const TOptional<int32> ChannelSize =
+					AGX_CameraSensorComponent_helpers::GetChannelSize(Slot->ChannelType);
+				const int32 ChannelCount = static_cast<int32>(Slot->ChannelCount);
+				if (LogicalWidth <= 0 || LogicalHeight <= 0 || SourceBytesPerPixel <= 0 ||
+					SurfaceWidth < LogicalWidth || SurfaceHeight < LogicalHeight ||
+					!ChannelSize.IsSet() || ChannelCount < 1 || ChannelCount > 4)
+				{
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int32 DestinationBytesPerPixel = ChannelSize.GetValue() * ChannelCount;
+				if (DestinationBytesPerPixel > SourceBytesPerPixel)
 				{
 					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
 					Slot->CopyFence.SafeRelease();
@@ -578,11 +704,12 @@ void UAGX_CameraSensorComponent::PollCaptures()
 					OutputRawData->PixelFormat = PixelFormat;
 					OutputRawData->IsUnread = true;
 
-					const int32 SourcePitch = SurfaceWidth * BytesPerPixel;
-					const int32 DestinationPitch = LogicalWidth * BytesPerPixel;
+					const int32 SourcePitch = SurfaceWidth * SourceBytesPerPixel;
+					const int32 DestinationPitch = LogicalWidth * DestinationBytesPerPixel;
 					const int32 NumBytes = DestinationPitch * LogicalHeight;
 					OutputRawData->RawData.SetNumUninitialized(NumBytes, EAllowShrinking::No);
-					if (SurfaceWidth == LogicalWidth)
+					if (SurfaceWidth == LogicalWidth &&
+						SourceBytesPerPixel == DestinationBytesPerPixel)
 					{
 						FMemory::Memcpy(OutputRawData->RawData.GetData(), PixelBuffer, NumBytes);
 					}
@@ -592,7 +719,23 @@ void UAGX_CameraSensorComponent::PollCaptures()
 						uint8* DestinationRow = OutputRawData->RawData.GetData();
 						for (int32 Row = 0; Row < LogicalHeight; ++Row)
 						{
-							FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+							if (SourceBytesPerPixel == DestinationBytesPerPixel)
+							{
+								FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+							}
+							else
+							{
+								const uint8* SourcePixel = SourceRow;
+								uint8* DestinationPixel = DestinationRow;
+								for (int32 Column = 0; Column < LogicalWidth; ++Column)
+								{
+									FMemory::Memcpy(
+										DestinationPixel, SourcePixel, DestinationBytesPerPixel);
+									SourcePixel += SourceBytesPerPixel;
+									DestinationPixel += DestinationBytesPerPixel;
+								}
+							}
+
 							SourceRow += SourcePitch;
 							DestinationRow += DestinationPitch;
 						}
@@ -735,8 +878,8 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 			if (OutputRenderContext == nullptr)
 				continue;
 
-			UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier);
-			UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+			if (UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
+				UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
 		}
 	}
 }
@@ -949,20 +1092,20 @@ void UAGX_CameraSensorComponent::UpdateCameraLens()
 }
 
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
-	const FIntPoint& InResolution)
+	const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType,
+	uint8 ChannelCount)
 {
+	const TOptional<ETextureRenderTargetFormat> RenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!RenderTargetFormat.IsSet())
+		return nullptr;
+
 	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 	RenderTarget->bGPUSharedFlag = true;
 	RenderTarget->SRGB = false;
-	RenderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
+	RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
 	RenderTarget->InitAutoFormat(InResolution.X, InResolution.Y);
 	return RenderTarget;
-}
-
-bool UAGX_CameraSensorComponent::IsRenderTargetUpToDate(
-	const UTextureRenderTarget2D& RenderTarget, const FIntPoint& InResolution) const
-{
-	return RenderTarget.SizeX == InResolution.X && RenderTarget.SizeY == InResolution.Y;
 }
 
 bool UAGX_CameraSensorComponent::IsResolutionValid(const FIntPoint& InResolution)
@@ -1039,8 +1182,8 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
 	if (OutputRenderContext == nullptr)
 		return;
 
-	UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier);
-	UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+	if (UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
+		UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
 }
 
 void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)

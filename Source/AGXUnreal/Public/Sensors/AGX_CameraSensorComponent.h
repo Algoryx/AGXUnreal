@@ -191,9 +191,9 @@ private:
 	bool RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void PollCaptures();
 
-	UTextureRenderTarget2D* CreateRenderTarget(const FIntPoint& InResolution);
-	bool IsRenderTargetUpToDate(
-		const UTextureRenderTarget2D& RenderTarget, const FIntPoint& InResolution) const;
+	UTextureRenderTarget2D* CreateRenderTarget(
+		const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType,
+		uint8 ChannelCount);
 	static bool IsResolutionValid(const FIntPoint& InResolution);
 
 #if WITH_EDITOR
@@ -207,7 +207,7 @@ private:
 	// set material parameters, see UpdateMaterialParameters for that.
 	bool UpdateOutputRenderContextNoParams(
 		FCameraOutputRenderContext& OutputRenderContext,
-		const FCameraOutputColorBarrier& OutputColorBarrier);
+		const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings = false);
 
 	/// Write output specific parameters to the given OutMaterials.
 	void UpdateMaterialParameters(

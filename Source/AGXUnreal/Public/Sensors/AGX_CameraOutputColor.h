@@ -62,6 +62,8 @@ public:
 	uint8 GetChannelCount() const;
 
 	void GetData(TArray<FColor>& OutData);
+	void GetDataU8(TArray<uint8>& OutData);
+	void GetDataF32(TArray<float>& OutData);
 
 	FAGX_CameraOutputColor& operator=(const FAGX_CameraOutputColor& Other);
 	bool operator==(const FAGX_CameraOutputColor& Other) const;
@@ -178,6 +180,8 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 	/**
 	 * Get the latest Camera Color Output data as FColor values.
 	 *
+	 * Only valid for UInt8 output data. Supports 1 to 4 channels by filling missing RGB channels
+	 * with 0 and missing alpha with 255.
 	 * This is an expensive operation because it copies the Camera output data into a TArray<FColor>.
 	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
 	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
@@ -187,5 +191,35 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 	static void GetData(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<FColor>& OutData)
 	{
 		Output.GetData(OutData);
+	}
+
+	/**
+	 * Get the latest Camera Color Output data as flat UInt8 channel values.
+	 *
+	 * Only valid for UInt8 output data. The array contains Width * Height * ChannelCount values.
+	 * This is an expensive operation because it copies the Camera output data into a TArray<uint8>.
+	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
+	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
+	 * function that operates directly on the underlying Camera output data buffer.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	static void GetDataU8(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<uint8>& OutData)
+	{
+		Output.GetDataU8(OutData);
+	}
+
+	/**
+	 * Get the latest Camera Color Output data as flat Float32 channel values.
+	 *
+	 * Only valid for Float32 output data. The array contains Width * Height * ChannelCount values.
+	 * This is an expensive operation because it copies the Camera output data into a TArray<float>.
+	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
+	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
+	 * function that operates directly on the underlying Camera output data buffer.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	static void GetDataF32(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<float>& OutData)
+	{
+		Output.GetDataF32(OutData);
 	}
 };

@@ -1172,26 +1172,18 @@ inline agxSensor::CameraColorOutput::ChannelType Convert(EAGX_CameraOutputChanne
 {
 	switch (Type)
 	{
-		case EAGX_CameraOutputChannelType::I8:
-			return agxSensor::CameraColorOutput::I8;
+		case EAGX_CameraOutputChannelType::UNSUPPORTED:
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"Conversion warning: Tried to convert "
+					"EAGX_CameraOutputChannelType::UNSUPPORTED to "
+					"agxSensor::CameraColorOutput::ChannelType. Returning U8."));
+			return agxSensor::CameraColorOutput::U8;
 		case EAGX_CameraOutputChannelType::U8:
 			return agxSensor::CameraColorOutput::U8;
-		case EAGX_CameraOutputChannelType::I16:
-			return agxSensor::CameraColorOutput::I16;
-		case EAGX_CameraOutputChannelType::U16:
-			return agxSensor::CameraColorOutput::U16;
-		case EAGX_CameraOutputChannelType::I32:
-			return agxSensor::CameraColorOutput::I32;
-		case EAGX_CameraOutputChannelType::U32:
-			return agxSensor::CameraColorOutput::U32;
 		case EAGX_CameraOutputChannelType::F32:
 			return agxSensor::CameraColorOutput::F32;
-		case EAGX_CameraOutputChannelType::I64:
-			return agxSensor::CameraColorOutput::I64;
-		case EAGX_CameraOutputChannelType::U64:
-			return agxSensor::CameraColorOutput::U64;
-		case EAGX_CameraOutputChannelType::F64:
-			return agxSensor::CameraColorOutput::F64;
 	}
 
 	UE_LOG(
@@ -1207,26 +1199,19 @@ inline EAGX_CameraOutputChannelType Convert(agxSensor::CameraColorOutput::Channe
 {
 	switch (Type)
 	{
-		case agxSensor::CameraColorOutput::I8:
-			return EAGX_CameraOutputChannelType::I8;
 		case agxSensor::CameraColorOutput::U8:
 			return EAGX_CameraOutputChannelType::U8;
-		case agxSensor::CameraColorOutput::I16:
-			return EAGX_CameraOutputChannelType::I16;
-		case agxSensor::CameraColorOutput::U16:
-			return EAGX_CameraOutputChannelType::U16;
-		case agxSensor::CameraColorOutput::I32:
-			return EAGX_CameraOutputChannelType::I32;
-		case agxSensor::CameraColorOutput::U32:
-			return EAGX_CameraOutputChannelType::U32;
 		case agxSensor::CameraColorOutput::F32:
 			return EAGX_CameraOutputChannelType::F32;
+		case agxSensor::CameraColorOutput::I8:
+		case agxSensor::CameraColorOutput::I16:
+		case agxSensor::CameraColorOutput::U16:
+		case agxSensor::CameraColorOutput::I32:
+		case agxSensor::CameraColorOutput::U32:
 		case agxSensor::CameraColorOutput::I64:
-			return EAGX_CameraOutputChannelType::I64;
 		case agxSensor::CameraColorOutput::U64:
-			return EAGX_CameraOutputChannelType::U64;
 		case agxSensor::CameraColorOutput::F64:
-			return EAGX_CameraOutputChannelType::F64;
+			return EAGX_CameraOutputChannelType::UNSUPPORTED;
 	}
 
 	UE_LOG(
@@ -1235,7 +1220,7 @@ inline EAGX_CameraOutputChannelType Convert(agxSensor::CameraColorOutput::Channe
 			"Conversion failed: Tried to convert an "
 			"agxSensor::CameraColorOutput::ChannelType literal with unknown value to "
 			"an EAGX_CameraOutputChannelType literal."));
-	return EAGX_CameraOutputChannelType::U8;
+	return EAGX_CameraOutputChannelType::UNSUPPORTED;
 }
 
 //

@@ -17,6 +17,8 @@ FAGX_CameraSensorCaptureData& FAGX_CameraSensorCaptureData::operator=(
 	StagingTexture.SafeRelease();
 	CopyFence.SafeRelease();
 	OutputNativeAddress = 0;
+	ChannelType = EAGX_CameraOutputChannelType::UNSUPPORTED;
+	ChannelCount = 0;
 	SetState(EAGX_CameraSensorSlotState::Free);
 	return *this;
 }

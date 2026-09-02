@@ -12,14 +12,7 @@
 UENUM(BlueprintType)
 enum class EAGX_CameraOutputChannelType : uint8
 {
-	I8,
+	UNSUPPORTED,
 	U8,
-	I16,
-	U16,
-	I32,
-	U32,
-	F32,
-	I64,
-	U64,
-	F64
+	F32
 };

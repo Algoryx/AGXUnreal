@@ -138,3 +138,19 @@ void FAGX_CameraOutputColor::GetData(TArray<FColor>& OutData)
 	if (HasNative())
 		GetNativeAsCameraOutputColor(*this)->GetData(OutData);
 }
+
+void FAGX_CameraOutputColor::GetDataU8(TArray<uint8>& OutData)
+{
+	using namespace AGX_CameraOutputColor_helpers;
+
+	if (HasNative())
+		GetNativeAsCameraOutputColor(*this)->GetDataU8(OutData);
+}
+
+void FAGX_CameraOutputColor::GetDataF32(TArray<float>& OutData)
+{
+	using namespace AGX_CameraOutputColor_helpers;
+
+	if (HasNative())
+		GetNativeAsCameraOutputColor(*this)->GetDataF32(OutData);
+}

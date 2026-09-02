@@ -16,6 +16,8 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 	virtual void AllocateNative() override;
 
 	void GetData(TArray<FColor>& OutData) const;
+	void GetDataU8(TArray<uint8>& OutData) const;
+	void GetDataF32(TArray<float>& OutData) const;
 
 	void SetChannelType(EAGX_CameraOutputChannelType InChannelType);
 	EAGX_CameraOutputChannelType GetChannelType() const;

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/SensorRef.h"
@@ -16,6 +17,58 @@
 
 namespace CameraOutputColorBarrier_helpers
 {
+	template <typename T>
+	void CopyNativeOutputData(const agxSensor::BinaryOutputBuffer& Buffer, TArray<T>& OutData)
+	{
+		const size_t NumBytes = Buffer.size() * Buffer.elementSize();
+		if (NumBytes % sizeof(T) != 0)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Color Output data size is not aligned with the requested output type."));
+			OutData.SetNumUninitialized(0, EAllowShrinking::No);
+			return;
+		}
+
+		const size_t NumElements = NumBytes / sizeof(T);
+		if (NumElements > static_cast<size_t>(TNumericLimits<int32>::Max()))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Color Output data is too large to copy to a TArray."));
+			OutData.SetNumUninitialized(0, EAllowShrinking::No);
+			return;
+		}
+
+		OutData.SetNumUninitialized(static_cast<int32>(NumElements), EAllowShrinking::No);
+		FMemory::Memcpy(OutData.GetData(), Buffer.rwPtr(), NumBytes);
+	}
+
+	const agxSensor::BinaryOutputBuffer* GetUnreadData(
+		const FCameraOutputColorBarrier& Output,
+		EAGX_CameraOutputChannelType ExpectedChannelType)
+	{
+		check(Output.HasNative());
+		const EAGX_CameraOutputChannelType ChannelType = Output.GetChannelType();
+		if (ChannelType != ExpectedChannelType)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Color Output data was requested as %s, but the output channel type is %s."),
+				*UEnum::GetValueAsString(ExpectedChannelType), *UEnum::GetValueAsString(ChannelType));
+			return nullptr;
+		}
+
+		agxSensor::ICameraOutput* NativeOutput = Output.GetNative()->Native.get();
+		const uint64 NativeOutputAddress = reinterpret_cast<uint64>(NativeOutput);
+		FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(NativeOutputAddress);
+
+		if (NativeOutput->hasUnreadData(/*markAsRead*/ false) == false)
+			return nullptr;
+
+		return &NativeOutput->getData();
+	}
+
 	agx::Matrix4x4 ConvertToAGX(const FAGX_ColorMappingMatrix& Matrix)
 	{
 		return agx::Matrix4x4(
@@ -69,23 +122,112 @@ void FCameraOutputColorBarrier::AllocateNative()
 
 void FCameraOutputColorBarrier::GetData(TArray<FColor>& OutData) const
 {
+	using namespace CameraOutputColorBarrier_helpers;
+
 	check(HasNative());
-	AGX_CHECK(sizeof(FColor) == GetNative()->Native->getElementSize());
-
-	agxSensor::ICameraOutput* NativeOutput = GetNative()->Native.get();
-	const uint64 NativeOutputAddress = reinterpret_cast<uint64>(NativeOutput);
-	FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(NativeOutputAddress);
-
-	if (!NativeOutput->hasUnreadData(/*markAsRead*/ false))
+	const agxSensor::BinaryOutputBuffer* Buffer =
+		GetUnreadData(*this, EAGX_CameraOutputChannelType::U8);
+	if (Buffer == nullptr)
 	{
 		OutData.SetNumUninitialized(0, EAllowShrinking::No);
 		return;
 	}
 
-	agxSensor::BinaryOutputView<FColor> ViewAGX = NativeOutput->view<FColor>();
+	const uint8 ChannelCount = GetChannelCount();
+	if (ChannelCount < 1 || ChannelCount > 4)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output data was requested as FColor, but the channel count is %u."),
+			ChannelCount);
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+		return;
+	}
 
-	OutData.SetNumUninitialized(ViewAGX.size(), EAllowShrinking::No);
-	FMemory::Memcpy(OutData.GetData(), ViewAGX.begin(), ViewAGX.size() * sizeof(FColor));
+	const size_t NumPixels = Buffer->size();
+	if (NumPixels > static_cast<size_t>(TNumericLimits<int32>::Max()))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output data is too large to copy to a TArray."));
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+		return;
+	}
+
+	AGX_CHECK(Buffer->elementSize() == ChannelCount);
+	const size_t SourceBytesPerPixel = Buffer->elementSize();
+	const uint8* Source = static_cast<const uint8*>(Buffer->rwPtr());
+	OutData.SetNumUninitialized(static_cast<int32>(NumPixels), EAllowShrinking::No);
+
+	switch (ChannelCount)
+	{
+		case 1:
+			for (size_t PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+			{
+				const uint8* SourcePixel = Source + PixelIndex * SourceBytesPerPixel;
+				FColor& DestinationPixel = OutData[static_cast<int32>(PixelIndex)];
+				DestinationPixel.R = SourcePixel[0];
+				DestinationPixel.G = 0;
+				DestinationPixel.B = 0;
+				DestinationPixel.A = 255;
+			}
+			break;
+		case 2:
+			for (size_t PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+			{
+				const uint8* SourcePixel = Source + PixelIndex * SourceBytesPerPixel;
+				FColor& DestinationPixel = OutData[static_cast<int32>(PixelIndex)];
+				DestinationPixel.R = SourcePixel[0];
+				DestinationPixel.G = SourcePixel[1];
+				DestinationPixel.B = 0;
+				DestinationPixel.A = 255;
+			}
+			break;
+		case 3:
+			for (size_t PixelIndex = 0; PixelIndex < NumPixels; ++PixelIndex)
+			{
+				const uint8* SourcePixel = Source + PixelIndex * SourceBytesPerPixel;
+				FColor& DestinationPixel = OutData[static_cast<int32>(PixelIndex)];
+				DestinationPixel.R = SourcePixel[0];
+				DestinationPixel.G = SourcePixel[1];
+				DestinationPixel.B = SourcePixel[2];
+				DestinationPixel.A = 255;
+			}
+			break;
+		case 4:
+			FMemory::Memcpy(OutData.GetData(), Source, NumPixels * sizeof(FColor));
+			break;
+	}
+}
+
+void FCameraOutputColorBarrier::GetDataU8(TArray<uint8>& OutData) const
+{
+	using namespace CameraOutputColorBarrier_helpers;
+
+	const agxSensor::BinaryOutputBuffer* Buffer =
+		GetUnreadData(*this, EAGX_CameraOutputChannelType::U8);
+	if (Buffer == nullptr)
+	{
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+		return;
+	}
+
+	CopyNativeOutputData(*Buffer, OutData);
+}
+
+void FCameraOutputColorBarrier::GetDataF32(TArray<float>& OutData) const
+{
+	using namespace CameraOutputColorBarrier_helpers;
+
+	const agxSensor::BinaryOutputBuffer* Buffer =
+		GetUnreadData(*this, EAGX_CameraOutputChannelType::F32);
+	if (Buffer == nullptr)
+	{
+		OutData.SetNumUninitialized(0, EAllowShrinking::No);
+		return;
+	}
+
+	CopyNativeOutputData(*Buffer, OutData);
 }
 
 bool FCameraOutputColorBarrier::IsColorOutput(const FCameraOutputBarrier& Output)
