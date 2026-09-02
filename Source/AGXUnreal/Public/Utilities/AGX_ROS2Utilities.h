@@ -28,7 +28,8 @@ public:
 		bool Grayscale);
 
 	static FAGX_SensorMsgsImage Convert(
-		FAGX_CameraOutputColor& CameraOutput, double TimeStamp, const FString& FrameId = "");
+		FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead = false,
+		const FString& FrameId = "");
 };
 
 UCLASS(ClassGroup = "AGX ROS2 Utilities")
@@ -266,13 +267,16 @@ public:
 	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
 	 * according to the given timestamp.
 	 *
+	 * If Mark As Read is true, this function marks the Camera output data as read after a successful 
+	 * conversion.
+	 *
 	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
 	 * If not set, it will be an empty string.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
 	static FAGX_SensorMsgsImage ConvertCameraOutput(
 		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput, double TimeStamp,
-		const FString& FrameId = "");
+		bool bMarkAsRead = false, const FString& FrameId = "");
 
 	/**
 	 * Takes Accelerometer and Gyroscope output from an IMU Sensor and creates a ROS2

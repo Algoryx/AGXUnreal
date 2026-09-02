@@ -250,7 +250,8 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 }
 
 FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
-	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, const FString& FrameId)
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead,
+	const FString& FrameId)
 {
 	using namespace AGX_ROS2Utilities_helpers;
 
@@ -319,7 +320,7 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 	FCameraOutputBarrier* Native = CameraOutput.GetNative();
 	AGX_CHECK(FCameraOutputColorBarrier::IsColorOutput(*Native));
 	FCameraOutputColorBarrier* ColorNative = static_cast<FCameraOutputColorBarrier*>(Native);
-	ColorNative->GetDataBytes(Msg.Data);
+	ColorNative->GetDataBytes(Msg.Data, bMarkAsRead);
 	return Msg;
 }
 
@@ -594,9 +595,10 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
 }
 
 FAGX_SensorMsgsImage UAGX_ROS2Utilities::ConvertCameraOutput(
-	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, const FString& FrameId)
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead,
+	const FString& FrameId)
 {
-	return FAGX_ROS2Utilities::Convert(CameraOutput, TimeStamp, FrameId);
+	return FAGX_ROS2Utilities::Convert(CameraOutput, TimeStamp, bMarkAsRead, FrameId);
 }
 
 FAGX_SensorMsgsImu UAGX_ROS2Utilities::ConvertIMUData(

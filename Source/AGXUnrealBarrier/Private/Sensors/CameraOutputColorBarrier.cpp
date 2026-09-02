@@ -45,8 +45,8 @@ namespace CameraOutputColorBarrier_helpers
 	}
 
 	const agxSensor::BinaryOutputBuffer* GetUnreadData(
-		const FCameraOutputColorBarrier& Output,
-		EAGX_CameraOutputChannelType ExpectedChannelType)
+		const FCameraOutputColorBarrier& Output, EAGX_CameraOutputChannelType ExpectedChannelType,
+		bool bMarkAsRead)
 	{
 		check(Output.HasNative());
 		const EAGX_CameraOutputChannelType ChannelType = Output.GetChannelType();
@@ -63,7 +63,7 @@ namespace CameraOutputColorBarrier_helpers
 		const uint64 NativeOutputAddress = reinterpret_cast<uint64>(NativeOutput);
 		FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(NativeOutputAddress);
 
-		if (NativeOutput->hasUnreadData(/*markAsRead*/ false) == false)
+		if (NativeOutput->hasUnreadData(bMarkAsRead) == false)
 			return nullptr;
 
 		return &NativeOutput->getData();
@@ -120,12 +120,12 @@ void FCameraOutputColorBarrier::AllocateNative()
 	NativeRef->Native = new agxSensor::CameraColorOutput();
 }
 
-void FCameraOutputColorBarrier::GetDataU8(TArray<uint8>& OutData) const
+void FCameraOutputColorBarrier::GetDataU8(TArray<uint8>& OutData, bool bMarkAsRead) const
 {
 	using namespace CameraOutputColorBarrier_helpers;
 
 	const agxSensor::BinaryOutputBuffer* Buffer =
-		GetUnreadData(*this, EAGX_CameraOutputChannelType::U8);
+		GetUnreadData(*this, EAGX_CameraOutputChannelType::U8, bMarkAsRead);
 	if (Buffer == nullptr)
 	{
 		OutData.SetNumUninitialized(0, EAllowShrinking::No);
@@ -135,7 +135,7 @@ void FCameraOutputColorBarrier::GetDataU8(TArray<uint8>& OutData) const
 	CopyNativeOutputData(*Buffer, OutData);
 }
 
-void FCameraOutputColorBarrier::GetDataBytes(TArray<uint8>& OutData) const
+void FCameraOutputColorBarrier::GetDataBytes(TArray<uint8>& OutData, bool bMarkAsRead) const
 {
 	using namespace CameraOutputColorBarrier_helpers;
 
@@ -152,7 +152,7 @@ void FCameraOutputColorBarrier::GetDataBytes(TArray<uint8>& OutData) const
 		return;
 	}
 
-	const agxSensor::BinaryOutputBuffer* Buffer = GetUnreadData(*this, ChannelType);
+	const agxSensor::BinaryOutputBuffer* Buffer = GetUnreadData(*this, ChannelType, bMarkAsRead);
 	if (Buffer == nullptr)
 	{
 		OutData.SetNumUninitialized(0, EAllowShrinking::No);
@@ -162,12 +162,12 @@ void FCameraOutputColorBarrier::GetDataBytes(TArray<uint8>& OutData) const
 	CopyNativeOutputData(*Buffer, OutData);
 }
 
-void FCameraOutputColorBarrier::GetDataF32(TArray<float>& OutData) const
+void FCameraOutputColorBarrier::GetDataF32(TArray<float>& OutData, bool bMarkAsRead) const
 {
 	using namespace CameraOutputColorBarrier_helpers;
 
 	const agxSensor::BinaryOutputBuffer* Buffer =
-		GetUnreadData(*this, EAGX_CameraOutputChannelType::F32);
+		GetUnreadData(*this, EAGX_CameraOutputChannelType::F32, bMarkAsRead);
 	if (Buffer == nullptr)
 	{
 		OutData.SetNumUninitialized(0, EAllowShrinking::No);
@@ -175,6 +175,15 @@ void FCameraOutputColorBarrier::GetDataF32(TArray<float>& OutData) const
 	}
 
 	CopyNativeOutputData(*Buffer, OutData);
+}
+
+bool FCameraOutputColorBarrier::HasUnreadData(bool bMarkAsRead) const
+{
+	check(HasNative());
+	agxSensor::ICameraOutput* NativeOutput = GetNative()->Native.get();
+	const uint64 NativeOutputAddress = reinterpret_cast<uint64>(NativeOutput);
+	FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(NativeOutputAddress);
+	return NativeOutput->hasUnreadData(bMarkAsRead);
 }
 
 bool FCameraOutputColorBarrier::IsColorOutput(const FCameraOutputBarrier& Output)

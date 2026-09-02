@@ -61,8 +61,9 @@ public:
 	void SetChannelCount(uint8 InChannelCount);
 	uint8 GetChannelCount() const;
 
-	void GetDataU8(TArray<uint8>& OutData);
-	void GetDataF32(TArray<float>& OutData);
+	void GetDataU8(TArray<uint8>& OutData, bool bMarkAsRead = false);
+	void GetDataF32(TArray<float>& OutData, bool bMarkAsRead = false);
+	bool HasUnreadData(bool bMarkAsRead = false) const;
 
 	FAGX_CameraOutputColor& operator=(const FAGX_CameraOutputColor& Other);
 	bool operator==(const FAGX_CameraOutputColor& Other) const;
@@ -180,29 +181,47 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 	 * Get the latest Camera Color Output data as flat UInt8 channel values.
 	 *
 	 * Only valid for UInt8 output data. The array contains Width * Height * ChannelCount values.
+	 * If Mark As Read is true, this function marks the returned data as read.
 	 * This is an expensive operation because it copies the Camera output data into a TArray<uint8>.
 	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
 	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
 	 * function that operates directly on the underlying Camera output data buffer.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	static void GetDataU8(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<uint8>& OutData)
+	static void GetDataU8(
+		UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<uint8>& OutData,
+		bool bMarkAsRead = false)
 	{
-		Output.GetDataU8(OutData);
+		Output.GetDataU8(OutData, bMarkAsRead);
 	}
 
 	/**
 	 * Get the latest Camera Color Output data as flat Float32 channel values.
 	 *
 	 * Only valid for Float32 output data. The array contains Width * Height * ChannelCount values.
+	 * If Mark As Read is true, this function marks the returned data as read.
 	 * This is an expensive operation because it copies the Camera output data into a TArray<float>.
 	 * For displaying the Camera output, prefer UAGX_CameraSensorComponent::GetOutputRenderTarget().
 	 * When converting to a ROS2 message, prefer the appropriate FAGX_ROS2Utilities conversion
 	 * function that operates directly on the underlying Camera output data buffer.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
-	static void GetDataF32(UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<float>& OutData)
+	static void GetDataF32(
+		UPARAM(ref) FAGX_CameraOutputColor& Output, TArray<float>& OutData,
+		bool bMarkAsRead = false)
 	{
-		Output.GetDataF32(OutData);
+		Output.GetDataF32(OutData, bMarkAsRead);
+	}
+
+	/**
+	 * Returns true if the Camera Color Output has data that has not been marked as read.
+	 *
+	 * If Mark As Read is true, this function marks the current unread data as read.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	static bool HasUnreadData(
+		UPARAM(ref) const FAGX_CameraOutputColor& Output, bool bMarkAsRead = false)
+	{
+		return Output.HasUnreadData(bMarkAsRead);
 	}
 };
