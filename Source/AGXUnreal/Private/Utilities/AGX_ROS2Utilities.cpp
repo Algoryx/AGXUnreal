@@ -3,12 +3,15 @@
 #include "Utilities/AGX_ROS2Utilities.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
+#include "Sensors/AGX_CameraOutputColor.h"
 #include "Sensors/AGX_LidarOutputPosition.h"
 #include "Sensors/AGX_LidarOutputPositionIntensity.h"
 #include "Sensors/AGX_LidarScanPoint.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 
 // Standard library includes.
 #include <cstring>
@@ -34,6 +37,37 @@ namespace AGX_ROS2Utilities_helpers
 		t.Sec = static_cast<int32>(TimeStamp);
 		t.Nanosec = static_cast<int64>(TimeStamp * 1.0E9) % 1000000000;
 		return t;
+	}
+
+	TOptional<int64> GetCameraOutputChannelSize(EAGX_CameraOutputChannelType ChannelType)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return sizeof(uint8);
+			case EAGX_CameraOutputChannelType::F32:
+				return sizeof(float);
+			case EAGX_CameraOutputChannelType::UNSUPPORTED:
+				return {};
+		}
+
+		return {};
+	}
+
+	TOptional<FString> GetCameraOutputEncoding(
+		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return FString::Printf(TEXT("8UC%d"), static_cast<int32>(ChannelCount));
+			case EAGX_CameraOutputChannelType::F32:
+				return FString::Printf(TEXT("32FC%d"), static_cast<int32>(ChannelCount));
+			case EAGX_CameraOutputChannelType::UNSUPPORTED:
+				return {};
+		}
+
+		return {};
 	}
 
 	template <typename PixelType, typename OutputChannelType>
@@ -212,6 +246,80 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 		}
 	}
 
+	return Msg;
+}
+
+FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+
+	FAGX_SensorMsgsImage Msg;
+	Msg.IsBigendian = 0;
+	Msg.Header.Stamp = AGX_ROS2Utilities_helpers::Convert(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+
+	const FIntPoint Resolution = CameraOutput.GetResolution();
+	const EAGX_CameraOutputChannelType ChannelType = CameraOutput.GetChannelType();
+	const uint8 ChannelCount = CameraOutput.GetChannelCount();
+	const TOptional<int64> ChannelSize = GetCameraOutputChannelSize(ChannelType);
+	const TOptional<FString> Encoding = GetCameraOutputEncoding(ChannelType, ChannelCount);
+
+	if (Resolution.X <= 0 || Resolution.Y <= 0)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got invalid resolution: %dx%d."),
+			Resolution.X, Resolution.Y);
+		return Msg;
+	}
+
+	if (ChannelCount < 1 || ChannelCount > 4)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got invalid channel count: %u."),
+			ChannelCount);
+		return Msg;
+	}
+
+	if (ChannelSize.IsSet() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got unsupported channel type: %s."),
+			*UEnum::GetValueAsString(ChannelType));
+		return Msg;
+	}
+
+	if (Encoding.IsSet() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image could not create an encoding for "
+				 "channel type %s and channel count %u."),
+			*UEnum::GetValueAsString(ChannelType), ChannelCount);
+		return Msg;
+	}
+
+	Msg.Height = Resolution.Y;
+	Msg.Width = Resolution.X;
+	Msg.Encoding = Encoding.GetValue();
+	Msg.Step = static_cast<int64>(Resolution.X) * static_cast<int64>(ChannelCount) *
+			   ChannelSize.GetValue();
+
+	if (CameraOutput.HasNative() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image requires a native Camera output."));
+		return Msg;
+	}
+
+	FCameraOutputBarrier* Native = CameraOutput.GetNative();
+	AGX_CHECK(FCameraOutputColorBarrier::IsColorOutput(*Native));
+	FCameraOutputColorBarrier* ColorNative = static_cast<FCameraOutputColorBarrier*>(Native);
+	ColorNative->GetDataBytes(Msg.Data);
 	return Msg;
 }
 
@@ -483,6 +591,12 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
 	Msg.Width = NumPoints;
 	Msg.RowStep = Msg.Data.Num();
 	return Msg;
+}
+
+FAGX_SensorMsgsImage UAGX_ROS2Utilities::ConvertCameraOutput(
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, const FString& FrameId)
+{
+	return FAGX_ROS2Utilities::Convert(CameraOutput, TimeStamp, FrameId);
 }
 
 FAGX_SensorMsgsImu UAGX_ROS2Utilities::ConvertIMUData(
