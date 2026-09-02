@@ -3,7 +3,6 @@
 #include "Terrain/AGX_TerrainMaterialPatchComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_Placement.h"
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_CapsuleShapeComponent.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
@@ -49,8 +48,9 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 			Shape.GetComponentTransform().TransformPositionNoScale(InstanceTransform.GetLocation());
 		const FQuat WorldRot =
 			Shape.GetComponentTransform().TransformRotation(InstanceTransform.GetRotation());
+		const FVector WorldScale = Shape.GetComponentScale() * InstanceTransform.GetScale3D();
 
-		return FTransform(WorldRot, WorldPos);
+		return FTransform(WorldRot, WorldPos, WorldScale);
 	}
 
 	void DrawSphere(
@@ -58,8 +58,11 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 		FPrimitiveDrawInterface* PDI)
 	{
 		DrawWireSphere(
-			PDI, InstanceWorldTransform, FLinearColor::Yellow, SphereShape.GetRadius(), 20,
-			SDPG_Foreground, 1.5f);
+			PDI,
+			FTransform(
+				InstanceWorldTransform.GetRotation(), InstanceWorldTransform.GetLocation()),
+			FLinearColor::Yellow, SphereShape.GetRadius() * InstanceWorldTransform.GetScale3D().X,
+			20, SDPG_Foreground, 1.5f);
 	}
 
 	void DrawCylinder(
@@ -70,15 +73,18 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 			PDI, InstanceWorldTransform.GetLocation(), InstanceWorldTransform.GetUnitAxis(EAxis::Z),
 			InstanceWorldTransform.GetUnitAxis(EAxis::X),
 			InstanceWorldTransform.GetUnitAxis(EAxis::Y), FLinearColor::Yellow,
-			CylinderShape.GetRadius(), 0.5f * CylinderShape.GetHeight(), 24, SDPG_Foreground);
+			CylinderShape.GetRadius() * InstanceWorldTransform.GetScale3D().X,
+			0.5f * CylinderShape.GetHeight() * InstanceWorldTransform.GetScale3D().Y, 24,
+			SDPG_Foreground);
 	}
 
 	void DrawCapsule(
 		const UAGX_CapsuleShapeComponent& CapsuleShape, const FTransform& InstanceWorldTransform,
 		FPrimitiveDrawInterface* PDI)
 	{
-		const float Radius = CapsuleShape.GetRadius();
-		const float HalfHeight = 0.5f * CapsuleShape.GetHeight();
+		const float Radius = CapsuleShape.GetRadius() * InstanceWorldTransform.GetScale3D().X;
+		const float HalfHeight =
+			0.5f * CapsuleShape.GetHeight() * InstanceWorldTransform.GetScale3D().Y;
 
 		DrawWireCylinder(
 			PDI, InstanceWorldTransform.GetLocation(), InstanceWorldTransform.GetUnitAxis(EAxis::Z),
@@ -99,29 +105,27 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 
 	void DrawBoxInstances(
 		const UAGX_BoxShapeComponent& BoxShape,
-		const TArray<FAGX_Placement>& Placements,
+		const TArray<FTransform>& Transforms,
 		FPrimitiveDrawInterface* PDI)
 	{
 		const FBox LocalBounds(-BoxShape.GetHalfExtent(), BoxShape.GetHalfExtent());
-		for (const FAGX_Placement& Placement : Placements)
+		for (const FTransform& InstanceTransform : Transforms)
 		{
-			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(BoxShape, InstanceTransform);
 			DrawWireBox(
-				PDI, InstanceWorldTransform.ToMatrixNoScale(), LocalBounds, FLinearColor::Yellow,
+				PDI, InstanceWorldTransform.ToMatrixWithScale(), LocalBounds, FLinearColor::Yellow,
 				SDPG_Foreground, 1.5f, 0.f, true);
 		}
 	}
 
 	void DrawSphereInstances(
 		const UAGX_SphereShapeComponent& SphereShape,
-		const TArray<FAGX_Placement>& Placements,
+		const TArray<FTransform>& Transforms,
 		FPrimitiveDrawInterface* PDI)
 	{
-		for (const FAGX_Placement& Placement : Placements)
+		for (const FTransform& InstanceTransform : Transforms)
 		{
-			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(SphereShape, InstanceTransform);
 			DrawSphere(SphereShape, InstanceWorldTransform, PDI);
@@ -130,11 +134,10 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 
 	void DrawCylinderInstances(
 		const UAGX_CylinderShapeComponent& CylinderShape,
-		const TArray<FAGX_Placement>& Placements, FPrimitiveDrawInterface* PDI)
+		const TArray<FTransform>& Transforms, FPrimitiveDrawInterface* PDI)
 	{
-		for (const FAGX_Placement& Placement : Placements)
+		for (const FTransform& InstanceTransform : Transforms)
 		{
-			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(CylinderShape, InstanceTransform);
 			DrawCylinder(CylinderShape, InstanceWorldTransform, PDI);
@@ -142,12 +145,11 @@ namespace AGX_TerrainMaterialPatchComponentVisualizer_helpers
 	}
 
 	void DrawCapsuleInstances(
-		const UAGX_CapsuleShapeComponent& CapsuleShape, const TArray<FAGX_Placement>& Placements,
+		const UAGX_CapsuleShapeComponent& CapsuleShape, const TArray<FTransform>& Transforms,
 		FPrimitiveDrawInterface* PDI)
 	{
-		for (const FAGX_Placement& Placement : Placements)
+		for (const FTransform& InstanceTransform : Transforms)
 		{
-			const FTransform InstanceTransform = Placement.ToTransform();
 			const FTransform InstanceWorldTransform =
 				GetInstanceWorldTransform(CapsuleShape, InstanceTransform);
 			DrawCapsule(CapsuleShape, InstanceWorldTransform, PDI);
