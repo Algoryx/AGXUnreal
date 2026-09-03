@@ -48,57 +48,54 @@ void FCameraLensSingleElementBarrier::AllocateNative()
 
 void FCameraLensSingleElementBarrier::SetFocalLength(double InFocalLength)
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	GetNative(*this)->setFocalLength(ConvertDistanceToAGX(InFocalLength));
+	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setFocalLength(
+		ConvertDistanceToAGX(InFocalLength));
 }
 
 double FCameraLensSingleElementBarrier::GetFocalLength() const
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	return ConvertDistanceToUnreal<double>(GetNative(*this)->getFocalLength());
+	return ConvertDistanceToUnreal<double>(
+		CameraLensSingleElementBarrier_helpers::GetNative(*this)->getFocalLength());
 }
 
 void FCameraLensSingleElementBarrier::SetFStop(double InFStop)
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	GetNative(*this)->setFStop(InFStop);
+	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setFStop(InFStop);
 }
 
 double FCameraLensSingleElementBarrier::GetFStop() const
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	return GetNative(*this)->getFStop();
+	return CameraLensSingleElementBarrier_helpers::GetNative(*this)->getFStop();
 }
 
 void FCameraLensSingleElementBarrier::SetAutofocus(double InMinimumFocusDistance)
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	GetNative(*this)->setAutofocus(ConvertDistanceToAGX(InMinimumFocusDistance));
+	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setAutofocus(
+		ConvertDistanceToAGX(InMinimumFocusDistance));
 }
 
 bool FCameraLensSingleElementBarrier::GetUseAutofocus() const
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	return GetNative(*this)->isAutofocusEnabled();
+	return CameraLensSingleElementBarrier_helpers::GetNative(*this)->isAutofocusEnabled();
 }
 
 void FCameraLensSingleElementBarrier::SetFocusDistance(double InFocusDistance)
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	GetNative(*this)->setFocusDistance(ConvertDistanceToAGX(InFocusDistance));
+	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setFocusDistance(
+		ConvertDistanceToAGX(InFocusDistance));
 }
 
 double FCameraLensSingleElementBarrier::GetFocusDistance() const
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	const auto FocusDistance = GetNative(*this)->getFocusDistance();
+	const auto FocusDistance =
+		CameraLensSingleElementBarrier_helpers::GetNative(*this)->getFocusDistance();
 	return FocusDistance.has_value() ? ConvertDistanceToUnreal<double>(*FocusDistance) : 0.0;
 }
 
 double FCameraLensSingleElementBarrier::GetMinimumFocusDistance() const
 {
-	using namespace CameraLensSingleElementBarrier_helpers;
-	const auto MinimumFocusDistance = GetNative(*this)->getMinimumFocusDistance();
+	const auto MinimumFocusDistance =
+		CameraLensSingleElementBarrier_helpers::GetNative(*this)->getMinimumFocusDistance();
 	return MinimumFocusDistance.has_value()
 			   ? ConvertDistanceToUnreal<double>(*MinimumFocusDistance)
 			   : 0.0;
