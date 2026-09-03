@@ -13,5 +13,8 @@ struct AGXUNREALBARRIER_API FCameraLensSingleElementBarrier : public FCameraLens
 
 	virtual void AllocateNative() override;
 
+	void SetFocalLength(double InFocalLength);
+	double GetFocalLength() const;
+
 	static bool IsSingleElement(const FCameraLensBarrier& Lens);
 };

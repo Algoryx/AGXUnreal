@@ -9,7 +9,7 @@
 #include "CameraBarrier.generated.h"
 
 struct FCameraLensBarrier;
-struct FCameraLensSingleElementParameters;
+struct FCameraLensSingleElementBarrier;
 struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
@@ -53,7 +53,7 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 
 	/** Internal functions, only called by the CameraBackendBarrier. */
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
-	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
+	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
 	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 

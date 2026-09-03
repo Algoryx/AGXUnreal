@@ -13,9 +13,9 @@
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendBarrier.h"
-#include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
+#include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
@@ -1134,7 +1134,7 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 /// Camera Backend Callbacks.
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
-	const FCameraLensSingleElementParameters& Parameters)
+	const FCameraLensSingleElementBarrier& LensBarrier)
 {
 	using namespace AGX_CameraSensorComponent_helpers;
 
@@ -1149,7 +1149,7 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	constexpr double DefaultCMOSSensorWidth {
 		0.27288}; // TODO: read from CameraCMOSSensor asset instead!
 	const float FOVAngle =
-		CalculateHorizontalFOVDegrees(DefaultCMOSSensorWidth, Parameters.focalLength);
+		CalculateHorizontalFOVDegrees(DefaultCMOSSensorWidth, LensBarrier.GetFocalLength());
 	if (FOVAngle > 0.0f)
 		SceneCapture->FOVAngle = FOVAngle;
 

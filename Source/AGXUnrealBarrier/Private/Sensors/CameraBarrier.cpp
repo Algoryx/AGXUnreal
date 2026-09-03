@@ -8,9 +8,9 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
 #include "Sensors/CameraBackendBarrier.h"
-#include "Sensors/CameraBackendParameters.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
 #include "Sensors/CameraLensBarrier.h"
+#include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Sensors/SensorRef.h"
@@ -227,10 +227,10 @@ void FCameraBarrier::OnBackendSynchronize(
 }
 
 void FCameraBarrier::OnBackendSetCameraLensSingleElement(
-	const FCameraLensSingleElementParameters& Parameters)
+	const FCameraLensSingleElementBarrier& LensBarrier)
 {
 	if (BackendPropagator != nullptr)
-		BackendPropagator->OnBackendSetCameraLensSingleElement(Parameters);
+		BackendPropagator->OnBackendSetCameraLensSingleElement(LensBarrier);
 }
 
 void FCameraBarrier::OnBackendSetCameraColorOutput(

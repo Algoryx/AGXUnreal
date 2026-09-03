@@ -3,9 +3,8 @@
 #include "Sensors/CameraBackendBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "BarrierOnly/AGXTypeConversions.h"
 #include "Sensors/CameraBarrier.h"
-#include "Sensors/CameraBackendParameters.h"
+#include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/SensorRef.h"
@@ -15,6 +14,9 @@
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraOutput.h>
 #include "EndAGXIncludes.h"
+
+// Standard library includes.
+#include <memory>
 
 namespace CameraBackendBarrier_helpers
 {
@@ -47,25 +49,6 @@ namespace CameraBackendBarrier_helpers
 		return GetOutputNativeAddress(NativeOutput);
 	}
 
-	FCameraLensSingleElementParameters Convert(
-		const agxSensor::CameraLensSingleElementParameters& Parameters)
-	{
-		FCameraLensSingleElementParameters Result;
-		Result.focalLength = ConvertDistanceToUnreal<double>(Parameters.focalLength);
-		Result.fStop = Parameters.fStop;
-		Result.autofocus = Parameters.autofocus;
-		if (Result.autofocus)
-		{
-			Result.focus.minimumDistance =
-				ConvertDistanceToUnreal<double>(Parameters.focus.minimumDistance);
-		}
-		else
-		{
-			Result.focus.distance = ConvertDistanceToUnreal<double>(Parameters.focus.distance);
-		}
-		return Result;
-	}
-
 	void Synchronize(agxSensor::Camera* Camera, agx::Real dt)
 	{
 		auto& Backend = FCameraBackendBarrier::GetInstance();
@@ -80,15 +63,16 @@ namespace CameraBackendBarrier_helpers
 	}
 
 	void SetCameraLensSingleElement(
-		agxSensor::Camera* Camera, agxSensor::CameraLensSingleElement*,
-		agxSensor::CameraLensSingleElementParameters* Parameters)
+		agxSensor::Camera* Camera, agxSensor::CameraLensSingleElement* Lens,
+		agxSensor::CameraLensSingleElementParameters*)
 	{
-		check(Parameters != nullptr);
+		check(Lens != nullptr);
 
 		if (FCameraBarrier* CameraBarrier =
 				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
 		{
-			CameraBarrier->OnBackendSetCameraLensSingleElement(Convert(*Parameters));
+			FCameraLensSingleElementBarrier LensBarrier(std::make_shared<FCameraLensRef>(Lens));
+			CameraBarrier->OnBackendSetCameraLensSingleElement(LensBarrier);
 		}
 	}
 

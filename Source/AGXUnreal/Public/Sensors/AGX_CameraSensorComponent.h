@@ -13,7 +13,7 @@
 
 struct FCameraBarrier;
 struct FCameraLensBarrier;
-struct FCameraLensSingleElementParameters;
+struct FCameraLensSingleElementBarrier;
 struct FCameraOutputBarrier;
 struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
@@ -215,7 +215,7 @@ private:
 		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
 
 	/// Internal functions called by the Camera Backend.
-	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementParameters& Parameters);
+	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
 	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 
