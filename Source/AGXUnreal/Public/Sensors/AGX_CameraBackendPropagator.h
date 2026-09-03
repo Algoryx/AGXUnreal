@@ -9,6 +9,7 @@
 #include "CoreMinimal.h"
 
 class UAGX_CameraSensorComponent;
+struct FCameraCMOSSensorBarrier;
 struct FCameraLensSingleElementBarrier;
 struct FCameraOutputColorBarrier;
 
@@ -17,6 +18,9 @@ class FAGX_CameraBackendPropagator : public FCameraBackendPropagatorBase
 public:
 	virtual void OnBackendSetCameraLensSingleElement(
 		const FCameraLensSingleElementBarrier& LensBarrier) override;
+
+	virtual void OnBackendSetCameraCMOSSensor(
+		const FCameraCMOSSensorBarrier& SensorBarrier) override;
 
 	virtual void OnBackendSetCameraColorOutput(
 		const FCameraOutputColorBarrier& OutputColorBarrier) override;

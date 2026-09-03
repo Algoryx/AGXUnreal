@@ -45,6 +45,11 @@ FIntPoint FAGX_CameraOutputBase::GetResolution() const
 	return Resolution;
 }
 
+bool FAGX_CameraOutputBase::IsResolutionValid(const FIntPoint& InResolution)
+{
+	return InResolution.X >= 1 && InResolution.Y >= 1;
+}
+
 void FAGX_CameraOutputBase::SetFrameRate(double InFrameRate)
 {
 	FrameRate = AGX_CameraOutputBase_helpers::ClampFrameRate(InFrameRate);

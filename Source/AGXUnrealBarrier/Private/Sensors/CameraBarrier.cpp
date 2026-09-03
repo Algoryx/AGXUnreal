@@ -9,6 +9,7 @@
 #include "RigidBodyBarrier.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBackendPropagatorBase.h"
+#include "Sensors/CameraCMOSSensorBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
@@ -231,6 +232,12 @@ void FCameraBarrier::OnBackendSetCameraLensSingleElement(
 {
 	if (BackendPropagator != nullptr)
 		BackendPropagator->OnBackendSetCameraLensSingleElement(LensBarrier);
+}
+
+void FCameraBarrier::OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier& SensorBarrier)
+{
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendSetCameraCMOSSensor(SensorBarrier);
 }
 
 void FCameraBarrier::OnBackendSetCameraColorOutput(

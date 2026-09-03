@@ -13,5 +13,21 @@ struct AGXUNREALBARRIER_API FCameraCMOSSensorBarrier : public FCameraPhotodetect
 
 	virtual void AllocateNative() override;
 
+	void SetSize(const FVector2D& InSize);
+	FVector2D GetSize() const;
+
+	void SetISO(double InISO);
+	double GetISO() const;
+
+	void SetShutterSpeed(double InShutterSpeed);
+	double GetShutterSpeed() const;
+
+	void SetAutoExposure(double InDynamicRange);
+	bool GetUseAutoExposure() const;
+	double GetDynamicRange() const;
+
+	void SetManualExposureCompensation(double InExposureCompensation);
+	double GetExposureCompensation() const;
+
 	static bool IsCMOSSensor(const FCameraPhotodetectorBarrier& Photodetector);
 };

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraCMOSSensorBarrier.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraOutputColorBarrier.h"
@@ -12,6 +13,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
+#include <agxSensor/CameraCMOSSensor.h>
 #include <agxSensor/CameraOutput.h>
 #include "EndAGXIncludes.h"
 
@@ -77,10 +79,18 @@ namespace CameraBackendBarrier_helpers
 	}
 
 	void SetCameraCMOSSensor(
-		agxSensor::Camera* Camera, agxSensor::CameraCMOSSensor*,
+		agxSensor::Camera* Camera, agxSensor::CameraCMOSSensor* Sensor,
 		agxSensor::CameraCMOSSensorParameters*)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraCMOSSensor"));
+		check(Sensor != nullptr);
+
+		if (FCameraBarrier* CameraBarrier =
+				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			FCameraCMOSSensorBarrier SensorBarrier(
+				std::make_shared<FCameraPhotodetectorRef>(Sensor));
+			CameraBarrier->OnBackendSetCameraCMOSSensor(SensorBarrier);
+		}
 	}
 
 	void SetCameraLensDistortionNone(agxSensor::Camera* Camera, agxSensor::CameraLens*)

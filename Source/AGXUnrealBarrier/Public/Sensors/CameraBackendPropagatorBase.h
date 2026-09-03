@@ -7,6 +7,7 @@
 
 struct FCameraOutputBarrier;
 struct FCameraOutputColorBarrier;
+struct FCameraCMOSSensorBarrier;
 struct FCameraLensSingleElementBarrier;
 
 class AGXUNREALBARRIER_API FCameraBackendPropagatorBase
@@ -16,6 +17,8 @@ public:
 
 	virtual void OnBackendSetCameraLensSingleElement(
 		const FCameraLensSingleElementBarrier& LensBarrier) = 0;
+	virtual void OnBackendSetCameraCMOSSensor(
+		const FCameraCMOSSensorBarrier& SensorBarrier) = 0;
 	virtual void OnBackendSetCameraColorOutput(
 		const FCameraOutputColorBarrier& OutputColorBarrier) = 0;
 	virtual void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier) = 0;

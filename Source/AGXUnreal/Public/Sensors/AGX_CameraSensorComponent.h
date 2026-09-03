@@ -12,6 +12,7 @@
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
+struct FCameraCMOSSensorBarrier;
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementBarrier;
 struct FCameraOutputBarrier;
@@ -194,7 +195,6 @@ private:
 	UTextureRenderTarget2D* CreateRenderTarget(
 		const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType,
 		uint8 ChannelCount);
-	static bool IsResolutionValid(const FIntPoint& InResolution);
 
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
@@ -216,6 +216,7 @@ private:
 
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
+	void OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier& SensorBarrier);
 	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 

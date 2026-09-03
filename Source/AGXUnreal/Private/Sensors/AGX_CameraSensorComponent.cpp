@@ -8,7 +8,9 @@
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Import/AGX_ImportContext.h"
 #include "Sensors/AGX_CameraBackend.h"
+#include "Sensors/AGX_CameraCMOSSensor.h"
 #include "Sensors/AGX_CameraLensBase.h"
+#include "Sensors/AGX_CameraLensSingleElement.h"
 #include "Sensors/AGX_CameraOutputBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
@@ -63,6 +65,30 @@ namespace AGX_CameraSensorComponent_helpers
 
 		return static_cast<float>(
 			FMath::RadiansToDegrees(2.0 * FMath::Atan(SensorWidth / (2.0 * FocalLength))));
+	}
+
+	const UAGX_CameraCMOSSensor& GetCMOSSensorOrDefault(
+		const UAGX_CameraSensorComponent& Component)
+	{
+		if (const UAGX_CameraCMOSSensor* Sensor =
+				Cast<UAGX_CameraCMOSSensor>(Component.PhotoDetector))
+		{
+			return *Sensor;
+		}
+
+		return *GetDefault<UAGX_CameraCMOSSensor>();
+	}
+
+	const UAGX_CameraLensSingleElement& GetCameraLensSingleElementOrDefault(
+		const UAGX_CameraSensorComponent& Component)
+	{
+		if (const UAGX_CameraLensSingleElement* Lens =
+				Cast<UAGX_CameraLensSingleElement>(Component.CameraLens))
+		{
+			return *Lens;
+		}
+
+		return *GetDefault<UAGX_CameraLensSingleElement>();
 	}
 
 	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
@@ -382,7 +408,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	}
 
 	const FIntPoint Resolution = OutputColorBarrier.GetResolution();
-	if (!IsResolutionValid(Resolution))
+	if (!FAGX_CameraOutputBase::IsResolutionValid(Resolution))
 	{
 		LogWarning(TEXT("the Camera Color Output resolution is invalid."));
 		return false;
@@ -1108,11 +1134,6 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 	return RenderTarget;
 }
 
-bool UAGX_CameraSensorComponent::IsResolutionValid(const FIntPoint& InResolution)
-{
-	return InResolution.X >= 1 && InResolution.Y >= 1;
-}
-
 #if WITH_EDITOR
 void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 {
@@ -1146,10 +1167,10 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	if (SceneCapture == nullptr)
 		return;
 
-	constexpr double DefaultCMOSSensorWidth {
-		0.27288}; // TODO: read from CameraCMOSSensor asset instead!
+	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
+	const double CMOSSensorWidth = CMOSSensor.GetSize().X;
 	const float FOVAngle =
-		CalculateHorizontalFOVDegrees(DefaultCMOSSensorWidth, LensBarrier.GetFocalLength());
+		CalculateHorizontalFOVDegrees(CMOSSensorWidth, LensBarrier.GetFocalLength());
 	if (FOVAngle > 0.0f)
 		SceneCapture->FOVAngle = FOVAngle;
 
@@ -1172,6 +1193,12 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	//	SceneCapture->PostProcessSettings.DepthOfFieldFocalDistance =
 	//		static_cast<float>(Parameters.focus.distance);
 	// }
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
+	const FCameraCMOSSensorBarrier& SensorBarrier)
+{
+	(void) SensorBarrier;
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(

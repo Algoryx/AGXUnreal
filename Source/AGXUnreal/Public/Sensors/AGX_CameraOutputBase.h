@@ -30,6 +30,7 @@ public:
 
 	void SetResolution(FIntPoint InResolution);
 	FIntPoint GetResolution() const;
+	static bool IsResolutionValid(const FIntPoint& InResolution);
 
 	/**
 	 * How often the Camera Sensor should capture a frame [Hz].
