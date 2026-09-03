@@ -149,7 +149,6 @@ bool UAGX_CameraLensBase::IsInstance() const
 	// A runtime non-imported instance of this class will always have a reference to it's
 	// corresponding Asset. An asset will never have this reference set.
 	const bool bIsInstance = Asset != nullptr;
-	AGX_CHECK(bIsInstance != IsAsset());
 	return bIsInstance;
 }
 

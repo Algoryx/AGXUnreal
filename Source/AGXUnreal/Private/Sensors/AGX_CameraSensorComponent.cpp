@@ -16,6 +16,7 @@
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraCMOSSensorBarrier.h"
 #include "Sensors/CameraLensBarrier.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
@@ -27,6 +28,7 @@
 
 // Unreal Engine includes.
 #include "CanvasItem.h"
+#include "CollisionQueryParams.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/Canvas.h"
 #include "Engine/TextureRenderTarget2D.h"
@@ -102,6 +104,49 @@ namespace AGX_CameraSensorComponent_helpers
 	{
 		const float FOVAngle = CalculateHorizontalFOVDegrees(SensorWidth, FocalLength);
 		return FMath::IsNearlyEqual(SceneCapture.FOVAngle, FOVAngle);
+	}
+
+	double CalculateAutofocusDistance(
+		const USceneCaptureComponent2D& SceneCapture, double MinimumFocusDistance)
+	{
+		const double ClampedMinimumFocusDistance = FMath::Max(0.0, MinimumFocusDistance);
+
+		UWorld* World = SceneCapture.GetWorld();
+		if (World == nullptr)
+			return ClampedMinimumFocusDistance;
+
+		const FVector Start = SceneCapture.GetComponentLocation();
+		const FVector Direction = SceneCapture.GetForwardVector().GetSafeNormal();
+		if (Direction.IsNearlyZero())
+			return ClampedMinimumFocusDistance;
+
+		FCollisionQueryParams QueryParams(
+			SCENE_QUERY_STAT(AGXCameraAutofocus), /*bTraceComplex*/ true);
+		constexpr double AutofocusTraceDistance = 1000000.0; // A bit arbitrarily chosen.
+		const FVector End = Start + Direction * AutofocusTraceDistance;
+		FHitResult Hit;
+		if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams))
+			return FMath::Max(ClampedMinimumFocusDistance, static_cast<double>(Hit.Distance));
+
+		return FMath::Max(ClampedMinimumFocusDistance, AutofocusTraceDistance);
+	}
+
+	void UpdateLensFocalDistance(
+		USceneCaptureComponent2D& SceneCapture, bool bUseAutofocus, double MinimumFocusDistance,
+		double FocusDistance)
+	{
+		FPostProcessSettings& PostProcessSettings = SceneCapture.PostProcessSettings;
+		PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(
+			bUseAutofocus ? CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance)
+						  : FocusDistance);
+	}
+
+	void UpdateLensFocalDistance(
+		USceneCaptureComponent2D& SceneCapture, const UAGX_CameraLensSingleElement& Lens)
+	{
+		UpdateLensFocalDistance(
+			SceneCapture, Lens.GetUseAutofocus(), Lens.GetMinimumFocusDistance(),
+			Lens.GetFocusDistance());
 	}
 
 	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
@@ -515,6 +560,8 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier)
 {
+	using namespace AGX_CameraSensorComponent_helpers;
+
 	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
 	if (CameraBarrier == nullptr)
 	{
@@ -543,7 +590,14 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 		return false;
 
 	if (!HasCaptureSourceOverride())
-		GetCaptureSource()->TextureTarget = OutputRenderContext->SceneRenderTarget;
+	{
+		USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+		CaptureSource->TextureTarget = OutputRenderContext->SceneRenderTarget;
+
+		const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
+		if (Lens.GetUseAutofocus())
+			UpdateLensFocalDistance(*CaptureSource, Lens);
+	}
 
 	FAGX_CameraSensorCaptureDataPtr Slot = OutputRenderContext->CaptureHelper.GetFreeSlot();
 	if (!Slot.IsValid()) // No free slots, deny the request.
@@ -1054,6 +1108,10 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
 	OwnedCaptureComponent2D->bCaptureOnMovement = false;
 	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
+	OwnedCaptureComponent2D->PostProcessBlendWeight = 1.0f; // TODO: verify these...
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
 	OwnedCaptureComponent2D->RegisterComponent();
 	OwnedCaptureComponent2D->AttachToComponent(
 		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -1180,7 +1238,13 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	const FVector2D CMOSSensorSize = CMOSSensor.GetSize();
 	UpdateFOV(*SceneCapture, CMOSSensorSize.X, LensBarrier.GetFocalLength());
 
-	// TODO: impl the rest of the Lens properties.
+	// TODO: Verify these...
+	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
+	PostProcessSettings.DepthOfFieldFstop = static_cast<float>(LensBarrier.GetFStop());
+
+	UpdateLensFocalDistance(
+		*SceneCapture, LensBarrier.GetUseAutofocus(), LensBarrier.GetMinimumFocusDistance(),
+		LensBarrier.GetFocusDistance());
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
@@ -1196,8 +1260,6 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 	if (SceneCapture == nullptr)
 		return;
 
-	SceneCapture->PostProcessSettings.CameraISO = SensorBarrier.GetISO();
-
 	// If the Size of the CMOSSensor has changed, that will affect the FOV, so we re-calculate that
 	// here as well.
 	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
@@ -1208,6 +1270,12 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 	{
 		UpdateFOV(*SceneCapture, CMOSSensorSize.X, FocalLength);
 	}
+
+	// TODO: Verify these...
+	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
+	PostProcessSettings.CameraISO = SensorBarrier.GetISO();
+	PostProcessSettings.DepthOfFieldSensorWidth =
+		static_cast<float>(CMOSSensorSize.X * /*to mm*/ 10.0);
 
 	// TODO: impl the rest of the CMOSSensor properties.
 }
