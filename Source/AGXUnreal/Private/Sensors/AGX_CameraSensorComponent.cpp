@@ -44,8 +44,8 @@ UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 	NativeBarrier.Reset(new FCameraBarrier());
 	PrimaryComponentTick.bCanEverTick = true;
 
-	static const TCHAR* CameraPass1AssetPath =
-		TEXT("Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass1.MI_AGX_Camera_Pass1'");
+	static const TCHAR* CameraPass1AssetPath = TEXT(
+		"Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass1.MI_AGX_Camera_Pass1'");
 	MaterialPasses.Add(
 		FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass1AssetPath));
 }
@@ -67,8 +67,7 @@ namespace AGX_CameraSensorComponent_helpers
 			FMath::RadiansToDegrees(2.0 * FMath::Atan(SensorWidth / (2.0 * FocalLength))));
 	}
 
-	const UAGX_CameraCMOSSensor& GetCMOSSensorOrDefault(
-		const UAGX_CameraSensorComponent& Component)
+	const UAGX_CameraCMOSSensor& GetCMOSSensorOrDefault(const UAGX_CameraSensorComponent& Component)
 	{
 		if (const UAGX_CameraCMOSSensor* Sensor =
 				Cast<UAGX_CameraCMOSSensor>(Component.PhotoDetector))
@@ -89,6 +88,20 @@ namespace AGX_CameraSensorComponent_helpers
 		}
 
 		return *GetDefault<UAGX_CameraLensSingleElement>();
+	}
+
+	void UpdateFOV(USceneCaptureComponent2D& SceneCapture, double SensorWidth, double FocalLength)
+	{
+		const float FOVAngle = CalculateHorizontalFOVDegrees(SensorWidth, FocalLength);
+		if (FOVAngle > 0.0f)
+			SceneCapture.FOVAngle = FOVAngle;
+	}
+
+	bool IsFOVUpToDate(
+		const USceneCaptureComponent2D& SceneCapture, double SensorWidth, double FocalLength)
+	{
+		const float FOVAngle = CalculateHorizontalFOVDegrees(SensorWidth, FocalLength);
+		return FMath::IsNearlyEqual(SceneCapture.FOVAngle, FOVAngle);
 	}
 
 	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
@@ -293,11 +306,11 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
 
 	UTexture* InputTexture = OutputRenderContext.SceneRenderTarget.Get();
 	UTextureRenderTarget2D* FinalRenderTarget = OutputRenderContext.SceneRenderTarget.Get();
-	AGX_CHECK(OutputRenderContext.MaterialInstances.Num() == OutputRenderContext.RenderTargets.Num());
+	AGX_CHECK(
+		OutputRenderContext.MaterialInstances.Num() == OutputRenderContext.RenderTargets.Num());
 	for (int32 Index = 0; Index < OutputRenderContext.MaterialInstances.Num(); ++Index)
 	{
-		UMaterialInstanceDynamic* MaterialInstance =
-			OutputRenderContext.MaterialInstances[Index];
+		UMaterialInstanceDynamic* MaterialInstance = OutputRenderContext.MaterialInstances[Index];
 		if (MaterialInstance == nullptr)
 			continue;
 
@@ -306,8 +319,7 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
 			OutputRenderContext.RenderTargets[Index] == nullptr)
 			continue;
 
-		UTextureRenderTarget2D* OutputRenderTarget =
-			OutputRenderContext.RenderTargets[Index].Get();
+		UTextureRenderTarget2D* OutputRenderTarget = OutputRenderContext.RenderTargets[Index].Get();
 		MaterialInstance->SetTextureParameterValue(TEXT("InputTexture"), InputTexture);
 
 		UCanvas* Canvas = nullptr;
@@ -382,8 +394,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	FCameraOutputRenderContext& OutputRenderContext,
 	const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings)
 {
-	const auto LogWarning =
-		[this, bLogWarnings](const TCHAR* Message)
+	const auto LogWarning = [this, bLogWarnings](const TCHAR* Message)
 	{
 		if (!bLogWarnings)
 			return;
@@ -426,9 +437,8 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 	const EPixelFormat PixelFormat =
 		GetPixelFormatFromRenderTargetFormat(RenderTargetFormat.GetValue());
-	auto EnsureRenderTarget =
-		[this, &Resolution, ChannelType, ChannelCount, RenderTargetFormat, PixelFormat](
-			TObjectPtr<UTextureRenderTarget2D>& RenderTarget)
+	auto EnsureRenderTarget = [this, &Resolution, ChannelType, ChannelCount, RenderTargetFormat,
+							   PixelFormat](TObjectPtr<UTextureRenderTarget2D>& RenderTarget)
 	{
 		if (RenderTarget == nullptr)
 		{
@@ -503,8 +513,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	return true;
 }
 
-bool UAGX_CameraSensorComponent::RequestCapture(
-	const FCameraOutputColorBarrier& OutputColorBarrier)
+bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier)
 {
 	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
 	if (CameraBarrier == nullptr)
@@ -905,7 +914,8 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 				continue;
 
 			if (UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
-				UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+				UpdateMaterialParameters(
+					OutputColorBarrier, OutputRenderContext->MaterialInstances);
 		}
 	}
 }
@@ -1118,8 +1128,7 @@ void UAGX_CameraSensorComponent::UpdateCameraLens()
 }
 
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
-	const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType,
-	uint8 ChannelCount)
+	const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
 {
 	const TOptional<ETextureRenderTargetFormat> RenderTargetFormat =
 		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
@@ -1168,37 +1177,39 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 		return;
 
 	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
-	const double CMOSSensorWidth = CMOSSensor.GetSize().X;
-	const float FOVAngle =
-		CalculateHorizontalFOVDegrees(CMOSSensorWidth, LensBarrier.GetFocalLength());
-	if (FOVAngle > 0.0f)
-		SceneCapture->FOVAngle = FOVAngle;
+	const FVector2D CMOSSensorSize = CMOSSensor.GetSize();
+	UpdateFOV(*SceneCapture, CMOSSensorSize.X, LensBarrier.GetFocalLength());
 
-	// SceneCapture->PostProcessBlendWeight = 1.0f;
-	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldEnabled = true;
-	// SceneCapture->PostProcessSettings.DepthOfFieldEnabled = true;
-	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
-	// SceneCapture->PostProcessSettings.DepthOfFieldFstop = static_cast<float>(Parameters.fStop);
-	// SceneCapture->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
-	// SceneCapture->PostProcessSettings.DepthOfFieldSensorWidth =
-	//	AGX_CameraSensorComponent_helpers::DefaultCMOSSensorWidthMillimeters;
-
-	// if (Parameters.autofocus)
-	//{
-	//	SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = false;
-	// }
-	// else
-	//{
-	//	SceneCapture->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
-	//	SceneCapture->PostProcessSettings.DepthOfFieldFocalDistance =
-	//		static_cast<float>(Parameters.focus.distance);
-	// }
+	// TODO: impl the rest of the Lens properties.
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 	const FCameraCMOSSensorBarrier& SensorBarrier)
 {
-	(void) SensorBarrier;
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	if (HasCaptureSourceOverride())
+		return; // Never modify users camera.
+
+	USceneCaptureComponent2D* SceneCapture = OwnedCaptureComponent2D.Get();
+	AGX_CHECK(SceneCapture != nullptr);
+	if (SceneCapture == nullptr)
+		return;
+
+	SceneCapture->PostProcessSettings.CameraISO = SensorBarrier.GetISO();
+
+	// If the Size of the CMOSSensor has changed, that will affect the FOV, so we re-calculate that
+	// here as well.
+	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
+	const FVector2D CMOSSensorSize = CMOSSensor.GetSize();
+	const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
+	const double FocalLength = Lens.GetFocalLength();
+	if (!IsFOVUpToDate(*SceneCapture, CMOSSensorSize.X, FocalLength))
+	{
+		UpdateFOV(*SceneCapture, CMOSSensorSize.X, FocalLength);
+	}
+
+	// TODO: impl the rest of the CMOSSensor properties.
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
