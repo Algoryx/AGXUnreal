@@ -15,6 +15,13 @@ struct AGXUNREALBARRIER_API FCameraLensSingleElementBarrier : public FCameraLens
 
 	void SetFocalLength(double InFocalLength);
 	double GetFocalLength() const;
+	void SetFStop(double InFStop);
+	double GetFStop() const;
+	void SetAutofocus(double InMinimumFocusDistance);
+	bool GetUseAutofocus() const;
+	void SetFocusDistance(double InFocusDistance);
+	double GetFocusDistance() const;
+	double GetMinimumFocusDistance() const;
 
 	static bool IsSingleElement(const FCameraLensBarrier& Lens);
 };
