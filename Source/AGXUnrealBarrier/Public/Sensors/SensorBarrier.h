@@ -31,7 +31,7 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 	bool HasNative() const;
 	FSensorRef* GetNative();
 	const FSensorRef* GetNative() const;
-	void ReleaseNative();
+	virtual void ReleaseNative();
 
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;
@@ -63,6 +63,11 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 
 	bool AddToEnvironment(FSensorEnvironmentBarrier& Environment);
 	bool RemoveFromEnvironment(FSensorEnvironmentBarrier& Environment);
+
+	FGuid GetGuid() const;
+
+	void SetName(const FString& Name);
+	FString GetName() const;
 
 protected:
 	std::shared_ptr<FSensorRef> NativeRef;

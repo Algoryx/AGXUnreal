@@ -45,7 +45,8 @@ enum class EOpenPLX_InputType : uint8
 		DisplayName = "Enable Interaction Input [Boolean]"), // Child of BoolInput
 	EngageInput UMETA(DisplayName = "Engage Input [Boolean]"), // Child of BoolInput
 	TorqueConverterLockUpInput UMETA(
-		DisplayName = "Torque Converter Lock Up Input [Boolean]") // Child of BoolInput
+		DisplayName = "Torque Converter Lock Up Input [Boolean]"), // Child of BoolInput
+	CameraCaptureInput UMETA(DisplayName = "Camera Capture Input [Boolean]")
 };
 
 UENUM()
@@ -105,5 +106,10 @@ enum class EOpenPLX_OutputType : uint8
 		DisplayName = "Interaction Enabled Output [Boolean]"), // Child of BoolOutput
 	EngagedOutput UMETA(DisplayName = "Engaged Output [Boolean]"), // Child of BoolOutput
 	TorqueConverterLockedUpOutput UMETA(
-		DisplayName = "Torque Converter Locked Up Output [Boolean]") // Child of BoolOutput
+		DisplayName = "Torque Converter Locked Up Output [Boolean]"), // Child of BoolOutput
+
+	/* Others */
+	LidarOutput UMETA(DisplayName = "Lidar Output [Lidar Output]"),
+	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]"),
+	CameraColorOutput UMETA(DisplayName = "Camera Color Output [Camera Color Output]")
 };

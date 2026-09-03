@@ -22,6 +22,7 @@ class FContactMaterialBarrier;
 class UAGX_ShapeContactMergeSplitThresholds;
 class UAGX_ConstraintMergeSplitThresholds;
 class UAGX_ContactMaterial;
+class UAGX_LidarModelParameters;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ShapeMaterial;
 class UAGX_TerrainWheelSettings;
@@ -111,6 +112,7 @@ public:
 	static FString GetImportCollisionStaticMeshDirectoryName();
 	static FString GetImportRenderStaticMeshDirectoryName();
 	static FString GetImportShovelPropertiesDirectoryName();
+	static FString GetImportLidarModelParametersDirectoryName();
 	static FString GetImportSteeringParametersDirectoryName();
 	static FString GetImportTerrainWheelSettingsDirectoryName();
 	static FString GetImportTrackPropertiesDirectoryName();
