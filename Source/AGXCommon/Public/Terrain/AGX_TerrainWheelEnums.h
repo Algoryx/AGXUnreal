@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_TerrainWheelEnums.generated.h"
+
 UENUM(BlueprintType)
 enum class EAGX_TerrainWheelPressureSinkageModel : uint8
 {

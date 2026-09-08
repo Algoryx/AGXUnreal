@@ -1012,7 +1012,7 @@ namespace AGX_ImporterToEditor_helpers
 	{
 		auto DestroyIfOwnedByContextOuter = [&Context](UObject* Obj)
 		{
-			if (!IsValid(Obj) || Obj->HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed))
+			if (Obj->HasAnyFlags(RF_BeginDestroyed | RF_FinishDestroyed) || !IsValid(Obj))
 				return;
 
 			if (Obj->GetOuter() == Context.Outer)

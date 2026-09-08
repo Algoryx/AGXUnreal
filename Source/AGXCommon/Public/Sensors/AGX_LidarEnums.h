@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_LidarEnums.generated.h"
+
 /** Specifies the model of the Lidar. */
 UENUM(BlueprintType)
 enum class EAGX_LidarModel : uint8

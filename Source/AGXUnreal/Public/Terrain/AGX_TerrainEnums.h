@@ -9,6 +9,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_TerrainEnums.generated.h"
+
 /**
  * All frames that a Shovel keeps track of.
  */

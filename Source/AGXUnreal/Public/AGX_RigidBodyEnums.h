@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_RigidBodyEnums.generated.h"
+
 UENUM(BlueprintType)
 // Unreal Header Tool does not support line breaks in UMETA tags.
 // clang-format off

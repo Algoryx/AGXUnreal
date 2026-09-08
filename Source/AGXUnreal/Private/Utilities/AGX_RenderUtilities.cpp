@@ -64,7 +64,11 @@ bool FAGX_RenderUtilities::UpdateRenderTextureRegions(
 		{
 			FUpdateTextureRegion2D& Region = Regions[RegionIndex];
 			uint8* Bits = SourceData + Region.SrcY * SourcePitch + Region.SrcX * SourceBitsPerPixel;
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 			RHIUpdateTexture2D(Texture, /*MipIndex*/ 0, Region, SourcePitch, Bits);
+#else
+			RHICmdList.UpdateTexture2D(Texture, /*MipIndex*/ 0, Region, SourcePitch, Bits);
+#endif
 		}
 		if (bFreeData)
 		{

@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ROS2Enums.generated.h"
+
 UENUM()
 enum class EAGX_ROS2MessageType
 {

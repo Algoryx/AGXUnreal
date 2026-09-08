@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ConstraintEnums.generated.h"
+
 /** Specifies in what solvers the constraint will be solved. */
 UENUM()
 enum EAGX_SolveType

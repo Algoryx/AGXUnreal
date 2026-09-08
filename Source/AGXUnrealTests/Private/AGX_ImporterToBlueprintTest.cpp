@@ -4037,8 +4037,7 @@ bool FCheckTerrainWheelImportedCommand::Update()
 	Test.TestNotNull(TEXT("Body"), Body);
 
 	UAGX_CylinderShapeComponent* Geometry = GetByName<UAGX_CylinderShapeComponent>(
-		Components,
-		*FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Geometry")));
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("Geometry")));
 	Test.TestNotNull(TEXT("Geometry"), Geometry);
 
 	UAGX_TerrainWheelComponent* TerrainWheel = GetByName<UAGX_TerrainWheelComponent>(
@@ -4048,8 +4047,7 @@ bool FCheckTerrainWheelImportedCommand::Update()
 		return true;
 
 	Test.TestEqual(
-		TEXT("Terrain Wheel Body Reference"), TerrainWheel->RigidBody.Name,
-		FName(TEXT("Body")));
+		TEXT("Terrain Wheel Body Reference"), TerrainWheel->RigidBody.Name, FName(TEXT("Body")));
 	Test.TestNotNull(TEXT("Terrain Wheel Settings"), TerrainWheel->TerrainWheelSettings);
 	if (TerrainWheel->TerrainWheelSettings == nullptr)
 		return true;
