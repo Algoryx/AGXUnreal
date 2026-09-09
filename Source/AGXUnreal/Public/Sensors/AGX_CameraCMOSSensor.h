@@ -32,8 +32,11 @@ public:
 
 	/**
 	 * Sensor amplifier ISO value.
+	 * This value only contributes to the final capture if bUseAutoExposure is false.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Camera CMOS Sensor", Meta = (ClampMin = "0.0"))
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Camera CMOS Sensor",
+		Meta = (ClampMin = "0.0", EditCondition = "bUseAutoExposure"))
 	double ISO {100.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera CMOS Sensor")

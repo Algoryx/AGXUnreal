@@ -1105,10 +1105,17 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 		NewObject<USceneCaptureComponent2D>(this, FName(TEXT("SceneCaptureComponent2D")));
 	OwnedCaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
 	OwnedCaptureComponent2D->SetCanEverAffectNavigation(false);
+	OwnedCaptureComponent2D->PrimitiveRenderMode =
+		ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
+	OwnedCaptureComponent2D->CaptureSource = ESceneCaptureSource::SCS_FinalColorHDR;
 	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
 	OwnedCaptureComponent2D->bCaptureOnMovement = false;
 	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
-	OwnedCaptureComponent2D->PostProcessBlendWeight = 1.0f; // TODO: verify these...
+	OwnedCaptureComponent2D->PostProcessBlendWeight = 1.0f;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraISO = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureBias = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true; // // TODO!
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
@@ -1248,7 +1255,7 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
-	const FCameraCMOSSensorBarrier& SensorBarrier)
+	const FCameraCMOSSensorBarrier& CMOSBarrier)
 {
 	using namespace AGX_CameraSensorComponent_helpers;
 
@@ -1271,13 +1278,20 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 		UpdateFOV(*SceneCapture, CMOSSensorSize.X, FocalLength);
 	}
 
-	// TODO: Verify these...
 	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
-	PostProcessSettings.CameraISO = SensorBarrier.GetISO();
+	const bool AutoExposure = CMOSBarrier.GetUseAutoExposure();
+	PostProcessSettings.AutoExposureMethod =
+		AutoExposure ? EAutoExposureMethod::AEM_Histogram : EAutoExposureMethod::AEM_Manual;
+
+	if (AutoExposure)
+		PostProcessSettings.AutoExposureBias = 1;
+	else
+		PostProcessSettings.AutoExposureBias = CMOSBarrier.GetExposureCompensation();
+
+	PostProcessSettings.AutoExposureMaxBrightness = CMOSBarrier.GetDynamicRange(); // TODO!
+	PostProcessSettings.CameraISO = CMOSBarrier.GetISO();
 	PostProcessSettings.DepthOfFieldSensorWidth =
 		static_cast<float>(CMOSSensorSize.X * /*to mm*/ 10.0);
-
-	// TODO: impl the rest of the CMOSSensor properties.
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
