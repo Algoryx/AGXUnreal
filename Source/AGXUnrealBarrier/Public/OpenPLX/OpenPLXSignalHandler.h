@@ -20,6 +20,7 @@ struct FInputSignalListenerRef;
 struct FInputSignalQueuePtr;
 struct FOutputSignalListenerRef;
 struct FOutputSignalQueuePtr;
+struct FOpenPLXIMUOutputView;
 struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
@@ -77,6 +78,9 @@ public:
 
 	/// Lidar outputs.
 	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
+
+	/// IMU outputs.
+	bool ReceiveIMUOutput(const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput);
 
 	void ReleaseNatives();
 

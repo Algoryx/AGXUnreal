@@ -47,6 +47,7 @@
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
 #include <agxSensor/Environment.h>
+#include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
 #include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
@@ -633,12 +634,21 @@ namespace
 			return;
 
 		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
-		OutSimObjects.GetSensors().Reserve(Lidars.size());
+		agxSensor::IMUPtrVector IMUs = agxSensor::IMU::findAll(Env);
+		OutSimObjects.GetSensors().Reserve(Lidars.size() + IMUs.size());
 		for (agxSensor::Lidar* LidarAGX : Lidars)
 		{
 			auto StepStride = LidarAGX->findParent<agxSensor::SensorGroupStepStride>();
 			OutSimObjects.GetSensors().Emplace(
 				std::make_shared<FSensorRef>(LidarAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
+		}
+
+		for (agxSensor::IMU* IMUAGX : IMUs)
+		{
+			auto StepStride = IMUAGX->findParent<agxSensor::SensorGroupStepStride>();
+			OutSimObjects.GetSensors().Emplace(
+				std::make_shared<FSensorRef>(IMUAGX),
 				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
 		}
 	}

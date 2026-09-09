@@ -198,6 +198,17 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsIMUOutputType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::IMUOutput:
+			return true;
+		default:
+			return false;
+	}
+}
+
 bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
 {
 	switch (Type)
@@ -208,7 +219,6 @@ bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
 			return false;
 	}
 }
-
 
 const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_InputType Type)
 {
