@@ -7,7 +7,10 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "Materials/ShapeMaterialBarrier.h"
+#include "Materials/TerrainMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Shapes/ShapeBarrierImpl.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainDataSource.h"
@@ -87,28 +90,10 @@ bool FTerrainPagerBarrier::HasNative() const
 }
 
 void FTerrainPagerBarrier::AllocateNative(
-	FTerrainHeightFetcherBase* HeightFetcher, FTerrainBarrier& TerrainBarrier,
-	int32 TileSideVertices, int32 TileOverlapVerties, double ElementSize, double MaxDepth)
+	FTerrainBarrier& TerrainBarrier, int32 TileSideVertices, int32 TileOverlapVerties,
+	double ElementSize, double MaxDepth)
 {
 	check(TerrainBarrier.HasNative());
-
-	if (HeightFetcher == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("TerrainPager got nullptr HeightFetcher when allocating native. AGX Dynamics will "
-				 "not be able to fetch heights from the Landscape."));
-	}
-
-	// Create a TerrainDataSource and assign the HeightFetcher to it. This HeightFetcher is owned by
-	// the UAGX_Terrain and is a way for us to call UAGX_Terrain::FetchHeights from the Barrier
-	// module.
-	DataSourceRef = std::make_unique<FTerrainDataSourceRef>();
-	{
-		FTerrainDataSource* DataSource = new FTerrainDataSource();
-		DataSource->SetTerrainHeightFetcher(HeightFetcher);
-		DataSourceRef->Native = DataSource;
-	}
 
 	// Use the same position/rotation as the given Terrain.
 	const agx::Vec3 Position = ConvertDisplacement(TerrainBarrier.GetPosition());
@@ -119,6 +104,31 @@ void FTerrainPagerBarrier::AllocateNative(
 	NativeRef->Native = new agxTerrain::TerrainPager(
 		TileSideVertices, TileOverlapVerties, ElementSizeAGX, MaxDepthAGX, Position, Rotation,
 		TerrainBarrier.GetNative()->Native);
+}
+
+void FTerrainPagerBarrier::CreateTerrainDataSource(
+	FTerrainHeightFetcherBase* HeightFetcher, FTerrainMaterialBarrier* DefaultTerrainMaterial)
+{
+	check(HasNative());
+	check(DefaultTerrainMaterial == nullptr || DefaultTerrainMaterial->HasNative());
+
+	if (HeightFetcher == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("TerrainPager got nullptr HeightFetcher when creating TerrainDataSource. AGX "
+				 "Dynamics will not be able to fetch heights from the Landscape."));
+	}
+
+	DataSourceRef = std::make_unique<FTerrainDataSourceRef>();
+	{
+		FTerrainDataSource* DataSource = new FTerrainDataSource();
+		DataSource->SetTerrainHeightFetcher(HeightFetcher);
+		DataSource->setDefaultTerrainMaterial(
+			DefaultTerrainMaterial != nullptr ? DefaultTerrainMaterial->GetNative()->Native.get()
+											  : new agxTerrain::TerrainMaterial());
+		DataSourceRef->Native = DataSource;
+	}
 
 	NativeRef->Native->setTerrainDataSource(DataSourceRef->Native);
 }
@@ -203,6 +213,49 @@ bool FTerrainPagerBarrier::SetTileLoadRadii(
 	return NativeRef->Native->setTileLoadRadiuses(
 		Body.GetNative()->Native, ConvertDistanceToAGX(RequiredRadius),
 		ConvertDistanceToAGX(PreloadRadius));
+}
+
+bool FTerrainPagerBarrier::SetTerrainMaterial(
+	FTerrainMaterialBarrier& TerrainMaterial, FShapeBarrier& Shape)
+{
+	check(HasNative());
+	check(TerrainMaterial.HasNative());
+	check(Shape.HasNative());
+
+	agxTerrain::TerrainDataSource* DataSource = NativeRef->Native->getTerrainDataSource();
+	if (DataSource == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot set Terrain Material in Terrain Pager because it has no TerrainDataSource."));
+		return false;
+	}
+
+	agxCollide::Geometry* MaterialGeometry = Shape.GetNative()->NativeGeometry->clone();
+	MaterialGeometry->updateBoundingVolume();
+
+	return DataSource->addTerrainMaterial(
+		TerrainMaterial.GetNative()->Native, MaterialGeometry);
+}
+
+bool FTerrainPagerBarrier::SetAssociatedMaterial(
+	FTerrainMaterialBarrier& TerrainMaterial, FShapeMaterialBarrier& ShapeMaterial)
+{
+	check(HasNative());
+	check(TerrainMaterial.HasNative());
+	check(ShapeMaterial.HasNative());
+	agxTerrain::TerrainDataSource* DataSource = NativeRef->Native->getTerrainDataSource();
+	if (DataSource == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Cannot set associated Shape Material in Terrain Pager because it has no "
+				 "TerrainDataSource."));
+		return false;
+	}
+
+	return DataSource->setAssociatedMaterial(
+		ShapeMaterial.GetNative()->Native, TerrainMaterial.GetNative()->Native);
 }
 
 FParticleData FTerrainPagerBarrier::GetParticleData() const
