@@ -209,6 +209,22 @@ UAGX_LidarAmbientMaterial* UAGX_LidarAmbientMaterial::CreateInstanceFromAsset(
 	return NewInstance;
 }
 
+UAGX_LidarAmbientMaterial* UAGX_LidarAmbientMaterial::GetInstance()
+{
+	if (IsInstance())
+		return this;
+
+	return Instance.Get();
+}
+
+UAGX_LidarAmbientMaterial* UAGX_LidarAmbientMaterial::GetAsset()
+{
+	if (IsInstance())
+		return Asset.Get();
+
+	return this;
+}
+
 UAGX_LidarAmbientMaterial* UAGX_LidarAmbientMaterial::GetOrCreateInstance(UWorld* PlayingWorld)
 {
 	if (IsInstance())

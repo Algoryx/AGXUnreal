@@ -14,6 +14,8 @@
 #include "ObserverFrameBarrier.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/LidarBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "Shapes/BoxShapeBarrier.h"
 #include "Shapes/CapsuleShapeBarrier.h"
 #include "Shapes/SphereShapeBarrier.h"
@@ -44,6 +46,9 @@
 #include <agx/SingleControllerConstraint1DOF.h>
 #include <agx/RigidBody.h>
 #include <agxCable/Cable.h>
+#include <agxSensor/Environment.h>
+#include <agxSensor/IMU.h>
+#include <agxSensor/Lidar.h>
 #include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
 
@@ -622,6 +627,32 @@ namespace
 		}
 	}
 
+	void ReadSensors(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
+	{
+		agxSensor::Environment* Env = agxSensor::Environment::get(&Simulation);
+		if (Env == nullptr)
+			return;
+
+		agxSensor::LidarPtrVector Lidars = agxSensor::Lidar::findAll(Env);
+		agxSensor::IMUPtrVector IMUs = agxSensor::IMU::findAll(Env);
+		OutSimObjects.GetSensors().Reserve(Lidars.size() + IMUs.size());
+		for (agxSensor::Lidar* LidarAGX : Lidars)
+		{
+			auto StepStride = LidarAGX->findParent<agxSensor::SensorGroupStepStride>();
+			OutSimObjects.GetSensors().Emplace(
+				std::make_shared<FSensorRef>(LidarAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
+		}
+
+		for (agxSensor::IMU* IMUAGX : IMUs)
+		{
+			auto StepStride = IMUAGX->findParent<agxSensor::SensorGroupStepStride>();
+			OutSimObjects.GetSensors().Emplace(
+				std::make_shared<FSensorRef>(IMUAGX),
+				std::make_shared<FSensorGroupStepStrideRef>(StepStride));
+		}
+	}
+
 	void ReadAll(agxSDK::Simulation& Simulation, FSimulationObjectCollection& OutSimObjects)
 	{
 		// These contain objects that are not free-standing but owned by something else and will
@@ -650,6 +681,7 @@ namespace
 		ReadCollisionGroups(Simulation, OutSimObjects);
 		ReadWires(Simulation, OutSimObjects);
 		ReadObserverFrames(Simulation, OutSimObjects);
+		ReadSensors(Simulation, OutSimObjects);
 	}
 
 	void ReadOpenPLXMaterials(

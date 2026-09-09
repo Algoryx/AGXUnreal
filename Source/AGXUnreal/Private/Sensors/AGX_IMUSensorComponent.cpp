@@ -8,6 +8,9 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Import/AGX_ImportContext.h"
+#include "RigidBodyBarrier.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
 
@@ -126,6 +129,40 @@ void UAGX_IMUSensorComponent::OnRegister()
 	// will not be messing with this object anymore. It is now safe to set the Local Scope on our
 	// Component References.
 	AGX_IMUSensorComponent_helpers::SetLocalScope(*this);
+}
+
+void UAGX_IMUSensorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNativeImpl();
+
+	if (HasNative())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddIMU(this);
+		}
+	}
+}
+
+void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (!GIsReconstructingBlueprintInstances && HasNative() &&
+		Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		Reason != EEndPlayReason::LevelTransition)
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->RemoveIMU(this);
+		}
+	}
+
+	Super::EndPlay(Reason);
 }
 
 FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU()
@@ -714,6 +751,68 @@ FQuat UAGX_IMUSensorComponent::GetRotation() const
 	return GetComponentQuat();
 }
 
+void UAGX_IMUSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	Super::CopyFrom(Barrier, Context);
+
+	const FIMUBarrier& IMUBarrier = static_cast<const FIMUBarrier&>(Barrier);
+	const FTransform Transform = IMUBarrier.GetTransform();
+	SetWorldTransform(Transform);
+
+	bUseAccelerometer = IMUBarrier.HasAccelerometer();
+	bUseGyroscope = IMUBarrier.HasGyroscope();
+	bUseMagnetometer = IMUBarrier.HasMagnetometer();
+
+	if (bUseAccelerometer)
+	{
+		AccelerometerRange = IMUBarrier.GetAccelerometerRange();
+		AccelerometerCrossAxisSensitivityX = IMUBarrier.GetAccelerometerCrossAxisSensitivityX();
+		AccelerometerCrossAxisSensitivityY = IMUBarrier.GetAccelerometerCrossAxisSensitivityY();
+		AccelerometerCrossAxisSensitivityZ = IMUBarrier.GetAccelerometerCrossAxisSensitivityZ();
+		AccelerometerZeroGBias = IMUBarrier.GetAccelerometerZeroGBias();
+		AccelerometerNoiseRMS = IMUBarrier.GetAccelerometerNoiseRMS();
+		AccelerometerSpectralNoiseDensity = IMUBarrier.GetAccelerometerSpectralNoiseDensity();
+	}
+
+	if (bUseGyroscope)
+	{
+		GyroscopeRange = IMUBarrier.GetGyroscopeRange();
+		GyroscopeCrossAxisSensitivityX = IMUBarrier.GetGyroscopeCrossAxisSensitivityX();
+		GyroscopeCrossAxisSensitivityY = IMUBarrier.GetGyroscopeCrossAxisSensitivityY();
+		GyroscopeCrossAxisSensitivityZ = IMUBarrier.GetGyroscopeCrossAxisSensitivityZ();
+		GyroscopeZeroRateBias = IMUBarrier.GetGyroscopeZeroRateBias();
+		GyroscopeNoiseRMS = IMUBarrier.GetGyroscopeNoiseRMS();
+		GyroscopeSpectralNoiseDensity = IMUBarrier.GetGyroscopeSpectralNoiseDensity();
+	}
+
+	if (bUseMagnetometer)
+	{
+		MagnetometerRange = IMUBarrier.GetMagnetometerRange();
+		MagnetometerCrossAxisSensitivityX = IMUBarrier.GetMagnetometerCrossAxisSensitivityX();
+		MagnetometerCrossAxisSensitivityY = IMUBarrier.GetMagnetometerCrossAxisSensitivityY();
+		MagnetometerCrossAxisSensitivityZ = IMUBarrier.GetMagnetometerCrossAxisSensitivityZ();
+		MagnetometerZeroFluxBias = IMUBarrier.GetMagnetometerZeroFluxBias();
+		MagnetometerNoiseRMS = IMUBarrier.GetMagnetometerNoiseRMS();
+		MagnetometerSpectralNoiseDensity = IMUBarrier.GetMagnetometerSpectralNoiseDensity();
+	}
+
+	if (Context == nullptr || Context->Sensors == nullptr || Context->RigidBodies == nullptr)
+		return; // We are done.
+
+	const FRigidBodyBarrier BodyBarrier = IMUBarrier.GetRigidBody();
+	if (BodyBarrier.HasNative())
+	{
+		if (UAGX_RigidBodyComponent* Body =
+				Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
+		{
+			RigidBody.Name = Body->GetFName();
+		}
+	}
+
+	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
+	Context->Sensors->Add(ImportGuid, this);
+}
+
 void UAGX_IMUSensorComponent::UpdateTransformFromNative()
 {
 	if (!HasNative())
@@ -763,7 +862,8 @@ FSensorBarrier* UAGX_IMUSensorComponent::CreateNativeImpl()
 	Params.LocalTransform = GetComponentTransform().GetRelativeTransform(BodyTransform);
 
 	auto IMUBarrier = static_cast<FIMUBarrier*>(NativeBarrier.Get());
-	IMUBarrier->AllocateNative(Params, *BodyBarrier);
+	const bool bAddOutputs = !bOpenPLXImported;
+	IMUBarrier->AllocateNative(Params, *BodyBarrier, bAddOutputs);
 	if (HasNative())
 		UpdateNativeProperties();
 
