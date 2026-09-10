@@ -109,7 +109,8 @@ namespace AGX_CameraSensorComponent_helpers
 	double CalculateAutofocusDistance(
 		const USceneCaptureComponent2D& SceneCapture, double MinimumFocusDistance)
 	{
-		const double ClampedMinimumFocusDistance = FMath::Max(0.0, MinimumFocusDistance);
+		// For SceneCaptureComponent2D, FocalDistance of zero disables it.
+		const double ClampedMinimumFocusDistance = FMath::Max(0.1, MinimumFocusDistance);
 
 		UWorld* World = SceneCapture.GetWorld();
 		if (World == nullptr)
@@ -136,9 +137,15 @@ namespace AGX_CameraSensorComponent_helpers
 		double FocusDistance)
 	{
 		FPostProcessSettings& PostProcessSettings = SceneCapture.PostProcessSettings;
-		PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(
-			bUseAutofocus ? CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance)
-						  : FocusDistance);
+		if (bUseAutofocus)
+		{
+			PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(
+			CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance));
+		}
+		else
+		{
+			PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(FocusDistance);
+		}
 	}
 
 	void UpdateLensFocalDistance(
@@ -1115,7 +1122,7 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraISO = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureBias = true;
-	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true; // // TODO!
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
@@ -1245,7 +1252,6 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
 	const FVector2D CMOSSensorSize = CMOSSensor.GetSize();
 	UpdateFOV(*SceneCapture, CMOSSensorSize.X, LensBarrier.GetFocalLength());
 
-	// TODO: Verify these...
 	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
 	PostProcessSettings.DepthOfFieldFstop = static_cast<float>(LensBarrier.GetFStop());
 
@@ -1269,8 +1275,7 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 
 	// If the Size of the CMOSSensor has changed, that will affect the FOV, so we re-calculate that
 	// here as well.
-	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
-	const FVector2D CMOSSensorSize = CMOSSensor.GetSize();
+	const FVector2D CMOSSensorSize = CMOSBarrier.GetSize();
 	const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
 	const double FocalLength = Lens.GetFocalLength();
 	if (!IsFOVUpToDate(*SceneCapture, CMOSSensorSize.X, FocalLength))
@@ -1288,7 +1293,7 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 	else
 		PostProcessSettings.AutoExposureBias = CMOSBarrier.GetExposureCompensation();
 
-	PostProcessSettings.AutoExposureMaxBrightness = CMOSBarrier.GetDynamicRange(); // TODO!
+	PostProcessSettings.AutoExposureMaxBrightness = CMOSBarrier.GetDynamicRange();
 	PostProcessSettings.CameraISO = CMOSBarrier.GetISO();
 	PostProcessSettings.DepthOfFieldSensorWidth =
 		static_cast<float>(CMOSSensorSize.X * /*to mm*/ 10.0);

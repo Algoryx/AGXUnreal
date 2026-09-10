@@ -74,8 +74,7 @@ public:
 	 * Only used when bUseAutoExposure is true.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Camera CMOS Sensor",
-		Meta = (ClampMin = "0.0", EditCondition = "bUseAutoExposure"))
+		EditAnywhere, Category = "AGX Camera CMOS Sensor", Meta = (EditCondition = "bUseAutoExposure"))
 	double DynamicRange {11.3};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera CMOS Sensor")
@@ -91,7 +90,7 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Camera CMOS Sensor",
 		Meta = (EditCondition = "!bUseAutoExposure"))
-	double ExposureCompensation {0.0};
+	double ExposureCompensation {8.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera CMOS Sensor")
 	void SetExposureCompensation(double InExposureCompensation);

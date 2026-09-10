@@ -75,7 +75,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Camera Lens",
-		Meta = (ClampMin = "0.0", EditCondition = "!bUseAutofocus"))
+		Meta = (ClampMin = "0.1", EditCondition = "!bUseAutofocus"))
 	double FocusDistance {150.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera Lens")
