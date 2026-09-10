@@ -29,6 +29,7 @@ struct AGXUNREALEDITOR_API FAGX_SCSNodeCollection
 	TMap<FGuid, USCS_Node*> TerrainWheels;
 	TMap<FGuid, USCS_Node*> TwoBodyTires;
 	TMap<FGuid, USCS_Node*> ObserverFrames;
+	TMap<FGuid, USCS_Node*> Sensors;
 	TMap<FGuid, USCS_Node*> Shovels;
 	TMap<FGuid, USCS_Node*> Steerings;
 	TMap<FGuid, USCS_Node*> Tracks;

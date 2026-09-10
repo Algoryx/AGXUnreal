@@ -114,6 +114,9 @@ public:
 
 	UAGX_LidarAmbientMaterial* GetOrCreateInstance(UWorld* PlayingWorld);
 
+	UAGX_LidarAmbientMaterial* GetInstance();
+	UAGX_LidarAmbientMaterial* GetAsset();
+
 	FRtAmbientMaterialBarrier* GetOrCreateNative();
 
 	void UpdateNativeProperties();

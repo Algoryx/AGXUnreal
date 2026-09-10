@@ -1,6 +1,6 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_CameraSensor8BitComponent.h"
+#include "Deprecated/AGX_CameraSensor16BitComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
@@ -16,7 +16,7 @@
 #include "RenderingThread.h"
 #include "TextureResource.h"
 
-namespace AGX_CameraSensor8BitComponent_helpers
+namespace AGX_CameraSensor16BitComponent_helpers
 {
 	struct FAGX_ImageAsyncParams
 	{
@@ -37,8 +37,8 @@ namespace AGX_CameraSensor8BitComponent_helpers
 
 	void GetImageAsync(
 		UTextureRenderTarget2D* RenderTarget,
-		TSharedPtr<UAGX_CameraSensor8BitComponent::FAGX_ImageBuffer> OutImg, int32 ImageIndex,
-		FOnNewImagePixels8Bit& ImagePixelDelegate, FOnNewImageROS2& ImageROS2Delegate,
+		TSharedPtr<UAGX_CameraSensor16BitComponent::FAGX_ImageBuffer> OutImg, int32 ImageIndex,
+		FOnNewImagePixels16Bit& ImagePixelDelegate, FOnNewImageROS2& ImageROS2Delegate,
 		const FAGX_ImageAsyncParams& Params)
 	{
 		if (RenderTarget == nullptr || OutImg == nullptr)
@@ -50,7 +50,7 @@ namespace AGX_CameraSensor8BitComponent_helpers
 		struct FReadSurfaceContext
 		{
 			FRenderTarget* SrcRenderTarget;
-			TArray<FColor>* OutData;
+			TArray<FFloat16Color>* OutData;
 			FIntRect Rect;
 			FReadSurfaceDataFlags Flags;
 		};
@@ -62,14 +62,14 @@ namespace AGX_CameraSensor8BitComponent_helpers
 
 		Context.Flags.SetLinearToGamma(false);
 
-		ENQUEUE_RENDER_COMMAND(FAGX_ReadRtCommand)
+		ENQUEUE_RENDER_COMMAND(FAGX_ReadRtCommand16)
 		(
 			[Context, OutImg, ImageIndex, &ImagePixelDelegate, &ImageROS2Delegate,
 			 Params](FRHICommandListImmediate& RHICmdList)
 			{
 				{
 					std::scoped_lock<std::mutex> sl(OutImg->ImageMutex);
-					RHICmdList.ReadSurfaceData(
+					RHICmdList.ReadSurfaceFloatData(
 						Context.SrcRenderTarget->GetRenderTargetTexture(), Context.Rect,
 						*Context.OutData, Context.Flags);
 				}
@@ -94,9 +94,9 @@ namespace AGX_CameraSensor8BitComponent_helpers
 	}
 }
 
-void UAGX_CameraSensor8BitComponent::GetImagePixelsAsync()
+void UAGX_CameraSensor16BitComponent::GetImagePixelsAsync()
 {
-	using namespace AGX_CameraSensor8BitComponent_helpers;
+	using namespace AGX_CameraSensor16BitComponent_helpers;
 
 	if (!bIsValid || RenderTarget == nullptr)
 		return;
@@ -111,21 +111,21 @@ void UAGX_CameraSensor8BitComponent::GetImagePixelsAsync()
 	const int32 ImageIndex = LastImage->BufferHead;
 	OnAsyncImageRequest();
 
-	AGX_CameraSensor8BitComponent_helpers::GetImageAsync(
+	AGX_CameraSensor16BitComponent_helpers::GetImageAsync(
 		RenderTarget, LastImage, ImageIndex, NewImagePixels, NewImageROS2, Params);
 }
 
-TArray<FColor> UAGX_CameraSensor8BitComponent::GetImagePixels() const
+TArray<FFloat16Color> UAGX_CameraSensor16BitComponent::GetImagePixels() const
 {
 	if (!bIsValid)
-		return TArray<FColor>();
+		return TArray<FFloat16Color>();
 
-	return UAGX_RenderUtilities::GetImagePixels8(RenderTarget);
+	return UAGX_RenderUtilities::GetImagePixels16(RenderTarget);
 }
 
-void UAGX_CameraSensor8BitComponent::GetImageROS2Async(bool Grayscale)
+void UAGX_CameraSensor16BitComponent::GetImageROS2Async(bool Grayscale)
 {
-	using namespace AGX_CameraSensor8BitComponent_helpers;
+	using namespace AGX_CameraSensor16BitComponent_helpers;
 
 	if (!bIsValid || RenderTarget == nullptr)
 		return;
@@ -142,7 +142,7 @@ void UAGX_CameraSensor8BitComponent::GetImageROS2Async(bool Grayscale)
 	GetImageAsync(RenderTarget, LastImage, ImageIndex, NewImagePixels, NewImageROS2, Params);
 }
 
-FAGX_SensorMsgsImage UAGX_CameraSensor8BitComponent::GetImageROS2(bool Grayscale) const
+FAGX_SensorMsgsImage UAGX_CameraSensor16BitComponent::GetImageROS2(bool Grayscale) const
 {
 	if (!bIsValid)
 		return FAGX_SensorMsgsImage();
@@ -154,7 +154,7 @@ FAGX_SensorMsgsImage UAGX_CameraSensor8BitComponent::GetImageROS2(bool Grayscale
 	return UAGX_RenderUtilities::GetImageROS2(RenderTarget, TimeStamp, Grayscale);
 }
 
-void UAGX_CameraSensor8BitComponent::EndPlay(const EEndPlayReason::Type Reason)
+void UAGX_CameraSensor16BitComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
 
@@ -165,7 +165,7 @@ void UAGX_CameraSensor8BitComponent::EndPlay(const EEndPlayReason::Type Reason)
 		LastImage->EndPlayTriggered = true;
 }
 
-void UAGX_CameraSensor8BitComponent::Init()
+void UAGX_CameraSensor16BitComponent::Init()
 {
 	Super::Init();
 
@@ -175,16 +175,16 @@ void UAGX_CameraSensor8BitComponent::Init()
 	}
 }
 
-bool UAGX_CameraSensor8BitComponent::CheckValid() const
+bool UAGX_CameraSensor16BitComponent::CheckValid() const
 {
 	if (!Super::CheckValid())
 		return false;
 
-	if (RenderTarget->GetFormat() != EPixelFormat::PF_B8G8R8A8)
+	if (RenderTarget->GetFormat() != EPixelFormat::PF_FloatRGBA)
 	{
 		const FString Msg = FString::Printf(
 			TEXT("Camera Sensor '%s' in Actor '%s' has a RenderTarget with an unsupported pixel "
-				 "format. The pixel format should be RGBA8. Use the 'Generate Runtime Assets' "
+				 "format. The pixel format should be RGBA16f. Use the 'Generate Runtime Assets' "
 				 "button in the Details Panel to generate a valid RenderTarget."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		FAGX_NotificationUtilities::ShowNotification(Msg, SNotificationItem::CS_Fail);
@@ -194,7 +194,7 @@ bool UAGX_CameraSensor8BitComponent::CheckValid() const
 	return true;
 }
 
-void UAGX_CameraSensor8BitComponent::OnAsyncImageRequest()
+void UAGX_CameraSensor16BitComponent::OnAsyncImageRequest()
 {
 	AGX_CHECK(LastImage->BufferHead < 2);
 	LastImage->BufferHead = (LastImage->BufferHead + 1) % 2;

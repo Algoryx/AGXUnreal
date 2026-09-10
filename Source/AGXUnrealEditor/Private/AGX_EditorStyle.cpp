@@ -195,9 +195,12 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 	// Sensors.
 	Style->Set(
 		"ClassIcon.AGX_CameraSensor8BitComponent",
-		new IMAGE_BRUSH("Icons/camera_sensor_32x32", IconSize16));
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_CameraSensor16BitComponent",
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_CameraSensorComponent",
 		new IMAGE_BRUSH("Icons/camera_sensor_32x32", IconSize16));
 	Style->Set("ClassIcon.AGX_IMUSensorComponent", new IMAGE_BRUSH("Icons/imu_32x32", IconSize16));
 	Style->Set(
@@ -207,7 +210,7 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_LidarSensorLineTraceComponent",
-		new IMAGE_BRUSH("Icons/lidar_32x32", IconSize16));
+		new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	// Steering
 	Style->Set(
 		"ClassIcon.AGX_SteeringComponent", new IMAGE_BRUSH("Icons/steering_32x32", IconSize16));

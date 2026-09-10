@@ -3,11 +3,15 @@
 #include "Utilities/AGX_ROS2Utilities.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
+#include "Sensors/AGX_CameraOutputColor.h"
 #include "Sensors/AGX_LidarOutputPosition.h"
 #include "Sensors/AGX_LidarOutputPositionIntensity.h"
 #include "Sensors/AGX_LidarScanPoint.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 
 // Standard library includes.
 #include <cstring>
@@ -33,6 +37,37 @@ namespace AGX_ROS2Utilities_helpers
 		t.Sec = static_cast<int32>(TimeStamp);
 		t.Nanosec = static_cast<int64>(TimeStamp * 1.0E9) % 1000000000;
 		return t;
+	}
+
+	TOptional<int64> GetCameraOutputChannelSize(EAGX_CameraOutputChannelType ChannelType)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return sizeof(uint8);
+			case EAGX_CameraOutputChannelType::F32:
+				return sizeof(float);
+			case EAGX_CameraOutputChannelType::UNSUPPORTED:
+				return {};
+		}
+
+		return {};
+	}
+
+	TOptional<FString> GetCameraOutputEncoding(
+		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return FString::Printf(TEXT("8UC%d"), static_cast<int32>(ChannelCount));
+			case EAGX_CameraOutputChannelType::F32:
+				return FString::Printf(TEXT("32FC%d"), static_cast<int32>(ChannelCount));
+			case EAGX_CameraOutputChannelType::UNSUPPORTED:
+				return {};
+		}
+
+		return {};
 	}
 
 	template <typename PixelType, typename OutputChannelType>
@@ -71,6 +106,24 @@ namespace AGX_ROS2Utilities_helpers
 		Field.Count = Count;
 		return Field;
 	};
+
+	EAGX_PointFieldType ToROSPointFieldType(EOpenPLXLidarPackedFieldType Type)
+	{
+		switch (Type)
+		{
+			case EOpenPLXLidarPackedFieldType::Float32:
+				return EAGX_PointFieldType::Float32;
+			case EOpenPLXLidarPackedFieldType::Float64:
+				return EAGX_PointFieldType::Float64;
+			case EOpenPLXLidarPackedFieldType::Int32:
+				return EAGX_PointFieldType::Int32;
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ConvertOpenPLXLidarOutput got unknown OpenPLX Lidar packed field type."));
+		return EAGX_PointFieldType::Uint8;
+	}
 
 	void AppendDoubleToUint8Array(double Val, TArray<uint8>& OutData)
 	{
@@ -114,6 +167,7 @@ namespace AGX_ROS2Utilities_helpers
 	{
 		return Val * 100.0;
 	}
+
 }
 
 FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
@@ -192,6 +246,81 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 		}
 	}
 
+	return Msg;
+}
+
+FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead,
+	const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+
+	FAGX_SensorMsgsImage Msg;
+	Msg.IsBigendian = 0;
+	Msg.Header.Stamp = AGX_ROS2Utilities_helpers::Convert(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+
+	const FIntPoint Resolution = CameraOutput.GetResolution();
+	const EAGX_CameraOutputChannelType ChannelType = CameraOutput.GetChannelType();
+	const uint8 ChannelCount = CameraOutput.GetChannelCount();
+	const TOptional<int64> ChannelSize = GetCameraOutputChannelSize(ChannelType);
+	const TOptional<FString> Encoding = GetCameraOutputEncoding(ChannelType, ChannelCount);
+
+	if (Resolution.X <= 0 || Resolution.Y <= 0)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got invalid resolution: %dx%d."),
+			Resolution.X, Resolution.Y);
+		return Msg;
+	}
+
+	if (ChannelCount < 1 || ChannelCount > 4)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got invalid channel count: %u."),
+			ChannelCount);
+		return Msg;
+	}
+
+	if (ChannelSize.IsSet() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image got unsupported channel type: %s."),
+			*UEnum::GetValueAsString(ChannelType));
+		return Msg;
+	}
+
+	if (Encoding.IsSet() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image could not create an encoding for "
+				 "channel type %s and channel count %u."),
+			*UEnum::GetValueAsString(ChannelType), ChannelCount);
+		return Msg;
+	}
+
+	Msg.Height = Resolution.Y;
+	Msg.Width = Resolution.X;
+	Msg.Encoding = Encoding.GetValue();
+	Msg.Step = static_cast<int64>(Resolution.X) * static_cast<int64>(ChannelCount) *
+			   ChannelSize.GetValue();
+
+	if (CameraOutput.HasNative() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert Camera Color Output to ROS2 Image requires a native Camera output."));
+		return Msg;
+	}
+
+	FCameraOutputBarrier* Native = CameraOutput.GetNative();
+	AGX_CHECK(FCameraOutputColorBarrier::IsColorOutput(*Native));
+	FCameraOutputColorBarrier* ColorNative = static_cast<FCameraOutputColorBarrier*>(Native);
+	ColorNative->GetDataBytes(Msg.Data, bMarkAsRead);
 	return Msg;
 }
 
@@ -420,6 +549,56 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
 
 	return Msg;
+}
+
+FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
+	FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsPointCloud2 Msg;
+
+	const int32 NumPoints = View.GetNumPoints();
+
+	FOpenPLXLidarPointReadFlags ReadFlags;
+	ReadFlags.bPositions = View.HasPositions();
+	ReadFlags.bIntensities = View.HasIntensities();
+	ReadFlags.bTimeStamps = View.HasTimeStamps();
+	ReadFlags.bDistances = View.HasDistances();
+	ReadFlags.bIsHits = View.HasIsHits();
+	ReadFlags.bEntityIds = View.HasEntityIds();
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+	Msg.IsBigendian = false;
+
+	TArray<FOpenPLXLidarPackedField> RawFields;
+	bool bAllHits = true;
+	if (!View.ReadRawPointData(ReadFlags, Msg.Data, RawFields, Msg.PointStep, bAllHits))
+	{
+		Msg.Fields.Reset();
+		Msg.PointStep = 0;
+		Msg.Data.Reset();
+		return Msg;
+	}
+
+	for (const FOpenPLXLidarPackedField& Field : RawFields)
+	{
+		Msg.Fields.Add(
+			MakePointField(Field.Name, Field.Offset, ToROSPointFieldType(Field.Type), Field.Count));
+	}
+
+	Msg.IsDense = bAllHits;
+	Msg.Height = 1;
+	Msg.Width = NumPoints;
+	Msg.RowStep = Msg.Data.Num();
+	return Msg;
+}
+
+FAGX_SensorMsgsImage UAGX_ROS2Utilities::ConvertCameraOutput(
+	FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead,
+	const FString& FrameId)
+{
+	return FAGX_ROS2Utilities::Convert(CameraOutput, TimeStamp, bMarkAsRead, FrameId);
 }
 
 FAGX_SensorMsgsImu UAGX_ROS2Utilities::ConvertIMUData(

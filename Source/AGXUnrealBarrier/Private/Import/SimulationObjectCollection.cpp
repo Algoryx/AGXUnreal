@@ -353,6 +353,16 @@ const TArray<FTrackBarrier>& FSimulationObjectCollection::GetTracks() const
 	return Tracks;
 }
 
+TArray<FSensorBarrier>& FSimulationObjectCollection::GetSensors()
+{
+	return Sensors;
+}
+
+const TArray<FSensorBarrier>& FSimulationObjectCollection::GetSensors() const
+{
+	return Sensors;
+}
+
 std::shared_ptr<FSimulationBarrier>& FSimulationObjectCollection::GetSimulation()
 {
 	return Simulation;

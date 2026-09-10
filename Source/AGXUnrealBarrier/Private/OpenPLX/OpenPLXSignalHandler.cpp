@@ -5,12 +5,18 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
+#include "OpenPLX/OpenPLXIMUOutputView.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
+#include "RigidBodyBarrier.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
+#include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/AGX_EnumUtilities.h"
 #include "Utilities/OpenPLX_Utilities.h"
@@ -23,7 +29,7 @@
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "openplx/ControlDispatch.h"
 #include "openplx/ControlInterface.h"
-#include <openplx/HeapControlInterface.h>
+#include "openplx/HeapControlInterface.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
@@ -43,7 +49,8 @@ FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 
 void FOpenPLXSignalHandler::Init(
 	const FString& OpenPLXFile, FSimulationBarrier& Simulation,
-	FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers)
+	FSensorEnvironmentBarrier* Environment, FOpenPLXModelRegistry& InModelRegistry,
+	const FOpenPLXMappingBarriersCollection& Barriers)
 {
 	check(Simulation.HasNative());
 	check(InModelRegistry.HasNative());
@@ -97,8 +104,8 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	std::shared_ptr<agxopenplx::AgxMetadata> AgxMetadata =
-		std::make_shared<agxopenplx::AgxMetadata>();
+	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
+	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -107,15 +114,17 @@ void FOpenPLXSignalHandler::Init(
 		auto PlxPowerLine = dynamic_cast<agxPowerLine::PowerLine*>(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
+		agxSensor::EnvironmentRef EnvironmentAGX =
+			Environment != nullptr && Environment->HasNative() ? Environment->GetNative()->Native : nullptr;
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, PlxPowerLine, EnvironmentAGX, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	if (FPLXUtilitiesInternal::HasInputs(System.get()))
 	{
 		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
 		InputSignalListenerRef->Native =
-			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, AgxMetadata);
+			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
 	}
 
@@ -123,7 +132,7 @@ void FOpenPLXSignalHandler::Init(
 	{
 		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
 		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, AgxMetadata);
+			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, Metadata);
 		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
 	}
 
@@ -133,7 +142,7 @@ void FOpenPLXSignalHandler::Init(
 
 	std::shared_ptr<openplx::ControlDispatch> ControlDispatch =
 		std::make_shared<openplx::ControlDispatch>();
-	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, AgxMetadata);
+	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, Metadata);
 	std::shared_ptr<openplx::ControlInterface> ControlInterface =
 		std::make_shared<openplx::ControlInterface>(ControlDispatch);
 
@@ -448,6 +457,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_InputType::EnableInteractionInput:
 			case EOpenPLX_InputType::EngageInput:
 			case EOpenPLX_InputType::TorqueConverterLockUpInput:
+			case EOpenPLX_InputType::CameraCaptureInput:
 				return Value;
 		}
 
@@ -1548,6 +1558,105 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 		return {nullptr};
 
 	return {It->second.get()};
+}
+
+bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
+	const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutOutput)
+{
+	check(IsInitialized());
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive Camera Color output '%s' ('%s') through "
+				"the Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXCameraColorOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read Camera Color output '%s' ('%s') through "
+				"the Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
+}
+
+bool FOpenPLXSignalHandler::ReceiveLidarOutput(
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput)
+{
+	check(IsInitialized());
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive Lidar output '%s' ('%s') through the "
+				"Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXLidarOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read Lidar output '%s' ('%s') through the "
+				"Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
+}
+
+bool FOpenPLXSignalHandler::ReceiveIMUOutput(
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput)
+{
+	check(IsInitialized());
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive IMU output '%s' ('%s') through the "
+				"Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXIMUOutputView();
+	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read IMU output '%s' ('%s') through the "
+				"Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 void FOpenPLXSignalHandler::ReleaseNatives()

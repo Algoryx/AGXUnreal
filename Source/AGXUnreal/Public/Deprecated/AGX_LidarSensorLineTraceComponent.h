@@ -21,12 +21,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 	FOnPointCloudDataOutput, const TArray<FAGX_LidarScanPoint>&, Points);
 
 /**
- * EXPERIMENTAL
- *
- * Lidar Sensor Line Trace Component, allowing to create point cluds at runtime.
+ * This Component is deprecated.
+ * Use the AGX Lidar Sensor Component instead.
  */
 UCLASS(
-	ClassGroup = "AGX_Sensor", Category = "AGX", Experimental, Meta = (BlueprintSpawnableComponent),
+	ClassGroup = "Deprecated", Category = "AGX", Experimental, Meta = (BlueprintSpawnableComponent),
 	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
 class AGXUNREAL_API UAGX_LidarSensorLineTraceComponent : public USceneComponent
 {

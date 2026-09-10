@@ -30,8 +30,8 @@ DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(
 
 /**
  * Lidar Sensor Component, allowing to create point clouds at runtime.
- * Note that to use the Lidar Sensor Component, it must be registered with an AGX Sensor Environment
- * Actor.
+ * During play the Lidar Sensor Component registers itself with the AGX Sensor Environment
+ * Subsystem.
  */
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Blueprintable, Meta = (BlueprintSpawnableComponent),
@@ -261,12 +261,15 @@ public:
 	bool IsCustomParametersSupported() const;
 
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	FSensorBarrier* CreateNativeImpl() override;
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
+	virtual void PostApplyToComponent() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif

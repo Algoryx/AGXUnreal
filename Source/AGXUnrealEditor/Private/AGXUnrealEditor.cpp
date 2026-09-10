@@ -18,7 +18,6 @@
 #include "AGX_RuntimeStyle.h"
 #include "AGX_Simulation.h"
 #include "AGX_SimulationCustomization.h"
-#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "AGX_StaticMeshComponentCustomization.h"
 #include "AGX_TopMenu.h"
 #include "AgxEdMode/AGX_AgxEdMode.h"
@@ -55,6 +54,10 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Deprecated/AGX_CameraSensorBase.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentCustomization.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentVisualizer.h"
+#include "Deprecated/AGX_StaticMeshComponent.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
@@ -73,9 +76,10 @@
 #include "PlayRecord/AGX_PlayRecordTypeActions.h"
 #include "Plot/AGX_PlotComponent.h"
 #include "Plot/AGX_PlotComponentCustomization.h"
-#include "Sensors/AGX_CameraSensorBase.h"
-#include "Sensors/AGX_CameraSensorComponentCustomization.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_CameraSensorComponentVisualizer.h"
+#include "Sensors/AGX_CameraCMOSSensorTypeActions.h"
+#include "Sensors/AGX_CameraLensSingleElementTypeActions.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponentCustomization.h"
 #include "Sensors/AGX_IMUSensorComponentVisualizer.h"
@@ -87,7 +91,7 @@
 #include "Sensors/AGX_LidarSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponentCustomization.h"
 #include "Sensors/AGX_LidarSensorComponentVisualizer.h"
-#include "Sensors/AGX_LidarSensorLineTraceComponent.h"
+#include "Deprecated/AGX_LidarSensorLineTraceComponent.h"
 #include "Sensors/AGX_LidarSensorLineTraceComponentVisualizer.h"
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_CustomRayPatternParametersTypeActions.h"
@@ -95,7 +99,8 @@
 #include "Sensors/AGX_OusterOS0ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
-#include "Sensors/AGX_SensorEnvironment.h"
+#include "Sensors/AGX_SceneCaptureComponent2DReference.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Shapes/AGX_ShapeComponentCustomization.h"
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
@@ -258,6 +263,15 @@ void FAGXUnrealEditorModule::RegisterProjectSettings()
 				"UAGX_Simulation_ProjectSettingsDesc",
 				"Configure the simulation settings of the AGX Unreal plugin."),
 			GetMutableDefault<UAGX_Simulation>());
+
+		SettingsModule->RegisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem",
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsName", "AGX Sensor Environment"),
+			LOCTEXT(
+				"UAGX_SensorEnvironmentSubsystem_ProjectSettingsDesc",
+				"Configure the sensor environment settings of the AGX Unreal plugin."),
+			GetMutableDefault<UAGX_SensorEnvironmentSubsystem>());
 	}
 }
 
@@ -266,6 +280,8 @@ void FAGXUnrealEditorModule::UnregisterProjectSettings()
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
 		SettingsModule->UnregisterSettings("Project", "Plugins", "UAGX_Simulation");
+		SettingsModule->UnregisterSettings(
+			"Project", "Plugins", "UAGX_SensorEnvironmentSubsystem");
 	}
 }
 
@@ -309,6 +325,11 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 		MakeShareable(new FAGX_BellCrankSteeringParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_CablePropertiesAssetTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_CameraCMOSSensorTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools,
+		MakeShareable(new FAGX_CameraLensSingleElementTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_ConstraintMergeSplitThresholdsTypeActions(AgxAssetCategoryBit)));
@@ -419,6 +440,12 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
+	// Scene Capture Component 2D Reference uses the base class customization.
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_SceneCaptureComponent2DReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_Real::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FAGX_RealDetails::MakeInstance));
@@ -477,7 +504,7 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
 		FOnGetDetailCustomizationInstance::CreateStatic(
-			&FAGX_CameraSensorComponentCustomization::MakeInstance));
+			&FAGX_CameraSensorBaseComponentCustomization::MakeInstance));
 
 	PropertyModule.RegisterCustomClassLayout(
 		UAGX_CollisionGroupAdderComponent::StaticClass()->GetFName(),
@@ -626,6 +653,9 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_LidarSensorReference::StaticStruct()->GetFName());
 
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_SceneCaptureComponent2DReference::StaticStruct()->GetFName());
+
 	PropertyModule.UnregisterCustomPropertyTypeLayout(FAGX_Real::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
@@ -725,6 +755,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 
 	RegisterComponentVisualizer(
 		UAGX_CameraSensorBase::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_CameraSensorBaseComponentVisualizer));
+
+	RegisterComponentVisualizer(
+		UAGX_CameraSensorComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_CameraSensorComponentVisualizer));
 
 	RegisterComponentVisualizer(
@@ -792,6 +826,7 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 {
 	UnregisterComponentVisualizer(UAGX_CableComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_CameraSensorBase::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(UAGX_CameraSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
@@ -881,7 +916,6 @@ void FAGXUnrealEditorModule::RegisterPlacementCategory()
 	RegisterPlaceableItem(AAGX_HingeConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_LockConstraintActor::StaticClass());
 	RegisterPlaceableItem(AAGX_PrismaticConstraintActor::StaticClass());
-	RegisterPlaceableItem(AAGX_SensorEnvironment::StaticClass());
 	RegisterPlaceableItem(AAGX_Terrain::StaticClass());
 	RegisterPlaceableItem(AAGX_CollisionGroupDisablerActor::StaticClass());
 	RegisterPlaceableItem(AAGX_RigidBodyActor::StaticClass());

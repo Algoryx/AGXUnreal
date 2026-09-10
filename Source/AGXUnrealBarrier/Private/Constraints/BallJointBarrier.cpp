@@ -17,12 +17,12 @@ namespace
 {
 	agx::BallJoint* GetNative(FBallJointBarrier& Barrier)
 	{
-		return Barrier.GetNative()->Native->as<agx::BallJoint>();
+		return Barrier.GetNative()->Native->asSafe<agx::BallJoint>();
 	}
 
 	const agx::BallJoint* GetNative(const FBallJointBarrier& Barrier)
 	{
-		return Barrier.GetNative()->Native->as<agx::BallJoint>();
+		return Barrier.GetNative()->Native->asSafe<agx::BallJoint>();
 	}
 }
 

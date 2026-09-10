@@ -8,12 +8,14 @@
 
 #include "AGX_ROS2Utilities.generated.h"
 
+struct FAGX_CameraOutputColor;
 struct FAGX_LidarOutputPositionData;
 struct FAGX_LidarOutputPositionIntensityData;
 struct FAGX_LidarScanPoint;
 struct FAGX_SensorMsgsImu;
 struct FAGX_SensorMsgsImage;
 struct FAGX_SensorMsgsPointCloud2;
+struct FOpenPLXLidarOutputView;
 
 class AGXUNREAL_API FAGX_ROS2Utilities
 {
@@ -24,6 +26,10 @@ public:
 	static FAGX_SensorMsgsImage Convert(
 		const TArray<FFloat16Color>& Image, double TimeStamp, const FIntPoint& Resolution,
 		bool Grayscale);
+
+	static FAGX_SensorMsgsImage Convert(
+		FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead = false,
+		const FString& FrameId = "");
 };
 
 UCLASS(ClassGroup = "AGX ROS2 Utilities")
@@ -230,7 +236,51 @@ public:
 		const FString& FrameId = "");
 
 	/**
+	 * Takes an OpenPLX Lidar output view and converts it into a ROS2
+	 *
+	 * sensor_msgs::PointCloud2 message.
+	 *
+	 * Fields such as x, y, z, intensity, timestamp, distance, is_hit and entity_id are written
+	 * when present in the view. This function does not support ray_pose field and it will not
+	 * be written to the message. Position and distance data is written as ROS2 units [m].
+	 *
+	 * The points written will be in ROS2 coordinates, i.e. right-handed and z up.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::PointCloud2 message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the
+	 * std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static FAGX_SensorMsgsPointCloud2 ConvertOpenPLXLidarOutput(
+		UPARAM(Ref) FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId = "");
+
+	/**
+	 * Takes a Camera Color Output and creates a ROS2 sensor_msgs::Image message from it.
+	 *
+	 * The Image data is copied directly from the underlying Camera output data buffer. UInt8
+	 * outputs use 8UC1, 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or
+	 * 32FC4 encoding.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
+	 * according to the given timestamp.
+	 *
+	 * If Mark As Read is true, this function marks the Camera output data as read after a successful 
+	 * conversion.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static FAGX_SensorMsgsImage ConvertCameraOutput(
+		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
+
+	/**
 	 * Takes Accelerometer and Gyroscope output from an IMU Sensor and creates a ROS2
+	 *
 	 * sensor_msgs::Imu message from it.
 	 *
 	 * The Accelerometer and Gyroscope output can be in local or world coordinates; simply pass in

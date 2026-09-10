@@ -10,6 +10,9 @@
 UENUM(BlueprintType)
 enum class EAGX_LidarModel : uint8
 {
+	/** Invalid or unsupported Lidar model. */
+	Invalid UMETA(Hidden),
+
 	/** Lidar uses a custom ray pattern where the user provides the ray pattern rays. */
 	CustomRayPattern,
 

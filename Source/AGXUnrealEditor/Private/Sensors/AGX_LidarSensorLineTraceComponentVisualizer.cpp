@@ -3,7 +3,7 @@
 #include "Sensors/AGX_LidarSensorLineTraceComponentVisualizer.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Sensors/AGX_LidarSensorLineTraceComponent.h"
+#include "Deprecated/AGX_LidarSensorLineTraceComponent.h"
 #include "Utilities/AGX_SlateUtilities.h"
 
 // Unreal Engine includes.

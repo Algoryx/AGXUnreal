@@ -3,6 +3,9 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
+#include "OpenPLX/OpenPLXIMUOutputView.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLXSignalHandler.h"
 
 // Unreal Engine includes.
@@ -335,6 +338,64 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveBooleanByName(FName NameOrAlias, bool& OutValue);
+
+	/**
+	 * Uses the given Input to send a Signal of Camera Capture type with the given Value.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendCameraCapture(const FOpenPLX_Input& Input, bool Value);
+
+	/**
+	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Camera Capture type.
+	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
+	 * Input to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendCameraCaptureByName(FName NameOrAlias, bool Value);
+
+	/**
+	 * Uses the given Output to receive a Signal of Camera Color Output type.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveCameraColorOutput(
+		const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutView);
+
+	/**
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Camera Color
+	 * Output type. Internally calls the 'GetOutput' function to match the given Name or Alias string
+	 * with the Output to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveCameraColorOutputByName(
+		FName NameOrAlias, FOpenPLXCameraColorOutputView& OutView);
+
+	/**
+	 * Uses the given Output to receive a Signal of Lidar Output type.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView);
+
+	/**
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Lidar Output type.
+	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
+	 * Output to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveLidarOutputByName(FName NameOrAlias, FOpenPLXLidarOutputView& OutView);
+
+	/**
+	 * Uses the given Output to receive a Signal of IMU Output type.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveIMUOutput(const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView);
+
+	/**
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of IMU Output type.
+	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
+	 * Output to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveIMUOutputByName(FName NameOrAlias, FOpenPLXIMUOutputView& OutView);
 
 	UPROPERTY(Transient)
 	bool bShowDisabledOutputs {false};
