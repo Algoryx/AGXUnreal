@@ -3,6 +3,7 @@
 #include "Sensors/AGX_CameraLensBase.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -10,6 +11,36 @@
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "UObject/Package.h"
+
+void UAGX_CameraLensBase::SetLensDistortion(UAGX_LensDistortionBase* InLensDistortion)
+{
+	if (IsInstance())
+	{
+		LensDistortion = InLensDistortion;
+		UpdateNativeLensDistortion();
+	}
+	else
+	{
+		if (Instance != nullptr)
+		{
+			Instance->SetLensDistortion(InLensDistortion);
+		}
+		else
+		{
+			AGX_WithEditorWrappers::Modify(*this);
+			LensDistortion = InLensDistortion;
+			AGX_WithEditorWrappers::MarkAssetDirty(*this);
+		}
+	}
+}
+
+UAGX_LensDistortionBase* UAGX_CameraLensBase::GetLensDistortion() const
+{
+	if (Instance != nullptr)
+		return Instance->GetLensDistortion();
+
+	return LensDistortion;
+}
 
 bool UAGX_CameraLensBase::HasNative() const
 {
@@ -92,6 +123,11 @@ UAGX_CameraLensBase* UAGX_CameraLensBase::CreateInstanceFromAsset(
 		GetTransientPackage(), Source.GetClass(), *InstanceName, RF_Transient);
 	NewInstance->Asset = &Source;
 	NewInstance->CopyProperties(Source);
+	if (NewInstance->LensDistortion != nullptr)
+	{
+		NewInstance->LensDistortion =
+			NewInstance->LensDistortion->GetOrCreateInstance(PlayingWorld);
+	}
 	NewInstance->CreateNative();
 
 	return NewInstance;
@@ -174,5 +210,9 @@ const UAGX_CameraLensBase* UAGX_CameraLensBase::GetAsset() const
 
 void UAGX_CameraLensBase::CopyProperties(const UAGX_CameraLensBase& Source)
 {
-	(void) Source;
+	LensDistortion = Source.LensDistortion;
+}
+
+void UAGX_CameraLensBase::UpdateNativeLensDistortion()
+{
 }

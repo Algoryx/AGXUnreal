@@ -105,4 +105,5 @@ private:
 
 protected:
 	virtual void CreateNative() override;
+	virtual void UpdateNativeLensDistortion() override;
 };

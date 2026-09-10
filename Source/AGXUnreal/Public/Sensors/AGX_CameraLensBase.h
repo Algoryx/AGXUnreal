@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_LensDistortionBase.h"
 #include "Sensors/CameraLensBarrier.h"
 
 // Unreal Engine includes.
@@ -21,6 +22,18 @@ class AGXUNREAL_API UAGX_CameraLensBase : public UObject
 	GENERATED_BODY()
 
 public:
+	/**
+	 * Optional lens distortion model.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Camera Lens")
+	UAGX_LensDistortionBase* LensDistortion {nullptr};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera Lens")
+	void SetLensDistortion(UAGX_LensDistortionBase* InLensDistortion);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera Lens")
+	UAGX_LensDistortionBase* GetLensDistortion() const;
+
 	bool HasNative() const;
 	FCameraLensBarrier* GetNative();
 	const FCameraLensBarrier* GetNative() const;
@@ -46,6 +59,7 @@ public:
 
 protected:
 	virtual void CreateNative() PURE_VIRTUAL(UAGX_CameraLensBase::CreateNative, );
+	virtual void UpdateNativeLensDistortion();
 
 protected:
 	TWeakObjectPtr<UAGX_CameraLensBase> Asset;

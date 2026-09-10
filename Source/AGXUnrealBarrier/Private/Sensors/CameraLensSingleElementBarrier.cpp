@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "Sensors/LensDistortionBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -99,6 +100,15 @@ double FCameraLensSingleElementBarrier::GetMinimumFocusDistance() const
 	return MinimumFocusDistance.has_value()
 			   ? ConvertDistanceToUnreal<double>(*MinimumFocusDistance)
 			   : 0.0;
+}
+
+void FCameraLensSingleElementBarrier::SetLensDistortion(FLensDistortionBarrier* Distortion)
+{
+	agxSensor::LensDistortion* NativeDistortion =
+		Distortion != nullptr && Distortion->HasNative() ? Distortion->GetNative()->Native.get()
+														 : nullptr;
+	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setLensDistortion(
+		NativeDistortion);
 }
 
 bool FCameraLensSingleElementBarrier::IsSingleElement(const FCameraLensBarrier& Lens)

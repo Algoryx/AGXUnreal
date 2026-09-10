@@ -8,6 +8,7 @@
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
+#include "Sensors/LensDistortionBarrier.h"
 
 namespace AGX_CameraLensSingleElement_helpers
 {
@@ -227,6 +228,9 @@ void UAGX_CameraLensSingleElement::InitPropertyDispatcher()
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(FocusDistance),
 		[](ThisClass* This) { This->SetFocusDistance(This->FocusDistance); });
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(LensDistortion),
+		[](ThisClass* This) { This->SetLensDistortion(This->LensDistortion); });
 }
 #endif // WITH_EDITOR
 
@@ -245,6 +249,7 @@ void UAGX_CameraLensSingleElement::UpdateNativeProperties()
 		Native->SetAutofocus(MinimumFocusDistance);
 	else
 		Native->SetFocusDistance(FocusDistance);
+	UpdateNativeLensDistortion();
 }
 
 FCameraLensSingleElementBarrier* UAGX_CameraLensSingleElement::GetNativeAsSingleElement()
@@ -297,4 +302,15 @@ void UAGX_CameraLensSingleElement::CreateNative()
 	NativeBarrier->AllocateNative();
 	check(HasNative());
 	UpdateNativeProperties();
+}
+
+void UAGX_CameraLensSingleElement::UpdateNativeLensDistortion()
+{
+	FCameraLensSingleElementBarrier* Native = GetNativeAsSingleElement();
+	if (Native == nullptr)
+		return;
+
+	FLensDistortionBarrier* NativeDistortion =
+		LensDistortion != nullptr ? LensDistortion->GetOrCreateNative() : nullptr;
+	Native->SetLensDistortion(NativeDistortion);
 }

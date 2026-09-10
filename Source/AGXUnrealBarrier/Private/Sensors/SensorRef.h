@@ -11,6 +11,7 @@
 #include <agxSensor/CameraPhotodetector.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
+#include <agxSensor/LensDistortion.h>
 #include <agxSensor/Lidar.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
@@ -43,6 +44,16 @@ struct FCameraLensRef
 	agxSensor::CameraLensRef Native;
 	FCameraLensRef() = default;
 	FCameraLensRef(agxSensor::CameraLens* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FLensDistortionRef
+{
+	agxSensor::LensDistortionRef Native;
+	FLensDistortionRef() = default;
+	FLensDistortionRef(agxSensor::LensDistortion* InNative)
 		: Native(InNative)
 	{
 	}
