@@ -15,6 +15,7 @@ struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraCaptureState;
 struct FRigidBodyBarrier;
+struct FLensDistortionBrownConradyBarrier;
 class FCameraBackendPropagatorBase;
 
 USTRUCT(BlueprintType)
@@ -56,6 +57,9 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	void OnBackendSynchronize(TArray<FAGX_CameraCaptureState>& CaptureStates, double DeltaTime);
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
 	void OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier& SensorBarrier);
+	void OnBackendSetCameraLensDistortionNone();
+	void OnBackendSetCameraLensDistortionBrownConrady(
+		const FLensDistortionBrownConradyBarrier& LensDistortionBarrier);
 	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 

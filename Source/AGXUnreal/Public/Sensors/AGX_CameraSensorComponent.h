@@ -20,6 +20,7 @@ struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraOutputBase;
 struct FAGX_ImportContext;
+struct FLensDistortionBrownConradyBarrier;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UAGX_CameraLensBase;
@@ -210,13 +211,19 @@ private:
 		const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings = false);
 
 	/// Write output specific parameters to the given OutMaterials.
-	void UpdateMaterialParameters(
+	void UpdateMaterialParametersFrom(
 		const FCameraOutputColorBarrier& OutputColorBarrier,
+		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
+	void UpdateMaterialParametersFrom(
+		const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
 		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
 
 	/// Internal functions called by the Camera Backend.
 	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
 	void OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier& SensorBarrier);
+	void OnBackendSetCameraLensDistortionNone();
+	void OnBackendSetCameraLensDistortionBrownConrady(
+		const FLensDistortionBrownConradyBarrier& LensDistortionBarrier);
 	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
 	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
 

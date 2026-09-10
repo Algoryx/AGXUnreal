@@ -13,6 +13,7 @@
 #include "Sensors/AGX_CameraLensSingleElement.h"
 #include "Sensors/AGX_CameraOutputBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
+#include "Sensors/AGX_LensDistortionBrownConrady.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBarrier.h"
@@ -22,6 +23,7 @@
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
+#include "Sensors/LensDistortionBrownConradyBarrier.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -219,6 +221,20 @@ namespace AGX_CameraSensorComponent_helpers
 			default:
 				return {};
 		}
+	}
+
+	const FLensDistortionBrownConradyBarrier* GetLensDistortionBrownConradyBarrier(
+		const UAGX_CameraSensorComponent& Component)
+	{
+		if (Component.CameraLens == nullptr)
+			return nullptr;
+
+		const UAGX_LensDistortionBrownConrady* BrownConrady =
+			Cast<UAGX_LensDistortionBrownConrady>(Component.CameraLens->GetLensDistortion());
+		if (BrownConrady == nullptr)
+			return nullptr;
+
+		return BrownConrady->GetNativeAsBrownConrady();
 	}
 }
 
@@ -429,7 +445,7 @@ FCameraOutputRenderContext* UAGX_CameraSensorComponent::GetOrCreateOutputRenderC
 	return &OutputRenderContexts.FindOrAdd(OutputColorBarrier.GetNativeAddress());
 }
 
-void UAGX_CameraSensorComponent::UpdateMaterialParameters(
+void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 	const FCameraOutputColorBarrier& OutputColorBarrier,
 	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
 {
@@ -439,6 +455,31 @@ void UAGX_CameraSensorComponent::UpdateMaterialParameters(
 			continue;
 
 		Material->SetScalarParameterValue(TEXT("Gamma"), OutputColorBarrier.GetGamma());
+	}
+}
+
+void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
+	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
+{
+	const bool bHasLensDistortion =
+		LensDistortionBarrier != nullptr && LensDistortionBarrier->HasNative();
+	const double K1 = bHasLensDistortion ? LensDistortionBarrier->GetK1() : 0.0;
+	const double K2 = bHasLensDistortion ? LensDistortionBarrier->GetK2() : 0.0;
+	const double K3 = bHasLensDistortion ? LensDistortionBarrier->GetK3() : 0.0;
+	const double P1 = bHasLensDistortion ? LensDistortionBarrier->GetP1() : 0.0;
+	const double P2 = bHasLensDistortion ? LensDistortionBarrier->GetP2() : 0.0;
+
+	for (auto& Material : OutMaterials)
+	{
+		if (Material == nullptr)
+			continue;
+
+		Material->SetScalarParameterValue(TEXT("LD_K1"), K1);
+		Material->SetScalarParameterValue(TEXT("LD_K2"), K2);
+		Material->SetScalarParameterValue(TEXT("LD_K3"), K3);
+		Material->SetScalarParameterValue(TEXT("LD_P1"), P1);
+		Material->SetScalarParameterValue(TEXT("LD_P2"), P2);
 	}
 }
 
@@ -939,6 +980,8 @@ void UAGX_CameraSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 
 void UAGX_CameraSensorComponent::PostApplyToComponent()
 {
+	using namespace AGX_CameraSensorComponent_helpers;
+
 	Super::PostApplyToComponent();
 
 	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
@@ -960,6 +1003,8 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 		SetupSceneCapture();
 
 		OutputRenderContexts.Empty();
+		const FLensDistortionBrownConradyBarrier* LensDistortionBarrier =
+			GetLensDistortionBrownConradyBarrier(*this);
 		TArray<FCameraOutputBarrier> OutputBarriers = CameraBarrier->GetOutputs();
 		for (FCameraOutputBarrier& OutputBarrier : OutputBarriers)
 		{
@@ -975,8 +1020,12 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 				continue;
 
 			if (UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
-				UpdateMaterialParameters(
+			{
+				UpdateMaterialParametersFrom(
 					OutputColorBarrier, OutputRenderContext->MaterialInstances);
+				UpdateMaterialParametersFrom(
+					LensDistortionBarrier, OutputRenderContext->MaterialInstances);
+			}
 		}
 	}
 }
@@ -1299,6 +1348,27 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 		static_cast<float>(CMOSSensorSize.X * /*to mm*/ 10.0);
 }
 
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionNone()
+{
+	if (CameraLens != nullptr)
+		CameraLens->LensDistortion = nullptr;
+
+	for (auto& OutputRenderContextPair : OutputRenderContexts)
+	{
+		UpdateMaterialParametersFrom(nullptr, OutputRenderContextPair.Value.MaterialInstances);
+	}
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionBrownConrady(
+	const FLensDistortionBrownConradyBarrier& LensDistortionBarrier)
+{
+	for (auto& OutputRenderContextPair : OutputRenderContexts)
+	{
+		UpdateMaterialParametersFrom(
+			&LensDistortionBarrier, OutputRenderContextPair.Value.MaterialInstances);
+	}
+}
+
 void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
 	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
@@ -1308,7 +1378,7 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
 		return;
 
 	if (UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier))
-		UpdateMaterialParameters(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+		UpdateMaterialParametersFrom(OutputColorBarrier, OutputRenderContext->MaterialInstances);
 }
 
 void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)

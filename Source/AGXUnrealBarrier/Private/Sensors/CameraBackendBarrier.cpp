@@ -8,13 +8,16 @@
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraOutputColorBarrier.h"
+#include "Sensors/LensDistortionBrownConradyBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraCMOSSensor.h>
+#include <agxSensor/CameraLensSingleElement.h>
 #include <agxSensor/CameraOutput.h>
+#include <agxSensor/LensDistortionBrownConrady.h>
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -95,16 +98,39 @@ namespace CameraBackendBarrier_helpers
 
 	void SetCameraLensDistortionNone(agxSensor::Camera* Camera, agxSensor::CameraLens*)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionNone"));
+		if (FCameraBarrier* CameraBarrier =
+				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			CameraBarrier->OnBackendSetCameraLensDistortionNone();
+		}
 	}
 
 	void SetCameraLensDistortionBrownConrady(
-		agxSensor::Camera* Camera, agxSensor::CameraLens*,
+		agxSensor::Camera* Camera, agxSensor::CameraLens* Lens,
 		agxSensor::LensDistortionBrownConradyCoefficients*)
 	{
-		UE_LOG(
-			LogTemp, Warning,
-			TEXT("CameraBackendBarrier_helpers::SetCameraLensDistortionBrownConrady"));
+		if (Lens == nullptr)
+			return;
+
+		agxSensor::CameraLensSingleElement* SingleElementLens =
+			Lens->asSafe<agxSensor::CameraLensSingleElement>();
+		if (SingleElementLens == nullptr)
+			return;
+
+		agxSensor::LensDistortion* Distortion = SingleElementLens->getDistortion();
+		if (Distortion == nullptr ||
+			!Distortion->is<agxSensor::LensDistortionBrownConrady>())
+		{
+			return;
+		}
+
+		if (FCameraBarrier* CameraBarrier =
+				FCameraBackendBarrier::GetInstance().FindCamera(GetCameraNativeAddress(Camera)))
+		{
+			FLensDistortionBrownConradyBarrier DistortionBarrier(
+				std::make_shared<FLensDistortionRef>(Distortion));
+			CameraBarrier->OnBackendSetCameraLensDistortionBrownConrady(DistortionBarrier);
+		}
 	}
 
 	void SetCameraColorOutput(

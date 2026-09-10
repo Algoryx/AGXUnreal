@@ -14,6 +14,7 @@
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/CameraOutputBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
+#include "Sensors/LensDistortionBrownConradyBarrier.h"
 #include "Sensors/SensorRef.h"
 
 // AGX Dynamics includes.
@@ -238,6 +239,19 @@ void FCameraBarrier::OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier
 {
 	if (BackendPropagator != nullptr)
 		BackendPropagator->OnBackendSetCameraCMOSSensor(SensorBarrier);
+}
+
+void FCameraBarrier::OnBackendSetCameraLensDistortionNone()
+{
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendSetCameraLensDistortionNone();
+}
+
+void FCameraBarrier::OnBackendSetCameraLensDistortionBrownConrady(
+	const FLensDistortionBrownConradyBarrier& LensDistortionBarrier)
+{
+	if (BackendPropagator != nullptr)
+		BackendPropagator->OnBackendSetCameraLensDistortionBrownConrady(LensDistortionBarrier);
 }
 
 void FCameraBarrier::OnBackendSetCameraColorOutput(

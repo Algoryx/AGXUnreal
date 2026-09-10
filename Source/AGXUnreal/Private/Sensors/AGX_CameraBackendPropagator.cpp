@@ -36,6 +36,35 @@ void FAGX_CameraBackendPropagator::OnBackendSetCameraCMOSSensor(
 	CameraSensor->OnBackendSetCameraCMOSSensor(SensorBarrier);
 }
 
+void FAGX_CameraBackendPropagator::OnBackendSetCameraLensDistortionNone()
+{
+	if (!CameraSensor.IsValid())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("OnBackendSetCameraLensDistortionNone was called on a Camera Backend Propagator "
+				 "with nullptr Camera Sensor."));
+		return;
+	}
+
+	CameraSensor->OnBackendSetCameraLensDistortionNone();
+}
+
+void FAGX_CameraBackendPropagator::OnBackendSetCameraLensDistortionBrownConrady(
+	const FLensDistortionBrownConradyBarrier& LensDistortionBarrier)
+{
+	if (!CameraSensor.IsValid())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT("OnBackendSetCameraLensDistortionBrownConrady was called on a Camera Backend "
+				 "Propagator with nullptr Camera Sensor."));
+		return;
+	}
+
+	CameraSensor->OnBackendSetCameraLensDistortionBrownConrady(LensDistortionBarrier);
+}
+
 void FAGX_CameraBackendPropagator::OnBackendSetCameraColorOutput(
 	const FCameraOutputColorBarrier& OutputColorBarrier)
 {

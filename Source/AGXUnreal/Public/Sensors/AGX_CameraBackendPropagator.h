@@ -12,6 +12,7 @@ class UAGX_CameraSensorComponent;
 struct FCameraCMOSSensorBarrier;
 struct FCameraLensSingleElementBarrier;
 struct FCameraOutputColorBarrier;
+struct FLensDistortionBrownConradyBarrier;
 
 class FAGX_CameraBackendPropagator : public FCameraBackendPropagatorBase
 {
@@ -21,6 +22,11 @@ public:
 
 	virtual void OnBackendSetCameraCMOSSensor(
 		const FCameraCMOSSensorBarrier& SensorBarrier) override;
+
+	virtual void OnBackendSetCameraLensDistortionNone() override;
+
+	virtual void OnBackendSetCameraLensDistortionBrownConrady(
+		const FLensDistortionBrownConradyBarrier& LensDistortionBarrier) override;
 
 	virtual void OnBackendSetCameraColorOutput(
 		const FCameraOutputColorBarrier& OutputColorBarrier) override;
