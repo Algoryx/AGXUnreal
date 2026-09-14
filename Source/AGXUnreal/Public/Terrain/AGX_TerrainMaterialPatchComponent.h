@@ -2,9 +2,6 @@
 
 #pragma once
 
-// AGX Dynamics for Unreal includes.
-#include "AGX_Placement.h"
-
 // Unreal Engine includes.
 #include "Components/SceneComponent.h"
 #include "CoreMinimal.h"
@@ -38,9 +35,9 @@ struct AGXUNREAL_API FAGX_TerrainMaterialPatchData
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	UAGX_ShapeMaterial* ShapeMaterial = nullptr;
 
-	/** Per-shape local location/rotation values used to create one or more patch instances. */
+	/** Per-shape local transforms used to create one or more patch instances. */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch Advanced", AdvancedDisplay)
-	TArray<FAGX_Placement> InstancePlacements;
+	TArray<FTransform> InstancePlacements;
 
 	/**
 	 * If set to true, the Shape instances are debug rendered.
@@ -86,7 +83,7 @@ public:
 	 * attached to this Component.
 	 *
 	 * This data is applied at BeginPlay and changes to it durint Play will generally not have any
-	 * effect. One exception is when adding instances through the AddShapeInstance function.
+	 * effect. One exception is when adding instances through the AddPatchShapeInstance function.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Material Patch")
 	TArray<FAGX_TerrainMaterialPatchData> TerrainMaterialPatches;
@@ -115,7 +112,22 @@ public:
 	 * Returns true if the Patch Shape Instance was succesfully added.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
-	bool AddPatchShapeInstance(FName ShapeName, const FAGX_Placement& Placement);
+	bool AddPatchShapeInstance(FName ShapeName, const FTransform& Transform);
+
+	/**
+	 * Add Shape instances of an existing patch.
+	 * If any instance could not be added, false is returned.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	bool AddPatchShapeInstances(FName ShapeName, const TArray<FTransform>& Transforms);
+
+	/**
+	 * Clear all Shape instances of an existing patch.
+	 * Intended for editor use only. Only the stored instances are cleared; already applied Terrain
+	 * Material patches are not modified.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Material Patch")
+	bool ClearShapeInstances(FName ShapeName);
 
 	/**
 	 * Apply a Terrain Material patch during Play.
@@ -165,7 +177,7 @@ private:
 		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
 
 	void ApplyTerrainMaterialPatch(
-		const TArray<FAGX_Placement>& Placements, FTerrainBarrier& TerrainBarrier,
+		const TArray<FTransform>& Transforms, FTerrainBarrier& TerrainBarrier,
 		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
 		UAGX_ShapeMaterial* ShapeMaterial);
 };
