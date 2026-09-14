@@ -23,6 +23,10 @@ struct FLinearColor;
 
 /**
  * A set of helper functions used by our Automation tests.
+ *
+ * TODO Study Engine/Source/Editor/UnrealEd/Public/Tests/AutomationEditorCommon.h to see if there
+ * is anything there we can make use of, or if anything below duplicates functionality already
+ * provided by the engine.
  */
 namespace AgxAutomationCommon
 {
