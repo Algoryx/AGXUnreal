@@ -65,6 +65,7 @@
 #include "PackageTools.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "UObject/MetaData.h"
+#include "UObject/StrongObjectPtr.h"
 
 // Standard library includes.
 #include <type_traits>
@@ -766,128 +767,94 @@ namespace AGX_ImporterToEditor_helpers
 		if (Context == nullptr)
 			return;
 
-		if (Context->MSThresholds != nullptr)
+		const FString MSThresholdsAssetType =
+			FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName();
+		for (const auto& [Guid, MST] : Context->MSThresholds)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportMergeSplitThresholdsDirectoryName();
-			for (const auto& [Guid, MST] : *Context->MSThresholds)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *MST, *Context);
-			}
+			WriteAssetToDisk(RootDir, MSThresholdsAssetType, *MST, *Context);
 		}
 
-		if (Context->Textures != nullptr)
+		const FString TextureAssetType = FAGX_ImportUtilities::GetImportTextureDirectoryName();
+		for (const auto& [Guid, Texture] : Context->Textures)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportTextureDirectoryName();
-			for (const auto& [Guid, Texture] : *Context->Textures)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Texture, *Context);
-			}
+			WriteAssetToDisk(RootDir, TextureAssetType, *Texture, *Context);
 		}
 
-		if (Context->RenderMaterials != nullptr)
+		const FString RenderMaterialAssetType =
+			FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
+		for (const auto& [Guid, Rm] : Context->RenderMaterials)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportRenderMaterialDirectoryName();
-			for (const auto& [Guid, Rm] : *Context->RenderMaterials)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Rm, *Context);
-			}
+			WriteAssetToDisk(RootDir, RenderMaterialAssetType, *Rm, *Context);
 		}
 
-		if (Context->RenderStaticMeshes != nullptr)
+		const FString RenderStaticMeshAssetType =
+			FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName();
+		for (const auto& [Guid, Sm] : Context->RenderStaticMeshes)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportRenderStaticMeshDirectoryName();
-			for (const auto& [Guid, Sm] : *Context->RenderStaticMeshes)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Sm, *Context);
-			}
+			WriteAssetToDisk(RootDir, RenderStaticMeshAssetType, *Sm, *Context);
 		}
 
-		if (Context->CollisionStaticMeshes != nullptr)
+		const FString CollisionStaticMeshAssetType =
+			FAGX_ImportUtilities::GetImportCollisionStaticMeshDirectoryName();
+		for (const auto& [Guid, Sm] : Context->CollisionStaticMeshes)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportCollisionStaticMeshDirectoryName();
-			for (const auto& [Guid, Sm] : *Context->CollisionStaticMeshes)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Sm, *Context);
-			}
+			WriteAssetToDisk(RootDir, CollisionStaticMeshAssetType, *Sm, *Context);
 		}
 
-		if (Context->ShapeMaterials != nullptr)
+		const FString ShapeMaterialAssetType =
+			FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
+		for (const auto& [Guid, Sm] : Context->ShapeMaterials)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportShapeMaterialDirectoryName();
-			for (const auto& [Guid, Sm] : *Context->ShapeMaterials)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Sm, *Context);
-			}
+			WriteAssetToDisk(RootDir, ShapeMaterialAssetType, *Sm, *Context);
 		}
 
-		if (Context->CableProperties != nullptr)
+		const FString CablePropertiesAssetType =
+			FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
+		for (const auto& [Guid, Cp] : Context->CableProperties)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportCablePropertiesDirectoryName();
-			for (const auto& [Guid, Cp] : *Context->CableProperties)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Cp, *Context);
-			}
+			WriteAssetToDisk(RootDir, CablePropertiesAssetType, *Cp, *Context);
 		}
 
-		if (Context->ContactMaterials != nullptr)
+		const FString ContactMaterialAssetType =
+			FAGX_ImportUtilities::GetImportContactMaterialDirectoryName();
+		for (const auto& [Guid, Cm] : Context->ContactMaterials)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportContactMaterialDirectoryName();
-			for (const auto& [Guid, Cm] : *Context->ContactMaterials)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Cm, *Context);
-			}
+			WriteAssetToDisk(RootDir, ContactMaterialAssetType, *Cm, *Context);
 		}
 
-		if (Context->ShovelProperties != nullptr)
+		const FString ShovelPropertiesAssetType =
+			FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName();
+		for (const auto& [Guid, Sp] : Context->ShovelProperties)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportShovelPropertiesDirectoryName();
-			for (const auto& [Guid, Sp] : *Context->ShovelProperties)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
-			}
+			WriteAssetToDisk(RootDir, ShovelPropertiesAssetType, *Sp, *Context);
 		}
 
-		if (Context->SteeringParameters != nullptr)
+		const FString SteeringParametersAssetType =
+			FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
+		for (const auto& [Guid, Sp] : Context->SteeringParameters)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
-			for (const auto& [Guid, Sp] : *Context->SteeringParameters)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Sp, *Context);
-			}
+			WriteAssetToDisk(RootDir, SteeringParametersAssetType, *Sp, *Context);
 		}
 
-		if (Context->TerrainWheelSettings != nullptr)
+		const FString TerrainWheelSettingsAssetType =
+			FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
+		for (const auto& [Guid, Tws] : Context->TerrainWheelSettings)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
-			for (const auto& [Guid, Tws] : *Context->TerrainWheelSettings)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Tws, *Context);
-			}
+			WriteAssetToDisk(RootDir, TerrainWheelSettingsAssetType, *Tws, *Context);
 		}
 
-		if (Context->TrackProperties != nullptr)
+		const FString TrackPropertiesAssetType =
+			FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName();
+		for (const auto& [Guid, Tp] : Context->TrackProperties)
 		{
-			const FString AssetType = FAGX_ImportUtilities::GetImportTrackPropertiesDirectoryName();
-			for (const auto& [Guid, Tp] : *Context->TrackProperties)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Tp, *Context);
-			}
+			WriteAssetToDisk(RootDir, TrackPropertiesAssetType, *Tp, *Context);
 		}
 
-		if (Context->TrackMergeProperties != nullptr)
+		const FString TrackMergePropertiesAssetType =
+			FAGX_ImportUtilities::GetImportTrackMergePropertiesDirectoryName();
+		for (const auto& [Guid, Tp] : Context->TrackMergeProperties)
 		{
-			const FString AssetType =
-				FAGX_ImportUtilities::GetImportTrackMergePropertiesDirectoryName();
-			for (const auto& [Guid, Tp] : *Context->TrackMergeProperties)
-			{
-				WriteAssetToDisk(RootDir, AssetType, *Tp, *Context);
-			}
+			WriteAssetToDisk(RootDir, TrackMergePropertiesAssetType, *Tp, *Context);
 		}
 	}
 
@@ -898,8 +865,7 @@ namespace AGX_ImporterToEditor_helpers
 			return;
 
 		AGX_CHECK(Context.Outer != nullptr);
-		AGX_CHECK(Context.Textures != nullptr);
-		if (Context.Outer == nullptr || Context.Textures == nullptr)
+		if (Context.Outer == nullptr)
 			return;
 
 		FOpenPLXTextureData OriginalTextureData = TextureData.GetValue();
@@ -907,7 +873,7 @@ namespace AGX_ImporterToEditor_helpers
 		if (!OriginalTextureData.TextureDataName.IsEmpty())
 			OriginalTextureData.Name = OriginalTextureData.TextureDataName;
 		OriginalTextureData.Swizzle.Empty();
-		if (Context.Textures->Contains(OriginalTextureData.Guid))
+		if (Context.Textures.Contains(OriginalTextureData.Guid))
 			return;
 
 		UTexture2D* Texture = FOpenPLX_RenderUtilities::CreateTexture(
@@ -922,15 +888,15 @@ namespace AGX_ImporterToEditor_helpers
 			return;
 		}
 
-		AGX_CHECK(!Context.Textures->Contains(OriginalTextureData.Guid));
+		AGX_CHECK(!Context.Textures.Contains(OriginalTextureData.Guid));
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
-		Context.Textures->Add(OriginalTextureData.Guid, Texture);
+		Context.Textures.Add(OriginalTextureData.Guid, Texture);
 	}
 
 	void ImportOriginalOpenPLXTextures(FAGX_ImportContext& Context)
 	{
 		for (const TPair<FGuid, FOpenPLXMaterialBarrier>& MaterialOverride :
-			 *Context.PLXMaterialOverrides)
+			 Context.PLXMaterialOverrides)
 		{
 			const FOpenPLXMaterialBarrier& MaterialBarrier = MaterialOverride.Value;
 			ImportOriginalTexture(MaterialBarrier.GetBaseColorTextureData(), Context);
@@ -1019,83 +985,44 @@ namespace AGX_ImporterToEditor_helpers
 				Obj->ConditionalBeginDestroy();
 		};
 
-		if (Context.RenderMaterials != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.RenderMaterials)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.RenderMaterials)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.Textures != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.Textures)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.Textures)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.RenderStaticMeshes != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.RenderStaticMeshes)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.RenderStaticMeshes)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.CableProperties != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.CableProperties)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.CableProperties)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.CollisionStaticMeshes != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.CollisionStaticMeshes)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.CollisionStaticMeshes)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.MSThresholds != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.MSThresholds)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.MSThresholds)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.ShapeMaterials != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.ShapeMaterials)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.ShapeMaterials)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.ContactMaterials != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.ContactMaterials)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.ContactMaterials)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.ShovelProperties != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.ShovelProperties)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.ShovelProperties)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.SteeringParameters != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.SteeringParameters)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.SteeringParameters)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.TerrainWheelSettings != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.TerrainWheelSettings)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.TerrainWheelSettings)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.TrackProperties != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.TrackProperties)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.TrackProperties)
+			DestroyIfOwnedByContextOuter(Obj);
 
-		if (Context.TrackMergeProperties != nullptr)
-		{
-			for (auto& [Unused, Obj] : *Context.TrackMergeProperties)
-				DestroyIfOwnedByContextOuter(Obj);
-		}
+		for (auto& [Unused, Obj] : Context.TrackMergeProperties)
+			DestroyIfOwnedByContextOuter(Obj);
 	}
 
 	template <typename TComponent>
@@ -1244,19 +1171,19 @@ namespace AGX_ImporterToEditor_helpers
 			return EAGX_ImportResult::FatalError;
 		}
 
-		for (const auto& [Guid, CollisionComponent] : *Context.CollisionStaticMeshCom)
+		for (const auto& [Guid, CollisionComponent] : Context.CollisionStaticMeshCom)
 		{
 			const FString Name = CollisionComponent->GetName();
 			Component->StaticMeshComponentToOwningTrimesh.Add(Name, Guid);
 		}
 
-		for (const auto& [Guid, RenderComponent] : *Context.RenderStaticMeshCom)
+		for (const auto& [Guid, RenderComponent] : Context.RenderStaticMeshCom)
 		{
 			const FString Name = RenderComponent->GetName();
 			Component->StaticMeshComponentToOwningShape.Add(Name, Guid);
 		}
 
-		for (const auto& [Guid, Material] : *Context.RenderMaterials)
+		for (const auto& [Guid, Material] : Context.RenderMaterials)
 		{
 			const FString RelativePath = FAGX_EditorUtilities::GetRelativePath(
 				FPaths::GetPath(RootDir), Material->GetPathName());
@@ -1303,8 +1230,9 @@ UBlueprint* FAGX_ImporterToEditor::Import(FAGX_ImportSettings Settings)
 
 	ImportTask.EnterProgressFrame(10.f, FText::FromString("Importing from source file"));
 
-	FAGX_Importer Importer;
-	FAGX_ImportResult Result = Importer.Import(Settings, *GetTransientPackage());
+	UObject* Outer = GetTransientPackage();
+	TStrongObjectPtr<UAGX_Importer> Importer {NewObject<UAGX_Importer>(Outer)};
+	FAGX_ImportResult Result = Importer->Import(Settings);
 	if (!ValidateImportResult(Result, Settings))
 	{
 		OnFailureCleanup(Settings);
@@ -1377,8 +1305,9 @@ bool FAGX_ImporterToEditor::Reimport(
 
 	ImportTask.EnterProgressFrame(15.f, FText::FromString("Reading objects from source file"));
 
-	FAGX_Importer Importer;
-	FAGX_ImportResult Result = Importer.Import(Settings, *GetTransientPackage());
+	UObject* Outer = GetTransientPackage();
+	TStrongObjectPtr<UAGX_Importer> Importer {NewObject<UAGX_Importer>(Outer)};
+	FAGX_ImportResult Result = Importer->Import(Settings);
 
 	ImportTask.EnterProgressFrame(20.f, FText::FromString("Validating result"));
 
@@ -1534,167 +1463,128 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 	using namespace AGX_ImporterToEditor_helpers;
 	EAGX_ImportResult Result = EAGX_ImportResult::Success;
 
-	if (Context.MSThresholds != nullptr)
+	for (const auto& [Guid, MST] : Context.MSThresholds)
 	{
-		for (const auto& [Guid, MST] : *Context.MSThresholds)
-		{
-			const auto A = UpdateOrCreateAsset(*MST, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*MST, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.Textures != nullptr)
+	for (const auto& [Guid, Texture] : Context.Textures)
 	{
-		for (const auto& [Guid, Texture] : *Context.Textures)
-		{
-			const auto A = UpdateOrCreateAsset(*Texture, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Texture, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.RenderMaterials != nullptr)
+	for (const auto& [Guid, Rm] : Context.RenderMaterials)
 	{
-		for (const auto& [Guid, Rm] : *Context.RenderMaterials)
+		auto Mid = Cast<UMaterialInstanceConstant>(Rm);
+		UMaterialInterface* A = nullptr;
+		if (Mid != nullptr)
 		{
-			auto Mid = Cast<UMaterialInstanceConstant>(Rm);
-			UMaterialInterface* A = nullptr;
-			if (Mid != nullptr)
-			{
-				// This is somewhat of a work-around.
-				// We have hirstorically moved back and forth between UMaterialInstanceConstant and
-				// UMaterialInstanceDynamic. Currently, we use UMaterialInstanceConstant for
-				// in-editor imports and UMaterialInstanceDynamic for standalone builds/runtime
-				// imports. To make our lives simple, we actually want to upgrade the old asset so
-				// that it's type is of the new UMaterialInstanceConstant type. We do this by
-				// forcing the type matching done by UpdateOrCreateAsset to be
-				// UMaterialInstanceConstant, which means it will not find the old asset of type
-				// UMaterialInstanceDynamic, and a new asset will be created (and the old asset will
-				// be removed). The next time the same model is Reimported, the asset type will be
-				// the correct one and we will get a match in UpdateOrCreateAsset and update the
-				// asset without removing it which is what we want.
-				A = UpdateOrCreateAsset<UMaterialInstanceConstant>(*Mid, Context);
-			}
-			else
-				A = UpdateOrCreateAsset(*Rm, Context);
-
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+			// This is somewhat of a work-around.
+			// We have hirstorically moved back and forth between UMaterialInstanceConstant and
+			// UMaterialInstanceDynamic. Currently, we use UMaterialInstanceConstant for
+			// in-editor imports and UMaterialInstanceDynamic for standalone builds/runtime
+			// imports. To make our lives simple, we actually want to upgrade the old asset so
+			// that it's type is of the new UMaterialInstanceConstant type. We do this by
+			// forcing the type matching done by UpdateOrCreateAsset to be
+			// UMaterialInstanceConstant, which means it will not find the old asset of type
+			// UMaterialInstanceDynamic, and a new asset will be created (and the old asset will
+			// be removed). The next time the same model is Reimported, the asset type will be
+			// the correct one and we will get a match in UpdateOrCreateAsset and update the
+			// asset without removing it which is what we want.
+			A = UpdateOrCreateAsset<UMaterialInstanceConstant>(*Mid, Context);
 		}
+		else
+			A = UpdateOrCreateAsset(*Rm, Context);
+
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.CollisionStaticMeshes != nullptr)
+	for (const auto& [Guid, Sm] : Context.CollisionStaticMeshes)
 	{
-		for (const auto& [Guid, Sm] : *Context.CollisionStaticMeshes)
-		{
-			const auto A = UpdateOrCreateAsset(*Sm, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Sm, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.RenderStaticMeshes != nullptr)
+	for (const auto& [Guid, Sm] : Context.RenderStaticMeshes)
 	{
-		for (const auto& [Guid, Sm] : *Context.RenderStaticMeshes)
-		{
-			const auto A = UpdateOrCreateAsset(*Sm, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Sm, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.ShapeMaterials != nullptr)
+	for (const auto& [Guid, Sm] : Context.ShapeMaterials)
 	{
-		for (const auto& [Guid, Sm] : *Context.ShapeMaterials)
-		{
-			const auto A = UpdateOrCreateAsset(*Sm, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Sm, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.CableProperties != nullptr)
+	for (const auto& [Guid, Cp] : Context.CableProperties)
 	{
-		for (const auto& [Guid, Cp] : *Context.CableProperties)
-		{
-			const auto A = UpdateOrCreateAsset(*Cp, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Cp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.ContactMaterials != nullptr)
+	for (const auto& [Guid, Cm] : Context.ContactMaterials)
 	{
-		for (const auto& [Guid, Cm] : *Context.ContactMaterials)
-		{
-			const auto A = UpdateOrCreateAsset(*Cm, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Cm, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.ShovelProperties != nullptr)
+	for (const auto& [Guid, Sp] : Context.ShovelProperties)
 	{
-		for (const auto& [Guid, Sp] : *Context.ShovelProperties)
-		{
-			const auto A = UpdateOrCreateAsset(*Sp, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Sp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.SteeringParameters != nullptr)
+	for (const auto& [Guid, Sp] : Context.SteeringParameters)
 	{
-		for (const auto& [Guid, Sp] : *Context.SteeringParameters)
-		{
-			const auto A = UpdateOrCreateAsset(*Sp, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Sp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.TerrainWheelSettings != nullptr)
+	for (const auto& [Guid, Tws] : Context.TerrainWheelSettings)
 	{
-		for (const auto& [Guid, Tws] : *Context.TerrainWheelSettings)
-		{
-			const auto A = UpdateOrCreateAsset(*Tws, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Tws, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.TrackProperties != nullptr)
+	for (const auto& [Guid, Tp] : Context.TrackProperties)
 	{
-		for (const auto& [Guid, Tp] : *Context.TrackProperties)
-		{
-			const auto A = UpdateOrCreateAsset(*Tp, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Tp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	if (Context.TrackMergeProperties != nullptr)
+	for (const auto& [Guid, Tp] : Context.TrackMergeProperties)
 	{
-		for (const auto& [Guid, Tp] : *Context.TrackMergeProperties)
-		{
-			const auto A = UpdateOrCreateAsset(*Tp, Context);
-			AGX_CHECK(A != nullptr);
-			if (A == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-		}
+		const auto A = UpdateOrCreateAsset(*Tp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
 	return Result;
@@ -1719,125 +1609,95 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 	auto OverwriteRule =
 		Settings.bForceOverwriteProperties ? ForceOverwriteRule : DefaultOverwriteRule;
 
-	if (Context.RigidBodies != nullptr)
+	for (const auto& [Guid, Component] : Context.RigidBodies)
 	{
-		for (const auto& [Guid, Component] : *Context.RigidBodies)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.RigidBodies, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.RigidBodies, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Constraints != nullptr)
+	for (const auto& [Guid, Component] : Context.Constraints)
 	{
-		for (const auto& [Guid, Component] : *Context.Constraints)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Constraints, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Constraints, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.TerrainWheels != nullptr)
+	for (const auto& [Guid, Component] : Context.TerrainWheels)
 	{
-		for (const auto& [Guid, Component] : *Context.TerrainWheels)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TerrainWheels, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TerrainWheels, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Tires != nullptr)
+	for (const auto& [Guid, Component] : Context.Tires)
 	{
-		for (const auto& [Guid, Component] : *Context.Tires)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TwoBodyTires, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.TwoBodyTires, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Shovels != nullptr)
+	for (const auto& [Guid, Component] : Context.Shovels)
 	{
-		for (const auto& [Guid, Component] : *Context.Shovels)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Shovels, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Shovels, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Steerings != nullptr)
+	for (const auto& [Guid, Component] : Context.Steerings)
 	{
-		for (const auto& [Guid, Component] : *Context.Steerings)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Steerings, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Steerings, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Cables != nullptr)
+	for (const auto& [Guid, Component] : Context.Cables)
 	{
-		for (const auto& [Guid, Component] : *Context.Cables)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Cables, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Cables, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Wires != nullptr)
+	for (const auto& [Guid, Component] : Context.Wires)
 	{
-		for (const auto& [Guid, Component] : *Context.Wires)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Wires, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Wires, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.Tracks != nullptr)
+	for (const auto& [Guid, Component] : Context.Tracks)
 	{
-		for (const auto& [Guid, Component] : *Context.Tracks)
-		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Tracks, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Tracks, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
-	if (Context.ObserverFrames != nullptr)
+	for (const auto& [Guid, Component] : Context.ObserverFrames)
 	{
-		for (const auto& [Guid, Component] : *Context.ObserverFrames)
-		{
-			USCS_Node* N =
-				GetOrCreateNode(Guid, *Component, Nodes, Nodes.ObserverFrames, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-				CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
-		}
+		USCS_Node* N =
+			GetOrCreateNode(Guid, *Component, Nodes, Nodes.ObserverFrames, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
+			CopyProperties(*Component, *N->ComponentTemplate, TransientToAsset, OverwriteRule);
 	}
 
 	if (auto Component = Context.ModelSourceComponent)
@@ -1848,94 +1708,79 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateComponents(
 			OverwriteRule);
 	}
 
-	if (Context.Shapes != nullptr)
+	auto RenderMaterialRule =
+		Settings.bForceReassignRenderMaterials ? RenderMaterialOverwriteRule : OverwriteRule;
+
+	for (const auto& [Guid, Component] : Context.Shapes)
 	{
-		auto RenderMaterialRule =
-			Settings.bForceReassignRenderMaterials ? RenderMaterialOverwriteRule : OverwriteRule;
-
-		for (const auto& [Guid, Component] : *Context.Shapes)
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Shapes, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
 		{
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Nodes.Shapes, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-			{
-				CopyProperties(
-					*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
+			CopyProperties(
+				*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
 
-				// CopyProperties does not handle TransientToAsset mappings in arrays such as render
-				// materials.
-				FixupRenderMaterial(
-					TransientToAsset, *Cast<UAGX_ShapeComponent>(N->ComponentTemplate));
-			}
+			// CopyProperties does not handle TransientToAsset mappings in arrays such as render
+			// materials.
+			FixupRenderMaterial(
+				TransientToAsset, *Cast<UAGX_ShapeComponent>(N->ComponentTemplate));
 		}
 	}
 
-	if (Context.CollisionStaticMeshCom != nullptr)
+	for (const auto& [Guid, Component] : Context.CollisionStaticMeshCom)
 	{
-		auto RenderMaterialRule =
-			Settings.bForceReassignRenderMaterials ? RenderMaterialOverwriteRule : OverwriteRule;
-
-		for (const auto& [Guid, Component] : *Context.CollisionStaticMeshCom)
+		TMap<FGuid, USCS_Node*> Unused;
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Unused, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
 		{
-			TMap<FGuid, USCS_Node*> Unused;
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Unused, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-			{
-				CopyProperties(
-					*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
+			CopyProperties(
+				*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
 
-				auto BPStaticMeshComp = Cast<UStaticMeshComponent>(N->ComponentTemplate);
+			auto BPStaticMeshComp = Cast<UStaticMeshComponent>(N->ComponentTemplate);
 
-				// This fixes an issue where the Static Mesh Component of the Blueprint has nullptr
-				// "KnownStaticMesh" property after the CopyProperties call (for some reason) which
-				// causes a crash. The underlying reason and what KnownStaticMesh is used for is not
-				// clear, but this seems to reset the property and fix the crash.
-				for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*BPStaticMeshComp))
-					Instance->PostApplyToComponent();
+			// This fixes an issue where the Static Mesh Component of the Blueprint has nullptr
+			// "KnownStaticMesh" property after the CopyProperties call (for some reason) which
+			// causes a crash. The underlying reason and what KnownStaticMesh is used for is not
+			// clear, but this seems to reset the property and fix the crash.
+			for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*BPStaticMeshComp))
+				Instance->PostApplyToComponent();
 
-				BPStaticMeshComp->PostApplyToComponent();
+			BPStaticMeshComp->PostApplyToComponent();
 
-				// CopyProperties does not handle TransientToAsset mappings in arrays such as render
-				// materials.
-				FixupRenderMaterial(TransientToAsset, *BPStaticMeshComp);
-			}
+			// CopyProperties does not handle TransientToAsset mappings in arrays such as render
+			// materials.
+			FixupRenderMaterial(TransientToAsset, *BPStaticMeshComp);
 		}
 	}
 
-	if (Context.RenderStaticMeshCom != nullptr)
+	for (const auto& [Guid, Component] : Context.RenderStaticMeshCom)
 	{
-		auto RenderMaterialRule =
-			Settings.bForceReassignRenderMaterials ? RenderMaterialOverwriteRule : OverwriteRule;
-
-		for (const auto& [Guid, Component] : *Context.RenderStaticMeshCom)
+		TMap<FGuid, USCS_Node*> Unused;
+		USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Unused, Blueprint);
+		if (N == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+		else
 		{
-			TMap<FGuid, USCS_Node*> Unused;
-			USCS_Node* N = GetOrCreateNode(Guid, *Component, Nodes, Unused, Blueprint);
-			if (N == nullptr)
-				Result |= EAGX_ImportResult::RecoverableErrorsOccured;
-			else
-			{
-				CopyProperties(
-					*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
+			CopyProperties(
+				*Component, *N->ComponentTemplate, TransientToAsset, RenderMaterialRule);
 
-				auto BPStaticMeshComp = Cast<UStaticMeshComponent>(N->ComponentTemplate);
+			auto BPStaticMeshComp = Cast<UStaticMeshComponent>(N->ComponentTemplate);
 
-				// This fixes an issue where the Static Mesh Component of the Blueprint has nullptr
-				// "KnownStaticMesh" property after the CopyProperties call (for some reason) which
-				// causes a crash. The underlying reason and what KnownStaticMesh is used for is not
-				// clear, but this seems to reset the property and fix the crash.
-				for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*BPStaticMeshComp))
-					Instance->PostApplyToComponent();
+			// This fixes an issue where the Static Mesh Component of the Blueprint has nullptr
+			// "KnownStaticMesh" property after the CopyProperties call (for some reason) which
+			// causes a crash. The underlying reason and what KnownStaticMesh is used for is not
+			// clear, but this seems to reset the property and fix the crash.
+			for (auto Instance : FAGX_ObjectUtilities::GetArchetypeInstances(*BPStaticMeshComp))
+				Instance->PostApplyToComponent();
 
-				BPStaticMeshComp->PostApplyToComponent();
+			BPStaticMeshComp->PostApplyToComponent();
 
-				// CopyProperties does not handle TransientToAsset mappings in arrays such as render
-				// materials.
-				FixupRenderMaterial(TransientToAsset, *BPStaticMeshComp);
-			}
+			// CopyProperties does not handle TransientToAsset mappings in arrays such as render
+			// materials.
+			FixupRenderMaterial(TransientToAsset, *BPStaticMeshComp);
 		}
 	}
 

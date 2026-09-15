@@ -924,11 +924,11 @@ void UAGX_ContactMaterial::CopyFrom(
 	{
 		// Use the actual Component Name if possible since it may be different than the Native AGX
 		// Rigid Body name.
-		if (Context != nullptr && Context->RigidBodies != nullptr)
+		if (Context != nullptr)
 		{
 			const FGuid OrientedFrictionBodyGuid =
 				Source.GetOrientedFrictionModelReferenceFrameBodyGuid();
-			if (auto Body = Context->RigidBodies->FindRef(OrientedFrictionBodyGuid))
+			if (auto Body = Context->RigidBodies.FindRef(OrientedFrictionBodyGuid))
 				return Body->GetFName();
 		}
 

@@ -8,6 +8,8 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
+#include "AGX_ImportContext.generated.h"
+
 struct FAGX_ImportSettings;
 struct FOpenPLXMaterialBarrier;
 
@@ -45,69 +47,133 @@ class UWorld;
 /**
  * This struct holds references to objects created during an Import process.
  */
+USTRUCT()
 struct AGXUNREAL_API FAGX_ImportContext
 {
-	TUniquePtr<TMap<FGuid, UAGX_RigidBodyComponent*>> RigidBodies;
-	TUniquePtr<TMap<FGuid, UAGX_ShapeComponent*>> Shapes;
-	TUniquePtr<TMap<FGuid, UAGX_ConstraintComponent*>> Constraints;
-	TUniquePtr<TMap<FGuid, UAGX_TerrainWheelComponent*>> TerrainWheels;
-	TUniquePtr<TMap<FGuid, UAGX_TwoBodyTireComponent*>> Tires;
-	TUniquePtr<TMap<FGuid, UAGX_ShovelComponent*>> Shovels;
-	TUniquePtr<TMap<FGuid, UAGX_SteeringComponent*>> Steerings;
-	TUniquePtr<TMap<FGuid, UAGX_CableComponent*>> Cables;
-	TUniquePtr<TMap<FGuid, UAGX_CableProperties*>> CableProperties;
-	TUniquePtr<TMap<FGuid, UAGX_WireComponent*>> Wires;
-	TUniquePtr<TMap<FGuid, UAGX_TrackComponent*>> Tracks;
-	TUniquePtr<TMap<FGuid, UAGX_ObserverFrameComponent*>> ObserverFrames;
+	GENERATED_BODY()
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_RigidBodyComponent>> RigidBodies;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ShapeComponent>> Shapes;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ConstraintComponent>> Constraints;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TerrainWheelComponent>> TerrainWheels;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TwoBodyTireComponent>> Tires;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ShovelComponent>> Shovels;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_SteeringComponent>> Steerings;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_CableComponent>> Cables;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_CableProperties>> CableProperties;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_WireComponent>> Wires;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TrackComponent>> Tracks;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ObserverFrameComponent>> ObserverFrames;
 
 	// The key is the GUID of the Shape for which the render data Static Mesh
 	// Component has been created.
-	TUniquePtr<TMap<FGuid, UStaticMeshComponent*>> RenderStaticMeshCom;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UStaticMeshComponent>> RenderStaticMeshCom;
 
 	// The key is the GUID of the Trimesh Shape.
-	TUniquePtr<TMap<FGuid, UStaticMeshComponent*>> CollisionStaticMeshCom;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UStaticMeshComponent>> CollisionStaticMeshCom;
 
 	// The key is the GUID of the RenderMaterial.
-	TUniquePtr<TMap<FGuid, UMaterialInterface*>> RenderMaterials;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UMaterialInterface>> RenderMaterials;
 
 	// The key is the GUID of the source texture.
-	TUniquePtr<TMap<FGuid, UTexture2D*>> Textures;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UTexture2D>> Textures;
 
 	// This is a holder of material overrides coming from OpenPLX.
 	// Key is the GUID of a RenderMaterial in AGX, and the value is the
 	// corresponing OpenPLX Visual Material that will replace the AGX RenderMaterial.
-	TUniquePtr<TMap<FGuid, FOpenPLXMaterialBarrier>> PLXMaterialOverrides;
+	UPROPERTY(Transient)
+	TMap<FGuid, FOpenPLXMaterialBarrier> PLXMaterialOverrides;
 
 	// For render meshes, the GUID is taken from the RenderData.
-	TUniquePtr<TMap<FGuid, UStaticMesh*>> RenderStaticMeshes;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UStaticMesh>> RenderStaticMeshes;
 
 	// The key is the GUID of the Trimesh Shape.
-	TUniquePtr<TMap<FGuid, UStaticMesh*>> CollisionStaticMeshes;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UStaticMesh>> CollisionStaticMeshes;
 
-	TUniquePtr<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>> MSThresholds;
-	TUniquePtr<TMap<FGuid, UAGX_ShapeMaterial*>> ShapeMaterials;
-	TUniquePtr<TMap<FGuid, UAGX_ContactMaterial*>> ContactMaterials;
-	TUniquePtr<TMap<FGuid, UAGX_ShovelProperties*>> ShovelProperties;
-	TUniquePtr<TMap<FGuid, UAGX_SteeringParameters*>> SteeringParameters;
-	TUniquePtr<TMap<FGuid, UAGX_TerrainWheelSettings*>> TerrainWheelSettings;
-	TUniquePtr<TMap<FGuid, UAGX_TrackProperties*>> TrackProperties;
-	TUniquePtr<TMap<FGuid, UAGX_TrackInternalMergeProperties*>> TrackMergeProperties;
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_MergeSplitThresholdsBase>> MSThresholds;
 
-	UAGX_ModelSourceComponent* ModelSourceComponent {nullptr};
-	UAGX_ContactMaterialRegistrarComponent* ContactMaterialRegistrar {nullptr};
-	UAGX_CollisionGroupDisablerComponent* CollisionGroupDisabler {nullptr};
-	UOpenPLX_SignalHandlerComponent* SignalHandler {nullptr};
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ShapeMaterial>> ShapeMaterials;
 
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ContactMaterial>> ContactMaterials;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_ShovelProperties>> ShovelProperties;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_SteeringParameters>> SteeringParameters;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TerrainWheelSettings>> TerrainWheelSettings;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TrackProperties>> TrackProperties;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TrackInternalMergeProperties>> TrackMergeProperties;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAGX_ModelSourceComponent> ModelSourceComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAGX_ContactMaterialRegistrarComponent> ContactMaterialRegistrar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAGX_CollisionGroupDisablerComponent> CollisionGroupDisabler;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UOpenPLX_SignalHandlerComponent> SignalHandler;
+
+	UPROPERTY(Transient)
 	FGuid SessionGuid;
 
 	const FAGX_ImportSettings* Settings {nullptr};
 
 	// TransientPackage for editor imports and UWorld for runtime imports.
-	UObject* Outer {nullptr};
+	UPROPERTY(Transient)
+	TObjectPtr<UObject> Outer;
 
 	/**
 	 * The root model name, not always set.
 	 * For OpenPLX imports, this is set to the root System name.
 	 */
+	UPROPERTY(Transient)
 	FString RootModelName = "";
+
+	/**
+	* Whether or not the TMap members of this struct is used during import / reimport.
+	*/
+	UPROPERTY(Transient)
+	bool bStoreObjects {true};
 };

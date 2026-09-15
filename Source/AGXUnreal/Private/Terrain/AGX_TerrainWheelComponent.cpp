@@ -34,7 +34,7 @@ namespace AGX_TerrainWheelComponent_helpers
 			return nullptr;
 
 		const FGuid Guid = SettingsBarrier.GetGuid();
-		if (auto Existing = Context.TerrainWheelSettings->FindRef(Guid))
+		if (auto Existing = Context.TerrainWheelSettings.FindRef(Guid))
 			return Existing;
 
 		UAGX_TerrainWheelSettings* Settings = NewObject<UAGX_TerrainWheelSettings>(
@@ -131,21 +131,20 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName();
 
-	if (Context == nullptr || Context->TerrainWheels == nullptr ||
-		Context->TerrainWheelSettings == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	const FRigidBodyBarrier BodyBarrier = Barrier.GetRigidBody();
 	if (BodyBarrier.HasNative())
 	{
-		if (auto Body = Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
+		if (auto Body = Context->RigidBodies.FindRef(BodyBarrier.GetGuid()))
 		{
 			RigidBody.Name = Body->GetFName();
 		}
 	}
 
-	AGX_CHECK(!Context->TerrainWheels->Contains(ImportGuid));
-	Context->TerrainWheels->Add(ImportGuid, this);
+	AGX_CHECK(!Context->TerrainWheels.Contains(ImportGuid));
+	Context->TerrainWheels.Add(ImportGuid, this);
 	TerrainWheelSettings = GetOrCreateTerrainWheelSettings(Barrier, *Context);
 }
 

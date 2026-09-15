@@ -91,8 +91,7 @@ namespace TrimshShapeComponent_helpers
 		const FTrimeshShapeBarrier& Barrier, UMaterialInterface* Material,
 		FAGX_ImportContext& Context)
 	{
-		AGX_CHECK(Context.CollisionStaticMeshes != nullptr);
-		if (auto Existing = Context.CollisionStaticMeshes->FindRef(Barrier.GetGuid()))
+		if (auto Existing = Context.CollisionStaticMeshes.FindRef(Barrier.GetGuid()))
 			return Existing;
 
 #if WITH_EDITOR
@@ -116,7 +115,7 @@ namespace TrimshShapeComponent_helpers
 			Barrier, *Context.Outer, Material, bBuild, bWithBoxCollision, NormalSource);
 
 		if (Mesh != nullptr)
-			Context.CollisionStaticMeshes->Add(Barrier.GetGuid(), Mesh);
+			Context.CollisionStaticMeshes.Add(Barrier.GetGuid(), Mesh);
 
 		return Mesh;
 	}
@@ -155,7 +154,7 @@ namespace TrimshShapeComponent_helpers
 			Barrier.GetEnableCollisions() && Barrier.GetEnabled() && !Barrier.HasRenderData();
 		Component->SetVisibility(Visible, /*bPropagateToChildren*/ false);
 
-		Context.CollisionStaticMeshCom->Add(Barrier.GetShapeGuid(), Component);
+		Context.CollisionStaticMeshCom.Add(Barrier.GetShapeGuid(), Component);
 
 		return Component;
 	}
@@ -175,8 +174,7 @@ void UAGX_TrimeshShapeComponent::CopyFrom(
 	using namespace TrimshShapeComponent_helpers;
 
 	Super::CopyFrom(ShapeBarrier, Context);
-	if (Context == nullptr || Context->CollisionStaticMeshes == nullptr ||
-		Context->Outer == nullptr)
+	if (Context == nullptr || Context->Outer == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	if (Context->Settings != nullptr && Context->Settings->bIgnoreDisabledTrimeshes &&
