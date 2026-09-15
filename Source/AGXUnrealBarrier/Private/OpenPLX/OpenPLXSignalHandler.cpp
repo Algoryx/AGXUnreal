@@ -18,17 +18,11 @@
 
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
-#include "agxOpenPLX/SignalListenerUtils.h"
 #include "agxOpenPLX/AgxObjectMap.h"
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "openplx/ControlDispatch.h"
 #include "openplx/ControlInterface.h"
 #include <openplx/HeapControlInterface.h>
-#include "openplx/Math/Vec3.h"
-#include "openplx/Physics/Signals/BoolInputSignal.h"
-#include "openplx/Physics/Signals/IntInputSignal.h"
-#include "openplx/Physics/Signals/RealInputSignal.h"
-#include "openplx/Physics/Signals/Vec3InputSignal.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -36,8 +30,6 @@
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
-	, InputSignalListenerRef {new FInputSignalListenerRef()}
-	, OutputSignalListenerRef {new FOutputSignalListenerRef()}
 {
 }
 
@@ -111,22 +103,6 @@ void FOpenPLXSignalHandler::Init(
 			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
-	if (FPLXUtilitiesInternal::HasInputs(System.get()))
-	{
-		auto InputSignalQue = agxopenplx::InputSignalQueue::create();
-		InputSignalListenerRef->Native =
-			new agxopenplx::InputSignalListener(InputSignalQue, AgxObjectMap, AgxMetadata);
-		Simulation.GetNative()->Native->add(InputSignalListenerRef->Native);
-	}
-
-	if (FPLXUtilitiesInternal::HasOutputs(System.get()))
-	{
-		auto OutputSignalQueue = agxopenplx::OutputSignalQueue::create();
-		OutputSignalListenerRef->Native = new agxopenplx::OutputSignalListener(
-			ModelData->OpenPLXModel, OutputSignalQueue, AgxObjectMap, AgxMetadata);
-		Simulation.GetNative()->Native->add(OutputSignalListenerRef->Native);
-	}
-
 	/*
 	 * Control Interface setup.
 	 */
@@ -180,11 +156,6 @@ namespace OpenPLXSignalHandler_helpers
 	// Here follows a bunch of type conversion functions that convert OpenPLX typed values to and
 	// from Unreal typed values. The functions ensure that Input or Output type makes sense for the
 	// C++ type of the value and performs appropriate unit conversion where necessary.
-	//
-	// Depending on the value type and OpenPLX API used, sometimes the to-OpenPLX conversion
-	// produces a by-value return, and sometimes it produces a by-Object-in-shared_ptr return. These
-	// functions are separated by a name suffix. Since OpenPLX doesn't provide any value types (that
-	// I know of) the by-value functions return AGX Dynamics types, such as agx::Vec3, instead.
 	//
 
 	//
@@ -279,18 +250,6 @@ namespace OpenPLXSignalHandler_helpers
 		return {};
 	}
 
-	TOptional<std::shared_ptr<openplx::Math::Vec2>> ConvertVector2ToPLXObject(
-		const FOpenPLX_Input& Input, const FVector2D& Value)
-	{
-		TOptional<agx::Vec2> ValuePLXMaybe = ConvertVector2ToPLXValue(Input, Value);
-		if (!ValuePLXMaybe)
-		{
-			return {};
-		}
-
-		return openplx::Math::Vec2::from_xy(ValuePLXMaybe->x(), ValuePLXMaybe->y());
-	}
-
 	TOptional<FVector2D> ConvertVector2ValueToUnreal(
 		const FOpenPLX_Output& Output, const agx::Vec2& Value)
 	{
@@ -309,13 +268,6 @@ namespace OpenPLXSignalHandler_helpers
 				"unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
-	}
-
-	TOptional<FVector2D> ConvertVector2ObjectToUnreal(
-		const FOpenPLX_Output& Output, const openplx::Math::Vec2& Object)
-	{
-		const agx::Vec2 Value(Object.x(), Object.y());
-		return ConvertVector2ValueToUnreal(Output, Value);
 	}
 
 	//
@@ -341,19 +293,6 @@ namespace OpenPLXSignalHandler_helpers
 				"is unsupported."),
 			*Input.Name.ToString(), *Input.Alias.ToString());
 		return {};
-	}
-
-	TOptional<std::shared_ptr<openplx::Math::Vec3>> ConvertVector3ToPLXObject(
-		const FOpenPLX_Input& Input, const FVector& Value)
-	{
-		TOptional<agx::Vec3> ValuePLXMaybe = ConvertVector3ToPLXValue(Input, Value);
-		if (!ValuePLXMaybe)
-		{
-			return {};
-		}
-
-		return {openplx::Math::Vec3::from_xyz(
-			ValuePLXMaybe->x(), ValuePLXMaybe->y(), ValuePLXMaybe->z())};
 	}
 
 	TOptional<FVector> ConvertVector3ValueToUnreal(
@@ -386,13 +325,6 @@ namespace OpenPLXSignalHandler_helpers
 				"unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
-	}
-
-	TOptional<FVector> ConvertVector3ObjectToUnreal(
-		const FOpenPLX_Output& Output, const openplx::Math::Vec3& Object)
-	{
-		const agx::Vec3 Value {Object.x(), Object.y(), Object.z()};
-		return ConvertVector3ValueToUnreal(Output, Value);
 	}
 
 	//
@@ -481,100 +413,6 @@ namespace OpenPLXSignalHandler_helpers
 				"is unsupported."),
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return {};
-	}
-
-	//
-	// Functions for getting Unreal-typed values from an OpenPLX signal.
-	//
-
-	/**
-	 * Get the Unreal representation of the value held by the given signal.
-	 *
-	 * Base helper function, called by the type-specific functions.
-	 *
-	 * @tparam PLXValueT A subclass of openplx::Physics::Signals::Value.
-	 * @tparam UnrealValueT The Unreal representation of the value held by the signal.
-	 * @tparam ConvertFuncT Function that converts from the signal's value to Unreal representation.
-	 * @param Output The OpenPLX output that the signal came from.
-	 * @param Signal The signal containing the value to get.
-	 * @param ConvertFunc Function to convert the signal's value to Unreal representation.
-	 * @return Unreal representation of the signal's value.
-	 */
-	template <typename PLXValueT, typename UnrealValueT, typename ConvertFuncT>
-	TOptional<UnrealValueT> GetUnrealValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal,
-		ConvertFuncT ConvertFunc)
-	{
-		if (Signal == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Cannot read value from signal from output '%s' "
-					"('%s') because the signal is nullptr."),
-				*Output.Name.ToString(), *Output.Alias.ToString());
-			return {};
-		}
-
-		std::shared_ptr<PLXValueT> Value = std::dynamic_pointer_cast<PLXValueT>(Signal->value());
-		if (Value == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Error,
-				TEXT(
-					"OpenPLX Signal Handler: Tried to cast output value output '%s' ('%s') to the "
-					"requested concrete signal value type but the cast failed. Possible type "
-					"mismatch. The signal will not be received."),
-				*Output.Name.ToString(), *Output.Alias.ToString());
-			return {};
-		}
-
-		return ConvertFunc(Output, *Value.get());
-	}
-
-	TOptional<double> GetUnrealRealValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
-	{
-		using PLXType = openplx::Physics::Signals::RealValue;
-		return GetUnrealValueFromSignal<PLXType, double>(
-			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
-			{ return ConvertRealToUnreal(Output, Value.value()); });
-	}
-
-	TOptional<FVector2D> GetUnrealVector2ValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
-	{
-		using PLXType = openplx::Physics::Signals::Vec2Value;
-		return GetUnrealValueFromSignal<PLXType, FVector2D>(
-			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
-			{ return ConvertVector2ObjectToUnreal(Output, *Value.value()); });
-	}
-
-	TOptional<FVector> GetUnrealVector3ValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
-	{
-		using PLXType = openplx::Physics::Signals::Vec3Value;
-		return GetUnrealValueFromSignal<PLXType, FVector>(
-			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
-			{ return ConvertVector3ObjectToUnreal(Output, *Value.value()); });
-	}
-
-	TOptional<int64> GetUnrealIntegerValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
-	{
-		using PLXType = openplx::Physics::Signals::IntValue;
-		return GetUnrealValueFromSignal<PLXType, int64>(
-			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
-			{ return ConvertIntegerToUnreal(Output, Value.value()); });
-	}
-
-	TOptional<bool> GetUnrealBooleanValueFromSignal(
-		const FOpenPLX_Output& Output, openplx::Physics::Signals::ValueOutputSignal* Signal)
-	{
-		using PLXType = openplx::Physics::Signals::BoolValue;
-		return GetUnrealValueFromSignal<PLXType, bool>(
-			Output, Signal, [](const FOpenPLX_Output& Output, PLXType& Value)
-			{ return ConvertBooleanToUnreal(Output, Value.value()); });
 	}
 
 	//
@@ -1151,54 +989,8 @@ namespace OpenPLXSignalHandler_helpers
 	// Functions for sending signals.
 	//
 
-	template <typename ValueT, typename SignalT, typename ConversionFuncT>
-	bool Send(
-		const FOpenPLX_Input& Input, ValueT Value, FOpenPLXModelRegistry* ModelRegistry,
-		FOpenPLXModelRegistry::Handle ModelHandle,
-		std::shared_ptr<agxopenplx::InputSignalQueue> InputQueue, ConversionFuncT ConversionFunc)
-	{
-		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
-			return false;
-
-		if (InputQueue == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Tried to send OpenPLX Input signal for Input '%s' "
-					"('%s'), but the OpenPLX model does not have any registered Inputs."),
-				*Input.Name.ToString(), *Input.Alias.ToString());
-			return false;
-		}
-
-		FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
-		if (ModelData == nullptr)
-			return false;
-
-		auto PLXInput = ModelData->Inputs.find(Convert(Input.Name.ToString()));
-		if (PLXInput == ModelData->Inputs.end())
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"OpenPLX Signal Handler: Tried to send OpenPLX signal, but the corresponding "
-					"OpenPLX Input '%s' ('%s') was not found in the model. The signal will not be "
-					"sent."),
-				*Input.Name.ToString(), *Input.Alias.ToString());
-			return false;
-		}
-
-		auto ConvertedValue = ConversionFunc(Input, Value);
-		if (!ConvertedValue.IsSet())
-			return false;
-
-		auto Signal = SignalT::create(*ConvertedValue, PLXInput->second);
-		InputQueue->send(Signal);
-		return true;
-	}
-
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
-	bool SendInterfaceImpl(
+	bool SendImpl(
 		const FOpenPLX_Input& Input, ValueUnrealT ValueUnreal,
 		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
 	{
@@ -1222,7 +1014,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT(
 					"OpenPLX Signal Handler: Type and unit conversion from Unreal to OpenPLX "
 					"failed for input '%s' ('%s') of type %s. This can mean that the input was "
-					"used with the wrong value type, e.g. using SendVector2Interface and passing "
+					"used with the wrong value type, e.g. using SendVector2 and passing "
 					"in an input expecting a Real value. This input expects values of type %s."),
 				*Input.Name.ToString(), *Input.Alias.ToString(),
 				*AGX_EnumUtilities::GetEnumName(Input.Type),
@@ -1263,42 +1055,8 @@ namespace OpenPLXSignalHandler_helpers
 	// Functions for receiving signals.
 	//
 
-	template <typename ValueT, typename ValueGetterFuncT>
-	bool Receive(
-		const FOpenPLX_Output& Output, ValueT& OutValue, FOpenPLXModelRegistry* ModelRegistry,
-		FOpenPLXModelRegistry::Handle ModelHandle,
-		std::shared_ptr<agxopenplx::OutputSignalQueue> OutputQueue, ValueGetterFuncT Func)
-	{
-		if (ModelRegistry == nullptr || ModelHandle == FOpenPLXModelRegistry::InvalidHandle)
-			return false;
-
-		if (OutputQueue == nullptr)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT(
-					"Tried to receive OpenPLX Output signal for output '%s', but the OpenPLX "
-					"model does not have any registered outputs."),
-				*Output.Name.ToString());
-			return false;
-		}
-
-		auto Signal =
-			agxopenplx::getSignalBySourceName<openplx::Physics::Signals::ValueOutputSignal>(
-				OutputQueue->getSignals(), Convert(Output.Name.ToString()));
-		if (Signal == nullptr)
-			return false;
-
-		auto Value = Func(Output, Signal.get());
-		if (!Value.IsSet())
-			return false;
-
-		OutValue = *Value;
-		return true;
-	}
-
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
-	bool ReceiveInterfaceImpl(
+	bool ReceiveImpl(
 		const FOpenPLX_Output& Output, ValueUnrealT& OutValue,
 		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
 	{
@@ -1349,7 +1107,7 @@ namespace OpenPLXSignalHandler_helpers
 				TEXT(
 					"OpenPLX Signal Handler: Type and unit conversion from OpenPLX to Unreal "
 					"failed for output '%s' ('%s') of type %s. This can mean that the output was "
-					"used with the wrong value type, e.g. using ReceiveVector2Interface and "
+					"used with the wrong value type, e.g. using ReceiveVector2 and "
 					"passing in an output providing a Real value. This output provides values of "
 					"type %s."),
 				*Output.Name.ToString(), *Output.Alias.ToString(),
@@ -1371,16 +1129,7 @@ bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Send<double, openplx::Physics::Signals::RealInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputSignalListenerRef->Native->getQueue(),
-		ConvertRealToPLX);
-}
-
-bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, double Value)
-{
-	using namespace OpenPLXSignalHandler_helpers;
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::SendInterfaceImpl<agx::Real>(
+	return OpenPLXSignalHandler_helpers::SendImpl<agx::Real>(
 		Input, Value, GetHeapControlInterface(), ConvertRealToPLX);
 }
 
@@ -1388,33 +1137,15 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutVa
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
-		GetUnrealRealValueFromSignal);
-}
-
-bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, double& OutValue)
-{
-	using namespace OpenPLXSignalHandler_helpers;
-	check(IsInitialized());
-	return ReceiveInterfaceImpl<agx::Real>(
+	return ReceiveImpl<agx::Real>(
 		Output, OutValue, GetHeapControlInterface(), ConvertRealToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Send<
-		FVector2D, openplx::Physics::Signals::RealRangeInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::ConvertVector2ToPLXObject);
-}
-
-bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<agx::Vec2>(
+	return SendImpl<agx::Vec2>(
 		Input, Value, GetHeapControlInterface(), ConvertVector2ToPLXValue);
 }
 
@@ -1422,110 +1153,53 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& Ou
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
-		GetUnrealVector2ValueFromSignal);
-}
-
-bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue)
-{
-	using namespace OpenPLXSignalHandler_helpers;
-	check(IsInitialized());
-	return ReceiveInterfaceImpl<agx::Vec2>(
+	return ReceiveImpl<agx::Vec2>(
 		Output, OutValue, GetHeapControlInterface(), ConvertVector2ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Send<FVector, openplx::Physics::Signals::Vec3InputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::ConvertVector3ToPLXObject);
-}
-
-bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, const FVector& Value)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<agx::Vec3>(
+	return SendImpl<agx::Vec3>(
 		Input, Value, GetHeapControlInterface(), ConvertVector3ToPLXValue);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::GetUnrealVector3ValueFromSignal);
-}
-
-bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, FVector& OutValue)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return ReceiveInterfaceImpl<agx::Vec3>(
+	return ReceiveImpl<agx::Vec3>(
 		Output, OutValue, GetHeapControlInterface(), ConvertVector3ValueToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Send<int64, openplx::Physics::Signals::IntInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::ConvertIntegerToPLX);
-}
-
-bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, int64 Value)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<int64_t>(Input, Value, GetHeapControlInterface(), ConvertIntegerToPLX);
+	return SendImpl<int64_t>(Input, Value, GetHeapControlInterface(), ConvertIntegerToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::GetUnrealIntegerValueFromSignal);
-}
-
-bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, int64& OutValue)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return ReceiveInterfaceImpl<int64_t>(
+	return ReceiveImpl<int64_t>(
 		Output, OutValue, GetHeapControlInterface(), ConvertIntegerToUnreal);
 }
 
 bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Send<bool, openplx::Physics::Signals::BoolInputSignal>(
-		Input, Value, ModelRegistry, ModelHandle, InputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::ConvertBooleanToPLX);
-}
-
-bool FOpenPLXSignalHandler::SendInterface(const FOpenPLX_Input& Input, bool Value)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendInterfaceImpl<bool>(Input, Value, GetHeapControlInterface(), ConvertBooleanToPLX);
+	return SendImpl<bool>(Input, Value, GetHeapControlInterface(), ConvertBooleanToPLX);
 }
 
 bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
 {
-	check(IsInitialized());
-	return OpenPLXSignalHandler_helpers::Receive(
-		Output, OutValue, ModelRegistry, ModelHandle, OutputSignalListenerRef->Native->getQueue(),
-		OpenPLXSignalHandler_helpers::GetUnrealBooleanValueFromSignal);
-}
-
-bool FOpenPLXSignalHandler::ReceiveInterface(const FOpenPLX_Output& Output, bool& OutValue)
-{
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return ReceiveInterfaceImpl<bool>(
+	return ReceiveImpl<bool>(
 		Output, OutValue, GetHeapControlInterface(), ConvertBooleanToUnreal);
 }
 
@@ -1560,18 +1234,12 @@ void FOpenPLXSignalHandler::ReleaseNatives()
 
 	ModelRegistry = nullptr;
 	AssemblyRef->Native = nullptr;
-	InputSignalListenerRef->Native = nullptr;
-	OutputSignalListenerRef->Native = nullptr;
 }
 
 void FOpenPLXSignalHandler::SetNativeAddresses(
 	const FOpenPLX_SignalHandlerNativeAddresses& Addresses)
 {
 	AssemblyRef->Native = reinterpret_cast<agxSDK::Assembly*>(Addresses.AssemblyAddress);
-	InputSignalListenerRef->Native =
-		reinterpret_cast<agxopenplx::InputSignalListener*>(Addresses.InputSignalListenerAddress);
-	OutputSignalListenerRef->Native =
-		reinterpret_cast<agxopenplx::OutputSignalListener*>(Addresses.OutputSignalListenerAddress);
 	ModelRegistry = reinterpret_cast<FOpenPLXModelRegistry*>(Addresses.ModelRegistryAddress);
 	ModelHandle = Addresses.ModelHandle;
 	bIsInitialized = true;
@@ -1582,14 +1250,6 @@ FOpenPLX_SignalHandlerNativeAddresses FOpenPLXSignalHandler::GetNativeAddresses(
 	FOpenPLX_SignalHandlerNativeAddresses Addresses;
 	if (AssemblyRef->Native != nullptr)
 		Addresses.AssemblyAddress = reinterpret_cast<uint64>(AssemblyRef->Native.get());
-
-	if (InputSignalListenerRef->Native != nullptr)
-		Addresses.InputSignalListenerAddress =
-			reinterpret_cast<uint64>(InputSignalListenerRef->Native.get());
-
-	if (OutputSignalListenerRef->Native != nullptr)
-		Addresses.OutputSignalListenerAddress =
-			reinterpret_cast<uint64>(OutputSignalListenerRef->Native.get());
 
 	if (ModelRegistry != nullptr)
 		Addresses.ModelRegistryAddress = reinterpret_cast<uint64>(ModelRegistry);

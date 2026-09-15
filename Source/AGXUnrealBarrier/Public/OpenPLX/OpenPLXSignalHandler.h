@@ -13,12 +13,7 @@ struct FRigidBodyBarrier;
 class FSimulationBarrier;
 
 struct FAssemblyRef;
-struct FControlInterfaceRef;
 struct FHeapControlInterfacePtr;
-struct FInputSignalListenerRef;
-struct FInputSignalQueuePtr;
-struct FOutputSignalListenerRef;
-struct FOutputSignalQueuePtr;
 struct FOpenPLX_Input;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
@@ -41,33 +36,23 @@ public:
 
 	// Real.
 	bool Send(const FOpenPLX_Input& Input, double Value);
-	bool SendInterface(const FOpenPLX_Input& Input, double Value);
 	bool Receive(const FOpenPLX_Output& Output, double& OutValue);
-	bool ReceiveInterface(const FOpenPLX_Output& Output, double& OutValue);
 
 	// Ranges / Vec2.
 	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value);
-	bool SendInterface(const FOpenPLX_Input& Input, const FVector2D& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
-	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	// Vectors / Vec3.
 	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
-	bool SendInterface(const FOpenPLX_Input& Input, const FVector& Value);
 	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue);
-	bool ReceiveInterface(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	// Integer.
 	bool Send(const FOpenPLX_Input& Input, int64 Value);
-	bool SendInterface(const FOpenPLX_Input& Input, int64 Value);
 	bool Receive(const FOpenPLX_Output& Output, int64& OutValue);
-	bool ReceiveInterface(const FOpenPLX_Output& Output, int64& OutValue);
 
 	// Boolean.
 	bool Send(const FOpenPLX_Input& Input, bool Value);
-	bool SendInterface(const FOpenPLX_Input& Input, bool Value);
 	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
-	bool ReceiveInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
 	FHeapControlInterfacePtr GetHeapControlInterface();
 	const FHeapControlInterfacePtr GetHeapControlInterface() const;
@@ -83,8 +68,4 @@ private:
 	FOpenPLXModelRegistry::Handle ModelHandle {FOpenPLXModelRegistry::InvalidHandle};
 
 	std::shared_ptr<FAssemblyRef> AssemblyRef;
-
-	// Queue-based signals.
-	std::shared_ptr<FInputSignalListenerRef> InputSignalListenerRef;
-	std::shared_ptr<FOutputSignalListenerRef> OutputSignalListenerRef;
 };

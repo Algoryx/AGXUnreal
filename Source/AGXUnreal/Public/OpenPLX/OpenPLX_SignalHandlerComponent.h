@@ -83,16 +83,6 @@ public:
 	bool SendReal(const FOpenPLX_Input& Input, double Value);
 
 	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
-
-	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
@@ -105,16 +95,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveReal(const FOpenPLX_Output& Output, double& OutValue);
-
-	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real type.
@@ -131,16 +111,6 @@ public:
 	bool SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value);
 
 	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
-
-	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real Range type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
@@ -155,16 +125,6 @@ public:
 	bool ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue);
 
 	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
-
-	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real Range type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
@@ -173,40 +133,38 @@ public:
 	bool ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue);
 
 	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
+	 * Uses the given Input to send a Signal of Vector2 type with the given Value.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendVector2(const FOpenPLX_Input& Input, FVector2D Value);
 
 	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
+	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Vector2 type.
+	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
+	 * Input to use.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool SendVector2ByName(FName NameOrAlias, FVector2D Value);
+
+	/**
+	 * Uses the given Output to receive a Signal of Vector2 type.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveVector2(const FOpenPLX_Output& Output, FVector2D& OutValue);
+
+	/**
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Vector2 type.
+	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
+	 * Output to use.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
+	bool ReceiveVector2ByName(FName NameOrAlias, FVector2D& OutValue);
 
 	/**
 	 * Uses the given Input to send a Signal of Vector type with the given Value.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendVector(const FOpenPLX_Input& Input, FVector Value);
-
-	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Vector type.
@@ -223,16 +181,6 @@ public:
 	bool ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue);
 
 	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
-
-	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Vector type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
@@ -245,16 +193,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool SendInteger(const FOpenPLX_Input& Input, int64 Value);
-
-	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Integer type.
@@ -271,16 +209,6 @@ public:
 	bool ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue);
 
 	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool ReceiveIntegerInterface(const FOpenPLX_Output& Output, int64& OutValue);
-
-	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Integer type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
@@ -295,16 +223,6 @@ public:
 	bool SendBoolean(const FOpenPLX_Input& Input, bool Value);
 
 	/**
-	 * Send the given value to the given input using the OpenPLX Control Interface API.
-	 *
-	 * @param Input OpenPLX Input to send a value to.
-	 * @param Value The value to sent to the input.
-	 * @return True if the send could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX|Experimental", Experimental)
-	bool SendBooleanInterface(const FOpenPLX_Input& Input, bool Value);
-
-	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Boolean type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
@@ -317,16 +235,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
 	bool ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue);
-
-	/**
-	 * Receive a value from the given output using the OpenPLX Control Interface API.
-	 *
-	 * @param Output OpenPLX Input to send a value to.
-	 * @param OutValue Storage location for the received value.
-	 * @return True if the receive could be performed.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveBooleanInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Boolean type.
@@ -351,6 +259,66 @@ public:
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendReal instead."))
+	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveReal instead."))
+	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendRangeReal instead."))
+	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveRangeReal instead."))
+	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveVector2 instead."))
+	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendVector2 instead."))
+	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendVector instead."))
+	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveVector instead."))
+	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendInteger instead."))
+	bool SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveInteger instead."))
+	bool ReceiveIntegerInterface(const FOpenPLX_Output& Output, int64& OutValue);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendBoolean instead."))
+	bool SendBooleanInterface(const FOpenPLX_Input& Input, bool Value);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "OpenPLX",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveBoolean instead."))
+	bool ReceiveBooleanInterface(const FOpenPLX_Output& Output, bool& OutValue);
 
 private:
 	FOpenPLXSignalHandler SignalHandler;
