@@ -326,8 +326,7 @@ bool AAGX_Terrain::SetPreloadRadius(UAGX_ShovelComponent* Shovel, double InPrelo
 bool AAGX_Terrain::SetRequiredRadius(UAGX_ShovelComponent* Shovel, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
-		*GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"), *GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -341,8 +340,7 @@ bool AAGX_Terrain::SetTerrainPagerRadii(
 	UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius)
 {
 	FShovelReferenceWithSettings* Element = AGX_Terrain_helpers::FindShovelSettings(
-		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"),
-		*GetName());
+		TerrainPagingSettings.TrackedShovels, Shovel, TEXT("Set Required Radius"), *GetName());
 	if (Element == nullptr)
 	{
 		return false;
@@ -990,6 +988,12 @@ void AAGX_Terrain::InitializeNative()
 				 "Ensure the selected Terrain Material is valid."),
 			*GetName());
 	}
+	if (HasNativeTerrainPager())
+	{
+		FTerrainMaterialBarrier* DefaultTerrainMaterial =
+			TerrainMaterial != nullptr ? TerrainMaterial->GetTerrainMaterialNative() : nullptr;
+		NativeTerrainPagerBarrier.CreateTerrainDataSource(&HeightFetcher, DefaultTerrainMaterial);
+	}
 
 	if (!UpdateNativeShapeMaterial())
 	{
@@ -998,6 +1002,15 @@ void AAGX_Terrain::InitializeNative()
 			TEXT("UpdateNativeShapeMaterial returned false in AGX_Terrain '%s'. "
 				 "Ensure the selected Shape Material is valid."),
 			*GetName());
+	}
+
+	if (HasNativeTerrainPager() && ShapeMaterial != nullptr && TerrainMaterial != nullptr &&
+		ShapeMaterial->IsInstance() && TerrainMaterial->IsInstance())
+	{
+		auto SMBarrier = ShapeMaterial->GetOrCreateShapeMaterialNative(GetWorld());
+		auto TMBarrier = TerrainMaterial->GetOrCreateTerrainMaterialNative(GetWorld());
+		if (SMBarrier != nullptr && TMBarrier != nullptr)
+			NativeTerrainPagerBarrier.SetAssociatedMaterial(*TMBarrier, *SMBarrier);
 	}
 }
 
@@ -1152,8 +1165,7 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 		FMath::RoundToInt(TerrainPagingSettings.TileOverlap / QuadSize);
 
 	NativeTerrainPagerBarrier.AllocateNative(
-		&HeightFetcher, NativeBarrier, TileNumVerticesSide, TileOverlapVertices, QuadSize,
-		MaxDepth);
+		NativeBarrier, TileNumVerticesSide, TileOverlapVertices, QuadSize, MaxDepth);
 
 	if (!HasNativeTerrainPager())
 	{

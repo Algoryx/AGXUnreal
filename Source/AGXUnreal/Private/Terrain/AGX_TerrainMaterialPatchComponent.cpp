@@ -11,11 +11,15 @@
 #include "Terrain/AGX_MovableTerrainComponent.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/TerrainBarrier.h"
+#include "Terrain/TerrainPagerBarrier.h"
 #if WITH_EDITOR
 #include "Utilities/AGX_BlueprintUtilities.h"
 #endif
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+
+// Unreal Engine includes.
+#include "Misc/Optional.h"
 
 namespace AGX_TerrainMaterialPatchComponent_helpers
 {
@@ -132,6 +136,217 @@ namespace AGX_TerrainMaterialPatchComponent_helpers
 
 		return ShapeMaterialInstance->GetOrCreateShapeMaterialNative(World);
 	}
+
+	FTerrainPagerBarrier* GetTerrainPagerBarrier(UAGX_TerrainMaterialPatchComponent& Component)
+	{
+		AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(Component.GetOwner());
+		if (Terrain == nullptr)
+			return nullptr;
+
+		Terrain->GetOrCreateNative();
+		return Terrain->HasNativeTerrainPager() ? Terrain->GetNativeTerrainPager() : nullptr;
+	}
+
+	struct FSetTerrainMaterialResult
+	{
+		bool bSuccess {false};
+		TOptional<int32> NumVoxels;
+	};
+
+	FSetTerrainMaterialResult SetTerrainMaterial(
+		FTerrainBarrier& TerrainBarrier, FTerrainMaterialBarrier& TerrainMaterial,
+		FShapeBarrier& Shape)
+	{
+		const int32 NumVoxels = TerrainBarrier.SetTerrainMaterial(TerrainMaterial, Shape);
+		return {NumVoxels > 0, NumVoxels};
+	}
+
+	FSetTerrainMaterialResult SetTerrainMaterial(
+		FTerrainPagerBarrier& TerrainPagerBarrier, FTerrainMaterialBarrier& TerrainMaterial,
+		FShapeBarrier& Shape)
+	{
+		return {TerrainPagerBarrier.SetTerrainMaterial(TerrainMaterial, Shape), {}};
+	}
+
+	template <typename TerrainBarrierT>
+	void ApplyTerrainMaterialPatch(
+		UAGX_TerrainMaterialPatchComponent& Component, const TArray<FTransform>& Transforms,
+		TerrainBarrierT& TerrainBarrier, UAGX_ShapeComponent* Shape,
+		UAGX_TerrainMaterial* TerrainMaterial, UAGX_ShapeMaterial* ShapeMaterial)
+	{
+		if (!Component.bEnabled)
+			return;
+
+		if (Shape == nullptr || TerrainMaterial == nullptr)
+			return;
+
+		FTerrainMaterialBarrier* TerrainMaterialBarrier =
+			GetTerrainMaterialBarrier(TerrainMaterial, Component.GetWorld());
+		if (TerrainMaterialBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Terrain "
+					 "Material Barrier from Terrain Material '%s'."),
+				*Component.GetName(), *GetLabelSafe(Component.GetOwner()),
+				*TerrainMaterial->GetName());
+			return;
+		}
+
+		const bool bShapeHadNative = Shape->HasNative();
+		FShapeBarrier* ShapeBarrier = GetShapeBarrier(Shape);
+		if (ShapeBarrier == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Shape "
+					 "Barrier from Shape Component '%s'."),
+				*Component.GetName(), *GetLabelSafe(Component.GetOwner()), *Shape->GetName());
+			return;
+		}
+
+		FShapeMaterialBarrier* ShapeMaterialBarrier =
+			GetShapeMaterialBarrier(ShapeMaterial, Component.GetWorld());
+
+		const FTransform OriginalWorldTransform = Shape->GetComponentTransform();
+		bool bAnyPatchAssigned = false;
+		for (const FTransform& Transform : Transforms)
+		{
+			// Instance transforms are interpreted relative to the shape's original world transform.
+			FTransform StampedWorldTransform(
+				OriginalWorldTransform.TransformRotation(Transform.GetRotation()),
+				OriginalWorldTransform.TransformPositionNoScale(Transform.GetLocation()),
+				OriginalWorldTransform.GetScale3D() * Transform.GetScale3D());
+			Shape->SetWorldTransform(StampedWorldTransform);
+			Shape->UpdateNativeProperties();
+
+			const FSetTerrainMaterialResult Result =
+				SetTerrainMaterial(TerrainBarrier, *TerrainMaterialBarrier, *ShapeBarrier);
+			bAnyPatchAssigned = bAnyPatchAssigned || Result.bSuccess;
+
+			if (!Result.bSuccess)
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("ApplyTerrainMaterialPatch called on Terrain Material Patch Component "
+						 "'%s' in '%s' but the patch could not be assigned when using Shape '%s' "
+						 "and Terrain Material '%s'."),
+					*Component.GetName(), *GetLabelSafe(Component.GetOwner()), *Shape->GetName(),
+					*TerrainMaterial->GetName());
+			}
+
+			if (Component.bLogPatchAssignments && Result.bSuccess)
+			{
+				if (Result.NumVoxels.IsSet())
+				{
+					UE_LOG(
+						LogAGX, Log,
+						TEXT("Terrain Material Patch Component '%s' in '%s' assigned %d voxels "
+							 "when using Shape '%s' and Terrain Material '%s'."),
+						*Component.GetName(), *GetLabelSafe(Component.GetOwner()),
+						Result.NumVoxels.GetValue(), *Shape->GetName(),
+						*TerrainMaterial->GetName());
+				}
+				else
+				{
+					UE_LOG(
+						LogAGX, Log,
+						TEXT("Terrain Material Patch Component '%s' in '%s' registered a paged "
+							 "Terrain Material patch when using Shape '%s' and Terrain Material "
+							 "'%s'."),
+						*Component.GetName(), *GetLabelSafe(Component.GetOwner()),
+						*Shape->GetName(), *TerrainMaterial->GetName());
+				}
+			}
+		}
+
+		if (bAnyPatchAssigned && ShapeMaterialBarrier != nullptr)
+		{
+			if (!TerrainBarrier.SetAssociatedMaterial(
+					*TerrainMaterialBarrier, *ShapeMaterialBarrier))
+			{
+				UE_LOG(
+					LogAGX, Warning,
+					TEXT("Terrain Material Patch Component '%s' in '%s' associating Shape "
+						 "Material '%s' with Terrain Material '%s' failed. The Output Log may "
+						 "contain more details."),
+					*Component.GetName(), *GetLabelSafe(Component.GetOwner()),
+					*ShapeMaterial->GetName(), *TerrainMaterial->GetName());
+			}
+		}
+
+		if (Shape->HasNative())
+		{
+			if (bShapeHadNative)
+			{
+				// Restore the original component/native transform since we changed it during
+				// "stamping" above.
+				Shape->SetWorldTransform(OriginalWorldTransform);
+				Shape->UpdateNativeProperties();
+			}
+			else
+			{
+				Shape->SetWorldTransform(OriginalWorldTransform);
+
+				// Release the Shape Native since we created it. This is important since the
+				// Shape may have the bIncludeInSimulation set to false, in which case it will
+				// crash on Blueprint Reconstruction since no one (Simulation) is keeping it alive.
+				Shape->ReleaseNative();
+			}
+		}
+	}
+
+	template <typename TerrainBarrierT>
+	void ApplyTerrainMaterialPatch(
+		UAGX_TerrainMaterialPatchComponent& Component,
+		const FAGX_TerrainMaterialPatchData& PatchData, TerrainBarrierT& TerrainBarrier)
+	{
+		UAGX_ShapeComponent* Shape =
+			GetAttachedShapeByName(Component, PatchData.ShapeComponentName);
+		ApplyTerrainMaterialPatch(
+			Component, PatchData.InstancePlacements, TerrainBarrier, Shape,
+			PatchData.TerrainMaterial, PatchData.ShapeMaterial);
+	}
+
+	bool ApplyTerrainMaterialPatch(
+		UAGX_TerrainMaterialPatchComponent& Component, const TArray<FTransform>& Transforms,
+		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
+		UAGX_ShapeMaterial* ShapeMaterial)
+	{
+		if (FTerrainPagerBarrier* TerrainPagerBarrier = GetTerrainPagerBarrier(Component))
+		{
+			ApplyTerrainMaterialPatch(
+				Component, Transforms, *TerrainPagerBarrier, Shape, TerrainMaterial, ShapeMaterial);
+			return true;
+		}
+
+		FTerrainBarrier* TerrainBarrier = GetTerrainBarrier(Component);
+		if (TerrainBarrier == nullptr)
+			return false;
+
+		ApplyTerrainMaterialPatch(
+			Component, Transforms, *TerrainBarrier, Shape, TerrainMaterial, ShapeMaterial);
+		return true;
+	}
+
+	bool ApplyTerrainMaterialPatch(
+		UAGX_TerrainMaterialPatchComponent& Component,
+		const FAGX_TerrainMaterialPatchData& PatchData)
+	{
+		if (FTerrainPagerBarrier* TerrainPagerBarrier = GetTerrainPagerBarrier(Component))
+		{
+			ApplyTerrainMaterialPatch(Component, PatchData, *TerrainPagerBarrier);
+			return true;
+		}
+
+		if (FTerrainBarrier* TerrainBarrier = GetTerrainBarrier(Component))
+		{
+			ApplyTerrainMaterialPatch(Component, PatchData, *TerrainBarrier);
+			return true;
+		}
+
+		return false;
+	}
 }
 
 UAGX_TerrainMaterialPatchComponent::UAGX_TerrainMaterialPatchComponent()
@@ -195,11 +410,6 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
 		return true; // Case for in editor calls.
 
-	FTerrainBarrier* TerrainBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
-	if (TerrainBarrier == nullptr)
-		return false;
-
 	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData->ShapeComponentName);
 	if (Shape == nullptr)
 	{
@@ -211,9 +421,8 @@ bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstance(
 		return false;
 	}
 
-	ApplyTerrainMaterialPatch(
-		{Transform}, *TerrainBarrier, Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial);
-	return true;
+	return AGX_TerrainMaterialPatchComponent_helpers::ApplyTerrainMaterialPatch(
+		*this, {Transform}, Shape, PatchData->TerrainMaterial, PatchData->ShapeMaterial);
 }
 
 bool UAGX_TerrainMaterialPatchComponent::AddPatchShapeInstances(
@@ -261,21 +470,16 @@ void UAGX_TerrainMaterialPatchComponent::AddPatch(
 	if (GetWorld() == nullptr || !GetWorld()->IsGameWorld())
 		return;
 
-	FTerrainBarrier* TerrainBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
-	if (TerrainBarrier == nullptr)
+	TArray<FTransform> Transforms {FTransform::Identity};
+	if (!AGX_TerrainMaterialPatchComponent_helpers::ApplyTerrainMaterialPatch(
+			*this, Transforms, ShapeComponent, TerrainMaterial, ShapeMaterial))
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("AddPatch called on Terrain Material Patch Component '%s' in '%s'. Unable to "
 				 "find a Terrain parent, doing nothing."),
 			*GetName(), *GetLabelSafe(GetOwner()));
-		return;
 	}
-
-	TArray<FTransform> Transforms {FTransform::Identity};
-	ApplyTerrainMaterialPatch(
-		Transforms, *TerrainBarrier, ShapeComponent, TerrainMaterial, ShapeMaterial);
 }
 
 #if WITH_EDITOR
@@ -386,6 +590,7 @@ bool UAGX_TerrainMaterialPatchComponent::RemoveAssignmentDataIfPresent(
 
 void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 {
+	using namespace AGX_TerrainMaterialPatchComponent_helpers;
 	Super::BeginPlay();
 
 	if (GIsReconstructingBlueprintInstances)
@@ -393,9 +598,7 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 
 	UpdateTerrainMaterialPatches();
 
-	FTerrainBarrier* TerrainBarrier =
-		AGX_TerrainMaterialPatchComponent_helpers::GetTerrainBarrier(*this);
-	if (TerrainBarrier == nullptr)
+	if (GetTerrainBarrier(*this) == nullptr)
 	{
 		const FString Message = FString::Printf(
 			TEXT("AGX Terrain Material Patch Component '%s' in '%s' could not find an AGX Terrain "
@@ -407,128 +610,7 @@ void UAGX_TerrainMaterialPatchComponent::BeginPlay()
 
 	for (const FAGX_TerrainMaterialPatchData& AssignmentData : TerrainMaterialPatches)
 	{
-		ApplyTerrainMaterialPatch(AssignmentData, *TerrainBarrier);
-	}
-}
-
-void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
-	const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier)
-{
-	using namespace AGX_TerrainMaterialPatchComponent_helpers;
-
-	UAGX_ShapeComponent* Shape = GetAttachedShapeByName(*this, PatchData.ShapeComponentName);
-	ApplyTerrainMaterialPatch(
-		PatchData.InstancePlacements, TerrainBarrier, Shape, PatchData.TerrainMaterial,
-		PatchData.ShapeMaterial);
-}
-
-void UAGX_TerrainMaterialPatchComponent::ApplyTerrainMaterialPatch(
-	const TArray<FTransform>& Transforms, FTerrainBarrier& TerrainBarrier,
-	UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-	UAGX_ShapeMaterial* ShapeMaterial)
-{
-	using namespace AGX_TerrainMaterialPatchComponent_helpers;
-	if (!bEnabled)
-		return;
-
-	if (Shape == nullptr || TerrainMaterial == nullptr)
-		return;
-
-	FTerrainMaterialBarrier* TerrainMaterialBarrier =
-		GetTerrainMaterialBarrier(TerrainMaterial, GetWorld());
-	const bool bShapeHadNative = Shape->HasNative();
-	FShapeBarrier* ShapeBarrier = GetShapeBarrier(Shape);
-	if (TerrainMaterialBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Terrain Material "
-				 "Barrier from Terrain Material '%s'."),
-			*GetName(), *GetLabelSafe(GetOwner()), *TerrainMaterial->GetName());
-		return;
-	}
-	if (ShapeBarrier == nullptr)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT("Terrain Material Patch Component '%s' in '%s', unable to create Shape "
-				 "Barrier from Shape Component '%s'."),
-			*GetName(), *GetLabelSafe(GetOwner()), *Shape->GetName());
-		return;
-	}
-
-	FShapeMaterialBarrier* ShapeMaterialBarrier =
-		GetShapeMaterialBarrier(ShapeMaterial, GetWorld());
-
-	const FTransform OriginalWorldTransform = Shape->GetComponentTransform();
-	for (const FTransform& Transform : Transforms)
-	{
-		// Instance transforms are interpreted relative to the shape's original world transform.
-		FTransform StampedWorldTransform(
-			OriginalWorldTransform.TransformRotation(Transform.GetRotation()),
-			OriginalWorldTransform.TransformPositionNoScale(Transform.GetLocation()),
-			OriginalWorldTransform.GetScale3D() * Transform.GetScale3D());
-		Shape->SetWorldTransform(StampedWorldTransform);
-		Shape->UpdateNativeProperties();
-
-		const int32 NumVoxels =
-			TerrainBarrier.SetTerrainMaterial(*TerrainMaterialBarrier, *ShapeBarrier);
-
-		if (NumVoxels == 0)
-		{
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("ApplyTerrainMaterialPatch called on Terrain Material Patch Component '%s' in "
-					 "'%s' but no voxels were overlapped or assigned when using Shape '%s' and "
-					 "Terrain Material '%s'."),
-				*GetName(), *GetLabelSafe(GetOwner()), *Shape->GetName(),
-				*TerrainMaterial->GetName());
-		}
-
-		if (bLogPatchAssignments)
-		{
-			UE_LOG(
-				LogAGX, Log,
-				TEXT("Terrain Material Patch Component '%s' in '%s' assigned %d voxels when using "
-					 "Shape '%s' and Terrain Material '%s'."),
-				*GetName(), *GetLabelSafe(GetOwner()), NumVoxels, *Shape->GetName(),
-				*TerrainMaterial->GetName());
-		}
-
-		if (ShapeMaterialBarrier != nullptr)
-		{
-			if (!TerrainBarrier.SetAssociatedMaterial(
-					*TerrainMaterialBarrier, *ShapeMaterialBarrier))
-			{
-				UE_LOG(
-					LogAGX, Log,
-					TEXT("Terrain Material Patch Component '%s' in '%s' associating Shape Material "
-						 "'%s' with Terrain Material '%s' failed. The Output Log may contain more "
-						 "details."),
-					*GetName(), *GetLabelSafe(GetOwner()), *ShapeMaterial->GetName(),
-					*TerrainMaterial->GetName());
-			}
-		}
-	}
-
-	if (Shape->HasNative())
-	{
-		if (bShapeHadNative)
-		{
-			// Restore the original component/native transform since we changed it during
-			// "stamping" above.
-			Shape->SetWorldTransform(OriginalWorldTransform);
-			Shape->UpdateNativeProperties();
-		}
-		else
-		{
-			Shape->SetWorldTransform(OriginalWorldTransform);
-
-			// Release the Shape Native since we created it. This is important since the
-			// Shape may have the bIncludeInSimulation set to false, in which case it will crash on
-			// Blueprint Reconstruction since no one (Simulation) is keeping it alive.
-			Shape->ReleaseNative();
-		}
+		ApplyTerrainMaterialPatch(*this, AssignmentData);
 	}
 }
 

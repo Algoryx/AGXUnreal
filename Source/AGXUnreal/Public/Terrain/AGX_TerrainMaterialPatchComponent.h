@@ -8,7 +8,6 @@
 
 #include "AGX_TerrainMaterialPatchComponent.generated.h"
 
-class FTerrainBarrier;
 class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_TerrainMaterial;
@@ -172,12 +171,4 @@ private:
 
 	void PrepareShapeForTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
 	void RestoreShapeFromTerrainMaterialPatch(UAGX_ShapeComponent& ShapeComponent);
-
-	void ApplyTerrainMaterialPatch(
-		const FAGX_TerrainMaterialPatchData& PatchData, FTerrainBarrier& TerrainBarrier);
-
-	void ApplyTerrainMaterialPatch(
-		const TArray<FTransform>& Transforms, FTerrainBarrier& TerrainBarrier,
-		UAGX_ShapeComponent* Shape, UAGX_TerrainMaterial* TerrainMaterial,
-		UAGX_ShapeMaterial* ShapeMaterial);
 };
