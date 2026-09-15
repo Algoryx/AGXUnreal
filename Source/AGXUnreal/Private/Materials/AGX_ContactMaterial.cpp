@@ -667,14 +667,6 @@ bool UAGX_ContactMaterial::CanEditChange(const FProperty* InProperty) const
 		return FrictionModel == EAGX_FrictionModel::TrackBoxFriction;
 	}
 
-	if (PropertyName == AGX_MEMBER_NAME(bUseSecondaryFrictionCoefficient) ||
-		PropertyName == AGX_MEMBER_NAME(SecondaryFrictionCoefficient) ||
-		PropertyName == AGX_MEMBER_NAME(bUseSecondarySurfaceViscosity) ||
-		PropertyName == AGX_MEMBER_NAME(SecondarySurfaceViscosity))
-	{
-		return SupportsSecondaryFrictionDirections(FrictionModel);
-	}
-
 	if (PropertyName == AGX_MEMBER_NAME(PrimaryDirection) ||
 		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameActor) ||
 		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameComponent))
