@@ -1293,7 +1293,7 @@ namespace AGX_WireComponent_helpers
 		Winch->CopyFrom(WinchBarrier);
 		FRigidBodyBarrier WinchBodyBarrier = WinchBarrier.GetRigidBody();
 		UAGX_RigidBodyComponent* WinchBodyComponent =
-			Context.RigidBodies->FindRef(WinchBodyBarrier.GetGuid());
+			Context.RigidBodies.FindRef(WinchBodyBarrier.GetGuid());
 
 		// Ok for WinchBodyComponent to be nullptr. Means attached to the world.
 		Winch->SetBodyAttachment(WinchBodyComponent);
@@ -1311,7 +1311,7 @@ namespace AGX_WireComponent_helpers
 		if (!NodeBodyBarrier.HasNative())
 			return;
 
-		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(NodeBodyBarrier.GetGuid());
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies.FindRef(NodeBodyBarrier.GetGuid());
 		if (Body == nullptr)
 			return;
 
@@ -1363,11 +1363,11 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 	if (ParameterControllerBarrier.HasNative())
 		WireParameterController.CopyFrom(ParameterControllerBarrier);
 
-	if (Context == nullptr || Context->Wires == nullptr || Context->ShapeMaterials == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->Wires->Contains(ImportGuid));
-	Context->Wires->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Wires.Contains(ImportGuid));
+	Context->Wires.Add(ImportGuid, this);
 
 	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
 
@@ -1431,7 +1431,7 @@ void UAGX_WireComponent::CopyFrom(const FWireBarrier& Barrier, FAGX_ImportContex
 			// Eye nodes are attached to a Rigid Body, so make Local Location relative to that body.
 			FRigidBodyBarrier BodyBarrier = NodeAGX.GetRigidBody();
 			UAGX_RigidBodyComponent* BodyComponent =
-				Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
+				Context->RigidBodies.FindRef(BodyBarrier.GetGuid());
 			if (BodyComponent != nullptr)
 			{
 				// Note: avoid setting component ptrs here since both them and their owners may get

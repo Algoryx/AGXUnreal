@@ -569,14 +569,14 @@ namespace AGX_ConstraintComponent_helpers
 
 		if (Body1Barrier.HasNative())
 		{
-			Body1 = Context.RigidBodies->FindRef(Body1Barrier.GetGuid());
+			Body1 = Context.RigidBodies.FindRef(Body1Barrier.GetGuid());
 			AGX_CHECK(Body1 != nullptr);
 			OutComponent.BodyAttachment1.RigidBody.Name = *Body1->GetName();
 		}
 
 		if (Body2Barrier.HasNative())
 		{
-			Body2 = Context.RigidBodies->FindRef(Body2Barrier.GetGuid());
+			Body2 = Context.RigidBodies.FindRef(Body2Barrier.GetGuid());
 			AGX_CHECK(Body2 != nullptr);
 			OutComponent.BodyAttachment2.RigidBody.Name = *Body2->GetName();
 		}
@@ -630,12 +630,12 @@ void UAGX_ConstraintComponent::CopyFrom(
 		}
 	}
 
-	if (Context != nullptr && Context->Constraints != nullptr && Context->RigidBodies != nullptr)
-	{
-		AGX_ConstraintComponent_helpers::SetupBodyAttachments(Barrier, *this, *Context);
-		AGX_CHECK(!Context->Constraints->Contains(ImportGuid));
-		Context->Constraints->Add(ImportGuid, this);
-	}
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	AGX_ConstraintComponent_helpers::SetupBodyAttachments(Barrier, *this, *Context);
+	AGX_CHECK(!Context->Constraints.Contains(ImportGuid));
+	Context->Constraints.Add(ImportGuid, this);
 }
 
 void UAGX_ConstraintComponent::SetSolveType(EAGX_SolveType InSolveType)

@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "OpenPLX_Enums.generated.h"
+
 UENUM()
 enum class EOpenPLX_InputType : uint8
 {

@@ -62,9 +62,9 @@ UAGX_ShapeMaterial* FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(
 	if (!Barrier.HasNative())
 		return nullptr;
 
-	if (Context != nullptr && Context->ShapeMaterials != nullptr)
+	if (Context != nullptr)
 	{
-		if (auto Existing = Context->ShapeMaterials->FindRef(Barrier.GetGuid()))
+		if (auto Existing = Context->ShapeMaterials.FindRef(Barrier.GetGuid()))
 			return Existing;
 	}
 
@@ -75,10 +75,10 @@ UAGX_ShapeMaterial* FAGX_ImportRuntimeUtilities::GetOrCreateShapeMaterial(
 	auto Sm = NewObject<UAGX_ShapeMaterial>(Outer, NAME_None, RF_Public | RF_Standalone);
 	Sm->CopyFrom(Barrier, Context);
 
-	if (Context != nullptr && Context->ShapeMaterials != nullptr)
+	if (Context != nullptr && Context->bStoreObjects)
 	{
 		OnAssetTypeCreated(*Sm, Context->SessionGuid);
-		Context->ShapeMaterials->Add(Barrier.GetGuid(), Sm);
+		Context->ShapeMaterials.Add(Barrier.GetGuid(), Sm);
 	}
 
 	return Sm;

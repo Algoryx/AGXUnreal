@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ImportEnums.generated.h"
+
 /** Specifies what type of import is being performed. */
 UENUM()
 enum class EAGX_ImportType : uint8

@@ -535,11 +535,11 @@ void UAGX_RigidBodyComponent::CopyFrom(
 
 	SetWorldTransform(FTransform(Barrier.GetRotation(), Barrier.GetPosition()));
 
-	if (Context == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->RigidBodies->Contains(ImportGuid));
-	Context->RigidBodies->Add(ImportGuid, this);
+	AGX_CHECK(!Context->RigidBodies.Contains(ImportGuid));
+	Context->RigidBodies.Add(ImportGuid, this);
 }
 
 void UAGX_RigidBodyComponent::InitializeMotionControl()

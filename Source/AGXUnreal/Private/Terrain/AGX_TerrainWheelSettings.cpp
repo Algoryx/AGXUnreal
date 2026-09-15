@@ -147,12 +147,12 @@ void UAGX_TerrainWheelSettings::CopyFrom(
 
 	CopyFrom(SettingsBarrier);
 
-	if (Context == nullptr || Context->TerrainWheelSettings == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	Rename(*AGX_TerrainWheelSettings_helpers::CreateSettingsName(Source, *Context));
-	AGX_CHECK(!Context->TerrainWheelSettings->Contains(ImportGuid));
-	Context->TerrainWheelSettings->Add(ImportGuid, this);
+	AGX_CHECK(!Context->TerrainWheelSettings.Contains(ImportGuid));
+	Context->TerrainWheelSettings.Add(ImportGuid, this);
 }
 
 void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Source)

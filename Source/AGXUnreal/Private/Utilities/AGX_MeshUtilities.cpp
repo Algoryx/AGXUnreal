@@ -72,9 +72,10 @@ namespace
 
 	UTexture2D* GetOrCreateTexture(
 		const FOpenPLXTextureData& TextureData, UObject& Owner, EOpenPLX_TextureUsage Usage,
-		TMap<FGuid, UTexture2D*>* Textures, bool bCreateRenderResource)
+		TMap<FGuid, TObjectPtr<UTexture2D>>* Textures, bool bCreateRenderResource)
 	{
-		UTexture2D* Texture = Textures != nullptr ? Textures->FindRef(TextureData.Guid) : nullptr;
+		UTexture2D* Texture =
+			Textures != nullptr ? Textures->FindRef(TextureData.Guid).Get() : nullptr;
 		if (Texture != nullptr)
 			return Texture;
 
@@ -241,7 +242,7 @@ namespace
 #if WITH_EDITOR
 	UMaterialInterface* CreateRenderMaterialEditor(
 		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial& Base, UObject& Owner,
-		TMap<FGuid, UTexture2D*>* Textures, bool bCreateTextureRenderResources)
+		TMap<FGuid, TObjectPtr<UTexture2D>>* Textures, bool bCreateTextureRenderResources)
 	{
 		auto Material = NewObject<UMaterialInstanceConstant>(
 			&Owner, *CreateRenderMaterialName(MaterialBarrier, Owner));
@@ -2116,7 +2117,11 @@ namespace AGX_MeshUtilities_helpers
 					const uint32 NumBytes = Buffer->GetSize();
 					FRHIGPUBufferReadback Readback(TEXT("BufferReadback: Positions"));
 					Readback.EnqueueCopy(RHICmdList, Buffer);
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 					RHICmdList.BlockUntilGPUIdle();
+#else
+					RHICmdList.SubmitAndBlockUntilGPUIdle();
+#endif
 					FVector3f* Data = static_cast<FVector3f*>(Readback.Lock(NumBytes));
 					for (uint32 I = 0; I < NumPositions; I++)
 					{
@@ -2131,7 +2136,11 @@ namespace AGX_MeshUtilities_helpers
 					const uint32 NumBytes = Buffer->GetSize();
 					FRHIGPUBufferReadback Readback(TEXT("BufferReadback: Indices"));
 					Readback.EnqueueCopy(RHICmdList, Buffer);
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 					RHICmdList.BlockUntilGPUIdle();
+#else
+					RHICmdList.SubmitAndBlockUntilGPUIdle();
+#endif
 					void* Data = Readback.Lock(NumBytes);
 					switch (Buffer->GetStride())
 					{
@@ -3074,7 +3083,7 @@ UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 
 UMaterialInterface* AGX_MeshUtilities::CreateRenderMaterial(
 	const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
-	TMap<FGuid, UTexture2D*>* Textures, bool bCreateTextureRenderResources)
+	TMap<FGuid, TObjectPtr<UTexture2D>>* Textures, bool bCreateTextureRenderResources)
 {
 	if (Base == nullptr || !MaterialBarrier.HasNative())
 		return nullptr;
