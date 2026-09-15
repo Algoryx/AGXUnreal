@@ -341,6 +341,13 @@ bool FCheckBoxWithTextureImportedCommand::Update()
 	if (RenderMesh == nullptr)
 		return true;
 
+	UAGX_RigidBodyComponent* Body = AgxAutomationCommon::GetByName<UAGX_RigidBodyComponent>(
+		Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(
+						TEXT("body")));
+	Test.TestNotNull(TEXT("Rigid Body"), Body);
+	if (Body == nullptr)
+		return true;
+
 	UMaterialInstanceConstant* Material =
 		Cast<UMaterialInstanceConstant>(RenderMesh->GetMaterial(0));
 	Test.TestNotNull(TEXT("MI_BoxMaterial"), Material);
