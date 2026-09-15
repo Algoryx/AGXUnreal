@@ -108,6 +108,7 @@ bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_InputType Type)
 	{
 		case EOpenPLX_InputType::AngularVelocity3DInput:
 		case EOpenPLX_InputType::LinearVelocity3DInput:
+		case EOpenPLX_InputType::Torque3DInput:
 			return true;
 		default:
 			return false;
@@ -123,6 +124,8 @@ bool FOpenPLX_Utilities::IsVectorType(EOpenPLX_OutputType Type)
 		case EOpenPLX_OutputType::LinearVelocity3DOutput:
 		case EOpenPLX_OutputType::MateConnectorAcceleration3DOutput:
 		case EOpenPLX_OutputType::MateConnectorAngularAcceleration3DOutput:
+		case EOpenPLX_OutputType::MateConnectorAngularVelocity3DOutput:
+		case EOpenPLX_OutputType::MateConnectorLinearVelocity3DOutput:
 		case EOpenPLX_OutputType::MateConnectorPositionOutput:
 		case EOpenPLX_OutputType::MateConnectorRPYOutput:
 		case EOpenPLX_OutputType::Position3DOutput:
