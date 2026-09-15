@@ -35,6 +35,10 @@ UWorld* AgxAutomationCommon::GetTestWorld()
 	//
 	// Keep an eye at the engine implementation and replace this once they provide a better way to
 	// get the test world.
+	//
+	// Also, see FAutomationEditorCommonUtils::CreateNewMap, and
+	//	https://minifloppy.it/posts/2024/automated-testing-specs-ue5/ which show how to create a
+	// UWorld fixture.
 
 	if (GEngine == nullptr)
 	{
