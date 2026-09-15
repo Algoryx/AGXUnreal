@@ -283,6 +283,8 @@ namespace OpenPLXSignalHandler_helpers
 				return ConvertAngularVelocity(Vector);
 			case EOpenPLX_InputType::LinearVelocity3DInput:
 				return ConvertDisplacement(Vector);
+			case EOpenPLX_InputType::Torque3DInput:
+				return ConvertTorque(Vector);
 		}
 
 		UE_LOG(
@@ -302,12 +304,14 @@ namespace OpenPLXSignalHandler_helpers
 		{
 			case EOpenPLX_OutputType::AngularVelocity3DOutput:
 			case EOpenPLX_OutputType::MateConnectorAngularAcceleration3DOutput:
+			case EOpenPLX_OutputType::MateConnectorAngularVelocity3DOutput:
 				return ConvertAngularVelocity(Value);
 			case EOpenPLX_OutputType::MateConnectorRPYOutput:
 			case EOpenPLX_OutputType::RPYOutput:
 				return ConvertRPY(Value);
 			case EOpenPLX_OutputType::LinearVelocity3DOutput:
 			case EOpenPLX_OutputType::MateConnectorAcceleration3DOutput:
+			case EOpenPLX_OutputType::MateConnectorLinearVelocity3DOutput:
 			case EOpenPLX_OutputType::MateConnectorPositionOutput:
 			case EOpenPLX_OutputType::Position3DOutput:
 				return ConvertDisplacement(Value);

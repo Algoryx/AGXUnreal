@@ -792,6 +792,6 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
 	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
-	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getName()));
+	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getNameWithNamespace(".")));
 	return true;
 }

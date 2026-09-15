@@ -36,6 +36,7 @@ enum class EOpenPLX_InputType : uint8
 	/* Vector Inputs */
 	AngularVelocity3DInput UMETA(DisplayName = "Angular Velocity 3D Input [Vector]"),
 	LinearVelocity3DInput UMETA(DisplayName = "Linear Velocity 3D Input [Vector]"),
+	Torque3DInput UMETA(DisplayName = "Torque 3D Input [Vector]"),
 
 	/* Integer Inputs */
 	IntInput UMETA(DisplayName = "Int Input [Integer]"),
@@ -91,6 +92,10 @@ enum class EOpenPLX_OutputType : uint8
 		DisplayName = "Mate Connector Acceleration 3D Output [Vector]"),
 	MateConnectorAngularAcceleration3DOutput UMETA(
 		DisplayName = "Mate Connector Angular Acceleration 3D Output [Vector]"),
+	MateConnectorAngularVelocity3DOutput UMETA(
+		DisplayName = "Mate Connector Angular Velocity 3D Output [Vector]"),
+	MateConnectorLinearVelocity3DOutput UMETA(
+		DisplayName = "Mate Connector Linear Velocity 3D Output [Vector]"),
 	MateConnectorPositionOutput UMETA(DisplayName = "Mate Connector Position Output [Vector]"),
 	MateConnectorRPYOutput UMETA(DisplayName = "Mate Connector RPY Output [Vector]"),
 	Position3DOutput UMETA(DisplayName = "Position 3D Output [Vector]"),
