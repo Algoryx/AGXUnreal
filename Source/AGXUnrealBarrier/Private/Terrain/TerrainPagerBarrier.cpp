@@ -232,7 +232,6 @@ bool FTerrainPagerBarrier::SetTerrainMaterial(
 	}
 
 	agxCollide::Geometry* MaterialGeometry = Shape.GetNative()->NativeGeometry->clone();
-	MaterialGeometry->updateBoundingVolume();
 
 	return DataSource->addTerrainMaterial(
 		TerrainMaterial.GetNative()->Native, MaterialGeometry);
