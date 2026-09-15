@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "Sensors/AGX_LidarOutputPosition.h"
 #include "Sensors/AGX_LidarOutputPositionIntensity.h"
@@ -72,6 +73,24 @@ namespace AGX_ROS2Utilities_helpers
 		return Field;
 	};
 
+	EAGX_PointFieldType ToROSPointFieldType(EOpenPLXLidarPackedFieldType Type)
+	{
+		switch (Type)
+		{
+			case EOpenPLXLidarPackedFieldType::Float32:
+				return EAGX_PointFieldType::Float32;
+			case EOpenPLXLidarPackedFieldType::Float64:
+				return EAGX_PointFieldType::Float64;
+			case EOpenPLXLidarPackedFieldType::Int32:
+				return EAGX_PointFieldType::Int32;
+		}
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ConvertOpenPLXLidarOutput got unknown OpenPLX Lidar packed field type."));
+		return EAGX_PointFieldType::Uint8;
+	}
+
 	void AppendDoubleToUint8Array(double Val, TArray<uint8>& OutData)
 	{
 		uint64 Bits;
@@ -114,6 +133,7 @@ namespace AGX_ROS2Utilities_helpers
 	{
 		return Val * 100.0;
 	}
+
 }
 
 FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
@@ -419,6 +439,49 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertPositionIntensityData(
 	Msg.Width = Msg.Data.Num() / Msg.PointStep; // Num points.
 	Msg.RowStep = Msg.Data.Num(); // Bytes per "row" which is the whole point cloud.
 
+	return Msg;
+}
+
+FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
+	FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+	FAGX_SensorMsgsPointCloud2 Msg;
+
+	const int32 NumPoints = View.GetNumPoints();
+
+	FOpenPLXLidarPointReadFlags ReadFlags;
+	ReadFlags.bPositions = View.HasPositions();
+	ReadFlags.bIntensities = View.HasIntensities();
+	ReadFlags.bTimeStamps = View.HasTimeStamps();
+	ReadFlags.bDistances = View.HasDistances();
+	ReadFlags.bIsHits = View.HasIsHits();
+	ReadFlags.bEntityIds = View.HasEntityIds();
+
+	Msg.Header.Stamp = ConvertTime(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+	Msg.IsBigendian = false;
+
+	TArray<FOpenPLXLidarPackedField> RawFields;
+	bool bAllHits = true;
+	if (!View.ReadRawPointData(ReadFlags, Msg.Data, RawFields, Msg.PointStep, bAllHits))
+	{
+		Msg.Fields.Reset();
+		Msg.PointStep = 0;
+		Msg.Data.Reset();
+		return Msg;
+	}
+
+	for (const FOpenPLXLidarPackedField& Field : RawFields)
+	{
+		Msg.Fields.Add(
+			MakePointField(Field.Name, Field.Offset, ToROSPointFieldType(Field.Type), Field.Count));
+	}
+
+	Msg.IsDense = bAllHits;
+	Msg.Height = 1;
+	Msg.Width = NumPoints;
+	Msg.RowStep = Msg.Data.Num();
 	return Msg;
 }
 

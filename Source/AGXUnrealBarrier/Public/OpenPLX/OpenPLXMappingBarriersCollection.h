@@ -10,6 +10,8 @@
 #include "OpenPLXMappingBarriersCollection.generated.h"
 
 class FConstraintBarrier;
+
+struct FSensorBarrier;
 struct FObserverFrameBarrier;
 struct FRigidBodyBarrier;
 struct FSteeringBarrier;
@@ -27,6 +29,8 @@ struct AGXUNREALBARRIER_API FOpenPLXMappingBarriersCollection
 
 	TArray<FRigidBodyBarrier*> Bodies;
 	TArray<FConstraintBarrier*> Constraints;
+	TArray<FSensorBarrier*> IMUs;
+	TArray<FSensorBarrier*> Lidars;
 	TArray<FObserverFrameBarrier*> ObserverFrames;
 	TArray<FSteeringBarrier*> Steerings;
 };
