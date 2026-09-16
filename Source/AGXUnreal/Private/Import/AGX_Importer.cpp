@@ -211,7 +211,7 @@ namespace AGX_Importer_helpers
 			return Context.Tracks;
 
 		if constexpr (std::is_base_of_v<UAGX_SensorComponentBase, T>)
-			return *Context.Sensors.Get();
+			return Context.Sensors;
 
 		// Unsupported types will yield compile errors.
 	}
@@ -898,7 +898,7 @@ EAGX_ImportResult UAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
 }
 
-EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& OutActor)
+EAGX_ImportResult UAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& OutActor)
 {
 	const FLidarBarrier& Lidar = static_cast<const FLidarBarrier&>(Sensor);
 	FRigidBodyBarrier BodyBarrier = Lidar.GetRigidBody();
