@@ -10,6 +10,7 @@
 
 class FConstraintBarrier;
 struct FRigidBodyBarrier;
+class FSensorEnvironmentBarrier;
 class FSimulationBarrier;
 
 struct FAssemblyRef;
@@ -30,6 +31,7 @@ public:
 
 	void Init(
 		const FString& OpenPLXFile, FSimulationBarrier& Simulation,
+		FSensorEnvironmentBarrier* Environment,
 		FOpenPLXModelRegistry& InModelRegistry, const FOpenPLXMappingBarriersCollection& Barriers);
 
 	bool IsInitialized() const;
@@ -56,6 +58,9 @@ public:
 
 	FHeapControlInterfacePtr GetHeapControlInterface();
 	const FHeapControlInterfacePtr GetHeapControlInterface() const;
+
+	/// Lidar outputs.
+	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
 
 	void ReleaseNatives();
 
