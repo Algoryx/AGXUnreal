@@ -118,7 +118,7 @@ public:
 	 * Only used with IMU Sensors that uses a Magnetometer (see AGX IMU Sensor Component).
 	 */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "AGX Sensor Environment")
-	FVector MagneticField {0.0, 44.754e-6, 0.0};
+	FVector MagneticField {-19.462e-6, 44.754e-6, 7.8426e-6};
 
 	/**
 	 * For debugging purposes. If set to true, a message is logged in the Output Console each time
