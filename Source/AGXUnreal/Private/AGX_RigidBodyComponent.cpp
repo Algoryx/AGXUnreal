@@ -638,13 +638,10 @@ bool UAGX_RigidBodyComponent::ReadTransformFromNative()
 	{
 		case TT_SELF:
 			return TransformSelf();
-			break;
 		case TT_PARENT:
 			return TryTransformAncestor(GetAttachParent());
-			break;
 		case TT_ROOT:
 			return TryTransformAncestor(GetAttachmentRoot());
-			break;
 	}
 
 	return false;
