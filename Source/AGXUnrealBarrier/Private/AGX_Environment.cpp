@@ -138,7 +138,11 @@ void FAGX_Environment::LoadDynamicLibraries()
 	TArray<FString> AGXDynamicsDependencyFileNames;
 
 #if defined(_WIN64)
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 	const FString LibraryNameList = PREPROCESSOR_TO_STRING(AGXUNREAL_DELAY_LOAD_LIBRARY_NAMES);
+#else
+	const FString LibraryNameList = UE_STRINGIZE(AGXUNREAL_DELAY_LOAD_LIBRARY_NAMES);
+#endif
 	LibraryNameList.ParseIntoArray(AGXDynamicsDependencyFileNames, TEXT(" "), false);
 	const FString DependecyDir =
 		FPaths::Combine(AgxResourcesPath, FString("bin"), FString("Win64"));

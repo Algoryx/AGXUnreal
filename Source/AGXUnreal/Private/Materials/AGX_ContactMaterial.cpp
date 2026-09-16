@@ -667,14 +667,6 @@ bool UAGX_ContactMaterial::CanEditChange(const FProperty* InProperty) const
 		return FrictionModel == EAGX_FrictionModel::TrackBoxFriction;
 	}
 
-	if (PropertyName == AGX_MEMBER_NAME(bUseSecondaryFrictionCoefficient) ||
-		PropertyName == AGX_MEMBER_NAME(SecondaryFrictionCoefficient) ||
-		PropertyName == AGX_MEMBER_NAME(bUseSecondarySurfaceViscosity) ||
-		PropertyName == AGX_MEMBER_NAME(SecondarySurfaceViscosity))
-	{
-		return SupportsSecondaryFrictionDirections(FrictionModel);
-	}
-
 	if (PropertyName == AGX_MEMBER_NAME(PrimaryDirection) ||
 		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameActor) ||
 		PropertyName == AGX_MEMBER_NAME(OrientedFrictionReferenceFrameComponent))
@@ -924,11 +916,11 @@ void UAGX_ContactMaterial::CopyFrom(
 	{
 		// Use the actual Component Name if possible since it may be different than the Native AGX
 		// Rigid Body name.
-		if (Context != nullptr && Context->RigidBodies != nullptr)
+		if (Context != nullptr)
 		{
 			const FGuid OrientedFrictionBodyGuid =
 				Source.GetOrientedFrictionModelReferenceFrameBodyGuid();
-			if (auto Body = Context->RigidBodies->FindRef(OrientedFrictionBodyGuid))
+			if (auto Body = Context->RigidBodies.FindRef(OrientedFrictionBodyGuid))
 				return Body->GetFName();
 		}
 

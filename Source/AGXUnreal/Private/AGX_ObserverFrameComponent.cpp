@@ -175,11 +175,11 @@ void UAGX_ObserverFrameComponent::CopyFrom(
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName();
 
-	if (Context != nullptr && Context->ObserverFrames != nullptr)
-	{
-		AGX_CHECK(!Context->ObserverFrames->Contains(ImportGuid));
-		Context->ObserverFrames->Add(ImportGuid, this);
-	}
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	AGX_CHECK(!Context->ObserverFrames.Contains(ImportGuid));
+	Context->ObserverFrames.Add(ImportGuid, this);
 }
 
 FObserverFrameBarrier* UAGX_ObserverFrameComponent::GetOrCreateNative()

@@ -107,10 +107,10 @@ namespace AGX_Importer_helpers
 	void BatchBuildStaticMeshes(FAGX_ImportContext& Context)
 	{
 		TArray<UStaticMesh*> Meshes;
-		for (auto M : *Context.RenderStaticMeshes)
+		for (auto M : Context.RenderStaticMeshes)
 			Meshes.Add(M.Value);
 
-		for (auto M : *Context.CollisionStaticMeshes)
+		for (auto M : Context.CollisionStaticMeshes)
 			Meshes.Add(M.Value);
 
 		UStaticMesh::BatchBuild(Meshes);
@@ -181,34 +181,34 @@ namespace AGX_Importer_helpers
 	auto& GetComponentsMapFrom(FAGX_ImportContext& Context)
 	{
 		if constexpr (std::is_same_v<T, UAGX_RigidBodyComponent>)
-			return *Context.RigidBodies.Get();
+			return Context.RigidBodies;
 
 		if constexpr (std::is_base_of_v<UAGX_ShapeComponent, T>)
-			return *Context.Shapes.Get();
+			return Context.Shapes;
 
 		if constexpr (std::is_base_of_v<UAGX_ConstraintComponent, T>)
-			return *Context.Constraints.Get();
+			return Context.Constraints;
 
 		if constexpr (std::is_base_of_v<UAGX_TerrainWheelComponent, T>)
-			return *Context.TerrainWheels.Get();
+			return Context.TerrainWheels;
 
 		if constexpr (std::is_base_of_v<UAGX_TwoBodyTireComponent, T>)
-			return *Context.Tires.Get();
+			return Context.Tires;
 
 		if constexpr (std::is_base_of_v<UAGX_ShovelComponent, T>)
-			return *Context.Shovels.Get();
+			return Context.Shovels;
 
 		if constexpr (std::is_base_of_v<UAGX_SteeringComponent, T>)
-			return *Context.Steerings.Get();
+			return Context.Steerings;
 
 		if constexpr (std::is_base_of_v<UAGX_CableComponent, T>)
-			return *Context.Cables.Get();
+			return Context.Cables;
 
 		if constexpr (std::is_base_of_v<UAGX_WireComponent, T>)
-			return *Context.Wires.Get();
+			return Context.Wires;
 
 		if constexpr (std::is_base_of_v<UAGX_TrackComponent, T>)
-			return *Context.Tracks.Get();
+			return Context.Tracks;
 
 		if constexpr (std::is_base_of_v<UAGX_SensorComponentBase, T>)
 			return *Context.Sensors.Get();
@@ -224,7 +224,7 @@ namespace AGX_Importer_helpers
 		if (!BodyBarrier.HasNative())
 			return Actor.GetRootComponent();
 
-		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies.FindRef(BodyBarrier.GetGuid());
 		check(Body != nullptr);
 		return Body;
 	}
@@ -262,15 +262,25 @@ namespace AGX_Importer_helpers
 		return true;
 	}
 
+	bool CheckOuter(const UObject* Outer)
+	{
+		if (Outer != nullptr)
+			return true;
+
+		UE_LOG(
+			LogAGX, Error, TEXT("UAGX_Importer::Import called on an importer without an Outer."));
+		return false;
+	}
+
 	void ConditionallyHideShapes(FAGX_ImportContext& Context)
 	{
 		// This is the same behavior as for AGXViewer, where if a loaded OpenPLX model has ANY
 		// visual geometries, all collision geometries are hidden.
 		AGX_CHECK(Context.Settings->ImportType == EAGX_ImportType::Plx);
-		if (Context.RenderStaticMeshCom == nullptr || Context.RenderStaticMeshCom->Num() == 0)
+		if (Context.RenderStaticMeshCom.Num() == 0)
 			return;
 
-		for (const auto& [Guid, Shape] : *Context.Shapes)
+		for (const auto& [Guid, Shape] : Context.Shapes)
 		{
 			if (Shape == nullptr)
 				continue;
@@ -304,15 +314,12 @@ namespace AGX_Importer_helpers
 		// on the high-level Constraint since we don't have a representation of Elementary
 		// Constraints in AGXUnreal.
 		AGX_CHECK(Context.Settings->ImportType == EAGX_ImportType::Plx);
-		if (Context.Constraints == nullptr)
-			return;
-
 		for (const auto& Barrier : SimObjects.CollectAllConstraints())
 		{
 			if (!Barrier.HasNative())
 				return;
 
-			auto Component = Context.Constraints->FindRef(Barrier.GetGuid());
+			auto Component = Context.Constraints.FindRef(Barrier.GetGuid());
 			if (Component == nullptr)
 				return;
 
@@ -352,47 +359,20 @@ namespace AGX_Importer_helpers
 	}
 }
 
-FAGX_Importer::FAGX_Importer()
-{
-	Context.RigidBodies = MakeUnique<TMap<FGuid, UAGX_RigidBodyComponent*>>();
-	Context.Shapes = MakeUnique<TMap<FGuid, UAGX_ShapeComponent*>>();
-	Context.Constraints = MakeUnique<TMap<FGuid, UAGX_ConstraintComponent*>>();
-	Context.TerrainWheels = MakeUnique<TMap<FGuid, UAGX_TerrainWheelComponent*>>();
-	Context.Tires = MakeUnique<TMap<FGuid, UAGX_TwoBodyTireComponent*>>();
-	Context.Shovels = MakeUnique<TMap<FGuid, UAGX_ShovelComponent*>>();
-	Context.Steerings = MakeUnique<TMap<FGuid, UAGX_SteeringComponent*>>();
-	Context.Cables = MakeUnique<TMap<FGuid, UAGX_CableComponent*>>();
-	Context.CableProperties = MakeUnique<TMap<FGuid, UAGX_CableProperties*>>();
-	Context.Wires = MakeUnique<TMap<FGuid, UAGX_WireComponent*>>();
-	Context.Tracks = MakeUnique<TMap<FGuid, UAGX_TrackComponent*>>();
-	Context.ObserverFrames = MakeUnique<TMap<FGuid, UAGX_ObserverFrameComponent*>>();
-	Context.Sensors = MakeUnique<TMap<FGuid, UAGX_SensorComponentBase*>>();
-	Context.RenderStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
-	Context.CollisionStaticMeshCom = MakeUnique<TMap<FGuid, UStaticMeshComponent*>>();
-	Context.RenderMaterials = MakeUnique<TMap<FGuid, UMaterialInterface*>>();
-	Context.Textures = MakeUnique<TMap<FGuid, UTexture2D*>>();
-	Context.PLXMaterialOverrides = MakeUnique<TMap<FGuid, FOpenPLXMaterialBarrier>>();
-	Context.RenderStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
-	Context.CollisionStaticMeshes = MakeUnique<TMap<FGuid, UStaticMesh*>>();
-	Context.MSThresholds = MakeUnique<TMap<FGuid, UAGX_MergeSplitThresholdsBase*>>();
-	Context.ShapeMaterials = MakeUnique<TMap<FGuid, UAGX_ShapeMaterial*>>();
-	Context.ContactMaterials = MakeUnique<TMap<FGuid, UAGX_ContactMaterial*>>();
-	Context.ShovelProperties = MakeUnique<TMap<FGuid, UAGX_ShovelProperties*>>();
-	Context.SteeringParameters = MakeUnique<TMap<FGuid, UAGX_SteeringParameters*>>();
-	Context.TerrainWheelSettings = MakeUnique<TMap<FGuid, UAGX_TerrainWheelSettings*>>();
-	Context.TrackProperties = MakeUnique<TMap<FGuid, UAGX_TrackProperties*>>();
-	Context.TrackMergeProperties = MakeUnique<TMap<FGuid, UAGX_TrackInternalMergeProperties*>>();
-	Context.LidarModelParameters = MakeUnique<TMap<FGuid, UAGX_LidarModelParameters*>>();
-}
-
-FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UObject& Outer)
+FAGX_ImportResult UAGX_Importer::Import(const FAGX_ImportSettings& Settings)
 {
 	using namespace AGX_Importer_helpers;
+
+	ImportedActor = nullptr;
+
+	UObject* Outer = GetOuter();
+	if (!CheckOuter(Outer))
+		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
 	if (!CheckFilePath(Settings))
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
-	Context.Outer = &Outer;
+	Context.Outer = Outer;
 	Context.Settings = &Settings;
 	Context.SessionGuid = FGuid::NewGuid();
 
@@ -400,8 +380,8 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 	if (Name.IsEmpty())
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
-	AActor* Actor = CreateActor(Name, Context);
-	if (Actor == nullptr)
+	ImportedActor = CreateActor(Name, Context);
+	if (ImportedActor == nullptr)
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
 	FSimulationObjectCollection SimObjects;
@@ -409,11 +389,11 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 		return FAGX_ImportResult(EAGX_ImportResult::FatalError);
 
 	if (Settings.ImportType == EAGX_ImportType::Plx)
-		*Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
+		Context.PLXMaterialOverrides = SimObjects.GetPLXMaterialOverrides();
 
 	Context.RootModelName = SimObjects.GetModelName();
 
-	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *Actor);
+	EAGX_ImportResult Result = AddComponents(Settings, SimObjects, *ImportedActor);
 	if (IsUnrecoverableError(Result))
 		return FAGX_ImportResult(Result);
 
@@ -426,16 +406,16 @@ FAGX_ImportResult FAGX_Importer::Import(const FAGX_ImportSettings& Settings, UOb
 #endif
 
 	PostImport(SimObjects);
-	return FAGX_ImportResult(Result, Actor, &Context);
+	return FAGX_ImportResult(Result, ImportedActor.Get(), &Context);
 }
 
-const FAGX_ImportContext& FAGX_Importer::GetContext() const
+const FAGX_ImportContext& UAGX_Importer::GetContext() const
 {
 	return Context;
 }
 
 template <typename TComponent, typename TBarrier>
-EAGX_ImportResult FAGX_Importer::AddComponent(
+EAGX_ImportResult UAGX_Importer::AddComponent(
 	const TBarrier& Barrier, USceneComponent& Parent, AActor& OutActor)
 {
 	AGX_CHECK(Barrier.HasNative());
@@ -468,7 +448,7 @@ EAGX_ImportResult FAGX_Importer::AddComponent(
 	return EAGX_ImportResult::Success;
 }
 
-EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
+EAGX_ImportResult UAGX_Importer::AddModelSourceComponent(AActor& Owner)
 {
 	const FString Name = "AGX_ModelSource";
 	if (Context.ModelSourceComponent != nullptr)
@@ -502,7 +482,7 @@ EAGX_ImportResult FAGX_Importer::AddModelSourceComponent(AActor& Owner)
 	return EAGX_ImportResult::Success;
 }
 
-EAGX_ImportResult FAGX_Importer::AddContactMaterialRegistrarComponent(
+EAGX_ImportResult UAGX_Importer::AddContactMaterialRegistrarComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
 	const FString Name = "AGX_ContactMaterialRegistrar";
@@ -522,7 +502,7 @@ EAGX_ImportResult FAGX_Importer::AddContactMaterialRegistrarComponent(
 	return EAGX_ImportResult::Success;
 }
 
-EAGX_ImportResult FAGX_Importer::AddCollisionGroupDisablerComponent(
+EAGX_ImportResult UAGX_Importer::AddCollisionGroupDisablerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
 	const FString Name = "AGX_CollisionGroupDisabler";
@@ -543,7 +523,7 @@ EAGX_ImportResult FAGX_Importer::AddCollisionGroupDisablerComponent(
 	return EAGX_ImportResult::Success;
 }
 
-EAGX_ImportResult FAGX_Importer::AddObserverFrame(
+EAGX_ImportResult UAGX_Importer::AddObserverFrame(
 	const FObserverFrameBarrier& Frame, const FSimulationObjectCollection& SimObjects,
 	AActor& OutActor)
 {
@@ -558,7 +538,7 @@ EAGX_ImportResult FAGX_Importer::AddObserverFrame(
 		return EAGX_ImportResult::RecoverableErrorsOccured;
 	}
 
-	auto Parent = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+	auto Parent = Context.RigidBodies.FindRef(BodyBarrier.GetGuid());
 	if (Parent == nullptr)
 	{
 		UE_LOG(
@@ -576,7 +556,7 @@ EAGX_ImportResult FAGX_Importer::AddObserverFrame(
 	return EAGX_ImportResult::Success;
 }
 
-EAGX_ImportResult FAGX_Importer::AddComponents(
+EAGX_ImportResult UAGX_Importer::AddComponents(
 	const FAGX_ImportSettings& Settings, const FSimulationObjectCollection& SimObjects,
 	AActor& OutActor)
 {
@@ -874,14 +854,14 @@ EAGX_ImportResult FAGX_Importer::AddComponents(
 }
 
 template <typename TShapeComponent>
-EAGX_ImportResult FAGX_Importer::AddShape(const FShapeBarrier& Shape, AActor& OutActor)
+EAGX_ImportResult UAGX_Importer::AddShape(const FShapeBarrier& Shape, AActor& OutActor)
 {
 	using namespace AGX_Importer_helpers;
 	auto Parent = GetOwningRigidBodyOrRoot(Shape, Context, OutActor);
 	return AddComponent<TShapeComponent, FShapeBarrier>(Shape, *Parent, OutActor);
 }
 
-EAGX_ImportResult FAGX_Importer::AddTrimeshShape(const FShapeBarrier& Shape, AActor& OutActor)
+EAGX_ImportResult UAGX_Importer::AddTrimeshShape(const FShapeBarrier& Shape, AActor& OutActor)
 {
 	auto Result = AddShape<UAGX_TrimeshShapeComponent>(Shape, OutActor);
 
@@ -892,7 +872,7 @@ EAGX_ImportResult FAGX_Importer::AddTrimeshShape(const FShapeBarrier& Shape, AAc
 		// For simplicity, the have imported the Trimesh as usual above, but will now remove the
 		// Trimesh Component. The Trimesh Component will know to not create a collision Mesh, so we
 		// don't need to consider that.
-		auto Trimesh = Context.Shapes->FindRef(Guid);
+		auto Trimesh = Context.Shapes.FindRef(Guid);
 		AGX_CHECK(Trimesh != nullptr);
 		if (Trimesh == nullptr)
 		{
@@ -903,7 +883,7 @@ EAGX_ImportResult FAGX_Importer::AddTrimeshShape(const FShapeBarrier& Shape, AAc
 			return EAGX_ImportResult::RecoverableErrorsOccured;
 		}
 
-		Context.Shapes->Remove(Guid);
+		Context.Shapes.Remove(Guid);
 		auto Res = FAGX_ObjectUtilities::RemoveComponentAndPromoteChildren(Trimesh, &OutActor);
 		AGX_CHECK(Res);
 	}
@@ -911,7 +891,7 @@ EAGX_ImportResult FAGX_Importer::AddTrimeshShape(const FShapeBarrier& Shape, AAc
 	return Result;
 }
 
-EAGX_ImportResult FAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor& OutActor)
+EAGX_ImportResult UAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor& OutActor)
 {
 	using namespace AGX_Importer_helpers;
 	auto Parent = GetOwningRigidBodyOrRoot(Shovel, Context, OutActor);
@@ -925,7 +905,7 @@ EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& 
 	USceneComponent* Parent = OutActor.GetRootComponent();
 	if (BodyBarrier.HasNative())
 	{
-		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies.FindRef(BodyBarrier.GetGuid());
 		check(Body != nullptr);
 		Parent = Body;
 	}
@@ -933,7 +913,7 @@ EAGX_ImportResult FAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& 
 	return AddComponent<UAGX_LidarSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
-EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
+EAGX_ImportResult UAGX_Importer::AddSignalHandlerComponent(
 	const FSimulationObjectCollection& SimObjects, AActor& OutActor)
 {
 	const FString Name = "OpenPLX_SignalHandler";
@@ -953,7 +933,7 @@ EAGX_ImportResult FAGX_Importer::AddSignalHandlerComponent(
 	return EAGX_ImportResult::Success;
 }
 
-void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
+void UAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 {
 	if (Context.Settings->ImportType == EAGX_ImportType::Plx)
 	{
@@ -965,7 +945,7 @@ void FAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
 			// Todo: This is a workaround for runtime imported materials using Textures.
 			// For some reason, it seems Mips are not generated/selected correctly
 			// for textures that have NeverStream false when doing runtime imports.
-			for (auto [FGuid, Texture] : *Context.Textures)
+			for (auto [FGuid, Texture] : Context.Textures)
 				Texture->NeverStream = true;
 		}
 	}

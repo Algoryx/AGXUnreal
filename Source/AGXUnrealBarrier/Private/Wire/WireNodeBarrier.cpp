@@ -9,6 +9,11 @@
 #include "BarrierOnly/Wire/WireNodeRef.h"
 #include "RigidBodyBarrier.h"
 
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include <agxWire/Node.h>
+#include "EndAGXIncludes.h"
+
 FWireNodeBarrier::FWireNodeBarrier()
 	: NativeRef {new FWireNodeRef()}
 {
@@ -58,13 +63,14 @@ void FWireNodeBarrier::AllocateNativeFreeNode(const FVector& WorldLocation)
 }
 
 void FWireNodeBarrier::AllocateNativeEyeNode(
-	FRigidBodyBarrier& RigidBody, const FVector& LocalLocation)
+	FRigidBodyBarrier& RigidBody, const FVector& LocalLocation, double RadiusCm)
 {
 	check(!HasNative());
 	check(RigidBody.HasNative());
 	const agx::Vec3 LocalLocationAGX = ConvertDisplacement(LocalLocation);
 	agx::RigidBody* Body = RigidBody.GetNative()->Native;
-	NativeRef->Native = new agxWire::EyeNode(Body, LocalLocationAGX);
+	NativeRef->Native =
+		new agxWire::EyeNode(Body, LocalLocationAGX, ConvertDistanceToAGX(RadiusCm));
 }
 
 void FWireNodeBarrier::AllocateNativeBodyFixedNode(
@@ -76,6 +82,7 @@ void FWireNodeBarrier::AllocateNativeBodyFixedNode(
 	agx::RigidBody* Body = RigidBody.GetNative()->Native;
 	NativeRef->Native = new agxWire::BodyFixedNode(Body, LocalLocationAGX);
 }
+
 
 FWireNodeRef* FWireNodeBarrier::GetNative()
 {

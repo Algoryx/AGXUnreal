@@ -26,6 +26,7 @@ public:
 		IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 private:
+	bool IsEditable() const;
 	EVisibility VisibleWhenSingleSelection() const;
 	EVisibility VisibleWhenMultiSelection() const;
 	EVisibility VisibleWhenNoSelectionOrInvalidHandle() const;

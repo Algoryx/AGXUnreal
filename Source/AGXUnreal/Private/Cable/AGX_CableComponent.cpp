@@ -385,7 +385,7 @@ namespace AGX_CableComponent_helpers
 		if (!PropBarrier.HasNative())
 			return nullptr;
 
-		AGX_CHECK(!Context.CableProperties->Contains(PropBarrier.GetGuid()));
+		AGX_CHECK(!Context.CableProperties.Contains(PropBarrier.GetGuid()));
 
 		auto Properties =
 			NewObject<UAGX_CableProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
@@ -432,8 +432,7 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 		SetWorldTransform(CableTransform);
 	}
 
-	if (Context == nullptr || Context->Cables == nullptr || Context->RigidBodies == nullptr ||
-		Context->ShapeMaterials == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	ImportName = Barrier.GetName();
@@ -454,7 +453,7 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 		}
 		else if (NodeInfoAGX.NodeType == EAGX_CableNodeType::BodyFixed)
 		{
-			if (auto BodyComponent = Context->RigidBodies->FindRef(NodeInfoAGX.BodyGuid))
+			if (auto BodyComponent = Context->RigidBodies.FindRef(NodeInfoAGX.BodyGuid))
 			{
 				// Note: avoid setting component ptrs here since both them and their owners may get
 				// destroyed if we are doing an import. Instead we just set the Name.
@@ -473,8 +472,8 @@ void UAGX_CableComponent::CopyFrom(const FCableBarrier& Barrier, FAGX_ImportCont
 		AddNode(NewNode);
 	}
 
-	AGX_CHECK(!Context->Cables->Contains(ImportGuid));
-	Context->Cables->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Cables.Contains(ImportGuid));
+	Context->Cables.Add(ImportGuid, this);
 	CableProperties = CreateCableProperties(Barrier, *Context);
 	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
 }

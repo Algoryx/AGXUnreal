@@ -289,14 +289,14 @@ namespace AGX_ShovelComponent_helpers
 	UAGX_RigidBodyComponent* GetRigidBody(
 		const FShovelBarrier& Barrier, FAGX_ImportContext* Context)
 	{
-		if (Context == nullptr || Context->RigidBodies == nullptr)
+		if (Context == nullptr)
 			return nullptr;
 
 		auto BodyBarrier = Barrier.GetRigidBody();
 		if (!BodyBarrier.HasNative())
 			return nullptr;
 
-		return Context->RigidBodies->FindRef(BodyBarrier.GetGuid());
+		return Context->RigidBodies.FindRef(BodyBarrier.GetGuid());
 	}
 
 	FString CreateShovelName(UAGX_ShovelComponent& Shovel, UAGX_RigidBodyComponent* RigidBody)
@@ -317,7 +317,7 @@ namespace AGX_ShovelComponent_helpers
 	{
 		// Shovel properties share guid with shovel and is always unique to a shovel.
 		const FGuid Guid = Barrier.GetGuid();
-		AGX_CHECK(!Context.ShovelProperties->Contains(Guid));
+		AGX_CHECK(!Context.ShovelProperties.Contains(Guid));
 
 		auto Properties =
 			NewObject<UAGX_ShovelProperties>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
@@ -363,14 +363,13 @@ void UAGX_ShovelComponent::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportCo
 	CuttingEdge.End.Parent.Name = BodyName;
 	ToothDirection.Parent.Name = BodyName;
 
-	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr ||
-		Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	Rename(*CreateShovelName(*this, Body));
 
-	AGX_CHECK(!Context->Shovels->Contains(ImportGuid));
-	Context->Shovels->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Shovels.Contains(ImportGuid));
+	Context->Shovels.Add(ImportGuid, this);
 
 	ShovelProperties = CreateShovelProperties(Barrier, *Context);
 }

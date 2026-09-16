@@ -35,10 +35,12 @@
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "agxOpenPLX/OpenPlxDriveTrainMapper.h"
 #include "agxOpenPLX/OpenPlxSensorsMapper.h"
+#include "openplx/Control/Control_all.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchEngagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/AutomaticClutchDisengagementDurationInput.h"
 #include "openplx/DriveTrain/Signals/TorqueConverterPumpTorqueOutput.h"
 #include "openplx/DriveTrain/Signals/TorqueConverterTurbineTorqueOutput.h"
+#include "openplx/MachineModeling/MachineModeling_all.h"
 #include "openplx/Math/Math_all.h"
 
 #include "openplx/Physics/Physics_all.h"
@@ -66,6 +68,7 @@
 #include "openplx/Physics3D/Signals/LinearVelocity3DOutput.h"
 #include "openplx/Physics3D/Signals/Position3DOutput.h"
 #include "openplx/Physics3D/Signals/RPYOutput.h"
+#include "openplx/Physics3D/Signals/Torque3DInput.h"
 #include "openplx/Physics3D/Signals/Torque3DOutput.h"
 #include "openplx/Sensors/Signals/LidarOutput.h"
 
@@ -108,7 +111,9 @@ namespace PLXUtilities_helpers
 		Sensors_register_factories(EvalCtx);
 		Terrain_register_factories(EvalCtx);
 		Visuals_register_factories(EvalCtx);
+		MachineModeling_register_factories(EvalCtx);
 		Urdf_register_factories(EvalCtx);
+		Control_register_factories(EvalCtx);
 		AGX_register_factories(EvalCtx);
 
 		agxopenplx::register_plugins(*PLXCtx, AGXCache);
@@ -344,6 +349,10 @@ EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
 	{
 		return EOpenPLX_InputType::LinearVelocity3DInput;
 	}
+	if (dynamic_cast<const Torque3DInput*>(&Input))
+	{
+		return EOpenPLX_InputType::Torque3DInput;
+	}
 	if (dynamic_cast<const IntInput*>(&Input))
 	{
 		return EOpenPLX_InputType::IntInput;
@@ -403,6 +412,14 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 	if (dynamic_cast<const MateConnector::AngularAcceleration3DOutput*>(&Output))
 	{
 		return EOpenPLX_OutputType::MateConnectorAngularAcceleration3DOutput;
+	}
+	if (dynamic_cast<const MateConnector::AngularVelocity3DOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::MateConnectorAngularVelocity3DOutput;
+	}
+	if (dynamic_cast<const MateConnector::LinearVelocity3DOutput*>(&Output))
+	{
+		return EOpenPLX_OutputType::MateConnectorLinearVelocity3DOutput;
 	}
 	if (dynamic_cast<const MateConnector::PositionOutput*>(&Output))
 	{

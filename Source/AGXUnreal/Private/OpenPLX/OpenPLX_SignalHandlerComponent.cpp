@@ -260,7 +260,7 @@ bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& In
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double Value)
@@ -301,7 +301,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, double& Value)
@@ -341,7 +341,7 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
@@ -383,7 +383,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue)
@@ -402,6 +402,70 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, 
 	return ReceiveRangeReal(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::SendVector2(const FOpenPLX_Input& Input, FVector2D Value)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
+	{
+		LogTypeMismatchWarning("SendVector2", Input.Name.ToString(), "Input");
+		return false;
+	}
+
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::SendVector2ByName(FName NameOrAlias, FVector2D Value)
+{
+	FOpenPLX_Input Input;
+	const bool Found = GetInput(NameOrAlias, Input);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("SendVector2ByName: Unable to find Input matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return SendVector2(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector2(
+	const FOpenPLX_Output& Output, FVector2D& OutValue)
+{
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+
+	if (!FOpenPLX_Utilities::IsVector2Type(Output.Type))
+	{
+		LogTypeMismatchWarning("ReceiveVector2", Output.Name.ToString(), "Output");
+		return false;
+	}
+
+	return SignalHandler.Receive(Output, OutValue);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ReceiveVector2ByName(
+	FName NameOrAlias, FVector2D& OutValue)
+{
+	FOpenPLX_Output Output;
+	const bool Found = GetOutput(NameOrAlias, Output);
+	if (!Found)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("ReceiveVector2ByName: Unable to find Output matching Name or Alias '%s'."),
+			*NameOrAlias.ToString());
+		return false;
+	}
+
+	return ReceiveVector2(Output, OutValue);
+}
+
 bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
 	const FOpenPLX_Output& Output, FVector2D& OutValue)
 {
@@ -409,7 +473,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
@@ -418,7 +482,7 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
@@ -442,7 +506,7 @@ bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVector Value)
@@ -484,7 +548,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVector& OutValue)
@@ -523,7 +587,7 @@ bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(const FOpenPLX_Input&
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64 Value)
@@ -564,7 +628,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerInterface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, int64& OutValue)
@@ -603,7 +667,7 @@ bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(const FOpenPLX_Input&
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Input))
 		return false;
-	return SignalHandler.SendInterface(Input, Value);
+	return SignalHandler.Send(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool Value)
@@ -644,7 +708,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanInterface(
 	OutValue = {};
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Output))
 		return false;
-	return SignalHandler.ReceiveInterface(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bool& OutValue)

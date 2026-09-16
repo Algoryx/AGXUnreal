@@ -103,8 +103,7 @@ namespace AGX_ContactMaterialRegistrarComponent_helpers
 	UAGX_ContactMaterial* GetOrCreateContactMaterial(
 		const FContactMaterialBarrier& Barrier, FAGX_ImportContext& Context)
 	{
-		AGX_CHECK(Context.ContactMaterials != nullptr);
-		if (auto Existing = Context.ContactMaterials->FindRef(Barrier.GetGuid()))
+		if (auto Existing = Context.ContactMaterials.FindRef(Barrier.GetGuid()))
 			return Existing;
 
 		auto Cm = NewObject<UAGX_ContactMaterial>(Context.Outer, NAME_None, RF_Public | RF_Standalone);
@@ -121,7 +120,7 @@ namespace AGX_ContactMaterialRegistrarComponent_helpers
 			return nullptr;
 		}
 
-		Context.ContactMaterials->Add(Barrier.GetGuid(), Cm);
+		Context.ContactMaterials.Add(Barrier.GetGuid(), Cm);
 		return Cm;
 	}
 }
@@ -130,7 +129,7 @@ void UAGX_ContactMaterialRegistrarComponent::CopyFrom(
 	const TArray<FContactMaterialBarrier>& Barriers, FAGX_ImportContext* Context)
 {
 	using namespace AGX_ContactMaterialRegistrarComponent_helpers;
-	if (Context == nullptr || Context->ContactMaterials == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return;
 
 	for (const auto& Barrier : Barriers)
@@ -142,7 +141,7 @@ void UAGX_ContactMaterialRegistrarComponent::CopyFrom(
 		if (auto Cm = GetOrCreateContactMaterial(Barrier, *Context))
 			ContactMaterials.Add(Cm);
 	}
-	
+
 	AGX_CHECK(Context->ContactMaterialRegistrar == nullptr);
 	Context->ContactMaterialRegistrar = this;
 }

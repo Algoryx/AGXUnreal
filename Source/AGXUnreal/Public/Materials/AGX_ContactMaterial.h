@@ -221,28 +221,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	double GetFrictionCoefficient() const;
-	// clang-format off
-	/**
-	 * Friction in the secondary direction, if enabled.
-	 *
-	 * Only used by friction models that support primary and secondary directions.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "Friction",
-		Meta =
-			(ClampMin = "0.0", UIMin = "0.0",
-			 // We would like to include a check for oriented friction model here, but Unreal
-			 // Engine 4.26 doesn't support that in combination with InlineEditConditionToggle on
-			 // bUseSecondaryFrictionCoefficient.
-			 EditCondition = "bUseSecondaryFrictionCoefficient && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
-	FAGX_Real SecondaryFrictionCoefficient {0.25 / (2 * 0.3)};
-	// clang-format on
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSecondaryFrictionCoefficient(double InFrictionCoefficient);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSecondaryFrictionCoefficient() const;
 
 	/**
 	 * Whether it should be possible to define friction coefficient per each of the two
@@ -259,9 +237,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
-		Meta =
-			(InlineEditConditionToggle,
-			 EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
+		Meta = (EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	bool bUseSecondaryFrictionCoefficient {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -269,6 +245,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	bool GetUseSecondaryFrictionCoefficient() const;
+
+	// clang-format off
+	/**
+	 * Friction in the secondary direction, if enabled.
+	 *
+	 * Only used by friction models that support primary and secondary directions.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Friction",
+		Meta = (ClampMin = "0.0", UIMin = "0.0",
+		EditCondition = "bUseSecondaryFrictionCoefficient && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
+	FAGX_Real SecondaryFrictionCoefficient {0.25 / (2 * 0.3)};
+	// clang-format on
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	void SetSecondaryFrictionCoefficient(double InFrictionCoefficient);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	double GetSecondaryFrictionCoefficient() const;
 
 	/**
 	 * Surface viscosity, telling how 'wet' the friction is between the colliding materials.
@@ -286,27 +280,6 @@ public:
 	double GetSurfaceViscosity() const;
 
 	/**
-	 * Surface viscosity in the secondary direction, if enabled.
-	 *
-	 * Only used by friction models that support primary and secondary directions.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "Friction",
-		Meta =
-			(ClampMin = "0.0", UIMin = "0.0",
-			 // We would like to include a check for oriented friction model here, but Unreal
-			 // Engine 4.26 doesn't support that in combination with InlineEditConditionToggle on
-			 // bUseSecondarySurfaceViscosity.
-			 EditCondition = "bUseSecondarySurfaceViscosity"))
-	FAGX_Real SecondarySurfaceViscosity {5.0e-9};
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSecondarySurfaceViscosity() const;
-
-	/**
 	 * Whether it should be possible to define surface viscosity per each of the two perpendicular
 	 * surface direction.
 	 *
@@ -319,7 +292,9 @@ public:
 	 * Note that secondary direction surface viscosity is only used by friction models that support
 	 * primary and secondary directions.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (InlineEditConditionToggle))
+	UPROPERTY(
+		EditAnywhere, Category = "Friction",
+		Meta = (EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
 	bool bUseSecondarySurfaceViscosity {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
@@ -327,6 +302,26 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
 	bool GetUseSecondarySurfaceViscosity() const;
+
+	// clang-format off
+	/**
+	 * Surface viscosity in the secondary direction, if enabled.
+	 *
+	 * Only used by friction models that support primary and secondary directions.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "Friction",
+		Meta =
+			(ClampMin = "0.0", UIMin = "0.0",
+			 EditCondition = "bUseSecondarySurfaceViscosity && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
+	FAGX_Real SecondarySurfaceViscosity {5.0e-9};
+	// clang-format on
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	void SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
+	double GetSecondarySurfaceViscosity() const;
 
 	// clang-format off
 	// Unreal Header Tool doesn't support line breaks in EditCondition.

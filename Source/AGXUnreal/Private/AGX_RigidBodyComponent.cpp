@@ -535,11 +535,11 @@ void UAGX_RigidBodyComponent::CopyFrom(
 
 	SetWorldTransform(FTransform(Barrier.GetRotation(), Barrier.GetPosition()));
 
-	if (Context == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->RigidBodies->Contains(ImportGuid));
-	Context->RigidBodies->Add(ImportGuid, this);
+	AGX_CHECK(!Context->RigidBodies.Contains(ImportGuid));
+	Context->RigidBodies.Add(ImportGuid, this);
 }
 
 void UAGX_RigidBodyComponent::InitializeMotionControl()
@@ -638,13 +638,10 @@ bool UAGX_RigidBodyComponent::ReadTransformFromNative()
 	{
 		case TT_SELF:
 			return TransformSelf();
-			break;
 		case TT_PARENT:
 			return TryTransformAncestor(GetAttachParent());
-			break;
 		case TT_ROOT:
 			return TryTransformAncestor(GetAttachmentRoot());
-			break;
 	}
 
 	return false;
