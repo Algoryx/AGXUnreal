@@ -10,6 +10,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 
+#include "AGX_Importer.generated.h"
+
 struct FRigidBodyBarrier;
 struct FShapeBarrier;
 class FShovelBarrier;
@@ -43,18 +45,19 @@ struct AGXUNREAL_API FAGX_ImportResult
 /**
  * AGX_Importer with complete runtime support.
  */
-class AGXUNREAL_API FAGX_Importer
+UCLASS()
+class AGXUNREAL_API UAGX_Importer : public UObject
 {
-public:
-	FAGX_Importer();
+	GENERATED_BODY()
 
+public:
 	/**
 	 * Import an .agx archive, OpenPLX or Urdf model to an Actor that can either be instantiated
 	 * immediately in a world, or used to create a Blueprint from it.
-	 * The Outer must be set to a World if doing runtime imports, otherwise it can be set to
-	 * TransientPackage.
+	 * The Importer's Outer must be set to a World if doing runtime imports, otherwise it can be set
+	 * to TransientPackage.
 	 */
-	FAGX_ImportResult Import(const FAGX_ImportSettings& Settings, UObject& Outer);
+	FAGX_ImportResult Import(const FAGX_ImportSettings& Settings);
 	const FAGX_ImportContext& GetContext() const;
 
 private:
@@ -93,5 +96,9 @@ private:
 
 	void PostImport(const FSimulationObjectCollection& SimObjects);
 
+	UPROPERTY(Transient)
+	TObjectPtr<AActor> ImportedActor;
+
+	UPROPERTY(Transient)
 	FAGX_ImportContext Context;
 };

@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Frame.h"
+#include "AGX_Real.h"
 #include "AGX_RigidBodyReference.h"
 #include "Wire/AGX_WireEnums.h"
 
@@ -15,8 +16,13 @@
 
 /**
  * Routing nodes are used to specify the initial route of a wire. Each node has a location but
- * no orientation. Some members are only used for some node types, such as RigidBody which is only
- * used by Eye and BodyFixed nodes.
+ * no orientation. Some members are only used for certain node types:
+ * - RigidBody is used by Eye, BodyFixed, and Connecting nodes.
+ * - Radius is only meaningful for Eye nodes.
+ *
+ * For Connecting nodes the wire side (WIRE_BEGIN or WIRE_END) is determined automatically from
+ * the node's position in the route array: index 0 → WIRE_BEGIN, last index → WIRE_END.
+ * A Connecting node must therefore be either the first or the last node in the route.
  */
 USTRUCT(BlueprintType)
 struct AGXUNREAL_API FWireRoutingNode
@@ -37,11 +43,35 @@ struct AGXUNREAL_API FWireRoutingNode
 	FAGX_Frame Frame;
 
 	/**
-	 * The Rigid Body that an Eye or Body Fixed node should be attached to.
-	 * Ignored for other node types.
+	 * The Rigid Body that an Eye, Body Fixed, or Connecting node should be attached to.
+	 *
+	 * For Connecting nodes this must be the UAGX_RigidBodyComponent that the target
+	 * UAGX_WireLinkComponent is a child of. The WireLinkComponent is found at runtime by
+	 * scanning the direct children of this body component. Frame gives the wire's routing
+	 * position; Frame.GetLocationRelativeTo gives the body-local connection offset [cm].
+	 *
+	 * Ignored for Free nodes.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Wire")
 	FAGX_RigidBodyReference RigidBody;
+
+
+	/**
+	 * Radius [cm] of the eye hole through which the wire slides.
+	 *
+	 * Controls the pulley/ring geometry at this node and influences the friction constraint
+	 * arm length. A value of 0 uses the AGX default (no eye radius).
+	 *
+	 * Only meaningful when NodeType is Eye. Hidden and ignored for all other node types.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "Wire",
+		Meta = (
+			EditCondition = "NodeType == EWireNodeType::Eye",
+			EditConditionHides,
+			ClampMin = "0.0", UIMin = "0.0",
+			ToolTip = "Radius [cm] of the eye hole through which the wire slides. Only used when NodeType is Eye."))
+	FAGX_Real Radius {0.0};
 
 	FWireRoutingNode()
 		: NodeType(EWireNodeType::Free)
@@ -157,5 +187,19 @@ class AGXUNREAL_API UAGX_WireRouteNode_FL : public UBlueprintFunctionLibrary
 	static FVector GetLocalLocation(UPARAM(Ref) FWireRoutingNode& WireNode)
 	{
 		return WireNode.Frame.LocalLocation;
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Wire Node")
+	static UPARAM(Ref) FWireRoutingNode& SetRadius(
+		UPARAM(Ref) FWireRoutingNode& WireNode, double RadiusCm)
+	{
+		WireNode.Radius = RadiusCm;
+		return WireNode;
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Wire Node")
+	static double GetRadius(UPARAM(Ref) FWireRoutingNode& WireNode)
+	{
+		return WireNode.Radius.Value;
 	}
 };

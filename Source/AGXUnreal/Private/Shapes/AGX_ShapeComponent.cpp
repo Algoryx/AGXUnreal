@@ -315,22 +315,18 @@ namespace AGX_ShapeComponent_helpers
 		UMaterial* Base = AGX_MeshUtilities::GetOpenPLXBaseRenderMaterial();
 		const bool bCreateTextureRenderResources = Context.Settings->bRuntimeImport;
 		TSet<FGuid> ExistingTextureGuids;
-		if (Context.Textures != nullptr)
+		for (const auto& TextureEntry : Context.Textures)
 		{
-			for (const auto& TextureEntry : *Context.Textures)
-				ExistingTextureGuids.Add(TextureEntry.Key);
+			ExistingTextureGuids.Add(TextureEntry.Key);
 		}
 
 		UMaterialInterface* Material = AGX_MeshUtilities::CreateRenderMaterial(
-			Barrier, Base, *Context.Outer, Context.Textures.Get(), bCreateTextureRenderResources);
-		if (Context.Textures != nullptr)
+			Barrier, Base, *Context.Outer, &Context.Textures, bCreateTextureRenderResources);
+		for (const auto& [Guid, Texture] : Context.Textures)
 		{
-			for (const auto& [Guid, Texture] : *Context.Textures)
+			if (Texture != nullptr && !ExistingTextureGuids.Contains(Guid))
 			{
-				if (Texture != nullptr && !ExistingTextureGuids.Contains(Guid))
-				{
-					FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
-				}
+				FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Texture, Context.SessionGuid);
 			}
 		}
 		return Material;
@@ -339,22 +335,21 @@ namespace AGX_ShapeComponent_helpers
 	UMaterialInterface* GetOrCreateRenderMaterial(
 		const FRenderDataBarrier& RenderData, bool IsSensor, FAGX_ImportContext& Context)
 	{
-		if (Context.RenderMaterials == nullptr || !RenderData.HasNative() ||
-			!RenderData.HasMaterial())
+		if (!RenderData.HasNative() || !RenderData.HasMaterial())
 			return AGX_MeshUtilities::GetAGXBaseRenderMaterial(IsSensor);
 
 		const FAGX_RenderMaterial MBarrier = RenderData.GetMaterial();
 		const FGuid MGuid = MBarrier.Guid;
-		if (auto Existing = Context.RenderMaterials->FindRef(MGuid))
+		if (auto Existing = Context.RenderMaterials.FindRef(MGuid))
 			return Existing;
 
 		UMaterialInterface* Result = nullptr;
 
 		// If we have an override material from OpenPLX, we use that directly instead of the AGX
 		// Render Material to improve visuals.
-		if (!IsSensor && Context.PLXMaterialOverrides != nullptr)
+		if (!IsSensor)
 		{
-			if (FOpenPLXMaterialBarrier* PLXOverride = Context.PLXMaterialOverrides->Find(MGuid))
+			if (FOpenPLXMaterialBarrier* PLXOverride = Context.PLXMaterialOverrides.Find(MGuid))
 			{
 				if (PLXOverride->HasNative())
 				{
@@ -381,7 +376,7 @@ namespace AGX_ShapeComponent_helpers
 		}
 
 		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Result, Context.SessionGuid);
-		Context.RenderMaterials->Add(MGuid, Result);
+		Context.RenderMaterials.Add(MGuid, Result);
 		return Result;
 	}
 
@@ -389,8 +384,7 @@ namespace AGX_ShapeComponent_helpers
 		const FRenderDataBarrier& RenderData, UMaterialInterface* Material,
 		FAGX_ImportContext& Context)
 	{
-		AGX_CHECK(Context.RenderStaticMeshes != nullptr);
-		if (auto Existing = Context.RenderStaticMeshes->FindRef(RenderData.GetGuid()))
+		if (auto Existing = Context.RenderStaticMeshes.FindRef(RenderData.GetGuid()))
 			return Existing;
 
 #if WITH_EDITOR
@@ -416,7 +410,7 @@ namespace AGX_ShapeComponent_helpers
 			TEXT(""), /*flipV*/ true);
 
 		if (Mesh != nullptr)
-			Context.RenderStaticMeshes->Add(RenderData.GetGuid(), Mesh);
+			Context.RenderStaticMeshes.Add(RenderData.GetGuid(), Mesh);
 
 		return Mesh;
 	}
@@ -484,11 +478,11 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	if (Msp.HasNative())
 		MergeSplitProperties.CopyFrom(Msp, Context);
 
-	if (Context == nullptr || Context->Shapes == nullptr || Context->Outer == nullptr)
+	if (Context == nullptr || Context->Outer == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->Shapes->Contains(ImportGuid));
-	Context->Shapes->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Shapes.Contains(ImportGuid));
+	Context->Shapes.Add(ImportGuid, this);
 
 	////// Shape Material ///////
 	const FShapeMaterialBarrier SMB = Barrier.GetMaterial();
@@ -514,8 +508,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 	SetMaterial(0, Material);
 
 	////// Render Mesh ///////
-	if (Context->RenderStaticMeshes != nullptr && GetOwner() != nullptr &&
-		AGX_MeshUtilities::HasRenderDataMesh(Barrier))
+	if (GetOwner() != nullptr && AGX_MeshUtilities::HasRenderDataMesh(Barrier))
 	{
 		UStaticMeshComponent* Mesh =
 			CreateStaticMeshComponent(Barrier, *GetOwner(), Material, *Context);
@@ -523,7 +516,7 @@ void UAGX_ShapeComponent::CopyFrom(const FShapeBarrier& Barrier, FAGX_ImportCont
 		if (Mesh != nullptr)
 		{
 			Mesh->AttachToComponent(this, FAttachmentTransformRules::KeepRelativeTransform);
-			Context->RenderStaticMeshCom->Add(Barrier.GetShapeGuid(), Mesh);
+			Context->RenderStaticMeshCom.Add(Barrier.GetShapeGuid(), Mesh);
 		}
 	}
 }

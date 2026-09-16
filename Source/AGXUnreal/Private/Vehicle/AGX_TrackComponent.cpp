@@ -32,6 +32,7 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInterface.h"
 #include "Math/Quat.h"
+#include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "AGX_TrackRenderer"
 
@@ -250,7 +251,7 @@ namespace AGX_TrackComponent_helpers
 		if (!PropertiesBarrier.HasNative())
 			return nullptr;
 
-		if (auto Existing = Context.TrackProperties->FindRef(PropertiesBarrier.GetGuid()))
+		if (auto Existing = Context.TrackProperties.FindRef(PropertiesBarrier.GetGuid()))
 			return Existing;
 
 		auto Properties =
@@ -266,7 +267,7 @@ namespace AGX_TrackComponent_helpers
 			UAGX_TrackProperties::StaticClass());
 		Properties->Rename(*Name);
 
-		Context.TrackProperties->Add(PropertiesBarrier.GetGuid(), Properties);
+		Context.TrackProperties.Add(PropertiesBarrier.GetGuid(), Properties);
 		return Properties;
 	}
 
@@ -275,7 +276,7 @@ namespace AGX_TrackComponent_helpers
 		const UAGX_TrackComponent& TrackComponent)
 	{
 		const FGuid Guid = Barrier.GetGuid();
-		if (auto Existing = Context.TrackMergeProperties->FindRef(Guid))
+		if (auto Existing = Context.TrackMergeProperties.FindRef(Guid))
 			return Existing;
 
 		auto Properties = NewObject<UAGX_TrackInternalMergeProperties>(
@@ -291,7 +292,7 @@ namespace AGX_TrackComponent_helpers
 			UAGX_TrackInternalMergeProperties::StaticClass());
 		Properties->Rename(*Name);
 
-		Context.TrackMergeProperties->Add(Guid, Properties);
+		Context.TrackMergeProperties.Add(Guid, Properties);
 		return Properties;
 	}
 }
@@ -330,12 +331,11 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 		}
 	}
 
-	if (Context == nullptr || Context->Tracks == nullptr || Context->ShapeMaterials == nullptr ||
-		Context->TrackProperties == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->Tracks->Contains(ImportGuid));
-	Context->Tracks->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Tracks.Contains(ImportGuid));
+	Context->Tracks.Add(ImportGuid, this);
 
 	ShapeMaterial = GetOrCreateShapeMaterial(Barrier, *Context);
 	TrackProperties = GetOrCreateTrackProperties(Barrier, *Context, *this);
@@ -353,7 +353,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 	FRigidBodyBarrier ChassisBarrier = Barrier.GetChassis();
 	if (ChassisBarrier.HasNative())
 	{
-		UAGX_RigidBodyComponent* Rb = Context->RigidBodies->FindRef(ChassisBarrier.GetGuid());
+		UAGX_RigidBodyComponent* Rb = Context->RigidBodies.FindRef(ChassisBarrier.GetGuid());
 		SetRigidBody(Rb, Chassis);
 	}
 
@@ -363,7 +363,7 @@ void UAGX_TrackComponent::CopyFrom(const FTrackBarrier& Barrier, FAGX_ImportCont
 		auto WheelBodyBarrier = WheelBarrier.GetRigidBody();
 		if (WheelBodyBarrier.HasNative())
 		{
-			UAGX_RigidBodyComponent* Rb = Context->RigidBodies->FindRef(WheelBodyBarrier.GetGuid());
+			UAGX_RigidBodyComponent* Rb = Context->RigidBodies.FindRef(WheelBodyBarrier.GetGuid());
 			SetRigidBody(Rb, Wheel.RigidBody);
 		}
 
@@ -1429,7 +1429,7 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 			continue;
 
 		UMaterial* Material = RenderMaterials[Elem]->GetMaterial();
-		if (Material == nullptr || Material->bUsedWithInstancedStaticMeshes)
+		if (Material == nullptr || Material->GetUsageByFlag(MATUSAGE_InstancedStaticMeshes))
 			continue;
 
 		if (Material->GetPathName().StartsWith("/Game/"))
@@ -1445,7 +1445,11 @@ void UAGX_TrackComponent::EnsureValidRenderMaterials()
 			if (FAGX_NotificationUtilities::YesNoQuestion(AskEnableUseWithInstancedSM))
 			{
 				Material->Modify();
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 				Material->bUsedWithInstancedStaticMeshes = true;
+#else
+				Material->SetMaterialUsage(MATUSAGE_InstancedStaticMeshes);
+#endif
 				Material->PostEditChange();
 				FAGX_ObjectUtilities::SaveAsset(*Material);
 			}

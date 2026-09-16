@@ -194,7 +194,7 @@ namespace AGX_CableProperties_helpers
 {
 	FString CreatePropertiesName(const FCableBarrier& Barrier, FAGX_ImportContext& Context)
 	{
-		auto Cable = Context.Cables->FindRef(Barrier.GetGuid());
+		auto Cable = Context.Cables.FindRef(Barrier.GetGuid());
 		const FString BaseName = Cable != nullptr ? Cable->GetName() : "Unknown";
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Context.Outer, FString::Printf(TEXT("AGX_CP_%s"), *BaseName),
@@ -226,13 +226,13 @@ void UAGX_CableProperties::CopyFrom(
 
 	CopyFrom(PropBarrier);
 
-	if (Context == nullptr || Context->Cables == nullptr || Context->CableProperties == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	ImportGuid = Source.GetGuid();
 	Rename(*AGX_CableProperties_helpers::CreatePropertiesName(Source, *Context));
-	AGX_CHECK(!Context->CableProperties->Contains(ImportGuid));
-	Context->CableProperties->Add(ImportGuid, this);
+	AGX_CHECK(!Context->CableProperties.Contains(ImportGuid));
+	Context->CableProperties.Add(ImportGuid, this);
 }
 
 void UAGX_CableProperties::CopyFrom(const FCablePropertiesBarrier& Source)

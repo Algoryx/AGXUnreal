@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_ContactMaterialEnums.generated.h"
+
 /**
  * Specifies in what solvers the normal and friction equations will be calculated.
  */
@@ -128,20 +130,6 @@ enum class EAGX_FrictionModel : uint8
 inline bool IsConstantNormalForceFrictionModel(EAGX_FrictionModel FrictionModel)
 {
 	return FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction;
-}
-
-inline bool SupportsSecondaryFrictionDirections(EAGX_FrictionModel FrictionModel)
-{
-	return FrictionModel == EAGX_FrictionModel::BoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::ScaledBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::IterativeProjectedConeFriction ||
-		   FrictionModel == EAGX_FrictionModel::OrientedBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::OrientedScaledBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::OrientedIterativeProjectedConeFriction ||
-		   FrictionModel == EAGX_FrictionModel::OrientedConstantNormalForceBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::TrackBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::TrackScaledBoxFriction ||
-		   FrictionModel == EAGX_FrictionModel::TrackIterativeProjectedConeFriction;
 }
 
 inline bool IsOrientedFrictionModel(EAGX_FrictionModel FrictionModel)

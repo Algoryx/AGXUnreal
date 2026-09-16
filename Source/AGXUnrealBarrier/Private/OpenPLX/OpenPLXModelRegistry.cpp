@@ -52,28 +52,6 @@ namespace OpenPLXModelRegistry_helpers
 		check(Val >= 0);
 		return static_cast<size_t>(Val);
 	}
-
-	using InputMap =
-		std::unordered_map<std::string, std::shared_ptr<openplx::Physics::Signals::Input>>;
-
-	InputMap MapInputs(openplx::Physics3D::System* System)
-	{
-		InputMap Inputs;
-		if (System == nullptr)
-			return Inputs;
-
-		for (auto& Input :
-			 FPLXUtilitiesInternal::GetNestedObjects<openplx::Physics::Signals::Input>(*System))
-		{
-			if (Input == nullptr)
-				continue;
-
-			AGX_CHECK(!Inputs.contains(Input->getName()));
-			Inputs.insert({Input->getName(), Input});
-		}
-
-		return Inputs;
-	}
 }
 
 FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::Register(const FString& OpenPLXFile)
@@ -146,7 +124,6 @@ FOpenPLXModelRegistry::Handle FOpenPLXModelRegistry::LoadNewModel(const FString&
 		return InvalidHandle;
 	}
 
-	NewModel.Inputs = OpenPLXModelRegistry_helpers::MapInputs(System.get());
 	const Handle NewHandle = OpenPLXModelRegistry_helpers::Convert(Native->ModelData.size());
 	Native->ModelData.emplace_back(std::move(NewModel));
 	KnownModels.insert({Convert(PLXFile), NewHandle});

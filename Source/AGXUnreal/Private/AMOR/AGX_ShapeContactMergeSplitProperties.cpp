@@ -105,7 +105,7 @@ void FAGX_ShapeContactMergeSplitProperties::CopyFrom(
 {
 	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
 
-	if (Context == nullptr || Context->MSThresholds == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return;
 
 	// Get or create Merge Split Threashold from Context.
@@ -115,7 +115,7 @@ void FAGX_ShapeContactMergeSplitProperties::CopyFrom(
 		return;
 
 	const auto MSTGuid = ThresholdsBarrier.GetGuid();
-	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	if (auto MST = Context->MSThresholds.FindRef(MSTGuid))
 	{
 		Thresholds = Cast<UAGX_ShapeContactMergeSplitThresholds>(MST);
 		return; // We are done.
@@ -128,7 +128,7 @@ void FAGX_ShapeContactMergeSplitProperties::CopyFrom(
 		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_SMST_%s"), *MSTGuid.ToString()), nullptr);
 	Thresholds->Rename(*THName);
 	Thresholds->CopyFrom(ThresholdsBarrier);
-	Context->MSThresholds->Add(MSTGuid, Thresholds);
+	Context->MSThresholds.Add(MSTGuid, Thresholds);
 }
 
 void FAGX_ShapeContactMergeSplitProperties::UpdateNativeProperties()

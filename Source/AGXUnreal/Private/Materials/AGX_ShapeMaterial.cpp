@@ -365,10 +365,10 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 		GetOuter(), Source.GetName(), UAGX_ShapeMaterial::StaticClass());
 	Rename(*Name);
 
-	if (Context != nullptr && Context->ShapeMaterials != nullptr &&
-		!Context->ShapeMaterials->Contains(ImportGuid))
+	if (Context != nullptr && Context->bStoreObjects &&
+		!Context->ShapeMaterials.Contains(ImportGuid))
 	{
-		Context->ShapeMaterials->Add(ImportGuid, this);
+		Context->ShapeMaterials.Add(ImportGuid, this);
 	}
 }
 
