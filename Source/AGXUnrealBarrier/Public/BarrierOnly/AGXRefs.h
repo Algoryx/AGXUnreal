@@ -28,6 +28,7 @@
 #include <agxTerrain/TerrainProperties.h>
 #include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/TerrainWheelSettings.h>
+#include <agxTerrain/WheelDeformationProperties.h>
 #include "EndAGXIncludes.h"
 
 struct FElementaryConstraintRef
@@ -289,6 +290,17 @@ struct FTerrainWheelRef
 
 	FTerrainWheelRef() = default;
 	FTerrainWheelRef(agxTerrain::TerrainWheel* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FTerrainWheelDeformationPropertiesRef
+{
+	agxTerrain::WheelDeformationPropertiesRef Native;
+
+	FTerrainWheelDeformationPropertiesRef() = default;
+	FTerrainWheelDeformationPropertiesRef(agxTerrain::WheelDeformationProperties* InNative)
 		: Native(InNative)
 	{
 	}
