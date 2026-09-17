@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AMOR/AGX_ConstraintMergeSplitProperties.h"
+#include "AGX_ElementaryConstraintEnableState.h"
 #include "AGX_NativeOwner.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RealInterval.h"
@@ -188,6 +189,13 @@ public:
 	bool bComputeForces = false;
 
 	/**
+	 * The enable state of each Elementary Constraint belonging to this Constraint. Populated when
+	 * importing an AGX Dynamics or OpenPLX model.
+	 */
+	UPROPERTY(EditAnywhere, EditFixedSize, Category = "AGX Constraint")
+	TArray<FAGX_ElementaryConstraintEnableState> ElementaryConstraintEnableStates;
+
+	/**
 	 * Enable or disable computation of the forces applied to the dynamic bodies in this constraint.
 	 * This adds the cost of a matrix-vector operation to compute the forces after solve.
 	 * @see GetLastForce
@@ -220,6 +228,22 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
 	bool GetEnableComputeForces() const;
+
+	/**
+	 * Set the enable state of the named Elementary Constraint.
+	 *
+	 * If the native Constraint has not yet been created, the state is stored and applied when it is
+	 * created.
+	 *
+	 * @return True if the native Constraint has not yet been created, or if it contains an
+	 * Elementary Constraint with the given name. Returns false otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	bool SetElementaryConstraintEnableState(FName ElementaryConstraintName, bool bInEnable);
+
+	/** Set the enable state of every Elementary Constraint belonging to this Constraint. */
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	void SetAllElementaryConstraintEnableStates(bool bInEnable);
 
 	/**
 	 * Check if the native AGX Dynamics constraint has been successfully created and initialized.
@@ -390,6 +414,8 @@ public:
 	void UpdateNativeCompliance();
 
 	void UpdateNativeSpookDamping();
+
+	void UpdateNativeElementaryConstraintEnableStates();
 
 	// ~Begin UActorComponent interface.
 	virtual void BeginPlay() override;

@@ -397,19 +397,38 @@ bool FConstraintBarrier::IsRotational() const
 	return true;
 }
 
-bool FConstraintBarrier::IsAllElementaryConstraintsDisabled() const
+TArray<FAGX_ElementaryConstraintEnableState>
+FConstraintBarrier::GetElementaryConstraintEnableStates() const
+{
+	check(HasNative());
+
+	TArray<FAGX_ElementaryConstraintEnableState> EnableStates;
+	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
+	EnableStates.Reserve(NumEc);
+	for (decltype(NumEc) I = 0; I < NumEc; ++I)
+	{
+		auto* ElementaryConstraint = NativeRef->Native->getElementaryConstraint(I);
+		EnableStates.Emplace(
+			FName(*Convert(ElementaryConstraint->getName())), ElementaryConstraint->getEnable());
+	}
+
+	return EnableStates;
+}
+
+bool FConstraintBarrier::SetElementaryConstraintEnableState(const FString& Name, bool bEnable)
 {
 	check(HasNative());
 
 	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
-	if (NumEc == 0)
-		return false;
-
 	for (decltype(NumEc) I = 0; I < NumEc; I++)
 	{
-		if (NativeRef->Native->getElementaryConstraint(I)->getEnable())
-			return false;
+		auto* ElementaryConstraint = NativeRef->Native->getElementaryConstraint(I);
+		if (Convert(ElementaryConstraint->getName()) == Name)
+		{
+			ElementaryConstraint->setEnable(bEnable);
+			return true;
+		}
 	}
 
-	return true;
+	return false;
 }
