@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_TerrainWheelEnums.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
@@ -27,6 +30,9 @@ public:
 
 	void SetEnableTerrainDisplacement(bool InEnable);
 	bool GetEnableTerrainDisplacement() const;
+
+	void SetDisplacementModel(EAGX_TerrainWheelDisplacementModel InModel);
+	EAGX_TerrainWheelDisplacementModel GetDisplacementModel() const;
 
 	bool HasNative() const;
 	FTerrainWheelDeformationPropertiesRef* GetNative();

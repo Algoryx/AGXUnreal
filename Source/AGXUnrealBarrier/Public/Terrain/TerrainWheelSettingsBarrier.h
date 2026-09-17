@@ -61,6 +61,18 @@ public:
 	void SetEnableAGXDebugRendering(bool InEnable);
 	bool GetEnableAGXDebugRendering() const;
 
+	void SetEnableForceFrameTransformation(bool InEnable);
+	bool GetEnableForceFrameTransformation() const;
+
+	void SetEnableRearAndFrontAngleSmoothing(bool InEnable);
+	bool GetEnableRearAndFrontAngleSmoothing() const;
+
+	void SetRearAndFrontAngleSmoothingAngularSpeed(double InSpeed);
+	double GetRearAndFrontAngleSmoothingAngularSpeed() const;
+
+	void SetEnableTractionRollingResistanceCoupling(bool InEnable);
+	bool GetEnableTractionRollingResistanceCoupling() const;
+
 private:
 	std::shared_ptr<FTerrainWheelSettingsRef> NativeRef;
 };

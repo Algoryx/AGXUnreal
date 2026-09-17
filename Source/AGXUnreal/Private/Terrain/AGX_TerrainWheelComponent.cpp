@@ -3,6 +3,7 @@
 #include "Terrain/AGX_TerrainWheelComponent.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerInstanceData.h"
 #include "AGX_PropertyChangedDispatcher.h"
@@ -16,6 +17,9 @@
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+
+// Unreal Engine includes.
+#include "UObject/Package.h"
 
 #define LOCTEXT_NAMESPACE "AGX_TerrainWheelComponent"
 
@@ -151,6 +155,18 @@ void UAGX_TerrainWheelComponent::PostInitProperties()
 #if WITH_EDITOR
 	InitPropertyDispatcher();
 #endif
+}
+
+void UAGX_TerrainWheelComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::TerrainWheelDeformationPropertiesAsset) &&
+		TerrainWheelDeformationProperties == nullptr)
+	{
+		TerrainWheelDeformationProperties =
+			GetOrCreateTerrainWheelDeformationPropertiesForOldTerrainWheel();
+	}
 }
 
 #if WITH_EDITOR
@@ -480,6 +496,28 @@ bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelDeformationProperties()
 	}
 
 	return true;
+}
+
+UAGX_TerrainWheelDeformationProperties*
+UAGX_TerrainWheelComponent::GetOrCreateTerrainWheelDeformationPropertiesForOldTerrainWheel()
+{
+	const FString AssetName = FString::Printf(TEXT("AGX_TWDP_%s"), *GetName());
+	FString PackagePath = FString::Printf(TEXT("/Game/%s"), *AssetName);
+	if (auto Existing = FAGX_ObjectUtilities::GetAssetFromPath<UObject>(*PackagePath))
+		return Cast<UAGX_TerrainWheelDeformationProperties>(Existing);
+
+	// We have an old Terrain Wheel that did not have Terrain Wheel Deformation Properties.
+	// Create a new Terrain Wheel Deformation Properties asset, set its values and assign it to the
+	// Terrain Wheel.
+	UPackage* Package = CreatePackage(*PackagePath);
+	UAGX_TerrainWheelDeformationProperties* Properties =
+		NewObject<UAGX_TerrainWheelDeformationProperties>(Package, *AssetName, RF_Public | RF_Standalone);
+
+	Properties->bEnableTerrainDeformation = bEnableTerrainDeformation_DEPRECATED;
+	Properties->bEnableTerrainDisplacement = bEnableTerrainDisplacement_DEPRECATED;
+
+	Package->SetDirtyFlag(true);
+	return Properties;
 }
 
 bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelSettings()

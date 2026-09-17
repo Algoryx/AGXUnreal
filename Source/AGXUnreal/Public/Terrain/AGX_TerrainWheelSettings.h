@@ -148,6 +148,57 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	bool GetEnableAGXDebugRendering() const;
 
+	/**
+	 * Determines whether force values are transformed from the force reference plane frame to the
+	 * force feedback plane frame before being used as constraint-force limits.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	bool bEnableForceFrameTransformation {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableForceFrameTransformation(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableForceFrameTransformation() const;
+
+	/**
+	 * Determines whether rear and front contact angles are smoothed during changes in wheel
+	 * longitudinal direction.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	bool bEnableRearAndFrontAngleSmoothing {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableRearAndFrontAngleSmoothing(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableRearAndFrontAngleSmoothing() const;
+
+	/**
+	 * Characteristic angular speed controlling rear/front contact-angle smoothing [deg/s]. Must be
+	 * greater than zero.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	double RearAndFrontAngleSmoothingAngularSpeed {30.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetRearAndFrontAngleSmoothingAngularSpeed(double InSpeed);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	double GetRearAndFrontAngleSmoothingAngularSpeed() const;
+
+	/**
+	 * Determines whether traction and rolling resistance coupling is enabled.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	bool bEnableTractionRollingResistanceCoupling {false};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableTractionRollingResistanceCoupling(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableTractionRollingResistanceCoupling() const;
+
 	/*
 	 * The import Guid of this Asset. Only used by the AGX Dynamics for Unreal import system.
 	 * Should never be assigned manually.

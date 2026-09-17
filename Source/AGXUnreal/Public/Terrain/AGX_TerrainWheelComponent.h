@@ -90,6 +90,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
+	virtual void Serialize(FArchive& Archive) override;
 	// ~End UObject interface.
 
 	//~ Begin ActorComponent Interface
@@ -123,7 +124,15 @@ private:
 	void CreateNative();
 	bool UpdateNativeTerrainWheelDeformationProperties();
 	bool UpdateNativeTerrainWheelSettings();
+	UAGX_TerrainWheelDeformationProperties*
+	GetOrCreateTerrainWheelDeformationPropertiesForOldTerrainWheel();
 
 private:
+	UPROPERTY()
+	bool bEnableTerrainDeformation_DEPRECATED {true};
+
+	UPROPERTY()
+	bool bEnableTerrainDisplacement_DEPRECATED {true};
+
 	FTerrainWheelBarrier NativeBarrier;
 };

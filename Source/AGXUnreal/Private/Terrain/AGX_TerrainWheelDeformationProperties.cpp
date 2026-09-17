@@ -55,6 +55,18 @@ bool UAGX_TerrainWheelDeformationProperties::GetEnableTerrainDisplacement() cons
 	AGX_ASSET_GETTER_BOOL(EnableTerrainDisplacement);
 }
 
+void UAGX_TerrainWheelDeformationProperties::SetDisplacementModel(
+	EAGX_TerrainWheelDisplacementModel InModel)
+{
+	AGX_ASSET_SETTER(DisplacementModel, InModel);
+}
+
+EAGX_TerrainWheelDisplacementModel
+UAGX_TerrainWheelDeformationProperties::GetDisplacementModel() const
+{
+	AGX_ASSET_GETTER(DisplacementModel);
+}
+
 UAGX_TerrainWheelDeformationProperties* UAGX_TerrainWheelDeformationProperties::GetInstance()
 {
 	if (IsInstance())
@@ -160,6 +172,7 @@ void UAGX_TerrainWheelDeformationProperties::UpdateNativeProperties()
 
 	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
 	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
+	NativeBarrier.SetDisplacementModel(DisplacementModel);
 }
 
 void UAGX_TerrainWheelDeformationProperties::PostInitProperties()
@@ -187,6 +200,7 @@ void UAGX_TerrainWheelDeformationProperties::InitPropertyDispatcher()
 
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
+	AGX_ASSET_DEFAULT_DISPATCHER(DisplacementModel);
 }
 #endif // WITH_EDITOR
 
@@ -198,6 +212,7 @@ void UAGX_TerrainWheelDeformationProperties::CopyFrom(
 
 	bEnableTerrainDeformation = Source->bEnableTerrainDeformation;
 	bEnableTerrainDisplacement = Source->bEnableTerrainDisplacement;
+	DisplacementModel = Source->DisplacementModel;
 }
 
 void UAGX_TerrainWheelDeformationProperties::CreateNative()

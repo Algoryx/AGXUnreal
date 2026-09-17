@@ -54,6 +54,7 @@
 #include <agxSDK/ContactEventListener.h>
 #include <agxTerrain/Shovel.h>
 #include <agxTerrain/TerrainWheelSettings.h>
+#include <agxTerrain/WheelDeformationProperties.h>
 #include <agxUtil/agxUtil.h>
 #include <agxVehicle/TrackInternalMergeProperties.h>
 #include <agxVehicle/TrackWheel.h>
@@ -1581,6 +1582,46 @@ inline EAGX_TerrainWheelPressureSinkageModel Convert(
 			"agxTerrain::TerrainWheelSettings::PressureSinkageModel literal to an "
 			"EAGX_TerrainWheelPressureSinkageModel. Returning Bekker."));
 	return EAGX_TerrainWheelPressureSinkageModel::Bekker;
+}
+
+inline agxTerrain::WheelDeformationProperties::DisplacementModel Convert(
+	EAGX_TerrainWheelDisplacementModel Model)
+{
+	switch (Model)
+	{
+		case EAGX_TerrainWheelDisplacementModel::NeighborBased:
+			return agxTerrain::WheelDeformationProperties::DisplacementModel::NEIGHBOR_BASED;
+		case EAGX_TerrainWheelDisplacementModel::FlowZone:
+			return agxTerrain::WheelDeformationProperties::DisplacementModel::FLOW_ZONE;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown "
+			"EAGX_TerrainWheelDisplacementModel literal to an "
+			"agxTerrain::WheelDeformationProperties::DisplacementModel. Returning NeighborBased."));
+	return agxTerrain::WheelDeformationProperties::DisplacementModel::NEIGHBOR_BASED;
+}
+
+inline EAGX_TerrainWheelDisplacementModel Convert(
+	agxTerrain::WheelDeformationProperties::DisplacementModel Model)
+{
+	switch (Model)
+	{
+		case agxTerrain::WheelDeformationProperties::DisplacementModel::NEIGHBOR_BASED:
+			return EAGX_TerrainWheelDisplacementModel::NeighborBased;
+		case agxTerrain::WheelDeformationProperties::DisplacementModel::FLOW_ZONE:
+			return EAGX_TerrainWheelDisplacementModel::FlowZone;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown "
+			"agxTerrain::WheelDeformationProperties::DisplacementModel literal to an "
+			"EAGX_TerrainWheelDisplacementModel. Returning NeighborBased."));
+	return EAGX_TerrainWheelDisplacementModel::NeighborBased;
 }
 
 inline EAGX_ExcavationMode Convert(agxTerrain::Shovel::ExcavationMode Mode)

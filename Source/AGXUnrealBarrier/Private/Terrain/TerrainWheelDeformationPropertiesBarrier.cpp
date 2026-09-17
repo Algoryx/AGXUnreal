@@ -46,6 +46,20 @@ bool FTerrainWheelDeformationPropertiesBarrier::GetEnableTerrainDisplacement() c
 	return NativeRef->Native->getEnableDisplacement();
 }
 
+void FTerrainWheelDeformationPropertiesBarrier::SetDisplacementModel(
+	EAGX_TerrainWheelDisplacementModel InModel)
+{
+	check(HasNative());
+	NativeRef->Native->setDisplacementModel(Convert(InModel));
+}
+
+EAGX_TerrainWheelDisplacementModel
+FTerrainWheelDeformationPropertiesBarrier::GetDisplacementModel() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getDisplacementModel());
+}
+
 bool FTerrainWheelDeformationPropertiesBarrier::HasNative() const
 {
 	return NativeRef->Native;

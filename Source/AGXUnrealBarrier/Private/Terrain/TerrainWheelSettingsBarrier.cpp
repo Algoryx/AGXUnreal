@@ -153,3 +153,52 @@ bool FTerrainWheelSettingsBarrier::GetEnableAGXDebugRendering() const
 	check(HasNative());
 	return NativeRef->Native->getEnableDebugRegressionPlanes();
 }
+
+void FTerrainWheelSettingsBarrier::SetEnableForceFrameTransformation(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableForceFrameTransformation(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableForceFrameTransformation() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableForceFrameTransformation();
+}
+
+void FTerrainWheelSettingsBarrier::SetEnableRearAndFrontAngleSmoothing(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableRearAndFrontAngleSmoothing(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableRearAndFrontAngleSmoothing() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableRearAndFrontAngleSmoothing();
+}
+
+void FTerrainWheelSettingsBarrier::SetRearAndFrontAngleSmoothingAngularSpeed(double InSpeed)
+{
+	check(HasNative());
+	NativeRef->Native->setRearAndFrontAngleSmoothingAngularSpeed(ConvertAngleToAGX(InSpeed));
+}
+
+double FTerrainWheelSettingsBarrier::GetRearAndFrontAngleSmoothingAngularSpeed() const
+{
+	check(HasNative());
+	return ConvertAngleToUnreal<double>(
+		NativeRef->Native->getRearAndFrontAngleSmoothingAngularSpeed());
+}
+
+void FTerrainWheelSettingsBarrier::SetEnableTractionRollingResistanceCoupling(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableTractionRollingResistanceCoupling(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableTractionRollingResistanceCoupling() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableTractionRollingResistanceCoupling();
+}

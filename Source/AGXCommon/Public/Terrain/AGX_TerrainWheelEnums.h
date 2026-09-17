@@ -14,3 +14,10 @@ enum class EAGX_TerrainWheelPressureSinkageModel : uint8
 	Bekker,
 	Reece
 };
+
+UENUM(BlueprintType)
+enum class EAGX_TerrainWheelDisplacementModel : uint8
+{
+	NeighborBased,
+	FlowZone
+};

@@ -113,6 +113,46 @@ bool UAGX_TerrainWheelSettings::GetEnableAGXDebugRendering() const
 	AGX_ASSET_GETTER_BOOL(EnableAGXDebugRendering);
 }
 
+void UAGX_TerrainWheelSettings::SetEnableForceFrameTransformation(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableForceFrameTransformation, InEnable);
+}
+
+bool UAGX_TerrainWheelSettings::GetEnableForceFrameTransformation() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableForceFrameTransformation);
+}
+
+void UAGX_TerrainWheelSettings::SetEnableRearAndFrontAngleSmoothing(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableRearAndFrontAngleSmoothing, InEnable);
+}
+
+bool UAGX_TerrainWheelSettings::GetEnableRearAndFrontAngleSmoothing() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableRearAndFrontAngleSmoothing);
+}
+
+void UAGX_TerrainWheelSettings::SetRearAndFrontAngleSmoothingAngularSpeed(double InSpeed)
+{
+	AGX_ASSET_SETTER(RearAndFrontAngleSmoothingAngularSpeed, InSpeed);
+}
+
+double UAGX_TerrainWheelSettings::GetRearAndFrontAngleSmoothingAngularSpeed() const
+{
+	AGX_ASSET_GETTER(RearAndFrontAngleSmoothingAngularSpeed);
+}
+
+void UAGX_TerrainWheelSettings::SetEnableTractionRollingResistanceCoupling(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableTractionRollingResistanceCoupling, InEnable);
+}
+
+bool UAGX_TerrainWheelSettings::GetEnableTractionRollingResistanceCoupling() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableTractionRollingResistanceCoupling);
+}
+
 void UAGX_TerrainWheelSettings::CommitToAsset()
 {
 	if (IsInstance())
@@ -170,6 +210,11 @@ void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Sou
 	bEnableComputeMaximumNormalStressAngleFromFrontAngle =
 		Source.GetEnableComputeMaximumNormalStressAngleFromFrontAngle();
 	bEnableAGXDebugRendering = Source.GetEnableAGXDebugRendering();
+	bEnableForceFrameTransformation = Source.GetEnableForceFrameTransformation();
+	bEnableRearAndFrontAngleSmoothing = Source.GetEnableRearAndFrontAngleSmoothing();
+	RearAndFrontAngleSmoothingAngularSpeed = Source.GetRearAndFrontAngleSmoothingAngularSpeed();
+	bEnableTractionRollingResistanceCoupling =
+		Source.GetEnableTractionRollingResistanceCoupling();
 }
 
 void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source)
@@ -186,6 +231,10 @@ void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source
 	bEnableComputeMaximumNormalStressAngleFromFrontAngle =
 		Source->bEnableComputeMaximumNormalStressAngleFromFrontAngle;
 	bEnableAGXDebugRendering = Source->bEnableAGXDebugRendering;
+	bEnableForceFrameTransformation = Source->bEnableForceFrameTransformation;
+	bEnableRearAndFrontAngleSmoothing = Source->bEnableRearAndFrontAngleSmoothing;
+	RearAndFrontAngleSmoothingAngularSpeed = Source->RearAndFrontAngleSmoothingAngularSpeed;
+	bEnableTractionRollingResistanceCoupling = Source->bEnableTractionRollingResistanceCoupling;
 	ImportGuid = Source->ImportGuid;
 }
 
@@ -304,6 +353,11 @@ void UAGX_TerrainWheelSettings::UpdateNativeProperties()
 	NativeBarrier.SetEnableComputeMaximumNormalStressAngleFromFrontAngle(
 		bEnableComputeMaximumNormalStressAngleFromFrontAngle);
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
+	NativeBarrier.SetEnableForceFrameTransformation(bEnableForceFrameTransformation);
+	NativeBarrier.SetEnableRearAndFrontAngleSmoothing(bEnableRearAndFrontAngleSmoothing);
+	NativeBarrier.SetRearAndFrontAngleSmoothingAngularSpeed(RearAndFrontAngleSmoothingAngularSpeed);
+	NativeBarrier.SetEnableTractionRollingResistanceCoupling(
+		bEnableTractionRollingResistanceCoupling);
 }
 
 void UAGX_TerrainWheelSettings::PostInitProperties()
@@ -336,6 +390,10 @@ void UAGX_TerrainWheelSettings::InitPropertyDispatcher()
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableComputeRearAngleFromFrontAngle);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableComputeMaximumNormalStressAngleFromFrontAngle);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableForceFrameTransformation);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableRearAndFrontAngleSmoothing);
+	AGX_ASSET_DEFAULT_DISPATCHER(RearAndFrontAngleSmoothingAngularSpeed);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTractionRollingResistanceCoupling);
 }
 #endif // WITH_EDITOR
 

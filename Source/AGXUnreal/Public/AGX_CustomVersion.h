@@ -84,6 +84,10 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// implementation.
 		TrackReducedOrderTrackImplementation,
 
+		// TerrainWheelDeformationProperties Asset introduced, to hold deformation properties for an
+		// AGX Terrain Wheel.
+		TerrainWheelDeformationPropertiesAsset,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

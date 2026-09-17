@@ -3,6 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_TerrainWheelEnums.h"
 #include "Terrain/TerrainWheelDeformationPropertiesBarrier.h"
 
 // Unreal Engine includes.
@@ -50,6 +51,19 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
 	bool GetEnableTerrainDisplacement() const;
+
+	/**
+	 * Algorithm used to distribute removed wheel-overlap mass back into the Terrain.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Deformation Properties")
+	EAGX_TerrainWheelDisplacementModel DisplacementModel {
+		EAGX_TerrainWheelDisplacementModel::NeighborBased};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	void SetDisplacementModel(EAGX_TerrainWheelDisplacementModel InModel);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	EAGX_TerrainWheelDisplacementModel GetDisplacementModel() const;
 
 	static UAGX_TerrainWheelDeformationProperties* CreateInstanceFromAsset(
 		const UWorld* PlayingWorld, UAGX_TerrainWheelDeformationProperties* Source);
