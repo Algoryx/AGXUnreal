@@ -501,7 +501,9 @@ bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelDeformationProperties()
 UAGX_TerrainWheelDeformationProperties*
 UAGX_TerrainWheelComponent::GetOrCreateTerrainWheelDeformationPropertiesForOldTerrainWheel()
 {
-	const FString AssetName = FString::Printf(TEXT("AGX_TWDP_%s"), *GetName());
+	FString ComponentName = GetName();
+	ComponentName.RemoveFromEnd(UActorComponent::ComponentTemplateNameSuffix);
+	const FString AssetName = FString::Printf(TEXT("AGX_TWDP_%s"), *ComponentName);
 	FString PackagePath = FString::Printf(TEXT("/Game/%s"), *AssetName);
 	if (auto Existing = FAGX_ObjectUtilities::GetAssetFromPath<UObject>(*PackagePath))
 		return Cast<UAGX_TerrainWheelDeformationProperties>(Existing);
