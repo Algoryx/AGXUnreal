@@ -1614,9 +1614,7 @@ void UAGX_Simulation::StartWebDebugging(bool OpenViewInBrowser)
 {
 #if PLATFORM_LINUX
 	UE_LOG(LogAGX, Warning, TEXT("WebDebugger is currently not supported on Linux."));
-	return;
-#endif
-
+#else
 	if (!DebuggerBarrier.HasNative())
 		DebuggerBarrier.AllocateNative(WebDebuggerServerPort);
 
@@ -1631,6 +1629,7 @@ void UAGX_Simulation::StartWebDebugging(bool OpenViewInBrowser)
 			FString::Printf(TEXT("http://localhost:%d/"), WebDebuggerServerPort);
 		FPlatformProcess::LaunchURL(*DebuggerPageUrl, NULL, NULL);
 	}
+#endif
 }
 
 void UAGX_Simulation::StopWebDebugging()
