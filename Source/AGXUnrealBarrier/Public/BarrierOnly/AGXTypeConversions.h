@@ -1584,6 +1584,45 @@ inline EAGX_TerrainWheelPressureSinkageModel Convert(
 	return EAGX_TerrainWheelPressureSinkageModel::Bekker;
 }
 
+inline agxTerrain::TerrainWheelSettings::TerrainSamplingMode Convert(
+	EAGX_TerrainWheelSamplingMode Mode)
+{
+	switch (Mode)
+	{
+		case EAGX_TerrainWheelSamplingMode::Live:
+			return agxTerrain::TerrainWheelSettings::TerrainSamplingMode::LIVE;
+		case EAGX_TerrainWheelSamplingMode::Cached:
+			return agxTerrain::TerrainWheelSettings::TerrainSamplingMode::CACHED;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown EAGX_TerrainWheelSamplingMode "
+			"literal to an agxTerrain::TerrainWheelSettings::TerrainSamplingMode. Returning Live."));
+	return agxTerrain::TerrainWheelSettings::TerrainSamplingMode::LIVE;
+}
+
+inline EAGX_TerrainWheelSamplingMode Convert(
+	agxTerrain::TerrainWheelSettings::TerrainSamplingMode Mode)
+{
+	switch (Mode)
+	{
+		case agxTerrain::TerrainWheelSettings::TerrainSamplingMode::LIVE:
+			return EAGX_TerrainWheelSamplingMode::Live;
+		case agxTerrain::TerrainWheelSettings::TerrainSamplingMode::CACHED:
+			return EAGX_TerrainWheelSamplingMode::Cached;
+	}
+
+	UE_LOG(
+		LogAGX, Warning,
+		TEXT(
+			"Conversion failed: Tried to convert an unknown "
+			"agxTerrain::TerrainWheelSettings::TerrainSamplingMode literal to an "
+			"EAGX_TerrainWheelSamplingMode. Returning Live."));
+	return EAGX_TerrainWheelSamplingMode::Live;
+}
+
 inline agxTerrain::WheelDeformationProperties::DisplacementModel Convert(
 	EAGX_TerrainWheelDisplacementModel Model)
 {

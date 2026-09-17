@@ -21,3 +21,13 @@ enum class EAGX_TerrainWheelDisplacementModel : uint8
 	NeighborBased,
 	FlowZone
 };
+
+/**
+ * Selects the Terrain height data sampled by an AGX Terrain Wheel calculation.
+ */
+UENUM(BlueprintType)
+enum class EAGX_TerrainWheelSamplingMode : uint8
+{
+	Live,
+	Cached
+};

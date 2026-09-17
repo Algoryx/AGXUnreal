@@ -64,6 +64,15 @@ public:
 	void SetEnableForceFrameTransformation(bool InEnable);
 	bool GetEnableForceFrameTransformation() const;
 
+	void SetForceFeedbackHeightFieldSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetForceFeedbackHeightFieldSamplingMode() const;
+
+	void SetForceReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetForceReferencePlaneSamplingMode() const;
+
+	void SetRearAndFrontAngleReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetRearAndFrontAngleReferencePlaneSamplingMode() const;
+
 	void SetEnableRearAndFrontAngleSmoothing(bool InEnable);
 	bool GetEnableRearAndFrontAngleSmoothing() const;
 

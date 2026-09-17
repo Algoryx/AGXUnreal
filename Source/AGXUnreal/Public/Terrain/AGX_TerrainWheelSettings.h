@@ -162,6 +162,49 @@ public:
 	bool GetEnableForceFrameTransformation() const;
 
 	/**
+	 * Terrain height data used when calculating the force feedback plane. Live samples the current,
+	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode ForceFeedbackHeightFieldSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetForceFeedbackHeightFieldSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetForceFeedbackHeightFieldSamplingMode() const;
+
+	/**
+	 * Terrain height data used when calculating the force reference plane. Live samples the current,
+	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode ForceReferencePlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetForceReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetForceReferencePlaneSamplingMode() const;
+
+	/**
+	 * Terrain height data used when calculating the rear and front angle reference plane. Live
+	 * samples the current, potentially deformed Terrain. Cached samples the moving local
+	 * Terrain-height cache.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode RearAndFrontAngleReferencePlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetRearAndFrontAngleReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetRearAndFrontAngleReferencePlaneSamplingMode() const;
+
+	/**
 	 * Determines whether rear and front contact angles are smoothed during changes in wheel
 	 * longitudinal direction.
 	 */
