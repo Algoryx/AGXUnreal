@@ -10,6 +10,7 @@
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Shapes/AGX_CylinderShapeComponent.h"
+#include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 #include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
@@ -75,46 +76,35 @@ bool UAGX_TerrainWheelComponent::SetTerrainWheelSettings(
 	return true;
 }
 
-void UAGX_TerrainWheelComponent::SetTerrainDeformationEnabled(bool InEnable)
+bool UAGX_TerrainWheelComponent::SetTerrainWheelDeformationProperties(
+	UAGX_TerrainWheelDeformationProperties* InTerrainWheelDeformationProperties)
 {
-	bEnableTerrainDeformation = InEnable;
+	UAGX_TerrainWheelDeformationProperties* TerrainWheelDeformationPropertiesOrig =
+		TerrainWheelDeformationProperties;
+	TerrainWheelDeformationProperties = InTerrainWheelDeformationProperties;
 
-	if (HasNative())
-		NativeBarrier.SetEnableTerrainDeformation(InEnable);
+	if (!HasNative())
+	{
+		// Not in play, we are done.
+		return true;
+	}
+
+	// UpdateNativeTerrainWheelDeformationProperties is responsible to create an instance if none
+	// exists and do the asset/instance swap.
+	if (!UpdateNativeTerrainWheelDeformationProperties())
+	{
+		// Something went wrong, restore original TerrainWheelDeformationProperties.
+		TerrainWheelDeformationProperties = TerrainWheelDeformationPropertiesOrig;
+		return false;
+	}
+
+	return true;
 }
 
-bool UAGX_TerrainWheelComponent::IsTerrainDeformationEnabled() const
+UAGX_TerrainWheelDeformationProperties*
+UAGX_TerrainWheelComponent::GetTerrainWheelDeformationProperties() const
 {
-	if (HasNative())
-		return NativeBarrier.GetEnableTerrainDeformation();
-
-	return bEnableTerrainDeformation;
-}
-
-void UAGX_TerrainWheelComponent::SetTerrainDisplacementEnabled(bool InEnable)
-{
-	bEnableTerrainDisplacement = InEnable;
-
-	if (HasNative())
-		NativeBarrier.SetEnableTerrainDisplacement(InEnable);
-}
-
-bool UAGX_TerrainWheelComponent::IsTerrainDisplacementEnabled() const
-{
-	if (HasNative())
-		return NativeBarrier.GetEnableTerrainDisplacement();
-
-	return bEnableTerrainDisplacement;
-}
-
-void UAGX_TerrainWheelComponent::SetEnableTerrainDeformation(bool InEnable)
-{
-	SetTerrainDeformationEnabled(InEnable);
-}
-
-void UAGX_TerrainWheelComponent::SetEnableTerrainDisplacement(bool InEnable)
-{
-	SetTerrainDisplacementEnabled(InEnable);
+	return TerrainWheelDeformationProperties;
 }
 
 void UAGX_TerrainWheelComponent::CopyFrom(
@@ -208,6 +198,16 @@ void UAGX_TerrainWheelComponent::BeginPlay()
 			FString::Printf(
 				TEXT("Unable to update TerrainWheelSettings for '%s' in '%s', Output Log may "
 					 "contain more information."),
+				*GetName(), *GetNameSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+	}
+
+	if (!UpdateNativeTerrainWheelDeformationProperties())
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Unable to update TerrainWheelDeformationProperties for '%s' in '%s', Output Log "
+						 "may contain more information."),
 				*GetName(), *GetNameSafe(GetOwner())),
 			SNotificationItem::CS_Fail);
 	}
@@ -338,8 +338,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 		return;
 	}
 
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
-	AGX_COMPONENT_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelDeformationProperties);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
 }
 
@@ -449,13 +448,38 @@ void UAGX_TerrainWheelComponent::CreateNative()
 		return;
 	}
 
-	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
-	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
+	UpdateNativeTerrainWheelDeformationProperties();
 	UpdateNativeTerrainWheelSettings();
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))
 		Sim->Add(*this);
+}
+
+bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelDeformationProperties()
+{
+	if (!HasNative())
+		return false;
+
+	if (TerrainWheelDeformationProperties == nullptr)
+	{
+		NativeBarrier.ResetWheelDeformationProperties();
+	}
+	else
+	{
+		UWorld* World = GetWorld();
+		UAGX_TerrainWheelDeformationProperties* Instance =
+			TerrainWheelDeformationProperties->GetOrCreateInstance(World);
+		check(Instance);
+
+		TerrainWheelDeformationProperties = Instance;
+
+		FTerrainWheelDeformationPropertiesBarrier* PropertiesBarrier = Instance->GetOrCreateNative();
+		check(PropertiesBarrier);
+		NativeBarrier.SetWheelDeformationProperties(*PropertiesBarrier);
+	}
+
+	return true;
 }
 
 bool UAGX_TerrainWheelComponent::UpdateNativeTerrainWheelSettings()

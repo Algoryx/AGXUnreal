@@ -22,6 +22,30 @@ FTerrainWheelDeformationPropertiesBarrier::FTerrainWheelDeformationPropertiesBar
 {
 }
 
+void FTerrainWheelDeformationPropertiesBarrier::SetEnableTerrainDeformation(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableDeformation(InEnable);
+}
+
+bool FTerrainWheelDeformationPropertiesBarrier::GetEnableTerrainDeformation() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableDeformation();
+}
+
+void FTerrainWheelDeformationPropertiesBarrier::SetEnableTerrainDisplacement(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableDisplacement(InEnable);
+}
+
+bool FTerrainWheelDeformationPropertiesBarrier::GetEnableTerrainDisplacement() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableDisplacement();
+}
+
 bool FTerrainWheelDeformationPropertiesBarrier::HasNative() const
 {
 	return NativeRef->Native;

@@ -14,6 +14,7 @@
 #include "AGX_TerrainWheelComponent.generated.h"
 
 struct FAGX_ImportContext;
+class UAGX_TerrainWheelDeformationProperties;
 class UAGX_TerrainWheelSettings;
 
 /**
@@ -52,28 +53,18 @@ public:
 	bool SetTerrainWheelSettings(UAGX_TerrainWheelSettings* InTerrainWheelSettings);
 
 	/**
-	 * Determines whether this Terrain Wheeel will deform the Terrain it is in contact with.
+	 * Terrain Wheel Deformation Properties used by this Terrain Wheel.
+	 * If left unspecified, default Terrain Wheel Deformation Properties are used.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
-	bool bEnableTerrainDeformation {true};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Wheel")
+	UAGX_TerrainWheelDeformationProperties* TerrainWheelDeformationProperties {nullptr};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	void SetTerrainDeformationEnabled(bool InEnable);
+	bool SetTerrainWheelDeformationProperties(
+		UAGX_TerrainWheelDeformationProperties* InTerrainWheelDeformationProperties);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	bool IsTerrainDeformationEnabled() const;
-
-	/**
-	 * Determines whether this Terrain Wheeel will displace Terrain soil (to create ridges).
-	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel")
-	bool bEnableTerrainDisplacement {true};
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	void SetTerrainDisplacementEnabled(bool InEnable);
-
-	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
-	bool IsTerrainDisplacementEnabled() const;
+	UAGX_TerrainWheelDeformationProperties* GetTerrainWheelDeformationProperties() const;
 
 	UPROPERTY(EditAnywhere, Category = "Rendering")
 	bool bVisible {true};
@@ -129,11 +120,8 @@ private:
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
 
-	// To allow usage of Dispatcher macro.
-	void SetEnableTerrainDisplacement(bool InEnable);
-	void SetEnableTerrainDeformation(bool InEnable);
-
 	void CreateNative();
+	bool UpdateNativeTerrainWheelDeformationProperties();
 	bool UpdateNativeTerrainWheelSettings();
 
 private:

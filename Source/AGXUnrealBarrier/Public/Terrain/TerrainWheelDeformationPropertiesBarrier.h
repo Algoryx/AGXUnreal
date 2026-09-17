@@ -22,6 +22,12 @@ public:
 	FTerrainWheelDeformationPropertiesBarrier(
 		std::shared_ptr<FTerrainWheelDeformationPropertiesRef> Native);
 
+	void SetEnableTerrainDeformation(bool InEnable);
+	bool GetEnableTerrainDeformation() const;
+
+	void SetEnableTerrainDisplacement(bool InEnable);
+	bool GetEnableTerrainDisplacement() const;
+
 	bool HasNative() const;
 	FTerrainWheelDeformationPropertiesRef* GetNative();
 	const FTerrainWheelDeformationPropertiesRef* GetNative() const;

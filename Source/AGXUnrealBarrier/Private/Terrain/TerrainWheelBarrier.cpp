@@ -8,6 +8,7 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
 #include "Shapes/CylinderShapeBarrier.h"
+#include "Terrain/TerrainWheelDeformationPropertiesBarrier.h"
 #include "Terrain/TerrainWheelSettingsBarrier.h"
 
 // AGX Dynamics includes.
@@ -24,30 +25,6 @@ FTerrainWheelBarrier::FTerrainWheelBarrier()
 FTerrainWheelBarrier::FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> InNativeRef)
 	: NativeRef {std::move(InNativeRef)}
 {
-}
-
-void FTerrainWheelBarrier::SetEnableTerrainDeformation(bool InEnable)
-{
-	check(HasNative());
-	NativeRef->Native->getWheelDeformationProperties()->setEnableDeformation(InEnable);
-}
-
-bool FTerrainWheelBarrier::GetEnableTerrainDeformation() const
-{
-	check(HasNative());
-	return NativeRef->Native->getWheelDeformationProperties()->getEnableDeformation();
-}
-
-void FTerrainWheelBarrier::SetEnableTerrainDisplacement(bool InEnable)
-{
-	check(HasNative());
-	NativeRef->Native->getWheelDeformationProperties()->setEnableDisplacement(InEnable);
-}
-
-bool FTerrainWheelBarrier::GetEnableTerrainDisplacement() const
-{
-	check(HasNative());
-	return NativeRef->Native->getWheelDeformationProperties()->getEnableDisplacement();
 }
 
 void FTerrainWheelBarrier::SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings)
@@ -69,6 +46,29 @@ void FTerrainWheelBarrier::ResetTerrainWheelSettings()
 {
 	check(HasNative());
 	NativeRef->Native->setTerrainWheelSettings(new agxTerrain::TerrainWheelSettings());
+}
+
+void FTerrainWheelBarrier::SetWheelDeformationProperties(
+	const FTerrainWheelDeformationPropertiesBarrier& Properties)
+{
+	check(HasNative());
+	check(Properties.HasNative());
+	NativeRef->Native->setWheelDeformationProperties(Properties.GetNative()->Native);
+}
+
+FTerrainWheelDeformationPropertiesBarrier FTerrainWheelBarrier::GetWheelDeformationProperties()
+	const
+{
+	check(HasNative());
+	return FTerrainWheelDeformationPropertiesBarrier(
+		std::make_shared<FTerrainWheelDeformationPropertiesRef>(
+			NativeRef->Native->getWheelDeformationProperties()));
+}
+
+void FTerrainWheelBarrier::ResetWheelDeformationProperties()
+{
+	check(HasNative());
+	NativeRef->Native->setWheelDeformationProperties(new agxTerrain::WheelDeformationProperties());
 }
 
 void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)

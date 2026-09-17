@@ -25,6 +25,32 @@ class AGXUNREAL_API UAGX_TerrainWheelDeformationProperties : public UObject
 public:
 	UAGX_TerrainWheelDeformationProperties() = default;
 
+	/**
+	 * Determines whether Terrain Wheels using these properties will deform the Terrain they are in
+	 * contact with.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Deformation Properties")
+	bool bEnableTerrainDeformation {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	void SetEnableTerrainDeformation(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	bool GetEnableTerrainDeformation() const;
+
+	/**
+	 * Determines whether Terrain Wheels using these properties will displace Terrain soil to create
+	 * ridges.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Deformation Properties")
+	bool bEnableTerrainDisplacement {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	void SetEnableTerrainDisplacement(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
+	bool GetEnableTerrainDisplacement() const;
+
 	static UAGX_TerrainWheelDeformationProperties* CreateInstanceFromAsset(
 		const UWorld* PlayingWorld, UAGX_TerrainWheelDeformationProperties* Source);
 
@@ -52,7 +78,18 @@ public:
 
 	void UpdateNativeProperties();
 
+	// ~Begin UObject interface.
+	virtual void PostInitProperties() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
+	// ~End UObject interface.
+
 private:
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
+
 	void CopyFrom(const UAGX_TerrainWheelDeformationProperties* Source);
 	void CreateNative();
 

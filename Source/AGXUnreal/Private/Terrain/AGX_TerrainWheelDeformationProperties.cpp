@@ -3,8 +3,10 @@
 #include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "AGX_PropertyChangedDispatcher.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -31,6 +33,26 @@ UAGX_TerrainWheelDeformationProperties::CreateInstanceFromAsset(
 	NewInstance->CreateNative();
 
 	return NewInstance;
+}
+
+void UAGX_TerrainWheelDeformationProperties::SetEnableTerrainDeformation(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableTerrainDeformation, InEnable);
+}
+
+bool UAGX_TerrainWheelDeformationProperties::GetEnableTerrainDeformation() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableTerrainDeformation);
+}
+
+void UAGX_TerrainWheelDeformationProperties::SetEnableTerrainDisplacement(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableTerrainDisplacement, InEnable);
+}
+
+bool UAGX_TerrainWheelDeformationProperties::GetEnableTerrainDisplacement() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableTerrainDisplacement);
 }
 
 UAGX_TerrainWheelDeformationProperties* UAGX_TerrainWheelDeformationProperties::GetInstance()
@@ -133,13 +155,49 @@ UAGX_TerrainWheelDeformationProperties::GetOrCreateNative()
 
 void UAGX_TerrainWheelDeformationProperties::UpdateNativeProperties()
 {
+	if (!IsInstance() || !HasNative())
+		return;
+
+	NativeBarrier.SetEnableTerrainDeformation(bEnableTerrainDeformation);
+	NativeBarrier.SetEnableTerrainDisplacement(bEnableTerrainDisplacement);
 }
+
+void UAGX_TerrainWheelDeformationProperties::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+#if WITH_EDITOR
+	InitPropertyDispatcher();
+#endif
+}
+
+#if WITH_EDITOR
+void UAGX_TerrainWheelDeformationProperties::PostEditChangeChainProperty(
+	FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+	Super::PostEditChangeChainProperty(Event);
+}
+
+void UAGX_TerrainWheelDeformationProperties::InitPropertyDispatcher()
+{
+	auto& PropertyDispatcher = FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTerrainDeformation);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTerrainDisplacement);
+}
+#endif // WITH_EDITOR
 
 void UAGX_TerrainWheelDeformationProperties::CopyFrom(
 	const UAGX_TerrainWheelDeformationProperties* Source)
 {
 	if (Source == nullptr)
 		return;
+
+	bEnableTerrainDeformation = Source->bEnableTerrainDeformation;
+	bEnableTerrainDisplacement = Source->bEnableTerrainDisplacement;
 }
 
 void UAGX_TerrainWheelDeformationProperties::CreateNative()

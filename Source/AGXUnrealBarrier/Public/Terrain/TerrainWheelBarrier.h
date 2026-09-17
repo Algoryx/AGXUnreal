@@ -12,6 +12,7 @@
 
 struct FCylinderShapeBarrier;
 struct FRigidBodyBarrier;
+struct FTerrainWheelDeformationPropertiesBarrier;
 struct FTerrainWheelSettingsBarrier;
 struct FTerrainWheelRef;
 
@@ -23,15 +24,14 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	FTerrainWheelBarrier();
 	FTerrainWheelBarrier(std::shared_ptr<FTerrainWheelRef> Native);
 
-	void SetEnableTerrainDeformation(bool InEnable);
-	bool GetEnableTerrainDeformation() const;
-
-	void SetEnableTerrainDisplacement(bool InEnable);
-	bool GetEnableTerrainDisplacement() const;
-
 	void SetTerrainWheelSettings(const FTerrainWheelSettingsBarrier& Settings);
 	FTerrainWheelSettingsBarrier GetTerrainWheelSettings() const;
 	void ResetTerrainWheelSettings();
+
+	void SetWheelDeformationProperties(
+		const FTerrainWheelDeformationPropertiesBarrier& Properties);
+	FTerrainWheelDeformationPropertiesBarrier GetWheelDeformationProperties() const;
+	void ResetWheelDeformationProperties();
 
 	void AllocateNative(FCylinderShapeBarrier& Cylinder);
 
