@@ -3,7 +3,7 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_ElementaryConstraintEnableState.h"
+#include "AGX_ElementaryConstraintEnabledState.h"
 #include "AGX_RealInterval.h"
 #include "RigidBodyBarrier.h"
 
@@ -119,14 +119,14 @@ public:
 	/**
 	 * Get the enable state of each Elementary Constraint.
 	 */
-	TArray<FAGX_ElementaryConstraintEnableState> GetElementaryConstraintEnableStates() const;
+	TArray<FAGX_ElementaryConstraintEnabledState> GetElementaryConstraintEnableStates() const;
 
 	/**
 	 * Set the enable state of the Elementary Constraint with the given native AGX Dynamics name.
 	 *
 	 * @return True if an Elementary Constraint with the given name was found, false otherwise.
 	 */
-	bool SetElementaryConstraintEnableState(const FString& Name, bool bEnable);
+	bool SetElementaryConstraintEnabled(const FString& Name, bool bEnable);
 
 private:
 	FConstraintBarrier(const FConstraintBarrier&) = delete;

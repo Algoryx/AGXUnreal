@@ -4,7 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AMOR/AGX_ConstraintMergeSplitProperties.h"
-#include "AGX_ElementaryConstraintEnableState.h"
+#include "AGX_ElementaryConstraintEnabledState.h"
 #include "AGX_NativeOwner.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_RealInterval.h"
@@ -193,7 +193,7 @@ public:
 	 * importing an AGX Dynamics or OpenPLX model.
 	 */
 	UPROPERTY(EditAnywhere, EditFixedSize, Category = "AGX Constraint")
-	TArray<FAGX_ElementaryConstraintEnableState> ElementaryConstraintEnableStates;
+	TArray<FAGX_ElementaryConstraintEnabledState> ElementaryConstraintsEnabled;
 
 	/**
 	 * Enable or disable computation of the forces applied to the dynamic bodies in this constraint.
@@ -239,11 +239,11 @@ public:
 	 * Elementary Constraint with the given name. Returns false otherwise.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
-	bool SetElementaryConstraintEnableState(FName ElementaryConstraintName, bool bInEnable);
+	bool SetElementaryConstraintEnabled(FName ElementaryConstraintName, bool bInEnable);
 
 	/** Set the enable state of every Elementary Constraint belonging to this Constraint. */
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
-	void SetAllElementaryConstraintEnableStates(bool bInEnable);
+	void SetAllElementaryConstraintsEnabled(bool bInEnable);
 
 	/**
 	 * Check if the native AGX Dynamics constraint has been successfully created and initialized.
@@ -415,7 +415,7 @@ public:
 
 	void UpdateNativeSpookDamping();
 
-	void UpdateNativeElementaryConstraintEnableStates();
+	void UpdateNativeElementaryConstraintsEnabled();
 
 	// ~Begin UActorComponent interface.
 	virtual void BeginPlay() override;

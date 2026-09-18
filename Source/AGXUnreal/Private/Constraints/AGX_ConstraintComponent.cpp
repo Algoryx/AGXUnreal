@@ -237,12 +237,12 @@ bool UAGX_ConstraintComponent::GetEnable() const
 	}
 }
 
-bool UAGX_ConstraintComponent::SetElementaryConstraintEnableState(
+bool UAGX_ConstraintComponent::SetElementaryConstraintEnabled(
 	FName ElementaryConstraintName, bool bInEnable)
 {
-	FAGX_ElementaryConstraintEnableState* EnableState =
-		ElementaryConstraintEnableStates.FindByPredicate(
-			[ElementaryConstraintName](const FAGX_ElementaryConstraintEnableState& Candidate)
+	FAGX_ElementaryConstraintEnabledState* EnableState =
+		ElementaryConstraintsEnabled.FindByPredicate(
+			[ElementaryConstraintName](const FAGX_ElementaryConstraintEnabledState& Candidate)
 			{ return Candidate.Name == ElementaryConstraintName; });
 
 	if (EnableState == nullptr)
@@ -251,7 +251,7 @@ bool UAGX_ConstraintComponent::SetElementaryConstraintEnableState(
 	}
 
 	if (HasNative() &&
-		!NativeBarrier->SetElementaryConstraintEnableState(
+		!NativeBarrier->SetElementaryConstraintEnabled(
 			ElementaryConstraintName.ToString(), bInEnable))
 	{
 		return false;
@@ -261,14 +261,14 @@ bool UAGX_ConstraintComponent::SetElementaryConstraintEnableState(
 	return true;
 }
 
-void UAGX_ConstraintComponent::SetAllElementaryConstraintEnableStates(bool bInEnable)
+void UAGX_ConstraintComponent::SetAllElementaryConstraintsEnabled(bool bInEnable)
 {
-	for (FAGX_ElementaryConstraintEnableState& EnableState : ElementaryConstraintEnableStates)
+	for (FAGX_ElementaryConstraintEnabledState& EnableState : ElementaryConstraintsEnabled)
 	{
 		EnableState.bEnabled = bInEnable;
 	}
 
-	UpdateNativeElementaryConstraintEnableStates();
+	UpdateNativeElementaryConstraintsEnabled();
 }
 
 void UAGX_ConstraintComponent::SetEnableSelfCollision(bool InEnabled)
@@ -631,7 +631,7 @@ void UAGX_ConstraintComponent::CopyFrom(
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName(); // Unmodifiled AGX name.
 	bEnable = Barrier.GetEnable();
-	ElementaryConstraintEnableStates = Barrier.GetElementaryConstraintEnableStates();
+	ElementaryConstraintsEnabled = Barrier.GetElementaryConstraintEnableStates();
 	EAGX_SolveType SolveTypeBarrier = static_cast<EAGX_SolveType>(Barrier.GetSolveType());
 	SolveType = SolveTypeBarrier;
 	bComputeForces = Barrier.GetEnableComputeForces();
@@ -961,8 +961,8 @@ void UAGX_ConstraintComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->SetComputeForces(This->bComputeForces); });
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_ConstraintComponent, ElementaryConstraintEnableStates),
-		[](ThisClass* This) { This->UpdateNativeElementaryConstraintEnableStates(); });
+		GET_MEMBER_NAME_CHECKED(UAGX_ConstraintComponent, ElementaryConstraintsEnabled),
+		[](ThisClass* This) { This->UpdateNativeElementaryConstraintsEnabled(); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(ThisClass, MergeSplitProperties),
@@ -1119,7 +1119,7 @@ void UAGX_ConstraintComponent::UpdateNativeProperties()
 		ForceRange, EGenericDofIndex::Rotational3, NativeBarrier->SetForceRange);
 
 	NativeBarrier->SetEnableComputeForces(bComputeForces);
-	UpdateNativeElementaryConstraintEnableStates();
+	UpdateNativeElementaryConstraintsEnabled();
 }
 
 namespace
@@ -1163,16 +1163,16 @@ void UAGX_ConstraintComponent::UpdateNativeSpookDamping()
 		{ NativeBarrier->SetSpookDamping(SpookDamping[GenericDof], NativeDof); });
 }
 
-void UAGX_ConstraintComponent::UpdateNativeElementaryConstraintEnableStates()
+void UAGX_ConstraintComponent::UpdateNativeElementaryConstraintsEnabled()
 {
 	if (!HasNative())
 	{
 		return;
 	}
 
-	for (const FAGX_ElementaryConstraintEnableState& EnableState : ElementaryConstraintEnableStates)
+	for (const FAGX_ElementaryConstraintEnabledState& EnableState : ElementaryConstraintsEnabled)
 	{
-		NativeBarrier->SetElementaryConstraintEnableState(
+		NativeBarrier->SetElementaryConstraintEnabled(
 			EnableState.Name.ToString(), EnableState.bEnabled);
 	}
 }

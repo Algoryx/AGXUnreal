@@ -5,17 +5,17 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
-#include "AGX_ElementaryConstraintEnableState.generated.h"
+#include "AGX_ElementaryConstraintEnabledState.generated.h"
 
 /** The enable state of an Elementary Constraint, identified by its native AGX Dynamics name. */
 USTRUCT(BlueprintType)
-struct AGXCOMMON_API FAGX_ElementaryConstraintEnableState
+struct AGXCOMMON_API FAGX_ElementaryConstraintEnabledState
 {
 	GENERATED_BODY()
 
-	FAGX_ElementaryConstraintEnableState() = default;
+	FAGX_ElementaryConstraintEnabledState() = default;
 
-	FAGX_ElementaryConstraintEnableState(FName InName, bool bInEnabled)
+	FAGX_ElementaryConstraintEnabledState(FName InName, bool bInEnabled)
 		: Name(InName)
 		, bEnabled(bInEnabled)
 	{
