@@ -192,7 +192,7 @@ public:
 	 * The enable state of each Elementary Constraint belonging to this Constraint. Populated when
 	 * importing an AGX Dynamics or OpenPLX model.
 	 */
-	UPROPERTY(EditAnywhere, EditFixedSize, Category = "AGX Constraint")
+	UPROPERTY(EditAnywhere, EditFixedSize, AdvancedDisplay, Category = "AGX Constraint")
 	TArray<FAGX_ElementaryConstraintEnabledState> ElementaryConstraintsEnabled;
 
 	/**
