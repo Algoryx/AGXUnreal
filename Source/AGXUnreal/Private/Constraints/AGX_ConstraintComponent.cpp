@@ -247,6 +247,12 @@ bool UAGX_ConstraintComponent::SetElementaryConstraintEnabled(
 
 	if (EnableState == nullptr)
 	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"Failed to enable or disable Elementary Constraint '%s' in Constraint '%s' in "
+				"'%s': no Elementary Constraint with that name."),
+			*ElementaryConstraintName.ToString(), *GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
 
