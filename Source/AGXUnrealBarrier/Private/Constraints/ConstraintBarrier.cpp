@@ -419,11 +419,12 @@ bool FConstraintBarrier::SetElementaryConstraintEnabled(const FString& Name, boo
 {
 	check(HasNative());
 
+	agx::Name NameAGX = Convert(Name);
 	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
 	for (decltype(NumEc) I = 0; I < NumEc; I++)
 	{
 		auto* ElementaryConstraint = NativeRef->Native->getElementaryConstraint(I);
-		if (Convert(ElementaryConstraint->getName()) == Name)
+		if (ElementaryConstraint->getName() == NameAGX)
 		{
 			ElementaryConstraint->setEnable(bEnable);
 			return true;
