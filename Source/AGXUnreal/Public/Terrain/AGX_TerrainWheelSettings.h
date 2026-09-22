@@ -165,7 +165,7 @@ public:
 	 * Terrain height data used when calculating the force feedback plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
 	EAGX_TerrainWheelSamplingMode ForceFeedbackHeightFieldSamplingMode {
 		EAGX_TerrainWheelSamplingMode::Live};
 
@@ -179,9 +179,9 @@ public:
 	 * Terrain height data used when calculating the force reference plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
 	EAGX_TerrainWheelSamplingMode ForceReferencePlaneSamplingMode {
-		EAGX_TerrainWheelSamplingMode::Live};
+		EAGX_TerrainWheelSamplingMode::Cached};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetForceReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
@@ -194,9 +194,9 @@ public:
 	 * samples the current, potentially deformed Terrain. Cached samples the moving local
 	 * Terrain-height cache.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
 	EAGX_TerrainWheelSamplingMode RearAndFrontAngleReferencePlaneSamplingMode {
-		EAGX_TerrainWheelSamplingMode::Live};
+		EAGX_TerrainWheelSamplingMode::Cached};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetRearAndFrontAngleReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
@@ -233,7 +233,7 @@ public:
 	/**
 	 * Determines whether traction and rolling resistance coupling is enabled.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
 	bool bEnableTractionRollingResistanceCoupling {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
