@@ -114,7 +114,7 @@ namespace
 				}
 				case agxCollide::Shape::TERRAIN_WHEEL:
 				{
-					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// Shape::TERRAIN_WHEEL is not really used publically in AGX API's; its used
 					// internally by TerrainWheel and still uses type Cylinder.
 					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
 					OutSimObjects.GetCylinderShapes().Add(
