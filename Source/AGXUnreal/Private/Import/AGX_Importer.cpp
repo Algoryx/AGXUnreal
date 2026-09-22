@@ -304,30 +304,6 @@ namespace AGX_Importer_helpers
 		}
 	}
 
-	void ConditionallyDisableConstraints(
-		const FSimulationObjectCollection& SimObjects, FAGX_ImportContext& Context)
-	{
-		// This is a work-around for imported OpenPLX models, where the
-		// agxOpenPlx::OpenPlxToAgxMapper lets constraints (OpenPLX: Interactions) stay enabled even
-		// though the user have disabled them. Instead, it disables all ElementaryConstraitns. So
-		// for us to give the same behavior as in AGX Dynamcis, we need to "fake" the disable state
-		// on the high-level Constraint since we don't have a representation of Elementary
-		// Constraints in AGXUnreal.
-		AGX_CHECK(Context.Settings->ImportType == EAGX_ImportType::Plx);
-		for (const auto& Barrier : SimObjects.CollectAllConstraints())
-		{
-			if (!Barrier.HasNative())
-				return;
-
-			auto Component = Context.Constraints.FindRef(Barrier.GetGuid());
-			if (Component == nullptr)
-				return;
-
-			if (Barrier.IsAllElementaryConstraintsDisabled())
-				Component->SetEnable(false);
-		}
-	}
-
 	template <typename T>
 	concept HasGetName = requires(const T& t) {
 		{ t.GetName() };
@@ -405,7 +381,7 @@ FAGX_ImportResult UAGX_Importer::Import(const FAGX_ImportSettings& Settings)
 	BatchBuildStaticMeshes(Context);
 #endif
 
-	PostImport(SimObjects);
+	PostImport();
 	return FAGX_ImportResult(Result, ImportedActor.Get(), &Context);
 }
 
@@ -933,12 +909,11 @@ EAGX_ImportResult UAGX_Importer::AddSignalHandlerComponent(
 	return EAGX_ImportResult::Success;
 }
 
-void UAGX_Importer::PostImport(const FSimulationObjectCollection& SimObjects)
+void UAGX_Importer::PostImport()
 {
 	if (Context.Settings->ImportType == EAGX_ImportType::Plx)
 	{
 		AGX_Importer_helpers::ConditionallyHideShapes(Context);
-		AGX_Importer_helpers::ConditionallyDisableConstraints(SimObjects, Context);
 
 		if (Context.Settings->bRuntimeImport)
 		{
