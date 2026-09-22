@@ -13,6 +13,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include "agx/TerrainWheelForceModel.h"
 #include "agxCollide/Cylinder.h"
 #include "agxTerrain/WheelDeformationProperties.h"
 #include "EndAGXIncludes.h"
@@ -69,6 +70,18 @@ void FTerrainWheelBarrier::ResetWheelDeformationProperties()
 {
 	check(HasNative());
 	NativeRef->Native->setWheelDeformationProperties(new agxTerrain::WheelDeformationProperties());
+}
+
+void FTerrainWheelBarrier::SetNormalForceLimitDampingTermMultiplier(double InMultiplier)
+{
+	check(HasNative());
+	NativeRef->Native->getBounds()->setNormalForceLimitDampingTermMultiplier(InMultiplier);
+}
+
+double FTerrainWheelBarrier::GetNormalForceLimitDampingTermMultiplier() const
+{
+	check(HasNative());
+	return NativeRef->Native->getBounds()->getNormalForceLimitDampingTermMultiplier();
 }
 
 void FTerrainWheelBarrier::AllocateNative(FCylinderShapeBarrier& Cylinder)

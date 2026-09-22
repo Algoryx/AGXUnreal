@@ -131,6 +131,19 @@ UAGX_TerrainWheelComponent::GetTerrainWheelDeformationProperties() const
 	return TerrainWheelDeformationProperties;
 }
 
+void UAGX_TerrainWheelComponent::SetNormalForceLimitDampingTermMultiplier(double InMultiplier)
+{
+	NormalForceLimitDampingTermMultiplier = InMultiplier;
+
+	if (HasNative())
+		NativeBarrier.SetNormalForceLimitDampingTermMultiplier(InMultiplier);
+}
+
+double UAGX_TerrainWheelComponent::GetNormalForceLimitDampingTermMultiplier() const
+{
+	return NormalForceLimitDampingTermMultiplier;
+}
+
 void UAGX_TerrainWheelComponent::CopyFrom(
 	const FTerrainWheelBarrier& Barrier, FAGX_ImportContext* Context)
 {
@@ -144,6 +157,7 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 
 	ImportGuid = Barrier.GetGuid();
 	ImportName = Barrier.GetName();
+	NormalForceLimitDampingTermMultiplier = Barrier.GetNormalForceLimitDampingTermMultiplier();
 
 	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
@@ -377,6 +391,7 @@ void UAGX_TerrainWheelComponent::InitPropertyDispatcher()
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelDeformationProperties);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(TerrainWheelSettings);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(NormalForceLimitDampingTermMultiplier);
 }
 
 bool UAGX_TerrainWheelComponent::CanEditChange(const FProperty* InProperty) const
@@ -487,6 +502,7 @@ void UAGX_TerrainWheelComponent::CreateNative()
 
 	UpdateNativeTerrainWheelDeformationProperties();
 	UpdateNativeTerrainWheelSettings();
+	NativeBarrier.SetNormalForceLimitDampingTermMultiplier(NormalForceLimitDampingTermMultiplier);
 	NativeBarrier.SetName(!ImportName.IsEmpty() ? ImportName : GetName());
 
 	if (auto Sim = UAGX_Simulation::GetFrom(this))

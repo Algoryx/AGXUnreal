@@ -33,6 +33,9 @@ struct AGXUNREALBARRIER_API FTerrainWheelBarrier
 	FTerrainWheelDeformationPropertiesBarrier GetWheelDeformationProperties() const;
 	void ResetWheelDeformationProperties();
 
+	void SetNormalForceLimitDampingTermMultiplier(double InMultiplier);
+	double GetNormalForceLimitDampingTermMultiplier() const;
+
 	void AllocateNative(FCylinderShapeBarrier& Cylinder);
 
 	FGuid GetGuid() const;

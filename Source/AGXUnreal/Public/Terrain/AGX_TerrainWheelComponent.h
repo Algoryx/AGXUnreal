@@ -66,6 +66,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
 	UAGX_TerrainWheelDeformationProperties* GetTerrainWheelDeformationProperties() const;
 
+	/**
+	 * Multiplier applied to the normal force limit damping term.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel", AdvancedDisplay)
+	double NormalForceLimitDampingTermMultiplier {1.0};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	void SetNormalForceLimitDampingTermMultiplier(double InMultiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel")
+	double GetNormalForceLimitDampingTermMultiplier() const;
+
 	UPROPERTY(EditAnywhere, Category = "Rendering")
 	bool bVisible {true};
 
