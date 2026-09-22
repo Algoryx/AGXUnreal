@@ -112,7 +112,7 @@ namespace
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
 					break;
 				}
-				case agxCollide::Shape::TIRE_SHAPE:
+				case agxCollide::Shape::TERRAIN_WHEEL:
 				{
 					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
 					// internally by TerrainWheel and still uses type Cylinder.
