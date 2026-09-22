@@ -20,6 +20,13 @@
 #include "Utilities/OpenPLX_Utilities.h"
 #include "Utilities/PLXUtilitiesInternal.h"
 
+// AGX Dynamics includes.
+#include "BeginAGXIncludes.h"
+#include <agxSensor/Environment.h>
+#include <agxSensor/Lidar.h>
+#include <agxSensor/SensorGroupStepStride.h>
+#include "EndAGXIncludes.h"
+
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "agxOpenPLX/AgxObjectMap.h"
@@ -99,8 +106,8 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
-	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
-	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
+	auto MetadataAGX = std::make_shared<agxopenplx::AgxMetadata>();
+	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, MetadataAGX);
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -111,6 +118,36 @@ void FOpenPLXSignalHandler::Init(
 
 		agxSensor::EnvironmentRef EnvironmentAGX =
 			Environment != nullptr && Environment->HasNative() ? Environment->GetNative()->Native : nullptr;
+
+		UE_LOG(LogTemp, Warning, TEXT("DEBUG: About to create AgxObjectMap"));
+		UE_LOG(LogTemp, Warning, TEXT("Environment: %d"), EnvironmentAGX != nullptr);
+		if (EnvironmentAGX != nullptr)
+		{
+			for (agxSensor::Sensor* Sensor : EnvironmentAGX->findRootSystems<agxSensor::Sensor>())
+			{
+				if (agxSensor::Lidar* Lidar = Sensor->asSafe<agxSensor::Lidar>())
+				{
+					UE_LOG(
+						LogTemp, Warning, TEXT("DEBUG: Found root Lidar sensor: %s"),
+						*Convert(Lidar->getName()));
+				}
+			}
+
+			for (auto StepStride : EnvironmentAGX->findRootSystems<agxSensor::SensorGroupStepStride>())
+			{
+				const auto NumChildren = StepStride->getNumChildren();
+				for (size_t I = 0; I < NumChildren; ++I)
+				{
+					if (agxSensor::Lidar* Lidar =
+							StepStride->getChild(I)->asSafe<agxSensor::Lidar>())
+					{
+						UE_LOG(
+							LogTemp, Warning, TEXT("DEBUG: Found SensorGroupStepStride Lidar sensor: %s"),
+							*Convert(Lidar->getName()));
+					}
+				}
+			}
+		}
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
 			AssemblyRef->Native, PlxPowerLine, EnvironmentAGX, agxopenplx::AgxObjectMapMode::Name);
 	}
@@ -121,7 +158,11 @@ void FOpenPLXSignalHandler::Init(
 
 	std::shared_ptr<openplx::ControlDispatch> ControlDispatch =
 		std::make_shared<openplx::ControlDispatch>();
-	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, Metadata);
+	UE_LOG(LogTemp, Warning, TEXT("About to call agxopenplx::register_control_handlers"));
+	agxopenplx::register_control_handlers(*ControlDispatch, AgxObjectMap, MetadataAGX);
+
+	UE_LOG(LogTemp, Warning, TEXT("About to create ControlInterface"));
+
 	std::shared_ptr<openplx::ControlInterface> ControlInterface =
 		std::make_shared<openplx::ControlInterface>(ControlDispatch);
 
@@ -144,11 +185,17 @@ void FOpenPLXSignalHandler::Init(
 		ControlInterface->add_output(I++, std::move(NameAGXAllocated), Output);
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("About to call prepare_controls"));
 	ControlInterface->prepare_controls();
+
+	UE_LOG(LogTemp, Warning, TEXT("About to call insert"));
+
 	ModelData->HeapControlInterfaces.insert(
 		{AssemblyRef->Native.get(),
 		 std::make_shared<openplx::HeapControlInterface>(ControlInterface)});
 
+
+	UE_LOG(LogTemp, Warning, TEXT("FOpenPLXSignalHandler::Init done"));
 	bIsInitialized = true;
 }
 
