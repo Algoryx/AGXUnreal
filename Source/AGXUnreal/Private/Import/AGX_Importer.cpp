@@ -44,6 +44,7 @@
 #include "Shapes/AGX_TrimeshShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 #include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Terrain/TerrainBarrier.h"

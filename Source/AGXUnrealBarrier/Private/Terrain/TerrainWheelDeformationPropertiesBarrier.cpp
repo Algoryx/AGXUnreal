@@ -87,3 +87,9 @@ void FTerrainWheelDeformationPropertiesBarrier::ReleaseNative()
 	check(HasNative());
 	NativeRef->Native = nullptr;
 }
+
+FGuid FTerrainWheelDeformationPropertiesBarrier::GetGuid() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getUuid());
+}

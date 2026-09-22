@@ -6,6 +6,7 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "Import/AGX_ModelSourceComponent.h"
+#include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 #include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
@@ -245,6 +246,11 @@ FString FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName()
 	return FString("SteeringParameters");
 }
 
+FString FAGX_ImportUtilities::GetImportTerrainWheelDeformationPropertiesDirectoryName()
+{
+	return FString("TerrainWheelDeformationProperties");
+}
+
 FString FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName()
 {
 	return FString("TerrainWheelSettings");
@@ -333,6 +339,13 @@ AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_SteeringParameters>()
 {
 	return GetImportSteeringParametersDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_TerrainWheelDeformationProperties>()
+{
+	return GetImportTerrainWheelDeformationPropertiesDirectoryName();
 }
 
 template <>

@@ -48,6 +48,26 @@ namespace AGX_TerrainWheelComponent_helpers
 		Settings->CopyFrom(Barrier, &Context);
 		return Settings;
 	}
+
+	UAGX_TerrainWheelDeformationProperties* GetOrCreateTerrainWheelDeformationProperties(
+		const FTerrainWheelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		FTerrainWheelDeformationPropertiesBarrier PropertiesBarrier =
+			Barrier.GetWheelDeformationProperties();
+		if (!PropertiesBarrier.HasNative())
+			return nullptr;
+
+		const FGuid Guid = PropertiesBarrier.GetGuid();
+		if (auto Existing = Context.TerrainWheelDeformationProperties.FindRef(Guid))
+			return Existing;
+
+		UAGX_TerrainWheelDeformationProperties* Properties =
+			NewObject<UAGX_TerrainWheelDeformationProperties>(
+				Context.Outer, NAME_None, RF_Public | RF_Standalone);
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Properties, Context.SessionGuid);
+		Properties->CopyFrom(Barrier, &Context);
+		return Properties;
+	}
 }
 
 UAGX_TerrainWheelComponent::UAGX_TerrainWheelComponent()
@@ -140,6 +160,7 @@ void UAGX_TerrainWheelComponent::CopyFrom(
 	AGX_CHECK(!Context->TerrainWheels.Contains(ImportGuid));
 	Context->TerrainWheels.Add(ImportGuid, this);
 	TerrainWheelSettings = GetOrCreateTerrainWheelSettings(Barrier, *Context);
+	TerrainWheelDeformationProperties = GetOrCreateTerrainWheelDeformationProperties(Barrier, *Context);
 }
 
 void UAGX_TerrainWheelComponent::PostInitProperties()

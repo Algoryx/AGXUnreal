@@ -41,6 +41,8 @@ public:
 	void AllocateNative();
 	void ReleaseNative();
 
+	FGuid GetGuid() const;
+
 private:
 	std::shared_ptr<FTerrainWheelDeformationPropertiesRef> NativeRef;
 };

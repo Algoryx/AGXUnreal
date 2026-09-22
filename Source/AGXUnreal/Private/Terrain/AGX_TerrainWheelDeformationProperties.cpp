@@ -7,11 +7,29 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Terrain/TerrainWheelBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
+
+namespace AGX_TerrainWheelDeformationProperties_helpers
+{
+	FString CreatePropertiesName(const FTerrainWheelBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty() ? TEXT("TerrainWheelDeformationProperties") : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("AGX_TWDP_%s"), *BaseName),
+			UAGX_TerrainWheelDeformationProperties::StaticClass());
+	}
+}
 
 UAGX_TerrainWheelDeformationProperties*
 UAGX_TerrainWheelDeformationProperties::CreateInstanceFromAsset(
@@ -175,6 +193,39 @@ void UAGX_TerrainWheelDeformationProperties::UpdateNativeProperties()
 	NativeBarrier.SetDisplacementModel(DisplacementModel);
 }
 
+void UAGX_TerrainWheelDeformationProperties::CopyFrom(
+	const FTerrainWheelBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	FTerrainWheelDeformationPropertiesBarrier PropertiesBarrier =
+		Source.GetWheelDeformationProperties();
+	if (!PropertiesBarrier.HasNative())
+		return;
+
+	CopyFrom(PropertiesBarrier);
+
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	Rename(*AGX_TerrainWheelDeformationProperties_helpers::CreatePropertiesName(Source, *Context));
+	AGX_CHECK(!Context->TerrainWheelDeformationProperties.Contains(ImportGuid));
+	Context->TerrainWheelDeformationProperties.Add(ImportGuid, this);
+}
+
+void UAGX_TerrainWheelDeformationProperties::CopyFrom(
+	const FTerrainWheelDeformationPropertiesBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	ImportGuid = Source.GetGuid();
+	bEnableTerrainDeformation = Source.GetEnableTerrainDeformation();
+	bEnableTerrainDisplacement = Source.GetEnableTerrainDisplacement();
+	DisplacementModel = Source.GetDisplacementModel();
+}
+
 void UAGX_TerrainWheelDeformationProperties::PostInitProperties()
 {
 	Super::PostInitProperties();
@@ -213,6 +264,7 @@ void UAGX_TerrainWheelDeformationProperties::CopyFrom(
 	bEnableTerrainDeformation = Source->bEnableTerrainDeformation;
 	bEnableTerrainDisplacement = Source->bEnableTerrainDisplacement;
 	DisplacementModel = Source->DisplacementModel;
+	ImportGuid = Source->ImportGuid;
 }
 
 void UAGX_TerrainWheelDeformationProperties::CreateNative()

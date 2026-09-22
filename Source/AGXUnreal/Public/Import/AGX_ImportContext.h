@@ -30,6 +30,7 @@ class UAGX_ShovelProperties;
 class UAGX_SteeringComponent;
 class UAGX_SteeringParameters;
 class UAGX_TerrainWheelComponent;
+class UAGX_TerrainWheelDeformationProperties;
 class UAGX_TerrainWheelSettings;
 class UAGX_TrackComponent;
 class UAGX_TrackInternalMergeProperties;
@@ -133,6 +134,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_SteeringParameters>> SteeringParameters;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_TerrainWheelDeformationProperties>> TerrainWheelDeformationProperties;
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_TerrainWheelSettings>> TerrainWheelSettings;

@@ -25,6 +25,7 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 #include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Terrain/ShovelBarrier.h"
 #include "Tires/AGX_TwoBodyTireComponent.h"
@@ -173,6 +174,9 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_SteeringParameters>)
 			return FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_TerrainWheelDeformationProperties>)
+			return FAGX_ImportUtilities::GetImportTerrainWheelDeformationPropertiesDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_TerrainWheelSettings>)
 			return FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
@@ -715,6 +719,11 @@ namespace AGX_ImporterToEditor_helpers
 			RootDirectory, FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName())));
 
 		CollectForRemoval(
+			FAGX_EditorUtilities::FindAssets<UAGX_TerrainWheelDeformationProperties>(FPaths::Combine(
+				RootDirectory,
+				FAGX_ImportUtilities::GetImportTerrainWheelDeformationPropertiesDirectoryName())));
+
+		CollectForRemoval(
 			FAGX_EditorUtilities::FindAssets<UAGX_TerrainWheelSettings>(FPaths::Combine(
 				RootDirectory,
 				FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName())));
@@ -838,6 +847,13 @@ namespace AGX_ImporterToEditor_helpers
 
 		const FString TerrainWheelSettingsAssetType =
 			FAGX_ImportUtilities::GetImportTerrainWheelSettingsDirectoryName();
+		const FString TerrainWheelDeformationPropertiesAssetType =
+			FAGX_ImportUtilities::GetImportTerrainWheelDeformationPropertiesDirectoryName();
+		for (const auto& [Guid, Twdp] : Context->TerrainWheelDeformationProperties)
+		{
+			WriteAssetToDisk(RootDir, TerrainWheelDeformationPropertiesAssetType, *Twdp, *Context);
+		}
+
 		for (const auto& [Guid, Tws] : Context->TerrainWheelSettings)
 		{
 			WriteAssetToDisk(RootDir, TerrainWheelSettingsAssetType, *Tws, *Context);
@@ -1016,6 +1032,9 @@ namespace AGX_ImporterToEditor_helpers
 			DestroyIfOwnedByContextOuter(Obj);
 
 		for (auto& [Unused, Obj] : Context.TerrainWheelSettings)
+			DestroyIfOwnedByContextOuter(Obj);
+
+		for (auto& [Unused, Obj] : Context.TerrainWheelDeformationProperties)
 			DestroyIfOwnedByContextOuter(Obj);
 
 		for (auto& [Unused, Obj] : Context.TrackProperties)
@@ -1566,6 +1585,14 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 	for (const auto& [Guid, Tws] : Context.TerrainWheelSettings)
 	{
 		const auto A = UpdateOrCreateAsset(*Tws, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	for (const auto& [Guid, Twdp] : Context.TerrainWheelDeformationProperties)
+	{
+		const auto A = UpdateOrCreateAsset(*Twdp, Context);
 		AGX_CHECK(A != nullptr);
 		if (A == nullptr)
 			Result |= EAGX_ImportResult::RecoverableErrorsOccured;

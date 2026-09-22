@@ -341,6 +341,9 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassThumbnail.AGX_TerrainWheelSettings",
 		new IMAGE_BRUSH("Thumbnails/terrainwheel_settings_128x128", IconSize128));
 	Style->Set(
+		"ClassThumbnail.AGX_TerrainWheelDeformationProperties",
+		new IMAGE_BRUSH("Thumbnails/terrainwheel_settings_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_TrackInternalMergeProperties",
 		new IMAGE_BRUSH("Thumbnails/track_internal_merge_properties_128x128", IconSize128));
 	Style->Set(

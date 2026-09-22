@@ -24,6 +24,7 @@
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_ShovelProperties.h"
 #include "Terrain/AGX_TerrainWheelComponent.h"
+#include "Terrain/AGX_TerrainWheelDeformationProperties.h"
 #include "Terrain/AGX_TerrainWheelSettings.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
@@ -4048,6 +4049,18 @@ bool FCheckTerrainWheelImportedCommand::Update()
 
 	Test.TestEqual(
 		TEXT("Terrain Wheel Body Reference"), TerrainWheel->RigidBody.Name, FName(TEXT("Body")));
+	Test.TestNotNull(
+		TEXT("Terrain Wheel Deformation Properties"), TerrainWheel->TerrainWheelDeformationProperties);
+	if (TerrainWheel->TerrainWheelDeformationProperties == nullptr)
+		return true;
+
+	UAGX_TerrainWheelDeformationProperties* DeformationProperties =
+		TerrainWheel->TerrainWheelDeformationProperties;
+	Test.TestTrue(
+		TEXT("Terrain Wheel Deformation Properties is asset"), DeformationProperties->IsAsset());
+	Test.TestFalse(
+		TEXT("Terrain Wheel Deformation Properties is instance"), DeformationProperties->IsInstance());
+
 	Test.TestNotNull(TEXT("Terrain Wheel Settings"), TerrainWheel->TerrainWheelSettings);
 	if (TerrainWheel->TerrainWheelSettings == nullptr)
 		return true;
@@ -4116,6 +4129,8 @@ bool FClearTerrainWheelImportedCommand::Update()
 		TEXT("ShapeMaterial"),
 			TEXT("TerrainWheelMaterial.uasset"),
 			TEXT("TerrainMaterial.uasset"),
+		TEXT("TerrainWheelDeformationProperties"),
+			TEXT("AGX_TWDP_TerrainWheel.uasset"),
 		TEXT("TerrainWheelSettings"),
 			TEXT("AGX_TWS_TerrainWheel.uasset")
 	};

@@ -12,6 +12,8 @@
 
 #include "AGX_TerrainWheelDeformationProperties.generated.h"
 
+struct FAGX_ImportContext;
+struct FTerrainWheelBarrier;
 class UWorld;
 
 /**
@@ -64,6 +66,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
 	EAGX_TerrainWheelDisplacementModel GetDisplacementModel() const;
+
+	/*
+	 * The import Guid of this Asset. Only used by the AGX Dynamics for Unreal import system.
+	 * Should never be assigned manually.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Dynamics Import")
+	FGuid ImportGuid;
+
+	void CopyFrom(const FTerrainWheelBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FTerrainWheelDeformationPropertiesBarrier& Source);
 
 	static UAGX_TerrainWheelDeformationProperties* CreateInstanceFromAsset(
 		const UWorld* PlayingWorld, UAGX_TerrainWheelDeformationProperties* Source);
