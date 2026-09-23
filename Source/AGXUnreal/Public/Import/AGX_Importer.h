@@ -89,6 +89,7 @@ private:
 	EAGX_ImportResult AddShovel(const FShovelBarrier& Shovel, AActor& OutActor);
 
 	EAGX_ImportResult AddLidar(const FSensorBarrier& Sensor, AActor& OutActor);
+	EAGX_ImportResult AddIMU(const FSensorBarrier& Sensor, AActor& OutActor);
 
 	EAGX_ImportResult AddSignalHandlerComponent(
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);

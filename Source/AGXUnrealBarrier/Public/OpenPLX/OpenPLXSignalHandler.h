@@ -16,6 +16,7 @@ class FSimulationBarrier;
 struct FAssemblyRef;
 struct FHeapControlInterfacePtr;
 struct FOpenPLX_Input;
+struct FOpenPLXIMUOutputView;
 struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
@@ -62,6 +63,9 @@ public:
 
 	/// Lidar outputs.
 	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
+
+	/// IMU outputs.
+	bool ReceiveIMUOutput(const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput);
 
 	void ReleaseNatives();
 
