@@ -3,12 +3,14 @@
 #pragma once
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_ElementaryConstraintEnabledState.h"
 #include "AGX_RealInterval.h"
 #include "RigidBodyBarrier.h"
 
 // Unreal Engine includes.
-#include "CoreTypes.h"
+#include "Containers/Array.h"
 #include "Containers/UnrealString.h"
+#include "CoreTypes.h"
 #include "Math/Vector.h"
 #include "Math/Quat.h"
 #include "Misc/EngineVersionComparison.h"
@@ -114,8 +116,17 @@ public:
 
 	bool IsRotational() const;
 
-	// Returns false if no elementary constraints exists.
-	bool IsAllElementaryConstraintsDisabled() const;
+	/**
+	 * Get the enable state of each Elementary Constraint.
+	 */
+	TArray<FAGX_ElementaryConstraintEnabledState> GetElementaryConstraintEnableStates() const;
+
+	/**
+	 * Set the enable state of the Elementary Constraint with the given native AGX Dynamics name.
+	 *
+	 * @return True if an Elementary Constraint with the given name was found, false otherwise.
+	 */
+	bool SetElementaryConstraintEnabled(const FString& Name, bool bEnable);
 
 private:
 	FConstraintBarrier(const FConstraintBarrier&) = delete;

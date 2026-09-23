@@ -397,7 +397,7 @@ namespace AGX_LidarSensorComponent_helpers
 
 	FString CreateModelParametersName(
 		const UAGX_LidarSensorComponent& Lidar, const FLidarBarrier& Barrier,
-		FAGX_ImportContext& Context, UClass& ModelParametersType, UObject& Outer)
+		FAGX_ImportContext& Context, UClass& ModelParametersType, UObject* Outer)
 	{
 		const FString CleanBarrierName =
 			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
@@ -405,7 +405,7 @@ namespace AGX_LidarSensorComponent_helpers
 		const FString BaseName =
 			CleanBarrierName.IsEmpty() ? ModelParametersType.GetName() : CleanBarrierName;
 		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
-			&Outer, FString::Printf(TEXT("LMP_%s"), *BaseName),
+			Outer, FString::Printf(TEXT("LMP_%s"), *BaseName),
 			UAGX_LidarModelParameters::StaticClass());
 	}
 
@@ -420,11 +420,10 @@ namespace AGX_LidarSensorComponent_helpers
 		const FGuid Guid = Barrier.GetGuid();
 		AGX_CHECK(!Context.LidarModelParameters.Contains(Guid));
 
-		UObject* Outer = Context.Outer != nullptr ? Context.Outer : GetTransientPackage();
 		const FString Name =
-			CreateModelParametersName(Lidar, Barrier, Context, *ModelParametersType, *Outer);
+			CreateModelParametersName(Lidar, Barrier, Context, *ModelParametersType, Context.Outer);
 		auto Parameters = NewObject<UAGX_LidarModelParameters>(
-			Outer, ModelParametersType, FName(*Name), RF_Public | RF_Standalone);
+			Context.Outer, ModelParametersType, FName(*Name), RF_Public | RF_Standalone);
 		if (Parameters == nullptr)
 			return nullptr;
 

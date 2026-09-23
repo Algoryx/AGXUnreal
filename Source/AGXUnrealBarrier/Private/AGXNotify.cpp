@@ -41,7 +41,7 @@ void FAGXNotify::message(const agx::String& msg, int notifyLevel)
 			UE_LOG(LogAGXDynamics, Log, TEXT("%s"), *Message);
 			break;
 		case agx::Notify::NOTIFY_WARNING:
-			UE_LOG(LogAGXDynamics, Error, TEXT("%s"), *Message);
+			UE_LOG(LogAGXDynamics, Warning, TEXT("%s"), *Message);
 			break;
 		case agx::Notify::NOTIFY_ERROR:
 			UE_LOG(LogAGXDynamics, Error, TEXT("%s"), *Message);

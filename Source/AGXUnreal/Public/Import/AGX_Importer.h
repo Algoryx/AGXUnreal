@@ -94,7 +94,7 @@ private:
 	EAGX_ImportResult AddSignalHandlerComponent(
 		const FSimulationObjectCollection& SimObjects, AActor& OutActor);
 
-	void PostImport(const FSimulationObjectCollection& SimObjects);
+	void PostImport();
 
 	UPROPERTY(Transient)
 	TObjectPtr<AActor> ImportedActor;
