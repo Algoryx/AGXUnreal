@@ -16,6 +16,7 @@ class FSimulationBarrier;
 struct FAssemblyRef;
 struct FHeapControlInterfacePtr;
 struct FOpenPLX_Input;
+struct FOpenPLXIMUOutputView;
 struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Output;
 struct FOpenPLX_SignalHandlerNativeAddresses;
