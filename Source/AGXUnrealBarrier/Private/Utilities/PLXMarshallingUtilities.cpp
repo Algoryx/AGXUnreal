@@ -76,7 +76,7 @@ namespace PLXMarshallingUtilities
 	{
 		OutValue = FVector::ZeroVector;
 		if (InnerMarshalling.get_buffer_size() == 0)
-			return true;
+			return false;
 
 		if (InnerMarshalling.get_buffer() == nullptr)
 			return false;
