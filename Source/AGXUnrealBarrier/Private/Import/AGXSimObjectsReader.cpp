@@ -67,6 +67,7 @@
 #include <agxVehicle/Steering.h>
 #include <agxVehicle/Track.h>
 #include <agxVehicle/WheelJoint.h>
+#include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
 // Unreal Engine inludes.
@@ -792,6 +793,9 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
 	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
-	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getNameWithNamespace(".")));
+	std::string SceneNamePLX = Result.scene()->getType()->getNameWithNamespace(".");
+	OutSimObjects.SetModelName(Convert(SceneNamePLX));
+	agxUtil::freeContainerMemory(SceneNamePLX);
+
 	return true;
 }
