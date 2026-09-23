@@ -16,6 +16,18 @@ namespace OpenPLXIMUOutputView_helpers
 {
 	using namespace PLXMarshallingUtilities;
 
+	bool HasVectorInternal(openplx::Marshalling& Marshalling, const std::string& Name)
+	{
+		FWindowLayout Layout;
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ false))
+			return false;
+
+		const openplx::Field* XField = nullptr;
+		const openplx::Field* YField = nullptr;
+		const openplx::Field* ZField = nullptr;
+		return GetNestedVectorFields(*Layout.Marshalling, Name, XField, YField, ZField);
+	}
+
 	template <typename ConvertFuncT>
 	bool ReadVectorInternal(
 		openplx::Marshalling& Marshalling, const std::string& Name, FVector& OutValue,
@@ -80,56 +92,29 @@ bool FOpenPLXIMUOutputView::HasNative() const
 
 bool FOpenPLXIMUOutputView::HasAccelerometer() const
 {
-	using namespace OpenPLXIMUOutputView_helpers;
-
 	if (!HasNative())
 		return false;
 
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
-		return false;
-
-	const openplx::Field* XField = nullptr;
-	const openplx::Field* YField = nullptr;
-	const openplx::Field* ZField = nullptr;
-	return GetNestedVectorFields(
-		*Layout.Marshalling, "accelerometer_logic", XField, YField, ZField);
+	return OpenPLXIMUOutputView_helpers::HasVectorInternal(
+		*NativeRef->Marshalling, "accelerometer_logic");
 }
 
 bool FOpenPLXIMUOutputView::HasGyroscope() const
 {
-	using namespace OpenPLXIMUOutputView_helpers;
-
 	if (!HasNative())
 		return false;
 
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
-		return false;
-
-	const openplx::Field* XField = nullptr;
-	const openplx::Field* YField = nullptr;
-	const openplx::Field* ZField = nullptr;
-	return GetNestedVectorFields(
-		*Layout.Marshalling, "gyroscope_logic", XField, YField, ZField);
+	return OpenPLXIMUOutputView_helpers::HasVectorInternal(
+		*NativeRef->Marshalling, "gyroscope_logic");
 }
 
 bool FOpenPLXIMUOutputView::HasMagnetometer() const
 {
-	using namespace OpenPLXIMUOutputView_helpers;
-
 	if (!HasNative())
 		return false;
 
-	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
-		return false;
-
-	const openplx::Field* XField = nullptr;
-	const openplx::Field* YField = nullptr;
-	const openplx::Field* ZField = nullptr;
-	return GetNestedVectorFields(
-		*Layout.Marshalling, "magnetometer_logic", XField, YField, ZField);
+	return OpenPLXIMUOutputView_helpers::HasVectorInternal(
+		*NativeRef->Marshalling, "magnetometer_logic");
 }
 
 bool FOpenPLXIMUOutputView::GetAccelerometerData(FVector& OutAccelerometerData)
