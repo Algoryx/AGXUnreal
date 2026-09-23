@@ -2,8 +2,13 @@
 
 #pragma once
 
+// Unreal Engine includes.
+#include "Math/Vector.h"
+#include "Templates/Function.h"
+
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
+#include <agx/Vec3.h>
 #include "openplx/Marshalling.h"
 #include "EndAGXIncludes.h"
 
@@ -30,10 +35,23 @@ namespace PLXMarshallingUtilities
 	bool GetWindowLayout(
 		openplx::Marshalling& Marshalling, FWindowLayout& OutLayout, bool bRequireBuffer);
 
+	/**
+	 * Get fields for a vector nested in the given marshalling object.
+	 * The named vector's x, y, and z fields must be readable from InnerMarshalling.
+	 */
 	bool GetNestedVectorFields(
-		openplx::Marshalling& WindowMarshalling, const std::string& MarshallingName,
+		openplx::Marshalling& InnerMarshalling, const std::string& MarshallingName,
 		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
 		const openplx::Field*& OutZField);
+
+	/**
+	 * Read a vector from the given marshalling object.
+	 * The named vector's x, y, and z fields must be readable from InnerMarshalling.
+	 */
+	bool ReadVector(
+		openplx::Marshalling& InnerMarshalling, const std::string& MarshallingName,
+		FVector& OutValue, TFunctionRef<FVector(const agx::Vec3&)> ConvertFunc,
+		const TCHAR* DisplayName);
 
 	template <typename T>
 	T ReadValue(const uint8_t* Data)

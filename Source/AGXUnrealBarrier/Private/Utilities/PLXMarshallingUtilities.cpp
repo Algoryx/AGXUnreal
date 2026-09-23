@@ -2,6 +2,12 @@
 
 #include "Utilities/PLXMarshallingUtilities.h"
 
+// AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
+
+// Unreal Engine includes.
+#include "Math/UnrealMathUtility.h"
+
 // Standard library includes.
 #include <memory>
 
@@ -47,12 +53,12 @@ namespace PLXMarshallingUtilities
 	}
 
 	bool GetNestedVectorFields(
-		openplx::Marshalling& WindowMarshalling, const std::string& MarshallingName,
+		openplx::Marshalling& InnerMarshalling, const std::string& MarshallingName,
 		const openplx::Field*& OutXField, const openplx::Field*& OutYField,
 		const openplx::Field*& OutZField)
 	{
 		openplx::Marshalling* VectorMarshalling =
-			WindowMarshalling.get_or_add_nested_marshalling(MarshallingName).get();
+			InnerMarshalling.get_or_add_nested_marshalling(MarshallingName).get();
 		if (VectorMarshalling == nullptr)
 			return false;
 
@@ -61,5 +67,46 @@ namespace PLXMarshallingUtilities
 		OutYField = FindField(VectorFields, "y");
 		OutZField = FindField(VectorFields, "z");
 		return OutXField != nullptr && OutYField != nullptr && OutZField != nullptr;
+	}
+
+	bool ReadVector(
+		openplx::Marshalling& InnerMarshalling, const std::string& MarshallingName,
+		FVector& OutValue, TFunctionRef<FVector(const agx::Vec3&)> ConvertFunc,
+		const TCHAR* DisplayName)
+	{
+		OutValue = FVector::ZeroVector;
+		if (InnerMarshalling.get_buffer_size() == 0)
+			return true;
+
+		if (InnerMarshalling.get_buffer() == nullptr)
+			return false;
+
+		const openplx::Field* XField = nullptr;
+		const openplx::Field* YField = nullptr;
+		const openplx::Field* ZField = nullptr;
+		if (!GetNestedVectorFields(InnerMarshalling, MarshallingName, XField, YField, ZField))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("OpenPLX: Tried to read %s, but the marshalling does not contain its vector "
+					 "fields."),
+				DisplayName);
+			return false;
+		}
+
+		const size_t MaxFieldEnd = FMath::Max3(
+			XField->offset + XField->size, YField->offset + YField->size,
+			ZField->offset + ZField->size);
+		if (MaxFieldEnd > InnerMarshalling.get_buffer_size())
+			return false;
+
+		const uint8_t* Buffer = InnerMarshalling.get_buffer();
+		const agx::Vec3 ValueAGX {
+			static_cast<agx::Real>(ReadValue<double>(Buffer + XField->offset)),
+			static_cast<agx::Real>(ReadValue<double>(Buffer + YField->offset)),
+			static_cast<agx::Real>(ReadValue<double>(Buffer + ZField->offset))};
+		OutValue = ConvertFunc(ValueAGX);
+
+		return true;
 	}
 }
