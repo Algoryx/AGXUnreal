@@ -100,7 +100,7 @@ void FOpenPLXSignalHandler::Init(
 			AssemblyRef->Native->getAssembly(FPLXUtilitiesInternal::GetDefaultPowerLineName()));
 
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, nullptr, PlxPowerLine, nullptr, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	/*
