@@ -19,6 +19,7 @@ class UAGX_CollisionGroupDisablerComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ContactMaterialRegistrarComponent;
+class UAGX_LidarModelParameters;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ModelSourceComponent;
 class UAGX_ObserverFrameComponent;
@@ -27,6 +28,7 @@ class UAGX_ShapeComponent;
 class UAGX_ShapeMaterial;
 class UAGX_ShovelComponent;
 class UAGX_ShovelProperties;
+class UAGX_SensorComponentBase;
 class UAGX_SteeringComponent;
 class UAGX_SteeringParameters;
 class UAGX_TerrainWheelComponent;
@@ -66,6 +68,9 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_TwoBodyTireComponent>> Tires;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_SensorComponentBase>> Sensors;
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_ShovelComponent>> Shovels;
@@ -127,6 +132,10 @@ struct AGXUNREAL_API FAGX_ImportContext
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_ContactMaterial>> ContactMaterials;
+
+	// Lidar Model Parameters are unique per Lidar on import. The key is the GUID of the Lidar.
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_LidarModelParameters>> LidarModelParameters;
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_ShovelProperties>> ShovelProperties;

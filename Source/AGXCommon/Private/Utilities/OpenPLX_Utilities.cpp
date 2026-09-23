@@ -201,6 +201,17 @@ bool FOpenPLX_Utilities::IsBooleanType(EOpenPLX_OutputType Type)
 	}
 }
 
+bool FOpenPLX_Utilities::IsLidarOutputType(EOpenPLX_OutputType Type)
+{
+	switch (Type)
+	{
+		case EOpenPLX_OutputType::LidarOutput:
+			return true;
+		default:
+			return false;
+	}
+}
+
 
 const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_InputType Type)
 {
@@ -237,5 +248,7 @@ const TCHAR* FOpenPLX_Utilities::GetPrimitiveTypeName(EOpenPLX_OutputType Type)
 		return TEXT("Vector2");
 	if (IsVectorType(Type))
 		return TEXT("Vector");
+	if (IsLidarOutputType(Type))
+		return TEXT("Lidar Output");
 	return TEXT("(unknown)");
 }

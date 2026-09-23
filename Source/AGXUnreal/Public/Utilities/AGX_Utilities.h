@@ -78,4 +78,10 @@ public:
 		BlueprintCallable, Category = "AGX Import", meta = (WorldContext = "WorldContextObject"))
 	static AActor* InstantiateActor(
 		UObject* WorldContextObject, AActor* Template, const FTransform& Transform);
+
+	/**
+	 * Returns true if raytrace (RTX) is supported on this computer, false otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Utilities")
+	static bool IsRaytraceSupported();
 };

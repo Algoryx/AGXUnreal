@@ -35,6 +35,8 @@ public:
 
 	static bool IsBooleanType(EOpenPLX_InputType Type);
 	static bool IsBooleanType(EOpenPLX_OutputType Type);
+	
+	static bool IsLidarOutputType(EOpenPLX_OutputType Type);
 
 	static const TCHAR* GetPrimitiveTypeName(EOpenPLX_InputType Type);
 	static const TCHAR* GetPrimitiveTypeName(EOpenPLX_OutputType Type);

@@ -7,6 +7,7 @@
 #include "AGX_RigidBodyComponent.h"
 #include "Import/AGX_Importer.h"
 #include "Import/AGX_ImportSettings.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -167,4 +168,9 @@ AActor* UAGX_AGXUtilities::InstantiateActor(
 	SpawnedActor->SetActorLabel(Params.Name.ToString());
 #endif
 	return SpawnedActor;
+}
+
+bool UAGX_AGXUtilities::IsRaytraceSupported()
+{
+	return FSensorEnvironmentBarrier::IsRaytraceSupported();
 }
