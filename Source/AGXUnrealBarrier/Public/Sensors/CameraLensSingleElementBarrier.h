@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "Sensors/CameraLensBarrier.h"
+#include "Sensors/LensDistortionBrownConradyBarrier.h"
 
 struct FLensDistortionBarrier;
 
@@ -29,6 +30,7 @@ struct AGXUNREALBARRIER_API FCameraLensSingleElementBarrier : public FCameraLens
 	double GetFocusDistance() const;
 
 	void SetLensDistortion(FLensDistortionBarrier* Distortion);
+	FLensDistortionBrownConradyBarrier GetLensDistortionBrownConrady() const;
 
 	static bool IsSingleElement(const FCameraLensBarrier& Lens);
 };

@@ -11,6 +11,7 @@
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agxSensor/CameraLensSingleElement.h>
+#include <agxSensor/LensDistortionBrownConrady.h>
 #include "EndAGXIncludes.h"
 
 namespace CameraLensSingleElementBarrier_helpers
@@ -109,6 +110,17 @@ void FCameraLensSingleElementBarrier::SetLensDistortion(FLensDistortionBarrier* 
 														 : nullptr;
 	CameraLensSingleElementBarrier_helpers::GetNative(*this)->setLensDistortion(
 		NativeDistortion);
+}
+
+FLensDistortionBrownConradyBarrier
+FCameraLensSingleElementBarrier::GetLensDistortionBrownConrady() const
+{
+	agxSensor::LensDistortion* Distortion =
+		CameraLensSingleElementBarrier_helpers::GetNative(*this)->getDistortion();
+	if (Distortion == nullptr || !Distortion->is<agxSensor::LensDistortionBrownConrady>())
+		return FLensDistortionBrownConradyBarrier();
+
+	return FLensDistortionBrownConradyBarrier(std::make_shared<FLensDistortionRef>(Distortion));
 }
 
 bool FCameraLensSingleElementBarrier::IsSingleElement(const FCameraLensBarrier& Lens)

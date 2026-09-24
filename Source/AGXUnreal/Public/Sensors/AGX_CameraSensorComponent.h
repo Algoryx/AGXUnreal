@@ -37,6 +37,10 @@ struct AGXUNREAL_API FCameraOutputRenderContext
 	UPROPERTY(Transient)
 	TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget;
 
+	// Derived scene capture settings, accounting for the output resolution and lens distortion.
+	float SceneCaptureFOVAngle {0.0f};
+	FIntPoint SceneCaptureResolution {FIntPoint::ZeroValue};
+
 	// Holds the result of Material Passes.
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
@@ -184,6 +188,9 @@ private:
 	void SetupCameraBackendPropagator();
 	void UpdateCameraPhotoDetector();
 	void UpdateCameraLens();
+	FCameraOutputRenderContext* UpdateOutputCaptureSettings(
+		const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings = false);
+	void UpdateAllOutputCaptureSettings();
 
 	/// Executes the MaterialPasses and returns the final render target.
 	UTextureRenderTarget2D* RenderMaterialPasses(
