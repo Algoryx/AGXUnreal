@@ -885,14 +885,14 @@ EAGX_ImportResult UAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
 }
 
-EAGX_ImportResult FAGX_Importer::AddCamera(const FSensorBarrier& Sensor, AActor& OutActor)
+EAGX_ImportResult UAGX_Importer::AddCamera(const FSensorBarrier& Sensor, AActor& OutActor)
 {
 	const FCameraBarrier& Camera = static_cast<const FCameraBarrier&>(Sensor);
 	FRigidBodyBarrier BodyBarrier = Camera.GetRigidBody();
 	USceneComponent* Parent = OutActor.GetRootComponent();
 	if (BodyBarrier.HasNative())
 	{
-		UAGX_RigidBodyComponent* Body = Context.RigidBodies->FindRef(BodyBarrier.GetGuid());
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies.FindRef(BodyBarrier.GetGuid());
 		check(Body != nullptr);
 		Parent = Body;
 	}

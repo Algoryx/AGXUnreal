@@ -938,8 +938,10 @@ void UAGX_CameraSensorComponent::CopyFrom(
 {
 	Super::CopyFrom(Barrier, Context);
 
-	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
-	Context->Sensors->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
+	Context->Sensors.Add(ImportGuid, this);
+
+	// TODO: copy settings here.
 }
 
 void UAGX_CameraSensorComponent::BeginPlay()
