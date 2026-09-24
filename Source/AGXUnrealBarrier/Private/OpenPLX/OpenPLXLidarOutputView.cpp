@@ -15,25 +15,10 @@
 #include <string>
 #include <utility>
 
+using namespace PLXMarshallingUtilities;
+
 namespace OpenPLXLidarOutputView_helpers
 {
-	using PLXMarshallingUtilities::FWindowLayout;
-
-	const openplx::Field* FindField(
-		const std::unordered_map<std::string, openplx::Field>& Fields, const std::string& Name)
-	{
-		const auto It = Fields.find(Name);
-		return It != Fields.end() ? &It->second : nullptr;
-	}
-
-	template <typename T>
-	T ReadValue(const uint8_t* Data)
-	{
-		T Value;
-		std::memcpy(&Value, Data, sizeof(Value));
-		return Value;
-	}
-
 	float ReadFloat(const uint8_t* Data)
 	{
 		return ReadValue<float>(Data);
@@ -64,23 +49,6 @@ namespace OpenPLXLidarOutputView_helpers
 	bool DoesFieldMatchNativeType(const openplx::Field& Field)
 	{
 		return Field.field_type == TOpenPLXFieldType<T>::Value && Field.size == sizeof(T);
-	}
-
-	bool GetPositionFields(
-		openplx::Marshalling& WindowMarshalling, const openplx::Field*& OutXField,
-		const openplx::Field*& OutYField, const openplx::Field*& OutZField)
-	{
-		openplx::Marshalling* PositionMarshalling =
-			WindowMarshalling.get_or_add_nested_marshalling("position3d").get();
-		if (PositionMarshalling == nullptr)
-			return false;
-
-		const std::unordered_map<std::string, openplx::Field>& PositionFields =
-			PositionMarshalling->get_field_map();
-		OutXField = FindField(PositionFields, "x");
-		OutYField = FindField(PositionFields, "y");
-		OutZField = FindField(PositionFields, "z");
-		return OutXField != nullptr && OutYField != nullptr && OutZField != nullptr;
 	}
 
 	bool GetRayPoseFields(
@@ -134,7 +102,7 @@ namespace OpenPLXLidarOutputView_helpers
 		const openplx::Field* XField = nullptr;
 		const openplx::Field* YField = nullptr;
 		const openplx::Field* ZField = nullptr;
-		if (!GetPositionFields(*Layout.Marshalling, XField, YField, ZField))
+		if (!GetNestedVectorFields(*Layout.Marshalling, "position3d", XField, YField, ZField))
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -239,8 +207,7 @@ namespace OpenPLXLidarOutputView_helpers
 			return true;
 
 		FWindowLayout Layout;
-		if (!PLXMarshallingUtilities::GetWindowLayout(
-				Marshalling, Layout, /*bRequireBuffer*/ true))
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
 			return false;
 
 		if (!CanConvert(Layout.NumWindows))
@@ -388,8 +355,7 @@ namespace OpenPLXLidarOutputView_helpers
 		bOutAllHits = true;
 
 		FWindowLayout Layout;
-		if (!PLXMarshallingUtilities::GetWindowLayout(
-				Marshalling, Layout, /*bRequireBuffer*/ true))
+		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
 			return false;
 
 		if (!CanConvert(Layout.NumWindows))
@@ -410,7 +376,8 @@ namespace OpenPLXLidarOutputView_helpers
 		const openplx::Field* ZField = nullptr;
 		if (ReadFlags.bPositions)
 		{
-			if (!GetPositionFields(*Layout.Marshalling, XField, YField, ZField))
+			if (!GetNestedVectorFields(
+					*Layout.Marshalling, "position3d", XField, YField, ZField))
 			{
 				UE_LOG(
 					LogAGX, Warning,
@@ -623,7 +590,7 @@ bool FOpenPLXLidarOutputView::HasPositions() const
 	const openplx::Field* XField = nullptr;
 	const openplx::Field* YField = nullptr;
 	const openplx::Field* ZField = nullptr;
-	return GetPositionFields(*Layout.Marshalling, XField, YField, ZField);
+	return GetNestedVectorFields(*Layout.Marshalling, "position3d", XField, YField, ZField);
 }
 
 bool FOpenPLXLidarOutputView::HasIntensities() const
@@ -634,9 +601,9 @@ bool FOpenPLXLidarOutputView::HasIntensities() const
 		return false;
 
 	FWindowLayout Layout;
-	return PLXMarshallingUtilities::GetWindowLayout(
-			   *NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   FindField(Layout.Marshalling->get_field_map(), "intensity") != nullptr;
+	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
+		   PLXMarshallingUtilities::FindField(
+			   Layout.Marshalling->get_field_map(), "intensity") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasTimeStamps() const
@@ -647,9 +614,9 @@ bool FOpenPLXLidarOutputView::HasTimeStamps() const
 		return false;
 
 	FWindowLayout Layout;
-	return PLXMarshallingUtilities::GetWindowLayout(
-			   *NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   FindField(Layout.Marshalling->get_field_map(), "timestamp") != nullptr;
+	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
+		   PLXMarshallingUtilities::FindField(
+			   Layout.Marshalling->get_field_map(), "timestamp") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasDistances() const
@@ -660,9 +627,9 @@ bool FOpenPLXLidarOutputView::HasDistances() const
 		return false;
 
 	FWindowLayout Layout;
-	return PLXMarshallingUtilities::GetWindowLayout(
-			   *NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   FindField(Layout.Marshalling->get_field_map(), "distance") != nullptr;
+	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
+		   PLXMarshallingUtilities::FindField(
+			   Layout.Marshalling->get_field_map(), "distance") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasRayPoses() const
@@ -689,9 +656,9 @@ bool FOpenPLXLidarOutputView::HasIsHits() const
 		return false;
 
 	FWindowLayout Layout;
-	return PLXMarshallingUtilities::GetWindowLayout(
-			   *NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   FindField(Layout.Marshalling->get_field_map(), "is_hit") != nullptr;
+	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
+		   PLXMarshallingUtilities::FindField(
+			   Layout.Marshalling->get_field_map(), "is_hit") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::HasEntityIds() const
@@ -702,9 +669,9 @@ bool FOpenPLXLidarOutputView::HasEntityIds() const
 		return false;
 
 	FWindowLayout Layout;
-	return PLXMarshallingUtilities::GetWindowLayout(
-			   *NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
-		   FindField(Layout.Marshalling->get_field_map(), "entity_id") != nullptr;
+	return GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false) &&
+		   PLXMarshallingUtilities::FindField(
+			   Layout.Marshalling->get_field_map(), "entity_id") != nullptr;
 }
 
 bool FOpenPLXLidarOutputView::ReadPositions(TArray<FVector>& OutPositions)

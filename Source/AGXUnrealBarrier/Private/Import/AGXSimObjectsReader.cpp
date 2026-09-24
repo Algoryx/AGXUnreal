@@ -52,6 +52,7 @@
 #include <agxSensor/Lidar.h>
 #include <agxTerrain/TerrainWheel.h>
 #include <agxTerrain/Utils.h>
+#include <agxUtil/agxUtil.h>
 
 // In 2.28 including Cable.h causes a preprocessor macro named DEPRECATED to be defined. This
 // conflicts with a macro with the same name in Unreal. Undeffing the Unreal one.
@@ -835,6 +836,9 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
 	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
-	OutSimObjects.SetModelName(Convert(Result.scene()->getType()->getName()));
+	std::string SceneNamePLX = Result.scene()->getType()->getNameWithNamespace(".");
+	OutSimObjects.SetModelName(Convert(SceneNamePLX));
+	agxUtil::freeContainerMemory(SceneNamePLX);
+
 	return true;
 }

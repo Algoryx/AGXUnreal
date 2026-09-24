@@ -397,19 +397,39 @@ bool FConstraintBarrier::IsRotational() const
 	return true;
 }
 
-bool FConstraintBarrier::IsAllElementaryConstraintsDisabled() const
+TArray<FAGX_ElementaryConstraintEnabledState>
+FConstraintBarrier::GetElementaryConstraintEnableStates() const
 {
 	check(HasNative());
 
+	TArray<FAGX_ElementaryConstraintEnabledState> EnableStates;
 	auto NumEc = NativeRef->Native->getNumElementaryConstraints();
-	if (NumEc == 0)
-		return false;
-
-	for (decltype(NumEc) I = 0; I < NumEc; I++)
+	EnableStates.Reserve(NumEc);
+	for (decltype(NumEc) I = 0; I < NumEc; ++I)
 	{
-		if (NativeRef->Native->getElementaryConstraint(I)->getEnable())
-			return false;
+		auto* ElementaryConstraint = NativeRef->Native->getElementaryConstraint(I);
+		EnableStates.Emplace(
+			FName(*Convert(ElementaryConstraint->getName())), ElementaryConstraint->getEnable());
 	}
 
-	return true;
+	return EnableStates;
+}
+
+bool FConstraintBarrier::SetElementaryConstraintEnabled(const FString& Name, bool bEnable)
+{
+	check(HasNative());
+
+	const agx::Name NameAGX = Convert(Name);
+	const auto NumEc = NativeRef->Native->getNumElementaryConstraints();
+	for (std::remove_const_t<decltype(NumEc)> I = 0; I < NumEc; I++)
+	{
+		auto* const ElementaryConstraint = NativeRef->Native->getElementaryConstraint(I);
+		if (ElementaryConstraint->getName() == NameAGX)
+		{
+			ElementaryConstraint->setEnable(bEnable);
+			return true;
+		}
+	}
+
+	return false;
 }

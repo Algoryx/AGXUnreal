@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/ObjectMacros.h"
 
+#include "AGX_LidarLineTraceEnums.generated.h"
 
 /** Specifies if the Lidar is run continuously or waits for a scan command. */
 UENUM()

@@ -150,7 +150,7 @@ void FAGX_WireMergeSplitProperties::CopyFrom(
 {
 	FAGX_MergeSplitPropertiesBase::CopyFrom(Barrier, Context);
 
-	if (Context == nullptr || Context->MSThresholds == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	// Get or create Merge Split Threashold from Context.
@@ -160,7 +160,7 @@ void FAGX_WireMergeSplitProperties::CopyFrom(
 		return;
 
 	const auto MSTGuid = ThresholdsBarrier.GetGuid();
-	if (auto MST = Context->MSThresholds->FindRef(MSTGuid))
+	if (auto MST = Context->MSThresholds.FindRef(MSTGuid))
 	{
 		Thresholds = Cast<UAGX_WireMergeSplitThresholds>(MST);
 		return; // We are done.
@@ -173,5 +173,5 @@ void FAGX_WireMergeSplitProperties::CopyFrom(
 		Thresholds->GetOuter(), FString::Printf(TEXT("AGX_WMST_%s"), *MSTGuid.ToString()), nullptr);
 	Thresholds->Rename(*THName);
 	Thresholds->CopyFrom(ThresholdsBarrier);
-	Context->MSThresholds->Add(MSTGuid, Thresholds);
+	Context->MSThresholds.Add(MSTGuid, Thresholds);
 }

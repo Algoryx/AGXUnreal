@@ -545,7 +545,7 @@ public:
 	 */
 	static UMaterialInterface* CreateRenderMaterial(
 		const FOpenPLXMaterialBarrier& MaterialBarrier, UMaterial* Base, UObject& Owner,
-		TMap<FGuid, UTexture2D*>* Textures = nullptr,
+		TMap<FGuid, TObjectPtr<UTexture2D>>* Textures = nullptr,
 		bool bCreateTextureRenderResources = true);
 
 	/**

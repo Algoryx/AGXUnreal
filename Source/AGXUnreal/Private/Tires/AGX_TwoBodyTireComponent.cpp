@@ -61,8 +61,8 @@ namespace AGX_TwoBodyTireComponent_helpers
 		if (!TireBarrier.HasNative() || !HubBarrier.HasNative())
 			return false;
 
-		auto TireBody = Context.RigidBodies->FindRef(TireBarrier.GetGuid());
-		auto HubBody = Context.RigidBodies->FindRef(HubBarrier.GetGuid());
+		auto TireBody = Context.RigidBodies.FindRef(TireBarrier.GetGuid());
+		auto HubBody = Context.RigidBodies.FindRef(HubBarrier.GetGuid());
 		if (TireBody == nullptr || HubBody == nullptr)
 			return false;
 
@@ -112,13 +112,13 @@ void UAGX_TwoBodyTireComponent::CopyFrom(
 		GetOwner(), CleanBarrierName, UAGX_TwoBodyTireComponent::StaticClass());
 	Rename(*Name);
 
-	if (Context == nullptr || Context->Tires == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	if (SetupRigidBodies(Barrier, *this, *Context))
 	{
-		AGX_CHECK(!Context->Tires->Contains(ImportGuid));
-		Context->Tires->Add(ImportGuid, this);
+		AGX_CHECK(!Context->Tires.Contains(ImportGuid));
+		Context->Tires.Add(ImportGuid, this);
 	}
 	else
 	{

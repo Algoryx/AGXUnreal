@@ -617,7 +617,7 @@ namespace AGX_ShovelProperties_helpers
 {
 	FString CreatePropertiesName(const FShovelBarrier& Barrier, FAGX_ImportContext& Context)
 	{
-		auto Shovel = Context.Shovels->FindRef(Barrier.GetGuid());
+		auto Shovel = Context.Shovels.FindRef(Barrier.GetGuid());
 		const FString BaseName = Shovel != nullptr ? Shovel->GetName() : "Unknown";
 		const FString Name = FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
 			Context.Outer, FString::Printf(TEXT("AGX_SP_%s"), *BaseName),
@@ -675,10 +675,10 @@ void UAGX_ShovelProperties::CopyFrom(const FShovelBarrier& Barrier, FAGX_ImportC
 	CopyExcavationSettings(EAGX_ExcavationMode::DeformRight, DeformRightExcavationSettings);
 	CopyExcavationSettings(EAGX_ExcavationMode::DeformLeft, DeformLeftExcavationSettings);
 
-	if (Context == nullptr || Context->Shovels == nullptr || Context->ShovelProperties == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	Rename(*AGX_ShovelProperties_helpers::CreatePropertiesName(Barrier, *Context));
-	AGX_CHECK(!Context->ShovelProperties->Contains(ImportGuid));
-	Context->ShovelProperties->Add(ImportGuid, this);
+	AGX_CHECK(!Context->ShovelProperties.Contains(ImportGuid));
+	Context->ShovelProperties.Add(ImportGuid, this);
 }

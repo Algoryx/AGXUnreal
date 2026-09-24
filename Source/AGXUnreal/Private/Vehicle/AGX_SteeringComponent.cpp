@@ -78,7 +78,7 @@ namespace AGX_SteeringComponent_helpers
 	{
 		// Note: SteeringParameters does not have a UUID in AGX, so we use the SteeringBarriers UUID
 		// for it. It is always uniquely owned by a Steering object in AGX.
-		if (auto Existing = Context.SteeringParameters->FindRef(Barrier.GetGuid()))
+		if (auto Existing = Context.SteeringParameters.FindRef(Barrier.GetGuid()))
 			return Existing;
 
 		UAGX_SteeringParameters* Parameters = nullptr;
@@ -130,7 +130,7 @@ namespace AGX_SteeringComponent_helpers
 			UAGX_SteeringParameters::StaticClass());
 		Parameters->Rename(*Name);
 
-		Context.SteeringParameters->Add(Barrier.GetGuid(), Parameters);
+		Context.SteeringParameters.Add(Barrier.GetGuid(), Parameters);
 		return Parameters;
 	}
 }
@@ -149,11 +149,11 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 		GetOuter(), CleanBarrierName, UAGX_ConstraintComponent::StaticClass());
 	Rename(*Name);
 
-	if (Context == nullptr || Context->Steerings == nullptr || Context->Constraints == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
-	AGX_CHECK(!Context->Steerings->Contains(ImportGuid));
-	Context->Steerings->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Steerings.Contains(ImportGuid));
+	Context->Steerings.Add(ImportGuid, this);
 
 	SteeringParameters = GetOrCreateSteeringParameters(Barrier, *Context, *this);
 
@@ -164,7 +164,7 @@ void UAGX_SteeringComponent::CopyFrom(const FSteeringBarrier& Barrier, FAGX_Impo
 			return FName();
 
 		if (auto WheelComp = Cast<UAGX_WheelJointComponent>(
-				Context->Constraints->FindRef(WheelBarrier.GetGuid())))
+				Context->Constraints.FindRef(WheelBarrier.GetGuid())))
 		{
 			return WheelComp->GetFName();
 		}

@@ -7,6 +7,7 @@
 #include "AGX_RigidBodyComponent.h"
 #include "Import/AGX_Importer.h"
 #include "Import/AGX_ImportSettings.h"
+#include "Sensors/SensorEnvironmentBarrier.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGXUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -15,6 +16,7 @@
 #include "Engine/World.h"
 #include "HAL/FileManager.h"
 #include "Misc/Paths.h"
+#include "UObject/StrongObjectPtr.h"
 
 void UAGX_AGXUtilities::AddParentVelocity(
 	UAGX_RigidBodyComponent* Parent, UAGX_RigidBodyComponent* Body)
@@ -118,8 +120,8 @@ AActor* UAGX_AGXUtilities::Import(UObject* WorldContextObject, FAGX_ImportSettin
 	if (Settings.ImportType == EAGX_ImportType::Plx)
 		AGX_AGXUtilities_helpers::PreOpenPLXImport(Settings);
 
-	FAGX_Importer Importer;
-	FAGX_ImportResult Result = Importer.Import(Settings, *World);
+	TStrongObjectPtr<UAGX_Importer> Importer {NewObject<UAGX_Importer>(World)};
+	FAGX_ImportResult Result = Importer->Import(Settings);
 	if (IsUnrecoverableError(Result.Result) || Result.Actor == nullptr)
 	{
 		UE_LOG(
@@ -166,4 +168,9 @@ AActor* UAGX_AGXUtilities::InstantiateActor(
 	SpawnedActor->SetActorLabel(Params.Name.ToString());
 #endif
 	return SpawnedActor;
+}
+
+bool UAGX_AGXUtilities::IsRaytraceSupported()
+{
+	return FSensorEnvironmentBarrier::IsRaytraceSupported();
 }

@@ -813,20 +813,20 @@ void UAGX_IMUSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Impor
 		MagnetometerSpectralNoiseDensity = IMUBarrier.GetMagnetometerSpectralNoiseDensity();
 	}
 
-	if (Context == nullptr || Context->Sensors == nullptr || Context->RigidBodies == nullptr)
+	if (Context == nullptr || !Context->bStoreObjects)
 		return; // We are done.
 
 	const FRigidBodyBarrier BodyBarrier = IMUBarrier.GetRigidBody();
 	if (BodyBarrier.HasNative())
 	{
-		if (UAGX_RigidBodyComponent* Body = Context->RigidBodies->FindRef(BodyBarrier.GetGuid()))
+		if (auto Body = Context->RigidBodies.FindRef(BodyBarrier.GetGuid()))
 		{
 			RigidBody.Name = Body->GetFName();
 		}
 	}
 
-	AGX_CHECK(!Context->Sensors->Contains(ImportGuid));
-	Context->Sensors->Add(ImportGuid, this);
+	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
+	Context->Sensors.Add(ImportGuid, this);
 }
 
 void UAGX_IMUSensorComponent::UpdateTransformFromNative()

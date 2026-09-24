@@ -245,6 +245,6 @@ TOptional<FOpenPLXTextureData> FOpenPLXMaterialBarrier::GetAmbientOcclusionTextu
 {
 	check(HasNative());
 	return GetTextureData(
-		*this, TEXT("Visuals.Materials.SurfaceFeatures.AmbientOcclusion"), "occlusion_map",
+		*this, TEXT("Visuals.Materials.SurfaceFeatures.AmbientOcclusion"), "ambient_occlusion_map",
 		TEXT("ambient occlusion"));
 }

@@ -12,9 +12,12 @@
 #include <memory>
 
 struct FRigidBodyBarrier;
+struct FShapeBarrier;
+class FShapeMaterialBarrier;
 class FShovelBarrier;
 class FTerrainBarrier;
 class FTerrainHeightFetcherBase;
+class FTerrainMaterialBarrier;
 
 struct FTerrainDataSourceRef;
 struct FTerrainPagerRef;
@@ -29,8 +32,10 @@ public:
 
 	bool HasNative() const;
 	void AllocateNative(
-		FTerrainHeightFetcherBase* HeightFetcher, FTerrainBarrier& TerrainBarrier,
-		int32 TileSideVertices, int32 TileOverlapVerties, double ElementSize, double MaxDepth);
+		FTerrainBarrier& TerrainBarrier, int32 TileSideVertices, int32 TileOverlapVerties,
+		double ElementSize, double MaxDepth);
+	void CreateTerrainDataSource(
+		FTerrainHeightFetcherBase* HeightFetcher, FTerrainMaterialBarrier* DefaultTerrainMaterial);
 	FTerrainPagerRef* GetNative();
 	const FTerrainPagerRef* GetNative() const;
 	void ReleaseNative();
@@ -41,6 +46,16 @@ public:
 	bool AddRigidBody(FRigidBodyBarrier& Body, double RequiredRadius, double PreloadRadius);
 
 	bool SetTileLoadRadii(FRigidBodyBarrier& Body, double RequiredRadius, double PreloadRadius);
+
+	/**
+	* Assign Terrain Material for future terrain tiles overlapped by the given Shape.
+	* The Shape is cloned before being given to the Native Terrain Data Source to allow
+	* "stamping" where the same Shape is used to set Terrain Materials in many locations by
+	* moving the Shape between calls.
+	*/ 
+	bool SetTerrainMaterial(FTerrainMaterialBarrier& TerrainMaterial, FShapeBarrier& Shape);
+	bool SetAssociatedMaterial(
+		FTerrainMaterialBarrier& TerrainMaterial, FShapeMaterialBarrier& ShapeMaterial);
 
 	FParticleData GetParticleData() const;
 
