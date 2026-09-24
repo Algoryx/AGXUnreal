@@ -59,7 +59,7 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Deformation Properties")
 	EAGX_TerrainWheelDisplacementModel DisplacementModel {
-		EAGX_TerrainWheelDisplacementModel::NeighborBased};
+		EAGX_TerrainWheelDisplacementModel::FlowZone};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Deformation Properties")
 	void SetDisplacementModel(EAGX_TerrainWheelDisplacementModel InModel);
