@@ -166,6 +166,18 @@ bool FTerrainWheelSettingsBarrier::GetEnableForceFrameTransformation() const
 	return NativeRef->Native->getEnableForceFrameTransformation();
 }
 
+void FTerrainWheelSettingsBarrier::SetEnableForceFeedbackBasedTerrainSamplingModes(bool InEnable)
+{
+	check(HasNative());
+	NativeRef->Native->setEnableForceFeedbackBasedTerrainSamplingModes(InEnable);
+}
+
+bool FTerrainWheelSettingsBarrier::GetEnableForceFeedbackBasedTerrainSamplingModes() const
+{
+	check(HasNative());
+	return NativeRef->Native->getEnableForceFeedbackBasedTerrainSamplingModes();
+}
+
 void FTerrainWheelSettingsBarrier::SetForceFeedbackHeightFieldSamplingMode(
 	EAGX_TerrainWheelSamplingMode InMode)
 {
@@ -178,6 +190,33 @@ FTerrainWheelSettingsBarrier::GetForceFeedbackHeightFieldSamplingMode() const
 {
 	check(HasNative());
 	return Convert(NativeRef->Native->getForceFeedbackHeightFieldSamplingMode());
+}
+
+void FTerrainWheelSettingsBarrier::SetFrontAnglePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	check(HasNative());
+	NativeRef->Native->setFrontAnglePlaneSamplingMode(Convert(InMode));
+}
+
+EAGX_TerrainWheelSamplingMode
+FTerrainWheelSettingsBarrier::GetFrontAnglePlaneSamplingMode() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getFrontAnglePlaneSamplingMode());
+}
+
+void FTerrainWheelSettingsBarrier::SetRearAnglePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	check(HasNative());
+	NativeRef->Native->setRearAnglePlaneSamplingMode(Convert(InMode));
+}
+
+EAGX_TerrainWheelSamplingMode FTerrainWheelSettingsBarrier::GetRearAnglePlaneSamplingMode() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getRearAnglePlaneSamplingMode());
 }
 
 void FTerrainWheelSettingsBarrier::SetForceReferencePlaneSamplingMode(
@@ -206,6 +245,33 @@ FTerrainWheelSettingsBarrier::GetRearAndFrontAngleReferencePlaneSamplingMode() c
 {
 	check(HasNative());
 	return Convert(NativeRef->Native->getRearAndFrontAngleReferencePlaneSamplingMode());
+}
+
+void FTerrainWheelSettingsBarrier::SetKinematicPlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	check(HasNative());
+	NativeRef->Native->setKinematicPlaneSamplingMode(Convert(InMode));
+}
+
+EAGX_TerrainWheelSamplingMode FTerrainWheelSettingsBarrier::GetKinematicPlaneSamplingMode() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getKinematicPlaneSamplingMode());
+}
+
+void FTerrainWheelSettingsBarrier::SetDeformationAlgorithmReferencePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	check(HasNative());
+	NativeRef->Native->setDeformationAlgorithmReferencePlaneSamplingMode(Convert(InMode));
+}
+
+EAGX_TerrainWheelSamplingMode
+FTerrainWheelSettingsBarrier::GetDeformationAlgorithmReferencePlaneSamplingMode() const
+{
+	check(HasNative());
+	return Convert(NativeRef->Native->getDeformationAlgorithmReferencePlaneSamplingMode());
 }
 
 void FTerrainWheelSettingsBarrier::SetEnableRearAndFrontAngleSmoothing(bool InEnable)

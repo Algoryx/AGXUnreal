@@ -64,14 +64,29 @@ public:
 	void SetEnableForceFrameTransformation(bool InEnable);
 	bool GetEnableForceFrameTransformation() const;
 
+	void SetEnableForceFeedbackBasedTerrainSamplingModes(bool InEnable);
+	bool GetEnableForceFeedbackBasedTerrainSamplingModes() const;
+
 	void SetForceFeedbackHeightFieldSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
 	EAGX_TerrainWheelSamplingMode GetForceFeedbackHeightFieldSamplingMode() const;
+
+	void SetFrontAnglePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetFrontAnglePlaneSamplingMode() const;
+
+	void SetRearAnglePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetRearAnglePlaneSamplingMode() const;
 
 	void SetForceReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
 	EAGX_TerrainWheelSamplingMode GetForceReferencePlaneSamplingMode() const;
 
 	void SetRearAndFrontAngleReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
 	EAGX_TerrainWheelSamplingMode GetRearAndFrontAngleReferencePlaneSamplingMode() const;
+
+	void SetKinematicPlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetKinematicPlaneSamplingMode() const;
+
+	void SetDeformationAlgorithmReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+	EAGX_TerrainWheelSamplingMode GetDeformationAlgorithmReferencePlaneSamplingMode() const;
 
 	void SetEnableRearAndFrontAngleSmoothing(bool InEnable);
 	bool GetEnableRearAndFrontAngleSmoothing() const;

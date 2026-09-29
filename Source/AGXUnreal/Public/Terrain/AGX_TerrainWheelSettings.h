@@ -162,6 +162,20 @@ public:
 	bool GetEnableForceFrameTransformation() const;
 
 	/**
+	 * Determines whether sampling modes for dependent Terrain Wheel regression planes are
+	 * automatically selected from the force feedback height field sampling mode. When disabled,
+	 * each plane uses its individually configured sampling mode.
+	 */
+	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
+	bool bEnableForceFeedbackBasedTerrainSamplingModes {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetEnableForceFeedbackBasedTerrainSamplingModes(bool InEnable);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	bool GetEnableForceFeedbackBasedTerrainSamplingModes() const;
+
+	/**
 	 * Terrain height data used when calculating the force feedback plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
 	 */
@@ -176,10 +190,44 @@ public:
 	EAGX_TerrainWheelSamplingMode GetForceFeedbackHeightFieldSamplingMode() const;
 
 	/**
+	 * Terrain height data used when calculating the front angle plane. Live samples the current,
+	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
+	EAGX_TerrainWheelSamplingMode FrontAnglePlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetFrontAnglePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetFrontAnglePlaneSamplingMode() const;
+
+	/**
+	 * Terrain height data used when calculating the rear angle plane. Live samples the current,
+	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
+	EAGX_TerrainWheelSamplingMode RearAnglePlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetRearAnglePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetRearAnglePlaneSamplingMode() const;
+
+	/**
 	 * Terrain height data used when calculating the force reference plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
 	EAGX_TerrainWheelSamplingMode ForceReferencePlaneSamplingMode {
 		EAGX_TerrainWheelSamplingMode::Cached};
 
@@ -194,7 +242,9 @@ public:
 	 * samples the current, potentially deformed Terrain. Cached samples the moving local
 	 * Terrain-height cache.
 	 */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay)
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
 	EAGX_TerrainWheelSamplingMode RearAndFrontAngleReferencePlaneSamplingMode {
 		EAGX_TerrainWheelSamplingMode::Cached};
 
@@ -203,6 +253,39 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	EAGX_TerrainWheelSamplingMode GetRearAndFrontAngleReferencePlaneSamplingMode() const;
+
+	/**
+	 * Terrain height data used when calculating the kinematic plane. Live samples the current,
+	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
+	EAGX_TerrainWheelSamplingMode KinematicPlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetKinematicPlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetKinematicPlaneSamplingMode() const;
+
+	/**
+	 * Terrain height data used when calculating the deformation algorithm reference plane. Live
+	 * samples the current, potentially deformed Terrain. Cached samples the moving local
+	 * Terrain-height cache.
+	 */
+	UPROPERTY(
+		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
+		Meta = (EditCondition = "!bEnableForceFeedbackBasedTerrainSamplingModes"))
+	EAGX_TerrainWheelSamplingMode DeformationAlgorithmReferencePlaneSamplingMode {
+		EAGX_TerrainWheelSamplingMode::Live};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	void SetDeformationAlgorithmReferencePlaneSamplingMode(EAGX_TerrainWheelSamplingMode InMode);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
+	EAGX_TerrainWheelSamplingMode GetDeformationAlgorithmReferencePlaneSamplingMode() const;
 
 	/**
 	 * Determines whether rear and front contact angles are smoothed during changes in wheel

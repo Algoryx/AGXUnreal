@@ -123,6 +123,16 @@ bool UAGX_TerrainWheelSettings::GetEnableForceFrameTransformation() const
 	AGX_ASSET_GETTER_BOOL(EnableForceFrameTransformation);
 }
 
+void UAGX_TerrainWheelSettings::SetEnableForceFeedbackBasedTerrainSamplingModes(bool InEnable)
+{
+	AGX_ASSET_SETTER_BOOL(EnableForceFeedbackBasedTerrainSamplingModes, InEnable);
+}
+
+bool UAGX_TerrainWheelSettings::GetEnableForceFeedbackBasedTerrainSamplingModes() const
+{
+	AGX_ASSET_GETTER_BOOL(EnableForceFeedbackBasedTerrainSamplingModes);
+}
+
 void UAGX_TerrainWheelSettings::SetForceFeedbackHeightFieldSamplingMode(
 	EAGX_TerrainWheelSamplingMode InMode)
 {
@@ -133,6 +143,28 @@ EAGX_TerrainWheelSamplingMode
 UAGX_TerrainWheelSettings::GetForceFeedbackHeightFieldSamplingMode() const
 {
 	AGX_ASSET_GETTER(ForceFeedbackHeightFieldSamplingMode);
+}
+
+void UAGX_TerrainWheelSettings::SetFrontAnglePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	AGX_ASSET_SETTER(FrontAnglePlaneSamplingMode, InMode);
+}
+
+EAGX_TerrainWheelSamplingMode UAGX_TerrainWheelSettings::GetFrontAnglePlaneSamplingMode() const
+{
+	AGX_ASSET_GETTER(FrontAnglePlaneSamplingMode);
+}
+
+void UAGX_TerrainWheelSettings::SetRearAnglePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	AGX_ASSET_SETTER(RearAnglePlaneSamplingMode, InMode);
+}
+
+EAGX_TerrainWheelSamplingMode UAGX_TerrainWheelSettings::GetRearAnglePlaneSamplingMode() const
+{
+	AGX_ASSET_GETTER(RearAnglePlaneSamplingMode);
 }
 
 void UAGX_TerrainWheelSettings::SetForceReferencePlaneSamplingMode(
@@ -157,6 +189,29 @@ EAGX_TerrainWheelSamplingMode
 UAGX_TerrainWheelSettings::GetRearAndFrontAngleReferencePlaneSamplingMode() const
 {
 	AGX_ASSET_GETTER(RearAndFrontAngleReferencePlaneSamplingMode);
+}
+
+void UAGX_TerrainWheelSettings::SetKinematicPlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	AGX_ASSET_SETTER(KinematicPlaneSamplingMode, InMode);
+}
+
+EAGX_TerrainWheelSamplingMode UAGX_TerrainWheelSettings::GetKinematicPlaneSamplingMode() const
+{
+	AGX_ASSET_GETTER(KinematicPlaneSamplingMode);
+}
+
+void UAGX_TerrainWheelSettings::SetDeformationAlgorithmReferencePlaneSamplingMode(
+	EAGX_TerrainWheelSamplingMode InMode)
+{
+	AGX_ASSET_SETTER(DeformationAlgorithmReferencePlaneSamplingMode, InMode);
+}
+
+EAGX_TerrainWheelSamplingMode
+UAGX_TerrainWheelSettings::GetDeformationAlgorithmReferencePlaneSamplingMode() const
+{
+	AGX_ASSET_GETTER(DeformationAlgorithmReferencePlaneSamplingMode);
 }
 
 void UAGX_TerrainWheelSettings::SetEnableRearAndFrontAngleSmoothing(bool InEnable)
@@ -247,10 +302,17 @@ void UAGX_TerrainWheelSettings::CopyFrom(const FTerrainWheelSettingsBarrier& Sou
 		Source.GetEnableComputeMaximumNormalStressAngleFromFrontAngle();
 	bEnableAGXDebugRendering = Source.GetEnableAGXDebugRendering();
 	bEnableForceFrameTransformation = Source.GetEnableForceFrameTransformation();
+	bEnableForceFeedbackBasedTerrainSamplingModes =
+		Source.GetEnableForceFeedbackBasedTerrainSamplingModes();
 	ForceFeedbackHeightFieldSamplingMode = Source.GetForceFeedbackHeightFieldSamplingMode();
+	FrontAnglePlaneSamplingMode = Source.GetFrontAnglePlaneSamplingMode();
+	RearAnglePlaneSamplingMode = Source.GetRearAnglePlaneSamplingMode();
 	ForceReferencePlaneSamplingMode = Source.GetForceReferencePlaneSamplingMode();
 	RearAndFrontAngleReferencePlaneSamplingMode =
 		Source.GetRearAndFrontAngleReferencePlaneSamplingMode();
+	KinematicPlaneSamplingMode = Source.GetKinematicPlaneSamplingMode();
+	DeformationAlgorithmReferencePlaneSamplingMode =
+		Source.GetDeformationAlgorithmReferencePlaneSamplingMode();
 	bEnableRearAndFrontAngleSmoothing = Source.GetEnableRearAndFrontAngleSmoothing();
 	RearAndFrontAngleSmoothingAngularSpeed = Source.GetRearAndFrontAngleSmoothingAngularSpeed();
 	bEnableTractionRollingResistanceCoupling =
@@ -272,10 +334,17 @@ void UAGX_TerrainWheelSettings::CopyFrom(const UAGX_TerrainWheelSettings* Source
 		Source->bEnableComputeMaximumNormalStressAngleFromFrontAngle;
 	bEnableAGXDebugRendering = Source->bEnableAGXDebugRendering;
 	bEnableForceFrameTransformation = Source->bEnableForceFrameTransformation;
+	bEnableForceFeedbackBasedTerrainSamplingModes =
+		Source->bEnableForceFeedbackBasedTerrainSamplingModes;
 	ForceFeedbackHeightFieldSamplingMode = Source->ForceFeedbackHeightFieldSamplingMode;
+	FrontAnglePlaneSamplingMode = Source->FrontAnglePlaneSamplingMode;
+	RearAnglePlaneSamplingMode = Source->RearAnglePlaneSamplingMode;
 	ForceReferencePlaneSamplingMode = Source->ForceReferencePlaneSamplingMode;
 	RearAndFrontAngleReferencePlaneSamplingMode =
 		Source->RearAndFrontAngleReferencePlaneSamplingMode;
+	KinematicPlaneSamplingMode = Source->KinematicPlaneSamplingMode;
+	DeformationAlgorithmReferencePlaneSamplingMode =
+		Source->DeformationAlgorithmReferencePlaneSamplingMode;
 	bEnableRearAndFrontAngleSmoothing = Source->bEnableRearAndFrontAngleSmoothing;
 	RearAndFrontAngleSmoothingAngularSpeed = Source->RearAndFrontAngleSmoothingAngularSpeed;
 	bEnableTractionRollingResistanceCoupling = Source->bEnableTractionRollingResistanceCoupling;
@@ -399,9 +468,16 @@ void UAGX_TerrainWheelSettings::UpdateNativeProperties()
 	NativeBarrier.SetEnableAGXDebugRendering(bEnableAGXDebugRendering);
 	NativeBarrier.SetEnableForceFrameTransformation(bEnableForceFrameTransformation);
 	NativeBarrier.SetForceFeedbackHeightFieldSamplingMode(ForceFeedbackHeightFieldSamplingMode);
+	NativeBarrier.SetFrontAnglePlaneSamplingMode(FrontAnglePlaneSamplingMode);
+	NativeBarrier.SetRearAnglePlaneSamplingMode(RearAnglePlaneSamplingMode);
 	NativeBarrier.SetForceReferencePlaneSamplingMode(ForceReferencePlaneSamplingMode);
 	NativeBarrier.SetRearAndFrontAngleReferencePlaneSamplingMode(
 		RearAndFrontAngleReferencePlaneSamplingMode);
+	NativeBarrier.SetKinematicPlaneSamplingMode(KinematicPlaneSamplingMode);
+	NativeBarrier.SetDeformationAlgorithmReferencePlaneSamplingMode(
+		DeformationAlgorithmReferencePlaneSamplingMode);
+	NativeBarrier.SetEnableForceFeedbackBasedTerrainSamplingModes(
+		bEnableForceFeedbackBasedTerrainSamplingModes);
 	NativeBarrier.SetEnableRearAndFrontAngleSmoothing(bEnableRearAndFrontAngleSmoothing);
 	NativeBarrier.SetRearAndFrontAngleSmoothingAngularSpeed(RearAndFrontAngleSmoothingAngularSpeed);
 	NativeBarrier.SetEnableTractionRollingResistanceCoupling(
@@ -439,9 +515,14 @@ void UAGX_TerrainWheelSettings::InitPropertyDispatcher()
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableComputeMaximumNormalStressAngleFromFrontAngle);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableAGXDebugRendering);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableForceFrameTransformation);
+	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableForceFeedbackBasedTerrainSamplingModes);
 	AGX_ASSET_DEFAULT_DISPATCHER(ForceFeedbackHeightFieldSamplingMode);
+	AGX_ASSET_DEFAULT_DISPATCHER(FrontAnglePlaneSamplingMode);
+	AGX_ASSET_DEFAULT_DISPATCHER(RearAnglePlaneSamplingMode);
 	AGX_ASSET_DEFAULT_DISPATCHER(ForceReferencePlaneSamplingMode);
 	AGX_ASSET_DEFAULT_DISPATCHER(RearAndFrontAngleReferencePlaneSamplingMode);
+	AGX_ASSET_DEFAULT_DISPATCHER(KinematicPlaneSamplingMode);
+	AGX_ASSET_DEFAULT_DISPATCHER(DeformationAlgorithmReferencePlaneSamplingMode);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableRearAndFrontAngleSmoothing);
 	AGX_ASSET_DEFAULT_DISPATCHER(RearAndFrontAngleSmoothingAngularSpeed);
 	AGX_ASSET_DEFAULT_DISPATCHER_BOOL(EnableTractionRollingResistanceCoupling);
