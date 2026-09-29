@@ -192,6 +192,8 @@ public:
 	/**
 	 * Terrain height data used when calculating the front angle plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
@@ -208,6 +210,8 @@ public:
 	/**
 	 * Terrain height data used when calculating the rear angle plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
@@ -224,6 +228,8 @@ public:
 	/**
 	 * Terrain height data used when calculating the force reference plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
@@ -241,6 +247,8 @@ public:
 	 * Terrain height data used when calculating the rear and front angle reference plane. Live
 	 * samples the current, potentially deformed Terrain. Cached samples the moving local
 	 * Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
@@ -257,6 +265,8 @@ public:
 	/**
 	 * Terrain height data used when calculating the kinematic plane. Live samples the current,
 	 * potentially deformed Terrain. Cached samples the moving local Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
@@ -274,6 +284,8 @@ public:
 	 * Terrain height data used when calculating the deformation algorithm reference plane. Live
 	 * samples the current, potentially deformed Terrain. Cached samples the moving local
 	 * Terrain-height cache.
+	 * The value of this property is only used when EnableForceFeedbackBasedTerrainSamplingModes is
+	 * false.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain Wheel Settings", AdvancedDisplay,
