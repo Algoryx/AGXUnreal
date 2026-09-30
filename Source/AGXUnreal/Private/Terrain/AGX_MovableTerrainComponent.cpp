@@ -557,8 +557,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();
 
-	if (!IsValid(World) || !IsValid(this) || !IsValid(Owner) || IsBeingDestroyed() ||
-		Owner->HasAnyFlags(RF_BeginDestroyed))
+	if (!IsValid(World) || !IsValid(this) ||
+		Owner->HasAnyFlags(RF_BeginDestroyed) || !IsValid(Owner) || IsBeingDestroyed())
 	{
 		return;
 	}
@@ -571,8 +571,8 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
 			[this, World, Owner](float DeltaTime)
 			{
-				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
-					Owner->HasAnyFlags(RF_BeginDestroyed) ||
+					if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) ||
+						Owner->HasAnyFlags(RF_BeginDestroyed) || !IsValid(Owner) ||
 					!Owner->HasActorRegisteredAllComponents())
 				{
 					return false;
