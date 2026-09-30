@@ -41,6 +41,7 @@
 #include "PixelFormat.h"
 #include "RHI.h"
 #include "RenderingThread.h"
+#include "SceneView.h"
 
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
@@ -55,6 +56,10 @@ UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 
 namespace AGX_CameraSensorComponent_helpers
 {
+	// AGX caps its lens distortion resolution scale at 8.0. Use the same bound for
+	// projection overscan so it cannot create an unbounded Scene Render Target.
+	constexpr double MaximumLensDistortionScale = 8.0;
+
 	void SetLocalScope(UAGX_CameraSensorComponent& Component)
 	{
 		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
@@ -126,8 +131,8 @@ namespace AGX_CameraSensorComponent_helpers
 		FPostProcessSettings& PostProcessSettings = SceneCapture.PostProcessSettings;
 		if (bUseAutofocus)
 		{
-			PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(
-			CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance));
+			PostProcessSettings.DepthOfFieldFocalDistance =
+				static_cast<float>(CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance));
 		}
 		else
 		{
@@ -227,50 +232,47 @@ namespace AGX_CameraSensorComponent_helpers
 		return LensBarrier->GetLensDistortionBrownConrady();
 	}
 
-	FVector2D GetUndistortedPoint(
-		const FVector2D& DistortedPoint, double K1, double K2, double K3, double P1, double P2)
+	FVector2D GetDistortedPoint(
+		const FVector2D& Point, double K1, double K2, double K3, double P1, double P2)
 	{
-		FVector2D Point = DistortedPoint;
-		constexpr int32 NumIterations = 10;
-		constexpr double ErrorThreshold = 1.0e-4;
-		for (int32 Iteration = 0; Iteration < NumIterations; ++Iteration)
-		{
-			const double X = Point.X;
-			const double Y = Point.Y;
-			const double R2 = X * X + Y * Y;
-			const double R4 = R2 * R2;
-			const double R6 = R4 * R2;
-			const double Radial = 1.0 + K1 * R2 + K2 * R4 + K3 * R6;
-			const double TangentialX = 2.0 * P1 * X * Y + P2 * (R2 + 2.0 * X * X);
-			const double TangentialY = 2.0 * P2 * X * Y + P1 * (R2 + 2.0 * Y * Y);
+		const double X = Point.X;
+		const double Y = Point.Y;
+		const double R2 = X * X + Y * Y;
+		const double R4 = R2 * R2;
+		const double R6 = R4 * R2;
+		const double Radial = 1.0 + K1 * R2 + K2 * R4 + K3 * R6;
 
-			const FVector2D NextPoint(
-				(DistortedPoint.X - TangentialX) / Radial,
-				(DistortedPoint.Y - TangentialY) / Radial);
-			const double DeltaX = FMath::Abs(NextPoint.X - Point.X);
-			const double DeltaY = FMath::Abs(NextPoint.Y - Point.Y);
-			Point = NextPoint;
-
-			if (DeltaX < ErrorThreshold && DeltaY < ErrorThreshold)
-				break;
-		}
-
-		return Point;
+		return FVector2D(
+			X * Radial + 2.0 * P1 * X * Y + P2 * (R2 + 2.0 * X * X),
+			Y * Radial + P1 * (R2 + 2.0 * Y * Y) + 2.0 * P2 * X * Y);
 	}
 
-	void CalculateLensDistortionCompensation(
-		float InFOV, const FIntPoint& InResolution,
-		const FLensDistortionBrownConradyBarrier* LensDistortion, float& OutFOV,
-		FIntPoint& OutResolution)
+	FVector4 CalculateBrownConradyJacobian(
+		const FVector2D& Point, double K1, double K2, double K3, double P1, double P2)
 	{
-		OutFOV = InFOV;
-		OutResolution = InResolution;
+		const double X = Point.X;
+		const double Y = Point.Y;
+		const double R2 = X * X + Y * Y;
+		const double R4 = R2 * R2;
+		const double R6 = R4 * R2;
+		const double Radial = 1.0 + K1 * R2 + K2 * R4 + K3 * R6;
+		const double RadialDerivative = K1 + 2.0 * K2 * R2 + 3.0 * K3 * R4;
+		const double OffDiagonal = 2.0 * X * Y * RadialDerivative + 2.0 * P1 * X + 2.0 * P2 * Y;
 
-		if (InFOV <= 0.0f || InResolution.X <= 0 || InResolution.Y <= 0 ||
-			LensDistortion == nullptr || !LensDistortion->HasNative())
-		{
-			return;
-		}
+		return FVector4(
+			Radial + 2.0 * X * X * RadialDerivative + 2.0 * P1 * Y + 6.0 * P2 * X, OffDiagonal,
+			OffDiagonal, Radial + 2.0 * Y * Y * RadialDerivative + 6.0 * P1 * Y + 2.0 * P2 * X);
+	}
+
+	bool CalculateLensDistortionScales(
+		const FLensDistortionBrownConradyBarrier* LensDistortion, FVector2D& OutProjectionScale,
+		FVector2D& OutResolutionScale)
+	{
+		OutProjectionScale = FVector2D(1.0, 1.0);
+		OutResolutionScale = FVector2D(1.0, 1.0);
+
+		if (LensDistortion == nullptr || !LensDistortion->HasNative())
+			return true;
 
 		const double K1 = LensDistortion->GetK1();
 		const double K2 = LensDistortion->GetK2();
@@ -278,49 +280,86 @@ namespace AGX_CameraSensorComponent_helpers
 		const double P1 = LensDistortion->GetP1();
 		const double P2 = LensDistortion->GetP2();
 		if (K1 == 0.0 && K2 == 0.0 && K3 == 0.0 && P1 == 0.0 && P2 == 0.0)
-			return;
+			return true;
 
-		const double AspectRatio =
-			static_cast<double>(InResolution.X) / static_cast<double>(InResolution.Y);
-		const double HalfWidth =
-			FMath::Tan(FMath::DegreesToRadians(static_cast<double>(InFOV) * 0.5));
-		const double HalfHeight = HalfWidth / AspectRatio;
-		if (HalfWidth <= 0.0 || HalfHeight <= 0.0)
-			return;
-
-		double RequiredScale = 1.0;
-		const auto VisitPoint = [&RequiredScale, HalfWidth, HalfHeight, K1, K2, K3, P1,
-								 P2](const FVector2D& Point)
+		for (int32 X = -1; X <= 1; ++X)
 		{
-			const FVector2D UndistortedPoint =
-				GetUndistortedPoint(Point, K1, K2, K3, P1, P2);
-			const double ScaleX = FMath::Abs(UndistortedPoint.X) / HalfWidth;
-			const double ScaleY = FMath::Abs(UndistortedPoint.Y) / HalfHeight;
-			if (FMath::IsFinite(ScaleX))
-				RequiredScale = FMath::Max(RequiredScale, ScaleX);
-			if (FMath::IsFinite(ScaleY))
-				RequiredScale = FMath::Max(RequiredScale, ScaleY);
-		};
+			for (int32 Y = -1; Y <= 1; ++Y)
+			{
+				if (X == 0 && Y == 0)
+					continue;
 
-		constexpr int32 NumBoundarySegments = 16;
-		for (int32 Index = 0; Index <= NumBoundarySegments; ++Index)
-		{
-			const double T =
-				-1.0 + 2.0 * static_cast<double>(Index) / static_cast<double>(NumBoundarySegments);
-			VisitPoint(FVector2D(HalfWidth, T * HalfHeight));
-			VisitPoint(FVector2D(-HalfWidth, T * HalfHeight));
-			VisitPoint(FVector2D(T * HalfWidth, HalfHeight));
-			VisitPoint(FVector2D(T * HalfWidth, -HalfHeight));
+				const FVector2D Point(static_cast<double>(X), static_cast<double>(Y));
+				const FVector2D DistortedPoint = GetDistortedPoint(Point, K1, K2, K3, P1, P2);
+				if (!FMath::IsFinite(DistortedPoint.X) || !FMath::IsFinite(DistortedPoint.Y))
+				{
+					return false;
+				}
+
+				if (X != 0)
+				{
+					if (FMath::Abs(DistortedPoint.X) < 1.0e-12)
+					{
+						return false;
+					}
+
+					const double ScaleX = 1.0 / DistortedPoint.X;
+					if (!FMath::IsFinite(ScaleX))
+					{
+						return false;
+					}
+					OutProjectionScale.X = FMath::Max(OutProjectionScale.X, ScaleX);
+				}
+
+				if (Y != 0)
+				{
+					if (FMath::Abs(DistortedPoint.Y) < 1.0e-12)
+					{
+						return false;
+					}
+
+					const double ScaleY = 1.0 / DistortedPoint.Y;
+					if (!FMath::IsFinite(ScaleY))
+					{
+						return false;
+					}
+					OutProjectionScale.Y = FMath::Max(OutProjectionScale.Y, ScaleY);
+				}
+			}
 		}
 
-		if (RequiredScale <= 1.0)
-			return;
+		constexpr int32 HalfSamples = 4;
+		for (int32 X = -HalfSamples; X < HalfSamples; ++X)
+		{
+			for (int32 Y = -HalfSamples; Y < HalfSamples; ++Y)
+			{
+				const FVector2D Point(
+					static_cast<double>(X) / static_cast<double>(HalfSamples),
+					static_cast<double>(Y) / static_cast<double>(HalfSamples));
+				const FVector4 Jacobian = CalculateBrownConradyJacobian(Point, K1, K2, K3, P1, P2);
+				if (!FMath::IsFinite(Jacobian.X) || !FMath::IsFinite(Jacobian.Y) ||
+					!FMath::IsFinite(Jacobian.Z) || !FMath::IsFinite(Jacobian.W))
+				{
+					return false;
+				}
 
-		OutFOV = static_cast<float>(
-			FMath::RadiansToDegrees(2.0 * FMath::Atan(HalfWidth * RequiredScale)));
-		OutResolution = FIntPoint(
-			FMath::Max(1, FMath::CeilToInt(static_cast<double>(InResolution.X) * RequiredScale)),
-			FMath::Max(1, FMath::CeilToInt(static_cast<double>(InResolution.Y) * RequiredScale)));
+				const double ScaleX = FMath::Max(FMath::Abs(Jacobian.X), FMath::Abs(Jacobian.Z));
+				const double ScaleY = FMath::Max(FMath::Abs(Jacobian.Y), FMath::Abs(Jacobian.W));
+				OutResolutionScale.X = FMath::Max(OutResolutionScale.X, ScaleX);
+				OutResolutionScale.Y = FMath::Max(OutResolutionScale.Y, ScaleY);
+			}
+		}
+
+		OutResolutionScale.X = FMath::Min(OutResolutionScale.X, MaximumLensDistortionScale);
+		OutResolutionScale.Y = FMath::Min(OutResolutionScale.Y, MaximumLensDistortionScale);
+		return true;
+	}
+
+	FMatrix MakeSceneCaptureProjectionMatrix(double TanHalfFOVX, double TanHalfFOVY)
+	{
+		return FReversedZPerspectiveMatrix(
+			FMath::Atan(TanHalfFOVX), FMath::Atan(TanHalfFOVY), 1.0f, 1.0f, GNearClippingPlane,
+			GNearClippingPlane);
 	}
 }
 
@@ -538,10 +577,18 @@ FCameraOutputRenderContext* UAGX_CameraSensorComponent::UpdateOutputCaptureSetti
 	if (OutputRenderContext == nullptr)
 		return nullptr;
 
-	return UpdateOutputRenderContextNoParams(
-			*OutputRenderContext, OutputColorBarrier, bLogWarnings)
-			? OutputRenderContext
-			: nullptr;
+	if (!UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier, bLogWarnings))
+	{
+		return nullptr;
+	}
+
+	UpdateMaterialParametersFrom(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+	const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
+		AGX_CameraSensorComponent_helpers::GetLensDistortionBrownConradyBarrier(*this);
+	UpdateMaterialParametersFrom(
+		LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr,
+		OutputRenderContext->DistortionProjectionScale, OutputRenderContext->MaterialInstances);
+	return OutputRenderContext;
 }
 
 void UAGX_CameraSensorComponent::UpdateAllOutputCaptureSettings()
@@ -577,6 +624,7 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 
 void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 	const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
+	const FVector2D& DistortionProjectionScale,
 	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
 {
 	const bool bHasLensDistortion =
@@ -586,6 +634,8 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 	const double K3 = bHasLensDistortion ? LensDistortionBarrier->GetK3() : 0.0;
 	const double P1 = bHasLensDistortion ? LensDistortionBarrier->GetP1() : 0.0;
 	const double P2 = bHasLensDistortion ? LensDistortionBarrier->GetP2() : 0.0;
+	const double ProjectionScaleX = bHasLensDistortion ? DistortionProjectionScale.X : 1.0;
+	const double ProjectionScaleY = bHasLensDistortion ? DistortionProjectionScale.Y : 1.0;
 
 	for (auto& Material : OutMaterials)
 	{
@@ -597,6 +647,8 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 		Material->SetScalarParameterValue(TEXT("LD_K3"), K3);
 		Material->SetScalarParameterValue(TEXT("LD_P1"), P1);
 		Material->SetScalarParameterValue(TEXT("LD_P2"), P2);
+		Material->SetScalarParameterValue(TEXT("LD_ProjectionScaleX"), ProjectionScaleX);
+		Material->SetScalarParameterValue(TEXT("LD_ProjectionScaleY"), ProjectionScaleY);
 	}
 }
 
@@ -639,23 +691,78 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
 	const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
-	float SceneCaptureFOVAngle =
+	const float UncompensatedFOVAngle =
 		CalculateHorizontalFOVDegrees(CMOSSensor.GetSize().X, Lens.GetFocalLength());
+	float SceneCaptureFOVAngle = UncompensatedFOVAngle;
 	FIntPoint SceneResolution = OutputResolution;
+	FVector2D DistortionProjectionScale(1.0, 1.0);
+	FVector2D DistortionResolutionScale(1.0, 1.0);
+	bool bDistortionSettingsAreValid = true;
+	FLensDistortionBrownConradyBarrier LensDistortionBarrier;
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr = nullptr;
 	if (!HasCaptureSourceOverride() && MaterialPasses.Num() > 0)
 	{
-		const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
-			GetLensDistortionBrownConradyBarrier(*this);
-		const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr =
+		LensDistortionBarrier = GetLensDistortionBrownConradyBarrier(*this);
+		LensDistortionBarrierPtr =
 			LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr;
-		CalculateLensDistortionCompensation(
-			SceneCaptureFOVAngle, OutputResolution, LensDistortionBarrierPtr, SceneCaptureFOVAngle,
-			SceneResolution);
+		bDistortionSettingsAreValid = CalculateLensDistortionScales(
+			LensDistortionBarrierPtr, DistortionProjectionScale, DistortionResolutionScale);
+		if (DistortionProjectionScale.X > MaximumLensDistortionScale ||
+			DistortionProjectionScale.Y > MaximumLensDistortionScale)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' is clamping lens distortion projection scale "
+					 "for Color Output 0x%llx from (%.6f, %.6f) to (%.6f, %.6f) to limit "
+					 "Scene Render Target resolution."),
+				*GetName(), static_cast<unsigned long long>(OutputColorBarrier.GetNativeAddress()),
+				DistortionProjectionScale.X, DistortionProjectionScale.Y,
+				FMath::Min(DistortionProjectionScale.X, MaximumLensDistortionScale),
+				FMath::Min(DistortionProjectionScale.Y, MaximumLensDistortionScale));
+			DistortionProjectionScale.X =
+				FMath::Min(DistortionProjectionScale.X, MaximumLensDistortionScale);
+			DistortionProjectionScale.Y =
+				FMath::Min(DistortionProjectionScale.Y, MaximumLensDistortionScale);
+		}
+	}
+
+	const double BaseTanHalfFOVX =
+		FMath::Tan(FMath::DegreesToRadians(static_cast<double>(UncompensatedFOVAngle) * 0.5));
+	const double BaseTanHalfFOVY = CMOSSensor.GetSize().Y / (2.0 * Lens.GetFocalLength());
+	if (bDistortionSettingsAreValid && BaseTanHalfFOVX > 0.0 && BaseTanHalfFOVY > 0.0)
+	{
+		const double SceneTanHalfFOVX = BaseTanHalfFOVX * DistortionProjectionScale.X;
+		const double SceneTanHalfFOVY = BaseTanHalfFOVY * DistortionProjectionScale.Y;
+		SceneCaptureFOVAngle =
+			static_cast<float>(FMath::RadiansToDegrees(2.0 * FMath::Atan(SceneTanHalfFOVX)));
+		// Preserve output pixel density after the material pass crops the overscanned capture.
+		SceneResolution = FIntPoint(
+			FMath::Max(
+				1, FMath::CeilToInt(
+					   static_cast<double>(OutputResolution.X) * DistortionProjectionScale.X *
+					   DistortionResolutionScale.X)),
+			FMath::Max(
+				1, FMath::CeilToInt(
+					   static_cast<double>(OutputResolution.Y) * DistortionProjectionScale.Y *
+					   DistortionResolutionScale.Y)));
+		OutputRenderContext.SceneCaptureProjectionMatrix =
+			MakeSceneCaptureProjectionMatrix(SceneTanHalfFOVX, SceneTanHalfFOVY);
+		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix =
+			LensDistortionBarrierPtr != nullptr;
+	}
+	else
+	{
+		DistortionProjectionScale = FVector2D(1.0, 1.0);
+		DistortionResolutionScale = FVector2D(1.0, 1.0);
+		OutputRenderContext.SceneCaptureProjectionMatrix = FMatrix::Identity;
+		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix = false;
 	}
 
 	if (SceneCaptureFOVAngle > 0.0f)
 		OutputRenderContext.SceneCaptureFOVAngle = SceneCaptureFOVAngle;
 	OutputRenderContext.SceneCaptureResolution = SceneResolution;
+	OutputRenderContext.DistortionProjectionScale = DistortionProjectionScale;
+	OutputRenderContext.DistortionResolutionScale = DistortionResolutionScale;
 
 	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
 	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
@@ -669,10 +776,9 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 	const EPixelFormat PixelFormat =
 		GetPixelFormatFromRenderTargetFormat(RenderTargetFormat.GetValue());
-	auto EnsureRenderTarget = [this, ChannelType, ChannelCount, RenderTargetFormat,
-							   PixelFormat](
-								  TObjectPtr<UTextureRenderTarget2D>& RenderTarget,
-								  const FIntPoint& Resolution)
+	auto EnsureRenderTarget =
+		[this, ChannelType, ChannelCount, RenderTargetFormat, PixelFormat](
+			TObjectPtr<UTextureRenderTarget2D>& RenderTarget, const FIntPoint& Resolution)
 	{
 		if (RenderTarget == nullptr)
 		{
@@ -699,8 +805,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	else
 	{
 		if (!EnsureRenderTarget(
-				OutputRenderContext.SceneRenderTarget,
-				OutputRenderContext.SceneCaptureResolution))
+				OutputRenderContext.SceneRenderTarget, OutputRenderContext.SceneCaptureResolution))
 		{
 			LogWarning(TEXT("failed to create the Scene Render Target."));
 			return false;
@@ -815,6 +920,11 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 		{
 			CaptureSource->FOVAngle = OutputRenderContext->SceneCaptureFOVAngle;
 		}
+		CaptureSource->bUseCustomProjectionMatrix =
+			OutputRenderContext->bUseCustomSceneCaptureProjectionMatrix;
+		if (OutputRenderContext->bUseCustomSceneCaptureProjectionMatrix)
+			CaptureSource->CustomProjectionMatrix =
+				OutputRenderContext->SceneCaptureProjectionMatrix;
 		CaptureSource->TextureTarget = OutputRenderContext->SceneRenderTarget;
 
 		const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
@@ -1180,10 +1290,6 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 		SetupSceneCapture();
 
 		OutputRenderContexts.Empty();
-		const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
-			GetLensDistortionBrownConradyBarrier(*this);
-		const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr =
-			LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr;
 		TArray<FCameraOutputBarrier> OutputBarriers = CameraBarrier->GetOutputs();
 		for (FCameraOutputBarrier& OutputBarrier : OutputBarriers)
 		{
@@ -1197,11 +1303,6 @@ void UAGX_CameraSensorComponent::PostApplyToComponent()
 				UpdateOutputCaptureSettings(OutputColorBarrier);
 			if (OutputRenderContext == nullptr)
 				continue;
-
-			UpdateMaterialParametersFrom(
-				OutputColorBarrier, OutputRenderContext->MaterialInstances);
-			UpdateMaterialParametersFrom(
-				LensDistortionBarrierPtr, OutputRenderContext->MaterialInstances);
 		}
 	}
 }
@@ -1518,34 +1619,18 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionNone()
 		CameraLens->LensDistortion = nullptr;
 
 	UpdateAllOutputCaptureSettings();
-
-	for (auto& OutputRenderContextPair : OutputRenderContexts)
-	{
-		UpdateMaterialParametersFrom(nullptr, OutputRenderContextPair.Value.MaterialInstances);
-	}
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionBrownConrady(
-	const FLensDistortionBrownConradyBarrier& LensDistortionBarrier)
+	const FLensDistortionBrownConradyBarrier& /*LensDistortionBarrier*/)
 {
 	UpdateAllOutputCaptureSettings();
-
-	for (auto& OutputRenderContextPair : OutputRenderContexts)
-	{
-		UpdateMaterialParametersFrom(
-			&LensDistortionBarrier, OutputRenderContextPair.Value.MaterialInstances);
-	}
 }
 
 void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
 	const FCameraOutputColorBarrier& OutputColorBarrier)
 {
-	FCameraOutputRenderContext* OutputRenderContext =
-		UpdateOutputCaptureSettings(OutputColorBarrier);
-	if (OutputRenderContext == nullptr)
-		return;
-
-	UpdateMaterialParametersFrom(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+	UpdateOutputCaptureSettings(OutputColorBarrier);
 }
 
 void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)

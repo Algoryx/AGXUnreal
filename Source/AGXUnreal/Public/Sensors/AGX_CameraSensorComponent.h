@@ -9,6 +9,9 @@
 #include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
 
+// Unreal Engine includes.
+#include "Math/Matrix.h"
+
 #include "AGX_CameraSensorComponent.generated.h"
 
 struct FCameraBarrier;
@@ -40,6 +43,14 @@ struct AGXUNREAL_API FCameraOutputRenderContext
 	// Derived scene capture settings, accounting for the output resolution and lens distortion.
 	float SceneCaptureFOVAngle {0.0f};
 	FIntPoint SceneCaptureResolution {FIntPoint::ZeroValue};
+
+	// AGX Brown-Conrady input scales in normalized output coordinates.
+	FVector2D DistortionProjectionScale {1.0, 1.0};
+	FVector2D DistortionResolutionScale {1.0, 1.0};
+
+	// The custom projection matrix is required when projection scales differ between axes.
+	FMatrix SceneCaptureProjectionMatrix {FMatrix::Identity};
+	bool bUseCustomSceneCaptureProjectionMatrix {false};
 
 	// Holds the result of Material Passes.
 	UPROPERTY(Transient)
@@ -223,6 +234,7 @@ private:
 		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
 	void UpdateMaterialParametersFrom(
 		const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
+		const FVector2D& DistortionProjectionScale,
 		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
 
 	/// Internal functions called by the Camera Backend.
