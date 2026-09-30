@@ -28,12 +28,12 @@ public:
 	UAGX_TerrainWheelSettings() = default;
 
 	/**
-	 * Longitudinal velocity threshold used by the slip-ratio dead-band [cm/s].
-	 * The slip ratio is clamped to zero when both |vX| and |omegaY * radius| are below their
-	 * respective thresholds.
+	 * Threshold for the longitudinal wheel velocity expressed as |vX| / radius [deg/s].
+	 * The slip ratio is clamped to zero when both this and the axle angular-velocity threshold are
+	 * below their respective thresholds.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioVxAngularEquivalentThreshold {1.745};
+	double SlipRatioVxAngularEquivalentThreshold {1.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioVxAngularEquivalentThreshold(double InThreshold);
@@ -42,11 +42,11 @@ public:
 	double GetSlipRatioVxAngularEquivalentThreshold() const;
 
 	/**
-	 * Tangential surface-speed threshold used by the slip-ratio dead-band [cm/s].
-	 * This corresponds to |omegaY * radius| in the slip-ratio logic.
+	 * Threshold for the wheel axle angular velocity magnitude |omegaY| [deg/s] used by the
+	 * slip-ratio dead-band.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioOmegaYThreshold {1.745};
+	double SlipRatioOmegaYThreshold {1.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioOmegaYThreshold(double InThreshold);
@@ -55,13 +55,13 @@ public:
 	double GetSlipRatioOmegaYThreshold() const;
 
 	/**
-	 * Minimum velocity scale used to smooth slip-ratio computation [cm/s].
+	 * Minimum angular velocity scale used to smooth slip-ratio computation [deg/s].
 	 *
 	 * At very low wheel speeds this value is used to attenuate the slip-ratio expression
 	 * to improve numerical stability close to standstill.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	double SlipRatioSmoothingAngularSpeed {1.745};
+	double SlipRatioSmoothingAngularSpeed {1.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetSlipRatioSmoothingAngularSpeed(double InSpeed);
@@ -106,7 +106,7 @@ public:
 	 * This can be useful when a simplified or more stable trailing-edge estimate is desired.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	bool bEnableComputeRearAngleFromFrontAngle {true};
+	bool bEnableComputeRearAngleFromFrontAngle {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableComputeRearAngleFromFrontAngle(bool InEnable);
@@ -153,7 +153,7 @@ public:
 	 * force feedback plane frame before being used as constraint-force limits.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	bool bEnableForceFrameTransformation {false};
+	bool bEnableForceFrameTransformation {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableForceFrameTransformation(bool InEnable);
@@ -304,7 +304,7 @@ public:
 	 * longitudinal direction.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain Wheel Settings")
-	bool bEnableRearAndFrontAngleSmoothing {false};
+	bool bEnableRearAndFrontAngleSmoothing {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Terrain Wheel Settings")
 	void SetEnableRearAndFrontAngleSmoothing(bool InEnable);

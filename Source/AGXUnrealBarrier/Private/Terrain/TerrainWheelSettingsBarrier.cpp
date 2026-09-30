@@ -58,38 +58,38 @@ FGuid FTerrainWheelSettingsBarrier::GetGuid() const
 void FTerrainWheelSettingsBarrier::SetSlipRatioVxAngularEquivalentThreshold(double InThreshold)
 {
 	check(HasNative());
-	NativeRef->Native->setSlipRatioVxAngularEquivalentThreshold(ConvertDistanceToAGX(InThreshold));
+	NativeRef->Native->setSlipRatioVxAngularEquivalentThreshold(ConvertAngleToAGX(InThreshold));
 }
 
 double FTerrainWheelSettingsBarrier::GetSlipRatioVxAngularEquivalentThreshold() const
 {
 	check(HasNative());
-	return ConvertDistanceToUnreal<double>(
+	return ConvertAngleToUnreal<double>(
 		NativeRef->Native->getSlipRatioVxAngularEquivalentThreshold());
 }
 
 void FTerrainWheelSettingsBarrier::SetSlipRatioOmegaYThreshold(double InThreshold)
 {
 	check(HasNative());
-	NativeRef->Native->setSlipRatioOmegaYThreshold(ConvertDistanceToAGX(InThreshold));
+	NativeRef->Native->setSlipRatioOmegaYThreshold(ConvertAngleToAGX(InThreshold));
 }
 
 double FTerrainWheelSettingsBarrier::GetSlipRatioOmegaYThreshold() const
 {
 	check(HasNative());
-	return ConvertDistanceToUnreal<double>(NativeRef->Native->getSlipRatioOmegaYThreshold());
+	return ConvertAngleToUnreal<double>(NativeRef->Native->getSlipRatioOmegaYThreshold());
 }
 
 void FTerrainWheelSettingsBarrier::SetSlipRatioSmoothingAngularSpeed(double InSpeed)
 {
 	check(HasNative());
-	NativeRef->Native->setSlipRatioSmoothingAngularSpeed(ConvertDistanceToAGX(InSpeed));
+	NativeRef->Native->setSlipRatioSmoothingAngularSpeed(ConvertAngleToAGX(InSpeed));
 }
 
 double FTerrainWheelSettingsBarrier::GetSlipRatioSmoothingAngularSpeed() const
 {
 	check(HasNative());
-	return ConvertDistanceToUnreal<double>(NativeRef->Native->getSlipRatioSmoothingAngularSpeed());
+	return ConvertAngleToUnreal<double>(NativeRef->Native->getSlipRatioSmoothingAngularSpeed());
 }
 
 void FTerrainWheelSettingsBarrier::SetAngularIntegrationStep(double InStep)
