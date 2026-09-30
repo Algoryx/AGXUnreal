@@ -629,13 +629,18 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 {
 	const bool bHasLensDistortion =
 		LensDistortionBarrier != nullptr && LensDistortionBarrier->HasNative();
-	const double K1 = bHasLensDistortion ? LensDistortionBarrier->GetK1() : 0.0;
-	const double K2 = bHasLensDistortion ? LensDistortionBarrier->GetK2() : 0.0;
-	const double K3 = bHasLensDistortion ? LensDistortionBarrier->GetK3() : 0.0;
-	const double P1 = bHasLensDistortion ? LensDistortionBarrier->GetP1() : 0.0;
-	const double P2 = bHasLensDistortion ? LensDistortionBarrier->GetP2() : 0.0;
-	const double ProjectionScaleX = bHasLensDistortion ? DistortionProjectionScale.X : 1.0;
-	const double ProjectionScaleY = bHasLensDistortion ? DistortionProjectionScale.Y : 1.0;
+	double K1 = 0.0, K2 = 0.0, K3 = 0.0, P1 = 0.0, P2 = 0.0, ProjectionScaleX = 1.0,
+		   ProjectionScaleY = 1.0;
+	if (bHasLensDistortion)
+	{
+		K1 = LensDistortionBarrier->GetK1();
+		K2 = LensDistortionBarrier->GetK2();
+		K3 = LensDistortionBarrier->GetK3();
+		P1 = LensDistortionBarrier->GetP1();
+		P2 = LensDistortionBarrier->GetP2();
+		ProjectionScaleX = DistortionProjectionScale.X;
+		ProjectionScaleY = DistortionProjectionScale.Y;
+	}
 
 	for (auto& Material : OutMaterials)
 	{
