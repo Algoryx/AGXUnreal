@@ -490,9 +490,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
 		*this, LidarBarrier, *Context, ImportedModel);
-
-	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
-	Context->Sensors.Add(ImportGuid, this);
 }
 
 void UAGX_LidarSensorComponent::BeginPlay()

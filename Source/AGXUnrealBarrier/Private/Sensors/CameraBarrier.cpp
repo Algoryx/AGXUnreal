@@ -112,6 +112,42 @@ FTransform FCameraBarrier::GetTransform() const
 	return Convert(CameraBarrier_helpers::GetCameraNative(*this)->getFrame()->getMatrix());
 }
 
+FCameraCMOSSensorBarrier FCameraBarrier::GetCMOSSensor() const
+{
+	const agxSensor::CameraModel* Model = CameraBarrier_helpers::GetCameraNative(*this)->getModel();
+	if (Model == nullptr)
+		return FCameraCMOSSensorBarrier();
+
+	agxSensor::CameraPhotodetector* Photodetector = Model->getPhotodetector();
+	if (Photodetector == nullptr || !Photodetector->is<agxSensor::CameraCMOSSensor>())
+		return FCameraCMOSSensorBarrier();
+
+	return FCameraCMOSSensorBarrier(
+		std::make_shared<FCameraPhotodetectorRef>(Photodetector));
+}
+
+FCameraLensSingleElementBarrier FCameraBarrier::GetLensSingleElement() const
+{
+	const agxSensor::CameraModel* Model = CameraBarrier_helpers::GetCameraNative(*this)->getModel();
+	if (Model == nullptr)
+		return FCameraLensSingleElementBarrier();
+
+	agxSensor::CameraLens* Lens = Model->getLens();
+	if (Lens == nullptr || !Lens->is<agxSensor::CameraLensSingleElement>())
+		return FCameraLensSingleElementBarrier();
+
+	return FCameraLensSingleElementBarrier(std::make_shared<FCameraLensRef>(Lens));
+}
+
+FLensDistortionBrownConradyBarrier FCameraBarrier::GetLensDistortionBrownConrady() const
+{
+	const FCameraLensSingleElementBarrier Lens = GetLensSingleElement();
+	if (!Lens.HasNative())
+		return FLensDistortionBrownConradyBarrier();
+
+	return Lens.GetLensDistortionBrownConrady();
+}
+
 FRigidBodyBarrier FCameraBarrier::GetRigidBody() const
 {
 	using namespace CameraBarrier_helpers;

@@ -824,9 +824,6 @@ void UAGX_IMUSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Impor
 			RigidBody.Name = Body->GetFName();
 		}
 	}
-
-	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
-	Context->Sensors.Add(ImportGuid, this);
 }
 
 void UAGX_IMUSensorComponent::UpdateTransformFromNative()

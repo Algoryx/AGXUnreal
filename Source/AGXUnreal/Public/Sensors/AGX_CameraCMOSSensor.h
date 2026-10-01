@@ -8,6 +8,8 @@
 #include "AGX_CameraCMOSSensor.generated.h"
 
 struct FCameraCMOSSensorBarrier;
+struct FCameraBarrier;
+struct FAGX_ImportContext;
 
 /**
  * AGX Camera CMOS Sensor photodetector asset.
@@ -101,6 +103,8 @@ public:
 	FCameraCMOSSensorBarrier* GetNativeAsCMOSSensor();
 	const FCameraCMOSSensorBarrier* GetNativeAsCMOSSensor() const;
 
+	void CopyFrom(const FCameraBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FCameraCMOSSensorBarrier& Source);
 	virtual void CopyProperties(const UAGX_CameraPhotodetectorBase& Source) override;
 
 	// ~Begin UObject interface.

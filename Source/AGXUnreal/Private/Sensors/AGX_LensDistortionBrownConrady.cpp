@@ -7,7 +7,28 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/LensDistortionBrownConradyBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
+
+namespace AGX_LensDistortionBrownConrady_helpers
+{
+	FString CreateAssetName(const FCameraBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty()
+				? UAGX_LensDistortionBrownConrady::StaticClass()->GetName()
+				: CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("LensDistortionBrownConrady_%s"), *BaseName),
+			UAGX_LensDistortionBrownConrady::StaticClass());
+	}
+}
 
 void UAGX_LensDistortionBrownConrady::SetK1(double InK1)
 {
@@ -122,6 +143,41 @@ double UAGX_LensDistortionBrownConrady::GetP2() const
 		NativeOwner->GetNativeAsBrownConrady();
 	AGX_ASSET_GETTER_IMPL_INTERNAL(
 		P2, GetP2, BrownConradyInstance, HasNative, BrownConradyNativeBarrier, ->);
+}
+
+void UAGX_LensDistortionBrownConrady::CopyFrom(
+	const FCameraBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	const FLensDistortionBrownConradyBarrier LensDistortion =
+		Source.GetLensDistortionBrownConrady();
+	if (!LensDistortion.HasNative())
+		return;
+
+	CopyFrom(LensDistortion);
+
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	const FGuid Guid = Source.GetGuid();
+	Rename(*AGX_LensDistortionBrownConrady_helpers::CreateAssetName(Source, *Context));
+	AGX_CHECK(!Context->LensDistortions.Contains(Guid));
+	Context->LensDistortions.Add(Guid, this);
+}
+
+void UAGX_LensDistortionBrownConrady::CopyFrom(
+	const FLensDistortionBrownConradyBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	K1 = Source.GetK1();
+	K2 = Source.GetK2();
+	K3 = Source.GetK3();
+	P1 = Source.GetP1();
+	P2 = Source.GetP2();
 }
 
 void UAGX_LensDistortionBrownConrady::CopyProperties(

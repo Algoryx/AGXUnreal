@@ -7,10 +7,27 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraCMOSSensorBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 namespace AGX_CameraCMOSSensor_helpers
 {
+	FString CreateAssetName(const FCameraBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty() ? UAGX_CameraCMOSSensor::StaticClass()->GetName()
+									   : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("CameraCMOSSensor_%s"), *BaseName),
+			UAGX_CameraCMOSSensor::StaticClass());
+	}
+
 	UAGX_CameraCMOSSensor* GetCMOSSensorInstance(UAGX_CameraCMOSSensor& Sensor)
 	{
 		return Sensor.IsInstance()
@@ -193,6 +210,42 @@ double UAGX_CameraCMOSSensor::GetExposureCompensation() const
 		return Native->GetExposureCompensation();
 
 	return ExposureCompensation;
+}
+
+void UAGX_CameraCMOSSensor::CopyFrom(
+	const FCameraBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	const FCameraCMOSSensorBarrier CMOSSensor = Source.GetCMOSSensor();
+	if (!CMOSSensor.HasNative())
+		return;
+
+	CopyFrom(CMOSSensor);
+
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	const FGuid Guid = Source.GetGuid();
+	Rename(*AGX_CameraCMOSSensor_helpers::CreateAssetName(Source, *Context));
+	AGX_CHECK(!Context->CameraPhotodetectors.Contains(Guid));
+	Context->CameraPhotodetectors.Add(Guid, this);
+}
+
+void UAGX_CameraCMOSSensor::CopyFrom(const FCameraCMOSSensorBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	Size = Source.GetSize();
+	ISO = Source.GetISO();
+	ShutterSpeed = Source.GetShutterSpeed();
+	bUseAutoExposure = Source.GetUseAutoExposure();
+	if (bUseAutoExposure)
+		DynamicRange = Source.GetDynamicRange();
+	else
+		ExposureCompensation = Source.GetExposureCompensation();
 }
 
 void UAGX_CameraCMOSSensor::CopyProperties(const UAGX_CameraPhotodetectorBase& Source)

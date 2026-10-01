@@ -8,6 +8,8 @@
 #include "AGX_LensDistortionBrownConrady.generated.h"
 
 struct FLensDistortionBrownConradyBarrier;
+struct FCameraBarrier;
+struct FAGX_ImportContext;
 
 /**
  * AGX five parameter Brown-Conrady lens distortion asset.
@@ -81,6 +83,8 @@ public:
 	FLensDistortionBrownConradyBarrier* GetNativeAsBrownConrady();
 	const FLensDistortionBrownConradyBarrier* GetNativeAsBrownConrady() const;
 
+	void CopyFrom(const FCameraBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FLensDistortionBrownConradyBarrier& Source);
 	virtual void CopyProperties(const UAGX_LensDistortionBase& Source) override;
 
 	// ~Begin UObject interface.

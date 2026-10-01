@@ -7,11 +7,28 @@
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
 #include "Sensors/LensDistortionBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 namespace AGX_CameraLensSingleElement_helpers
 {
+	FString CreateAssetName(const FCameraBarrier& Barrier, FAGX_ImportContext& Context)
+	{
+		const FString CleanBarrierName =
+			FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
+				Barrier.GetName(), &Context);
+		const FString BaseName =
+			CleanBarrierName.IsEmpty() ? UAGX_CameraLensSingleElement::StaticClass()->GetName()
+									   : CleanBarrierName;
+		return FAGX_ObjectUtilities::SanitizeAndMakeNameUnique(
+			Context.Outer, FString::Printf(TEXT("CameraLensSingleElement_%s"), *BaseName),
+			UAGX_CameraLensSingleElement::StaticClass());
+	}
+
 	UAGX_CameraLensSingleElement* GetSingleElementInstance(UAGX_CameraLensSingleElement& Lens)
 	{
 		return Lens.IsInstance()
@@ -173,6 +190,41 @@ double UAGX_CameraLensSingleElement::GetFocusDistance() const
 		return Native->GetFocusDistance();
 
 	return FocusDistance;
+}
+
+void UAGX_CameraLensSingleElement::CopyFrom(
+	const FCameraBarrier& Source, FAGX_ImportContext* Context)
+{
+	if (!Source.HasNative())
+		return;
+
+	const FCameraLensSingleElementBarrier Lens = Source.GetLensSingleElement();
+	if (!Lens.HasNative())
+		return;
+
+	CopyFrom(Lens);
+
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	const FGuid Guid = Source.GetGuid();
+	Rename(*AGX_CameraLensSingleElement_helpers::CreateAssetName(Source, *Context));
+	AGX_CHECK(!Context->CameraLenses.Contains(Guid));
+	Context->CameraLenses.Add(Guid, this);
+}
+
+void UAGX_CameraLensSingleElement::CopyFrom(const FCameraLensSingleElementBarrier& Source)
+{
+	if (!Source.HasNative())
+		return;
+
+	FocalLength = Source.GetFocalLength();
+	FStop = Source.GetFStop();
+	bUseAutofocus = Source.GetUseAutofocus();
+	if (bUseAutofocus)
+		MinimumFocusDistance = Source.GetMinimumFocusDistance();
+	else
+		FocusDistance = Source.GetFocusDistance();
 }
 
 void UAGX_CameraLensSingleElement::CopyProperties(const UAGX_CameraLensBase& Source)

@@ -13,6 +13,7 @@
 #include "Sensors/AGX_CameraLensSingleElement.h"
 #include "Sensors/AGX_CameraOutputBase.h"
 #include "Sensors/AGX_CameraPhotodetectorBase.h"
+#include "Sensors/AGX_LensDistortionBrownConrady.h"
 #include "Sensors/AGX_SensorEnvironmentSubsystem.h"
 #include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/CameraBarrier.h"
@@ -23,6 +24,7 @@
 #include "Sensors/CameraOutputColorBarrier.h"
 #include "Sensors/CameraPhotodetectorBarrier.h"
 #include "Sensors/LensDistortionBrownConradyBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
@@ -360,6 +362,18 @@ namespace AGX_CameraSensorComponent_helpers
 		return FReversedZPerspectiveMatrix(
 			FMath::Atan(TanHalfFOVX), FMath::Atan(TanHalfFOVY), 1.0f, 1.0f, GNearClippingPlane,
 			GNearClippingPlane);
+	}
+
+	template <typename TAsset>
+	TAsset* CreateCameraAsset(FAGX_ImportContext& Context)
+	{
+		TAsset* Asset = NewObject<TAsset>(
+			Context.Outer, TAsset::StaticClass(), NAME_None, RF_Public | RF_Standalone);
+		if (Asset == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Asset, Context.SessionGuid);
+		return Asset;
 	}
 }
 
@@ -1228,10 +1242,47 @@ void UAGX_CameraSensorComponent::CopyFrom(
 {
 	Super::CopyFrom(Barrier, Context);
 
-	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
-	Context->Sensors.Add(ImportGuid, this);
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
 
-	// TODO: copy settings here.
+	const FCameraBarrier& CameraBarrier = static_cast<const FCameraBarrier&>(Barrier);
+	const FCameraCMOSSensorBarrier CMOSSensorBarrier = CameraBarrier.GetCMOSSensor();
+	if (CMOSSensorBarrier.HasNative())
+	{
+		UAGX_CameraCMOSSensor* CMOSSensor =
+			AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_CameraCMOSSensor>(*Context);
+		if (CMOSSensor != nullptr)
+		{
+			CMOSSensor->CopyFrom(CameraBarrier, Context);
+			PhotoDetector = CMOSSensor;
+		}
+	}
+
+	const FCameraLensSingleElementBarrier LensBarrier = CameraBarrier.GetLensSingleElement();
+	UAGX_CameraLensSingleElement* Lens = nullptr;
+	if (LensBarrier.HasNative())
+	{
+		Lens = AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_CameraLensSingleElement>(
+			*Context);
+		if (Lens != nullptr)
+		{
+			Lens->CopyFrom(CameraBarrier, Context);
+			CameraLens = Lens;
+		}
+	}
+
+	const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
+		CameraBarrier.GetLensDistortionBrownConrady();
+	if (Lens != nullptr && LensDistortionBarrier.HasNative())
+	{
+		UAGX_LensDistortionBrownConrady* LensDistortion =
+			AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_LensDistortionBrownConrady>(*Context);
+		if (LensDistortion != nullptr)
+		{
+			LensDistortion->CopyFrom(CameraBarrier, Context);
+			Lens->LensDistortion = LensDistortion;
+		}
+	}
 }
 
 void UAGX_CameraSensorComponent::BeginPlay()

@@ -8,6 +8,8 @@
 #include "AGX_CameraLensSingleElement.generated.h"
 
 struct FCameraLensSingleElementBarrier;
+struct FCameraBarrier;
+struct FAGX_ImportContext;
 
 /**
  * AGX Camera single element lens asset.
@@ -87,6 +89,8 @@ public:
 	FCameraLensSingleElementBarrier* GetNativeAsSingleElement();
 	const FCameraLensSingleElementBarrier* GetNativeAsSingleElement() const;
 
+	void CopyFrom(const FCameraBarrier& Source, FAGX_ImportContext* Context);
+	void CopyFrom(const FCameraLensSingleElementBarrier& Source);
 	virtual void CopyProperties(const UAGX_CameraLensBase& Source) override;
 
 	// ~Begin UObject interface.

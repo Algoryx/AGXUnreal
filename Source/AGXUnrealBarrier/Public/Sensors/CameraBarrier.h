@@ -41,6 +41,15 @@ struct AGXUNREALBARRIER_API FCameraBarrier : public FSensorBarrier
 	void SetTransform(const FTransform& Transform);
 	FTransform GetTransform() const;
 
+	/// Returns the Camera CMOS Sensor if the Camera uses one.
+	FCameraCMOSSensorBarrier GetCMOSSensor() const;
+
+	/// Returns the single element Camera Lens if the Camera uses one.
+	FCameraLensSingleElementBarrier GetLensSingleElement() const;
+
+	/// Returns the Brown-Conrady Lens Distortion if the Camera uses one.
+	FLensDistortionBrownConradyBarrier GetLensDistortionBrownConrady() const;
+
 	/// Returns the Rigid Body this Camera is attached to, if it exists.
 	FRigidBodyBarrier GetRigidBody() const;
 
