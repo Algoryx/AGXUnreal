@@ -679,7 +679,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX IMU")
 	FQuat GetRotation() const;
 
-	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	void UpdateTransformFromNative();
 
@@ -688,6 +688,7 @@ public:
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void PostApplyToComponent() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif
