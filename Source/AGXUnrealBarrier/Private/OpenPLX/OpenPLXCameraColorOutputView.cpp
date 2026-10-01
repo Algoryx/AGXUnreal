@@ -9,12 +9,12 @@
 #include <utility>
 
 FOpenPLXCameraColorOutputView::FOpenPLXCameraColorOutputView()
-	: NativeRef {new FOpenPLXCameraColorOutputViewRef}
+	: NativeRef {new FOpenPLXMarshallingRef}
 {
 }
 
 FOpenPLXCameraColorOutputView::FOpenPLXCameraColorOutputView(
-	std::shared_ptr<FOpenPLXCameraColorOutputViewRef> Native)
+	std::shared_ptr<FOpenPLXMarshallingRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -38,13 +38,13 @@ bool FOpenPLXCameraColorOutputView::MakePersistant()
 	return true;
 }
 
-FOpenPLXCameraColorOutputViewRef* FOpenPLXCameraColorOutputView::GetNative()
+FOpenPLXMarshallingRef* FOpenPLXCameraColorOutputView::GetNative()
 {
 	check(NativeRef);
 	return NativeRef.get();
 }
 
-const FOpenPLXCameraColorOutputViewRef* FOpenPLXCameraColorOutputView::GetNative() const
+const FOpenPLXMarshallingRef* FOpenPLXCameraColorOutputView::GetNative() const
 {
 	check(NativeRef);
 	return NativeRef.get();

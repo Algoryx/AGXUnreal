@@ -10,7 +10,7 @@
 
 #include "OpenPLXCameraColorOutputView.generated.h"
 
-struct FOpenPLXCameraColorOutputViewRef;
+struct FOpenPLXMarshallingRef;
 
 /**
  * View into Camera Color output data received through OpenPLX.
@@ -26,7 +26,7 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	GENERATED_BODY()
 
 	FOpenPLXCameraColorOutputView();
-	FOpenPLXCameraColorOutputView(std::shared_ptr<FOpenPLXCameraColorOutputViewRef> Native);
+	FOpenPLXCameraColorOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native);
 
 	bool HasNative() const;
 
@@ -38,9 +38,9 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	 */
 	bool MakePersistant();
 
-	FOpenPLXCameraColorOutputViewRef* GetNative();
-	const FOpenPLXCameraColorOutputViewRef* GetNative() const;
+	FOpenPLXMarshallingRef* GetNative();
+	const FOpenPLXMarshallingRef* GetNative() const;
 
 private:
-	std::shared_ptr<FOpenPLXCameraColorOutputViewRef> NativeRef;
+	std::shared_ptr<FOpenPLXMarshallingRef> NativeRef;
 };

@@ -536,11 +536,11 @@ namespace OpenPLXLidarOutputView_helpers
 }
 
 FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
-	: NativeRef {new FOpenPLXLidarOutputViewRef}
+	: NativeRef {new FOpenPLXMarshallingRef}
 {
 }
 
-FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
+FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -777,13 +777,13 @@ bool FOpenPLXLidarOutputView::MakePersistant()
 	return true;
 }
 
-FOpenPLXLidarOutputViewRef* FOpenPLXLidarOutputView::GetNative()
+FOpenPLXMarshallingRef* FOpenPLXLidarOutputView::GetNative()
 {
 	check(NativeRef);
 	return NativeRef.get();
 }
 
-const FOpenPLXLidarOutputViewRef* FOpenPLXLidarOutputView::GetNative() const
+const FOpenPLXMarshallingRef* FOpenPLXLidarOutputView::GetNative() const
 {
 	check(NativeRef);
 	return NativeRef.get();
