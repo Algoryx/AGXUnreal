@@ -557,7 +557,7 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	UWorld* World = GetWorld();
 	AActor* Owner = GetOwner();
 
-	if (!IsValid(World) || !IsValid(this) || !IsValid(Owner) || IsBeingDestroyed() ||
+	if (IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
 		Owner->HasAnyFlags(RF_BeginDestroyed))
 	{
 		return;
@@ -566,27 +566,46 @@ void UAGX_MovableTerrainComponent::RecreateMeshesEditor()
 	// In-Editor
 	if (!World->IsGameWorld())
 	{
-		// Postpone mesh creation for next tick, because bedshape geometries needs
-		// to be properly created for BedHeights raycast
-		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda(
-			[this, World, Owner](float DeltaTime)
-			{
-				if (!IsValid(this) || IsBeingDestroyed() || !IsValid(World) || !IsValid(Owner) ||
-					Owner->HasAnyFlags(RF_BeginDestroyed) ||
-					!Owner->HasActorRegisteredAllComponents())
-				{
-					return false;
-				}
-
-				RecreateMeshes();
-				return false; // This signals to only run once.
-			}));
+		if (!bRecreateMeshesEditorPending)
+		{
+			// Postpone mesh creation until bed shape geometries are ready for BedHeights raycasts.
+			// CreateUObject keeps only a weak reference to this Component.
+			bRecreateMeshesEditorPending = true;
+			FTSTicker::GetCoreTicker().AddTicker(
+				FTickerDelegate::CreateUObject(this, &ThisClass::RecreateMeshesEditorOnTicker));
+		}
 	}
 	// In-Game
 	else if (World->IsGameWorld())
 	{
 		RecreateMeshes();
 	}
+}
+
+bool UAGX_MovableTerrainComponent::RecreateMeshesEditorOnTicker(float DeltaTime)
+{
+	if (IsBeingDestroyed() || !IsRegistered())
+	{
+		bRecreateMeshesEditorPending = false;
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	AActor* Owner = GetOwner();
+	if (!IsValid(World) || !IsValid(Owner) || Owner->HasAnyFlags(RF_BeginDestroyed) ||
+		World->IsGameWorld())
+	{
+		bRecreateMeshesEditorPending = false;
+		return false;
+	}
+
+	// We want to detect if this is not the case; if so, we should make this function try again
+	// in a safe manner by returning true here, while ensuring we don't end up ticking this forever.
+	AGX_CHECK(Owner->HasActorRegisteredAllComponents());
+	
+	bRecreateMeshesEditorPending = false;
+	RecreateMeshes();
+	return false;
 }
 
 TArray<UMeshComponent*> UAGX_MovableTerrainComponent::GetBedShapes() const
