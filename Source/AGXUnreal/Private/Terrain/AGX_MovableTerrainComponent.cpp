@@ -599,12 +599,10 @@ bool UAGX_MovableTerrainComponent::RecreateMeshesEditorOnTicker(float DeltaTime)
 		return false;
 	}
 
-	if (!Owner->HasActorRegisteredAllComponents())
-	{
-		// Returning true keeps the ticker active and retries on the next tick.
-		return true;
-	}
-
+	// We want to detect if this is not the case; if so, we should make this function try again
+	// in a safe manner by returning true here, while ensuring we don't end up ticking this forever.
+	AGX_CHECK(Owner->HasActorRegisteredAllComponents());
+	
 	bRecreateMeshesEditorPending = false;
 	RecreateMeshes();
 	return false;
