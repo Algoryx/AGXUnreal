@@ -332,7 +332,7 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 
 	FAGX_SensorMsgsImage Msg;
 	Msg.IsBigendian = 0;
-	Msg.Header.Stamp = Convert(TimeStamp);
+	Msg.Header.Stamp = AGX_ROS2Utilities_helpers::Convert(TimeStamp);
 	Msg.Header.FrameId = FrameId;
 
 	const FIntPoint Resolution = View.GetResolution();
