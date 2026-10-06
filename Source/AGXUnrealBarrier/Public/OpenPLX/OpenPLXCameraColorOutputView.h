@@ -37,7 +37,7 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	/// Returns the configured image resolution in pixels.
 	FIntPoint GetResolution() const;
 
-	/// Returns the configured number of pixels.
+	/// Returns the number of pixels in the received output buffer.
 	int32 GetNumPixels() const;
 
 	/// Returns the output channel element type.

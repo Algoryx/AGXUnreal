@@ -226,21 +226,20 @@ FIntPoint FOpenPLXCameraColorOutputView::GetResolution() const
 
 int32 FOpenPLXCameraColorOutputView::GetNumPixels() const
 {
-	const FIntPoint Resolution = GetResolution();
-	if (Resolution.X == 0 || Resolution.Y == 0)
+	OpenPLXCameraColorOutputView_helpers::FPixelLayout PixelLayout;
+	if (!OpenPLXCameraColorOutputView_helpers::GetValidatedPixelLayout(*this, PixelLayout))
 		return 0;
 
-	const int64 NumPixels = static_cast<int64>(Resolution.X) * static_cast<int64>(Resolution.Y);
-	if (NumPixels > TNumericLimits<int32>::Max())
+	if (PixelLayout.NumPixels > static_cast<size_t>(TNumericLimits<int32>::Max()))
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("OpenPLX Camera Color Output View: The camera image has too many pixels for an "
+			TEXT("OpenPLX Camera Color Output View: The received image has too many pixels for an "
 				 "int32."));
 		return 0;
 	}
 
-	return static_cast<int32>(NumPixels);
+	return static_cast<int32>(PixelLayout.NumPixels);
 }
 
 EAGX_CameraOutputChannelType FOpenPLXCameraColorOutputView::GetChannelType() const

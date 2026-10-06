@@ -30,7 +30,7 @@ class AGXUNREAL_API UOpenPLX_CameraColorOutputView : public UBlueprintFunctionLi
 		return View.GetResolution();
 	}
 
-	/// Returns the configured number of pixels.
+	/// Returns the number of pixels in the received output buffer.
 	UFUNCTION(BlueprintPure, Category = "OpenPLX Camera Color Output View")
 	static int32 GetNumPixels(const FOpenPLXCameraColorOutputView& View)
 	{
