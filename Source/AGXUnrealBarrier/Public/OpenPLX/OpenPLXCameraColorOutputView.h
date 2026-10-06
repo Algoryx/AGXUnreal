@@ -2,6 +2,10 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_CameraEnums.h"
+#include "Sensors/AGX_ColorMappingMatrix.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
@@ -10,7 +14,7 @@
 
 #include "OpenPLXCameraColorOutputView.generated.h"
 
-struct FOpenPLXMarshallingRef;
+struct FOpenPLXCameraColorOutputViewRef;
 
 /**
  * View into Camera Color output data received through OpenPLX.
@@ -26,9 +30,51 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	GENERATED_BODY()
 
 	FOpenPLXCameraColorOutputView();
-	FOpenPLXCameraColorOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native);
+	FOpenPLXCameraColorOutputView(std::shared_ptr<FOpenPLXCameraColorOutputViewRef> Native);
 
 	bool HasNative() const;
+
+	/// Returns the configured image resolution in pixels.
+	FIntPoint GetResolution() const;
+
+	/// Returns the configured number of pixels.
+	int32 GetNumPixels() const;
+
+	/// Returns the output channel element type.
+	EAGX_CameraOutputChannelType GetChannelType() const;
+
+	/// Returns the configured gamma correction value.
+	double GetGamma() const;
+
+	/// Returns the matrix mapping linear RGB to the output channels.
+	FAGX_ColorMappingMatrix GetColorMappingMatrix() const;
+
+	/// Returns the number of output channels per pixel.
+	uint8 GetChannelCount() const;
+
+	/**
+	 * Copy the output data as raw bytes.
+	 *
+	 * Only supports UInt8 and Float32 channel types. The output data is copied directly from the
+	 * OpenPLX pixel buffer.
+	 */
+	bool GetDataBytes(TArray<uint8>& OutData) const;
+
+	/**
+	 * Copy the output data as UInt8 channel values.
+	 *
+	 * Only supports UInt8 channel type. The output data is copied directly from the OpenPLX pixel
+	 * buffer.
+	 */
+	bool GetDataU8(TArray<uint8>& OutData) const;
+
+	/**
+	 * Copy the output data as Float32 channel values.
+	 *
+	 * Only supports Float32 channel type. The output data is copied directly from the OpenPLX pixel
+	 * buffer.
+	 */
+	bool GetDataF32(TArray<float>& OutData) const;
 
 	/**
 	 * Copy the underlying Camera Color output data into memory owned by this view.
@@ -38,9 +84,9 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	 */
 	bool MakePersistant();
 
-	FOpenPLXMarshallingRef* GetNative();
-	const FOpenPLXMarshallingRef* GetNative() const;
+	FOpenPLXCameraColorOutputViewRef* GetNative();
+	const FOpenPLXCameraColorOutputViewRef* GetNative() const;
 
 private:
-	std::shared_ptr<FOpenPLXMarshallingRef> NativeRef;
+	std::shared_ptr<FOpenPLXCameraColorOutputViewRef> NativeRef;
 };

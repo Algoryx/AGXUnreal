@@ -7,6 +7,7 @@
 #include "openplx/HeapControlInterface.h"
 #include "openplx/Physics/Optics/Material.h"
 #include "openplx/Physics3D/System.h"
+#include "openplx/Sensors/Signals/CameraColorOutput.h"
 #include "EndAGXIncludes.h"
 
 // AGX Dynamics includes.
@@ -43,6 +44,11 @@ struct FOpenPLXMarshallingRef
 		: Marshalling(std::move(InMarshalling))
 	{
 	}
+};
+
+struct FOpenPLXCameraColorOutputViewRef : public FOpenPLXMarshallingRef
+{
+	std::shared_ptr<openplx::Sensors::Signals::CameraColorOutput> CameraColorOutput;
 };
 
 struct FOpenPLXModelData

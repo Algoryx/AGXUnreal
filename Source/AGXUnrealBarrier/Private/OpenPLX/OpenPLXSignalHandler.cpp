@@ -28,12 +28,14 @@
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "openplx/ControlDispatch.h"
 #include "openplx/ControlInterface.h"
+#include "openplx/DetachedControl.h"
 #include "openplx/HeapControlInterface.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
 #include "openplx/Physics/Signals/RealInputSignal.h"
 #include "openplx/Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Sensors/Signals/CameraColorOutput.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
@@ -1261,7 +1263,51 @@ bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
 	}
 
 	OutOutput = FOpenPLXCameraColorOutputView();
-	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+	FOpenPLXCameraColorOutputViewRef* OutputRef = OutOutput.GetNative();
+	OutputRef->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+
+	const std::shared_ptr<openplx::ControlInterface>& ControlInterface =
+		Interface->get_control_interface();
+	if (ControlInterface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get the Control Interface while receiving Camera "
+				"Color output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	const uint32 ControlKey =
+		ControlInterface->lookup_control_key_from_name(Convert(Output.Name.ToString()));
+	const std::shared_ptr<openplx::DetachedControl> Control =
+		ControlInterface->lookup_detached_control(ControlKey);
+	if (Control == nullptr || !Control->is_output())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get the output control for Camera Color output "
+				"'%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutputRef->CameraColorOutput =
+		std::dynamic_pointer_cast<openplx::Sensors::Signals::CameraColorOutput>(
+			Control->get_attached_reference());
+	if (OutputRef->CameraColorOutput == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: The output control for Camera Color output '%s' ('%s') "
+				"does not reference a CameraColorOutput."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
 	if (!OutOutput.HasNative())
 	{
 		UE_LOG(
