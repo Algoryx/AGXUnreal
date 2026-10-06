@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "Sensors/AGX_CameraOutputColor.h"
@@ -324,6 +325,95 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 	return Msg;
 }
 
+FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
+	const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId)
+{
+	using namespace AGX_ROS2Utilities_helpers;
+
+	FAGX_SensorMsgsImage Msg;
+	Msg.IsBigendian = 0;
+	Msg.Header.Stamp = Convert(TimeStamp);
+	Msg.Header.FrameId = FrameId;
+
+	const FIntPoint Resolution = View.GetResolution();
+	const EAGX_CameraOutputChannelType ChannelType = View.GetChannelType();
+	const uint8 ChannelCount = View.GetChannelCount();
+	const TOptional<int64> ChannelSize = GetCameraOutputChannelSize(ChannelType);
+	const TOptional<FString> Encoding = GetCameraOutputEncoding(ChannelType, ChannelCount);
+
+	if (Resolution.X <= 0 || Resolution.Y <= 0)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image got invalid resolution: %dx%d."),
+			Resolution.X, Resolution.Y);
+		return Msg;
+	}
+
+	if (ChannelCount < 1 || ChannelCount > 4)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image got invalid channel count: %u."),
+			ChannelCount);
+		return Msg;
+	}
+
+	if (!ChannelSize.IsSet())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image got unsupported channel type: "
+				 "%s."),
+			*UEnum::GetValueAsString(ChannelType));
+		return Msg;
+	}
+
+	if (!Encoding.IsSet())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image could not create an encoding "
+				 "for channel type %s and channel count %u."),
+			*UEnum::GetValueAsString(ChannelType), ChannelCount);
+		return Msg;
+	}
+
+	Msg.Height = Resolution.Y;
+	Msg.Width = Resolution.X;
+	Msg.Encoding = Encoding.GetValue();
+	Msg.Step = static_cast<int64>(Resolution.X) * static_cast<int64>(ChannelCount) *
+			   ChannelSize.GetValue();
+	if (Msg.Step > TNumericLimits<int64>::Max() / Msg.Height)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image got an image that is too "
+				 "large."));
+		Msg.Height = 0;
+		Msg.Width = 0;
+		Msg.Encoding.Empty();
+		Msg.Step = 0;
+		return Msg;
+	}
+
+	const int64 ExpectedDataSize = Msg.Step * Msg.Height;
+	if (!View.GetDataBytes(Msg.Data) || Msg.Data.Num() != ExpectedDataSize)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert OpenPLX Camera Color Output to ROS2 Image could not read a pixel buffer "
+				 "matching the Camera Color Output configuration."));
+		Msg.Height = 0;
+		Msg.Width = 0;
+		Msg.Encoding.Empty();
+		Msg.Step = 0;
+		Msg.Data.Reset();
+	}
+
+	return Msg;
+}
+
 FAGX_BuiltinInterfacesTime UAGX_ROS2Utilities::ConvertTime(double TimeStamp)
 {
 	return AGX_ROS2Utilities_helpers::Convert(TimeStamp);
@@ -592,6 +682,12 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
 	Msg.Width = NumPoints;
 	Msg.RowStep = Msg.Data.Num();
 	return Msg;
+}
+
+FAGX_SensorMsgsImage UAGX_ROS2Utilities::ConvertOpenPLXCameraColorOutput(
+	const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId)
+{
+	return FAGX_ROS2Utilities::Convert(View, TimeStamp, FrameId);
 }
 
 FAGX_SensorMsgsImage UAGX_ROS2Utilities::ConvertCameraOutput(

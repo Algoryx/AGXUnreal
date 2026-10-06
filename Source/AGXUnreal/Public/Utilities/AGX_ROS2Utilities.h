@@ -15,6 +15,7 @@ struct FAGX_LidarScanPoint;
 struct FAGX_SensorMsgsImu;
 struct FAGX_SensorMsgsImage;
 struct FAGX_SensorMsgsPointCloud2;
+struct FOpenPLXCameraColorOutputView;
 struct FOpenPLXLidarOutputView;
 
 class AGXUNREAL_API FAGX_ROS2Utilities
@@ -30,6 +31,9 @@ public:
 	static FAGX_SensorMsgsImage Convert(
 		FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead = false,
 		const FString& FrameId = "");
+
+	static FAGX_SensorMsgsImage Convert(
+		const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId = "");
 };
 
 UCLASS(ClassGroup = "AGX ROS2 Utilities")
@@ -256,6 +260,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
 	static FAGX_SensorMsgsPointCloud2 ConvertOpenPLXLidarOutput(
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId = "");
+
+	/**
+	 * Takes an OpenPLX Camera Color output view and creates a ROS2 sensor_msgs::Image message.
+	 *
+	 * The Image data is copied directly from the OpenPLX pixel buffer. UInt8 outputs use 8UC1,
+	 * 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or 32FC4 encoding.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static FAGX_SensorMsgsImage ConvertOpenPLXCameraColorOutput(
+		const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId = "");
 
 	/**
 	 * Takes a Camera Color Output and creates a ROS2 sensor_msgs::Image message from it.
