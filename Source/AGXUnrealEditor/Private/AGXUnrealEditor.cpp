@@ -55,6 +55,7 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Distributed/AGX_DistributedScenarioAssetTypeActions.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
@@ -331,6 +332,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_DavisSteeringParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_DistributedScenarioTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_GenericHorizontalSweepParametersTypeActions(AgxAssetCategoryBit)));
@@ -949,4 +952,3 @@ void FAGXUnrealEditorModule::OnAssetRemoved(const FAssetData& AssetData)
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FAGXUnrealEditorModule, AGXUnrealEditor);
-

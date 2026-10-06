@@ -176,6 +176,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		// Because AGX Dynamics uses exceptions.
 		bEnableExceptions = true;
 
+		PublicDefinitions.Add("ZENOHCXX_ZENOHC=1");
+
 		// This marks this module as an external library, which means that the
 		// library binary already exists. There are no source files in this
 		// module and Unreal Build Tool will not compile anything.

@@ -5,6 +5,7 @@
 #include "AGX_Simulation.h"
 #include "AGX_LogCategory.h"
 #include "AGX_Environment.h"
+#include "Distributed/AGX_DistributedWorldSubsystem.h"
 
 // Unreal Engine includes.
 #include "Engine/GameInstance.h"
@@ -49,6 +50,12 @@ void AAGX_Stepper::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	UGameInstance* Game = GetGameInstance();
 	UAGX_Simulation* Simulation = Game->GetSubsystem<UAGX_Simulation>();
+	if (const UAGX_DistributedWorldSubsystem* Distributed =
+			GetWorld()->GetSubsystem<UAGX_DistributedWorldSubsystem>())
+	{
+		if (!Distributed->ShouldStepSimulation())
+			return;
+	}
 	Simulation->Step(DeltaTime);
 }
 
@@ -58,6 +65,9 @@ void AAGX_Stepper::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	UGameInstance* Game = GetGameInstance();
 	UAGX_Simulation* Simulation = Game->GetSubsystem<UAGX_Simulation>();
+	if (UAGX_DistributedWorldSubsystem* Distributed =
+			GetWorld()->GetSubsystem<UAGX_DistributedWorldSubsystem>())
+		Distributed->ShutdownClient();
 
 	if (EndPlayReason == EEndPlayReason::LevelTransition)
 		Simulation->OnLevelTransition();
