@@ -38,6 +38,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Kismet/KismetRenderingLibrary.h"
+#include "Math/UnrealMath.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "PixelFormat.h"
@@ -212,6 +213,59 @@ namespace AGX_CameraSensorComponent_helpers
 				return sizeof(float);
 			default:
 				return {};
+		}
+	}
+
+	constexpr int32 CreateByteMask(uint32 A, uint32 B, uint32 C, uint32 D)
+	{
+		return A | (B << 8) | (C << 16) | (D << 24);
+	}
+
+	void CopyFourBytePixelsToThreeBytePixels(
+		const uint8* SourceData, uint8* DestinationData, int32 SourcePitch, int32 DestinationPitch,
+		int32 Width, int32 Height)
+	{
+		constexpr int32 SourceBytesPerPixel = 4;
+		constexpr int32 DestinationBytesPerPixel = 3;
+		constexpr int32 PixelsPerVector = sizeof(VectorRegister4Int) / SourceBytesPerPixel;
+		constexpr int32 ScalarTailPixels = 2;
+		static_assert(PixelsPerVector == 4);
+
+		// The final four bytes of the vector are zero-filled. Keep at least two pixels in the
+		// scalar tail so that its writes overwrite those bytes without extending past a row.
+		constexpr uint32 ZeroFill = 0x80;
+		const VectorRegister4Int PackMask = MakeVectorRegisterInt(
+			CreateByteMask(0, 1, 2, 4), CreateByteMask(5, 6, 8, 9),
+			CreateByteMask(10, 12, 13, 14),
+			CreateByteMask(ZeroFill, ZeroFill, ZeroFill, ZeroFill));
+		const int32 SimdWidth = Width > ScalarTailPixels ?
+			(Width - ScalarTailPixels) & ~(PixelsPerVector - 1) : 0;
+
+		for (int32 Row = 0; Row < Height; ++Row)
+		{
+			const uint8* SourcePixel = SourceData;
+			uint8* DestinationPixel = DestinationData;
+			int32 Column = 0;
+			for (; Column < SimdWidth; Column += PixelsPerVector)
+			{
+				const VectorRegister4Int SourceVector = VectorIntLoad(SourcePixel);
+				const VectorRegister4Int PackedVector = VectorShuffleByte4(SourceVector, PackMask);
+				VectorIntStore(PackedVector, DestinationPixel);
+				SourcePixel += PixelsPerVector * SourceBytesPerPixel;
+				DestinationPixel += PixelsPerVector * DestinationBytesPerPixel;
+			}
+
+			for (; Column < Width; ++Column)
+			{
+				DestinationPixel[0] = SourcePixel[0];
+				DestinationPixel[1] = SourcePixel[1];
+				DestinationPixel[2] = SourcePixel[2];
+				SourcePixel += SourceBytesPerPixel;
+				DestinationPixel += DestinationBytesPerPixel;
+			}
+
+			SourceData += SourcePitch;
+			DestinationData += DestinationPitch;
 		}
 	}
 
@@ -1189,13 +1243,24 @@ void UAGX_CameraSensorComponent::PollCaptures()
 					{
 						const uint8* SourceRow = static_cast<const uint8*>(PixelBuffer);
 						uint8* DestinationRow = OutputRawData->RawData.GetData();
-						for (int32 Row = 0; Row < LogicalHeight; ++Row)
+						if (SourceBytesPerPixel == DestinationBytesPerPixel)
 						{
-							if (SourceBytesPerPixel == DestinationBytesPerPixel)
+							for (int32 Row = 0; Row < LogicalHeight; ++Row)
 							{
 								FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+								SourceRow += SourcePitch;
+								DestinationRow += DestinationPitch;
 							}
-							else
+						}
+						else if (SourceBytesPerPixel == 4 && DestinationBytesPerPixel == 3)
+						{
+							AGX_CameraSensorComponent_helpers::CopyFourBytePixelsToThreeBytePixels(
+								SourceRow, DestinationRow, SourcePitch, DestinationPitch, LogicalWidth,
+								LogicalHeight);
+						}
+						else
+						{
+							for (int32 Row = 0; Row < LogicalHeight; ++Row)
 							{
 								const uint8* SourcePixel = SourceRow;
 								uint8* DestinationPixel = DestinationRow;
@@ -1206,10 +1271,10 @@ void UAGX_CameraSensorComponent::PollCaptures()
 									SourcePixel += SourceBytesPerPixel;
 									DestinationPixel += DestinationBytesPerPixel;
 								}
-							}
 
-							SourceRow += SourcePitch;
-							DestinationRow += DestinationPitch;
+								SourceRow += SourcePitch;
+								DestinationRow += DestinationPitch;
+							}
 						}
 					}
 				}
