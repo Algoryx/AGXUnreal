@@ -2234,10 +2234,11 @@ inline agxROS2::sensorMsgs::PointCloud2 Convert(const FAGX_SensorMsgsPointCloud2
 	Msg.row_step = InMsg.RowStep;
 	Msg.is_dense = InMsg.IsDense;
 
-	Msg.data.reserve(InMsg.Data.Num());
-	for (uint8 Value : InMsg.Data)
+	Msg.data.resize(static_cast<size_t>(InMsg.Data.Num()));
+	if (InMsg.Data.Num() > 0)
 	{
-		Msg.data.push_back(Value);
+		FMemory::Memcpy(
+			Msg.data.data(), InMsg.Data.GetData(), static_cast<SIZE_T>(InMsg.Data.Num()));
 	}
 
 	return Msg;

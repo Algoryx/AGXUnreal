@@ -224,7 +224,8 @@ bool FAGX_ROS2Utilities::ConvertAndSend(
 	FAGX_CameraOutputColor& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
 	bool bMarkAsRead, const FString& FrameId)
 {
-	if (!CameraOutput.HasNative())
+	FCameraOutputBarrier* Native = CameraOutput.GetNative();
+	if (Native == nullptr)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -232,18 +233,34 @@ bool FAGX_ROS2Utilities::ConvertAndSend(
 		return false;
 	}
 
-	FCameraOutputBarrier* Native = CameraOutput.GetNative();
-	if (FCameraOutputColorBarrier::IsColorOutput(*Native) == false)
+	return ConvertAndSend(*Native, Publisher, TimeStamp, bMarkAsRead, FrameId);
+}
+
+bool FAGX_ROS2Utilities::ConvertAndSend(
+	FCameraOutputBarrier& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
+	bool bMarkAsRead, const FString& FrameId)
+{
+	if (CameraOutput.HasNative() == false)
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Convert and send Camera Color Output requires a Camera Color output, but "
+			TEXT("Convert and send Camera output barrier requires a native Camera output."));
+		return false;
+	}
+
+	if (FCameraOutputColorBarrier::IsColorOutput(CameraOutput) == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera output barrier requires a Camera Color output, but "
 				 "received another Camera output type."));
 		return false;
 	}
 
+	FCameraOutputColorBarrier ColorOutput =
+		FCameraOutputColorBarrier::CreateFrom(CameraOutput);
 	return Publisher.SendCameraColorOutput(
-		*static_cast<FCameraOutputColorBarrier*>(Native), TimeStamp, bMarkAsRead, FrameId);
+		ColorOutput, TimeStamp, bMarkAsRead, FrameId);
 }
 
 bool FAGX_ROS2Utilities::ConvertAndSend(
@@ -550,6 +567,24 @@ bool UAGX_ROS2Utilities::ConvertAndSendCameraOutput(
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Convert and send Camera Color Output requires a ROS2 Publisher."));
+		return false;
+	}
+
+	FROS2PublisherBarrier* Barrier =
+		Publisher->GetOrCreateBarrier(EAGX_ROS2MessageType::SensorMsgsImage, Topic);
+	return Barrier != nullptr && FAGX_ROS2Utilities::ConvertAndSend(
+		CameraOutput, *Barrier, TimeStamp, bMarkAsRead, FrameId);
+}
+
+bool UAGX_ROS2Utilities::ConvertAndSendCameraOutputBarrier(
+	FCameraOutputBarrier& CameraOutput, UAGX_ROS2PublisherComponent* Publisher,
+	const FString& Topic, double TimeStamp, bool bMarkAsRead, const FString& FrameId)
+{
+	if (IsValid(Publisher) == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera output barrier requires a ROS2 Publisher."));
 		return false;
 	}
 

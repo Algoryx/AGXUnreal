@@ -8,11 +8,16 @@
 // Standard library includes.
 #include <memory>
 
+#include "CameraOutputBarrier.generated.h"
+
 struct FCameraBarrier;
 struct FCameraOutputRef;
 
+USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FCameraOutputBarrier
 {
+	GENERATED_BODY()
+
 	FCameraOutputBarrier();
 	FCameraOutputBarrier(std::shared_ptr<FCameraOutputRef> Native);
 	virtual ~FCameraOutputBarrier() = default;

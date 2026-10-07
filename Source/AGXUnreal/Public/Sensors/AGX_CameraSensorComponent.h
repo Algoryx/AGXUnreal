@@ -8,6 +8,7 @@
 #include "Sensors/AGX_CameraSensorCaptureHelper.h"
 #include "Sensors/AGX_SceneCaptureComponent2DReference.h"
 #include "Sensors/AGX_SensorComponentBase.h"
+#include "Sensors/CameraOutputBarrier.h"
 
 // Unreal Engine includes.
 #include "Math/Matrix.h"
@@ -18,7 +19,6 @@ struct FCameraBarrier;
 struct FCameraCMOSSensorBarrier;
 struct FCameraLensBarrier;
 struct FCameraLensSingleElementBarrier;
-struct FCameraOutputBarrier;
 struct FCameraOutputColorBarrier;
 struct FCameraPhotodetectorBarrier;
 struct FAGX_CameraOutputBase;
@@ -117,6 +117,16 @@ public:
 	void UpdateNativeTransform();
 
 	bool AddOutput(FAGX_CameraOutputBase& InOutput);
+
+	/**
+	 * Get handles to all outputs currently attached to the native Camera.
+	 *
+	 * Returns an empty array when this component does not have a native Camera. The returned
+	 * barriers reference the native Camera outputs and may become detached from the Camera if the
+	 * component is destroyed or recreated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	TArray<FCameraOutputBarrier> GetOutputBarriers() const;
 
 	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 

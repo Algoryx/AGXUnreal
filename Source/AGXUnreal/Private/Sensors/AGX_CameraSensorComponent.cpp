@@ -460,6 +460,15 @@ bool UAGX_CameraSensorComponent::AddOutput(FAGX_CameraOutputBase& InOutput)
 	return true;
 }
 
+TArray<FCameraOutputBarrier> UAGX_CameraSensorComponent::GetOutputBarriers() const
+{
+	const FCameraBarrier* Camera = GetNativeAsCamera();
+	if (Camera == nullptr)
+		return {};
+
+	return Camera->GetOutputs();
+}
+
 void UAGX_CameraSensorComponent::SetCaptureSourceOverride(
 	USceneCaptureComponent2D* InCaptureSourceOverride)
 {

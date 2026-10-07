@@ -2,6 +2,9 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Sensors/CameraOutputBarrier.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -34,6 +37,10 @@ public:
 	static bool ConvertAndSend(
 		FAGX_CameraOutputColor& CameraOutput, FROS2PublisherBarrier& Publisher,
 		double TimeStamp, bool bMarkAsRead = false, const FString& FrameId = "");
+
+	static bool ConvertAndSend(
+		FCameraOutputBarrier& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
 
 	static bool ConvertAndSend(
 		const FOpenPLXCameraColorOutputView& View, FROS2PublisherBarrier& Publisher,
@@ -303,6 +310,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
 	static bool ConvertAndSendCameraOutput(
 		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput,
+		UAGX_ROS2PublisherComponent* Publisher, const FString& Topic, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
+
+	/**
+	 * Converts a Camera Color output barrier directly to a ROS2 sensor_msgs::Image message and
+	 * sends it using the given Publisher and Topic.
+	 *
+	 * Returns false if the barrier has no native object or represents another Camera output type.
+	 * If Mark As Read is true, the output data is marked as read after a successful copy.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static bool ConvertAndSendCameraOutputBarrier(
+		UPARAM(ref) FCameraOutputBarrier& CameraOutput,
 		UAGX_ROS2PublisherComponent* Publisher, const FString& Topic, double TimeStamp,
 		bool bMarkAsRead = false, const FString& FrameId = "");
 

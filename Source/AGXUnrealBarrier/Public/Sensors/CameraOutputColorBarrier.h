@@ -7,8 +7,13 @@
 #include "Sensors/AGX_ColorMappingMatrix.h"
 #include "Sensors/CameraOutputBarrier.h"
 
+#include "CameraOutputColorBarrier.generated.h"
+
+USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarrier
 {
+	GENERATED_BODY()
+
 	FCameraOutputColorBarrier() = default;
 	FCameraOutputColorBarrier(std::shared_ptr<FCameraOutputRef> Native);
 	virtual ~FCameraOutputColorBarrier() override = default;
