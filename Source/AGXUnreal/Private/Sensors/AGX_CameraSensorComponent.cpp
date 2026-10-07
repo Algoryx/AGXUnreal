@@ -800,32 +800,46 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
 	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
-	const TOptional<ETextureRenderTargetFormat> RenderTargetFormat =
+	const TOptional<ETextureRenderTargetFormat> OutputRenderTargetFormat =
 		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
-	if (!RenderTargetFormat.IsSet())
+	if (!OutputRenderTargetFormat.IsSet())
 	{
 		LogWarning(TEXT("the Camera Color Output channel type or channel count is unsupported."));
 		return false;
 	}
 
-	const EPixelFormat PixelFormat =
-		GetPixelFormatFromRenderTargetFormat(RenderTargetFormat.GetValue());
-	auto EnsureRenderTarget =
-		[this, ChannelType, ChannelCount, RenderTargetFormat, PixelFormat](
-			TObjectPtr<UTextureRenderTarget2D>& RenderTarget, const FIntPoint& Resolution)
+	const bool bHasMaterialPass = MaterialPasses.ContainsByPredicate(
+		[](const TObjectPtr<UMaterialInterface>& Material) { return Material != nullptr; });
+	// Material passes can remap any source color channel into an output channel. Their input must
+	// therefore retain all scene color channels, even when the native output has fewer channels.
+	const uint8 SceneCaptureChannelCount = bHasMaterialPass ? 4 : ChannelCount;
+	const TOptional<ETextureRenderTargetFormat> SceneCaptureRenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(
+			ChannelType, SceneCaptureChannelCount);
+	if (!SceneCaptureRenderTargetFormat.IsSet())
 	{
+		LogWarning(TEXT("the Scene Capture Render Target format is unsupported."));
+		return false;
+	}
+
+	auto EnsureRenderTarget =
+		[this, ChannelType](
+			TObjectPtr<UTextureRenderTarget2D>& RenderTarget, const FIntPoint& Resolution,
+			uint8 TargetChannelCount, ETextureRenderTargetFormat TargetFormat)
+	{
+		const EPixelFormat TargetPixelFormat = GetPixelFormatFromRenderTargetFormat(TargetFormat);
 		if (RenderTarget == nullptr)
 		{
-			RenderTarget = CreateRenderTarget(Resolution, ChannelType, ChannelCount);
+			RenderTarget = CreateRenderTarget(Resolution, ChannelType, TargetChannelCount);
 			return RenderTarget != nullptr;
 		}
 
 		if (RenderTarget->SizeX != Resolution.X || RenderTarget->SizeY != Resolution.Y)
 			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
 
-		if (RenderTarget->GetFormat() != PixelFormat)
+		if (RenderTarget->GetFormat() != TargetPixelFormat)
 		{
-			RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
+			RenderTarget->RenderTargetFormat = TargetFormat;
 			RenderTarget->InitAutoFormat(RenderTarget->SizeX, RenderTarget->SizeY);
 		}
 
@@ -839,7 +853,8 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	else
 	{
 		if (!EnsureRenderTarget(
-				OutputRenderContext.SceneRenderTarget, OutputRenderContext.SceneCaptureResolution))
+				OutputRenderContext.SceneRenderTarget, OutputRenderContext.SceneCaptureResolution,
+				SceneCaptureChannelCount, SceneCaptureRenderTargetFormat.GetValue()))
 		{
 			LogWarning(TEXT("failed to create the Scene Render Target."));
 			return false;
@@ -878,7 +893,8 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 			continue;
 		}
 
-		if (!EnsureRenderTarget(RenderTarget, OutputResolution))
+		if (!EnsureRenderTarget(
+				RenderTarget, OutputResolution, ChannelCount, OutputRenderTargetFormat.GetValue()))
 		{
 			LogWarning(TEXT("failed to create a Material Pass Render Target."));
 			return false;
