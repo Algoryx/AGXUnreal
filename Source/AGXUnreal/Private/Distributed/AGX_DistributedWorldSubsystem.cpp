@@ -7,6 +7,7 @@
 #include "Distributed/AGX_DistributedScenarioAsset.h"
 #include "Distributed/AGX_DistributedSettings.h"
 #include "Engine/World.h"
+#include "GameFramework/Actor.h"
 #include "HAL/PlatformTime.h"
 
 bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -141,30 +142,8 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			NextStartAttemptTime = FPlatformTime::Seconds() + 5.0;
 			break;
 		case EAGXDistributedEventType::SpawnEntity:
-		{
-			const TSoftClassPtr<AActor>* Mapped = nullptr;
-			if (Event.AssetId <= static_cast<uint64>(MAX_int64))
-				Mapped = Scenario->AssetBlueprintsById.Find(static_cast<int64>(Event.AssetId));
-			if (Mapped == nullptr)
-				Mapped = Scenario->AssetBlueprints.Find(Event.AssetPath);
-			// Q: Should a path mapping override the numeric asset ID mapping when both exist?
-			if (Mapped == nullptr || Mapped->IsNull())
-			{
-				UE_LOG(LogAGX, Error,
-					TEXT("AGX Distributed entity %llu should spawn asset %llu ('%s'), but no Blueprint is mapped."),
-					Event.EntityId, Event.AssetId, *Event.AssetPath);
-			}
-			else
-			{
-				// Q: When should the mapped Blueprint be loaded and spawned, and how should
-				// its imported rigid bodies be registered before state updates are applied?
-				UE_LOG(LogAGX, Log,
-					TEXT("AGX Distributed entity %llu should spawn asset %llu ('%s') as Blueprint '%s' at %s."),
-					Event.EntityId, Event.AssetId, *Event.AssetPath, *Mapped->ToString(),
-					*Event.Transform.ToHumanReadableString());
-			}
+			HandleSpawnEntityEvent(Event);
 			break;
-		}
 		case EAGXDistributedEventType::SpawnRequestResult:
 			UE_LOG(LogAGX, Log,
 				TEXT("AGX Distributed spawn request for '%s': %s (entity %llu). %s"),
@@ -192,4 +171,57 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			ShutdownClient();
 			break;
 	}
+}
+
+void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistributedEvent& Event)
+{
+	check(IsInGameThread());
+
+	UWorld* World = GetWorld();
+	if (Scenario == nullptr || World == nullptr)
+	{
+		UE_LOG(LogAGX, Error,
+			TEXT("AGX Distributed cannot spawn entity %llu without a scenario and world."),
+			Event.EntityId);
+		return;
+	}
+
+	const TSoftClassPtr<AActor>* Mapped = nullptr;
+	if (Event.AssetId <= static_cast<uint64>(MAX_int64))
+		Mapped = Scenario->AssetBlueprintsById.Find(static_cast<int64>(Event.AssetId));
+	if (Mapped == nullptr)
+		Mapped = Scenario->AssetBlueprints.Find(Event.AssetPath);
+	if (Mapped == nullptr || Mapped->IsNull())
+	{
+		UE_LOG(LogAGX, Error,
+			TEXT("AGX Distributed entity %llu cannot spawn asset %llu ('%s'): no Blueprint is mapped."),
+			Event.EntityId, Event.AssetId, *Event.AssetPath);
+		return;
+	}
+
+	UClass* ActorClass = Mapped->LoadSynchronous();
+	if (ActorClass == nullptr)
+	{
+		UE_LOG(LogAGX, Error,
+			TEXT("AGX Distributed entity %llu cannot spawn asset %llu: Blueprint '%s' could not be loaded."),
+			Event.EntityId, Event.AssetId, *Mapped->ToString());
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	// The distributed scenario determines placement, including overlapping actors.
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AActor* Actor = World->SpawnActor<AActor>(ActorClass, Event.Transform, Params);
+	if (Actor == nullptr)
+	{
+		UE_LOG(LogAGX, Error,
+			TEXT("AGX Distributed entity %llu failed to spawn asset %llu as Blueprint '%s'."),
+			Event.EntityId, Event.AssetId, *Mapped->ToString());
+		return;
+	}
+
+	UE_LOG(LogAGX, Log,
+		TEXT("AGX Distributed entity %llu spawned asset %llu ('%s') as actor '%s' at %s."),
+		Event.EntityId, Event.AssetId, *Event.AssetPath, *Actor->GetName(),
+		*Event.Transform.ToHumanReadableString());
 }

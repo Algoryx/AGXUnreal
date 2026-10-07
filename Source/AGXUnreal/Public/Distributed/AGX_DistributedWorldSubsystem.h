@@ -45,6 +45,7 @@ public:
 
 private:
 	void HandleEvent(const FAGXDistributedEvent& Event);
+	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAGX_DistributedScenarioAsset> Scenario;
