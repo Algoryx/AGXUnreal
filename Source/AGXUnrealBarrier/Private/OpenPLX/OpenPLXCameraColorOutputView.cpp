@@ -302,6 +302,24 @@ bool FOpenPLXCameraColorOutputView::GetDataBytes(TArray<uint8>& OutData) const
 	return OpenPLXCameraColorOutputView_helpers::CopyPixelData(PixelLayout, OutData);
 }
 
+bool FOpenPLXCameraColorOutputView::CopyDataBytesTo(void* OutData, uint64 OutDataSize) const
+{
+	OpenPLXCameraColorOutputView_helpers::FPixelLayout PixelLayout;
+	if (!OpenPLXCameraColorOutputView_helpers::GetValidatedPixelLayout(*this, PixelLayout) ||
+		PixelLayout.BufferSize != OutDataSize ||
+		(PixelLayout.BufferSize > 0 && OutData == nullptr))
+	{
+		return false;
+	}
+
+	if (PixelLayout.BufferSize > 0)
+	{
+		FMemory::Memcpy(
+			OutData, PixelLayout.Marshalling->get_buffer(), PixelLayout.BufferSize);
+	}
+	return true;
+}
+
 bool FOpenPLXCameraColorOutputView::GetDataU8(TArray<uint8>& OutData) const
 {
 	OutData.Reset();

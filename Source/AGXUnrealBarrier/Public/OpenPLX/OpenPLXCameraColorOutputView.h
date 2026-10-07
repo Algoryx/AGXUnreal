@@ -60,6 +60,9 @@ struct AGXUNREALBARRIER_API FOpenPLXCameraColorOutputView
 	 */
 	bool GetDataBytes(TArray<uint8>& OutData) const;
 
+	/** Copy the raw output data directly into a caller-provided buffer. */
+	bool CopyDataBytesTo(void* OutData, uint64 OutDataSize) const;
+
 	/**
 	 * Copy the output data as UInt8 channel values.
 	 *

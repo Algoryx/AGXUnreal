@@ -18,6 +18,9 @@ struct FAGX_SensorMsgsPointCloud2;
 struct FOpenPLXCameraColorOutputView;
 struct FOpenPLXLidarOutputView;
 
+class FROS2PublisherBarrier;
+class UAGX_ROS2PublisherComponent;
+
 class AGXUNREAL_API FAGX_ROS2Utilities
 {
 public:
@@ -28,12 +31,13 @@ public:
 		const TArray<FFloat16Color>& Image, double TimeStamp, const FIntPoint& Resolution,
 		bool Grayscale);
 
-	static FAGX_SensorMsgsImage Convert(
-		FAGX_CameraOutputColor& CameraOutput, double TimeStamp, bool bMarkAsRead = false,
-		const FString& FrameId = "");
+	static bool ConvertAndSend(
+		FAGX_CameraOutputColor& CameraOutput, FROS2PublisherBarrier& Publisher,
+		double TimeStamp, bool bMarkAsRead = false, const FString& FrameId = "");
 
-	static FAGX_SensorMsgsImage Convert(
-		const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId = "");
+	static bool ConvertAndSend(
+		const FOpenPLXCameraColorOutputView& View, FROS2PublisherBarrier& Publisher,
+		double TimeStamp, const FString& FrameId = "");
 };
 
 UCLASS(ClassGroup = "AGX ROS2 Utilities")
@@ -262,7 +266,8 @@ public:
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId = "");
 
 	/**
-	 * Takes an OpenPLX Camera Color output view and creates a ROS2 sensor_msgs::Image message.
+	 * Converts an OpenPLX Camera Color output view directly to a ROS2 sensor_msgs::Image message
+	 * and sends it using the given Publisher and Topic.
 	 *
 	 * The Image data is copied directly from the OpenPLX pixel buffer. UInt8 outputs use 8UC1,
 	 * 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or 32FC4 encoding.
@@ -274,11 +279,13 @@ public:
 	 * If not set, it will be an empty string.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-	static FAGX_SensorMsgsImage ConvertOpenPLXCameraColorOutput(
-		const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId = "");
+	static bool ConvertAndSendOpenPLXCameraColorOutput(
+		const FOpenPLXCameraColorOutputView& View, UAGX_ROS2PublisherComponent* Publisher,
+		const FString& Topic, double TimeStamp, const FString& FrameId = "");
 
 	/**
-	 * Takes a Camera Color Output and creates a ROS2 sensor_msgs::Image message from it.
+	 * Converts a Camera Color Output directly to a ROS2 sensor_msgs::Image message and sends it
+	 * using the given Publisher and Topic.
 	 *
 	 * The Image data is copied directly from the underlying Camera output data buffer. UInt8
 	 * outputs use 8UC1, 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or
@@ -287,15 +294,16 @@ public:
 	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
 	 * according to the given timestamp.
 	 *
-	 * If Mark As Read is true, this function marks the Camera output data as read after a successful 
-	 * conversion.
+	 * If Mark As Read is true, this function marks the Camera output data as read after it has been
+	 * copied into the ROS2 message.
 	 *
 	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
 	 * If not set, it will be an empty string.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
-	static FAGX_SensorMsgsImage ConvertCameraOutput(
-		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput, double TimeStamp,
+	static bool ConvertAndSendCameraOutput(
+		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput,
+		UAGX_ROS2PublisherComponent* Publisher, const FString& Topic, double TimeStamp,
 		bool bMarkAsRead = false, const FString& FrameId = "");
 
 	/**

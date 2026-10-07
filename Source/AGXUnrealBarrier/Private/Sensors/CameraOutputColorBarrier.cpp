@@ -162,6 +162,40 @@ void FCameraOutputColorBarrier::GetDataBytes(TArray<uint8>& OutData, bool bMarkA
 	CopyNativeOutputData(*Buffer, OutData);
 }
 
+bool FCameraOutputColorBarrier::CopyDataBytesTo(
+	void* OutData, uint64 OutDataSize, bool bMarkAsRead) const
+{
+	using namespace CameraOutputColorBarrier_helpers;
+
+	const EAGX_CameraOutputChannelType ChannelType = GetChannelType();
+	if (ChannelType != EAGX_CameraOutputChannelType::U8 &&
+		ChannelType != EAGX_CameraOutputChannelType::F32)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output data was requested as raw bytes, but the output channel type "
+				 "is %s."),
+			*UEnum::GetValueAsString(ChannelType));
+		return false;
+	}
+
+	const agxSensor::BinaryOutputBuffer* Buffer = GetUnreadData(*this, ChannelType, false);
+	if (Buffer == nullptr)
+		return false;
+
+	const size_t NumBytes = Buffer->size() * Buffer->elementSize();
+	if (NumBytes != OutDataSize || (NumBytes > 0 && OutData == nullptr))
+		return false;
+
+	if (NumBytes > 0)
+		FMemory::Memcpy(OutData, Buffer->rwPtr(), NumBytes);
+
+	if (bMarkAsRead)
+		GetNative()->Native->hasUnreadData(true);
+
+	return true;
+}
+
 void FCameraOutputColorBarrier::GetDataF32(TArray<float>& OutData, bool bMarkAsRead) const
 {
 	using namespace CameraOutputColorBarrier_helpers;

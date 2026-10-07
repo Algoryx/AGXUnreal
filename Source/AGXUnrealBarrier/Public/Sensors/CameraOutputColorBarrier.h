@@ -16,6 +16,8 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 	virtual void AllocateNative() override;
 
 	void GetDataBytes(TArray<uint8>& OutData, bool bMarkAsRead = false) const;
+	bool CopyDataBytesTo(
+		void* OutData, uint64 OutDataSize, bool bMarkAsRead = false) const;
 	void GetDataU8(TArray<uint8>& OutData, bool bMarkAsRead = false) const;
 	void GetDataF32(TArray<float>& OutData, bool bMarkAsRead = false) const;
 	bool HasUnreadData(bool bMarkAsRead = false) const;
