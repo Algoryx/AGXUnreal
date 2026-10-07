@@ -7,6 +7,7 @@
 #include "AGX_Check.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "BarrierOnly/Vehicle/SteeringRef.h"
 #include "Constraints/ConstraintBarrier.h"
 #include "ObserverFrameBarrier.h"
@@ -734,7 +735,8 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 void FPLXUtilitiesInternal::MapSensorOutput(
 	std::shared_ptr<openplx::Physics3D::System> System,
 	const FOpenPLXMappingBarriersCollection& Barriers,
-	std::shared_ptr<agxopenplx::AgxMetadata> Metadata)
+	std::shared_ptr<agxopenplx::AgxMetadata> Metadata,
+	FOpenPLXSignalHandlerRuntimeData& RuntimeData)
 {
 	if (Barriers.Cameras.Num() == 0 && Barriers.Lidars.Num() == 0 && Barriers.IMUs.Num() == 0)
 		return;
@@ -780,10 +782,15 @@ void FPLXUtilitiesInternal::MapSensorOutput(
 
 		for (const auto& CameraColorOutputPair : CameraMetaData->color_output_mapping)
 		{
+			const openplx::Sensors::Signals::CameraColorOutput* CameraColorOutputPLX =
+				CameraColorOutputPair.first;
 			const agxSensor::CameraColorOutputRef& CameraColorOutputAGX =
 				CameraColorOutputPair.second;
 			if (CameraColorOutputAGX == nullptr)
 				continue;
+
+			RuntimeData.CameraColorOutputs.insert_or_assign(
+				CameraColorOutputPLX, CameraColorOutputAGX);
 
 			FCameraOutputColorBarrier OutputBarrier(
 				std::make_shared<FCameraOutputRef>(CameraColorOutputAGX.get()));

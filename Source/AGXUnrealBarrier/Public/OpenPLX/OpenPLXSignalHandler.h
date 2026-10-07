@@ -20,6 +20,7 @@ struct FOpenPLXCameraColorOutputView;
 struct FOpenPLXIMUOutputView;
 struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Output;
+struct FOpenPLXSignalHandlerRuntimeData;
 struct FOpenPLX_SignalHandlerNativeAddresses;
 struct FOpenPLXMappingBarriersCollection;
 
@@ -78,6 +79,9 @@ public:
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
 private:
+	FOpenPLXSignalHandlerRuntimeData* GetRuntimeData();
+	const FOpenPLXSignalHandlerRuntimeData* GetRuntimeData() const;
+
 	bool bIsInitialized {false};
 	FOpenPLXModelRegistry* ModelRegistry {nullptr};
 	FOpenPLXModelRegistry::Handle ModelHandle {FOpenPLXModelRegistry::InvalidHandle};

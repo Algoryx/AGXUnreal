@@ -15,6 +15,7 @@
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
@@ -103,8 +104,9 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
+	FOpenPLXSignalHandlerRuntimeData RuntimeData;
 	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
-	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
+	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata, RuntimeData);
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -149,9 +151,9 @@ void FOpenPLXSignalHandler::Init(
 	}
 
 	ControlInterface->prepare_controls();
-	ModelData->HeapControlInterfaces.insert(
-		{AssemblyRef->Native.get(),
-		 std::make_shared<openplx::HeapControlInterface>(ControlInterface)});
+	RuntimeData.HeapControlInterface = std::make_shared<openplx::HeapControlInterface>(ControlInterface);
+	ModelData->RuntimeDataByAssembly.insert(
+		{AssemblyRef->Native.get(), std::move(RuntimeData)});
 
 	bIsInitialized = true;
 }
@@ -1231,6 +1233,19 @@ FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface()
 
 const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() const
 {
+	const FOpenPLXSignalHandlerRuntimeData* RuntimeData = GetRuntimeData();
+	return RuntimeData == nullptr ? FHeapControlInterfacePtr {nullptr} :
+		FHeapControlInterfacePtr {RuntimeData->HeapControlInterface.get()};
+}
+
+FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData()
+{
+	return const_cast<FOpenPLXSignalHandlerRuntimeData*>(
+		const_cast<const FOpenPLXSignalHandler*>(this)->GetRuntimeData());
+}
+
+const FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData() const
+{
 	if (ModelRegistry == nullptr)
 		return {nullptr};
 
@@ -1238,11 +1253,11 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 	if (ModelData == nullptr)
 		return {nullptr};
 
-	auto It = ModelData->HeapControlInterfaces.find(AssemblyRef->Native.get());
-	if (It == ModelData->HeapControlInterfaces.end())
+	auto It = ModelData->RuntimeDataByAssembly.find(AssemblyRef->Native.get());
+	if (It == ModelData->RuntimeDataByAssembly.end())
 		return {nullptr};
 
-	return {It->second.get()};
+	return &It->second;
 }
 
 bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
@@ -1264,7 +1279,6 @@ bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
 
 	OutOutput = FOpenPLXCameraColorOutputView();
 	FOpenPLXCameraColorOutputViewRef* OutputRef = OutOutput.GetNative();
-	OutputRef->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
 
 	const std::shared_ptr<openplx::ControlInterface>& ControlInterface =
 		Interface->get_control_interface();
@@ -1307,6 +1321,37 @@ bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
 			*Output.Name.ToString(), *Output.Alias.ToString());
 		return false;
 	}
+
+	FOpenPLXSignalHandlerRuntimeData* RuntimeData = GetRuntimeData();
+	if (RuntimeData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get runtime data while receiving Camera Color "
+				"output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	const auto NativeOutputIt = RuntimeData->CameraColorOutputs.find(
+		OutputRef->CameraColorOutput.get());
+	if (NativeOutputIt == RuntimeData->CameraColorOutputs.end())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not find the native AGX Camera Color output for "
+				"OpenPLX output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	// prepare_read invokes the OpenPLX output handler. Stage first so that handler observes the
+	// frame currently held by the Unreal camera backend.
+	FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(
+		reinterpret_cast<uint64>(NativeOutputIt->second.get()));
+	OutputRef->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
 
 	if (!OutOutput.HasNative())
 	{
@@ -1393,7 +1438,7 @@ void FOpenPLXSignalHandler::ReleaseNatives()
 	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 	if (ModelData)
 	{
-		ModelData->HeapControlInterfaces.erase(AssemblyRef->Native.get());
+		ModelData->RuntimeDataByAssembly.erase(AssemblyRef->Native.get());
 	}
 
 	ModelRegistry = nullptr;
