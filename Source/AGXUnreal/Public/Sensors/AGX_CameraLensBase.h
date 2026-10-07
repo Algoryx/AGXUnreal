@@ -23,7 +23,8 @@ class AGXUNREAL_API UAGX_CameraLensBase : public UObject
 
 public:
 	/**
-	 * Optional lens distortion model.
+	 * Optional lens distortion model. Lens distortion may be rendered at a larger internal
+	 * resolution to preserve image quality, which can significantly increase camera rendering cost.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Camera Lens")
 	UAGX_LensDistortionBase* LensDistortion {nullptr};
