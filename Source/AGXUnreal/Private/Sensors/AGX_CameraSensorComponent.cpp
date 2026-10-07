@@ -636,12 +636,18 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 	const FCameraOutputColorBarrier& OutputColorBarrier,
 	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
 {
+	const double Gamma = OutputColorBarrier.GetGamma();
+	const FAGX_ColorMappingMatrix ColorMappingMatrix = OutputColorBarrier.GetColorMappingMatrix();
 	for (auto& Material : OutMaterials)
 	{
 		if (Material == nullptr)
 			continue;
 
-		Material->SetScalarParameterValue(TEXT("Gamma"), OutputColorBarrier.GetGamma());
+		Material->SetScalarParameterValue(TEXT("Gamma"), Gamma);
+		Material->SetVectorParameterValue(TEXT("CM_Row0"), ColorMappingMatrix.Row0);
+		Material->SetVectorParameterValue(TEXT("CM_Row1"), ColorMappingMatrix.Row1);
+		Material->SetVectorParameterValue(TEXT("CM_Row2"), ColorMappingMatrix.Row2);
+		Material->SetVectorParameterValue(TEXT("CM_Row3"), ColorMappingMatrix.Row3);
 	}
 }
 
