@@ -42,6 +42,12 @@ UAGX_CameraBackend* UAGX_CameraBackend::GetFrom(const UWorld* World)
 	return const_cast<UWorld*>(World)->GetSubsystem<UAGX_CameraBackend>();
 }
 
+bool UAGX_CameraBackend::ShouldCreateSubsystem(UObject* Outer) const
+{
+	const UWorld* World = Cast<UWorld>(Outer);
+	return Super::ShouldCreateSubsystem(Outer) && World != nullptr && World->IsGameWorld();
+}
+
 void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -49,7 +55,12 @@ void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
 
 void UAGX_CameraBackend::Deinitialize()
 {
-	AGX_CHECK(FCameraBackendBarrier::GetInstance().GetNumCameras() == 0);
-	FCameraBackendBarrier::GetInstance().Clear(); // Mostly for good measures.
+	const UWorld* World = GetWorld();
+	if (World != nullptr && World->IsGameWorld())
+	{
+		AGX_CHECK(FCameraBackendBarrier::GetInstance().GetNumCameras() == 0);
+		FCameraBackendBarrier::GetInstance().Clear(); // Mostly for good measures.
+	}
+
 	Super::Deinitialize();
 }
