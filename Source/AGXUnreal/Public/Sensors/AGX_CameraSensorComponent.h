@@ -1,0 +1,292 @@
+// Copyright 2026, Algoryx Simulation AB.
+
+#pragma once
+
+// AGX Dynamics for Unreal includes.
+#include "Sensors/AGX_CameraBackendPropagator.h"
+#include "Sensors/AGX_CameraOutputColor.h"
+#include "Sensors/AGX_CameraSensorCaptureHelper.h"
+#include "Sensors/AGX_SceneCaptureComponent2DReference.h"
+#include "Sensors/AGX_SensorComponentBase.h"
+#include "Sensors/CameraOutputBarrier.h"
+
+// Unreal Engine includes.
+#include "Math/Matrix.h"
+
+#include "AGX_CameraSensorComponent.generated.h"
+
+struct FCameraBarrier;
+struct FCameraCMOSSensorBarrier;
+struct FCameraLensBarrier;
+struct FCameraLensSingleElementBarrier;
+struct FCameraOutputColorBarrier;
+struct FCameraPhotodetectorBarrier;
+struct FAGX_CameraOutputBase;
+struct FAGX_ImportContext;
+struct FLensDistortionBrownConradyBarrier;
+class UMaterialInstanceDynamic;
+class UMaterialInterface;
+class UAGX_CameraLensBase;
+class UAGX_CameraPhotodetectorBase;
+class USceneCaptureComponent2D;
+class UTextureRenderTarget2D;
+
+USTRUCT()
+struct AGXUNREAL_API FCameraOutputRenderContext
+{
+	GENERATED_BODY()
+
+	// Given to SceneCaptureComponent before capture.
+	UPROPERTY(Transient)
+	TObjectPtr<UTextureRenderTarget2D> SceneRenderTarget;
+
+	// Derived scene capture settings, accounting for the output resolution and lens distortion.
+	float SceneCaptureFOVAngle {0.0f};
+	FIntPoint SceneCaptureResolution {FIntPoint::ZeroValue};
+
+	// AGX Brown-Conrady input scales in normalized output coordinates.
+	FVector2D DistortionProjectionScale {1.0, 1.0};
+	FVector2D DistortionResolutionScale {1.0, 1.0};
+
+	// The custom projection matrix is required when projection scales differ between axes.
+	FMatrix SceneCaptureProjectionMatrix {FMatrix::Identity};
+	bool bUseCustomSceneCaptureProjectionMatrix {false};
+
+	// Holds the result of Material Passes.
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextureRenderTarget2D>> RenderTargets;
+
+	// MaterialInstances created from the set MaterialPasses used when executing the Material
+	// Passes.
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> MaterialInstances;
+
+	FAGX_CameraSensorCaptureHelper CaptureHelper;
+};
+
+/**
+ * Camera Sensor Component, allowing to capture rendered images at runtime.
+ * During play the Camera Sensor Component registers itself with the AGX Sensor Environment
+ * Subsystem.
+ */
+UCLASS(
+	ClassGroup = "AGX_Sensor", Category = "AGX", Blueprintable,
+	Meta = (BlueprintSpawnableComponent),
+	Hidecategories = (Cooking, Collision, LOD, Physics, Rendering, Replication))
+class AGXUNREAL_API UAGX_CameraSensorComponent : public UAGX_SensorComponentBase
+{
+	GENERATED_BODY()
+
+public:
+	UAGX_CameraSensorComponent();
+
+	/**
+	 * Camera photodetector to use when creating the native AGX Camera. If unset, a default AGX
+	 * CMOS Sensor is used.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
+	UAGX_CameraPhotodetectorBase* PhotoDetector {nullptr};
+
+	/**
+	 * Camera lens to use when creating the native AGX Camera. If unset, a default AGX single
+	 * element lens is used.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera", Meta = (ExposeOnSpawn))
+	UAGX_CameraLensBase* CameraLens {nullptr};
+
+	/**
+	 * Materials used as full-screen render passes after the Scene Capture Component has captured
+	 * the scene.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
+	TArray<TObjectPtr<UMaterialInterface>> MaterialPasses;
+
+	/**
+	 * Whether camera material passes should keep 8-bit Camera Color Outputs in linear color space.
+	 * When false, the final material pass can encode the output for standard sRGB image consumers.
+	 * Float outputs always use linear color space.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
+	bool bUseLinearColorSpace {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void SetUseLinearColorSpace(bool bInUseLinearColorSpace);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool GetUseLinearColorSpace() const;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void AddMaterialPass(UMaterialInterface* Material);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	bool SetMaterialPass(int32 Index, UMaterialInterface* Material);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	bool RemoveMaterialPass(UMaterialInterface* Material);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	bool RemoveMaterialPassAt(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void ClearMaterialPasses();
+
+	void UpdateNativeTransform();
+
+	bool AddOutput(FAGX_CameraOutputBase& InOutput);
+
+	/**
+	 * Get handles to all outputs currently attached to the native Camera.
+	 *
+	 * Returns an empty array when this component does not have a native Camera. The returned
+	 * barriers reference the native Camera outputs and may become detached from the Camera if the
+	 * component is destroyed or recreated.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	TArray<FCameraOutputBarrier> GetOutputBarriers() const;
+
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
+
+	/**
+	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this
+	 * Camera Sensor Component. When set, the CaptureSourceOverride's existing render target is used
+	 * as the camera material passes input. Note that when using the CaptureSourceOverride, the
+	 * transform of this AGX Camera Sensor Component has no effect. The CaptureSourceOverride is not
+	 * otherwise configured by this component. If its Capture Every Frame setting is disabled, this
+	 * component calls CaptureScene whenever the AGX Camera requests a capture. Disabling Capture
+	 * Every Frame is recommended so that captures occur only at the Color Output's configured Frame
+	 * Rate or in response to an explicit RequestCapture call.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
+	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void SetCaptureSourceOverride(USceneCaptureComponent2D* InCaptureSourceOverride);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool HasCaptureSourceOverride() const;
+
+	//~ Begin UAGX_SensorComponentBase Interface
+	FSensorBarrier* CreateNativeImpl() override;
+	//~ End UAGX_SensorComponentBase Interface
+
+	/**
+	 * Get the active Scene Capture Component 2D used by this Camera Sensor. Returns the
+	 * CaptureSourceOverride if one is set, otherwise returns the internally created capture source.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	USceneCaptureComponent2D* GetCaptureSource() const;
+
+	/**
+	 * Whether this Camera Sensor has both a Native object and a Scene Capture Component 2D. If
+	 * CaptureSourceOverride is set, the referenced Scene Capture Component 2D must also have a
+	 * render target.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool IsCameraSensorValid() const;
+
+	/**
+	 * Get a Render Target produced by a Material Pass.
+	 *
+	 * MaterialPassIndex selects an element in MaterialPasses. The default value, -1, returns the
+	 * final valid Material Pass Render Target. Returns nullptr when the requested index is invalid
+	 * or has no Material Pass. When no Material Pass is active, the default returns the Scene
+	 * Capture Render Target.
+	 *
+	 * The returned Render Target may stop being active if MaterialPasses is modified during Play.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	UTextureRenderTarget2D* GetOutputRenderTarget(
+		const FAGX_CameraOutputColor& Output, int32 MaterialPassIndex = -1) const;
+
+	//~ Begin UActorComponent Interface
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void PostApplyToComponent() override;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType,
+		FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* InProperty) const override;
+#endif
+	virtual void OnRegister() override;
+	//~ End UActorComponent Interface
+
+	//~ Begin UObject Interface
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+	virtual void PostInitProperties() override;
+#endif
+	//~ End UObject Interface
+
+	FCameraBarrier* GetNativeAsCamera();
+	const FCameraBarrier* GetNativeAsCamera() const;
+
+private:
+	friend class FAGX_CameraBackendPropagator;
+
+	//~ Begin UAGX_SensorComponentBase Interface
+	virtual void MarkOutputAsRead() override;
+	virtual void UpdateNativeProperties() override;
+	//~ End UAGX_SensorComponentBase Interface
+
+	void SetupSceneCapture();
+	void SetupCameraBackendPropagator();
+	void UpdateCameraPhotoDetector();
+	void UpdateCameraLens();
+	FCameraOutputRenderContext* UpdateOutputCaptureSettings(
+		const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings = false);
+	void UpdateAllOutputCaptureSettings();
+
+	/// Executes the MaterialPasses and returns the final render target.
+	UTextureRenderTarget2D* RenderMaterialPasses(
+		FCameraOutputRenderContext& OutputRenderContext,
+		const FCameraOutputColorBarrier& OutputColorBarrier);
+
+	bool RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier);
+	void PollCaptures();
+
+	UTextureRenderTarget2D* CreateRenderTarget(
+		const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType,
+		uint8 ChannelCount);
+
+#if WITH_EDITOR
+	void InitPropertyDispatcher();
+#endif
+
+	FCameraOutputRenderContext* GetOrCreateOutputRenderContext(
+		const FCameraOutputColorBarrier& OutputColorBarrier);
+
+	// Updates the FCameraOutputRenderContext according to the given OutputColorBarrier. Does not
+	// set material parameters, see UpdateMaterialParameters for that.
+	bool UpdateOutputRenderContextNoParams(
+		FCameraOutputRenderContext& OutputRenderContext,
+		const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings = false);
+
+	/// Write output specific parameters to the given OutMaterials.
+	void UpdateMaterialParametersFrom(
+		const FCameraOutputColorBarrier& OutputColorBarrier,
+		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
+	void UpdateMaterialParametersFrom(
+		const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
+		const FVector2D& DistortionProjectionScale,
+		TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials);
+
+	/// Internal functions called by the Camera Backend.
+	void OnBackendSetCameraLensSingleElement(const FCameraLensSingleElementBarrier& LensBarrier);
+	void OnBackendSetCameraCMOSSensor(const FCameraCMOSSensorBarrier& SensorBarrier);
+	void OnBackendSetCameraLensDistortionNone();
+	void OnBackendSetCameraLensDistortionBrownConrady(
+		const FLensDistortionBrownConradyBarrier& LensDistortionBarrier);
+	void OnBackendSetCameraColorOutput(const FCameraOutputColorBarrier& OutputColorBarrier);
+	void OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier);
+
+	UPROPERTY(Transient)
+	TObjectPtr<USceneCaptureComponent2D> OwnedCaptureComponent2D {nullptr};
+
+	// Per-output render context. Key is native Output address.
+	UPROPERTY(Transient)
+	TMap<uint64, FCameraOutputRenderContext> OutputRenderContexts;
+
+	FAGX_CameraBackendPropagator CameraBackendPropagator;
+};

@@ -118,6 +118,12 @@ void UAGX_SensorComponentBase::CopyFrom(
 
 	if (Context != nullptr && Context->Settings != nullptr)
 		bOpenPLXImported = Context->Settings->ImportType == EAGX_ImportType::Plx;
+
+	if (Context != nullptr && Context->bStoreObjects)
+	{
+		AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
+		Context->Sensors.Add(ImportGuid, this);
+	}
 }
 
 void UAGX_SensorComponentBase::BeginPlay()

@@ -6,9 +6,15 @@
 #include "AGX_LogCategory.h"
 #include "AGXROS2Types.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "ROS2/ROS2Conversions.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 #include "Utilities/ROS2Utilities.h"
+
+// Standard library includes.
+#include <limits>
+#include <string>
 
 // Helper macros to minimize amount of code needed in large switch-statement.
 #define AGX_SEND_ROS2_MSGS(PubType, MsgType)                                                       \
@@ -37,6 +43,73 @@
 			new PubTypeROS2(Convert(Topic), Convert(Qos), DomainID)); \
 		return;                                                       \
 	}
+
+namespace ROS2PublisherBarrier_helpers
+{
+	bool ConfigureImageMessage(
+		agxROS2::sensorMsgs::Image& Msg, const FIntPoint& Resolution,
+		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount, double TimeStamp,
+		const FString& FrameId, uint64& OutDataSize)
+	{
+		if (Resolution.X <= 0 || Resolution.Y <= 0 || ChannelCount < 1 || ChannelCount > 4)
+			return false;
+
+		uint64 ChannelSize = 0;
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				ChannelSize = sizeof(uint8);
+				Msg.encoding = "8UC" + std::to_string(ChannelCount);
+				break;
+			case EAGX_CameraOutputChannelType::F32:
+				ChannelSize = sizeof(float);
+				Msg.encoding = "32FC" + std::to_string(ChannelCount);
+				break;
+			case EAGX_CameraOutputChannelType::UNSUPPORTED:
+				return false;
+			default:
+				return false;
+		}
+
+		const uint64 Step =
+			static_cast<uint64>(Resolution.X) * ChannelCount * ChannelSize;
+		if (Step > std::numeric_limits<uint32_t>::max() ||
+			Step > std::numeric_limits<uint64>::max() / static_cast<uint64>(Resolution.Y))
+		{
+			return false;
+		}
+
+		OutDataSize = Step * static_cast<uint64>(Resolution.Y);
+		if (OutDataSize > std::numeric_limits<size_t>::max() ||
+			OutDataSize > Msg.data.max_size())
+			return false;
+
+		Msg.header.stamp.sec = static_cast<int32_t>(TimeStamp);
+		Msg.header.stamp.nanosec = static_cast<uint32_t>(
+			static_cast<int64>(TimeStamp * 1.0E9) % 1000000000ll);
+		Msg.header.frame_id = TCHAR_TO_UTF8(*FrameId);
+		Msg.height = static_cast<uint32_t>(Resolution.Y);
+		Msg.width = static_cast<uint32_t>(Resolution.X);
+		Msg.is_bigendian = 0;
+		Msg.step = static_cast<uint32_t>(Step);
+		Msg.data.resize(static_cast<size_t>(OutDataSize));
+		return true;
+	}
+
+	const FPublisherImage* GetImagePublisher(const FROS2Publisher* Publisher)
+	{
+		const FPublisherImage* ImagePublisher = dynamic_cast<const FPublisherImage*>(Publisher);
+		if (ImagePublisher == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Cannot send Camera Color output through a ROS2 publisher that is not "
+					 "configured for sensor_msgs::Image."));
+		}
+		return ImagePublisher;
+	}
+
+}
 
 FROS2PublisherBarrier::FROS2PublisherBarrier()
 {
@@ -486,6 +559,80 @@ bool FROS2PublisherBarrier::SendMsg(const FAGX_ROS2Message& Msg) const
 		TEXT("FROS2PublisherBarrier::SendMessage called on PublisherBarrier with an invalid "
 			 "MessageType. The message will not be sent."));
 	return false;
+}
+
+bool FROS2PublisherBarrier::SendCameraColorOutput(
+	FCameraOutputColorBarrier& CameraOutput, double TimeStamp, bool bMarkAsRead,
+	const FString& FrameId) const
+{
+	using namespace ROS2PublisherBarrier_helpers;
+
+	const FPublisherImage* Publisher = GetImagePublisher(Native.get());
+	if (Publisher == nullptr)
+		return false;
+
+	agxROS2::sensorMsgs::Image Message;
+	uint64 DataSize = 0;
+	if (!ConfigureImageMessage(
+			Message, CameraOutput.GetResolution(), CameraOutput.GetChannelType(),
+			CameraOutput.GetChannelCount(), TimeStamp, FrameId, DataSize))
+	{
+		AGX_ROS2Utilities::FreeContainers(Message);
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not configure a ROS2 Image message from the Camera Color output."));
+		return false;
+	}
+
+	if (!CameraOutput.CopyDataBytesTo(Message.data.data(), DataSize, bMarkAsRead))
+	{
+		AGX_ROS2Utilities::FreeContainers(Message);
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not copy Camera Color output data into a ROS2 Image message."));
+		return false;
+	}
+
+	Publisher->Native->sendMessage(Message);
+	AGX_ROS2Utilities::FreeContainers(Message);
+	return true;
+}
+
+bool FROS2PublisherBarrier::SendCameraColorOutput(
+	const FOpenPLXCameraColorOutputView& View, double TimeStamp, const FString& FrameId) const
+{
+	using namespace ROS2PublisherBarrier_helpers;
+
+	const FPublisherImage* Publisher = GetImagePublisher(Native.get());
+	if (Publisher == nullptr)
+		return false;
+
+	agxROS2::sensorMsgs::Image Message;
+	uint64 DataSize = 0;
+	if (!ConfigureImageMessage(
+			Message, View.GetResolution(), View.GetChannelType(), View.GetChannelCount(), TimeStamp,
+			FrameId, DataSize))
+	{
+		AGX_ROS2Utilities::FreeContainers(Message);
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not configure a ROS2 Image message from the OpenPLX Camera Color output "
+				 "view."));
+		return false;
+	}
+
+	if (!View.CopyDataBytesTo(Message.data.data(), DataSize))
+	{
+		AGX_ROS2Utilities::FreeContainers(Message);
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Could not copy OpenPLX Camera Color output data into a ROS2 Image message."));
+		return false;
+	}
+
+	Publisher->Native->sendMessage(Message);
+	AGX_ROS2Utilities::FreeContainers(Message);
+	return true;
 }
 
 void FROS2PublisherBarrier::ReleaseNative()

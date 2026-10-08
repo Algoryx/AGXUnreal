@@ -165,6 +165,20 @@ void UAGX_IMUSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
+void UAGX_IMUSensorComponent::PostApplyToComponent()
+{
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddIMU(this);
+		}
+	}
+}
+
 FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU()
 {
 	if (!HasNative())
@@ -183,6 +197,9 @@ const FIMUBarrier* UAGX_IMUSensorComponent::GetNativeAsIMU() const
 
 void UAGX_IMUSensorComponent::MarkOutputAsRead()
 {
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
 	if (HasNative())
 		GetNativeAsIMU()->MarkOutputAsRead();
 }
@@ -807,9 +824,6 @@ void UAGX_IMUSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Impor
 			RigidBody.Name = Body->GetFName();
 		}
 	}
-
-	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
-	Context->Sensors.Add(ImportGuid, this);
 }
 
 void UAGX_IMUSensorComponent::UpdateTransformFromNative()
