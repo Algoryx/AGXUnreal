@@ -561,6 +561,13 @@ void UAGX_CameraSensorComponent::SetCaptureSourceOverride(
 {
 	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
 	CaptureSourceOverride.SetComponent(InCaptureSourceOverride);
+
+	UWorld* World = GetWorld();
+	if (World == nullptr || !World->IsGameWorld() || !HasNative())
+		return;
+
+	SetupSceneCapture();
+	UpdateAllOutputCaptureSettings();
 }
 
 bool UAGX_CameraSensorComponent::HasCaptureSourceOverride() const
