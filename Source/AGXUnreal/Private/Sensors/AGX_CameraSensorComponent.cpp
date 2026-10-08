@@ -436,6 +436,17 @@ void UAGX_CameraSensorComponent::AddMaterialPass(UMaterialInterface* Material)
 	MaterialPasses.Add(Material);
 }
 
+void UAGX_CameraSensorComponent::SetUseLinearColorSpace(bool bInUseLinearColorSpace)
+{
+	bUseLinearColorSpace = bInUseLinearColorSpace;
+	UpdateAllOutputCaptureSettings();
+}
+
+bool UAGX_CameraSensorComponent::GetUseLinearColorSpace() const
+{
+	return bUseLinearColorSpace;
+}
+
 bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface* Material)
 {
 	if (!MaterialPasses.IsValidIndex(Index))
@@ -617,7 +628,7 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
 }
 
 UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget(
-	const FAGX_CameraOutputColor& Output) const
+	const FAGX_CameraOutputColor& Output, int32 MaterialPassIndex) const
 {
 	const FCameraOutputBarrier* Native = Output.GetNative();
 	if (Native == nullptr)
@@ -627,6 +638,22 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget(
 		OutputRenderContexts.Find(Native->GetNativeAddress());
 	if (Context == nullptr)
 		return nullptr;
+
+	if (MaterialPassIndex != -1)
+	{
+		if (!Context->RenderTargets.IsValidIndex(MaterialPassIndex))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' in '%s' cannot get Material Pass Render Target "
+					 "at index %d because it has %d Material Passes."),
+				*GetName(), *GetLabelSafe(GetOwner()), MaterialPassIndex,
+				Context->RenderTargets.Num());
+			return nullptr;
+		}
+
+		return Context->RenderTargets[MaterialPassIndex].Get();
+	}
 
 	for (int32 Index = Context->RenderTargets.Num() - 1; Index >= 0; --Index)
 	{
@@ -698,6 +725,8 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 			continue;
 
 		Material->SetScalarParameterValue(TEXT("Gamma"), Gamma);
+		Material->SetScalarParameterValue(
+			TEXT("UseLinearColorSpace"), bUseLinearColorSpace ? 1.0f : 0.0f);
 		Material->SetVectorParameterValue(TEXT("CM_Row0"), ColorMappingMatrix.Row0);
 		Material->SetVectorParameterValue(TEXT("CM_Row1"), ColorMappingMatrix.Row1);
 		Material->SetVectorParameterValue(TEXT("CM_Row2"), ColorMappingMatrix.Row2);
@@ -1701,6 +1730,12 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 	if (PropertyDispatcher.IsInitialized())
 		return;
 
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(bUseLinearColorSpace),
+		[](ThisClass* This)
+		{
+			This->SetUseLinearColorSpace(This->bUseLinearColorSpace);
+		});
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(CaptureSourceOverride),
 		[](ThisClass* This)

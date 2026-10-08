@@ -99,6 +99,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
 	TArray<TObjectPtr<UMaterialInterface>> MaterialPasses;
 
+	/**
+	 * Whether camera material passes should keep 8-bit Camera Color Outputs in linear color space.
+	 * When false, the final material pass can encode the output for standard sRGB image consumers.
+	 * Float outputs always use linear color space.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
+	bool bUseLinearColorSpace {true};
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	void SetUseLinearColorSpace(bool bInUseLinearColorSpace);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
+	bool GetUseLinearColorSpace() const;
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	void AddMaterialPass(UMaterialInterface* Material);
 
@@ -165,13 +179,18 @@ public:
 	bool IsCameraSensorValid() const;
 
 	/**
-	 * Get the Render Target containing the latest output from the Material Passes.
-	 * The returned Render Target may stop being the active output if MaterialPasses is modified
-	 * during Play.
+	 * Get a Render Target produced by a Material Pass.
+	 *
+	 * MaterialPassIndex selects an element in MaterialPasses. The default value, -1, returns the
+	 * final valid Material Pass Render Target. Returns nullptr when the requested index is invalid
+	 * or has no Material Pass. When no Material Pass is active, the default returns the Scene
+	 * Capture Render Target.
+	 *
+	 * The returned Render Target may stop being active if MaterialPasses is modified during Play.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Camera")
-	UTextureRenderTarget2D* GetOutputRenderTarget(UPARAM(ref)
-													  const FAGX_CameraOutputColor& Output) const;
+	UTextureRenderTarget2D* GetOutputRenderTarget(
+		const FAGX_CameraOutputColor& Output, int32 MaterialPassIndex = -1) const;
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;
