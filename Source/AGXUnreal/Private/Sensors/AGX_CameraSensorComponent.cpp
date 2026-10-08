@@ -445,6 +445,7 @@ namespace AGX_CameraSensorComponent_helpers
 void UAGX_CameraSensorComponent::AddMaterialPass(UMaterialInterface* Material)
 {
 	MaterialPasses.Add(Material);
+	UpdateAllOutputCaptureSettings();
 }
 
 void UAGX_CameraSensorComponent::SetUseLinearColorSpace(bool bInUseLinearColorSpace)
@@ -463,7 +464,11 @@ bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface
 	if (!MaterialPasses.IsValidIndex(Index))
 		return false;
 
+	if (MaterialPasses[Index].Get() == Material)
+		return true;
+
 	MaterialPasses[Index] = Material;
+	UpdateAllOutputCaptureSettings();
 	return true;
 }
 
@@ -472,10 +477,11 @@ bool UAGX_CameraSensorComponent::RemoveMaterialPass(UMaterialInterface* Material
 	const int32 NumRemoved =
 		MaterialPasses.RemoveAll([Material](const TObjectPtr<UMaterialInterface>& ExistingMaterial)
 								 { return ExistingMaterial.Get() == Material; });
-	if (NumRemoved == 0)
-		return false;
 
-	return true;
+	if (NumRemoved > 0)
+		UpdateAllOutputCaptureSettings();
+
+	return NumRemoved > 0;
 }
 
 bool UAGX_CameraSensorComponent::RemoveMaterialPassAt(int32 Index)
@@ -484,12 +490,17 @@ bool UAGX_CameraSensorComponent::RemoveMaterialPassAt(int32 Index)
 		return false;
 
 	MaterialPasses.RemoveAt(Index);
+	UpdateAllOutputCaptureSettings();
 	return true;
 }
 
 void UAGX_CameraSensorComponent::ClearMaterialPasses()
 {
+	if (MaterialPasses.IsEmpty())
+		return;
+
 	MaterialPasses.Empty();
+	UpdateAllOutputCaptureSettings();
 }
 
 void UAGX_CameraSensorComponent::UpdateNativeTransform()
@@ -1754,6 +1765,9 @@ void UAGX_CameraSensorComponent::InitPropertyDispatcher()
 		{
 			This->SetUseLinearColorSpace(This->bUseLinearColorSpace);
 		});
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(MaterialPasses),
+		[](ThisClass* This) { This->UpdateAllOutputCaptureSettings(); });
 	PropertyDispatcher.Add(
 		AGX_MEMBER_NAME(CaptureSourceOverride),
 		[](ThisClass* This)
