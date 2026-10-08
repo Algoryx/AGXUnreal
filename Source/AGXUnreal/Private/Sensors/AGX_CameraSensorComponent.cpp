@@ -698,10 +698,17 @@ FCameraOutputRenderContext* UAGX_CameraSensorComponent::UpdateOutputCaptureSetti
 	}
 
 	UpdateMaterialParametersFrom(OutputColorBarrier, OutputRenderContext->MaterialInstances);
-	const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
-		AGX_CameraSensorComponent_helpers::GetLensDistortionBrownConradyBarrier(*this);
+	FLensDistortionBrownConradyBarrier LensDistortionBarrier;
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr = nullptr;
+	if (!HasCaptureSourceOverride())
+	{
+		LensDistortionBarrier =
+			AGX_CameraSensorComponent_helpers::GetLensDistortionBrownConradyBarrier(*this);
+		LensDistortionBarrierPtr =
+			LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr;
+	}
 	UpdateMaterialParametersFrom(
-		LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr,
+		LensDistortionBarrierPtr,
 		OutputRenderContext->DistortionProjectionScale, OutputRenderContext->MaterialInstances);
 	return OutputRenderContext;
 }

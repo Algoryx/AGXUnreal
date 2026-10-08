@@ -181,11 +181,33 @@ bool FCameraOutputColorBarrier::CopyDataBytesTo(
 
 	const agxSensor::BinaryOutputBuffer* Buffer = GetUnreadData(*this, ChannelType, false);
 	if (Buffer == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output has no unread pixel data to copy. A capture may not have "
+				 "completed yet."));
 		return false;
+	}
 
 	const size_t NumBytes = Buffer->size() * Buffer->elementSize();
-	if (NumBytes != OutDataSize || (NumBytes > 0 && OutData == nullptr))
+	if (NumBytes != OutDataSize)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output data cannot be copied because its size (%llu bytes) does not "
+				 "match the destination buffer size (%llu bytes)."),
+			static_cast<unsigned long long>(NumBytes),
+			static_cast<unsigned long long>(OutDataSize));
 		return false;
+	}
+
+	if (NumBytes > 0 && OutData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Color Output data cannot be copied to a null destination buffer."));
+		return false;
+	}
 
 	if (NumBytes > 0)
 		FMemory::Memcpy(OutData, Buffer->rwPtr(), NumBytes);

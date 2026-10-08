@@ -148,7 +148,9 @@ public:
 	 * Optional Scene Capture Component 2D to use instead of the one automatically created by this
 	 * Camera Sensor Component. When set, the CaptureSourceOverride's existing render target is used
 	 * as the camera material passes input. Note that when using the CaptureSourceOverride, the
-	 * transform of this AGX Camera Sensor Component has no effect.
+	 * transform of this AGX Camera Sensor Component has no effect. The CaptureSourceOverride is not
+	 * otherwise configured by this component. If its Capture Every Frame setting is disabled, this
+	 * component calls CaptureScene whenever the AGX Camera requests a capture.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
 	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
