@@ -53,8 +53,19 @@ UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 
 	static const TCHAR* CameraPass1AssetPath = TEXT(
 		"Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass1.MI_AGX_Camera_Pass1'");
-	MaterialPasses.Add(
-		FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass1AssetPath));
+	if (UMaterialInterface* CameraPass1 =
+			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass1AssetPath))
+	{
+		MaterialPasses.Add(CameraPass1);
+	}
+
+	static const TCHAR* CameraPass2AssetPath = TEXT(
+		"Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass2.MI_AGX_Camera_Pass2'");
+	if (UMaterialInterface* CameraPass2 =
+			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass2AssetPath))
+	{
+		MaterialPasses.Add(CameraPass2);
+	}
 }
 
 namespace AGX_CameraSensorComponent_helpers
