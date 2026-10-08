@@ -150,7 +150,9 @@ public:
 	 * as the camera material passes input. Note that when using the CaptureSourceOverride, the
 	 * transform of this AGX Camera Sensor Component has no effect. The CaptureSourceOverride is not
 	 * otherwise configured by this component. If its Capture Every Frame setting is disabled, this
-	 * component calls CaptureScene whenever the AGX Camera requests a capture.
+	 * component calls CaptureScene whenever the AGX Camera requests a capture. Disabling Capture
+	 * Every Frame is recommended so that captures occur only at the Color Output's configured Frame
+	 * Rate or in response to an explicit RequestCapture call.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
 	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;
