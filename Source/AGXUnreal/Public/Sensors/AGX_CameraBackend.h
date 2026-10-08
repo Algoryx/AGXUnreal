@@ -14,7 +14,8 @@ class UWorld;
 struct FCameraBackendBarrier;
 
 /**
- * Todo: add API comment.
+ * World subsystem that manages the shared native Camera Backend for Camera Sensors in a game
+ * world.
  */
 UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX")
 class AGXUNREAL_API UAGX_CameraBackend : public ULevelInstanceSubsystem

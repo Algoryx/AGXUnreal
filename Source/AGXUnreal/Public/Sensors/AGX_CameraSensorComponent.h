@@ -65,7 +65,9 @@ struct AGXUNREAL_API FCameraOutputRenderContext
 };
 
 /**
- * Todo: add API comment.
+ * Camera Sensor Component, allowing to capture rendered images at runtime.
+ * During play the Camera Sensor Component registers itself with the AGX Sensor Environment
+ * Subsystem.
  */
 UCLASS(
 	ClassGroup = "AGX_Sensor", Category = "AGX", Blueprintable,
