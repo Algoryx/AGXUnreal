@@ -85,6 +85,15 @@ bool FAGX_CameraOutputBase::GetConstantCapture() const
 	return bConstantCapture;
 }
 
+bool FAGX_CameraOutputBase::RequestCapture()
+{
+	if (!HasNative())
+		return false;
+
+	GetNative()->RequestCapture();
+	return true;
+}
+
 bool FAGX_CameraOutputBase::HasNative() const
 {
 	return NativeBarrier != nullptr && NativeBarrier->HasNative();

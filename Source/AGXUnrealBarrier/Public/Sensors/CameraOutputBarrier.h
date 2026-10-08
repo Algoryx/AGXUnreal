@@ -38,6 +38,7 @@ struct AGXUNREALBARRIER_API FCameraOutputBarrier
 
 	void SetConstantCapture(double InFrameRate);
 	void SetManualCapture();
+	void RequestCapture();
 	bool GetConstantCapture() const;
 	double GetFrameRate() const;
 

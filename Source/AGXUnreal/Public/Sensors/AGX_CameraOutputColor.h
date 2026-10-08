@@ -124,6 +124,18 @@ class AGXUNREAL_API UAGX_CameraOutputColor_LF : public UBlueprintFunctionLibrary
 		return Output.GetConstantCapture();
 	}
 
+	/**
+	 * Request a Camera capture when Constant Capture is disabled.
+	 *
+	 * The request is asynchronous. Output data may take one or more ticks to become available after
+	 * this function is called.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
+	static bool RequestCapture(UPARAM(ref) FAGX_CameraOutputColor& Output)
+	{
+		return Output.RequestCapture();
+	}
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	static void SetChannelType(
 		UPARAM(ref) FAGX_CameraOutputColor& Output, EAGX_CameraOutputChannelType ChannelType)

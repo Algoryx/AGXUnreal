@@ -92,6 +92,12 @@ void FCameraOutputBarrier::SetManualCapture()
 	NativeRef->Native->setManualCapture();
 }
 
+void FCameraOutputBarrier::RequestCapture()
+{
+	check(HasNative());
+	NativeRef->Native->capture();
+}
+
 bool FCameraOutputBarrier::GetConstantCapture() const
 {
 	check(HasNative());

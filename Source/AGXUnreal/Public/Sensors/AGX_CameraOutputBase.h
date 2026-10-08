@@ -46,13 +46,23 @@ public:
 
 	/**
 	 * Whether the Camera Sensor captures continuously according to the set Frame Rate or waits for
-	 * manual capture requests.
+	 * manual capture requests. When disabled, call RequestCapture to request each frame.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Camera")
 	bool bConstantCapture {true};
 
 	void SetConstantCapture(bool bInConstantCapture);
 	bool GetConstantCapture() const;
+
+	/**
+	 * Request a Camera capture when Constant Capture is disabled.
+	 *
+	 * The request is asynchronous. Output data may take one or more ticks to become available after
+	 * this function is called.
+	 *
+	 * Returns false if this output does not have a native AGX object.
+	 */
+	bool RequestCapture();
 
 	bool HasNative() const;
 	FCameraOutputBarrier* GetOrCreateNative();
