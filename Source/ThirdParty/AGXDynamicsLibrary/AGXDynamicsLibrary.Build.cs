@@ -915,8 +915,10 @@ public class AGXDynamicsLibrary : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
+			// The debugger launcher scripts are not needed by AGXUnreal.
+			List<string> FilesToIgnore = new List<string> { ".bat" };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
