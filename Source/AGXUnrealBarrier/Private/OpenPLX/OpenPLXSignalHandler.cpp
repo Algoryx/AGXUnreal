@@ -113,7 +113,7 @@ void FOpenPLXSignalHandler::Init(
 		agxSensor::EnvironmentRef EnvironmentAGX =
 			Environment != nullptr && Environment->HasNative() ? Environment->GetNative()->Native : nullptr;
 		AgxObjectMap = agxopenplx::AgxObjectMap::create(
-			AssemblyRef->Native, PlxPowerLine, EnvironmentAGX, agxopenplx::AgxObjectMapMode::Name);
+			AssemblyRef->Native, nullptr, PlxPowerLine, EnvironmentAGX, agxopenplx::AgxObjectMapMode::Name);
 	}
 
 	/*
