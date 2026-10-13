@@ -1729,6 +1729,9 @@ void UAGX_CameraSensorComponent::SetupSceneCapture()
 	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
 	OwnedCaptureComponent2D->PostProcessBlendWeight = 1.0f;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraISO = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraShutterSpeed = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	OwnedCaptureComponent2D->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureBias = true;
 	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
@@ -1904,6 +1907,23 @@ void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
 
 	PostProcessSettings.AutoExposureMaxBrightness = CMOSBarrier.GetDynamicRange();
 	PostProcessSettings.CameraISO = CMOSBarrier.GetISO();
+	// AGX stores shutter duration [s], whereas Unreal uses its reciprocal [1/s].
+	const double ShutterDuration = CMOSBarrier.GetShutterSpeed();
+	const double ReciprocalShutterSpeed = ShutterDuration > 0.0 ? 1.0 / ShutterDuration : 0.0;
+	if (FMath::IsFinite(ReciprocalShutterSpeed) &&
+		ReciprocalShutterSpeed >= TNumericLimits<float>::Min() &&
+		ReciprocalShutterSpeed <= TNumericLimits<float>::Max())
+	{
+		PostProcessSettings.CameraShutterSpeed = static_cast<float>(ReciprocalShutterSpeed);
+	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' cannot apply shutter duration %g s to Unreal. "
+				 "Its reciprocal must be a positive, finite float. The previous setting is kept."),
+			*GetName(), ShutterDuration);
+	}
 	PostProcessSettings.DepthOfFieldSensorWidth =
 		static_cast<float>(CMOSBarrier.GetSize().X * /*to mm*/ 10.0);
 }

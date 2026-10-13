@@ -49,6 +49,7 @@ public:
 
 	/**
 	 * Shutter speed of the sensor electronic shutter [s].
+	 * This affects the rendered exposure only when bUseAutoExposure is false.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Camera CMOS Sensor", Meta = (ClampMin = "0.0"))
 	double ShutterSpeed {5.6e-3};
