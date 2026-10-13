@@ -155,6 +155,8 @@ public:
 	 * component calls CaptureScene whenever the AGX Camera requests a capture. Disabling Capture
 	 * Every Frame is recommended so that captures occur only at the Color Output's configured Frame
 	 * Rate or in response to an explicit RequestCapture call.
+	 * Without active material passes, the override render target's pixel format must match the Color
+	 * Output's required format. Incompatible formats are skipped with a warning.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = "AGX Camera")
 	FAGX_SceneCaptureComponent2DReference CaptureSourceOverride;

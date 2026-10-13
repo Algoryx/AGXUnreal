@@ -162,21 +162,11 @@ namespace AGX_CameraSensorComponent_helpers
 			Lens.GetFocusDistance());
 	}
 
-	bool IsSupportedReadbackFormat(EPixelFormat PixelFormat)
+	EPixelFormat GetRenderTargetPixelFormat(ETextureRenderTargetFormat RenderTargetFormat)
 	{
-		switch (PixelFormat)
-		{
-			case PF_G8: // For U8, 1 channel.
-			case PF_R8G8: // For U8, 2 channels.
-			case PF_B8G8R8A8: // For U8, 3 and 4 channels.
-			case PF_R8G8B8A8: // For U8, 3 and 4 channels.
-			case PF_R32_FLOAT: // For F32, 1 channel.
-			case PF_G32R32F: // For F32, 2 channels.
-			case PF_A32B32G32R32F: // For F32, 3 and 4 channels.
-				return true;
-			default:
-				return false;
-		}
+		// Unreal's RTF_RGBA8 defaults to BGRA. Raw camera output must retain RGBA channel order.
+		return RenderTargetFormat == ETextureRenderTargetFormat::RTF_RGBA8 ? PF_R8G8B8A8 :
+			GetPixelFormatFromRenderTargetFormat(RenderTargetFormat);
 	}
 
 	TOptional<ETextureRenderTargetFormat> GetRenderTargetFormat(
@@ -945,21 +935,20 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 			TObjectPtr<UTextureRenderTarget2D>& RenderTarget, const FIntPoint& Resolution,
 			uint8 TargetChannelCount, ETextureRenderTargetFormat TargetFormat)
 	{
-		const EPixelFormat TargetPixelFormat = GetPixelFormatFromRenderTargetFormat(TargetFormat);
+		const EPixelFormat TargetPixelFormat = GetRenderTargetPixelFormat(TargetFormat);
 		if (RenderTarget == nullptr)
 		{
 			RenderTarget = CreateRenderTarget(Resolution, ChannelType, TargetChannelCount);
 			return RenderTarget != nullptr;
 		}
 
-		if (RenderTarget->SizeX != Resolution.X || RenderTarget->SizeY != Resolution.Y)
-			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
-
 		if (RenderTarget->GetFormat() != TargetPixelFormat)
 		{
 			RenderTarget->RenderTargetFormat = TargetFormat;
-			RenderTarget->InitAutoFormat(RenderTarget->SizeX, RenderTarget->SizeY);
+			RenderTarget->InitCustomFormat(Resolution.X, Resolution.Y, TargetPixelFormat, true);
 		}
+		else if (RenderTarget->SizeX != Resolution.X || RenderTarget->SizeY != Resolution.Y)
+			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
 
 		return true;
 	};
@@ -1110,14 +1099,25 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 		return false; // Slot is still "Free" for future requests.
 
 	const EPixelFormat PixelFormat = FinalRenderTarget->GetFormat();
-	if (!AGX_CameraSensorComponent_helpers::IsSupportedReadbackFormat(PixelFormat))
+	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
+	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
+	const TOptional<ETextureRenderTargetFormat> OutputFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!OutputFormat.IsSet())
+		return false;
+
+	const EPixelFormat ExpectedPixelFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(OutputFormat.GetValue());
+	if (PixelFormat != ExpectedPixelFormat)
 	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT("Camera Sensor Component '%s' in '%s' cannot read back Render Target '%s' "
-				 "because pixel format '%s' does not match FColor-sized output."),
+				 "because pixel format '%s' does not match the Camera Color Output's required "
+				 "format '%s'. When using CaptureSourceOverride without active material passes, "
+				 "use a matching render target format or add a material pass."),
 			*GetName(), *GetLabelSafe(GetOwner()), *FinalRenderTarget->GetName(),
-			GPixelFormats[PixelFormat].Name);
+			GPixelFormats[PixelFormat].Name, GPixelFormats[ExpectedPixelFormat].Name);
 		return false; // Slot is still "Free" for future requests.
 	}
 
@@ -1131,8 +1131,8 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 	const FString NameBase = GetName();
 	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
 	Slot->OutputNativeAddress = OutputColorBarrier.GetNativeAddress();
-	Slot->ChannelType = OutputColorBarrier.GetChannelType();
-	Slot->ChannelCount = OutputColorBarrier.GetChannelCount();
+	Slot->ChannelType = ChannelType;
+	Slot->ChannelCount = ChannelCount;
 	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
 	(
 		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
@@ -1753,7 +1753,10 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 	RenderTarget->bGPUSharedFlag = true;
 	RenderTarget->SRGB = false;
 	RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
-	RenderTarget->InitAutoFormat(InResolution.X, InResolution.Y);
+	RenderTarget->InitCustomFormat(
+		InResolution.X, InResolution.Y,
+		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(RenderTargetFormat.GetValue()),
+		true);
 	return RenderTarget;
 }
 
