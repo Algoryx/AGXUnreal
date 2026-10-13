@@ -39,6 +39,11 @@ struct AGXUNREALBARRIER_API FCameraOutputColorBarrier : public FCameraOutputBarr
 	void SetChannelCount(uint8 InChannelCount);
 	uint8 GetChannelCount() const;
 
+	/**
+	 * Create a non-owning color-output view of Output, which must have a native Camera Color Output.
+	 * The source barrier must remain alive and must not be reassigned or have its native output
+	 * released while the returned barrier, or any copy of it, is in use.
+	 */
 	static FCameraOutputColorBarrier CreateFrom(FCameraOutputBarrier& Output);
 	static bool IsColorOutput(const FCameraOutputBarrier& Output);
 };
