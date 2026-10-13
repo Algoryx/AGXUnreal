@@ -45,6 +45,7 @@
 #include "RHI.h"
 #include "RenderingThread.h"
 #include "SceneView.h"
+#include "TextureResource.h"
 
 UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
 {
