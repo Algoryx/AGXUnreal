@@ -48,7 +48,7 @@ struct AGXUNREAL_API FCameraOutputRenderContext
 	FVector2D DistortionProjectionScale {1.0, 1.0};
 	FVector2D DistortionResolutionScale {1.0, 1.0};
 
-	// The custom projection matrix is required when projection scales differ between axes.
+	// Preserve both sensor-derived FOV axes independently of the render target aspect ratio.
 	FMatrix SceneCaptureProjectionMatrix {FMatrix::Identity};
 	bool bUseCustomSceneCaptureProjectionMatrix {false};
 

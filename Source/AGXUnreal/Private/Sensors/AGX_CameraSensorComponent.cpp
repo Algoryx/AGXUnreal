@@ -900,8 +900,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 					   DistortionResolutionScale.Y)));
 		OutputRenderContext.SceneCaptureProjectionMatrix =
 			MakeSceneCaptureProjectionMatrix(SceneTanHalfFOVX, SceneTanHalfFOVY);
-		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix =
-			LensDistortionBarrierPtr != nullptr;
+		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix = true;
 	}
 	else
 	{
