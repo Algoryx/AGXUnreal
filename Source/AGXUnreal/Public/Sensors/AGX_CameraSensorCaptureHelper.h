@@ -28,7 +28,9 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureData
 	GENERATED_BODY()
 
 	FAGX_CameraSensorCaptureData() = default;
+	/** Creates fresh runtime state; does not copy resources or state from Other. */
 	FAGX_CameraSensorCaptureData(const FAGX_CameraSensorCaptureData& Other);
+	/** Discards existing runtime resources and state; ignores Other. */
 	FAGX_CameraSensorCaptureData& operator=(const FAGX_CameraSensorCaptureData& Other);
 	~FAGX_CameraSensorCaptureData();
 
@@ -52,7 +54,9 @@ struct AGXUNREAL_API FAGX_CameraSensorCaptureHelper
 	GENERATED_BODY()
 
 	FAGX_CameraSensorCaptureHelper();
+	/** Creates fresh capture slots; does not copy slots from Other. */
 	FAGX_CameraSensorCaptureHelper(const FAGX_CameraSensorCaptureHelper& Other);
+	/** Replaces existing capture slots with fresh slots; ignores Other. */
 	FAGX_CameraSensorCaptureHelper& operator=(const FAGX_CameraSensorCaptureHelper& Other);
 
 	/// Returns nullptr if no free slots exist.

@@ -38,7 +38,7 @@ public:
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Camera CMOS Sensor",
-		Meta = (ClampMin = "0.0", EditCondition = "bUseAutoExposure"))
+		Meta = (ClampMin = "0.0", EditCondition = "!bUseAutoExposure"))
 	double ISO {100.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera CMOS Sensor")
