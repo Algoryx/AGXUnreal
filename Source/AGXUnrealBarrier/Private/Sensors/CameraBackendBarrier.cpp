@@ -3,6 +3,7 @@
 #include "Sensors/CameraBackendBarrier.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_LogCategory.h"
 #include "Sensors/CameraBarrier.h"
 #include "Sensors/CameraCMOSSensorBarrier.h"
 #include "Sensors/CameraLensSingleElementBarrier.h"
@@ -500,7 +501,7 @@ bool FCameraBackendBarrier::StageUnreadDataIfExists(uint64 NativeOutputAddress)
 		if (ExpectedNumBytes != static_cast<size_t>(RawData.RawData.Num()))
 		{
 			UE_LOG(
-				LogTemp, Warning,
+				LogAGX, Warning,
 				TEXT("FCameraBackendBarrier::StageUnreadDataIfExists cannot stage camera output "
 					 "because the raw buffer size does not match the native AGX output buffer "
 					 "size. Raw size: %d. Native size: %llu."),

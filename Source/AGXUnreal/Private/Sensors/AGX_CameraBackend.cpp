@@ -20,7 +20,7 @@ FCameraBackendBarrier* UAGX_CameraBackend::GetOrCreateNative()
 
 UAGX_CameraBackend* UAGX_CameraBackend::GetFrom(const UActorComponent* Component)
 {
-	if (!Component)
+	if (Component == nullptr)
 		return nullptr;
 
 	return GetFrom(Component->GetOwner());
@@ -28,7 +28,7 @@ UAGX_CameraBackend* UAGX_CameraBackend::GetFrom(const UActorComponent* Component
 
 UAGX_CameraBackend* UAGX_CameraBackend::GetFrom(const AActor* Actor)
 {
-	if (!Actor)
+	if (Actor == nullptr)
 		return nullptr;
 
 	return GetFrom(Actor->GetWorld());
@@ -46,11 +46,6 @@ bool UAGX_CameraBackend::ShouldCreateSubsystem(UObject* Outer) const
 {
 	const UWorld* World = Cast<UWorld>(Outer);
 	return Super::ShouldCreateSubsystem(Outer) && World != nullptr && World->IsGameWorld();
-}
-
-void UAGX_CameraBackend::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
 }
 
 void UAGX_CameraBackend::Deinitialize()

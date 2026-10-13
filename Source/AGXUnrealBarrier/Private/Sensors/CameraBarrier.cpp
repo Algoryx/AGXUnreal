@@ -4,6 +4,7 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
+#include "AGX_LogCategory.h"
 #include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "RigidBodyBarrier.h"
@@ -244,7 +245,7 @@ void FCameraBarrier::OnBackendSynchronize(
 		if (CaptureState.OutputAddr == 0)
 		{
 			UE_LOG(
-				LogTemp, Warning,
+				LogAGX, Warning,
 				TEXT("FCameraBarrier::OnBackendSynchronize found CaptureState with no output "
 					 "address."));
 			continue;

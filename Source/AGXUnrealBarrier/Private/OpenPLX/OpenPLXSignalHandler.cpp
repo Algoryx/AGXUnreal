@@ -41,6 +41,7 @@
 
 // Standard library includes.
 #include <cstdint>
+#include <utility>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
@@ -1228,7 +1229,7 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 
 FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface()
 {
-	return const_cast<const FOpenPLXSignalHandler*>(this)->GetHeapControlInterface();
+	return std::as_const(*this).GetHeapControlInterface();
 }
 
 const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() const
@@ -1241,21 +1242,21 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData()
 {
 	return const_cast<FOpenPLXSignalHandlerRuntimeData*>(
-		const_cast<const FOpenPLXSignalHandler*>(this)->GetRuntimeData());
+		std::as_const(*this).GetRuntimeData());
 }
 
 const FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData() const
 {
 	if (ModelRegistry == nullptr)
-		return {nullptr};
+		return nullptr;
 
 	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 	if (ModelData == nullptr)
-		return {nullptr};
+		return nullptr;
 
 	auto It = ModelData->RuntimeDataByAssembly.find(AssemblyRef->Native.get());
 	if (It == ModelData->RuntimeDataByAssembly.end())
-		return {nullptr};
+		return nullptr;
 
 	return &It->second;
 }

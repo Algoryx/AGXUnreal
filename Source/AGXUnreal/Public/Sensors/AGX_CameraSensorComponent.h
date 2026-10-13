@@ -130,6 +130,62 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Camera")
 	void ClearMaterialPasses();
 
+	/** Texture parameter sampled by a camera material pass. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetInputTextureParameterName();
+
+	/** Scalar parameter for output gamma correction. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetGammaParameterName();
+
+	/** Scalar parameter selecting linear output (1) or sRGB output (0). */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetUseLinearColorSpaceParameterName();
+
+	/** Vector parameter for color mapping matrix row 0. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetColorMappingRow0ParameterName();
+
+	/** Vector parameter for color mapping matrix row 1. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetColorMappingRow1ParameterName();
+
+	/** Vector parameter for color mapping matrix row 2. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetColorMappingRow2ParameterName();
+
+	/** Vector parameter for color mapping matrix row 3. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetColorMappingRow3ParameterName();
+
+	/** Scalar parameter for lens distortion coefficient K1. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionK1ParameterName();
+
+	/** Scalar parameter for lens distortion coefficient K2. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionK2ParameterName();
+
+	/** Scalar parameter for lens distortion coefficient K3. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionK3ParameterName();
+
+	/** Scalar parameter for lens distortion coefficient P1. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionP1ParameterName();
+
+	/** Scalar parameter for lens distortion coefficient P2. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionP2ParameterName();
+
+	/** Scalar parameter for horizontal lens distortion projection scale. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionProjectionScaleXParameterName();
+
+	/** Scalar parameter for vertical lens distortion projection scale. */
+	UFUNCTION(BlueprintPure, Category = "AGX Camera|Material Parameters")
+	static FName GetLensDistortionProjectionScaleYParameterName();
+
 	void UpdateNativeTransform();
 
 	bool AddOutput(FAGX_CameraOutputBase& InOutput);

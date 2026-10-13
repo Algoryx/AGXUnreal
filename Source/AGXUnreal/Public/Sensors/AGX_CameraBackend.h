@@ -4,7 +4,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
-#include "LevelInstance/LevelInstanceSubsystem.h"
+#include "Subsystems/WorldSubsystem.h"
 
 #include "AGX_CameraBackend.generated.h"
 
@@ -18,7 +18,7 @@ struct FCameraBackendBarrier;
  * world.
  */
 UCLASS(ClassGroup = "AGX_Sensor", Category = "AGX")
-class AGXUNREAL_API UAGX_CameraBackend : public ULevelInstanceSubsystem
+class AGXUNREAL_API UAGX_CameraBackend : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -34,7 +34,6 @@ public:
 private:
 	// ~Begin USubsystem interface.
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	// ~End USubsystem interface.
 };

@@ -523,6 +523,90 @@ void UAGX_CameraSensorComponent::ClearMaterialPasses()
 	UpdateAllOutputCaptureSettings();
 }
 
+FName UAGX_CameraSensorComponent::GetInputTextureParameterName()
+{
+	static const FName Name(TEXT("InputTexture"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetGammaParameterName()
+{
+	static const FName Name(TEXT("Gamma"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetUseLinearColorSpaceParameterName()
+{
+	static const FName Name(TEXT("UseLinearColorSpace"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow0ParameterName()
+{
+	static const FName Name(TEXT("CM_Row0"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow1ParameterName()
+{
+	static const FName Name(TEXT("CM_Row1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow2ParameterName()
+{
+	static const FName Name(TEXT("CM_Row2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow3ParameterName()
+{
+	static const FName Name(TEXT("CM_Row3"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK1ParameterName()
+{
+	static const FName Name(TEXT("LD_K1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK2ParameterName()
+{
+	static const FName Name(TEXT("LD_K2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK3ParameterName()
+{
+	static const FName Name(TEXT("LD_K3"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionP1ParameterName()
+{
+	static const FName Name(TEXT("LD_P1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionP2ParameterName()
+{
+	static const FName Name(TEXT("LD_P2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionProjectionScaleXParameterName()
+{
+	static const FName Name(TEXT("LD_ProjectionScaleX"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionProjectionScaleYParameterName()
+{
+	static const FName Name(TEXT("LD_ProjectionScaleY"));
+	return Name;
+}
+
 void UAGX_CameraSensorComponent::UpdateNativeTransform()
 {
 	if (HasNative())
@@ -649,7 +733,7 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
 			continue;
 
 		UTextureRenderTarget2D* OutputRenderTarget = OutputRenderContext.RenderTargets[Index].Get();
-		MaterialInstance->SetTextureParameterValue(TEXT("InputTexture"), InputTexture);
+		MaterialInstance->SetTextureParameterValue(GetInputTextureParameterName(), InputTexture);
 
 		UCanvas* Canvas = nullptr;
 		FVector2D CanvasSize(0.0f, 0.0f);
@@ -780,13 +864,13 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 		if (Material == nullptr)
 			continue;
 
-		Material->SetScalarParameterValue(TEXT("Gamma"), Gamma);
+		Material->SetScalarParameterValue(GetGammaParameterName(), Gamma);
 		Material->SetScalarParameterValue(
-			TEXT("UseLinearColorSpace"), bUseLinearColorSpace ? 1.0f : 0.0f);
-		Material->SetVectorParameterValue(TEXT("CM_Row0"), ColorMappingMatrix.Row0);
-		Material->SetVectorParameterValue(TEXT("CM_Row1"), ColorMappingMatrix.Row1);
-		Material->SetVectorParameterValue(TEXT("CM_Row2"), ColorMappingMatrix.Row2);
-		Material->SetVectorParameterValue(TEXT("CM_Row3"), ColorMappingMatrix.Row3);
+			GetUseLinearColorSpaceParameterName(), bUseLinearColorSpace ? 1.0f : 0.0f);
+		Material->SetVectorParameterValue(GetColorMappingRow0ParameterName(), ColorMappingMatrix.Row0);
+		Material->SetVectorParameterValue(GetColorMappingRow1ParameterName(), ColorMappingMatrix.Row1);
+		Material->SetVectorParameterValue(GetColorMappingRow2ParameterName(), ColorMappingMatrix.Row2);
+		Material->SetVectorParameterValue(GetColorMappingRow3ParameterName(), ColorMappingMatrix.Row3);
 	}
 }
 
@@ -797,8 +881,13 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 {
 	const bool bHasLensDistortion =
 		LensDistortionBarrier != nullptr && LensDistortionBarrier->HasNative();
-	double K1 = 0.0, K2 = 0.0, K3 = 0.0, P1 = 0.0, P2 = 0.0, ProjectionScaleX = 1.0,
-		   ProjectionScaleY = 1.0;
+	double K1 = 0.0;
+	double K2 = 0.0;
+	double K3 = 0.0;
+	double P1 = 0.0;
+	double P2 = 0.0;
+	double ProjectionScaleX = 1.0;
+	double ProjectionScaleY = 1.0;
 	if (bHasLensDistortion)
 	{
 		K1 = LensDistortionBarrier->GetK1();
@@ -815,13 +904,15 @@ void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
 		if (Material == nullptr)
 			continue;
 
-		Material->SetScalarParameterValue(TEXT("LD_K1"), K1);
-		Material->SetScalarParameterValue(TEXT("LD_K2"), K2);
-		Material->SetScalarParameterValue(TEXT("LD_K3"), K3);
-		Material->SetScalarParameterValue(TEXT("LD_P1"), P1);
-		Material->SetScalarParameterValue(TEXT("LD_P2"), P2);
-		Material->SetScalarParameterValue(TEXT("LD_ProjectionScaleX"), ProjectionScaleX);
-		Material->SetScalarParameterValue(TEXT("LD_ProjectionScaleY"), ProjectionScaleY);
+		Material->SetScalarParameterValue(GetLensDistortionK1ParameterName(), K1);
+		Material->SetScalarParameterValue(GetLensDistortionK2ParameterName(), K2);
+		Material->SetScalarParameterValue(GetLensDistortionK3ParameterName(), K3);
+		Material->SetScalarParameterValue(GetLensDistortionP1ParameterName(), P1);
+		Material->SetScalarParameterValue(GetLensDistortionP2ParameterName(), P2);
+		Material->SetScalarParameterValue(
+			GetLensDistortionProjectionScaleXParameterName(), ProjectionScaleX);
+		Material->SetScalarParameterValue(
+			GetLensDistortionProjectionScaleYParameterName(), ProjectionScaleY);
 	}
 }
 
