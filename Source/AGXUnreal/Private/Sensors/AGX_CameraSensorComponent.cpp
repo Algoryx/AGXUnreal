@@ -169,6 +169,36 @@ namespace AGX_CameraSensorComponent_helpers
 			GetPixelFormatFromRenderTargetFormat(RenderTargetFormat);
 	}
 
+	bool ValidateRenderTargetSize(double Width, double Height, EPixelFormat PixelFormat)
+	{
+		const int32 MaxDimension = static_cast<int32>(GMaxTextureDimensions);
+		if (!FMath::IsFinite(Width) || !FMath::IsFinite(Height) || Width <= 0.0 || Height <= 0.0 ||
+			Width > MaxDimension || Height > MaxDimension)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera render target size %.3fx%.3f is invalid. Dimensions must be positive, "
+					 "finite, and no greater than the RHI limit of %d pixels."),
+				Width, Height, MaxDimension);
+			return false;
+		}
+
+		const int64 NumPixels = FMath::CeilToInt64(Width) * FMath::CeilToInt64(Height);
+		const int32 BytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
+		// Divide the limit first so the size check itself cannot overflow.
+		if (BytesPerPixel <= 0 || NumPixels > TNumericLimits<int32>::Max() / BytesPerPixel)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera render target size %.3fx%.3f with pixel format '%s' exceeds the "
+					 "camera buffer limit of %d bytes or has an invalid pixel size."),
+				Width, Height, GPixelFormats[PixelFormat].Name, TNumericLimits<int32>::Max());
+			return false;
+		}
+
+		return true;
+	}
+
 	TOptional<ETextureRenderTargetFormat> GetRenderTargetFormat(
 		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
 	{
@@ -837,7 +867,7 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 	const float UncompensatedFOVAngle =
 		CalculateHorizontalFOVDegrees(CMOSSensor.GetSize().X, Lens.GetFocalLength());
 	float SceneCaptureFOVAngle = UncompensatedFOVAngle;
-	FIntPoint SceneResolution = OutputResolution;
+	FVector2D SceneResolution(OutputResolution.X, OutputResolution.Y);
 	FVector2D DistortionProjectionScale(1.0, 1.0);
 	FVector2D DistortionResolutionScale(1.0, 1.0);
 	bool bDistortionSettingsAreValid = true;
@@ -879,15 +909,11 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 		SceneCaptureFOVAngle =
 			static_cast<float>(FMath::RadiansToDegrees(2.0 * FMath::Atan(SceneTanHalfFOVX)));
 		// Preserve output pixel density after the material pass crops the overscanned capture.
-		SceneResolution = FIntPoint(
-			FMath::Max(
-				1, FMath::CeilToInt(
-					   static_cast<double>(OutputResolution.X) * DistortionProjectionScale.X *
-					   DistortionResolutionScale.X)),
-			FMath::Max(
-				1, FMath::CeilToInt(
-					   static_cast<double>(OutputResolution.Y) * DistortionProjectionScale.Y *
-					   DistortionResolutionScale.Y)));
+		SceneResolution = FVector2D(
+			static_cast<double>(OutputResolution.X) * DistortionProjectionScale.X *
+				DistortionResolutionScale.X,
+			static_cast<double>(OutputResolution.Y) * DistortionProjectionScale.Y *
+				DistortionResolutionScale.Y);
 		OutputRenderContext.SceneCaptureProjectionMatrix =
 			MakeSceneCaptureProjectionMatrix(SceneTanHalfFOVX, SceneTanHalfFOVY);
 		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix = true;
@@ -902,7 +928,6 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 
 	if (SceneCaptureFOVAngle > 0.0f)
 		OutputRenderContext.SceneCaptureFOVAngle = SceneCaptureFOVAngle;
-	OutputRenderContext.SceneCaptureResolution = SceneResolution;
 	OutputRenderContext.DistortionProjectionScale = DistortionProjectionScale;
 	OutputRenderContext.DistortionResolutionScale = DistortionResolutionScale;
 
@@ -929,6 +954,23 @@ bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
 		LogWarning(TEXT("the Scene Capture Render Target format is unsupported."));
 		return false;
 	}
+
+	// Validate both target layouts before converting dimensions or allocating any render targets.
+	if (!ValidateRenderTargetSize(
+			OutputResolution.X, OutputResolution.Y,
+			GetRenderTargetPixelFormat(OutputRenderTargetFormat.GetValue())))
+	{
+		return false;
+	}
+	if (!HasCaptureSourceOverride() &&
+		!ValidateRenderTargetSize(
+			SceneResolution.X, SceneResolution.Y,
+			GetRenderTargetPixelFormat(SceneCaptureRenderTargetFormat.GetValue())))
+	{
+		return false;
+	}
+	OutputRenderContext.SceneCaptureResolution = HasCaptureSourceOverride() ? OutputResolution :
+		FIntPoint(FMath::CeilToInt(SceneResolution.X), FMath::CeilToInt(SceneResolution.Y));
 
 	auto EnsureRenderTarget =
 		[this, ChannelType](
@@ -1122,6 +1164,13 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 	}
 
 	const FIntPoint ImageSize {FinalRenderTarget->SizeX, FinalRenderTarget->SizeY};
+	// Owned targets are validated during setup. A directly read override can be resized externally.
+	if (HasCaptureSourceOverride() &&
+		FinalRenderTarget == OutputRenderContext->SceneRenderTarget.Get() &&
+		!AGX_CameraSensorComponent_helpers::ValidateRenderTargetSize(
+			ImageSize.X, ImageSize.Y, PixelFormat))
+		return false;
+
 	FTextureRenderTargetResource* FinalRenderTargetResource =
 		FinalRenderTarget->GameThread_GetRenderTargetResource();
 
@@ -1278,6 +1327,27 @@ void UAGX_CameraSensorComponent::PollCaptures()
 					continue;
 				}
 
+				const int64 SourcePitch64 = static_cast<int64>(SurfaceWidth) * SourceBytesPerPixel;
+				const int64 DestinationPitch64 =
+					static_cast<int64>(LogicalWidth) * DestinationBytesPerPixel;
+				if (SourcePitch64 > TNumericLimits<int32>::Max() ||
+					DestinationPitch64 > TNumericLimits<int32>::Max() / LogicalHeight)
+				{
+					UE_LOG(
+						LogAGX, Warning,
+						TEXT("Camera readback size %dx%d exceeds the camera row or buffer limit of "
+							 "%d bytes. The capture will be discarded."),
+						LogicalWidth, LogicalHeight, TNumericLimits<int32>::Max());
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int32 SourcePitch = static_cast<int32>(SourcePitch64);
+				const int32 DestinationPitch = static_cast<int32>(DestinationPitch64);
+				const int32 NumBytes = static_cast<int32>(DestinationPitch64 * LogicalHeight);
+
 				{
 					FCameraOutputRawDataWriteAccess OutputRawData =
 						FCameraBackendBarrier::GetInstance().LockOutputRawDataForWrite(
@@ -1294,9 +1364,6 @@ void UAGX_CameraSensorComponent::PollCaptures()
 					OutputRawData->PixelFormat = PixelFormat;
 					OutputRawData->IsUnread = true;
 
-					const int32 SourcePitch = SurfaceWidth * SourceBytesPerPixel;
-					const int32 DestinationPitch = LogicalWidth * DestinationBytesPerPixel;
-					const int32 NumBytes = DestinationPitch * LogicalHeight;
 					OutputRawData->RawData.SetNumUninitialized(NumBytes, EAllowShrinking::No);
 					if (SurfaceWidth == LogicalWidth &&
 						SourceBytesPerPixel == DestinationBytesPerPixel)
@@ -1749,14 +1816,14 @@ UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
 	if (!RenderTargetFormat.IsSet())
 		return nullptr;
 
+	const EPixelFormat PixelFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(RenderTargetFormat.GetValue());
+
 	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 	RenderTarget->bGPUSharedFlag = true;
 	RenderTarget->SRGB = false;
 	RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
-	RenderTarget->InitCustomFormat(
-		InResolution.X, InResolution.Y,
-		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(RenderTargetFormat.GetValue()),
-		true);
+	RenderTarget->InitCustomFormat(InResolution.X, InResolution.Y, PixelFormat, true);
 	return RenderTarget;
 }
 
