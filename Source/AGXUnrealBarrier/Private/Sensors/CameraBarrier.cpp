@@ -29,6 +29,7 @@
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
+#include <cmath>
 #include <memory>
 
 namespace CameraBarrier_helpers
@@ -214,7 +215,7 @@ FCameraBackendPropagatorBase* FCameraBarrier::GetBackendPropagator() const
 	return BackendPropagator;
 }
 
-namespace FCameraBackend_Helpers
+namespace FCameraBarrier_Helpers
 {
 	double GetNextCaptureDelta(agxSensor::ICameraOutput* Output)
 	{
@@ -252,13 +253,25 @@ void FCameraBarrier::OnBackendSynchronize(
 		agxSensor::ICameraOutput* Output =
 			reinterpret_cast<agxSensor::ICameraOutput*>(CaptureState.OutputAddr);
 
-		double NextCaptureDelta = FCameraBackend_Helpers::GetNextCaptureDelta(Output);
-		double TimeSinceLastCapture = CaptureState.AccumulatedTime - CaptureState.LastCaptureTime;
+		const double NextCaptureDelta = FCameraBarrier_Helpers::GetNextCaptureDelta(Output);
+		const double TimeSinceLastCapture =
+			CaptureState.AccumulatedTime - CaptureState.LastCaptureTime;
 
 		if (TimeSinceLastCapture + SMALL_NUMBER >= NextCaptureDelta)
 		{
-			// Time for a new capture.
-			CaptureState.LastCaptureTime = CaptureState.AccumulatedTime;
+			if (NextCaptureDelta > 0.0)
+			{
+				// Preserve the fractional remainder, but skip missed periods to capture at most once
+				// per step. Use the same tolerance as the due-time check above.
+				const double ElapsedPeriods =
+					std::floor((TimeSinceLastCapture + SMALL_NUMBER) / NextCaptureDelta);
+				CaptureState.LastCaptureTime += ElapsedPeriods * NextCaptureDelta;
+			}
+			else
+			{
+				// An unlimited frame rate has a zero period and captures every step.
+				CaptureState.LastCaptureTime = CaptureState.AccumulatedTime;
+			}
 			Output->capture();
 		}
 	}
