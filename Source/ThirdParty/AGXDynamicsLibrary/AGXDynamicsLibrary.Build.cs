@@ -232,7 +232,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastrtps*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
