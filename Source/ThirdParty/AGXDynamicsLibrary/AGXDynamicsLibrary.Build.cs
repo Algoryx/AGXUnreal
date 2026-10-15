@@ -900,8 +900,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+			// Local AGX builds include internal terrain materials that are not part of the distribution.
+			List<string> FilesToIgnore = new List<string>
+				{ Path.Combine("TerrainMaterials", "internal") + Path.DirectorySeparatorChar };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
