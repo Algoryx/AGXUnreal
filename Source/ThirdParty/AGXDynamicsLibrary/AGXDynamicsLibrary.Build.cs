@@ -237,7 +237,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
-		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -259,7 +258,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
