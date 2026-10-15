@@ -51,8 +51,8 @@ public:
 	void SetRestitution(double Restitution);
 	double GetRestitution() const;
 
-	void SetSurfaceFrictionEnabled(bool bEnabled);
-	bool GetSurfaceFrictionEnabled() const;
+	void SetEnableSurfaceFriction(bool bEnabled);
+	bool GetEnableSurfaceFriction() const;
 
 	// Set both primary and secondary friction coefficient.
 	void SetFrictionCoefficient(double Coefficient);

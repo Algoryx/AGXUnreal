@@ -200,10 +200,10 @@ public:
 	bool bEnableSurfaceFriction {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSurfaceFrictionEnabled(bool bInEnabled);
+	void SetEnableSurfaceFriction(bool bInEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	bool GetSurfaceFrictionEnabled();
+	bool GetEnableSurfaceFriction() const;
 
 	/**
 	 * Friction in all directions if 'Secondary Friction Coefficient' is disabled, else only in the
@@ -548,6 +548,16 @@ public:
 	// ~End UObject interface.
 
 public: // Deprecated functions.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetEnableSurfaceFriction instead."))
+	void SetSurfaceFrictionEnabled(bool bInEnabled);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetEnableSurfaceFriction instead."))
+	bool GetSurfaceFrictionEnabled();
+
 	// Legacy surface viscosity names are aliases; values are unchanged.
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Contact Material",

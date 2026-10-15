@@ -357,14 +357,14 @@ bool UAGX_ContactMaterial::GetUseConstantNormalForce() const
 	return bUseConstantNormalForce;
 }
 
-void UAGX_ContactMaterial::SetSurfaceFrictionEnabled(bool bInEnabled)
+void UAGX_ContactMaterial::SetEnableSurfaceFriction(bool bInEnabled)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(bEnableSurfaceFriction, bInEnabled, SetSurfaceFrictionEnabled);
+	AGX_ASSET_SETTER_IMPL_VALUE(bEnableSurfaceFriction, bInEnabled, SetEnableSurfaceFriction);
 }
 
-bool UAGX_ContactMaterial::GetSurfaceFrictionEnabled()
+bool UAGX_ContactMaterial::GetEnableSurfaceFriction() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(bEnableSurfaceFriction, GetSurfaceFrictionEnabled);
+	AGX_ASSET_GETTER_IMPL_VALUE(bEnableSurfaceFriction, GetEnableSurfaceFriction);
 }
 
 void UAGX_ContactMaterial::SetFrictionCoefficient(double InFrictionCoefficient)
@@ -917,7 +917,7 @@ void UAGX_ContactMaterial::CopyFrom(
 	Source.GetNormalForceMagnitude(NormalForceMagnitude);
 	Source.GetEnableScaleNormalForceWithDepth(bScaleNormalForceWithDepth);
 	bUseConstantNormalForce = Source.GetEnableConstantNormalForceMagnitude();
-	bEnableSurfaceFriction = Source.GetSurfaceFrictionEnabled();
+	bEnableSurfaceFriction = Source.GetEnableSurfaceFriction();
 	COPY_PROPERTY(FrictionCoefficient);
 	COPY_PROPERTY(SecondaryFrictionCoefficient);
 	bUseSecondaryFrictionCoefficient = FrictionCoefficient != SecondaryFrictionCoefficient;
@@ -1184,7 +1184,7 @@ void UAGX_ContactMaterial::UpdateNativeProperties(
 		// Depth, and Solve Type because they are part of the Friction Model object.
 		NativeBarrier.SetFrictionModel(FrictionModel);
 
-		NativeBarrier.SetSurfaceFrictionEnabled(bEnableSurfaceFriction);
+		NativeBarrier.SetEnableSurfaceFriction(bEnableSurfaceFriction);
 		if (bUseSecondaryFrictionCoefficient)
 		{
 			NativeBarrier.SetPrimaryFrictionCoefficient(FrictionCoefficient);
@@ -1393,7 +1393,7 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 	DEFAULT_DISPATCHER(NormalForceMagnitude);
 	SETTER_DISPATCHER(bScaleNormalForceWithDepth, SetScaleNormalForceWithDepth);
 	SETTER_DISPATCHER(bUseConstantNormalForce, SetUseConstantNormalForce);
-	SETTER_DISPATCHER(bEnableSurfaceFriction, SetSurfaceFrictionEnabled);
+	SETTER_DISPATCHER(bEnableSurfaceFriction, SetEnableSurfaceFriction);
 	DEFAULT_DISPATCHER(FrictionCoefficient);
 
 	Dispatcher.Add(
@@ -1554,4 +1554,14 @@ void UAGX_ContactMaterial::SetUseSecondarySurfaceViscosity(bool bInUseSecondaryS
 bool UAGX_ContactMaterial::GetUseSecondarySurfaceViscosity() const
 {
 	return GetUseSecondaryFrictionCompliance();
+}
+
+void UAGX_ContactMaterial::SetSurfaceFrictionEnabled(bool bInEnabled)
+{
+	SetEnableSurfaceFriction(bInEnabled);
+}
+
+bool UAGX_ContactMaterial::GetSurfaceFrictionEnabled()
+{
+	return GetEnableSurfaceFriction();
 }

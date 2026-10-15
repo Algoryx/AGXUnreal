@@ -420,16 +420,16 @@ double FContactMaterialBarrier::GetRestitution() const
 	return NativeRef->Native->getRestitution();
 }
 
-void FContactMaterialBarrier::SetSurfaceFrictionEnabled(bool bEnabled)
+void FContactMaterialBarrier::SetEnableSurfaceFriction(bool bEnabled)
 {
 	check(HasNative());
 	NativeRef->Native->setEnableSurfaceFriction(bEnabled);
 }
 
-bool FContactMaterialBarrier::GetSurfaceFrictionEnabled() const
+bool FContactMaterialBarrier::GetEnableSurfaceFriction() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceFrictionEnabled();
+	return NativeRef->Native->getEnableSurfaceFriction();
 }
 
 void FContactMaterialBarrier::SetFrictionCoefficient(double Coefficient)

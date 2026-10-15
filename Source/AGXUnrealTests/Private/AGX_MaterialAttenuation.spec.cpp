@@ -102,6 +102,30 @@ void FAGX_MaterialAttenuationSpec::Define()
 			   NativeContact.GetAttenuation());
 	   });
 
+	It("preserves surface friction access through the renamed API and legacy aliases",
+	   [this]()
+	   {
+		   UAGX_ContactMaterial* Contact = NewObject<UAGX_ContactMaterial>();
+		   TestTrue(
+			   TEXT("Surface friction enabled by default"), Contact->GetEnableSurfaceFriction());
+		   Contact->SetEnableSurfaceFriction(false);
+		   TestFalse(TEXT("Stored setting disabled"), Contact->bEnableSurfaceFriction);
+		   TestFalse(TEXT("Legacy getter sees new setter"), Contact->GetSurfaceFrictionEnabled());
+		   Contact->SetSurfaceFrictionEnabled(true);
+		   TestTrue(TEXT("New getter sees legacy setter"), Contact->GetEnableSurfaceFriction());
+
+		   FShapeMaterialBarrier NativeShape;
+		   NativeShape.AllocateNative(TEXT("SurfaceFrictionAccess"));
+		   FContactMaterialBarrier NativeContact;
+		   NativeContact.AllocateNative(&NativeShape, &NativeShape);
+		   NativeContact.SetEnableSurfaceFriction(false);
+		   TestFalse(
+			   TEXT("Native surface friction disabled"), NativeContact.GetEnableSurfaceFriction());
+		   NativeContact.SetEnableSurfaceFriction(true);
+		   TestTrue(
+			   TEXT("Native surface friction enabled"), NativeContact.GetEnableSurfaceFriction());
+	   });
+
 	It("migrates nested shape properties and contact damping only once",
 	   [this]()
 	   {
