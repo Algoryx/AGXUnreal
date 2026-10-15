@@ -84,6 +84,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// implementation.
 		TrackReducedOrderTrackImplementation,
 
+		// Store attenuation (steps) instead of SPOOK damping (seconds) throughout AGXUnreal.
+		DampingToAttenuation,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

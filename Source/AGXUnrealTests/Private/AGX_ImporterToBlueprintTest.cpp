@@ -4319,9 +4319,14 @@ bool FCheckCableImportedCommand::Update()
 	if (Properties == nullptr)
 		return true;
 
-	Test.TestEqual("DampingBend", Properties->SpookDampingBend, 0.034);
-	Test.TestEqual("DampingTwist", Properties->SpookDampingTwist, 0.032);
-	Test.TestEqual("DampingStretch", Properties->SpookDampingStretch, 0.035);
+	// The legacy archive uses the AGX viewer default timestep, 1/60 s. Allow for the
+	// floating-point precision of the timestep stored by the viewer.
+	Test.TestTrue(
+		"AttenuationBend", FMath::IsNearlyEqual(Properties->AttenuationBend, 2.04, 1.e-6));
+	Test.TestTrue(
+		"AttenuationTwist", FMath::IsNearlyEqual(Properties->AttenuationTwist, 1.92, 1.e-6));
+	Test.TestTrue(
+		"AttenuationStretch", FMath::IsNearlyEqual(Properties->AttenuationStretch, 2.1, 1.e-6));
 
 	Test.TestEqual("PoissonsRatioBend", Properties->PoissonsRatioBend, 0.34);
 	Test.TestEqual("PoissonsRatioTwist", Properties->PoissonsRatioTwist, 0.325);

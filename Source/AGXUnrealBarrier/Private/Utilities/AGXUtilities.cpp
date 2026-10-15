@@ -8,9 +8,19 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agxUtil/Convert/Convert.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
+double FAGXUtilities::ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep)
+{
+	return agxUtil::convert::convertSpookDampingToAttenuation(SpookDamping, TimeStep);
+}
+
+double FAGXUtilities::ConvertAttenuationToSpookDamping(double Attenuation, double TimeStep)
+{
+	return agxUtil::convert::convertAttenuationToSpookDamping(Attenuation, TimeStep);
+}
 
 void FAGXUtilities::AddParentVelocity(const FRigidBodyBarrier& Parent, FRigidBodyBarrier& Body)
 {
