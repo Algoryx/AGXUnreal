@@ -40,9 +40,9 @@ bool UAGX_ContactMaterial::operator==(const UAGX_ContactMaterial& Other) const
             && FrictionCoefficient == Other.FrictionCoefficient
             && SecondaryFrictionCoefficient == Other.SecondaryFrictionCoefficient
             && bUseSecondaryFrictionCoefficient == Other.bUseSecondaryFrictionCoefficient
-            && SurfaceViscosity == Other.SurfaceViscosity
-            && SecondarySurfaceViscosity == Other.SecondarySurfaceViscosity
-            && bUseSecondarySurfaceViscosity == Other.bUseSecondarySurfaceViscosity
+            && FrictionCompliance == Other.FrictionCompliance
+            && SecondaryFrictionCompliance == Other.SecondaryFrictionCompliance
+            && bUseSecondaryFrictionCompliance == Other.bUseSecondaryFrictionCompliance
             && PrimaryDirection == Other.PrimaryDirection
             && OrientedFrictionReferenceFrameActor == Other.OrientedFrictionReferenceFrameActor
             && OrientedFrictionReferenceFrameComponent == Other.OrientedFrictionReferenceFrameComponent
@@ -474,21 +474,21 @@ bool UAGX_ContactMaterial::GetUseSecondaryFrictionCoefficient() const
 	}
 }
 
-void UAGX_ContactMaterial::SetSurfaceViscosity(double InSurfaceViscosity)
+void UAGX_ContactMaterial::SetFrictionCompliance(double InFrictionCompliance)
 {
 	if (IsInstance())
 	{
-		SurfaceViscosity = InSurfaceViscosity;
+		FrictionCompliance = InFrictionCompliance;
 		if (HasNative())
 		{
-			if (bUseSecondarySurfaceViscosity)
+			if (bUseSecondaryFrictionCompliance)
 			{
-				NativeBarrier.SetPrimarySurfaceViscosity(InSurfaceViscosity);
-				NativeBarrier.SetSecondarySurfaceViscosity(SecondarySurfaceViscosity);
+				NativeBarrier.SetPrimaryFrictionCompliance(InFrictionCompliance);
+				NativeBarrier.SetSecondaryFrictionCompliance(SecondaryFrictionCompliance);
 			}
 			else
 			{
-				NativeBarrier.SetSurfaceViscosity(InSurfaceViscosity);
+				NativeBarrier.SetFrictionCompliance(InFrictionCompliance);
 			}
 		}
 	}
@@ -496,79 +496,79 @@ void UAGX_ContactMaterial::SetSurfaceViscosity(double InSurfaceViscosity)
 	{
 		if (Instance != nullptr)
 		{
-			Instance->SetSurfaceViscosity(InSurfaceViscosity);
+			Instance->SetFrictionCompliance(InFrictionCompliance);
 			return;
 		}
-		SurfaceViscosity = InSurfaceViscosity;
+		FrictionCompliance = InFrictionCompliance;
 	}
 }
 
-double UAGX_ContactMaterial::GetSurfaceViscosity() const
+double UAGX_ContactMaterial::GetFrictionCompliance() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SurfaceViscosity, GetSurfaceViscosity);
+	AGX_ASSET_GETTER_IMPL_VALUE(FrictionCompliance, GetFrictionCompliance);
 }
 
 void UAGX_ContactMaterial::SetSurfaceViscosity_BP(float InSurfaceViscosity)
 {
-	SetSurfaceViscosity(static_cast<double>(InSurfaceViscosity));
+	SetFrictionCompliance(static_cast<double>(InSurfaceViscosity));
 }
 
 float UAGX_ContactMaterial::GetSurfaceViscosity_BP() const
 {
-	return static_cast<float>(GetSurfaceViscosity());
+	return static_cast<float>(GetFrictionCompliance());
 }
 
-void UAGX_ContactMaterial::SetSecondarySurfaceViscosity(double InSurfaceViscosity)
+void UAGX_ContactMaterial::SetSecondaryFrictionCompliance(double InFrictionCompliance)
 {
 	if (IsInstance())
 	{
-		SecondarySurfaceViscosity = InSurfaceViscosity;
-		if (HasNative() && bUseSecondarySurfaceViscosity)
+		SecondaryFrictionCompliance = InFrictionCompliance;
+		if (HasNative() && bUseSecondaryFrictionCompliance)
 		{
-			NativeBarrier.SetSecondarySurfaceViscosity(InSurfaceViscosity);
+			NativeBarrier.SetSecondaryFrictionCompliance(InFrictionCompliance);
 		}
 	}
 	else
 	{
 		if (Instance != nullptr)
 		{
-			Instance->SetSecondarySurfaceViscosity(InSurfaceViscosity);
+			Instance->SetSecondaryFrictionCompliance(InFrictionCompliance);
 			return;
 		}
-		SecondarySurfaceViscosity = InSurfaceViscosity;
+		SecondaryFrictionCompliance = InFrictionCompliance;
 	}
 }
 
-double UAGX_ContactMaterial::GetSecondarySurfaceViscosity() const
+double UAGX_ContactMaterial::GetSecondaryFrictionCompliance() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SecondarySurfaceViscosity, GetSecondarySurfaceViscosity);
+	AGX_ASSET_GETTER_IMPL_VALUE(SecondaryFrictionCompliance, GetSecondaryFrictionCompliance);
 }
 
 void UAGX_ContactMaterial::SetSecondarySurfaceViscosity_BP(float InSurfaceViscosity)
 {
-	SetSecondarySurfaceViscosity(static_cast<double>(InSurfaceViscosity));
+	SetSecondaryFrictionCompliance(static_cast<double>(InSurfaceViscosity));
 }
 
 float UAGX_ContactMaterial::GetSecondarySurfaceViscosity_BP() const
 {
-	return static_cast<float>(GetSecondarySurfaceViscosity());
+	return static_cast<float>(GetSecondaryFrictionCompliance());
 }
 
-void UAGX_ContactMaterial::SetUseSecondarySurfaceViscosity(bool bInUseSecondarySurfaceViscosity)
+void UAGX_ContactMaterial::SetUseSecondaryFrictionCompliance(bool bInUseSecondaryFrictionCompliance)
 {
 	if (IsInstance())
 	{
-		bUseSecondarySurfaceViscosity = bInUseSecondarySurfaceViscosity;
+		bUseSecondaryFrictionCompliance = bInUseSecondaryFrictionCompliance;
 		if (HasNative())
 		{
-			if (bUseSecondarySurfaceViscosity)
+			if (bUseSecondaryFrictionCompliance)
 			{
-				NativeBarrier.SetPrimarySurfaceViscosity(SurfaceViscosity);
-				NativeBarrier.SetSecondarySurfaceViscosity(SecondarySurfaceViscosity);
+				NativeBarrier.SetPrimaryFrictionCompliance(FrictionCompliance);
+				NativeBarrier.SetSecondaryFrictionCompliance(SecondaryFrictionCompliance);
 			}
 			else
 			{
-				NativeBarrier.SetSurfaceViscosity(SurfaceViscosity);
+				NativeBarrier.SetFrictionCompliance(FrictionCompliance);
 			}
 		}
 	}
@@ -576,22 +576,22 @@ void UAGX_ContactMaterial::SetUseSecondarySurfaceViscosity(bool bInUseSecondaryS
 	{
 		if (Instance != nullptr)
 		{
-			Instance->SetUseSecondarySurfaceViscosity(bInUseSecondarySurfaceViscosity);
+			Instance->SetUseSecondaryFrictionCompliance(bInUseSecondaryFrictionCompliance);
 			return;
 		}
-		bUseSecondarySurfaceViscosity = bInUseSecondarySurfaceViscosity;
+		bUseSecondaryFrictionCompliance = bInUseSecondaryFrictionCompliance;
 	}
 }
 
-bool UAGX_ContactMaterial::GetUseSecondarySurfaceViscosity() const
+bool UAGX_ContactMaterial::GetUseSecondaryFrictionCompliance() const
 {
 	if (Instance != nullptr)
 	{
-		return Instance->GetUseSecondarySurfaceViscosity();
+		return Instance->GetUseSecondaryFrictionCompliance();
 	}
 	else
 	{
-		return bUseSecondarySurfaceViscosity;
+		return bUseSecondaryFrictionCompliance;
 	}
 }
 
@@ -848,9 +848,9 @@ void UAGX_ContactMaterial::CopyFrom(const UAGX_ContactMaterial* Source)
 	COPY_PROPERTY(FrictionCoefficient);
 	COPY_PROPERTY(SecondaryFrictionCoefficient);
 	COPY_PROPERTY(bUseSecondaryFrictionCoefficient);
-	COPY_PROPERTY(SurfaceViscosity);
-	COPY_PROPERTY(SecondarySurfaceViscosity);
-	COPY_PROPERTY(bUseSecondarySurfaceViscosity);
+	COPY_PROPERTY(FrictionCompliance);
+	COPY_PROPERTY(SecondaryFrictionCompliance);
+	COPY_PROPERTY(bUseSecondaryFrictionCompliance);
 	COPY_PROPERTY(PrimaryDirection);
 	COPY_PROPERTY(OrientedFrictionReferenceFrameActor);
 	COPY_PROPERTY(OrientedFrictionReferenceFrameComponent);
@@ -921,9 +921,9 @@ void UAGX_ContactMaterial::CopyFrom(
 	COPY_PROPERTY(FrictionCoefficient);
 	COPY_PROPERTY(SecondaryFrictionCoefficient);
 	bUseSecondaryFrictionCoefficient = FrictionCoefficient != SecondaryFrictionCoefficient;
-	COPY_PROPERTY(SurfaceViscosity);
-	COPY_PROPERTY(SecondarySurfaceViscosity);
-	bUseSecondarySurfaceViscosity = SurfaceViscosity != SecondarySurfaceViscosity;
+	COPY_PROPERTY(FrictionCompliance);
+	COPY_PROPERTY(SecondaryFrictionCompliance);
+	bUseSecondaryFrictionCompliance = FrictionCompliance != SecondaryFrictionCompliance;
 	Source.GetPrimaryDirection(PrimaryDirection);
 
 	OrientedFrictionReferenceFrameActor = FName();
@@ -1194,14 +1194,14 @@ void UAGX_ContactMaterial::UpdateNativeProperties(
 		{
 			NativeBarrier.SetFrictionCoefficient(FrictionCoefficient);
 		}
-		if (bUseSecondarySurfaceViscosity)
+		if (bUseSecondaryFrictionCompliance)
 		{
-			NativeBarrier.SetPrimarySurfaceViscosity(SurfaceViscosity);
-			NativeBarrier.SetSecondarySurfaceViscosity(SecondarySurfaceViscosity);
+			NativeBarrier.SetPrimaryFrictionCompliance(FrictionCompliance);
+			NativeBarrier.SetSecondaryFrictionCompliance(SecondaryFrictionCompliance);
 		}
 		else
 		{
-			NativeBarrier.SetSurfaceViscosity(SurfaceViscosity);
+			NativeBarrier.SetFrictionCompliance(FrictionCompliance);
 		}
 
 		// Update properties exclusive to Constant Normal Force friction models.
@@ -1300,6 +1300,9 @@ void UAGX_ContactMaterial::Serialize(FArchive& Archive)
 
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
 	{
+		FrictionCompliance = SurfaceViscosity_DEPRECATED;
+		SecondaryFrictionCompliance = SecondarySurfaceViscosity_DEPRECATED;
+		bUseSecondaryFrictionCompliance = bUseSecondarySurfaceViscosity_DEPRECATED;
 		Attenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
 			SpookDamping_DEPRECATED, GetDefault<UAGX_Simulation>()->TimeStep);
 #if WITH_EDITOR
@@ -1411,25 +1414,25 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 	// that's changed in later versions.
 	SETTER_DISPATCHER(bUseSecondaryFrictionCoefficient, SetUseSecondaryFrictionCoefficient);
 
-	DEFAULT_DISPATCHER(SurfaceViscosity);
+	DEFAULT_DISPATCHER(FrictionCompliance);
 
 	Dispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(ThisClass, SecondarySurfaceViscosity),
+		GET_MEMBER_NAME_CHECKED(ThisClass, SecondaryFrictionCompliance),
 		[](ThisClass* This)
 		{
 			// When using InlineEditConditionToggle on the bool Unreal Editor triggers the value
 			// callback, instead of the bool callback, when toggling the bool. So we don't know
 			// which it is. Setting both.
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				bUseSecondarySurfaceViscosity, SetUseSecondarySurfaceViscosity);
+				bUseSecondaryFrictionCompliance, SetUseSecondaryFrictionCompliance);
 			AGX_ASSET_DISPATCHER_LAMBDA_BODY(
-				SecondarySurfaceViscosity, SetSecondarySurfaceViscosity);
+				SecondaryFrictionCompliance, SetSecondaryFrictionCompliance);
 		});
 
 	// This is currently (Unreal Engine 4.25) never called because Unreal Engine calls the
 	// value callback when toggling the InlineEditConditionToggle. Leaving it here in case
 	// that's changed in later versions.
-	SETTER_DISPATCHER(bUseSecondarySurfaceViscosity, SetUseSecondarySurfaceViscosity);
+	SETTER_DISPATCHER(bUseSecondaryFrictionCompliance, SetUseSecondaryFrictionCompliance);
 
 	DEFAULT_DISPATCHER(PrimaryDirection);
 
@@ -1522,3 +1525,33 @@ void UAGX_ContactMaterial::CreateNative(const UAGX_ContactMaterialRegistrarCompo
 }
 
 #undef LOCTEXT_NAMESPACE
+
+void UAGX_ContactMaterial::SetSurfaceViscosity(double InSurfaceViscosity)
+{
+	SetFrictionCompliance(InSurfaceViscosity);
+}
+
+double UAGX_ContactMaterial::GetSurfaceViscosity() const
+{
+	return GetFrictionCompliance();
+}
+
+void UAGX_ContactMaterial::SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity)
+{
+	SetSecondaryFrictionCompliance(InSecondarySurfaceViscosity);
+}
+
+double UAGX_ContactMaterial::GetSecondarySurfaceViscosity() const
+{
+	return GetSecondaryFrictionCompliance();
+}
+
+void UAGX_ContactMaterial::SetUseSecondarySurfaceViscosity(bool bInUseSecondarySurfaceViscosity)
+{
+	SetUseSecondaryFrictionCompliance(bInUseSecondarySurfaceViscosity);
+}
+
+bool UAGX_ContactMaterial::GetUseSecondarySurfaceViscosity() const
+{
+	return GetUseSecondaryFrictionCompliance();
+}

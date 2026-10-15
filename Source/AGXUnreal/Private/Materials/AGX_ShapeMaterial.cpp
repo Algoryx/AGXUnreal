@@ -59,9 +59,9 @@ void UAGX_ShapeMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Surface),
-		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialSurfaceProperties, Viscosity),
+		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialSurfaceProperties, FrictionCompliance),
 		[](ThisClass* This)
-		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Surface.Viscosity, SetSurfaceViscosity) });
+		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Surface.FrictionCompliance, SetFrictionCompliance) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Surface),
@@ -177,14 +177,14 @@ double UAGX_ShapeMaterial::GetRoughness() const
 	AGX_ASSET_GETTER_IMPL_VALUE(Surface.Roughness, GetRoughness);
 }
 
-void UAGX_ShapeMaterial::SetSurfaceViscosity(double Viscosity)
+void UAGX_ShapeMaterial::SetFrictionCompliance(double Compliance)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(Surface.Viscosity, Viscosity, SetSurfaceViscosity);
+	AGX_ASSET_SETTER_IMPL_VALUE(Surface.FrictionCompliance, Compliance, SetFrictionCompliance);
 }
 
-double UAGX_ShapeMaterial::GetSurfaceViscosity() const
+double UAGX_ShapeMaterial::GetFrictionCompliance() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(Surface.Viscosity, GetSurfaceViscosity);
+	AGX_ASSET_GETTER_IMPL_VALUE(Surface.FrictionCompliance, GetFrictionCompliance);
 }
 
 void UAGX_ShapeMaterial::SetAdhesion(double AdhesiveForce, double AdhesiveOverlap)
@@ -352,7 +352,7 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 	// Copy shape material surface properties.
 	Surface.bFrictionEnabled = Source.GetFrictionEnabled();
 	Surface.Roughness = Source.GetRoughness();
-	Surface.Viscosity = Source.GetSurfaceViscosity();
+	Surface.FrictionCompliance = Source.GetFrictionCompliance();
 	Surface.AdhesiveForce = Source.GetAdhesiveForce();
 	Surface.AdhesiveOverlap = Source.GetAdhesiveOverlap();
 
@@ -549,7 +549,7 @@ void UAGX_ShapeMaterial::UpdateNativeProperties()
 		// Surface properties.
 		NativeBarrier.SetFrictionEnabled(Surface.bFrictionEnabled);
 		NativeBarrier.SetRoughness(Surface.Roughness);
-		NativeBarrier.SetSurfaceViscosity(Surface.Viscosity);
+		NativeBarrier.SetFrictionCompliance(Surface.FrictionCompliance);
 		NativeBarrier.SetAdhesion(Surface.AdhesiveForce, Surface.AdhesiveOverlap);
 
 		// Wire properties.
@@ -564,6 +564,7 @@ void UAGX_ShapeMaterial::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);
 	Bulk.Serialize(Archive);
+	Surface.Serialize(Archive);
 	Wire.Serialize(Archive);
 #if WITH_EDITOR
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
@@ -633,4 +634,14 @@ void UAGX_ShapeMaterial::CopyShapeMaterialProperties(const UAGX_ShapeMaterial* S
 		Surface = Source->Surface;
 		Wire = Source->Wire;
 	}
+}
+
+void UAGX_ShapeMaterial::SetSurfaceViscosity(double Viscosity)
+{
+	SetFrictionCompliance(Viscosity);
+}
+
+double UAGX_ShapeMaterial::GetSurfaceViscosity() const
+{
+	return GetFrictionCompliance();
 }

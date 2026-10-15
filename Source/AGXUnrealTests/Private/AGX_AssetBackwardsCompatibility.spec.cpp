@@ -201,8 +201,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Roughness"),
 				ShapeMaterial->Surface.Roughness, 1700000.0);
 			TestEqual(
-				TEXT("The shape material should have restored viscosity"),
-				ShapeMaterial->Surface.Viscosity, 1800000.0);
+				TEXT("The shape material should have restored friction compliance"),
+				ShapeMaterial->Surface.FrictionCompliance, 1800000.0);
 			TestEqual(
 				TEXT("The shape material should have restored adhesive force"),
 				ShapeMaterial->Surface.AdhesiveForce, 1900000.0);
@@ -245,11 +245,11 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The contact material should have restored secondary friction coefficient"),
 				ContactMaterial->SecondaryFrictionCoefficient, 2000000.0);
 			TestEqual(
-				TEXT("The contact material should have restored surface viscosity"),
-				ContactMaterial->SurfaceViscosity, 3000000.0);
+				TEXT("The contact material should have restored friction compliance"),
+				ContactMaterial->FrictionCompliance, 3000000.0);
 			TestEqual(
-				TEXT("The contact material should have restored secondary surface viscosity"),
-				ContactMaterial->SecondarySurfaceViscosity, 4000000.0);
+				TEXT("The contact material should have restored secondary friction compliance"),
+				ContactMaterial->SecondaryFrictionCompliance, 4000000.0);
 			TestEqual(
 				TEXT("The contact material should have restored Restitution"),
 				ContactMaterial->Restitution, 5000000.0);
@@ -370,8 +370,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Roughness"),
 				TerrainMaterial->GetShapeMaterialSurfaceProperties().Roughness == 0.000019);
 			TestTrue(
-				TEXT("The shape material should have restored viscosity"),
-				TerrainMaterial->GetShapeMaterialSurfaceProperties().Viscosity == 0.000021);
+				TEXT("The shape material should have restored friction compliance"),
+				TerrainMaterial->GetShapeMaterialSurfaceProperties().FrictionCompliance == 0.000021);
 			TestTrue(
 				TEXT("The shape material should have restored adhesive force"),
 				TerrainMaterial->GetShapeMaterialSurfaceProperties().AdhesiveForce == 0.000022);
@@ -529,8 +529,8 @@ void FAGX_TerrainMaterialSplitBackwardsCompatibilitySpec::Define()
 					   TEXT("ShapeMaterial Surface Roughness"),
 					   TempShapeMaterial->Surface.Roughness == 0.314);
 				   TestTrue(
-					   TEXT("ShapeMaterial Surface Viscosity"),
-					   TempShapeMaterial->Surface.Viscosity == 1.0);
+					   TEXT("ShapeMaterial Friction Compliance"),
+					   TempShapeMaterial->Surface.FrictionCompliance == 1.0);
 				   TestTrue(
 					   TEXT("ShapeMaterial Surface AdhesiveForce"),
 					   TempShapeMaterial->Surface.AdhesiveForce == 2.0);

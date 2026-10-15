@@ -78,7 +78,7 @@ void FAGX_MaterialAttenuationSpec::Define()
 {
 	using namespace AGX_MaterialAttenuationSpec_helpers;
 
-	It("matches native attenuation defaults",
+	It("matches native material defaults",
 	   [this]()
 	   {
 		   FShapeMaterialBarrier NativeShape;
@@ -92,6 +92,9 @@ void FAGX_MaterialAttenuationSpec::Define()
 		   TestEqual(
 			   TEXT("Bend default"), Shape->Wire.AttenuationBend.Value,
 			   NativeShape.GetAttenuationBend());
+		   TestEqual(
+			   TEXT("Surface friction compliance default"), Shape->Surface.FrictionCompliance.Value,
+			   NativeShape.GetFrictionCompliance());
 		   FContactMaterialBarrier NativeContact;
 		   NativeContact.AllocateNative(&NativeShape, &NativeShape);
 		   TestEqual(

@@ -765,6 +765,7 @@ void UAGX_TerrainMaterial::Serialize(FArchive& Archive)
 	Super::Serialize(Archive);
 	TerrainCompaction.Serialize(Archive);
 	Bulk.Serialize(Archive);
+	Surface.Serialize(Archive);
 	Wire.Serialize(Archive);
 #if WITH_EDITOR
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))

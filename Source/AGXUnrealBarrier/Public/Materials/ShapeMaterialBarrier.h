@@ -56,8 +56,8 @@ public:
 	void SetRoughness(double Roughness);
 	double GetRoughness() const;
 
-	void SetSurfaceViscosity(double Viscosity);
-	double GetSurfaceViscosity() const;
+	void SetFrictionCompliance(double Compliance);
+	double GetFrictionCompliance() const;
 
 	void SetAdhesion(double AdhesiveForce, double AdhesiveOverlap);
 	double GetAdhesiveForce() const;

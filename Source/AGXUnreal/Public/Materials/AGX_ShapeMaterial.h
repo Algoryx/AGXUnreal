@@ -95,10 +95,10 @@ public:
 	double GetRoughness() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
-	void SetSurfaceViscosity(double Viscosity);
+	void SetFrictionCompliance(double Compliance);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
-	double GetSurfaceViscosity() const;
+	double GetFrictionCompliance() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
 	void SetAdhesion(double AdhesiveForce, double AdhesiveOverlap);
@@ -210,6 +210,17 @@ public:
 			(DeprecatedFunction,
 			 DeprecationMessage = "Use GetAttenuationBend and ConvertAttenuationToSpookDamping."))
 	double GetSpookDampingBend() const;
+
+	// Legacy surface viscosity names are aliases; values are unchanged.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Surface Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetFrictionCompliance instead."))
+	void SetSurfaceViscosity(double Viscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Surface Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetFrictionCompliance instead."))
+	double GetSurfaceViscosity() const;
 
 private:
 	void CreateNative(UWorld* PlayingWorld);

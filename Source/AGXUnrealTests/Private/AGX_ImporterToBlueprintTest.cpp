@@ -2648,7 +2648,7 @@ bool FCheckContactMaterialsImportedCommand::Update()
 		"Cm1 contact reduction bin resolution", (*Cm1)->ContactReduction.ContactReductionLevel,
 		EAGX_ContactReductionLevel::Moderate);
 	Test.TestEqual("Cm1 friction coefficient", (*Cm1)->FrictionCoefficient, 0.11);
-	Test.TestEqual("Cm1 surface viscosity", (*Cm1)->SurfaceViscosity, 0.12);
+	Test.TestEqual("Cm1 friction compliance", (*Cm1)->FrictionCompliance, 0.12);
 	Test.TestEqual("Cm1 restitution", (*Cm1)->Restitution, 0.13);
 	Test.TestEqual("Cm1 youngs modulus", (*Cm1)->YoungsModulus, 123451234.0);
 	// The archive was exported with the viewer default timestep, 1/60 s.
@@ -2684,7 +2684,7 @@ bool FCheckContactMaterialsImportedCommand::Update()
 		"Cm2 contact reduction bin resolution", (*Cm2)->ContactReduction.ContactReductionLevel,
 		EAGX_ContactReductionLevel::Minimal);
 	Test.TestEqual("Cm2 friction coefficient", (*Cm2)->FrictionCoefficient, 0.21);
-	Test.TestEqual("Cm2 surface viscosity", (*Cm2)->SurfaceViscosity, 0.22);
+	Test.TestEqual("Cm2 friction compliance", (*Cm2)->FrictionCompliance, 0.22);
 	Test.TestEqual("Cm2 restitution", (*Cm2)->Restitution, 0.23);
 	Test.TestEqual("Cm2 youngs modulus", (*Cm2)->YoungsModulus, 101010101.0);
 	Test.TestTrue("Cm2 attenuation", FMath::IsNearlyEqual((*Cm2)->Attenuation.Value, 14.4, 1.e-6));

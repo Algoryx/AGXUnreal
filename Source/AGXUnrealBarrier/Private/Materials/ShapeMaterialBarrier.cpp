@@ -168,16 +168,16 @@ double FShapeMaterialBarrier::GetRoughness() const
 	return NativeRef->Native->getSurfaceMaterial()->getRoughness();
 }
 
-void FShapeMaterialBarrier::SetSurfaceViscosity(double Viscosity)
+void FShapeMaterialBarrier::SetFrictionCompliance(double Compliance)
 {
 	check(HasNative());
-	NativeRef->Native->getSurfaceMaterial()->setViscosity(Viscosity);
+	NativeRef->Native->getSurfaceMaterial()->setFrictionCompliance(Compliance);
 }
 
-double FShapeMaterialBarrier::GetSurfaceViscosity() const
+double FShapeMaterialBarrier::GetFrictionCompliance() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceMaterial()->getViscosity();
+	return NativeRef->Native->getSurfaceMaterial()->getFrictionCompliance();
 }
 
 void FShapeMaterialBarrier::SetAdhesion(double AdhesiveForce, double AdhesiveOverlap)
