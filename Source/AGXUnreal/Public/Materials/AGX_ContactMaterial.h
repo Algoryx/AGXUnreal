@@ -433,17 +433,16 @@ public:
 	double GetYoungsModulus() const;
 
 	/**
-	 * Spook Damping which represents the time the contact constraint has to fulfill its violation
-	 * [s].
+	 * Attenuation of the contact constraint [steps].
 	 */
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SpookDamping {4.5 / 60.0};
+	FAGX_Real Attenuation {4.5};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSpookDamping(double InSpookDamping);
+	void SetAttenuation(double InAttenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSpookDamping() const;
+	double GetAttenuation() const;
 
 	/**
 	 * The attractive force between two colliding objects [N].
@@ -693,14 +692,14 @@ public: // Deprecated functions.
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetSpookDamping instead of SetSpookDamping_BP"))
+			 DeprecationMessage = "Use SetAttenuation and ConvertSpookDampingToAttenuation."))
 	void SetSpookDamping_BP(float InSpookDamping);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetSpookDamping instead of GetSpookDamping_BP"))
+			 DeprecationMessage = "Use GetAttenuation and ConvertAttenuationToSpookDamping."))
 	float GetSpookDamping_BP() const;
 
 	UFUNCTION(
@@ -733,6 +732,21 @@ public: // Deprecated functions.
 
 	// clang-format on
 
+	// Legacy functions use seconds and the project simulation timestep.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAttenuation and ConvertSpookDampingToAttenuation."))
+	void SetSpookDamping(double InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAttenuation and ConvertAttenuationToSpookDamping."))
+	double GetSpookDamping() const;
+
 private:
 #if WITH_EDITOR
 	virtual void InitPropertyDispatcher();
@@ -741,6 +755,9 @@ private:
 	void CreateNative(const UAGX_ContactMaterialRegistrarComponent& Registrar);
 
 private:
+	UPROPERTY()
+	FAGX_Real SpookDamping_DEPRECATED {4.5 / 60.0};
+
 	TWeakObjectPtr<UAGX_ContactMaterial> Asset;
 	TWeakObjectPtr<UAGX_ContactMaterial> Instance;
 	FContactMaterialBarrier NativeBarrier;

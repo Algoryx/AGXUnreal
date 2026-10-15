@@ -93,8 +93,8 @@ public:
 	void SetYoungsModulus(double YoungsModulus);
 	double GetYoungsModulus() const;
 
-	void SetSpookDamping(double SpookDamping);
-	double GetSpookDamping() const;
+	void SetAttenuation(double Attenuation);
+	double GetAttenuation() const;
 
 	void SetMinElasticRestLength(double MinElasticRestLength);
 	void SetMaxElasticRestLength(double MaxElasticRestLength);

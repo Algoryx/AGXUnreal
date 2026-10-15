@@ -760,16 +760,16 @@ double FContactMaterialBarrier::GetYoungsModulus() const
 	return NativeRef->Native->getYoungsModulus();
 }
 
-void FContactMaterialBarrier::SetSpookDamping(double SpookDamping)
+void FContactMaterialBarrier::SetAttenuation(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(SpookDamping);
+	NativeRef->Native->setAttenuation(Attenuation);
 }
 
-double FContactMaterialBarrier::GetSpookDamping() const
+double FContactMaterialBarrier::GetAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getDamping();
+	return NativeRef->Native->getAttenuation();
 }
 
 void FContactMaterialBarrier::SetMinElasticRestLength(double MinElasticRestLength)

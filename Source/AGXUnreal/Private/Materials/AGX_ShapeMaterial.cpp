@@ -5,14 +5,18 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+#include "Serialization/Archive.h"
+#include "UObject/UObjectGlobals.h"
 
 bool UAGX_ShapeMaterial::operator==(const UAGX_ShapeMaterial& Other) const
 {
@@ -96,9 +100,8 @@ void UAGX_ShapeMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Bulk),
-		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialBulkProperties, SpookDamping),
-		[](ThisClass* This)
-		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Bulk.SpookDamping, SetSpookDamping) });
+		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialBulkProperties, Attenuation),
+		[](ThisClass* This) { AGX_ASSET_DISPATCHER_LAMBDA_BODY(Bulk.Attenuation, SetAttenuation) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Bulk),
@@ -141,15 +144,15 @@ void UAGX_ShapeMaterial::InitPropertyDispatcher()
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Wire),
-		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialWireProperties, SpookDampingStretch),
+		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialWireProperties, AttenuationStretch),
 		[](ThisClass* This)
-		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Wire.SpookDampingStretch, SetSpookDampingStretch) });
+		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Wire.AttenuationStretch, SetAttenuationStretch) });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ShapeMaterial, Wire),
-		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialWireProperties, SpookDampingBend),
+		GET_MEMBER_NAME_CHECKED(FAGX_ShapeMaterialWireProperties, AttenuationBend),
 		[](ThisClass* This)
-		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Wire.SpookDampingBend, SetSpookDampingBend) });
+		{ AGX_ASSET_DISPATCHER_LAMBDA_BODY(Wire.AttenuationBend, SetAttenuationBend) });
 }
 #endif
 
@@ -249,14 +252,14 @@ double UAGX_ShapeMaterial::GetBulkViscosity() const
 	AGX_ASSET_GETTER_IMPL_VALUE(Bulk.Viscosity, GetBulkViscosity);
 }
 
-void UAGX_ShapeMaterial::SetSpookDamping(double InSpookDamping)
+void UAGX_ShapeMaterial::SetAttenuation(double InAttenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(Bulk.SpookDamping, InSpookDamping, SetSpookDamping);
+	AGX_ASSET_SETTER_IMPL_VALUE(Bulk.Attenuation, InAttenuation, SetAttenuation);
 }
 
-double UAGX_ShapeMaterial::GetSpookDamping() const
+double UAGX_ShapeMaterial::GetAttenuation() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(Bulk.SpookDamping, GetSpookDamping);
+	AGX_ASSET_GETTER_IMPL_VALUE(Bulk.Attenuation, GetAttenuation);
 }
 
 void UAGX_ShapeMaterial::SetMinMaxElasticRestLength(double InMin, double InMax)
@@ -316,24 +319,24 @@ void UAGX_ShapeMaterial::SetYoungsModulusBend(double InYoungsModulus)
 	AGX_ASSET_SETTER_IMPL_VALUE(Wire.YoungsModulusBend, InYoungsModulus, SetYoungsModulusBend);
 }
 
-double UAGX_ShapeMaterial::GetSpookDampingStretch() const
+double UAGX_ShapeMaterial::GetAttenuationStretch() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(Wire.SpookDampingStretch, GetSpookDampingStretch);
+	AGX_ASSET_GETTER_IMPL_VALUE(Wire.AttenuationStretch, GetAttenuationStretch);
 }
 
-void UAGX_ShapeMaterial::SetSpookDampingStretch(double InSpookDamping)
+void UAGX_ShapeMaterial::SetAttenuationStretch(double InAttenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(Wire.SpookDampingStretch, InSpookDamping, SetSpookDampingStretch);
+	AGX_ASSET_SETTER_IMPL_VALUE(Wire.AttenuationStretch, InAttenuation, SetAttenuationStretch);
 }
 
-double UAGX_ShapeMaterial::GetSpookDampingBend() const
+double UAGX_ShapeMaterial::GetAttenuationBend() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(Wire.SpookDampingBend, GetSpookDampingBend);
+	AGX_ASSET_GETTER_IMPL_VALUE(Wire.AttenuationBend, GetAttenuationBend);
 }
 
-void UAGX_ShapeMaterial::SetSpookDampingBend(double InSpookDamping)
+void UAGX_ShapeMaterial::SetAttenuationBend(double InAttenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(Wire.SpookDampingBend, InSpookDamping, SetSpookDampingBend);
+	AGX_ASSET_SETTER_IMPL_VALUE(Wire.AttenuationBend, InAttenuation, SetAttenuationBend);
 }
 
 void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_ImportContext* Context)
@@ -342,7 +345,7 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 	Bulk.Density = Source.GetDensity();
 	Bulk.YoungsModulus = Source.GetYoungsModulus();
 	Bulk.Viscosity = Source.GetBulkViscosity();
-	Bulk.SpookDamping = Source.GetSpookDamping();
+	Bulk.Attenuation = Source.GetAttenuation();
 	Bulk.MinElasticRestLength = Source.GetMinElasticRestLength();
 	Bulk.MaxElasticRestLength = Source.GetMaxElasticRestLength();
 
@@ -356,8 +359,8 @@ void UAGX_ShapeMaterial::CopyFrom(const FShapeMaterialBarrier& Source, FAGX_Impo
 	// Copy Wire properties.
 	Wire.YoungsModulusStretch = Source.GetYoungsModulusStretch();
 	Wire.YoungsModulusBend = Source.GetYoungsModulusBend();
-	Wire.SpookDampingStretch = Source.GetSpookDampingStretch();
-	Wire.SpookDampingBend = Source.GetSpookDampingBend();
+	Wire.AttenuationStretch = Source.GetAttenuationStretch();
+	Wire.AttenuationBend = Source.GetAttenuationBend();
 
 	ImportGuid = Source.GetGuid();
 
@@ -539,7 +542,7 @@ void UAGX_ShapeMaterial::UpdateNativeProperties()
 		NativeBarrier.SetDensity(Bulk.Density);
 		NativeBarrier.SetYoungsModulus(Bulk.YoungsModulus);
 		NativeBarrier.SetBulkViscosity(Bulk.Viscosity);
-		NativeBarrier.SetSpookDamping(Bulk.SpookDamping);
+		NativeBarrier.SetAttenuation(Bulk.Attenuation);
 		NativeBarrier.SetMinMaxElasticRestLength(
 			Bulk.MinElasticRestLength, Bulk.MaxElasticRestLength);
 
@@ -552,9 +555,56 @@ void UAGX_ShapeMaterial::UpdateNativeProperties()
 		// Wire properties.
 		NativeBarrier.SetYoungsModulusStretch(Wire.YoungsModulusStretch);
 		NativeBarrier.SetYoungsModulusBend(Wire.YoungsModulusBend);
-		NativeBarrier.SetSpookDampingStretch(Wire.SpookDampingStretch);
-		NativeBarrier.SetSpookDampingBend(Wire.SpookDampingBend);
+		NativeBarrier.SetAttenuationStretch(Wire.AttenuationStretch);
+		NativeBarrier.SetAttenuationBend(Wire.AttenuationBend);
 	}
+}
+
+void UAGX_ShapeMaterial::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Bulk.Serialize(Archive);
+	Wire.Serialize(Archive);
+#if WITH_EDITOR
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
+}
+
+void UAGX_ShapeMaterial::SetSpookDamping(double InSpookDamping)
+{
+	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+}
+
+double UAGX_ShapeMaterial::GetSpookDamping() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuation(), GetDefault<UAGX_Simulation>()->TimeStep);
+}
+
+void UAGX_ShapeMaterial::SetSpookDampingStretch(double InSpookDamping)
+{
+	SetAttenuationStretch(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+}
+
+double UAGX_ShapeMaterial::GetSpookDampingStretch() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuationStretch(), GetDefault<UAGX_Simulation>()->TimeStep);
+}
+
+void UAGX_ShapeMaterial::SetSpookDampingBend(double InSpookDamping)
+{
+	SetAttenuationBend(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+}
+
+double UAGX_ShapeMaterial::GetSpookDampingBend() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuationBend(), GetDefault<UAGX_Simulation>()->TimeStep);
 }
 
 bool UAGX_ShapeMaterial::IsInstance() const

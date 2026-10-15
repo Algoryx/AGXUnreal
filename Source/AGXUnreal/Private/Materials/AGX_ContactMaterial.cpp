@@ -14,11 +14,15 @@
 #include "Materials/AGX_ContactMaterialRegistrarComponent.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "EngineUtils.h"
 #include "Engine/World.h"
+#include "Serialization/Archive.h"
+#include "UObject/UObjectGlobals.h"
 
 #define LOCTEXT_NAMESPACE "UAGX_ContactMaterial"
 
@@ -44,7 +48,7 @@ bool UAGX_ContactMaterial::operator==(const UAGX_ContactMaterial& Other) const
             && OrientedFrictionReferenceFrameComponent == Other.OrientedFrictionReferenceFrameComponent
             && Restitution == Other.Restitution
             && YoungsModulus == Other.YoungsModulus
-            && SpookDamping == Other.SpookDamping
+            && Attenuation == Other.Attenuation
             && AdhesiveForce == Other.AdhesiveForce
             && AdhesiveOverlap == Other.AdhesiveOverlap;
 	// clang-format on
@@ -718,14 +722,26 @@ float UAGX_ContactMaterial::GetYoungsModulus_BP() const
 	return static_cast<float>(GetYoungsModulus());
 }
 
+void UAGX_ContactMaterial::SetAttenuation(double InAttenuation)
+{
+	AGX_ASSET_SETTER_IMPL_VALUE(Attenuation, InAttenuation, SetAttenuation);
+}
+
+double UAGX_ContactMaterial::GetAttenuation() const
+{
+	AGX_ASSET_GETTER_IMPL_VALUE(Attenuation, GetAttenuation);
+}
+
 void UAGX_ContactMaterial::SetSpookDamping(double InSpookDamping)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(SpookDamping, InSpookDamping, SetSpookDamping);
+	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_ContactMaterial::GetSpookDamping() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SpookDamping, GetSpookDamping);
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuation(), GetDefault<UAGX_Simulation>()->TimeStep);
 }
 
 void UAGX_ContactMaterial::SetSpookDamping_BP(float InSpookDamping)
@@ -841,7 +857,7 @@ void UAGX_ContactMaterial::CopyFrom(const UAGX_ContactMaterial* Source)
 
 	COPY_PROPERTY(Restitution);
 	COPY_PROPERTY(YoungsModulus);
-	COPY_PROPERTY(SpookDamping);
+	COPY_PROPERTY(Attenuation);
 	COPY_PROPERTY(AdhesiveForce);
 	COPY_PROPERTY(AdhesiveOverlap);
 
@@ -930,7 +946,7 @@ void UAGX_ContactMaterial::CopyFrom(
 
 	COPY_PROPERTY(Restitution);
 	COPY_PROPERTY(YoungsModulus);
-	COPY_PROPERTY(SpookDamping);
+	COPY_PROPERTY(Attenuation);
 	COPY_PROPERTY(AdhesiveForce);
 	COPY_PROPERTY(AdhesiveOverlap);
 
@@ -1247,15 +1263,15 @@ void UAGX_ContactMaterial::UpdateNativeProperties(
 	{
 		NativeBarrier.SetRestitution(Restitution);
 		NativeBarrier.SetYoungsModulus(YoungsModulus);
-		NativeBarrier.SetSpookDamping(SpookDamping);
+		NativeBarrier.SetAttenuation(Attenuation);
 		NativeBarrier.SetAdhesion(AdhesiveForce, AdhesiveOverlap);
 	}
 }
 
 void UAGX_ContactMaterial::Serialize(FArchive& Archive)
 {
-#if WITH_EDITOR
 	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+#if WITH_EDITOR
 	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::CMRestitutionDefaultIsZero))
 	{
 		// This is a trick we use to determine if the Restitution property was explicitly set to
@@ -1281,6 +1297,15 @@ void UAGX_ContactMaterial::Serialize(FArchive& Archive)
 		AGX_CHECK(!FMath::IsNaN(Restitution));
 	}
 #endif // WITH_EDITOR
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		Attenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping_DEPRECATED, GetDefault<UAGX_Simulation>()->TimeStep);
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
+	}
 
 	ContactReduction.Serialize(Archive);
 }
@@ -1441,7 +1466,7 @@ void UAGX_ContactMaterial::InitPropertyDispatcher()
 #endif
 
 	DEFAULT_DISPATCHER(Restitution);
-	DEFAULT_DISPATCHER(SpookDamping);
+	DEFAULT_DISPATCHER(Attenuation);
 	DEFAULT_DISPATCHER(YoungsModulus);
 	DEFAULT_DISPATCHER(AdhesiveForce);
 	DEFAULT_DISPATCHER(AdhesiveOverlap);
