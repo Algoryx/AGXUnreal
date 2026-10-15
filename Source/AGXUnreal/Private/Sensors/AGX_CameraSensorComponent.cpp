@@ -1,5 +1,29 @@
 // Copyright 2026, Algoryx Simulation AB.
 
+/*
+ * Unreal rendering side of agxSensor::Camera. The native camera uses the PhotoDetector and
+ * CameraLens assets, while CameraBackendPropagator forwards AGX settings and capture callbacks to
+ * this component. OwnedCaptureComponent2D renders the scene; CaptureSourceOverride instead uses
+ * the user's existing capture component/target without applying our optics or lens distortion.
+ *
+ * One camera can have several outputs. OutputRenderContexts is keyed by native output address;
+ * each context holds its scene render target, derived projection/distortion settings, dynamic
+ * material instances, per-pass render targets and CaptureHelper readback slots. Settings updates
+ * refresh these contexts. For owned captures, sensor size and focal length determine projection,
+ * and distortion can enlarge the internal scene target beyond the requested output resolution.
+ *
+ * RequestCapture selects the output's context, configures the owned capture source for it, and
+ * executes the capture/material-pass chain. It then enqueues a GPU copy of the final target into
+ * a reusable staging texture and writes a GPU fence. Requests are skipped if no readback slot is
+ * free. Slots are shared with queued render commands and track progress between the threads.
+ *
+ * TickComponent calls PollCaptures, which enqueues render-thread fence checks. Completed copies
+ * are mapped, stripped of row padding/unused channels and copied into the backend's locked raw
+ * data slot. The slot is then reusable. Publishing these pixels into the AGX output buffer is a
+ * separate, later StageUnreadDataIfExists operation, so requesting a capture does not immediately
+ * make pixels available. Blueprint reconstruction rebuilds runtime capture resources and contexts.
+ */
+
 #include "Sensors/AGX_CameraSensorComponent.h"
 
 // AGX Dynamics for Unreal includes.

@@ -1,5 +1,28 @@
 // Copyright 2026, Algoryx Simulation AB.
 
+/*
+ * Bridge between AGX camera callbacks and Unreal rendering. This process-wide backend routes
+ * settings and capture requests through FCameraBarrier and its propagator to the camera component.
+ * Synchronize delegates constant-capture scheduling to FCameraBarrier; rendering/readback remains
+ * asynchronous in UAGX_CameraSensorComponent.
+ *
+ * NativeRef holds the AGX callback table. CameraBarriers maps native camera addresses to registered,
+ * non-owning barrier pointers. CaptureStates holds per-output scheduling times for each camera.
+ * OutputStates maps native output addresses to AGX-owned destination buffers and their published
+ * unread flags; the address callback updates these buffer pointers when AGX changes its storage.
+ *
+ * OutputRawData holds the latest pending pixels written by render-thread readback, separately from
+ * the published AGX data. OutputRawDataMutex protects the map; each shared slot has its own mutex
+ * protecting its pixels and pending unread flag. FCameraOutputRawDataWriteAccess locks that slot
+ * for its lifetime. Shared ownership keeps an acquired slot alive if it is unregistered meanwhile.
+ *
+ * StageUnreadDataIfExists checks the pending byte count against the current output configuration,
+ * copies into the AGX buffer under the slot lock, clears the pending flag and sets the published
+ * unread flag. Camera output barrier reads/checks and OpenPLX reception invoke staging before
+ * accessing AGX data. The native unread callback only queries/clears the published flag; it does
+ * not stage pixels. Registration/unregistration connects/disconnects the camera and output state.
+ */
+
 #include "Sensors/CameraBackendBarrier.h"
 
 // AGX Dynamics for Unreal includes.
