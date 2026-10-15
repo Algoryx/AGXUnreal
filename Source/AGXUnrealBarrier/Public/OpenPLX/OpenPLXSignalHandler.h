@@ -16,9 +16,11 @@ class FSimulationBarrier;
 struct FAssemblyRef;
 struct FHeapControlInterfacePtr;
 struct FOpenPLX_Input;
+struct FOpenPLXCameraColorOutputView;
 struct FOpenPLXIMUOutputView;
 struct FOpenPLXLidarOutputView;
 struct FOpenPLX_Output;
+struct FOpenPLXSignalHandlerRuntimeData;
 struct FOpenPLX_SignalHandlerNativeAddresses;
 struct FOpenPLXMappingBarriersCollection;
 
@@ -61,6 +63,10 @@ public:
 	FHeapControlInterfacePtr GetHeapControlInterface();
 	const FHeapControlInterfacePtr GetHeapControlInterface() const;
 
+	/// Camera Color outputs.
+	bool ReceiveCameraColorOutput(
+		const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutOutput);
+
 	/// Lidar outputs.
 	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
 
@@ -73,6 +79,9 @@ public:
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
 
 private:
+	FOpenPLXSignalHandlerRuntimeData* GetRuntimeData();
+	const FOpenPLXSignalHandlerRuntimeData* GetRuntimeData() const;
+
 	bool bIsInitialized {false};
 	FOpenPLXModelRegistry* ModelRegistry {nullptr};
 	FOpenPLXModelRegistry::Handle ModelHandle {FOpenPLXModelRegistry::InvalidHandle};

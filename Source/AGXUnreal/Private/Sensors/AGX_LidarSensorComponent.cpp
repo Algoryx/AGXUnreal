@@ -490,9 +490,6 @@ void UAGX_LidarSensorComponent::CopyFrom(const FSensorBarrier& Barrier, FAGX_Imp
 
 	ModelParameters = AGX_LidarSensorComponent_helpers::CreateModelParameters(
 		*this, LidarBarrier, *Context, ImportedModel);
-
-	AGX_CHECK(!Context->Sensors.Contains(ImportGuid));
-	Context->Sensors.Add(ImportGuid, this);
 }
 
 void UAGX_LidarSensorComponent::BeginPlay()
@@ -543,6 +540,30 @@ void UAGX_LidarSensorComponent::DestroyComponent(bool bPromoteChildren)
 		NiagaraSystemComponent->DestroyComponent();
 
 	Super::DestroyComponent(bPromoteChildren);
+}
+
+void UAGX_LidarSensorComponent::PostApplyToComponent()
+{
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
+	{
+		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
+		// during Play.
+		if (bEnableRendering && NiagaraSystemAsset != nullptr)
+		{
+			NiagaraSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+				NiagaraSystemAsset, this, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator,
+				FVector::OneVector, EAttachLocation::Type::KeepRelativeOffset, false,
+				ENCPoolMethod::None);
+		}
+
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddLidar(this);
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -613,6 +634,9 @@ void UAGX_LidarSensorComponent::InitPropertyDispatcher()
 
 void UAGX_LidarSensorComponent::MarkOutputAsRead()
 {
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
 	if (HasNative())
 		GetNativeAsLidar()->MarkOutputAsRead();
 }

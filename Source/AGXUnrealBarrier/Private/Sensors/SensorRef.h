@@ -4,8 +4,14 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agxSensor/Camera.h>
+#include <agxSensor/CameraBackend.h>
+#include <agxSensor/CameraLens.h>
+#include <agxSensor/CameraOutput.h>
+#include <agxSensor/CameraPhotodetector.h>
 #include <agxSensor/Environment.h>
 #include <agxSensor/IMU.h>
+#include <agxSensor/LensDistortion.h>
 #include <agxSensor/Lidar.h>
 #include <agxSensor/RaytraceAmbientMaterial.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
@@ -17,6 +23,61 @@
 #include "EndAGXIncludes.h"
 
 #include <memory>
+
+struct FCameraBackendRef
+{
+	agxSensor::CameraBackend Native;
+};
+
+struct FCameraRef
+{
+	agxSensor::CameraRef Native;
+	FCameraRef() = default;
+	FCameraRef(agxSensor::Camera* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FCameraLensRef
+{
+	agxSensor::CameraLensRef Native;
+	FCameraLensRef() = default;
+	FCameraLensRef(agxSensor::CameraLens* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FLensDistortionRef
+{
+	agxSensor::LensDistortionRef Native;
+	FLensDistortionRef() = default;
+	FLensDistortionRef(agxSensor::LensDistortion* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FCameraOutputRef
+{
+	agxSensor::ICameraOutputRef Native;
+	FCameraOutputRef() = default;
+	FCameraOutputRef(agxSensor::ICameraOutput* InNative)
+		: Native(InNative)
+	{
+	}
+};
+
+struct FCameraPhotodetectorRef
+{
+	agxSensor::CameraPhotodetectorRef Native;
+	FCameraPhotodetectorRef() = default;
+	FCameraPhotodetectorRef(agxSensor::CameraPhotodetector* InNative)
+		: Native(InNative)
+	{
+	}
+};
 
 struct FIMURef
 {

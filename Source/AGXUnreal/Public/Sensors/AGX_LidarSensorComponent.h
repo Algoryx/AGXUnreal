@@ -261,7 +261,7 @@ public:
 	bool IsCustomParametersSupported() const;
 
 	void CopyFrom(const UAGX_LidarSensorComponent& Source);
-	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	FSensorBarrier* CreateNativeImpl() override;
 
@@ -269,6 +269,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual void DestroyComponent(bool bPromoteChildren) override;
+	virtual void PostApplyToComponent() override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const FProperty* InProperty) const override;
 #endif

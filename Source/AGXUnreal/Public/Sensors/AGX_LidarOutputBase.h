@@ -13,7 +13,7 @@
 class FLidarOutputBarrier;
 class UAGX_LidarSensorComponent;
 
-USTRUCT(BlueprintType, Meta = (HiddenByDefault))
+USTRUCT(BlueprintType, BlueprintInternalUseOnly)
 struct AGXUNREAL_API FAGX_LidarOutputBase
 {
 	GENERATED_BODY()
