@@ -4,11 +4,13 @@
 #include "AgxAutomationCommon.h"
 #include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
+#include "AGX_Simulation.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Materials/AGX_ContactMaterial.h"
 #include "Materials/AGX_ShapeMaterial.h"
 #include "Materials/AGX_TerrainMaterial.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -34,6 +36,14 @@
 
 namespace AGX_AssetBackwardsCompatibilitySpec_helpers
 {
+	// The legacy assets store damping in seconds. Migration uses the project simulation
+	// timestep, so derive the expected attenuation from the known values in each fixture.
+	double LegacyDampingToAttenuation(double SpookDamping)
+	{
+		return FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping, GetDefault<UAGX_Simulation>()->TimeStep);
+	}
+
 // We would like to have a way to check the AGX Custom Version of an asset on disk. These are a few
 // attempts, but I have not been able to get any of them to work. Hopefully only a minor tweak is
 // needed to fix any of them. Until we figure out what that fix is this code will remain disabled,
@@ -179,8 +189,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Viscosity"),
 				ShapeMaterial->Bulk.Viscosity, 1300000.0);
 			TestEqual(
-				TEXT("The shape material should have restored Spook damping"),
-				ShapeMaterial->Bulk.SpookDamping, 1400000.0);
+				TEXT("The shape material should have converted bulk damping to attenuation"),
+				ShapeMaterial->Bulk.Attenuation, LegacyDampingToAttenuation(1400000.0));
 			TestEqual(
 				TEXT("The shape material should have restored min elastic rest length"),
 				ShapeMaterial->Bulk.MinElasticRestLength, 1500000.0);
@@ -191,8 +201,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Roughness"),
 				ShapeMaterial->Surface.Roughness, 1700000.0);
 			TestEqual(
-				TEXT("The shape material should have restored viscosity"),
-				ShapeMaterial->Surface.Viscosity, 1800000.0);
+				TEXT("The shape material should have restored friction compliance"),
+				ShapeMaterial->Surface.FrictionCompliance, 1800000.0);
 			TestEqual(
 				TEXT("The shape material should have restored adhesive force"),
 				ShapeMaterial->Surface.AdhesiveForce, 1900000.0);
@@ -203,14 +213,14 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Young's modulus stretch"),
 				ShapeMaterial->Wire.YoungsModulusStretch, 1210000.0);
 			TestEqual(
-				TEXT("The shape material should have restored Spook damping stretch"),
-				ShapeMaterial->Wire.SpookDampingStretch, 1310000.0);
+				TEXT("The shape material should have converted wire stretch damping to attenuation"),
+				ShapeMaterial->Wire.AttenuationStretch, LegacyDampingToAttenuation(1310000.0));
 			TestEqual(
 				TEXT("The shape material should have restored Young's modulus bend"),
 				ShapeMaterial->Wire.YoungsModulusBend, 1410000.0);
 			TestEqual(
-				TEXT("The shape material should have restored Spook damping bend"),
-				ShapeMaterial->Wire.SpookDampingBend, 1510000.0);
+				TEXT("The shape material should have converted wire bend damping to attenuation"),
+				ShapeMaterial->Wire.AttenuationBend, LegacyDampingToAttenuation(1510000.0));
 		});
 	});
 
@@ -235,11 +245,11 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The contact material should have restored secondary friction coefficient"),
 				ContactMaterial->SecondaryFrictionCoefficient, 2000000.0);
 			TestEqual(
-				TEXT("The contact material should have restored surface viscosity"),
-				ContactMaterial->SurfaceViscosity, 3000000.0);
+				TEXT("The contact material should have restored friction compliance"),
+				ContactMaterial->FrictionCompliance, 3000000.0);
 			TestEqual(
-				TEXT("The contact material should have restored secondary surface viscosity"),
-				ContactMaterial->SecondarySurfaceViscosity, 4000000.0);
+				TEXT("The contact material should have restored secondary friction compliance"),
+				ContactMaterial->SecondaryFrictionCompliance, 4000000.0);
 			TestEqual(
 				TEXT("The contact material should have restored Restitution"),
 				ContactMaterial->Restitution, 5000000.0);
@@ -247,8 +257,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The contact material should have restored Young's modulus"),
 				ContactMaterial->YoungsModulus, 6000000.0);
 			TestEqual(
-				TEXT("The contact material should have restored Spook damping"),
-				ContactMaterial->SpookDamping, 7000000.0);
+				TEXT("The contact material should have converted damping to attenuation"),
+				ContactMaterial->Attenuation, LegacyDampingToAttenuation(7000000.0));
 			TestEqual(
 				TEXT("The contact material should have restored adhesive force"),
 				ContactMaterial->AdhesiveForce, 8000000.0);
@@ -360,8 +370,8 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 				TEXT("The shape material should have restored Roughness"),
 				TerrainMaterial->GetShapeMaterialSurfaceProperties().Roughness == 0.000019);
 			TestTrue(
-				TEXT("The shape material should have restored viscosity"),
-				TerrainMaterial->GetShapeMaterialSurfaceProperties().Viscosity == 0.000021);
+				TEXT("The shape material should have restored friction compliance"),
+				TerrainMaterial->GetShapeMaterialSurfaceProperties().FrictionCompliance == 0.000021);
 			TestTrue(
 				TEXT("The shape material should have restored adhesive force"),
 				TerrainMaterial->GetShapeMaterialSurfaceProperties().AdhesiveForce == 0.000022);
@@ -371,15 +381,17 @@ void FFAGX_RealInMaterialsBackwardsCompatibilitySpec::Define()
 			TestTrue(
 				TEXT("The shape material should have restored Young's modulus stretch"),
 				TerrainMaterial->GetShapeMaterialWireProperties().YoungsModulusStretch == 0.000024);
-			TestTrue(
-				TEXT("The shape material should have restored Spook damping stretch"),
-				TerrainMaterial->GetShapeMaterialWireProperties().SpookDampingStretch == 0.000025);
+			TestEqual(
+				TEXT("The shape material should have converted wire stretch damping to attenuation"),
+				TerrainMaterial->GetShapeMaterialWireProperties().AttenuationStretch,
+				LegacyDampingToAttenuation(0.000025));
 			TestTrue(
 				TEXT("The shape material should have restored Young's modulus bend"),
 				TerrainMaterial->GetShapeMaterialWireProperties().YoungsModulusBend == 0.000026);
-			TestTrue(
-				TEXT("The shape material should have restored Spook damping bend"),
-				TerrainMaterial->GetShapeMaterialWireProperties().SpookDampingBend == 0.000027);
+			TestEqual(
+				TEXT("The shape material should have converted wire bend damping to attenuation"),
+				TerrainMaterial->GetShapeMaterialWireProperties().AttenuationBend,
+				LegacyDampingToAttenuation(0.000027));
 		});
 	});
 }
@@ -500,9 +512,9 @@ void FAGX_TerrainMaterialSplitBackwardsCompatibilitySpec::Define()
 				   TestTrue(
 					   TEXT("ShapeMaterial Bulk Viscosity"),
 					   TempShapeMaterial->Bulk.Viscosity == 0.5);
-				   TestTrue(
-					   TEXT("ShapeMaterial Bulk SpookDamping"),
-					   TempShapeMaterial->Bulk.SpookDamping == 0.075);
+				   TestEqual(
+					   TEXT("ShapeMaterial Bulk Attenuation"),
+					   TempShapeMaterial->Bulk.Attenuation, LegacyDampingToAttenuation(0.075));
 				   TestTrue(
 					   TEXT("ShapeMaterial Bulk MinElasticRestLength"),
 					   TempShapeMaterial->Bulk.MinElasticRestLength == 0.05);
@@ -517,8 +529,8 @@ void FAGX_TerrainMaterialSplitBackwardsCompatibilitySpec::Define()
 					   TEXT("ShapeMaterial Surface Roughness"),
 					   TempShapeMaterial->Surface.Roughness == 0.314);
 				   TestTrue(
-					   TEXT("ShapeMaterial Surface Viscosity"),
-					   TempShapeMaterial->Surface.Viscosity == 1.0);
+					   TEXT("ShapeMaterial Friction Compliance"),
+					   TempShapeMaterial->Surface.FrictionCompliance == 1.0);
 				   TestTrue(
 					   TEXT("ShapeMaterial Surface AdhesiveForce"),
 					   TempShapeMaterial->Surface.AdhesiveForce == 2.0);
@@ -529,15 +541,15 @@ void FAGX_TerrainMaterialSplitBackwardsCompatibilitySpec::Define()
 				   TestTrue(
 					   TEXT("ShapeMaterial Wire YoungsModulusStretch"),
 					   TempShapeMaterial->Wire.YoungsModulusStretch == 4.0);
-				   TestTrue(
-					   TEXT("ShapeMaterial Wire SpookDampingStretch"),
-					   TempShapeMaterial->Wire.SpookDampingStretch == 5.0);
+				   TestEqual(
+					   TEXT("ShapeMaterial Wire AttenuationStretch"),
+					   TempShapeMaterial->Wire.AttenuationStretch, LegacyDampingToAttenuation(5.0));
 				   TestTrue(
 					   TEXT("ShapeMaterial Wire YoungsModulusBend"),
 					   TempShapeMaterial->Wire.YoungsModulusBend == 6.0);
-				   TestTrue(
-					   TEXT("ShapeMaterial Wire SpookDampingBend"),
-					   TempShapeMaterial->Wire.SpookDampingBend == 7.0);
+				   TestEqual(
+					   TEXT("ShapeMaterial Wire AttenuationBend"),
+					   TempShapeMaterial->Wire.AttenuationBend, LegacyDampingToAttenuation(7.0));
 			   });
 		});
 }

@@ -245,3 +245,20 @@ void UAGX_WheelJointComponent::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(ThisClass, SuspensionTargetSpeedController));
 }
 #endif // WITH_EDITOR
+
+void UAGX_WheelJointComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+
+	SteeringLockController.Serialize(Archive);
+	SteeringRangeController.Serialize(Archive);
+	SteeringTargetSpeedController.Serialize(Archive);
+
+	WheelLockController.Serialize(Archive);
+	WheelRangeController.Serialize(Archive);
+	WheelTargetSpeedController.Serialize(Archive);
+
+	SuspensionLockController.Serialize(Archive);
+	SuspensionRangeController.Serialize(Archive);
+	SuspensionTargetSpeedController.Serialize(Archive);
+}

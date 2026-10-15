@@ -5,48 +5,51 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
 #include "Cable/AGX_CableComponent.h"
 #include "Cable/CableBarrier.h"
 #include "Import/AGX_ImportContext.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Serialization/Archive.h"
 #include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 
-
-void UAGX_CableProperties::SetSpookDampingBend(double SpookDamping)
+void UAGX_CableProperties::SetAttenuationBend(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingBend, SpookDamping, SetSpookDampingBend);
+	AGX_ASSET_SETTER_IMPL_VALUE(AttenuationBend, Attenuation, SetAttenuationBend);
 }
 
-double UAGX_CableProperties::GetSpookDampingBend() const
+double UAGX_CableProperties::GetAttenuationBend() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingBend, GetSpookDampingBend);
+	AGX_ASSET_GETTER_IMPL_VALUE(AttenuationBend, GetAttenuationBend);
 }
 
-void UAGX_CableProperties::SetSpookDampingTwist(double SpookDamping)
+void UAGX_CableProperties::SetAttenuationTwist(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingTwist, SpookDamping, SetSpookDampingTwist);
+	AGX_ASSET_SETTER_IMPL_VALUE(AttenuationTwist, Attenuation, SetAttenuationTwist);
 }
 
-double UAGX_CableProperties::GetSpookDampingTwist() const
+double UAGX_CableProperties::GetAttenuationTwist() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingTwist, GetSpookDampingTwist);
+	AGX_ASSET_GETTER_IMPL_VALUE(AttenuationTwist, GetAttenuationTwist);
 }
 
-void UAGX_CableProperties::SetSpookDampingStretch(double SpookDamping)
+void UAGX_CableProperties::SetAttenuationStretch(double Attenuation)
 {
-	AGX_ASSET_SETTER_IMPL_VALUE(SpookDampingStretch, SpookDamping, SetSpookDampingStretch);
+	AGX_ASSET_SETTER_IMPL_VALUE(AttenuationStretch, Attenuation, SetAttenuationStretch);
 }
 
-double UAGX_CableProperties::GetSpookDampingStretch() const
+double UAGX_CableProperties::GetAttenuationStretch() const
 {
-	AGX_ASSET_GETTER_IMPL_VALUE(SpookDampingStretch, GetSpookDampingStretch);
+	AGX_ASSET_GETTER_IMPL_VALUE(AttenuationStretch, GetAttenuationStretch);
 }
 
 void UAGX_CableProperties::SetPoissonsRatioBend(double PoissonsRatio)
@@ -240,9 +243,9 @@ void UAGX_CableProperties::CopyFrom(const FCablePropertiesBarrier& Source)
 	if (!Source.HasNative())
 		return;
 
-	SpookDampingBend = Source.GetSpookDampingBend();
-	SpookDampingTwist = Source.GetSpookDampingTwist();
-	SpookDampingStretch = Source.GetSpookDampingStretch();
+	AttenuationBend = Source.GetAttenuationBend();
+	AttenuationTwist = Source.GetAttenuationTwist();
+	AttenuationStretch = Source.GetAttenuationStretch();
 
 	PoissonsRatioBend = Source.GetPoissonsRatioBend();
 	PoissonsRatioTwist = Source.GetPoissonsRatioTwist();
@@ -258,9 +261,9 @@ void UAGX_CableProperties::CopyFrom(const UAGX_CableProperties* Source)
 	if (Source == nullptr)
 		return;
 
-	SpookDampingBend = Source->SpookDampingBend;
-	SpookDampingTwist = Source->SpookDampingTwist;
-	SpookDampingStretch = Source->SpookDampingStretch;
+	AttenuationBend = Source->AttenuationBend;
+	AttenuationTwist = Source->AttenuationTwist;
+	AttenuationStretch = Source->AttenuationStretch;
 
 	PoissonsRatioBend = Source->PoissonsRatioBend;
 	PoissonsRatioTwist = Source->PoissonsRatioTwist;
@@ -330,9 +333,9 @@ void UAGX_CableProperties::UpdateNativeProperties()
 	if (!IsInstance() || !HasNative())
 		return;
 
-	NativeBarrier.SetSpookDampingBend(SpookDampingBend);
-	NativeBarrier.SetSpookDampingTwist(SpookDampingTwist);
-	NativeBarrier.SetSpookDampingStretch(SpookDampingStretch);
+	NativeBarrier.SetAttenuationBend(AttenuationBend);
+	NativeBarrier.SetAttenuationTwist(AttenuationTwist);
+	NativeBarrier.SetAttenuationStretch(AttenuationStretch);
 
 	NativeBarrier.SetPoissonsRatioBend(PoissonsRatioBend);
 	NativeBarrier.SetPoissonsRatioTwist(PoissonsRatioTwist);
@@ -341,6 +344,74 @@ void UAGX_CableProperties::UpdateNativeProperties()
 	NativeBarrier.SetYoungsModulusBend(YoungsModulusBend);
 	NativeBarrier.SetYoungsModulusTwist(YoungsModulusTwist);
 	NativeBarrier.SetYoungsModulusStretch(YoungsModulusStretch);
+}
+
+namespace AGX_CableProperties_helpers
+{
+	double GetLegacyConversionTimeStep()
+	{
+		// Like Track Properties, an asset has no owning simulation during load. Use the
+		// configured project timestep, since the original timestep was not stored in the asset.
+		const UAGX_Simulation* Simulation = GetDefault<UAGX_Simulation>();
+		return Simulation != nullptr ? Simulation->TimeStep : (1.0 / 60.0);
+	}
+}
+
+void UAGX_CableProperties::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		const double TimeStep = AGX_CableProperties_helpers::GetLegacyConversionTimeStep();
+		AttenuationBend =
+			FAGXUtilities::ConvertSpookDampingToAttenuation(SpookDampingBend_DEPRECATED, TimeStep);
+		AttenuationTwist =
+			FAGXUtilities::ConvertSpookDampingToAttenuation(SpookDampingTwist_DEPRECATED, TimeStep);
+		AttenuationStretch = FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDampingStretch_DEPRECATED, TimeStep);
+
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
+	}
+}
+
+void UAGX_CableProperties::SetSpookDampingBend(double SpookDamping)
+{
+	SetAttenuationBend(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+}
+
+double UAGX_CableProperties::GetSpookDampingBend() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuationBend(), AGX_CableProperties_helpers::GetLegacyConversionTimeStep());
+}
+
+void UAGX_CableProperties::SetSpookDampingTwist(double SpookDamping)
+{
+	SetAttenuationTwist(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+}
+
+double UAGX_CableProperties::GetSpookDampingTwist() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuationTwist(), AGX_CableProperties_helpers::GetLegacyConversionTimeStep());
+}
+
+void UAGX_CableProperties::SetSpookDampingStretch(double SpookDamping)
+{
+	SetAttenuationStretch(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+}
+
+double UAGX_CableProperties::GetSpookDampingStretch() const
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuationStretch(), AGX_CableProperties_helpers::GetLegacyConversionTimeStep());
 }
 
 void UAGX_CableProperties::PostInitProperties()
@@ -367,9 +438,9 @@ void UAGX_CableProperties::InitPropertyDispatcher()
 		return;
 	}
 
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingBend);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingTwist);
-	AGX_COMPONENT_DEFAULT_DISPATCHER(SpookDampingStretch);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AttenuationBend);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AttenuationTwist);
+	AGX_COMPONENT_DEFAULT_DISPATCHER(AttenuationStretch);
 
 	AGX_COMPONENT_DEFAULT_DISPATCHER(PoissonsRatioBend);
 	AGX_COMPONENT_DEFAULT_DISPATCHER(PoissonsRatioTwist);

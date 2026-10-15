@@ -5,14 +5,17 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_PropertyChangedDispatcher.h"
 #include "AGX_Simulation.h"
 #include "Import/AGX_ImportContext.h"
 #include "Materials/TerrainMaterialBarrier.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+#include "Serialization/Archive.h"
 
 // Bulk properties.
 
@@ -761,6 +764,13 @@ void UAGX_TerrainMaterial::Serialize(FArchive& Archive)
 {
 	Super::Serialize(Archive);
 	TerrainCompaction.Serialize(Archive);
+	Bulk.Serialize(Archive);
+	Surface.Serialize(Archive);
+	Wire.Serialize(Archive);
+#if WITH_EDITOR
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
 }
 
 #if WITH_EDITOR
