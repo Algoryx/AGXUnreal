@@ -38,6 +38,14 @@ class AGXUNREAL_API UAGX_AGXUtilities : public UBlueprintFunctionLibrary
 public:
 	GENERATED_BODY()
 
+	/** Convert compliance to stiffness, using consistent force and displacement units. */
+	UFUNCTION(BlueprintPure, Category = "AGX Utilities")
+	static double ConvertComplianceToStiffness(double Compliance);
+
+	/** Convert stiffness to compliance, using consistent force and displacement units. */
+	UFUNCTION(BlueprintPure, Category = "AGX Utilities")
+	static double ConvertStiffnessToCompliance(double Stiffness);
+
 	/** Convert SPOOK damping [s] to attenuation [steps]. TimeStep must be positive [s]. */
 	UFUNCTION(BlueprintPure, Category = "AGX Utilities")
 	static double ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep);

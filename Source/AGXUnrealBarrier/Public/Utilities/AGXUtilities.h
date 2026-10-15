@@ -10,6 +10,12 @@ struct FRigidBodyBarrier;
 class AGXUNREALBARRIER_API FAGXUtilities
 {
 public:
+	/** Convert compliance to stiffness, using consistent force and displacement units. */
+	static double ConvertComplianceToStiffness(double Compliance);
+
+	/** Convert stiffness to compliance, using consistent force and displacement units. */
+	static double ConvertStiffnessToCompliance(double Stiffness);
+
 	/** Convert SPOOK damping [s] to attenuation [steps]. TimeStep must be positive [s]. */
 	static double ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep);
 

@@ -28,6 +28,7 @@
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
+#include "Utilities/AGXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -2090,15 +2091,23 @@ bool FCheckConstraintDynamicParametersImportedCommand::Update()
 		104.0);
 	// Rotational 3 is not supported for AGX::Hinge.
 
-	// SpookDamping.
+	// Attenuation. The archived scene used damping and a 60 Hz timestep.
+	// Allow for float precision in the timestep stored by older AGX versions.
 	Test.TestEqual(
-		TEXT("Translational 1 damping"), Constraint->SpookDamping.Translational_1, 200.0);
+		TEXT("Translational 1 attenuation"), Constraint->Attenuation.Translational_1,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(200.0, 1.0 / 60.0), 0.001);
 	Test.TestEqual(
-		TEXT("Translational 2 damping"), Constraint->SpookDamping.Translational_2, 201.0);
+		TEXT("Translational 2 attenuation"), Constraint->Attenuation.Translational_2,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(201.0, 1.0 / 60.0), 0.001);
 	Test.TestEqual(
-		TEXT("Translational 3 damping"), Constraint->SpookDamping.Translational_3, 202.0);
-	Test.TestEqual(TEXT("Rotational 1 damping"), Constraint->SpookDamping.Rotational_1, 203.0);
-	Test.TestEqual(TEXT("Rotational 2 damping"), Constraint->SpookDamping.Rotational_2, 204.0);
+		TEXT("Translational 3 attenuation"), Constraint->Attenuation.Translational_3,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(202.0, 1.0 / 60.0), 0.001);
+	Test.TestEqual(
+		TEXT("Rotational 1 attenuation"), Constraint->Attenuation.Rotational_1,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(203.0, 1.0 / 60.0), 0.001);
+	Test.TestEqual(
+		TEXT("Rotational 2 attenuation"), Constraint->Attenuation.Rotational_2,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(204.0, 1.0 / 60.0), 0.001);
 	// Rotational 3 is not supported for AGX::Hinge.
 
 	// Force range.

@@ -12,6 +12,16 @@
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
+double FAGXUtilities::ConvertComplianceToStiffness(double Compliance)
+{
+	return agxUtil::convert::convertComplianceToStiffness(Compliance);
+}
+
+double FAGXUtilities::ConvertStiffnessToCompliance(double Stiffness)
+{
+	return agxUtil::convert::convertStiffnessToCompliance(Stiffness);
+}
+
 double FAGXUtilities::ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep)
 {
 	return agxUtil::convert::convertSpookDampingToAttenuation(SpookDamping, TimeStep);

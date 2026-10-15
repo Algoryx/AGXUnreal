@@ -137,24 +137,49 @@ public:
 	double GetCompliance(EGenericDofIndex Index) const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	void SetStiffness(EGenericDofIndex Index, double InStiffness);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetStiffness instead."))
 	void SetElasticity(EGenericDofIndex Index, double InElasticity);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetStiffness(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetStiffness instead."))
 	double GetElasticity(EGenericDofIndex Index) const;
 
 	/**
-	 * The damping (spook) of the Constraint [s].
-	 * The value is the time the constraint has to fulfill its violation.
+	 * Attenuation of the Constraint [steps].
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Constraint",
-		Meta = (SliderMin = "1e-2", SliderMax = "5.0", SliderExponent = "2"))
-	FAGX_ConstraintDoublePropertyPerDof SpookDamping;
+		Meta = (SliderMin = "0", SliderMax = "300.0", SliderExponent = "2"))
+	FAGX_ConstraintDoublePropertyPerDof Attenuation;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	void SetAttenuation(EGenericDofIndex Index, double InAttenuation);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	void SetSpookDamping(EGenericDofIndex Index, double InSpookDamping);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint")
+	double GetAttenuation(EGenericDofIndex Index) const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	double GetSpookDamping(EGenericDofIndex Index) const;
 
 	/**
@@ -413,7 +438,7 @@ public:
 
 	void UpdateNativeCompliance();
 
-	void UpdateNativeSpookDamping();
+	void UpdateNativeAttenuation();
 
 	void UpdateNativeElementaryConstraintsEnabled();
 
@@ -486,28 +511,28 @@ public: // Deprecated functions.
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetElasticity instead of SetElasticityFloat"))
+			 DeprecationMessage = "Use SetStiffness instead."))
 	void SetElasticityFloat(EGenericDofIndex Index, float InElasticity);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetElasticity instead of GetElasticityFloat"))
+			 DeprecationMessage = "Use GetStiffness instead."))
 	float GetElasticityFloat(EGenericDofIndex Index) const;
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetSpookDamping instead of SetSpookDampinFloat"))
+			 DeprecationMessage = "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	void SetSpookDampingFloat(EGenericDofIndex Index, float InSpookDamping);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetSpookDamping instead of GetSpookDampingFloat"))
+			 DeprecationMessage = "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	float GetSpookDampingFloat(EGenericDofIndex Index) const;
 
 	UFUNCTION(
@@ -584,6 +609,9 @@ private:
 	const TMap<EGenericDofIndex, int32> NativeDofIndexMap;
 
 private: // Deprecated functionality.
+	UPROPERTY()
+	FAGX_ConstraintDoublePropertyPerDof SpookDamping_DEPRECATED;
+
 	/**
 	 * The elasticity in a certain DOF. Measured in [N/m] for translational DOFs and [Nm/rad] for
 	 * rotational DOFs.

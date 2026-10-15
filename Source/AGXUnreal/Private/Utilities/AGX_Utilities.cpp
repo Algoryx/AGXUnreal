@@ -18,6 +18,16 @@
 #include "Misc/Paths.h"
 #include "UObject/StrongObjectPtr.h"
 
+double UAGX_AGXUtilities::ConvertComplianceToStiffness(double Compliance)
+{
+	return FAGXUtilities::ConvertComplianceToStiffness(Compliance);
+}
+
+double UAGX_AGXUtilities::ConvertStiffnessToCompliance(double Stiffness)
+{
+	return FAGXUtilities::ConvertStiffnessToCompliance(Stiffness);
+}
+
 double UAGX_AGXUtilities::ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep)
 {
 	return FAGXUtilities::ConvertSpookDampingToAttenuation(SpookDamping, TimeStep);
