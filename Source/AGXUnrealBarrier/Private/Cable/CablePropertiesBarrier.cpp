@@ -16,40 +16,40 @@ FCablePropertiesBarrier::FCablePropertiesBarrier(std::shared_ptr<FCablePropertie
 {
 }
 
-void FCablePropertiesBarrier::SetAttenuationBend(double Attenuation)
+void FCablePropertiesBarrier::SetSpookDampingBend(double SpookDamping)
 {
 	check(HasNative());
-	NativeRef->Native->setAttenuation(Attenuation, agxCable::BEND);
+	NativeRef->Native->setDamping(SpookDamping, agxCable::BEND);
 }
 
-double FCablePropertiesBarrier::GetAttenuationBend() const
+double FCablePropertiesBarrier::GetSpookDampingBend() const
 {
 	check(HasNative());
-	return NativeRef->Native->getAttenuation(agxCable::BEND);
+	return NativeRef->Native->getDamping(agxCable::BEND);
 }
 
-void FCablePropertiesBarrier::SetAttenuationTwist(double Attenuation)
+void FCablePropertiesBarrier::SetSpookDampingTwist(double SpookDamping)
 {
 	check(HasNative());
-	NativeRef->Native->setAttenuation(Attenuation, agxCable::TWIST);
+	NativeRef->Native->setDamping(SpookDamping, agxCable::TWIST);
 }
 
-double FCablePropertiesBarrier::GetAttenuationTwist() const
+double FCablePropertiesBarrier::GetSpookDampingTwist() const
 {
 	check(HasNative());
-	return NativeRef->Native->getAttenuation(agxCable::TWIST);
+	return NativeRef->Native->getDamping(agxCable::TWIST);
 }
 
-void FCablePropertiesBarrier::SetAttenuationStretch(double Attenuation)
+void FCablePropertiesBarrier::SetSpookDampingStretch(double SpookDamping)
 {
 	check(HasNative());
-	NativeRef->Native->setAttenuation(Attenuation, agxCable::STRETCH);
+	NativeRef->Native->setDamping(SpookDamping, agxCable::STRETCH);
 }
 
-double FCablePropertiesBarrier::GetAttenuationStretch() const
+double FCablePropertiesBarrier::GetSpookDampingStretch() const
 {
 	check(HasNative());
-	return NativeRef->Native->getAttenuation(agxCable::STRETCH);
+	return NativeRef->Native->getDamping(agxCable::STRETCH);
 }
 
 void FCablePropertiesBarrier::SetPoissonsRatioBend(double PoissonsRatio)

@@ -29,43 +29,43 @@ public:
 	UAGX_CableProperties() = default;
 
 	/**
-	 * Attenuation when bending the Cable [steps].
-	 * The number of simulation steps the constraint has to fulfill its violation.
+	 * Spook Damping when bending the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double AttenuationBend {2.0};
+	double SpookDampingBend {0.0333};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	void SetAttenuationBend(double Attenuation);
+	void SetSpookDampingBend(double SpookDamping);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	double GetAttenuationBend() const;
+	double GetSpookDampingBend() const;
 
 	/**
-	 * Attenuation when twisting the Cable [steps].
-	 * The number of simulation steps the constraint has to fulfill its violation.
+	 * Spook Damping when twisting the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double AttenuationTwist {2.0};
+	double SpookDampingTwist {0.0333};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	void SetAttenuationTwist(double Attenuation);
+	void SetSpookDampingTwist(double SpookDamping);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	double GetAttenuationTwist() const;
+	double GetSpookDampingTwist() const;
 
 	/**
-	 * Attenuation when stretching the Cable [steps].
-	 * The number of simulation steps the constraint has to fulfill its violation.
+	 * Spook Damping when stretching the Cable [s].
+	 * The value is the time the constraint has to fulfill its violation.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Cable")
-	double AttenuationStretch {2.0};
+	double SpookDampingStretch {0.0333};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	void SetAttenuationStretch(double Attenuation);
+	void SetSpookDampingStretch(double SpookDamping);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Cable")
-	double GetAttenuationStretch() const;
+	double GetSpookDampingStretch() const;
 
 	/**
 	 * Poisson's Ratio when bending the Cable.
@@ -174,43 +174,11 @@ public:
 	void UpdateNativeProperties();
 
 	// ~Begin UObject interface.
-	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 #endif
 // ~End UObject interface.
-
-	// Legacy Blueprint functions use the project simulation timestep to convert seconds to steps.
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetAttenuationBend instead."))
-	void SetSpookDampingBend(double SpookDamping);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetAttenuationBend instead."))
-	double GetSpookDampingBend() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetAttenuationTwist instead."))
-	void SetSpookDampingTwist(double SpookDamping);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetAttenuationTwist instead."))
-	double GetSpookDampingTwist() const;
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetAttenuationStretch instead."))
-	void SetSpookDampingStretch(double SpookDamping);
-
-	UFUNCTION(
-		BlueprintCallable, Category = "AGX Cable",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetAttenuationStretch instead."))
-	double GetSpookDampingStretch() const;
 
 private:
 #if WITH_EDITOR
@@ -220,16 +188,6 @@ private:
 	void CreateNative();
 
 private:
-	// Unreal loads the old property names into these fields, but does not save them again.
-	UPROPERTY()
-	double SpookDampingBend_DEPRECATED {0.0333};
-
-	UPROPERTY()
-	double SpookDampingTwist_DEPRECATED {0.0333};
-
-	UPROPERTY()
-	double SpookDampingStretch_DEPRECATED {0.0333};
-
 	/// The persistent asset that this runtime instance was created from. Nullptr for assets.
 	TWeakObjectPtr<UAGX_CableProperties> Asset {nullptr};
 
