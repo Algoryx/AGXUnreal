@@ -5,16 +5,22 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
+#include "AGX_Simulation.h"
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/ControllerConstraintBarriers.h"
+#include "Utilities/AGXUtilities.h"
 
+// Unreal Engine includes.
+#include "Serialization/Archive.h"
+#include "UObject/UObjectGlobals.h"
 
 FAGX_ConstraintController::FAGX_ConstraintController()
 	: bEnable(false)
 	, Compliance(ConstraintConstants::DefaultCompliance())
-	, SpookDamping(ConstraintConstants::DefaultSpookDamping())
+	, Attenuation(ConstraintConstants::DefaultAttenuation())
 	, ForceRange(ConstraintConstants::DefaultForceRange())
 	, NativeBarrier(nullptr)
+	, SpookDamping_DEPRECATED(ConstraintConstants::DefaultSpookDamping())
 	, Elasticity_DEPRECATED(ConstraintConstants::DefaultElasticity())
 {
 }
@@ -28,7 +34,7 @@ FAGX_ConstraintController& FAGX_ConstraintController::operator=(
 {
 	bEnable = Other.bEnable;
 	Compliance = Other.Compliance;
-	SpookDamping = Other.SpookDamping;
+	Attenuation = Other.Attenuation;
 	ForceRange = Other.ForceRange;
 	Name = Other.Name;
 	return *this;
@@ -89,34 +95,56 @@ double FAGX_ConstraintController::GetCompliance() const
 	}
 }
 
+void FAGX_ConstraintController::SetStiffness(double InStiffness)
+{
+	SetCompliance(FAGXUtilities::ConvertStiffnessToCompliance(InStiffness));
+}
+
+double FAGX_ConstraintController::GetStiffness() const
+{
+	return FAGXUtilities::ConvertComplianceToStiffness(GetCompliance());
+}
+
 void FAGX_ConstraintController::SetElasticity(double InElasticity)
 {
-	SetCompliance(1.0 / InElasticity);
+	SetStiffness(InElasticity);
 }
 
 double FAGX_ConstraintController::GetElasticity() const
 {
-	return 1.0 / GetCompliance();
+	return GetStiffness();
 }
 
 void FAGX_ConstraintController::SetSpookDamping(double InSpookDamping)
 {
-	if (HasNative())
-	{
-		NativeBarrier->SetSpookDamping(InSpookDamping);
-	}
-	SpookDamping = InSpookDamping;
+	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
+		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double FAGX_ConstraintController::GetSpookDamping() const
 {
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuation(), GetDefault<UAGX_Simulation>()->TimeStep);
+}
+
+void FAGX_ConstraintController::SetAttenuation(double InAttenuation)
+{
 	if (HasNative())
 	{
-		return NativeBarrier->GetSpookDamping();
+		NativeBarrier->SetAttenuation(InAttenuation);
+	}
+	Attenuation = InAttenuation;
+}
+
+double FAGX_ConstraintController::GetAttenuation() const
+{
+	if (HasNative())
+	{
+		return NativeBarrier->GetAttenuation();
 	}
 	else
 	{
-		return SpookDamping;
+		return Attenuation;
 	}
 }
 
@@ -163,6 +191,11 @@ void FAGX_ConstraintController::Serialize(FArchive& Archive)
 	{
 		Compliance = 1.0 / Elasticity_DEPRECATED;
 	}
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		Attenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping_DEPRECATED, GetDefault<UAGX_Simulation>()->TimeStep);
+	}
 }
 
 bool FAGX_ConstraintController::HasNative() const
@@ -189,7 +222,7 @@ void FAGX_ConstraintController::UpdateNativeProperties()
 	}
 	NativeBarrier->SetEnable(bEnable);
 	NativeBarrier->SetCompliance(Compliance);
-	NativeBarrier->SetSpookDamping(SpookDamping);
+	NativeBarrier->SetAttenuation(Attenuation);
 	NativeBarrier->SetForceRange(ForceRange);
 	NativeBarrier->SetName(Name);
 	UpdateNativePropertiesImpl();
@@ -199,7 +232,7 @@ void FAGX_ConstraintController::CopyFrom(const FConstraintControllerBarrier& Sou
 {
 	bEnable = Source.GetEnable();
 	Compliance = Source.GetCompliance();
-	SpookDamping = Source.GetSpookDamping();
+	Attenuation = Source.GetAttenuation();
 	ForceRange = Source.GetForceRange();
 	Name = Source.GetName();
 }

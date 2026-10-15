@@ -690,7 +690,8 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	// (handled below). It does not create other things that we have to add explicitly to the
 	// Assembly or Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
-	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(System);
+	agxPowerLine::PowerLineRef PowerLine =
+		DriveTrainMapper.mapDriveTrainIntoPowerLine(System, Simulation.GetTimeStep());
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{

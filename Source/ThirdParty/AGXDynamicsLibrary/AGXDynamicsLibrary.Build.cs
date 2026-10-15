@@ -237,7 +237,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
-		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -259,7 +258,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
@@ -902,8 +900,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+			// Local AGX builds include internal terrain materials that are not part of the distribution.
+			List<string> FilesToIgnore = new List<string>
+				{ Path.Combine("TerrainMaterials", "internal") + Path.DirectorySeparatorChar };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -915,8 +916,10 @@ public class AGXDynamicsLibrary : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.WebDebugger, true);
+			// The debugger launcher scripts are not needed by AGXUnreal.
+			List<string> FilesToIgnore = new List<string> { ".bat" };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
