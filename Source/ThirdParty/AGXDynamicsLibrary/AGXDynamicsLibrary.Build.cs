@@ -942,20 +942,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string ComponentsDirSource = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
 			string ComponentsDirDest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
-			string PhysicsDirSource = Path.Combine(ComponentsDirSource, "agx", "Physics");
-			string PhysicsDirDest = Path.Combine(ComponentsDirDest, "agx", "Physics");
 			string WebDirSource = Path.Combine(ComponentsDirSource, "agx", "Web");
 			string WebDirDest = Path.Combine(ComponentsDirDest, "agx", "Web");
-
-			// These two .agxKernel files are not used and have caused issues because of too long file paths on
-			// Windows since they are located in a very deep directory tree branch.
-			List<string> FilesToIgnore = new List<string>
-				{ "GenerateLinesFromJacobians.agxKernel", "RenderJacobians.agxTask" };
-			if (!CopyDirectoryRecursively(PhysicsDirSource, PhysicsDirDest, FilesToIgnore))
-			{
-				CleanBundledAGXDynamicsResources();
-				return;
-			}
 
 			// Copy all single files in the Components/agx directory.
 			if (!CopyFilesNonRecursive(Path.Combine(ComponentsDirSource, "agx"), Path.Combine(ComponentsDirDest, "agx")))
