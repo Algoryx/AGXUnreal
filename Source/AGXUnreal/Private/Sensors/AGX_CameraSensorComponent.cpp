@@ -65,8 +65,10 @@
 #include "Math/UnrealMath.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
+#include "Misc/EngineVersionComparison.h"
 #include "PixelFormat.h"
 #include "RHI.h"
+#include "RHICommandList.h"
 #include "RenderingThread.h"
 #include "SceneView.h"
 #include "TextureResource.h"
@@ -1315,7 +1317,11 @@ bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier&
 						.SetFormat(PixelFormat)
 						.SetFlags(ETextureCreateFlags::Shared | ETextureCreateFlags::CPUReadback);
 
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
 				Slot->StagingTexture = RHICreateTexture(Desc);
+#else
+				Slot->StagingTexture = RHICmdList.CreateTexture(Desc);
+#endif
 			}
 
 			if (!Slot->StagingTexture.IsValid())

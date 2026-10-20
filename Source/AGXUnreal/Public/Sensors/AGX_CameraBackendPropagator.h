@@ -7,6 +7,7 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "UObject/WeakObjectPtr.h"
 
 class UAGX_CameraSensorComponent;
 struct FCameraCMOSSensorBarrier;
