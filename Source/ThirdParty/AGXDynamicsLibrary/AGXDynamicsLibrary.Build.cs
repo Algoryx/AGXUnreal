@@ -232,6 +232,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastrtps*", LibSource.Dependencies);
+		RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
@@ -274,6 +275,8 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
+			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
+			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
