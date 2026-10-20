@@ -15,6 +15,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 
 #define LOCTEXT_NAMESPACE "SAGX_LicenseDialog"
@@ -622,21 +623,22 @@ TSharedRef<SWidget> SAGX_LicenseDialog::CreateLicenseInfoGui()
 
 TSharedRef<SWidget> SAGX_LicenseDialog::CreateRefreshAndDeactivateWidget()
 {
-	if (!LicenseData.UsesServiceLicenseWithoutSetupEnv)
-	{
-		return SNew(SHorizontalBox);
-	}
-
 	// clang-format off
 	return SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
 		[
-			SNew(SButton)
-			.Text(LOCTEXT("RefreshButtonText", "  Refresh  "))
+			SNew(SBox)
 			.ToolTipText(LOCTEXT("RefreshButtonTooltip",
-				"Refresh AGX Dynamics service license from server."))
-			.OnClicked(this, &SAGX_LicenseDialog::OnRefreshButtonClicked)
+				"Refresh AGX Dynamics service license from server. Refresh is only possible when "
+				"a service license is loaded and Unreal was launched without AGX Dynamics "
+				"setup_env."))
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("RefreshButtonText", "  Refresh  "))
+				.IsEnabled(LicenseData.UsesServiceLicenseWithoutSetupEnv)
+				.OnClicked(this, &SAGX_LicenseDialog::OnRefreshButtonClicked)
+			]
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -644,6 +646,7 @@ TSharedRef<SWidget> SAGX_LicenseDialog::CreateRefreshAndDeactivateWidget()
 		[
 			SNew(SButton)
 			.Text(LOCTEXT("DeactivateButtonText", "  Deactivate  "))
+			.Visibility(FAGX_EditorUtilities::VisibleIf(LicenseData.UsesServiceLicenseWithoutSetupEnv))
 			.ToolTipText(LOCTEXT("DeactivateButtonTooltip",
 				"Deactivate active AGX Dynamics service license and remove the service license "
 				"file (agx.lfx) from this project."))

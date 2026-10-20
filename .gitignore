@@ -5,3 +5,6 @@
 Binaries
 DerivedDataCache
 Intermediate
+*.lic
+*.lfx
+*.rtlfx
