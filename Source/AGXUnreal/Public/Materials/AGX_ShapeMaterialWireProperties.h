@@ -16,8 +16,7 @@ struct AGXUNREAL_API FAGX_ShapeMaterialWireProperties
 	GENERATED_BODY()
 
 public:
-
-	bool operator==(const FAGX_ShapeMaterialWireProperties& Other) const = default;
+	bool operator==(const FAGX_ShapeMaterialWireProperties& Other) const;
 
 	/**
 	 * Young's modulus when stretching the wire [Pa].
@@ -28,13 +27,12 @@ public:
 	FAGX_Real YoungsModulusStretch;
 
 	/**
-	 * Spook Damping when stretching the wire [s].
-	 * The value is the time the constraint has to fulfill its violation.
+	 * Attenuation when stretching the wire [steps].
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Material Wire Properties",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SpookDampingStretch;
+	FAGX_Real AttenuationStretch;
 
 	/**
 	 * Young's modulus when bending the wire [Pa].
@@ -45,14 +43,21 @@ public:
 	FAGX_Real YoungsModulusBend;
 
 	/**
-	 * Spook Damping when bending the wire [s].
-	 * The value is the time the constraint has to fulfill its violation.
+	 * Attenuation when bending the wire [steps].
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Material Wire Properties",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SpookDampingBend;
+	FAGX_Real AttenuationBend;
 
 public:
 	FAGX_ShapeMaterialWireProperties();
+	void Serialize(FArchive& Archive);
+
+private:
+	UPROPERTY()
+	FAGX_Real SpookDampingStretch_DEPRECATED;
+
+	UPROPERTY()
+	FAGX_Real SpookDampingBend_DEPRECATED;
 };

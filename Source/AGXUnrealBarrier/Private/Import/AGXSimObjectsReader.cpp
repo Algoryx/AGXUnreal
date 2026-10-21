@@ -118,9 +118,9 @@ namespace
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
 					break;
 				}
-				case agxCollide::Shape::TIRE_SHAPE:
+				case agxCollide::Shape::TERRAIN_WHEEL:
 				{
-					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// Shape::TERRAIN_WHEEL is not really used publically in AGX API's; its used
 					// internally by TerrainWheel and still uses type Cylinder.
 					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
 					OutSimObjects.GetCylinderShapes().Add(
@@ -783,11 +783,14 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	// This Uuid is randomly generated, and should never be changed. By seeding the load-call below
 	// with the same Uuid, we get consistent Uuid's on the AGX objects, by design.
 	const agx::String Uuid = "47de4303-16ef-408d-baf5-1c86f0fe4473";
+	const agx::String NamePrefix = "foobar"; // Todo: update this; and dont merge!
 
-	//  withUuidv5 below moves from, causing crash when the string is destroyed inside AGX if
-	//  allocated in Unreal.
+	// withNamePrefix and withUuidv5 below move from their arguments, causing crashes when the
+	// strings are destroyed inside AGX if allocated in Unreal.
+	agx::String NamePrefixAgxAllocated = agxUtil::copyContainerMemory(NamePrefix);
 	agx::String UuidAgxAllocated = agxUtil::copyContainerMemory(Uuid);
 	agxopenplx::OptParams Params = agxopenplx::OptParams()
+									   .withNamePrefix(std::move(NamePrefixAgxAllocated))
 									   .withUuidv5(std::move(UuidAgxAllocated))
 									   .withMapVisuals(true)
 									   .withSkipDefaultBundles()
@@ -825,7 +828,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
 	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
-	std::string SceneNamePLX = Result.scene()->getType()->getNameWithNamespace(".");
+	std::string SceneNamePLX = Result.scene()->getTypeNameWithNamespace(".");
 	OutSimObjects.SetModelName(Convert(SceneNamePLX));
 	agxUtil::freeContainerMemory(SceneNamePLX);
 

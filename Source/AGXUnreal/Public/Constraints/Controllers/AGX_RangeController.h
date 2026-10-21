@@ -109,6 +109,15 @@ class AGXUNREAL_API UAGX_ConstraintRangeController_FL : public UBlueprintFunctio
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetStiffness(
+		UPARAM(ref) FAGX_ConstraintRangeController& Controller, double Stiffness)
+	{
+		Controller.SetStiffness(Stiffness);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetStiffness instead."))
 	static void SetElasticity(
 		UPARAM(ref) FAGX_ConstraintRangeController& Controller, float Elasticity)
 	{
@@ -116,12 +125,32 @@ class AGXUNREAL_API UAGX_ConstraintRangeController_FL : public UBlueprintFunctio
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static double GetStiffness(UPARAM(ref) const FAGX_ConstraintRangeController& Controller)
+	{
+		return Controller.GetStiffness();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetStiffness instead."))
 	static float GetElasticity(UPARAM(ref) const FAGX_ConstraintRangeController& Controller)
 	{
 		return static_cast<float>(Controller.GetElasticity());
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetAttenuation(
+		UPARAM(ref) FAGX_ConstraintRangeController& Controller, double Attenuation)
+	{
+		Controller.SetAttenuation(Attenuation);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	static void SetSpookDamping(
 		UPARAM(ref) FAGX_ConstraintRangeController& Controller, float SpookDamping)
 	{
@@ -129,6 +158,17 @@ class AGXUNREAL_API UAGX_ConstraintRangeController_FL : public UBlueprintFunctio
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static double GetAttenuation(UPARAM(ref) const FAGX_ConstraintRangeController& Controller)
+	{
+		return Controller.GetAttenuation();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	static float GetSpookDamping(UPARAM(ref) const FAGX_ConstraintRangeController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpookDamping());
