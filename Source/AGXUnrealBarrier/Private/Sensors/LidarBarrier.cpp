@@ -11,6 +11,13 @@
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_DistanceGaussianNoiseSettings.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
+#include "Sensors/AGX_LivoxAviaParameters.h"
+#include "Sensors/AGX_LivoxHAPParameters.h"
+#include "Sensors/AGX_LivoxHorizonParameters.h"
+#include "Sensors/AGX_LivoxMid360Parameters.h"
+#include "Sensors/AGX_LivoxMid40Parameters.h"
+#include "Sensors/AGX_LivoxMid70Parameters.h"
+#include "Sensors/AGX_LivoxTeleParameters.h"
 #include "Sensors/AGX_OusterOS0Parameters.h"
 #include "Sensors/AGX_OusterOS1Parameters.h"
 #include "Sensors/AGX_OusterOS2Parameters.h"
@@ -21,8 +28,12 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agx/Frame.h>
+#include <agx/ref_ptr.h>
 #include <agxSensor/LidarModel.h>
+#include <agxSensor/LidarModelLivox.h>
 #include <agxSensor/LidarModelOusterOS.h>
+#include <agxSensor/LidarRayPatternGenerator.h>
 #include <agxSensor/LidarRayPatternHorizontalSweep.h>
 #include <agxSensor/RaytraceDistanceGaussianNoise.h>
 #include <agxSensor/RaytraceOutput.h>
@@ -81,6 +92,64 @@ namespace LidarBarrier_helpers
 			new agx::Frame(), new agxSensor::LidarModelOusterOS2(CountAGX, BeamSpacingAGX, Mode));
 	}
 
+	template <typename ModelT>
+	agxSensor::Lidar* CreateLivoxLidar(int32 Downsample)
+	{
+		if (Downsample < 1)
+		{
+			UE_LOG(LogAGX, Error, TEXT("Livox Downsample must be at least 1."));
+			return nullptr;
+		}
+
+		agx::ref_ptr<ModelT> Model = new ModelT(static_cast<size_t>(Downsample));
+		if (Model->getRayPatternGenerator()->getNumRays() == 0)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT(
+					"Unable to load the Livox ray pattern. Ensure the AGX Dynamics "
+					"MaterialLibrary/LidarRayPatterns files are available."));
+			return nullptr;
+		}
+
+		return new agxSensor::Lidar(new agx::Frame(), Model.get());
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxAviaParameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxAvia>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxHAPParameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxHap>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxHorizonParameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxHorizon>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxMid40Parameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxMid40>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxMid70Parameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxMid70>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxMid360Parameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxMid360>(Params.Downsample);
+	}
+
+	agxSensor::Lidar* CreateAGXLidar(const UAGX_LivoxTeleParameters& Params)
+	{
+		return CreateLivoxLidar<agxSensor::LidarModelLivoxTele>(Params.Downsample);
+	}
+
 	agxSensor::Lidar* CreateAGXLidar(FCustomPatternFetcherBase* PatternFetcher)
 	{
 		return new agxSensor::Lidar(
@@ -117,6 +186,22 @@ namespace LidarBarrier_helpers
 		ChannelCount = Convert(Model.getChannelCount());
 		BeamSpacing = Convert(Model.getBeamSpacing());
 		Mode = Convert(Model.getLidarMode());
+	}
+
+	template <typename ModelT, typename ParametersT>
+	bool ReadLivoxModelParameters(const FLidarBarrier& Lidar, ParametersT& Parameters)
+	{
+		const agxSensor::LidarModel* Model = GetLidarModel(Lidar);
+		const ModelT* LivoxModel = Model != nullptr ? Model->asSafe<ModelT>() : nullptr;
+		if (LivoxModel == nullptr)
+			return false;
+
+		const size_t Downsample = LivoxModel->getDownsample();
+		if (Downsample == 0 || Downsample > static_cast<size_t>(std::numeric_limits<int32>::max()))
+			return false;
+
+		Parameters.Downsample = static_cast<int32>(Downsample);
+		return true;
 	}
 
 	double CalculateAngularResolution(double Fov, agx::UInt Resolution)
@@ -156,6 +241,27 @@ EAGX_LidarModel FLidarBarrier::GetModel() const
 	if (Model->is<agxSensor::LidarModelOusterOS2>())
 		return EAGX_LidarModel::OusterOS2;
 
+	if (Model->is<agxSensor::LidarModelLivoxAvia>())
+		return EAGX_LidarModel::LivoxAvia;
+
+	if (Model->is<agxSensor::LidarModelLivoxHap>())
+		return EAGX_LidarModel::LivoxHAP;
+
+	if (Model->is<agxSensor::LidarModelLivoxHorizon>())
+		return EAGX_LidarModel::LivoxHorizon;
+
+	if (Model->is<agxSensor::LidarModelLivoxMid40>())
+		return EAGX_LidarModel::LivoxMid40;
+
+	if (Model->is<agxSensor::LidarModelLivoxMid70>())
+		return EAGX_LidarModel::LivoxMid70;
+
+	if (Model->is<agxSensor::LidarModelLivoxMid360>())
+		return EAGX_LidarModel::LivoxMid360;
+
+	if (Model->is<agxSensor::LidarModelLivoxTele>())
+		return EAGX_LidarModel::LivoxTele;
+
 	return EAGX_LidarModel::Invalid;
 }
 
@@ -187,6 +293,34 @@ void FLidarBarrier::AllocateNative(EAGX_LidarModel Model, const UAGX_LidarModelP
 		case EAGX_LidarModel::OusterOS2:
 			NativeRef->Native =
 				CreateAGXLidar(*static_cast<const UAGX_OusterOS2Parameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxAvia:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxAviaParameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxHAP:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxHAPParameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxHorizon:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxHorizonParameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxMid40:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxMid40Parameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxMid70:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxMid70Parameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxMid360:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxMid360Parameters*>(&Params));
+			return;
+		case EAGX_LidarModel::LivoxTele:
+			NativeRef->Native =
+				CreateAGXLidar(*static_cast<const UAGX_LivoxTeleParameters*>(&Params));
 			return;
 		case EAGX_LidarModel::Invalid:
 			break;
@@ -524,6 +658,55 @@ bool FLidarBarrier::ReadModelParameters(UAGX_OusterOS2Parameters& Parameters) co
 	LidarBarrier_helpers::ReadOusterOSModelParameters(
 		*OusterModel, Parameters.ChannelCount, Parameters.BeamSpacing, Parameters.Mode);
 	return true;
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxAviaParameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxAvia>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxHAPParameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxHap>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxHorizonParameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxHorizon>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxMid40Parameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxMid40>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxMid70Parameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxMid70>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxMid360Parameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxMid360>(
+		*this, Parameters);
+}
+
+bool FLidarBarrier::ReadModelParameters(UAGX_LivoxTeleParameters& Parameters) const
+{
+	check(HasNative());
+	return LidarBarrier_helpers::ReadLivoxModelParameters<agxSensor::LidarModelLivoxTele>(
+		*this, Parameters);
 }
 
 bool FLidarBarrier::UsesHorizontalSweepRayPattern() const

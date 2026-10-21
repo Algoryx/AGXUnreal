@@ -20,8 +20,7 @@ struct AGXUNREAL_API FAGX_ShapeMaterialBulkProperties
 	GENERATED_BODY()
 
 public:
-
-	bool operator==(const FAGX_ShapeMaterialBulkProperties& Other) const = default;
+	bool operator==(const FAGX_ShapeMaterialBulkProperties& Other) const;
 
 	/**
 	 * Density of Shapes using the material [kg/m^3].
@@ -50,13 +49,12 @@ public:
 	FAGX_Real Viscosity;
 
 	/**
-	 * Spook Damping used by the contact constraint [s].
-	 * The value is the time the contact constraint has to fulfill its violation.
+	 * Attenuation of the contact constraint [steps].
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Material Bulk Properties",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SpookDamping;
+	FAGX_Real Attenuation;
 
 	/**
 	 * Minimum elastic rest length of the contact material [cm].
@@ -78,4 +76,9 @@ public:
 
 public:
 	FAGX_ShapeMaterialBulkProperties();
+	void Serialize(FArchive& Archive);
+
+private:
+	UPROPERTY()
+	FAGX_Real SpookDamping_DEPRECATED;
 };

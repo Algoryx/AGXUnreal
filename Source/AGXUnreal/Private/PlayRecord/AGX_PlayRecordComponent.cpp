@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "Constraints/AGX_Constraint1DofComponent.h"
 #include "Constraints/AGX_Constraint2DofComponent.h"
+#include "Constraints/AGX_ConstraintConstants.h"
 #include "PlayRecord/AGX_PlayRecord.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 
@@ -144,7 +145,7 @@ namespace AGX_PlayRecordComponent_helpers
 			Constraint1Dof->FrictionController.SetEnable(false);
 			Constraint1Dof->TargetSpeedController.SetEnable(false);
 			Constraint1Dof->LockController.SetForceRange(FAGX_RealInterval(-INF, INF));
-			Constraint1Dof->LockController.SetSpookDamping(0.0333); // Default value.
+			Constraint1Dof->LockController.SetAttenuation(ConstraintConstants::DefaultAttenuation()); // Default value.
 			Constraint1Dof->LockController.SetCompliance(1e-08); // Default value.
 			return;
 		}
@@ -162,8 +163,10 @@ namespace AGX_PlayRecordComponent_helpers
 			Constraint2Dof->TargetSpeedController2.SetEnable(false);
 			Constraint2Dof->LockController1.SetForceRange(FAGX_RealInterval(-INF, INF));
 			Constraint2Dof->LockController2.SetForceRange(FAGX_RealInterval(-INF, INF));
-			Constraint2Dof->LockController1.SetSpookDamping(0.0333); // Default value.
-			Constraint2Dof->LockController2.SetSpookDamping(0.0333); // Default value.
+			Constraint2Dof->LockController1.SetAttenuation(
+				ConstraintConstants::DefaultAttenuation()); // Default value.
+			Constraint2Dof->LockController2.SetAttenuation(
+				ConstraintConstants::DefaultAttenuation()); // Default value.
 			Constraint2Dof->LockController1.SetCompliance(1e-08); // Default value.
 			Constraint2Dof->LockController2.SetCompliance(1e-08); // Default value.
 			return;
