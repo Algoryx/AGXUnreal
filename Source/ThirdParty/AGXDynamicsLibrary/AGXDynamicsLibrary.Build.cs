@@ -206,7 +206,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		BundledAGXResources =
 			new AGXResourcesInfo(Target, AGXResourcesLocation.BundledAGX, BundledAGXResourcesPath);
 		InstalledAGXResources =
-			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.InstalledAGX) : null;
+			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.LocalBuildAGX) : null;
 
 		// The AGX Dynamics version we are currently building against.
 		AGXVersion TargetAGXVersion =
@@ -237,7 +237,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
-		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -259,7 +258,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
@@ -276,6 +274,8 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
+			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
+			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
@@ -902,8 +902,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+			// Local AGX builds include internal terrain materials that are not part of the distribution.
+			List<string> FilesToIgnore = new List<string>
+				{ Path.Combine("TerrainMaterials", "internal") + Path.DirectorySeparatorChar };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;
@@ -941,20 +944,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string ComponentsDirSource = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
 			string ComponentsDirDest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
-			string PhysicsDirSource = Path.Combine(ComponentsDirSource, "agx", "Physics");
-			string PhysicsDirDest = Path.Combine(ComponentsDirDest, "agx", "Physics");
 			string WebDirSource = Path.Combine(ComponentsDirSource, "agx", "Web");
 			string WebDirDest = Path.Combine(ComponentsDirDest, "agx", "Web");
-
-			// These two .agxKernel files are not used and have caused issues because of too long file paths on
-			// Windows since they are located in a very deep directory tree branch.
-			List<string> FilesToIgnore = new List<string>
-				{ "GenerateLinesFromJacobians.agxKernel", "RenderJacobians.agxTask" };
-			if (!CopyDirectoryRecursively(PhysicsDirSource, PhysicsDirDest, FilesToIgnore))
-			{
-				CleanBundledAGXDynamicsResources();
-				return;
-			}
 
 			// Copy all single files in the Components/agx directory.
 			if (!CopyFilesNonRecursive(Path.Combine(ComponentsDirSource, "agx"), Path.Combine(ComponentsDirDest, "agx")))

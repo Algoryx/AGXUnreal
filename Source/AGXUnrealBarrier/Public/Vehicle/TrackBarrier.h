@@ -151,8 +151,8 @@ public:
 	void InternalMergeProperties_SetLockToReachMergeConditionCompliance(double Compliance);
 	double InternalMergeProperties_GetLockToReachMergeConditionCompliance() const;
 
-	void InternalMergeProperties_SetLockToReachMergeConditionSpookDamping(double Damping);
-	double InternalMergeProperties_GetLockToReachMergeConditionSpookDamping() const;
+	void InternalMergeProperties_SetLockToReachMergeConditionAttenuation(double Attenuation);
+	double InternalMergeProperties_GetLockToReachMergeConditionAttenuation() const;
 
 	void InternalMergeProperties_SetMaxAngleMergeCondition(double MaxAngleToMerge);
 	double InternalMergeProperties_GetMaxAngleMergeCondition() const;
