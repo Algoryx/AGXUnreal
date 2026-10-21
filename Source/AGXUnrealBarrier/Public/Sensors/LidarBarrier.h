@@ -18,6 +18,13 @@ class FLidarOutputBarrier;
 class UAGX_CustomRayPatternParameters;
 class UAGX_GenericHorizontalSweepParameters;
 class UAGX_LidarModelParameters;
+class UAGX_LivoxAviaParameters;
+class UAGX_LivoxHAPParameters;
+class UAGX_LivoxHorizonParameters;
+class UAGX_LivoxMid40Parameters;
+class UAGX_LivoxMid70Parameters;
+class UAGX_LivoxMid360Parameters;
+class UAGX_LivoxTeleParameters;
 class UAGX_OusterOS0Parameters;
 class UAGX_OusterOS1Parameters;
 class UAGX_OusterOS2Parameters;
@@ -70,6 +77,13 @@ struct AGXUNREALBARRIER_API FLidarBarrier : public FSensorBarrier
 
 	bool ReadModelParameters(UAGX_CustomRayPatternParameters& Parameters) const;
 	bool ReadModelParameters(UAGX_GenericHorizontalSweepParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxAviaParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxHAPParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxHorizonParameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxMid40Parameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxMid70Parameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxMid360Parameters& Parameters) const;
+	bool ReadModelParameters(UAGX_LivoxTeleParameters& Parameters) const;
 	bool ReadModelParameters(UAGX_OusterOS0Parameters& Parameters) const;
 	bool ReadModelParameters(UAGX_OusterOS1Parameters& Parameters) const;
 	bool ReadModelParameters(UAGX_OusterOS2Parameters& Parameters) const;

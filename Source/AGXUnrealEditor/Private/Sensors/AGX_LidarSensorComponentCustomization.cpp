@@ -6,6 +6,13 @@
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/AGX_LivoxAviaParameters.h"
+#include "Sensors/AGX_LivoxHAPParameters.h"
+#include "Sensors/AGX_LivoxHorizonParameters.h"
+#include "Sensors/AGX_LivoxMid360Parameters.h"
+#include "Sensors/AGX_LivoxMid40Parameters.h"
+#include "Sensors/AGX_LivoxMid70Parameters.h"
+#include "Sensors/AGX_LivoxTeleParameters.h"
 #include "Sensors/AGX_OusterOS0Parameters.h"
 #include "Sensors/AGX_OusterOS1Parameters.h"
 #include "Sensors/AGX_OusterOS2Parameters.h"
@@ -150,6 +157,13 @@ FAGX_LidarSensorComponentCustomization::GetAvailableModels()
 		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::OusterOS0));
 		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::OusterOS1));
 		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::OusterOS2));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxAvia));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxHAP));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxHorizon));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxMid40));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxMid70));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxMid360));
+		AvailableModels.Add(MakeShared<EAGX_LidarModel>(EAGX_LidarModel::LivoxTele));
 	}
 
 	return &AvailableModels;
@@ -182,6 +196,20 @@ FString FAGX_LidarSensorComponentCustomization::FromEnum(EAGX_LidarModel Model)
 			return "OusterOS1";
 		case EAGX_LidarModel::OusterOS2:
 			return "OusterOS2";
+		case EAGX_LidarModel::LivoxAvia:
+			return "LivoxAvia";
+		case EAGX_LidarModel::LivoxHAP:
+			return "LivoxHAP";
+		case EAGX_LidarModel::LivoxHorizon:
+			return "LivoxHorizon";
+		case EAGX_LidarModel::LivoxMid40:
+			return "LivoxMid40";
+		case EAGX_LidarModel::LivoxMid70:
+			return "LivoxMid70";
+		case EAGX_LidarModel::LivoxMid360:
+			return "LivoxMid360";
+		case EAGX_LidarModel::LivoxTele:
+			return "LivoxTele";
 	}
 
 	UE_LOG(

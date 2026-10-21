@@ -13,6 +13,13 @@
 #include "Sensors/AGX_CustomRayPatternParameters.h"
 #include "Sensors/AGX_GenericHorizontalSweepParameters.h"
 #include "Sensors/AGX_LidarOutputBase.h"
+#include "Sensors/AGX_LivoxAviaParameters.h"
+#include "Sensors/AGX_LivoxHAPParameters.h"
+#include "Sensors/AGX_LivoxHorizonParameters.h"
+#include "Sensors/AGX_LivoxMid360Parameters.h"
+#include "Sensors/AGX_LivoxMid40Parameters.h"
+#include "Sensors/AGX_LivoxMid70Parameters.h"
+#include "Sensors/AGX_LivoxTeleParameters.h"
 #include "Sensors/AGX_OusterOS0Parameters.h"
 #include "Sensors/AGX_OusterOS1Parameters.h"
 #include "Sensors/AGX_OusterOS2Parameters.h"
@@ -384,6 +391,27 @@ namespace AGX_LidarSensorComponent_helpers
 			return Barrier.ReadModelParameters(*Parameters);
 
 		if (auto Parameters = Cast<UAGX_OusterOS2Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxAviaParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxHAPParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxHorizonParameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxMid40Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxMid70Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxMid360Parameters>(&ModelParameters))
+			return Barrier.ReadModelParameters(*Parameters);
+
+		if (auto Parameters = Cast<UAGX_LivoxTeleParameters>(&ModelParameters))
 			return Barrier.ReadModelParameters(*Parameters);
 
 		if (auto Parameters = Cast<UAGX_GenericHorizontalSweepParameters>(&ModelParameters))

@@ -28,7 +28,28 @@ enum class EAGX_LidarModel : uint8
 	OusterOS1,
 
 	/** Ouster OS2 */
-	OusterOS2
+	OusterOS2,
+
+	/** Livox Avia */
+	LivoxAvia,
+
+	/** Livox HAP */
+	LivoxHAP,
+
+	/** Livox Horizon */
+	LivoxHorizon,
+
+	/** Livox Mid40 */
+	LivoxMid40,
+
+	/** Livox Mid70 */
+	LivoxMid70,
+
+	/** Livox Mid360 */
+	LivoxMid360,
+
+	/** Livox Tele */
+	LivoxTele
 };
 
 /** Specifies which Components the Lidar Surface Material Component applies the Lidar Surface

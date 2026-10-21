@@ -92,6 +92,13 @@
 #include "Sensors/AGX_LidarSensorReference.h"
 #include "Sensors/AGX_CustomRayPatternParametersTypeActions.h"
 #include "Sensors/AGX_GenericHorizontalSweepParametersTypeActions.h"
+#include "Sensors/AGX_LivoxAviaParametersTypeActions.h"
+#include "Sensors/AGX_LivoxHAPParametersTypeActions.h"
+#include "Sensors/AGX_LivoxHorizonParametersTypeActions.h"
+#include "Sensors/AGX_LivoxMid360ParametersTypeActions.h"
+#include "Sensors/AGX_LivoxMid40ParametersTypeActions.h"
+#include "Sensors/AGX_LivoxMid70ParametersTypeActions.h"
+#include "Sensors/AGX_LivoxTeleParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS0ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS1ParametersTypeActions.h"
 #include "Sensors/AGX_OusterOS2ParametersTypeActions.h"
@@ -339,6 +346,20 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_LidarLambertianOpaqueMaterialTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxAviaParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxHAPParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxHorizonParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxMid40ParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxMid70ParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxMid360ParametersTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_LivoxTeleParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_OusterOS0ParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
