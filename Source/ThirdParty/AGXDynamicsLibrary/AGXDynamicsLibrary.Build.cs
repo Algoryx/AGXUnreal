@@ -206,7 +206,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		BundledAGXResources =
 			new AGXResourcesInfo(Target, AGXResourcesLocation.BundledAGX, BundledAGXResourcesPath);
 		InstalledAGXResources =
-			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.InstalledAGX) : null;
+			IsAGXSetupEnvCalled() ? new AGXResourcesInfo(Target, AGXResourcesLocation.LocalBuildAGX) : null;
 
 		// The AGX Dynamics version we are currently building against.
 		AGXVersion TargetAGXVersion =
@@ -274,6 +274,8 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
+			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
+			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
@@ -942,20 +944,8 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string ComponentsDirSource = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
 			string ComponentsDirDest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.Components, true);
-			string PhysicsDirSource = Path.Combine(ComponentsDirSource, "agx", "Physics");
-			string PhysicsDirDest = Path.Combine(ComponentsDirDest, "agx", "Physics");
 			string WebDirSource = Path.Combine(ComponentsDirSource, "agx", "Web");
 			string WebDirDest = Path.Combine(ComponentsDirDest, "agx", "Web");
-
-			// These two .agxKernel files are not used and have caused issues because of too long file paths on
-			// Windows since they are located in a very deep directory tree branch.
-			List<string> FilesToIgnore = new List<string>
-				{ "GenerateLinesFromJacobians.agxKernel", "RenderJacobians.agxTask" };
-			if (!CopyDirectoryRecursively(PhysicsDirSource, PhysicsDirDest, FilesToIgnore))
-			{
-				CleanBundledAGXDynamicsResources();
-				return;
-			}
 
 			// Copy all single files in the Components/agx directory.
 			if (!CopyFilesNonRecursive(Path.Combine(ComponentsDirSource, "agx"), Path.Combine(ComponentsDirDest, "agx")))
