@@ -145,7 +145,8 @@ namespace AGX_PlayRecordComponent_helpers
 			Constraint1Dof->FrictionController.SetEnable(false);
 			Constraint1Dof->TargetSpeedController.SetEnable(false);
 			Constraint1Dof->LockController.SetForceRange(FAGX_RealInterval(-INF, INF));
-			Constraint1Dof->LockController.SetAttenuation(ConstraintConstants::DefaultAttenuation()); // Default value.
+			Constraint1Dof->LockController.SetAttenuation(
+				ConstraintConstants::DefaultAttenuation()); // Default value.
 			Constraint1Dof->LockController.SetCompliance(1e-08); // Default value.
 			return;
 		}

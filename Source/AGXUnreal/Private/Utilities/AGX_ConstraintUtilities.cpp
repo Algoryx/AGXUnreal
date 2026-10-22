@@ -215,9 +215,7 @@ void FAGX_ConstraintUtilities::AddControllerPropertyCallbacks(
 	PropertyDispatcher.Add(
 		Member, GET_MEMBER_NAME_CHECKED(FAGX_ConstraintController, Attenuation),
 		[GetController](UConstraintClass* EditedObject)
-		{
-			GetController(EditedObject)->SetAttenuation(GetController(EditedObject)->Attenuation);
-		});
+		{ GetController(EditedObject)->SetAttenuation(GetController(EditedObject)->Attenuation); });
 
 	PropertyDispatcher.Add(
 		Member, GET_MEMBER_NAME_CHECKED(FAGX_ConstraintController, ForceRange),

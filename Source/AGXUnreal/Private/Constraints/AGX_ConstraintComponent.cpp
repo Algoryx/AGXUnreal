@@ -1129,10 +1129,8 @@ void UAGX_ConstraintComponent::UpdateNativeProperties()
 	TRY_SET_DOF_VALUE(Compliance, EGenericDofIndex::Rotational2, NativeBarrier->SetCompliance);
 	TRY_SET_DOF_VALUE(Compliance, EGenericDofIndex::Rotational3, NativeBarrier->SetCompliance);
 
-	TRY_SET_DOF_VALUE(
-		Attenuation, EGenericDofIndex::Translational1, NativeBarrier->SetAttenuation);
-	TRY_SET_DOF_VALUE(
-		Attenuation, EGenericDofIndex::Translational2, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Translational1, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Translational2, NativeBarrier->SetAttenuation);
 	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Translational3, NativeBarrier->SetAttenuation);
 	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Rotational1, NativeBarrier->SetAttenuation);
 	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Rotational2, NativeBarrier->SetAttenuation);
@@ -1191,8 +1189,7 @@ void UAGX_ConstraintComponent::UpdateNativeCompliance()
 void UAGX_ConstraintComponent::UpdateNativeAttenuation()
 {
 	UpdateNativePerDof(
-		HasNative(), NativeDofIndexMap,
-		[this](EGenericDofIndex GenericDof, int32 NativeDof)
+		HasNative(), NativeDofIndexMap, [this](EGenericDofIndex GenericDof, int32 NativeDof)
 		{ NativeBarrier->SetAttenuation(Attenuation[GenericDof], NativeDof); });
 }
 

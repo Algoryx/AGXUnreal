@@ -509,30 +509,28 @@ public: // Deprecated functions.
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetStiffness instead."))
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetStiffness instead."))
 	void SetElasticityFloat(EGenericDofIndex Index, float InElasticity);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
-		Meta =
-			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetStiffness instead."))
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetStiffness instead."))
 	float GetElasticityFloat(EGenericDofIndex Index) const;
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetAttenuation with the appropriate damping/attenuation conversion."))
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	void SetSpookDampingFloat(EGenericDofIndex Index, float InSpookDamping);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Constraint",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetAttenuation with the appropriate damping/attenuation conversion."))
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	float GetSpookDampingFloat(EGenericDofIndex Index) const;
 
 	UFUNCTION(
