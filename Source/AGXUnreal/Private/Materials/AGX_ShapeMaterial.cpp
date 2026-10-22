@@ -574,8 +574,9 @@ void UAGX_ShapeMaterial::Serialize(FArchive& Archive)
 
 void UAGX_ShapeMaterial::SetSpookDamping(double InSpookDamping)
 {
-	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_ShapeMaterial::GetSpookDamping() const
@@ -586,8 +587,9 @@ double UAGX_ShapeMaterial::GetSpookDamping() const
 
 void UAGX_ShapeMaterial::SetSpookDampingStretch(double InSpookDamping)
 {
-	SetAttenuationStretch(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetAttenuationStretch(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_ShapeMaterial::GetSpookDampingStretch() const
@@ -598,8 +600,9 @@ double UAGX_ShapeMaterial::GetSpookDampingStretch() const
 
 void UAGX_ShapeMaterial::SetSpookDampingBend(double InSpookDamping)
 {
-	SetAttenuationBend(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetAttenuationBend(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_ShapeMaterial::GetSpookDampingBend() const

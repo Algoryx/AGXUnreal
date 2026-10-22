@@ -1877,11 +1877,14 @@ public:
 		AllCorrect &=
 			TestEqual(TEXT("Compliance trans 3"), Ball.Compliance.Translational_3, Scale * 1.2);
 		AllCorrect &= TestEqual(
-			TEXT("Attenuation trans 1"), Ball.Attenuation.Translational_1, FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.0, 1.0 / 60.0), 0.001);
+			TEXT("Attenuation trans 1"), Ball.Attenuation.Translational_1,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Attenuation trans 2"), Ball.Attenuation.Translational_2, FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.1, 1.0 / 60.0), 0.001);
+			TEXT("Attenuation trans 2"), Ball.Attenuation.Translational_2,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.1, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Attenuation trans 3"), Ball.Attenuation.Translational_3, FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.2, 1.0 / 60.0), 0.001);
+			TEXT("Attenuation trans 3"), Ball.Attenuation.Translational_3,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.2, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Force range 1"), Ball.ForceRange.Translational_1,
 			FAGX_RealInterval(Scale * 3.0, Scale * 4.0));
@@ -1899,7 +1902,8 @@ public:
 		AllCorrect &= TestEqual(
 			TEXT("Twist range compliance"), Ball.TwistRangeController.Compliance, Scale * 5.0);
 		AllCorrect &= TestEqual(
-			TEXT("Twist range attenuation"), Ball.TwistRangeController.Attenuation.Value, FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 6.0, 1.0 / 60.0), 0.001);
+			TEXT("Twist range attenuation"), Ball.TwistRangeController.Attenuation.Value,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 6.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Twist range force range"), Ball.TwistRangeController.ForceRange,
 			FAGX_RealInterval(Scale * 7.0, Scale * 8.0));
