@@ -153,6 +153,12 @@ class AGXUNREAL_API UAGX_TwistRangeController_FL : public UBlueprintFunctionLibr
 		return Constraint.SetCompliance(Compliance);
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static void SetStiffness(UPARAM(Ref) FAGX_TwistRangeController& Constraint, double Stiffness)
+	{
+		return Constraint.SetStiffness(Stiffness);
+	}
+
 	/**
 	 * Get the Compliance from othe Elementary Constraint. [m/N] for translational DOFs and [rad/Nm]
 	 * for rotational DOFs.
@@ -165,12 +171,30 @@ class AGXUNREAL_API UAGX_TwistRangeController_FL : public UBlueprintFunctionLibr
 		return Constraint.GetCompliance();
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static double GetStiffness(UPARAM(Ref) FAGX_TwistRangeController& Constraint)
+	{
+		return Constraint.GetStiffness();
+	}
+
 	/**
-	 * Set the Spook damping time of an Elementary Constraint [s].
-	 * @param Constraint Elementary Constraint to set Spook Damping on.
-	 * @param SpookDamping New Spook damping time.
+	 * Set the attenuation of an Elementary Constraint [steps].
+	 * @param Constraint Elementary Constraint to set Attenuation on.
+	 * @param Attenuation New attenuation.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static void SetAttenuation(
+		UPARAM(Ref) FAGX_TwistRangeController& Constraint, double Attenuation)
+	{
+		return Constraint.SetAttenuation(Attenuation);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Elementary Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	static void SetSpookDamping(
 		UPARAM(Ref) FAGX_TwistRangeController& Constraint, double SpookDamping)
 	{
@@ -178,11 +202,22 @@ class AGXUNREAL_API UAGX_TwistRangeController_FL : public UBlueprintFunctionLibr
 	}
 
 	/**
-	 * Get the Spook damping time from the Elementary Constraint [s].
-	 * @param Constraint The Elementary Constraint to get Spook damping from.
-	 * @return The Spook damping of the Elementary Constraint.
+	 * Get the attenuation from the Elementary Constraint [steps].
+	 * @param Constraint The Elementary Constraint to get attenuation from.
+	 * @return The attenuation of the Elementary Constraint.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static double GetAttenuation(UPARAM(Ref) FAGX_TwistRangeController& Constraint)
+	{
+		return Constraint.GetAttenuation();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Elementary Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	static double GetSpookDamping(UPARAM(Ref) FAGX_TwistRangeController& Constraint)
 	{
 		return Constraint.GetSpookDamping();

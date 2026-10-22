@@ -3,14 +3,12 @@
 #include "Constraints/AGX_ConstraintComponent.h"
 
 // AGX Dynamics for Unreal includes.
-#include "Constraints/AGX_ConstraintConstants.h"
 #include "AGX_Check.h"
 #include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
 #include "AGX_NativeOwnerSceneComponentInstanceData.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
-#include "Constraints/AGX_ConstraintComponent.h"
 #include "Constraints/AGX_ConstraintConstants.h"
 #include "Constraints/AGX_ConstraintFrameActor.h"
 #include "Constraints/ConstraintBarrier.h"
@@ -19,9 +17,11 @@
 #include "Utilities/AGX_ImportRuntimeUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "CoreGlobals.h"
+#include "Serialization/Archive.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace AGX_ConstraintComponent_helpers
@@ -96,13 +96,15 @@ UAGX_ConstraintComponent::UAGX_ConstraintComponent(const TArray<EDofFlag>& Locke
 	, SolveType(EAGX_SolveType::StDirect)
 	, Compliance(
 		  ConstraintConstants::DefaultCompliance(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
-	, SpookDamping(
-		  ConstraintConstants::DefaultSpookDamping(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
+	, Attenuation(
+		  ConstraintConstants::DefaultAttenuation(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
 	, ForceRange(
 		  ConstraintConstants::DefaultForceRange(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
 	, LockedDofsBitmask(ConvertDofsArrayToBitmask(LockedDofsOrdered))
 	, LockedDofs(LockedDofsOrdered)
 	, NativeDofIndexMap(BuildNativeDofIndexMap(LockedDofsOrdered))
+	, SpookDamping_DEPRECATED(
+		  ConstraintConstants::DefaultSpookDamping(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
 	, Elasticity_DEPRECATED(
 		  ConstraintConstants::DefaultElasticity(), ConvertDofsArrayToBitmask(LockedDofsOrdered))
 {
@@ -381,14 +383,29 @@ double UAGX_ConstraintComponent::GetCompliance(EGenericDofIndex Index) const
 		[this](int32 NativeDof) { return NativeBarrier->GetCompliance(NativeDof); });
 }
 
-void UAGX_ConstraintComponent::SetElasticityFloat(EGenericDofIndex Index, float InElasticity)
+void UAGX_ConstraintComponent::SetStiffness(EGenericDofIndex Index, double InStiffness)
 {
-	SetElasticity(Index, static_cast<double>(InElasticity));
+	SetCompliance(Index, FAGXUtilities::ConvertStiffnessToCompliance(InStiffness));
+}
+
+double UAGX_ConstraintComponent::GetStiffness(EGenericDofIndex Index) const
+{
+	return FAGXUtilities::ConvertComplianceToStiffness(GetCompliance(Index));
 }
 
 void UAGX_ConstraintComponent::SetElasticity(EGenericDofIndex Index, double InElasticity)
 {
-	SetCompliance(Index, 1.0 / InElasticity);
+	SetStiffness(Index, InElasticity);
+}
+
+double UAGX_ConstraintComponent::GetElasticity(EGenericDofIndex Index) const
+{
+	return GetStiffness(Index);
+}
+
+void UAGX_ConstraintComponent::SetElasticityFloat(EGenericDofIndex Index, float InElasticity)
+{
+	SetElasticity(Index, static_cast<double>(InElasticity));
 }
 
 float UAGX_ConstraintComponent::GetElasticityFloat(EGenericDofIndex Index) const
@@ -396,9 +413,21 @@ float UAGX_ConstraintComponent::GetElasticityFloat(EGenericDofIndex Index) const
 	return static_cast<float>(GetElasticity(Index));
 }
 
-double UAGX_ConstraintComponent::GetElasticity(EGenericDofIndex Index) const
+void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, double InSpookDamping)
 {
-	return 1.0 / GetCompliance(Index);
+	const UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	const double TimeStep =
+		Simulation != nullptr ? Simulation->TimeStep : GetDefault<UAGX_Simulation>()->TimeStep;
+	SetAttenuation(
+		Index, FAGXUtilities::ConvertSpookDampingToAttenuation(InSpookDamping, TimeStep));
+}
+
+double UAGX_ConstraintComponent::GetSpookDamping(EGenericDofIndex Index) const
+{
+	const UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this);
+	const double TimeStep =
+		Simulation != nullptr ? Simulation->TimeStep : GetDefault<UAGX_Simulation>()->TimeStep;
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(GetAttenuation(Index), TimeStep);
 }
 
 void UAGX_ConstraintComponent::SetSpookDampingFloat(EGenericDofIndex Index, float InSpookDamping)
@@ -406,25 +435,24 @@ void UAGX_ConstraintComponent::SetSpookDampingFloat(EGenericDofIndex Index, floa
 	SetSpookDamping(Index, static_cast<double>(InSpookDamping));
 }
 
-void UAGX_ConstraintComponent::SetSpookDamping(EGenericDofIndex Index, double InSpookDamping)
-{
-	SetOnBarrier(
-		*this, Index, TEXT("SetSpookDamping"),
-		[this, InSpookDamping](int32 NativeDof)
-		{ NativeBarrier->SetSpookDamping(InSpookDamping, NativeDof); });
-	SpookDamping.Set(Index, InSpookDamping);
-}
-
 float UAGX_ConstraintComponent::GetSpookDampingFloat(EGenericDofIndex Index) const
 {
 	return static_cast<float>(GetSpookDamping(Index));
 }
 
-double UAGX_ConstraintComponent::GetSpookDamping(EGenericDofIndex Index) const
+void UAGX_ConstraintComponent::SetAttenuation(EGenericDofIndex Index, double InAttenuation)
+{
+	SetOnBarrier(
+		*this, Index, TEXT("SetAttenuation"), [this, InAttenuation](int32 NativeDof)
+		{ NativeBarrier->SetAttenuation(InAttenuation, NativeDof); });
+	Attenuation.Set(Index, InAttenuation);
+}
+
+double UAGX_ConstraintComponent::GetAttenuation(EGenericDofIndex Index) const
 {
 	return GetFromBarrier(
-		*this, Index, TEXT("GetSpookDamping"), SpookDamping[Index],
-		[this](int32 NativeDof) { return NativeBarrier->GetSpookDamping(NativeDof); });
+		*this, Index, TEXT("GetAttenuation"), Attenuation[Index],
+		[this](int32 NativeDof) { return NativeBarrier->GetAttenuation(NativeDof); });
 }
 
 void UAGX_ConstraintComponent::SetForceRange(EGenericDofIndex Index, double Min, double Max)
@@ -666,7 +694,7 @@ void UAGX_ConstraintComponent::CopyFrom(
 		{
 			const int32 NativeDof = *NativeDofPtr;
 			Compliance[Dof] = Barrier.GetCompliance(NativeDof);
-			SpookDamping[Dof] = Barrier.GetSpookDamping(NativeDof);
+			Attenuation[Dof] = Barrier.GetAttenuation(NativeDof);
 			ForceRange[Dof] = Barrier.GetForceRange(NativeDof);
 		}
 	}
@@ -920,8 +948,8 @@ void UAGX_ConstraintComponent::InitPropertyDispatcher()
 		[](ThisClass* This) { This->UpdateNativeCompliance(); });
 
 	PropertyDispatcher.Add(
-		GET_MEMBER_NAME_CHECKED(UAGX_ConstraintComponent, SpookDamping),
-		[](ThisClass* This) { This->UpdateNativeSpookDamping(); });
+		GET_MEMBER_NAME_CHECKED(UAGX_ConstraintComponent, Attenuation),
+		[](ThisClass* This) { This->UpdateNativeAttenuation(); });
 
 	PropertyDispatcher.Add(
 		GET_MEMBER_NAME_CHECKED(UAGX_ConstraintComponent, ForceRange),
@@ -1102,14 +1130,13 @@ void UAGX_ConstraintComponent::UpdateNativeProperties()
 	TRY_SET_DOF_VALUE(Compliance, EGenericDofIndex::Rotational3, NativeBarrier->SetCompliance);
 
 	TRY_SET_DOF_VALUE(
-		SpookDamping, EGenericDofIndex::Translational1, NativeBarrier->SetSpookDamping);
+		Attenuation, EGenericDofIndex::Translational1, NativeBarrier->SetAttenuation);
 	TRY_SET_DOF_VALUE(
-		SpookDamping, EGenericDofIndex::Translational2, NativeBarrier->SetSpookDamping);
-	TRY_SET_DOF_VALUE(
-		SpookDamping, EGenericDofIndex::Translational3, NativeBarrier->SetSpookDamping);
-	TRY_SET_DOF_VALUE(SpookDamping, EGenericDofIndex::Rotational1, NativeBarrier->SetSpookDamping);
-	TRY_SET_DOF_VALUE(SpookDamping, EGenericDofIndex::Rotational2, NativeBarrier->SetSpookDamping);
-	TRY_SET_DOF_VALUE(SpookDamping, EGenericDofIndex::Rotational3, NativeBarrier->SetSpookDamping);
+		Attenuation, EGenericDofIndex::Translational2, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Translational3, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Rotational1, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Rotational2, NativeBarrier->SetAttenuation);
+	TRY_SET_DOF_VALUE(Attenuation, EGenericDofIndex::Rotational3, NativeBarrier->SetAttenuation);
 
 	TRY_SET_DOF_RANGE_VALUE(
 		ForceRange, EGenericDofIndex::Translational1, NativeBarrier->SetForceRange);
@@ -1161,12 +1188,12 @@ void UAGX_ConstraintComponent::UpdateNativeCompliance()
 		{ NativeBarrier->SetCompliance(Compliance[GenericDof], NativeDof); });
 }
 
-void UAGX_ConstraintComponent::UpdateNativeSpookDamping()
+void UAGX_ConstraintComponent::UpdateNativeAttenuation()
 {
 	UpdateNativePerDof(
 		HasNative(), NativeDofIndexMap,
 		[this](EGenericDofIndex GenericDof, int32 NativeDof)
-		{ NativeBarrier->SetSpookDamping(SpookDamping[GenericDof], NativeDof); });
+		{ NativeBarrier->SetAttenuation(Attenuation[GenericDof], NativeDof); });
 }
 
 void UAGX_ConstraintComponent::UpdateNativeElementaryConstraintsEnabled()
@@ -1273,6 +1300,13 @@ void UAGX_ConstraintComponent::Serialize(FArchive& Archive)
 		{
 			Compliance[I] = 1.0 / Elasticity_DEPRECATED[I];
 		}
+	}
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		const double TimeStep = GetDefault<UAGX_Simulation>()->TimeStep;
+		for (int32 I = 0; I < NumGenericDofs; ++I)
+			Attenuation[I] = FAGXUtilities::ConvertSpookDampingToAttenuation(
+				SpookDamping_DEPRECATED[I], TimeStep);
 	}
 }
 
