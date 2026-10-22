@@ -232,6 +232,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastrtps*", LibSource.Dependencies);
+		RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
@@ -261,7 +262,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
-			RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
 		}

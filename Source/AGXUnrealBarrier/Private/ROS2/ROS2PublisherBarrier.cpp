@@ -8,7 +8,7 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "ROS2/AGX_ROS2Messages.h"
 #include "ROS2/ROS2Conversions.h"
-#include "Utilities/ROS2Utilities.h"
+#include "Utilities/ROS2UtilitiesInternal.h"
 
 // Helper macros to minimize amount of code needed in large switch-statement.
 #define AGX_SEND_ROS2_MSGS(PubType, MsgType)                                                       \
