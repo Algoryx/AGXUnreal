@@ -18,6 +18,26 @@
 #include "Misc/Paths.h"
 #include "UObject/StrongObjectPtr.h"
 
+double UAGX_AGXUtilities::ConvertComplianceToStiffness(double Compliance)
+{
+	return FAGXUtilities::ConvertComplianceToStiffness(Compliance);
+}
+
+double UAGX_AGXUtilities::ConvertStiffnessToCompliance(double Stiffness)
+{
+	return FAGXUtilities::ConvertStiffnessToCompliance(Stiffness);
+}
+
+double UAGX_AGXUtilities::ConvertSpookDampingToAttenuation(double SpookDamping, double TimeStep)
+{
+	return FAGXUtilities::ConvertSpookDampingToAttenuation(SpookDamping, TimeStep);
+}
+
+double UAGX_AGXUtilities::ConvertAttenuationToSpookDamping(double Attenuation, double TimeStep)
+{
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(Attenuation, TimeStep);
+}
+
 void UAGX_AGXUtilities::AddParentVelocity(
 	UAGX_RigidBodyComponent* Parent, UAGX_RigidBodyComponent* Body)
 {

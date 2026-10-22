@@ -34,6 +34,7 @@
 #include "Utilities/AGX_RenderUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_Stats.h"
+#include "Utilities/ROS2Utilities.h"
 #include "Vehicle/AGX_SteeringComponent.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
@@ -750,6 +751,10 @@ bool UAGX_Simulation::GetEnableAMOR()
 void UAGX_Simulation::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+
+	// ROS2 Components can create publishers and subscribers without a native physics Simulation.
+	// Select the backend here, before Play begins, rather than waiting for CreateNative.
+	AGX_ROS2Utilities::SetBackend(ROS2Backend);
 }
 
 void UAGX_Simulation::Deinitialize()

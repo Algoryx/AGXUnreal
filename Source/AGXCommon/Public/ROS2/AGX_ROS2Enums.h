@@ -8,6 +8,14 @@
 
 #include "AGX_ROS2Enums.generated.h"
 
+/** DDS middleware used by ROS2 publishers and subscribers. */
+UENUM(BlueprintType)
+enum class EAGX_ROS2Backend : uint8
+{
+	FastDDS UMETA(DisplayName = "Fast DDS"),
+	CycloneDDS UMETA(DisplayName = "Cyclone DDS")
+};
+
 UENUM()
 enum class EAGX_ROS2MessageType
 {

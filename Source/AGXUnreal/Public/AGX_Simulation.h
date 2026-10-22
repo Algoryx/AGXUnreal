@@ -8,6 +8,7 @@
 #include "Contacts/AGX_ContactEnums.h"
 #include "Contacts/ShapeContactBarrier.h"
 #include "Net/WebDebuggerServerBarrier.h"
+#include "ROS2/AGX_ROS2Enums.h"
 #include "SimulationBarrier.h"
 
 // Unreal Engine includes.
@@ -365,6 +366,15 @@ public: // Properties.
 		Config, EditAnywhere, BlueprintReadOnly, Category = "Rendering",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ConstraintVisualizationScalingDistanceMax = 400.f;
+
+	/**
+	 * DDS middleware used by ROS2 publishers and subscribers during Play.
+	 * Applies to all game instances in the process. Changes take effect the next time Play starts.
+	 */
+	UPROPERTY(
+		Config, EditAnywhere, BlueprintReadOnly, Category = "ROS2",
+		Meta = (DisplayName = "ROS2 Backend"))
+	EAGX_ROS2Backend ROS2Backend {EAGX_ROS2Backend::FastDDS};
 
 public: // Member functions.
 	UFUNCTION(BlueprintCallable, Category = "Solver")

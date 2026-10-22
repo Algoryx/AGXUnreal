@@ -51,8 +51,8 @@ public:
 	void SetRestitution(double Restitution);
 	double GetRestitution() const;
 
-	void SetSurfaceFrictionEnabled(bool bEnabled);
-	bool GetSurfaceFrictionEnabled() const;
+	void SetEnableSurfaceFriction(bool bEnabled);
+	bool GetEnableSurfaceFriction() const;
 
 	// Set both primary and secondary friction coefficient.
 	void SetFrictionCoefficient(double Coefficient);
@@ -65,15 +65,15 @@ public:
 	double GetPrimaryFrictionCoefficient() const;
 	double GetSecondaryFrictionCoefficient() const;
 
-	// Set both primary and secondary surface Viscosity.
-	void SetSurfaceViscosity(double Viscosity);
-	void SetPrimarySurfaceViscosity(double Viscosity);
-	void SetSecondarySurfaceViscosity(double Viscosity);
-	void SetSurfaceViscosity(double Viscosity, bool bPrimaryDirection, bool bSecondaryDirection);
+	// Set both primary and secondary friction compliance.
+	void SetFrictionCompliance(double Compliance);
+	void SetPrimaryFrictionCompliance(double Compliance);
+	void SetSecondaryFrictionCompliance(double Compliance);
+	void SetFrictionCompliance(double Compliance, bool bPrimaryDirection, bool bSecondaryDirection);
 
-	double GetSurfaceViscosity() const;
-	double GetPrimarySurfaceViscosity() const;
-	double GetSecondarySurfaceViscosity() const;
+	double GetFrictionCompliance() const;
+	double GetPrimaryFrictionCompliance() const;
+	double GetSecondaryFrictionCompliance() const;
 
 	bool SetPrimaryDirection(const FVector& Direction);
 	bool GetPrimaryDirection(FVector& Direction) const;
@@ -93,8 +93,8 @@ public:
 	void SetYoungsModulus(double YoungsModulus);
 	double GetYoungsModulus() const;
 
-	void SetSpookDamping(double SpookDamping);
-	double GetSpookDamping() const;
+	void SetAttenuation(double Attenuation);
+	double GetAttenuation() const;
 
 	void SetMinElasticRestLength(double MinElasticRestLength);
 	void SetMaxElasticRestLength(double MaxElasticRestLength);
