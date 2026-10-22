@@ -185,20 +185,33 @@ public class AGXDynamicsLibrary : ModuleRules
 
 		if (!IsAGXResourcesBundled() && !IsAGXSetupEnvCalled())
 		{
-			Console.WriteLine("AGX Dynamics is not bundled in the plugin and AGX Dynamics setup_env " +
-				"has not been called.");
-
-			string AgxBundleVersion = GetAGXDynamicsVersionFromVersionHistory();
-
-			if (!UnzipLocalAGXBundle(AgxBundleVersion))
+			string AgxDistPath = Path.Combine(GetPluginSourcePath(), "ThirdParty", "agx-dist");
+			if (Directory.Exists(AgxDistPath))
 			{
-				if (!DownloadAndUnzipAGXBundle(AgxBundleVersion))
+				// The local agx-dist directory has the normal AGX installation
+				// layout. Make the existing installed-resource path mapping use
+				// it, then let BundleAGXResources create the plugin bundle.
+				Environment.SetEnvironmentVariable("AGX_DIR", AgxDistPath);
+				Environment.SetEnvironmentVariable("AGX_DEPENDENCIES_DIR", AgxDistPath);
+				Console.WriteLine($"Using local AGX Dynamics installation at '{AgxDistPath}'.");
+			}
+			else
+			{
+				Console.WriteLine("AGX Dynamics is not bundled in the plugin and AGX Dynamics setup_env " +
+					"has not been called.");
+
+				string AgxBundleVersion = GetAGXDynamicsVersionFromVersionHistory();
+
+				if (!UnzipLocalAGXBundle(AgxBundleVersion))
 				{
-					Console.WriteLine(
-					"\n\nError: No AGX Dynamics bundled with the plugin, no AGX Dynamics environment " +
-					"has been setup, no bundle was found locally and downloading an AGX bundle failed." +
-					" Unable to continue.\n\n");
-					return;
+					if (!DownloadAndUnzipAGXBundle(AgxBundleVersion))
+					{
+						Console.WriteLine(
+						"\n\nError: No AGX Dynamics bundled in the plugin, no AGX Dynamics environment " +
+						"has been set up, no bundle was found locally, and downloading an AGX bundle failed." +
+						" Unable to continue.\n\n");
+						return;
+					}
 				}
 			}
 		}
