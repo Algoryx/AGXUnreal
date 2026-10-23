@@ -6,10 +6,13 @@
 #include "SimulationBarrier.h"
 
 #include <chrono>
+#include <cstring>
 #include <future>
 #include <mutex>
 #include <utility>
 #include <vector>
+
+#include "Utilities/TestUtilities.h"
 
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
@@ -20,6 +23,57 @@
 
 namespace
 {
+	// Matches examples/agxDistributed/AssemblySerializer.h: big-endian uint64 count,
+	// followed by 16 big-endian IEEE-754 doubles per body, in AGX matrix row order.
+	bool DecodeBodyTransforms(const std::vector<uint8_t>& Data, TArray<FTransform>& OutTransforms)
+	{
+		constexpr size_t HeaderSize = 8;
+		constexpr size_t MatrixSize = 16 * 8;
+		if (Data.size() < HeaderSize)
+			return false;
+
+		size_t Offset = 0;
+		auto ReadUint64 = [&Data, &Offset]()
+		{
+			uint64 Value = 0;
+			for (int32 Byte = 0; Byte < 8; ++Byte)
+				Value = (Value << 8) | Data[Offset++];
+			return Value;
+		};
+
+		const uint64 Count = ReadUint64();
+		// Validate before allocation or reading any matrix, without overflowing Count * MatrixSize.
+		if ((Data.size() - HeaderSize) % MatrixSize != 0 ||
+			Count != (Data.size() - HeaderSize) / MatrixSize || Count > MAX_int32)
+			return false;
+
+		OutTransforms.Reserve(static_cast<int32>(Count));
+		for (uint64 Body = 0; Body < Count; ++Body)
+		{
+			agx::AffineMatrix4x4 Matrix;
+			for (int32 RowIndex = 0; RowIndex < 4; ++RowIndex)
+			{
+				agx::Vec4 Row;
+				for (int32 Column = 0; Column < 4; ++Column)
+				{
+					const uint64 Bits = ReadUint64();
+					double Value;
+					static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
+					std::memcpy(&Value, &Bits, sizeof(Value));
+					if (!FMath::IsFinite(Value))
+						return false;
+					Row[Column] = Value;
+				}
+				Matrix.setRow(RowIndex, Row);
+			}
+			const FTransform Transform = Convert(Matrix);
+			if (Transform.ContainsNaN() || !Transform.GetRotation().IsNormalized())
+				return false;
+			OutTransforms.Add(Transform);
+		}
+		return true;
+	}
+
 	struct FEventQueue
 	{
 		void Push(FAGXDistributedEvent Event)
@@ -80,8 +134,8 @@ namespace
 			Event.AssetPath =
 				FString(UTF8_TO_TCHAR(getScenarioInfo().getAssetPath(AssetId).c_str()));
 			Event.Transform = Convert(AssetTransform);
-			// Q: At which game-thread point can the mapped Blueprint actor be created and
-			// registered before its first distributed state update?
+			// Spawn events precede the initial update event in the same queue. Actor creation
+			// and native body registration happen when the world subsystem drains it.
 
 			UE_LOG(
 				LogAGX, Warning,
@@ -94,8 +148,28 @@ namespace
 		void processIncomingEntityUpdates(
 			std::vector<agxDistributed::EntityId>&& UpdatedEntities) override
 		{
-			// Q: Which versioned state format should map imported body GUIDs to native bodies?
-			(void) UpdatedEntities;
+			for (const agxDistributed::EntityId Id : UpdatedEntities)
+			{
+				std::vector<uint8_t> AssetData;
+				const bool Found = withEntity(Id, [&AssetData](const agxDistributed::Entity& Entity)
+				{
+					AssetData = Entity.getEntityData().getAssetData();
+				});
+				// Spawn requests may carry no body state yet. Leave the spawn transform intact.
+				if (!Found || AssetData.empty())
+					continue;
+
+				FAGXDistributedEvent Event;
+				Event.Type = EAGXDistributedEventType::EntityUpdate;
+				Event.EntityId = Id.getId();
+				if (!DecodeBodyTransforms(AssetData, Event.BodyTransforms))
+				{
+					Event.BodyTransforms.Reset();
+					Event.Message = TEXT("Invalid AssemblySerializer body transform payload.");
+				}
+				// Also used by AGX's pre-collide listener: never touch UObjects here.
+				Events->Push(MoveTemp(Event));
+			}
 		}
 
 		void collectAndSendUpdates() override
@@ -126,6 +200,19 @@ namespace
 	{
 		return Status == std::future_status::ready;
 	}
+}
+
+bool FTestUtilities::DecodeDistributedBodyTransforms(
+	const TArray<uint8>& Data, TArray<FTransform>& OutTransforms)
+{
+	OutTransforms.Reset();
+	std::vector<uint8_t> Bytes;
+	if (!Data.IsEmpty())
+		Bytes.assign(Data.GetData(), Data.GetData() + Data.Num());
+	const bool Result = DecodeBodyTransforms(Bytes, OutTransforms);
+	if (!Result)
+		OutTransforms.Reset();
+	return Result;
 }
 
 struct FDistributedApplicationBarrier::FImpl
@@ -194,11 +281,12 @@ bool FDistributedApplicationBarrier::Initialize(
 
 void FDistributedApplicationBarrier::StartAndLoad(int32 TimeoutSeconds)
 {
+	check(IsInGameThread());
 	if (Impl->Native == nullptr || Impl->bReady || Impl->StartFuture.valid())
 		return;
 	try
 	{
-		Impl->StartFuture = Impl->Native->startAndLoad(FMath::Max(0, TimeoutSeconds));
+		Impl->StartFuture = Impl->Native->startAndLoad("", FMath::Max(0, TimeoutSeconds));
 	}
 	catch (const std::exception& Error)
 	{

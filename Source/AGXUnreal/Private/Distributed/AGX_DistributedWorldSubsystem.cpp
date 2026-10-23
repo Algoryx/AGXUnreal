@@ -3,6 +3,7 @@
 #include "Distributed/AGX_DistributedWorldSubsystem.h"
 
 #include "AGX_LogCategory.h"
+#include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Distributed/AGX_DistributedScenarioAsset.h"
 #include "Distributed/AGX_DistributedSettings.h"
@@ -65,6 +66,8 @@ void UAGX_DistributedWorldSubsystem::ShutdownClient()
 	bShutdownRequested = true;
 	bSimulationRunning = false;
 	Client.Shutdown();
+	EntityActors.Reset();
+	ReportedUpdateErrors.Reset();
 }
 
 void UAGX_DistributedWorldSubsystem::Tick(float DeltaTime)
@@ -144,6 +147,9 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 		case EAGXDistributedEventType::SpawnEntity:
 			HandleSpawnEntityEvent(Event);
 			break;
+		case EAGXDistributedEventType::EntityUpdate:
+			processIncomingEntityUpdates(Event);
+			break;
 		case EAGXDistributedEventType::SpawnRequestResult:
 			UE_LOG(LogAGX, Log,
 				TEXT("AGX Distributed spawn request for '%s': %s (entity %llu). %s"),
@@ -176,6 +182,11 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistributedEvent& Event)
 {
 	check(IsInGameThread());
+	if (const TWeakObjectPtr<AActor>* Existing = EntityActors.Find(Event.EntityId))
+	{
+		if (Existing->IsValid())
+			return;
+	}
 
 	UWorld* World = GetWorld();
 	if (Scenario == nullptr || World == nullptr)
@@ -220,8 +231,85 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 		return;
 	}
 
+	EntityActors.Add(Event.EntityId, Actor);
+	ReportedUpdateErrors.Remove(Event.EntityId);
+
 	UE_LOG(LogAGX, Log,
 		TEXT("AGX Distributed entity %llu spawned asset %llu ('%s') as actor '%s' at %s."),
 		Event.EntityId, Event.AssetId, *Event.AssetPath, *Actor->GetName(),
 		*Event.Transform.ToHumanReadableString());
+
+	TArray<UAGX_RigidBodyComponent*> Bodies;
+	Actor->GetComponents<UAGX_RigidBodyComponent>(Bodies);
+	for (UAGX_RigidBodyComponent* Body : Bodies)
+	{
+		// This entity is driven by its remote simulation authority. Kinematic motion
+		// prevents local integration from fighting incoming distributed transforms.
+		Body->SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
+		UE_LOG(LogAGX, Log,
+			TEXT("  Name='%s', UUID='%s', ImportUUID='%s'"),
+			*Body->GetNative()->GetName(), *Body->GetNative()->GetGuid().ToString(), *Body->ImportGuid.ToString());
+	}
+}
+
+void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDistributedEvent& Event)
+{
+	check(IsInGameThread());
+	// Report persistent model/protocol problems once per entity, not once per simulation step.
+	auto ReportError = [this, &Event](const TCHAR* Reason)
+	{
+		if (!ReportedUpdateErrors.Contains(Event.EntityId))
+		{
+			ReportedUpdateErrors.Add(Event.EntityId);
+			UE_LOG(LogAGX, Error, TEXT("AGX Distributed cannot update entity %llu: %s"),
+				Event.EntityId, Reason);
+		}
+	};
+	if (!Event.Message.IsEmpty())
+	{
+		ReportError(*Event.Message);
+		return;
+	}
+
+	const TWeakObjectPtr<AActor>* Entry = EntityActors.Find(Event.EntityId);
+	AActor* Actor = Entry != nullptr ? Entry->Get() : nullptr;
+	if (!IsValid(Actor))
+	{
+		ReportError(TEXT("No live actor is registered for this entity."));
+		return;
+	}
+
+	TArray<UAGX_RigidBodyComponent*> Bodies;
+	Actor->GetComponents<UAGX_RigidBodyComponent>(Bodies, true);
+	if (Bodies.Num() != Event.BodyTransforms.Num())
+	{
+		ReportError(TEXT("Serialized body count does not match the Blueprint rigid body count."));
+		return;
+	}
+	if (Bodies.IsEmpty())
+		return;
+
+	auto OrderByName = [](const UAGX_RigidBodyComponent& Lhs, const UAGX_RigidBodyComponent& Rhs)
+	{
+		return Lhs.ImportName < Rhs.ImportName;
+	};
+
+	Bodies.Sort(OrderByName);
+
+	for (int32 I = 0; I < Bodies.Num(); ++I)
+	{
+		FRigidBodyBarrier* Body = Bodies[I]->GetNative();
+		if (Body == nullptr || !Body->HasNative())
+		{
+			ReportError(TEXT("The Blueprint rigid body has no AGX Dynamics representation."));
+			return;
+		}
+
+		// These are absolute world-space transforms. Convert() and the barrier handle
+		// AGX/Unreal units and handedness; no actor-relative transform is composed here.
+		// Do not set the scene component transform: its normal synchronization reads AGX later.
+		Body->SetPosition(Event.BodyTransforms[I].GetTranslation());
+		Body->SetRotation(Event.BodyTransforms[I].GetRotation());
+		ReportedUpdateErrors.Remove(Event.EntityId);
+	}
 }

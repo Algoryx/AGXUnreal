@@ -13,6 +13,7 @@ enum class EAGXDistributedEventType : uint8
 	Started,
 	StartFailed,
 	SpawnEntity,
+	EntityUpdate,
 	SpawnRequestResult,
 	PossessionResult,
 	SimulationAuthorityResult,
@@ -29,6 +30,8 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	uint64 AssetId {MAX_uint64};
 	FString AssetPath;
 	FTransform Transform;
+	/** World-space body transforms in AssemblySerializer order, not component discovery order. */
+	TArray<FTransform> BodyTransforms;
 	FString Message;
 	bool bAccepted {false};
 };
@@ -44,6 +47,7 @@ public:
 	FDistributedApplicationBarrier& operator=(const FDistributedApplicationBarrier&) = delete;
 
 	bool Initialize(FSimulationBarrier& Simulation, const FString& ZenohEndpoint);
+	/** Must be called on the game thread; AGX attaches its simulation listener synchronously. */
 	void StartAndLoad(int32 TimeoutSeconds = 60);
 	void Poll(TArray<FAGXDistributedEvent>& OutEvents);
 	bool IsReady() const;

@@ -17,4 +17,7 @@ public:
 	static FString ConvertToAGXUuidStr(const FGuid& Guid);
 
 	static FGuid ConvertAGXUuidToGuid(const FString& AGXUuidStr);
+
+	static bool DecodeDistributedBodyTransforms(
+		const TArray<uint8>& Data, TArray<FTransform>& OutTransforms);
 };

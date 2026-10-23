@@ -9,6 +9,7 @@
 #include "AGX_DistributedWorldSubsystem.generated.h"
 
 class UAGX_DistributedScenarioAsset;
+class AActor;
 
 /** World-facing entry point for an AGX Distributed client. */
 UCLASS()
@@ -46,6 +47,11 @@ public:
 private:
 	void HandleEvent(const FAGXDistributedEvent& Event);
 	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
+	void processIncomingEntityUpdates(const FAGXDistributedEvent& Event);
+
+	// Actors are owned by the world. Do not keep destroyed entities alive.
+	TMap<uint64, TWeakObjectPtr<AActor>> EntityActors;
+	TSet<uint64> ReportedUpdateErrors;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAGX_DistributedScenarioAsset> Scenario;
