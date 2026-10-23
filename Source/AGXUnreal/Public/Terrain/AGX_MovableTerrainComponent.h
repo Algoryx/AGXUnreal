@@ -413,6 +413,9 @@ private:
 	void UpdateParticleData();
 
 	void RecreateMeshes();
+	bool RecreateMeshesEditorOnTicker(float DeltaTime);
+
+	bool bRecreateMeshesEditorPending {false};
 
 	HeightMesh CreateHeightMesh(
 		int StartMeshIndex, const FVector& MeshCenter, const FVector2D& MeshSize,
