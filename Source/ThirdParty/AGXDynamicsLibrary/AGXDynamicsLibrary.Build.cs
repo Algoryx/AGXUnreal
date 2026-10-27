@@ -281,6 +281,9 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
+
+			// Unsure how Zenoh should be handled on non-Linux. We might make this global later.
+			RuntimeLibFiles.Add("zenohc", LibSource.Dependencies);
 		}
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
