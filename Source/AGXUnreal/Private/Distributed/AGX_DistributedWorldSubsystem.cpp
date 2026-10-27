@@ -19,12 +19,17 @@ bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 void UAGX_DistributedWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+	UE_LOG(
+		LogAGX, Warning, TEXT("\n\n\n\n      PLATFORM_TCHAR_IS_CHAR16 is %d\n\n\n\n"),
+		PLATFORM_TCHAR_IS_CHAR16);
+
 	Super::Initialize(Collection);
 	const UAGX_DistributedSettings* Settings = GetDefault<UAGX_DistributedSettings>();
 	if (!Settings->Scenario.IsNull())
 		Scenario = Settings->Scenario.LoadSynchronous();
 	if (!Settings->Scenario.IsNull() && Scenario == nullptr)
-		UE_LOG(LogAGX, Error, TEXT("AGX Distributed scenario asset could not be loaded: %s"),
+		UE_LOG(
+			LogAGX, Error, TEXT("AGX Distributed scenario asset could not be loaded: %s"),
 			*Settings->Scenario.ToString());
 }
 
@@ -36,8 +41,11 @@ void UAGX_DistributedWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	bInitializationAttempted = true;
 	if (Scenario->bLaunchWorldManager)
-		UE_LOG(LogAGX, Warning,
-			TEXT("AGX Distributed WorldManager launch is not implemented; connecting to an external manager."));
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"AGX Distributed WorldManager launch is not implemented; connecting to an external "
+				"manager."));
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(&InWorld);
 	if (Simulation == nullptr || Simulation->GetNative() == nullptr)
@@ -48,8 +56,10 @@ void UAGX_DistributedWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	if (Client.Initialize(*Simulation->GetNative(), Scenario->ZenohEndpoint))
 	{
-		UE_LOG(LogAGX, Log, TEXT("Starting AGX Distributed client; endpoint: %s"),
-			Scenario->ZenohEndpoint.IsEmpty() ? TEXT("default discovery") : *Scenario->ZenohEndpoint);
+		UE_LOG(
+			LogAGX, Log, TEXT("Starting AGX Distributed client; endpoint: %s"),
+			Scenario->ZenohEndpoint.IsEmpty() ? TEXT("default discovery")
+											  : *Scenario->ZenohEndpoint);
 		Client.StartAndLoad();
 	}
 }
@@ -116,7 +126,8 @@ bool UAGX_DistributedWorldSubsystem::RequestPossession(int64 EntityId, bool bPos
 
 bool UAGX_DistributedWorldSubsystem::RequestSimulationAuthority(int64 EntityId, bool bSimulate)
 {
-	return EntityId >= 0 && Client.RequestSimulationAuthority(static_cast<uint64>(EntityId), bSimulate);
+	return EntityId >= 0 &&
+		   Client.RequestSimulationAuthority(static_cast<uint64>(EntityId), bSimulate);
 }
 
 bool UAGX_DistributedWorldSubsystem::RouteSignal(
@@ -135,8 +146,7 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 	switch (Event.Type)
 	{
 		case EAGXDistributedEventType::Started:
-			UE_LOG(LogAGX, Log, TEXT("AGX Distributed joined world as node '%s'."),
-				*Event.Message);
+			UE_LOG(LogAGX, Log, TEXT("AGX Distributed joined world as node '%s'."), *Event.Message);
 			if (Scenario->EntityIdToPossess >= 0)
 				RequestPossession(Scenario->EntityIdToPossess, true);
 			break;
@@ -151,15 +161,17 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			processIncomingEntityUpdates(Event);
 			break;
 		case EAGXDistributedEventType::SpawnRequestResult:
-			UE_LOG(LogAGX, Log,
-				TEXT("AGX Distributed spawn request for '%s': %s (entity %llu). %s"),
+			UE_LOG(
+				LogAGX, Log, TEXT("AGX Distributed spawn request for '%s': %s (entity %llu). %s"),
 				*Event.AssetPath, Event.bAccepted ? TEXT("accepted") : TEXT("rejected"),
 				Event.EntityId, *Event.Message);
 			break;
 		case EAGXDistributedEventType::PossessionResult:
 		case EAGXDistributedEventType::SimulationAuthorityResult:
-			UE_LOG(LogAGX, Log, TEXT("AGX Distributed %s request for entity %llu: %s. %s"),
-				Event.Type == EAGXDistributedEventType::PossessionResult ? TEXT("possession")
+			UE_LOG(
+				LogAGX, Log, TEXT("AGX Distributed %s request for entity %llu: %s. %s"),
+				Event.Type == EAGXDistributedEventType::PossessionResult
+					? TEXT("possession")
 					: TEXT("simulation authority"),
 				Event.EntityId, Event.bAccepted ? TEXT("accepted") : TEXT("rejected"),
 				*Event.Message);
@@ -191,7 +203,8 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	UWorld* World = GetWorld();
 	if (Scenario == nullptr || World == nullptr)
 	{
-		UE_LOG(LogAGX, Error,
+		UE_LOG(
+			LogAGX, Error,
 			TEXT("AGX Distributed cannot spawn entity %llu without a scenario and world."),
 			Event.EntityId);
 		return;
@@ -204,8 +217,11 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 		Mapped = Scenario->AssetBlueprints.Find(Event.AssetPath);
 	if (Mapped == nullptr || Mapped->IsNull())
 	{
-		UE_LOG(LogAGX, Error,
-			TEXT("AGX Distributed entity %llu cannot spawn asset %llu ('%s'): no Blueprint is mapped."),
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"AGX Distributed entity %llu cannot spawn asset %llu ('%s'): no Blueprint is "
+				"mapped."),
 			Event.EntityId, Event.AssetId, *Event.AssetPath);
 		return;
 	}
@@ -213,8 +229,11 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	UClass* ActorClass = Mapped->LoadSynchronous();
 	if (ActorClass == nullptr)
 	{
-		UE_LOG(LogAGX, Error,
-			TEXT("AGX Distributed entity %llu cannot spawn asset %llu: Blueprint '%s' could not be loaded."),
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"AGX Distributed entity %llu cannot spawn asset %llu: Blueprint '%s' could not be "
+				"loaded."),
 			Event.EntityId, Event.AssetId, *Mapped->ToString());
 		return;
 	}
@@ -225,7 +244,8 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	AActor* Actor = World->SpawnActor<AActor>(ActorClass, Event.Transform, Params);
 	if (Actor == nullptr)
 	{
-		UE_LOG(LogAGX, Error,
+		UE_LOG(
+			LogAGX, Error,
 			TEXT("AGX Distributed entity %llu failed to spawn asset %llu as Blueprint '%s'."),
 			Event.EntityId, Event.AssetId, *Mapped->ToString());
 		return;
@@ -234,7 +254,8 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	EntityActors.Add(Event.EntityId, Actor);
 	ReportedUpdateErrors.Remove(Event.EntityId);
 
-	UE_LOG(LogAGX, Log,
+	UE_LOG(
+		LogAGX, Log,
 		TEXT("AGX Distributed entity %llu spawned asset %llu ('%s') as actor '%s' at %s."),
 		Event.EntityId, Event.AssetId, *Event.AssetPath, *Actor->GetName(),
 		*Event.Transform.ToHumanReadableString());
@@ -246,9 +267,10 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 		// This entity is driven by its remote simulation authority. Kinematic motion
 		// prevents local integration from fighting incoming distributed transforms.
 		Body->SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
-		UE_LOG(LogAGX, Log,
-			TEXT("  Name='%s', UUID='%s', ImportUUID='%s'"),
-			*Body->GetNative()->GetName(), *Body->GetNative()->GetGuid().ToString(), *Body->ImportGuid.ToString());
+		UE_LOG(
+			LogAGX, Log, TEXT("  Name='%s', UUID='%s', ImportUUID='%s'"),
+			*Body->GetNative()->GetName(), *Body->GetNative()->GetGuid().ToString(),
+			*Body->ImportGuid.ToString());
 	}
 }
 
@@ -261,7 +283,8 @@ void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDist
 		if (!ReportedUpdateErrors.Contains(Event.EntityId))
 		{
 			ReportedUpdateErrors.Add(Event.EntityId);
-			UE_LOG(LogAGX, Error, TEXT("AGX Distributed cannot update entity %llu: %s"),
+			UE_LOG(
+				LogAGX, Error, TEXT("AGX Distributed cannot update entity %llu: %s"),
 				Event.EntityId, Reason);
 		}
 	};
@@ -290,9 +313,7 @@ void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDist
 		return;
 
 	auto OrderByName = [](const UAGX_RigidBodyComponent& Lhs, const UAGX_RigidBodyComponent& Rhs)
-	{
-		return Lhs.ImportName < Rhs.ImportName;
-	};
+	{ return Lhs.ImportName < Rhs.ImportName; };
 
 	Bodies.Sort(OrderByName);
 
