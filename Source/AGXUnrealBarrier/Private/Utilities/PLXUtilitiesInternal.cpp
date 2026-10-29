@@ -17,6 +17,7 @@
 #include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Utilities/PLXControlMetadata.h"
 #include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics includes.
@@ -232,9 +233,11 @@ TArray<FOpenPLX_Input> FPLXUtilitiesInternal::GetInputs(openplx::Physics3D::Syst
 
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfInputs, Input);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
-		EOpenPLX_InputType Type = GetInputType(*Input);
-		Inputs.Add(FOpenPLX_Input(ConvertStrToName(Input->getName()), FName(*Alias), Type));
-		if (Type == EOpenPLX_InputType::Unsupported)
+		FOpenPLX_Input Imported(
+			ConvertStrToName(Input->getName()), FName(*Alias), GetInputType(*Input));
+		PLXControlMetadata::Resolve(*Input, Imported);
+		Inputs.Add(Imported);
+		if (Imported.ValueLayout == EOpenPLX_ValueLayout::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -274,10 +277,12 @@ TArray<FOpenPLX_Output> FPLXUtilitiesInternal::GetOutputs(openplx::Physics3D::Sy
 
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfOutputs, Output);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
-		EOpenPLX_OutputType Type = GetOutputType(*Output);
-		Outputs.Add(FOpenPLX_Output(
-			ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
-		if (Type == EOpenPLX_OutputType::Unsupported)
+		FOpenPLX_Output Imported(
+			ConvertStrToName(Output->getName()), FName(*Alias), GetOutputType(*Output),
+			Output->enabled());
+		PLXControlMetadata::Resolve(*Output, Imported);
+		Outputs.Add(Imported);
+		if (Imported.ValueLayout == EOpenPLX_ValueLayout::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,

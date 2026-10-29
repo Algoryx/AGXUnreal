@@ -2,6 +2,62 @@
 
 #include "Utilities/OpenPLX_Utilities.h"
 
+// AGX Dynamics for Unreal includes.
+#include "OpenPLX/OpenPLX_Inputs.h"
+#include "OpenPLX/OpenPLX_Outputs.h"
+
+namespace OpenPLX_Utilities_helpers
+{
+	template <typename TypeT>
+	EOpenPLX_ValueLayout GetValueLayout(TypeT Type)
+	{
+		using Utilities = FOpenPLX_Utilities;
+		if (Utilities::IsRealType(Type))
+			return EOpenPLX_ValueLayout::Real;
+		if (Utilities::IsBooleanType(Type))
+			return EOpenPLX_ValueLayout::Boolean;
+		if (Utilities::IsIntegerType(Type))
+			return EOpenPLX_ValueLayout::Integer;
+		if (Utilities::IsUnsignedIntegerType(Type))
+			return EOpenPLX_ValueLayout::UnsignedInteger;
+		if (Utilities::IsRangeType(Type))
+			return EOpenPLX_ValueLayout::RangeReal;
+		if (Utilities::IsVector2Type(Type))
+			return EOpenPLX_ValueLayout::Vector2;
+		if (Utilities::IsRPYType(Type))
+			return EOpenPLX_ValueLayout::RPY;
+		if (Utilities::IsVectorType(Type))
+			return EOpenPLX_ValueLayout::Vector3;
+		return EOpenPLX_ValueLayout::Unsupported;
+	}
+}
+
+EOpenPLX_ValueLayout FOpenPLX_Utilities::GetValueLayout(EOpenPLX_InputType Type)
+{
+	return OpenPLX_Utilities_helpers::GetValueLayout(Type);
+}
+
+EOpenPLX_ValueLayout FOpenPLX_Utilities::GetValueLayout(EOpenPLX_OutputType Type)
+{
+	if (IsIMUOutputType(Type))
+		return EOpenPLX_ValueLayout::IMU;
+	if (IsLidarOutputType(Type))
+		return EOpenPLX_ValueLayout::Lidar;
+	return OpenPLX_Utilities_helpers::GetValueLayout(Type);
+}
+
+EOpenPLX_ValueLayout FOpenPLX_Utilities::GetResolvedValueLayout(const FOpenPLX_Input& Input)
+{
+	return Input.ValueLayout == EOpenPLX_ValueLayout::Unspecified ? GetValueLayout(Input.Type)
+																  : Input.ValueLayout;
+}
+
+EOpenPLX_ValueLayout FOpenPLX_Utilities::GetResolvedValueLayout(const FOpenPLX_Output& Output)
+{
+	return Output.ValueLayout == EOpenPLX_ValueLayout::Unspecified ? GetValueLayout(Output.Type)
+																   : Output.ValueLayout;
+}
+
 bool FOpenPLX_Utilities::IsRealType(EOpenPLX_InputType Type)
 {
 	switch (Type)

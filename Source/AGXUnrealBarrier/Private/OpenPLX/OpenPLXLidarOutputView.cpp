@@ -8,6 +8,10 @@
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "Utilities/PLXMarshallingUtilities.h"
 
+// Unreal Engine includes.
+#include "Math/Matrix.h"
+#include "Math/Plane.h"
+
 // Standard library includes.
 #include <array>
 #include <cstring>
@@ -79,7 +83,7 @@ namespace OpenPLXLidarOutputView_helpers
 
 	bool ReadPositionsInternal(
 		openplx::Marshalling& Marshalling, TArray<FVector>& OutPositions,
-		const FTransform* RelativeTo)
+		const FTransform* RelativeTo, bool bConvertUnits)
 	{
 		OutPositions.Reset();
 		if (Marshalling.get_buffer_size() == 0)
@@ -126,8 +130,11 @@ namespace OpenPLXLidarOutputView_helpers
 			const float X = ReadValue<float>(Window + XField->offset);
 			const float Y = ReadValue<float>(Window + YField->offset);
 			const float Z = ReadValue<float>(Window + ZField->offset);
-			FVector Position = ConvertDisplacement(
-				static_cast<agx::Real>(X), static_cast<agx::Real>(Y), static_cast<agx::Real>(Z));
+			FVector Position = bConvertUnits
+								   ? ConvertDisplacement(
+										 static_cast<agx::Real>(X), static_cast<agx::Real>(Y),
+										 static_cast<agx::Real>(Z))
+								   : FVector(X, Y, Z);
 			if (RelativeTo != nullptr)
 				Position = RelativeTo->TransformPositionNoScale(Position);
 
@@ -198,7 +205,8 @@ namespace OpenPLXLidarOutputView_helpers
 		return true;
 	}
 
-	bool ReadRayPosesInternal(openplx::Marshalling& Marshalling, TArray<FTransform>& OutRayPoses)
+	bool ReadRayPosesInternal(
+		openplx::Marshalling& Marshalling, TArray<FTransform>& OutRayPoses, bool bConvertUnits)
 	{
 		OutRayPoses.Reset();
 		if (Marshalling.get_buffer_size() == 0)
@@ -256,7 +264,16 @@ namespace OpenPLXLidarOutputView_helpers
 				E[2], E[6], E[10], 0.0,
 				E[3], E[7], E[11], 1.0};
 			// clang-format on
-			OutRayPoses[I] = Convert(RayPoseAGX);
+			if (bConvertUnits)
+				OutRayPoses[I] = Convert(RayPoseAGX);
+			else
+			{
+				// Preserve the model basis and translation instead of changing handedness/units.
+				const FMatrix Matrix(
+					FPlane(E[0], E[4], E[8], 0.0), FPlane(E[1], E[5], E[9], 0.0),
+					FPlane(E[2], E[6], E[10], 0.0), FPlane(E[3], E[7], E[11], 1.0));
+				OutRayPoses[I] = FTransform(Matrix);
+			}
 		}
 
 		return true;
@@ -675,7 +692,7 @@ bool FOpenPLXLidarOutputView::ReadPositions(TArray<FVector>& OutPositions)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadPositionsInternal(
-		*NativeRef->Marshalling, OutPositions, nullptr);
+		*NativeRef->Marshalling, OutPositions, nullptr, NativeRef->bConvertUnits);
 }
 
 bool FOpenPLXLidarOutputView::ReadPositionsTransformed(
@@ -685,7 +702,7 @@ bool FOpenPLXLidarOutputView::ReadPositionsTransformed(
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadPositionsInternal(
-		*NativeRef->Marshalling, OutPositions, &RelativeTo);
+		*NativeRef->Marshalling, OutPositions, &RelativeTo, NativeRef->bConvertUnits);
 }
 
 bool FOpenPLXLidarOutputView::ReadIntensities(TArray<float>& OutIntensities)
@@ -715,7 +732,12 @@ bool FOpenPLXLidarOutputView::ReadDistances(TArray<double>& OutDistances)
 
 	return OpenPLXLidarOutputView_helpers::ReadScalarFieldInternal<double, float>(
 		*NativeRef->Marshalling, "distance", OutDistances,
-		[](float Value) { return ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value)); },
+		[this](float Value)
+		{
+			return NativeRef->bConvertUnits
+					   ? ConvertDistanceToUnreal<double>(static_cast<agx::Real>(Value))
+					   : static_cast<double>(Value);
+		},
 		TEXT("distances"));
 }
 
@@ -725,7 +747,7 @@ bool FOpenPLXLidarOutputView::ReadRayPoses(TArray<FTransform>& OutRayPoses)
 		return false;
 
 	return OpenPLXLidarOutputView_helpers::ReadRayPosesInternal(
-		*NativeRef->Marshalling, OutRayPoses);
+		*NativeRef->Marshalling, OutRayPoses, NativeRef->bConvertUnits);
 }
 
 bool FOpenPLXLidarOutputView::ReadIsHits(TArray<bool>& OutIsHits)

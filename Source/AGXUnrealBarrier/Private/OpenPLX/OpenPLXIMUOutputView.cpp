@@ -84,7 +84,12 @@ bool FOpenPLXIMUOutputView::GetAccelerometerData(FVector& OutAccelerometerData)
 
 	return PLXMarshallingUtilities::ReadVector(
 		*Layout.Marshalling, "accelerometer_logic", OutAccelerometerData,
-		[](const agx::Vec3& Value) { return ConvertDisplacement(Value); }, TEXT("accelerometer"));
+		[this](const agx::Vec3& Value)
+		{
+			return NativeRef->bConvertUnits ? ConvertDisplacement(Value)
+											: FVector(Value.x(), Value.y(), Value.z());
+		},
+		TEXT("accelerometer"));
 }
 
 bool FOpenPLXIMUOutputView::GetGyroscopeData(FVector& OutGyroscopeData)
@@ -99,7 +104,12 @@ bool FOpenPLXIMUOutputView::GetGyroscopeData(FVector& OutGyroscopeData)
 
 	return PLXMarshallingUtilities::ReadVector(
 		*Layout.Marshalling, "gyroscope_logic", OutGyroscopeData,
-		[](const agx::Vec3& Value) { return ConvertAngularVelocity(Value); }, TEXT("gyroscope"));
+		[this](const agx::Vec3& Value)
+		{
+			return NativeRef->bConvertUnits ? ConvertAngularVelocity(Value)
+											: FVector(Value.x(), Value.y(), Value.z());
+		},
+		TEXT("gyroscope"));
 }
 
 bool FOpenPLXIMUOutputView::GetMagnetometerData(FVector& OutMagnetometerData)
@@ -114,7 +124,12 @@ bool FOpenPLXIMUOutputView::GetMagnetometerData(FVector& OutMagnetometerData)
 
 	return PLXMarshallingUtilities::ReadVector(
 		*Layout.Marshalling, "magnetometer_logic", OutMagnetometerData,
-		[](const agx::Vec3& Value) { return ConvertVector(Value); }, TEXT("magnetometer"));
+		[this](const agx::Vec3& Value)
+		{
+			return NativeRef->bConvertUnits ? ConvertVector(Value)
+											: FVector(Value.x(), Value.y(), Value.z());
+		},
+		TEXT("magnetometer"));
 }
 
 bool FOpenPLXIMUOutputView::MakePersistant()

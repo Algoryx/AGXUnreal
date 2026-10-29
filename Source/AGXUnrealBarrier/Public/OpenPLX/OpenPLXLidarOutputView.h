@@ -45,6 +45,9 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarPackedField
  * data is copied until data is requested. A newly received view is only valid until another
  * OpenPLX signal receive operation is called since it reuses the underlying Control Interface
  * buffer. Call MakePersistant before storing the view for later use.
+ * When received with Convert Units disabled, typed getters return model components unchanged
+ * instead of Unreal units and coordinates. Explicitly supplied transforms must then use the
+ * same model units and coordinate basis. ReadRawPointData always returns model bytes.
  */
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView

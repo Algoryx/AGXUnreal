@@ -5,6 +5,7 @@
 // AGX Dynamics for Unreal includes.
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "Utilities/AGX_EditorUtilities.h"
+#include "Utilities/OpenPLX_Utilities.h"
 
 // Unreal Engine includes.
 #include "DetailCategoryBuilder.h"
@@ -36,6 +37,15 @@ namespace SignalHandlerComponentCustomization_helpers
 		}
 
 		return UEnum::GetValueAsString(Value);
+	}
+
+	template <typename ControlT>
+	FString GetControlTypeDescription(const ControlT& Control)
+	{
+		return FString::Printf(
+			TEXT("%s\nVirtual type: %s\nValue layout: %s"), *GetEnumDisplayName(Control.Type),
+			*GetEnumDisplayName(Control.VirtualType),
+			*GetEnumDisplayName(FOpenPLX_Utilities::GetResolvedValueLayout(Control)));
 	}
 }
 
@@ -80,7 +90,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Input)
 			continue;
 
-		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Input->Type);
+		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetControlTypeDescription(*Input);
 		SignalInterfaceCategory.AddCustomRow(FText::FromString("InputExpandable"))
 		.WholeRowContent()
 		[
@@ -100,9 +110,8 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.AutoHeight()
 				.Padding(FMargin(32.f, 0.f, 0.f, 0.f))
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("Type: %s"), *InputTypeName)))
-					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SVerticalBox::Slot()
@@ -144,7 +153,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Component->bShowDisabledOutputs && !Output->bEnabled)
 			continue;
 
-		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Output->Type);
+		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetControlTypeDescription(*Output);
 		SignalInterfaceCategory.AddCustomRow(FText::FromString("OutputExpandable"))
 		.WholeRowContent()
 		[
@@ -164,9 +173,8 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.AutoHeight()
 				.Padding(FMargin(32.f, 0.f, 0.f, 0.f))
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("Type: %s"), *OutputTypeName)))
-					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SVerticalBox::Slot()
@@ -214,7 +222,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 	for (const FName& Key : SortedInputKeys)
 	{
 		const FOpenPLX_Input& Input = Component->Inputs[Key];
-		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Input.Type);
+		FString InputTypeName = SignalHandlerComponentCustomization_helpers::GetControlTypeDescription(Input);
 
 		InputsCategory.AddCustomRow(FText::FromString("InputExpandable"))
 		.WholeRowContent()
@@ -235,9 +243,8 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.AutoHeight()
 				.Padding(FMargin(32.f, 0.f, 0.f, 0.f))
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("Type: %s"), *InputTypeName)))
-					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SVerticalBox::Slot()
@@ -307,7 +314,7 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 		if (!Component->bShowDisabledOutputs && !Output.bEnabled)
 			continue;
 
-		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetEnumDisplayName(Output.Type);
+		FString OutputTypeName = SignalHandlerComponentCustomization_helpers::GetControlTypeDescription(Output);
 		OutputsCategory.AddCustomRow(FText::FromString("OutputExpandable"))
 		.WholeRowContent()
 		[
@@ -327,9 +334,8 @@ void FOpenPLX_SignalHandlerComponentCustomization::CustomizeDetails(
 				.AutoHeight()
 				.Padding(FMargin(32.f, 0.f, 0.f, 0.f))
 				[
-					SNew(SEditableTextBox)
+					SNew(STextBlock)
 					.Text(FText::FromString(FString::Printf(TEXT("Type: %s"), *OutputTypeName)))
-					.IsReadOnly(true)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SVerticalBox::Slot()

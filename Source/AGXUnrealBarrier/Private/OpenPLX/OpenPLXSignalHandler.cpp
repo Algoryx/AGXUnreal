@@ -37,6 +37,7 @@
 
 // Standard library includes.
 #include <cstdint>
+#include <limits>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
@@ -160,6 +161,53 @@ bool FOpenPLXSignalHandler::IsInitialized() const
 
 namespace OpenPLXSignalHandler_helpers
 {
+	template <typename ControlT>
+	bool CanUseConversion(const ControlT& Control, bool bConvertUnits)
+	{
+		using Type = decltype(Control.Type);
+		if (!bConvertUnits || (Control.Type != Type::Unknown && Control.Type != Type::Unsupported))
+			return true;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("OpenPLX Signal Handler: Cannot convert units for '%s' ('%s') because its "
+				 "effective physical type is unknown. Disable Convert Units to use model values."),
+			*Control.Name.ToString(), *Control.Alias.ToString());
+		return false;
+	}
+
+	// Raw values retain the OpenPLX model's units, axes and component order.
+	template <typename ValueT>
+	ValueT ToModelValue(ValueT Value)
+	{
+		return Value;
+	}
+
+	agx::Vec2 ToModelValue(const FVector2D& Value)
+	{
+		return {Value.X, Value.Y};
+	}
+
+	agx::Vec3 ToModelValue(const FVector& Value)
+	{
+		return {Value.X, Value.Y, Value.Z};
+	}
+
+	template <typename ValueT>
+	ValueT ToUnrealValue(ValueT Value)
+	{
+		return Value;
+	}
+
+	FVector2D ToUnrealValue(const agx::Vec2& Value)
+	{
+		return {Value.x(), Value.y()};
+	}
+
+	FVector ToUnrealValue(const agx::Vec3& Value)
+	{
+		return {Value.x(), Value.y(), Value.z()};
+	}
+
 	// Visual Studio versions before 14.44 have a 'static_assert' bug causing assert that shouldn't
 	// fire to fire, which we work around by making a template-type dependent 'false' literal.
 	template <typename>
@@ -477,6 +525,23 @@ namespace OpenPLXSignalHandler_helpers
 	{
 		std::optional<uint64_t> ValueMaybe = Interface.read<uint64_t>(Name);
 		return Convert(ValueMaybe);
+	}
+
+	// Blueprint uses signed int64 pins. Preserve unsigned fields without wrapping their values.
+	bool InterfaceWriteUnsignedIntegerAsSigned(
+		openplx::HeapControlInterface& Interface, const std::string& Name, int64_t Value)
+	{
+		return Value >= 0 &&
+			   InterfaceWriteUnsignedInteger(Interface, Name, static_cast<uint64_t>(Value));
+	}
+
+	TOptional<int64_t> InterfaceReadUnsignedIntegerAsSigned(
+		openplx::HeapControlInterface& Interface, const std::string& Name)
+	{
+		const TOptional<uint64_t> Value = InterfaceReadUnsignedInteger(Interface, Name);
+		if (!Value || *Value > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+			return {};
+		return static_cast<int64_t>(*Value);
 	}
 
 	bool InterfaceWriteReal(
@@ -897,63 +962,83 @@ namespace OpenPLXSignalHandler_helpers
 	template <>
 	BoolWriteFuncPtr GetInterfaceWriteFunction<bool>(const FOpenPLX_Input& Input)
 	{
-		return FOpenPLX_Utilities::IsBooleanType(Input.Type) ? InterfaceWriteBool : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Boolean)
+				   ? InterfaceWriteBool
+				   : nullptr;
 	}
 
 	template <>
 	BoolReadFuncPtr GetInterfaceReadFunction<bool>(const FOpenPLX_Output& Input)
 	{
-		return FOpenPLX_Utilities::IsBooleanType(Input.Type) ? InterfaceReadBool : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Boolean)
+				   ? InterfaceReadBool
+				   : nullptr;
 	}
 
 	template <>
 	IntWriteFuncPtr GetInterfaceWriteFunction<int64_t>(const FOpenPLX_Input& Input)
 	{
-		return FOpenPLX_Utilities::IsIntegerType(Input.Type) ? InterfaceWriteSignedInteger
-															 : nullptr;
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) ==
+			EOpenPLX_ValueLayout::UnsignedInteger)
+			return InterfaceWriteUnsignedIntegerAsSigned;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Integer)
+				   ? InterfaceWriteSignedInteger
+				   : nullptr;
 	}
 
 	template <>
 	IntReadFuncPtr GetInterfaceReadFunction<int64_t>(const FOpenPLX_Output& Output)
 	{
-		return FOpenPLX_Utilities::IsIntegerType(Output.Type) ? InterfaceReadSignedInteger
-															  : nullptr;
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) ==
+			EOpenPLX_ValueLayout::UnsignedInteger)
+			return InterfaceReadUnsignedIntegerAsSigned;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::Integer)
+				   ? InterfaceReadSignedInteger
+				   : nullptr;
 	}
 
 	template <>
 	UIntWriteFuncPtr GetInterfaceWriteFunction<uint64_t>(const FOpenPLX_Input& Input)
 	{
-		return FOpenPLX_Utilities::IsUnsignedIntegerType(Input.Type) ? InterfaceWriteUnsignedInteger
-																	 : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Input) ==
+				EOpenPLX_ValueLayout::UnsignedInteger)
+				   ? InterfaceWriteUnsignedInteger
+				   : nullptr;
 	}
 
 	template <>
 	UIntReadFuncPtr GetInterfaceReadFunction<uint64_t>(const FOpenPLX_Output& Output)
 	{
-		return FOpenPLX_Utilities::IsUnsignedIntegerType(Output.Type) ? InterfaceReadUnsignedInteger
-																	  : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Output) ==
+				EOpenPLX_ValueLayout::UnsignedInteger)
+				   ? InterfaceReadUnsignedInteger
+				   : nullptr;
 	}
 
 	template <>
 	RealWriteFuncPtr GetInterfaceWriteFunction<agx::Real>(const FOpenPLX_Input& Input)
 	{
-		return FOpenPLX_Utilities::IsRealType(Input.Type) ? InterfaceWriteReal : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Real)
+				   ? InterfaceWriteReal
+				   : nullptr;
 	}
 
 	template <>
 	RealReadFuncPtr GetInterfaceReadFunction<agx::Real>(const FOpenPLX_Output& Output)
 	{
-		return FOpenPLX_Utilities::IsRealType(Output.Type) ? InterfaceReadReal : nullptr;
+		return (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::Real)
+				   ? InterfaceReadReal
+				   : nullptr;
 	}
 
 	template <>
 	Vec2WriteFuncPtr GetInterfaceWriteFunction<agx::Vec2>(const FOpenPLX_Input& Input)
 	{
-		if (FOpenPLX_Utilities::IsRangeType(Input.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::RangeReal)
 		{
 			return InterfaceWriteRangeReal;
 		}
-		if (FOpenPLX_Utilities::IsVector2Type(Input.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Vector2)
 		{
 			return InterfaceWriteVector2;
 		}
@@ -963,11 +1048,11 @@ namespace OpenPLXSignalHandler_helpers
 	template <>
 	Vec2ReadFuncPtr GetInterfaceReadFunction<agx::Vec2>(const FOpenPLX_Output& Output)
 	{
-		if (FOpenPLX_Utilities::IsRangeType(Output.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::RangeReal)
 		{
 			return InterfaceReadRangeReal;
 		}
-		if (FOpenPLX_Utilities::IsVector2Type(Output.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::Vector2)
 		{
 			return InterfaceReadVector2;
 		}
@@ -977,11 +1062,11 @@ namespace OpenPLXSignalHandler_helpers
 	template <>
 	Vec3WriteFuncPtr GetInterfaceWriteFunction<agx::Vec3>(const FOpenPLX_Input& Input)
 	{
-		if (FOpenPLX_Utilities::IsRPYType(Input.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::RPY)
 		{
 			return InterfaceWriteRPY;
 		}
-		if (FOpenPLX_Utilities::IsVectorType(Input.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Vector3)
 		{
 			return InterfaceWriteVector3;
 		}
@@ -991,11 +1076,11 @@ namespace OpenPLXSignalHandler_helpers
 	template <>
 	Vec3ReadFuncPtr GetInterfaceReadFunction<agx::Vec3>(const FOpenPLX_Output& Output)
 	{
-		if (FOpenPLX_Utilities::IsRPYType(Output.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::RPY)
 		{
 			return InterfaceReadRPY;
 		}
-		if (FOpenPLX_Utilities::IsVectorType(Output.Type))
+		if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::Vector3)
 		{
 			return InterfaceReadVector3;
 		}
@@ -1009,7 +1094,7 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool SendImpl(
 		const FOpenPLX_Input& Input, ValueUnrealT ValueUnreal,
-		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
+		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc, bool bConvertUnits)
 	{
 		if (Interface == nullptr)
 		{
@@ -1023,7 +1108,11 @@ namespace OpenPLXSignalHandler_helpers
 			return false;
 		}
 
-		TOptional<ValuePLXT> ValuePLXMaybe = ConvertFunc(Input, ValueUnreal);
+		if (!CanUseConversion(Input, bConvertUnits))
+			return false;
+		TOptional<ValuePLXT> ValuePLXMaybe = bConvertUnits
+												 ? ConvertFunc(Input, ValueUnreal)
+												 : TOptional<ValuePLXT>(ToModelValue(ValueUnreal));
 		if (!ValuePLXMaybe)
 		{
 			UE_LOG(
@@ -1075,7 +1164,7 @@ namespace OpenPLXSignalHandler_helpers
 	template <typename ValuePLXT, typename ValueUnrealT, typename ConvertFuncT>
 	bool ReceiveImpl(
 		const FOpenPLX_Output& Output, ValueUnrealT& OutValue,
-		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc)
+		openplx::HeapControlInterface* Interface, ConvertFuncT ConvertFunc, bool bConvertUnits)
 	{
 		OutValue = {};
 		if (Interface == nullptr)
@@ -1089,6 +1178,9 @@ namespace OpenPLXSignalHandler_helpers
 				*Output.Name.ToString(), *Output.Alias.ToString());
 			return false;
 		}
+
+		if (!CanUseConversion(Output, bConvertUnits))
+			return false;
 
 		std::string Name = Convert(Output.Name.ToString());
 		auto ReadFunc = GetInterfaceReadFunction<ValuePLXT>(Output);
@@ -1116,7 +1208,9 @@ namespace OpenPLXSignalHandler_helpers
 			return false;
 		}
 
-		TOptional<ValueUnrealT> ConvertedMaybe = ConvertFunc(Output, *ValuePLXMaybe);
+		TOptional<ValueUnrealT> ConvertedMaybe =
+			bConvertUnits ? ConvertFunc(Output, *ValuePLXMaybe)
+						  : TOptional<ValueUnrealT>(ToUnrealValue(*ValuePLXMaybe));
 		if (!ConvertedMaybe)
 		{
 			UE_LOG(
@@ -1142,82 +1236,91 @@ namespace OpenPLXSignalHandler_helpers
 // End of helper functions, start of member function implementations.
 //
 
-bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, double Value, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return OpenPLXSignalHandler_helpers::SendImpl<agx::Real>(
-		Input, Value, GetHeapControlInterface(), ConvertRealToPLX);
+		Input, Value, GetHeapControlInterface(), ConvertRealToPLX, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, double& OutValue)
+bool FOpenPLXSignalHandler::Receive(
+	const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveImpl<agx::Real>(
-		Output, OutValue, GetHeapControlInterface(), ConvertRealToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertRealToUnreal, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector2D& Value)
+bool FOpenPLXSignalHandler::Send(
+	const FOpenPLX_Input& Input, const FVector2D& Value, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendImpl<agx::Vec2>(
-		Input, Value, GetHeapControlInterface(), ConvertVector2ToPLXValue);
+		Input, Value, GetHeapControlInterface(), ConvertVector2ToPLXValue, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector2D& OutValue)
+bool FOpenPLXSignalHandler::Receive(
+	const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveImpl<agx::Vec2>(
-		Output, OutValue, GetHeapControlInterface(), ConvertVector2ValueToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertVector2ValueToUnreal, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, const FVector& Value)
+bool FOpenPLXSignalHandler::Send(
+	const FOpenPLX_Input& Input, const FVector& Value, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return SendImpl<agx::Vec3>(
-		Input, Value, GetHeapControlInterface(), ConvertVector3ToPLXValue);
+		Input, Value, GetHeapControlInterface(), ConvertVector3ToPLXValue, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, FVector& OutValue)
+bool FOpenPLXSignalHandler::Receive(
+	const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveImpl<agx::Vec3>(
-		Output, OutValue, GetHeapControlInterface(), ConvertVector3ValueToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertVector3ValueToUnreal, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendImpl<int64_t>(Input, Value, GetHeapControlInterface(), ConvertIntegerToPLX);
+	return SendImpl<int64_t>(
+		Input, Value, GetHeapControlInterface(), ConvertIntegerToPLX, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, int64& OutValue)
+bool FOpenPLXSignalHandler::Receive(
+	const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveImpl<int64_t>(
-		Output, OutValue, GetHeapControlInterface(), ConvertIntegerToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertIntegerToUnreal, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value)
+bool FOpenPLXSignalHandler::Send(const FOpenPLX_Input& Input, bool Value, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
-	return SendImpl<bool>(Input, Value, GetHeapControlInterface(), ConvertBooleanToPLX);
+	return SendImpl<bool>(
+		Input, Value, GetHeapControlInterface(), ConvertBooleanToPLX, bConvertUnits);
 }
 
-bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValue)
+bool FOpenPLXSignalHandler::Receive(
+	const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits)
 {
 	using namespace OpenPLXSignalHandler_helpers;
 	check(IsInitialized());
 	return ReceiveImpl<bool>(
-		Output, OutValue, GetHeapControlInterface(), ConvertBooleanToUnreal);
+		Output, OutValue, GetHeapControlInterface(), ConvertBooleanToUnreal, bConvertUnits);
 }
 
 FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface()
@@ -1242,7 +1345,7 @@ const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() 
 }
 
 bool FOpenPLXSignalHandler::ReceiveLidarOutput(
-	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput)
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput, bool bConvertUnits)
 {
 	check(IsInitialized());
 
@@ -1258,7 +1361,12 @@ bool FOpenPLXSignalHandler::ReceiveLidarOutput(
 		return false;
 	}
 
+	if (!OpenPLXSignalHandler_helpers::CanUseConversion(Output, bConvertUnits) ||
+		FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Lidar)
+		return false;
+
 	OutOutput = FOpenPLXLidarOutputView();
+	OutOutput.GetNative()->bConvertUnits = bConvertUnits;
 	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
 	if (!OutOutput.HasNative())
 	{
@@ -1275,7 +1383,7 @@ bool FOpenPLXSignalHandler::ReceiveLidarOutput(
 }
 
 bool FOpenPLXSignalHandler::ReceiveIMUOutput(
-	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput)
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput, bool bConvertUnits)
 {
 	check(IsInitialized());
 
@@ -1291,7 +1399,12 @@ bool FOpenPLXSignalHandler::ReceiveIMUOutput(
 		return false;
 	}
 
+	if (!OpenPLXSignalHandler_helpers::CanUseConversion(Output, bConvertUnits) ||
+		FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::IMU)
+		return false;
+
 	OutOutput = FOpenPLXIMUOutputView();
+	OutOutput.GetNative()->bConvertUnits = bConvertUnits;
 	OutOutput.GetNative()->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
 	if (!OutOutput.HasNative())
 	{

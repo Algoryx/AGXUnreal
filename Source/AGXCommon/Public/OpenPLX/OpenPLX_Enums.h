@@ -8,7 +8,37 @@
 
 #include "OpenPLX_Enums.generated.h"
 
-UENUM()
+/** Operation performed by a virtual control. */
+UENUM(BlueprintType)
+enum class EOpenPLX_VirtualType : uint8
+{
+	None,
+	BroadcastInput,
+	AffineTransform1DInput,
+	AffineTransform1DOutput
+};
+
+/** Field layouts supported by OpenPLX input and output descriptors. */
+UENUM(BlueprintType)
+enum class EOpenPLX_ValueLayout : uint8
+{
+	/** No explicit layout; derive it from the effective signal type. */
+	Unspecified,
+	Unsupported,
+	Real,
+	Boolean,
+	Integer,
+	UnsignedInteger,
+	RangeReal,
+	Vector2,
+	Vector3,
+	RPY,
+	IMU,
+	Lidar
+};
+
+/** Effective input signal types, including types resolved for virtual inputs. */
+UENUM(BlueprintType)
 enum class EOpenPLX_InputType : uint8
 {
 	Unsupported UMETA(DisplayName = "Unsupported"),
@@ -48,10 +78,14 @@ enum class EOpenPLX_InputType : uint8
 		DisplayName = "Enable Interaction Input [Boolean]"), // Child of BoolInput
 	EngageInput UMETA(DisplayName = "Engage Input [Boolean]"), // Child of BoolInput
 	TorqueConverterLockUpInput UMETA(
-		DisplayName = "Torque Converter Lock Up Input [Boolean]") // Child of BoolInput
+		DisplayName = "Torque Converter Lock Up Input [Boolean]"), // Child of BoolInput
+
+	/** The effective signal type could not be determined unambiguously. */
+	Unknown
 };
 
-UENUM()
+/** Effective output signal types, including types resolved for virtual outputs. */
+UENUM(BlueprintType)
 enum class EOpenPLX_OutputType : uint8
 {
 	Unsupported UMETA(DisplayName = "Unsupported"),
@@ -116,5 +150,8 @@ enum class EOpenPLX_OutputType : uint8
 
 	/* Others */
 	LidarOutput UMETA(DisplayName = "Lidar Output [Lidar Output]"),
-	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]")
+	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]"),
+
+	/** The effective signal type could not be determined unambiguously. */
+	Unknown
 };

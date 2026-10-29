@@ -19,6 +19,9 @@ struct FOpenPLXIMUOutputViewRef;
  * data is copied until data is requested. A newly received view is only valid until another
  * OpenPLX signal receive operation is called since it reuses the underlying Control Interface
  * buffer. Call MakePersistant before storing the view for later use.
+ * When received with Convert Units disabled, data getters return model components unchanged
+ * instead of Unreal units and coordinates. World-space helpers apply the supplied transform
+ * to those components; that transform must use the same units and coordinate basis.
  */
 USTRUCT(BlueprintType)
 struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
