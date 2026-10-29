@@ -32,7 +32,7 @@ namespace PLXControlMetadata
 	template <typename TypeT>
 	struct TMetadata
 	{
-		TypeT Type {TypeT::Unsupported};
+		TypeT Type {TypeT::Unknown};
 		EOpenPLX_ValueLayout Layout {EOpenPLX_ValueLayout::Unsupported};
 		EOpenPLX_VirtualType VirtualType {EOpenPLX_VirtualType::None};
 		FFields Fields;

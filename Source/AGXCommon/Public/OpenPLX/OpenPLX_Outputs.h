@@ -37,9 +37,9 @@ struct AGXCOMMON_API FOpenPLX_Output
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Alias;
 
-	/** Effective signal type. Resolved from the source for virtual outputs; Unknown if ambiguous. */
+	/** Effective signal type. Virtual outputs derive it from the source; Unknown if unresolved. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
-	EOpenPLX_OutputType Type {EOpenPLX_OutputType::Unsupported};
+	EOpenPLX_OutputType Type {EOpenPLX_OutputType::Unknown};
 
 	/** Virtual control operation, or None for an ordinary output. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")

@@ -41,7 +41,8 @@ enum class EOpenPLX_ValueLayout : uint8
 UENUM(BlueprintType)
 enum class EOpenPLX_InputType : uint8
 {
-	Unsupported UMETA(DisplayName = "Unsupported"),
+	/** The effective physical signal type could not be determined. */
+	Unknown,
 
 	/* Real Inputs */
 	AngleInput UMETA(DisplayName = "Angle Input [Real]"),
@@ -78,17 +79,15 @@ enum class EOpenPLX_InputType : uint8
 		DisplayName = "Enable Interaction Input [Boolean]"), // Child of BoolInput
 	EngageInput UMETA(DisplayName = "Engage Input [Boolean]"), // Child of BoolInput
 	TorqueConverterLockUpInput UMETA(
-		DisplayName = "Torque Converter Lock Up Input [Boolean]"), // Child of BoolInput
-
-	/** The effective signal type could not be determined unambiguously. */
-	Unknown
+		DisplayName = "Torque Converter Lock Up Input [Boolean]") // Child of BoolInput
 };
 
 /** Effective output signal types, including types resolved for virtual outputs. */
 UENUM(BlueprintType)
 enum class EOpenPLX_OutputType : uint8
 {
-	Unsupported UMETA(DisplayName = "Unsupported"),
+	/** The effective physical signal type could not be determined. */
+	Unknown,
 
 	/* Real Outputs */
 	AngleOutput UMETA(DisplayName = "Angle Output [Real]"),
@@ -150,8 +149,5 @@ enum class EOpenPLX_OutputType : uint8
 
 	/* Others */
 	LidarOutput UMETA(DisplayName = "Lidar Output [Lidar Output]"),
-	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]"),
-
-	/** The effective signal type could not be determined unambiguously. */
-	Unknown
+	IMUOutput UMETA(DisplayName = "IMU Output [IMU Output]")
 };

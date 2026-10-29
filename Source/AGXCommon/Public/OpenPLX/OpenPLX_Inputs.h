@@ -36,9 +36,9 @@ struct AGXCOMMON_API FOpenPLX_Input
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Alias;
 
-	/** Effective signal type. Resolved from targets for virtual inputs; Unknown if ambiguous. */
+	/** Effective signal type. Resolved from targets for virtual inputs; Unknown if unresolved. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
-	EOpenPLX_InputType Type {EOpenPLX_InputType::Unsupported};
+	EOpenPLX_InputType Type {EOpenPLX_InputType::Unknown};
 
 	/** Virtual control operation, or None for an ordinary input. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")

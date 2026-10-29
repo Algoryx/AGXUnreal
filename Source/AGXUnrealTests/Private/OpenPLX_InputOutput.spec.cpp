@@ -8,10 +8,11 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
+#include "Engine/World.h"
 #include "Misc/AutomationTest.h"
+#include "UObject/Class.h"
 #include "UObject/EnumProperty.h"
 #include "UObject/UnrealType.h"
-#include "Engine/World.h"
 
 BEGIN_DEFINE_SPEC(
 	FOpenPLX_InputOutputSpec, "AGXUnreal.Spec.PLXInputOutput",
@@ -56,8 +57,7 @@ void FOpenPLX_InputOutputSpec::Define()
 					   EOpenPLX_InputType Value = static_cast<EOpenPLX_InputType>(
 						   StaticEnum<EOpenPLX_InputType>()->GetValueByIndex(Index));
 
-					   const bool bIsKnown =
-						   IsKnown(Value) || Value == EOpenPLX_InputType::Unsupported;
+					   const bool bIsKnown = IsKnown(Value) || Value == EOpenPLX_InputType::Unknown;
 					   if (!bIsKnown)
 					   {
 						   FString Name =
@@ -84,7 +84,7 @@ void FOpenPLX_InputOutputSpec::Define()
 						   StaticEnum<EOpenPLX_OutputType>()->GetValueByIndex(Index));
 
 					   const bool bIsKnown =
-						   IsKnown(Value) || Value == EOpenPLX_OutputType::Unsupported;
+						   IsKnown(Value) || Value == EOpenPLX_OutputType::Unknown;
 					   if (!bIsKnown)
 					   {
 						   FString Name =
@@ -93,6 +93,40 @@ void FOpenPLX_InputOutputSpec::Define()
 					   }
 
 					   this->TestTrue("Output is known", bIsKnown);
+				   }
+			   });
+		});
+
+	Describe(
+		"When resolving legacy OpenPLX signal type values",
+		[this]()
+		{
+			It("should redirect Unsupported to Unknown and retain concrete values",
+			   [this]()
+			   {
+				   UEnum* Enums[] {
+					   StaticEnum<EOpenPLX_InputType>(), StaticEnum<EOpenPLX_OutputType>()};
+				   for (UEnum* Enum : Enums)
+				   {
+					   const FString EnumName = Enum->GetName();
+					   TestEqual(
+						   TEXT("Unknown remains the zero/default value"),
+						   Enum->GetValueByNameString(TEXT("Unknown")), int64 {0});
+					   TestEqual(
+						   TEXT("Unqualified Unsupported is redirected"),
+						   Enum->GetValueByNameString(TEXT("Unsupported")), int64 {0});
+					   TestEqual(
+						   TEXT("Qualified Unsupported is redirected"),
+						   Enum->GetValueByNameString(EnumName + TEXT("::Unsupported")), int64 {0});
+					   // Existing concrete values must still resolve with the current enum prefix.
+					   for (int32 Index = 1; Index < Enum->NumEnums() - 1; ++Index)
+					   {
+						   const FString Entry = Enum->GetNameStringByIndex(Index);
+						   TestEqual(
+							   *FString::Printf(TEXT("Qualified value %s::%s"), *EnumName, *Entry),
+							   Enum->GetValueByNameString(EnumName + TEXT("::") + Entry),
+							   Enum->GetValueByIndex(Index));
+					   }
 				   }
 			   });
 		});

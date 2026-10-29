@@ -386,7 +386,7 @@ EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
 		return EOpenPLX_InputType::BoolInput;
 	}
 
-	return EOpenPLX_InputType::Unsupported;
+	return EOpenPLX_InputType::Unknown;
 }
 
 EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
@@ -550,7 +550,7 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 		return EOpenPLX_OutputType::LidarOutput;
 	}
 
-	return EOpenPLX_OutputType::Unsupported;
+	return EOpenPLX_OutputType::Unknown;
 }
 
 std::string FPLXUtilitiesInternal::BuildBundlePathsString(const TArray<FString>& Paths)

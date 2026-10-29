@@ -166,7 +166,7 @@ namespace OpenPLXSignalHandler_helpers
 	bool CanUseConversion(const ControlT& Control, bool bConvertUnits)
 	{
 		using Type = decltype(Control.Type);
-		if (!bConvertUnits || (Control.Type != Type::Unknown && Control.Type != Type::Unsupported))
+		if (!bConvertUnits || Control.Type != Type::Unknown)
 			return true;
 		UE_LOG(
 			LogAGX, Warning,
