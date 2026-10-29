@@ -106,16 +106,16 @@ double FShapeMaterialBarrier::GetBulkViscosity() const
 	return NativeRef->Native->getBulkMaterial()->getViscosity();
 }
 
-void FShapeMaterialBarrier::SetSpookDamping(double SpookDamping)
+void FShapeMaterialBarrier::SetAttenuation(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->getBulkMaterial()->setDamping(SpookDamping);
+	NativeRef->Native->getBulkMaterial()->setAttenuation(Attenuation);
 }
 
-double FShapeMaterialBarrier::GetSpookDamping() const
+double FShapeMaterialBarrier::GetAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getBulkMaterial()->getDamping();
+	return NativeRef->Native->getBulkMaterial()->getAttenuation();
 }
 
 void FShapeMaterialBarrier::SetMinMaxElasticRestLength(
@@ -168,16 +168,16 @@ double FShapeMaterialBarrier::GetRoughness() const
 	return NativeRef->Native->getSurfaceMaterial()->getRoughness();
 }
 
-void FShapeMaterialBarrier::SetSurfaceViscosity(double Viscosity)
+void FShapeMaterialBarrier::SetFrictionCompliance(double Compliance)
 {
 	check(HasNative());
-	NativeRef->Native->getSurfaceMaterial()->setViscosity(Viscosity);
+	NativeRef->Native->getSurfaceMaterial()->setFrictionCompliance(Compliance);
 }
 
-double FShapeMaterialBarrier::GetSurfaceViscosity() const
+double FShapeMaterialBarrier::GetFrictionCompliance() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceMaterial()->getViscosity();
+	return NativeRef->Native->getSurfaceMaterial()->getFrictionCompliance();
 }
 
 void FShapeMaterialBarrier::SetAdhesion(double AdhesiveForce, double AdhesiveOverlap)
@@ -227,28 +227,28 @@ void FShapeMaterialBarrier::SetYoungsModulusBend(double YoungsModulus) const
 	NativeRef->Native->getWireMaterial()->setYoungsModulusBend(YoungsModulus);
 }
 
-double FShapeMaterialBarrier::GetSpookDampingStretch() const
+double FShapeMaterialBarrier::GetAttenuationStretch() const
 {
 	check(HasNative());
-	return NativeRef->Native->getWireMaterial()->getDampingStretch();
+	return NativeRef->Native->getWireMaterial()->getAttenuationStretch();
 }
 
-void FShapeMaterialBarrier::SetSpookDampingStretch(double SpookDamping) const
+void FShapeMaterialBarrier::SetAttenuationStretch(double Attenuation) const
 {
 	check(HasNative());
-	NativeRef->Native->getWireMaterial()->setDampingStretch(SpookDamping);
+	NativeRef->Native->getWireMaterial()->setAttenuationStretch(Attenuation);
 }
 
-double FShapeMaterialBarrier::GetSpookDampingBend() const
+double FShapeMaterialBarrier::GetAttenuationBend() const
 {
 	check(HasNative());
-	return NativeRef->Native->getWireMaterial()->getDampingBend();
+	return NativeRef->Native->getWireMaterial()->getAttenuationBend();
 }
 
-void FShapeMaterialBarrier::SetSpookDampingBend(double SpookDamping) const
+void FShapeMaterialBarrier::SetAttenuationBend(double Attenuation) const
 {
 	check(HasNative());
-	NativeRef->Native->getWireMaterial()->setDampingBend(SpookDamping);
+	NativeRef->Native->getWireMaterial()->setAttenuationBend(Attenuation);
 }
 
 FGuid FShapeMaterialBarrier::GetGuid() const

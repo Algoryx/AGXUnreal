@@ -28,11 +28,11 @@ public:
 	void SetCompliance(double Compliance);
 	double GetCompliance() const;
 
-	void SetElasticity(double Elasticity);
-	double GetElasticity() const;
+	void SetStiffness(double Stiffness);
+	double GetStiffness() const;
 
-	void SetSpookDamping(double SpookDamping);
-	double GetSpookDamping() const;
+	void SetAttenuation(double Attenuation);
+	double GetAttenuation() const;
 
 	void SetForceRange(FAGX_RealInterval ForceRange);
 	FAGX_RealInterval GetForceRange() const;

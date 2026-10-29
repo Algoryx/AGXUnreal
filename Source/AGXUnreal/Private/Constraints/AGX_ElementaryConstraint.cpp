@@ -3,7 +3,14 @@
 #include "Constraints/AGX_ElementaryConstraint.h"
 
 // AGX Dynamics for Unreal includes.
+#include "AGX_CustomVersion.h"
+#include "AGX_Simulation.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGXUtilities.h"
+
+// Unreal Engine includes.
+#include "Serialization/Archive.h"
+#include "UObject/UObjectGlobals.h"
 
 FAGX_ElementaryConstraint::FAGX_ElementaryConstraint()
 {
@@ -49,41 +56,35 @@ double FAGX_ElementaryConstraint::GetCompliance() const
 	return Compliance;
 }
 
-void FAGX_ElementaryConstraint::SetElasticity(double InElasticity)
+void FAGX_ElementaryConstraint::SetStiffness(double InStiffness)
 {
 	if (HasNative())
 	{
-		// Elasticity is a dependent property on compliance.
-		Barrier.SetElasticity(InElasticity);
+		// Stiffness is a dependent property on compliance.
+		Barrier.SetStiffness(InStiffness);
 		Compliance = Barrier.GetCompliance();
 	}
 	else
 	{
-		// No Native so can't let AGX Dynamics do the job for us. This is a re-implementation of
-		// what AGX Dynamics would have done if we had called it. I don't like this code duplication
-		// much. What if the implementation in AGX Dynamics is ever changed? How to we assure this
-		// code is changed accordingly?
-		if (InElasticity > DBL_EPSILON)
+		// Mirror the native zero-stiffness/compliance guards when there is no native object.
+		if (InStiffness > DBL_EPSILON)
 		{
-			Compliance = 1.0 / InElasticity;
+			Compliance = FAGXUtilities::ConvertStiffnessToCompliance(InStiffness);
 		}
 	}
 }
 
-double FAGX_ElementaryConstraint::GetElasticity() const
+double FAGX_ElementaryConstraint::GetStiffness() const
 {
 	if (HasNative())
 	{
-		return Barrier.GetElasticity();
+		return Barrier.GetStiffness();
 	}
 
-	// No Native so can't let AGX Dynamics do the job for us. This is a re-implementation of
-	// what AGX Dynamics would have done if we had called it. I don't like this code duplication
-	// much. What if the implementation in AGX Dynamics is ever changed? How to we assure this
-	// code is changed accordingly?
+	// Mirror the native zero-stiffness/compliance guards when there is no native object.
 	if (Compliance > DBL_EPSILON)
 	{
-		return 1.0 / Compliance;
+		return FAGXUtilities::ConvertComplianceToStiffness(Compliance);
 	}
 	else
 	{
@@ -91,22 +92,55 @@ double FAGX_ElementaryConstraint::GetElasticity() const
 	}
 }
 
+void FAGX_ElementaryConstraint::SetElasticity(double InElasticity)
+{
+	SetStiffness(InElasticity);
+}
+
+double FAGX_ElementaryConstraint::GetElasticity() const
+{
+	return GetStiffness();
+}
+
 void FAGX_ElementaryConstraint::SetSpookDamping(double InSpookDamping)
 {
-	if (HasNative())
-	{
-		Barrier.SetSpookDamping(InSpookDamping);
-	}
-	SpookDamping = InSpookDamping;
+	SetAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double FAGX_ElementaryConstraint::GetSpookDamping() const
 {
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetAttenuation(), GetDefault<UAGX_Simulation>()->TimeStep);
+}
+
+void FAGX_ElementaryConstraint::Serialize(FArchive& Archive)
+{
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		Attenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping_DEPRECATED, GetDefault<UAGX_Simulation>()->TimeStep);
+	}
+}
+
+void FAGX_ElementaryConstraint::SetAttenuation(double InAttenuation)
+{
 	if (HasNative())
 	{
-		return Barrier.GetSpookDamping();
+		Barrier.SetAttenuation(InAttenuation);
 	}
-	return SpookDamping;
+	Attenuation = InAttenuation;
+}
+
+double FAGX_ElementaryConstraint::GetAttenuation() const
+{
+	if (HasNative())
+	{
+		return Barrier.GetAttenuation();
+	}
+	return Attenuation;
 }
 
 void FAGX_ElementaryConstraint::SetForceRange(const FDoubleInterval& InForceRange)
@@ -235,7 +269,7 @@ void FAGX_ElementaryConstraint::UpdateNativeProperties()
 	check(HasNative());
 	Barrier.SetEnabled(bEnable);
 	Barrier.SetCompliance(Compliance);
-	Barrier.SetSpookDamping(SpookDamping);
+	Barrier.SetAttenuation(Attenuation);
 	Barrier.SetForceRange(ForceRange);
 }
 
@@ -243,6 +277,6 @@ void FAGX_ElementaryConstraint::CopyFrom(const FElementaryConstraintBarrier& Sou
 {
 	bEnable = Source.GetEnabled();
 	Compliance = Source.GetCompliance();
-	SpookDamping = Source.GetSpookDamping();
+	Attenuation = Source.GetAttenuation();
 	ForceRange = Source.GetForceRange();
 }
