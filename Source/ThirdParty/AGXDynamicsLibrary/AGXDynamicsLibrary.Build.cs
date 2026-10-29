@@ -276,6 +276,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
 			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
 			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
+			RuntimeLibFiles.Add("usd_ms", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
