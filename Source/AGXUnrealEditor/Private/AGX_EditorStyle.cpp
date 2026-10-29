@@ -305,11 +305,20 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassThumbnail.AGX_CableProperties",
 		new IMAGE_BRUSH("Thumbnails/cable_properties_128x128", IconSize128));
 	Style->Set(
+		"ClassThumbnail.AGX_CameraCMOSSensor",
+		new IMAGE_BRUSH("Thumbnails/camera_cmos_sensor_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_CameraLensSingleElement",
+		new IMAGE_BRUSH("Thumbnails/camera_lens_128x128", IconSize128));
+	Style->Set(
 		"ClassThumbnail.AGX_ConstraintMergeSplitThresholds",
 		new IMAGE_BRUSH("Thumbnails/constraint_mergesplit_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_ContactMaterial",
 		new IMAGE_BRUSH("Thumbnails/contact_material_128x128", IconSize128));
+	Style->Set(
+		"ClassThumbnail.AGX_LensDistortionBrownConrady",
+		new IMAGE_BRUSH("Thumbnails/camera_lens_distortion_128x128", IconSize128));
 	Style->Set(
 		"ClassThumbnail.AGX_LidarAmbientMaterial",
 		new IMAGE_BRUSH("Thumbnails/lidar_material_128x128", IconSize128));
