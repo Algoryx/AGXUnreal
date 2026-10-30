@@ -115,40 +115,40 @@ double FElementaryConstraintBarrier::GetCompliance(int32 InRow) const
 	return NativeRef->Native->getCompliance(InRow);
 }
 
-void FElementaryConstraintBarrier::SetElasticity(double Elasticity, int Row)
+void FElementaryConstraintBarrier::SetStiffness(double Stiffness, int Row)
 {
 	check(HasNative());
-	NativeRef->Native->setElasticity(Elasticity, Row);
+	NativeRef->Native->setStiffness(Stiffness, Row);
 }
 
-void FElementaryConstraintBarrier::SetElasticity(double Elasticity)
+void FElementaryConstraintBarrier::SetStiffness(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setElasticity(Elasticity);
+	NativeRef->Native->setStiffness(Stiffness);
 }
 
-double FElementaryConstraintBarrier::GetElasticity(int32 Row) const
+double FElementaryConstraintBarrier::GetStiffness(int32 Row) const
 {
 	check(HasNative());
-	return NativeRef->Native->getElasticity(Row);
+	return NativeRef->Native->getStiffness(Row);
 }
 
-void FElementaryConstraintBarrier::SetSpookDamping(double InDamping, int32 InRow)
+void FElementaryConstraintBarrier::SetAttenuation(double InAttenuation, int32 InRow)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(InDamping, InRow);
+	NativeRef->Native->setAttenuation(InAttenuation, InRow);
 }
 
-void FElementaryConstraintBarrier::SetSpookDamping(double InDamping)
+void FElementaryConstraintBarrier::SetAttenuation(double InAttenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(InDamping);
+	NativeRef->Native->setAttenuation(InAttenuation);
 }
 
-double FElementaryConstraintBarrier::GetSpookDamping(int32 InRow) const
+double FElementaryConstraintBarrier::GetAttenuation(int32 InRow) const
 {
 	check(HasNative());
-	return NativeRef->Native->getDamping(InRow);
+	return NativeRef->Native->getAttenuation(InRow);
 }
 
 void FElementaryConstraintBarrier::SetForceRange(FDoubleInterval InForceRange, int32 InRow)

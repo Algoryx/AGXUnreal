@@ -63,10 +63,10 @@ public:
 	double GetBulkViscosity() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Bulk Properties")
-	void SetSpookDamping(double InSpookDamping);
+	void SetAttenuation(double InAttenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Bulk Properties")
-	double GetSpookDamping() const;
+	double GetAttenuation() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Bulk Properties")
 	void SetMinMaxElasticRestLength(double InMin, double InMax);
@@ -95,10 +95,10 @@ public:
 	double GetRoughness() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
-	void SetSurfaceViscosity(double Viscosity);
+	void SetFrictionCompliance(double Compliance);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
-	double GetSurfaceViscosity() const;
+	double GetFrictionCompliance() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Surface Properties")
 	void SetAdhesion(double AdhesiveForce, double AdhesiveOverlap);
@@ -127,16 +127,16 @@ public:
 	void SetYoungsModulusBend(double InYoungsModulus);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Wire Properties")
-	double GetSpookDampingStretch() const;
+	double GetAttenuationStretch() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Wire Properties")
-	void SetSpookDampingStretch(double InSpookDamping);
+	void SetAttenuationStretch(double InAttenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Wire Properties")
-	double GetSpookDampingBend() const;
+	double GetAttenuationBend() const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Material Wire Properties")
-	void SetSpookDampingBend(double InSpookDamping);
+	void SetAttenuationBend(double InAttenuation);
 
 	/*
 	 * The import Guid of this Object. Only used by the AGX Dynamics for Unreal import system.
@@ -163,6 +163,64 @@ public:
 	bool IsInstance() const;
 
 	void CopyShapeMaterialProperties(const UAGX_ShapeMaterial* Source);
+
+	virtual void Serialize(FArchive& Archive) override;
+
+	// Legacy functions use seconds and the project simulation timestep.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Bulk Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAttenuation and ConvertSpookDampingToAttenuation."))
+	void SetSpookDamping(double InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Bulk Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAttenuation and ConvertAttenuationToSpookDamping."))
+	double GetSpookDamping() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Wire Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuationStretch and ConvertSpookDampingToAttenuation."))
+	void SetSpookDampingStretch(double InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Wire Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuationStretch and ConvertAttenuationToSpookDamping."))
+	double GetSpookDampingStretch() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Wire Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAttenuationBend and ConvertSpookDampingToAttenuation."))
+	void SetSpookDampingBend(double InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Wire Properties",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAttenuationBend and ConvertAttenuationToSpookDamping."))
+	double GetSpookDampingBend() const;
+
+	// Legacy surface viscosity names are aliases; values are unchanged.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Surface Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetFrictionCompliance instead."))
+	void SetSurfaceViscosity(double Viscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Material Surface Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetFrictionCompliance instead."))
+	double GetSurfaceViscosity() const;
 
 private:
 	void CreateNative(UWorld* PlayingWorld);
