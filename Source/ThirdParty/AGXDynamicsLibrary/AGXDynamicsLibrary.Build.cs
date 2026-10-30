@@ -262,7 +262,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
-			RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
 		}
@@ -277,6 +276,7 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
 			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
 			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
+			RuntimeLibFiles.Add("usd_ms", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies

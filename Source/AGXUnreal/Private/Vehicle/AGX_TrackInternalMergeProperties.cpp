@@ -249,8 +249,9 @@ double UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionAttenuatio
 
 void UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionSpookDamping(double Damping)
 {
-	SetLockToReachMergeConditionAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		Damping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetLockToReachMergeConditionAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			Damping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionSpookDamping() const

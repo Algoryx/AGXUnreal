@@ -24,8 +24,8 @@ namespace AGX_CablePropertiesSpec_helpers
 			: FObjectAndNameAsStringProxyArchive(Inner, false)
 		{
 			SetCustomVersion(
-				FAGX_CustomVersion::GUID,
-				FAGX_CustomVersion::DampingToAttenuation - 1, TEXT("AGXUnrealVer"));
+				FAGX_CustomVersion::GUID, FAGX_CustomVersion::DampingToAttenuation - 1,
+				TEXT("AGXUnrealVer"));
 		}
 
 		virtual FArchive& operator<<(FName& Name) override
@@ -77,8 +77,7 @@ void FAGX_CablePropertiesSpec::Define()
 		   }
 
 		   UAGX_CableProperties* Migrated = NewObject<UAGX_CableProperties>();
-		   Load(
-			   *Migrated, LegacyBytes, FAGX_CustomVersion::DampingToAttenuation - 1);
+		   Load(*Migrated, LegacyBytes, FAGX_CustomVersion::DampingToAttenuation - 1);
 		   TestEqual(TEXT("Bend attenuation"), Migrated->AttenuationBend, 3.0);
 		   TestEqual(TEXT("Twist attenuation"), Migrated->AttenuationTwist, 4.0);
 		   TestEqual(TEXT("Stretch attenuation"), Migrated->AttenuationStretch, 5.0);

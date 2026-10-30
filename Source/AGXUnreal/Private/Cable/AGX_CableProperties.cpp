@@ -380,8 +380,9 @@ void UAGX_CableProperties::Serialize(FArchive& Archive)
 
 void UAGX_CableProperties::SetSpookDampingBend(double SpookDamping)
 {
-	SetAttenuationBend(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+	SetAttenuationBend(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
 }
 
 double UAGX_CableProperties::GetSpookDampingBend() const
@@ -392,8 +393,9 @@ double UAGX_CableProperties::GetSpookDampingBend() const
 
 void UAGX_CableProperties::SetSpookDampingTwist(double SpookDamping)
 {
-	SetAttenuationTwist(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+	SetAttenuationTwist(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
 }
 
 double UAGX_CableProperties::GetSpookDampingTwist() const
@@ -404,8 +406,9 @@ double UAGX_CableProperties::GetSpookDampingTwist() const
 
 void UAGX_CableProperties::SetSpookDampingStretch(double SpookDamping)
 {
-	SetAttenuationStretch(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
+	SetAttenuationStretch(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			SpookDamping, AGX_CableProperties_helpers::GetLegacyConversionTimeStep()));
 }
 
 double UAGX_CableProperties::GetSpookDampingStretch() const

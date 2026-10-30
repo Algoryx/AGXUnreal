@@ -639,6 +639,13 @@ void FTrackBarrier::GetPreviewData(
 	double Width, double Thickness, double InitialTensionDistance,
 	const TArray<FTrackBarrier::FTrackWheelDescription>& Wheels)
 {
+	if (Wheels.Num() == 0)
+	{
+		OutNodeTransforms.Reset();
+		OutNodeHalfExtents.Reset();
+		return;
+	}
+
 	using namespace agxVehicle;
 
 	// Create AGX TrackDesc.
@@ -748,16 +755,19 @@ double FTrackBarrier::InternalMergeProperties_GetLockToReachMergeConditionCompli
 		->getLockToReachMergeConditionCompliance();
 }
 
-void FTrackBarrier::InternalMergeProperties_SetLockToReachMergeConditionAttenuation(double Attenuation)
+void FTrackBarrier::InternalMergeProperties_SetLockToReachMergeConditionAttenuation(
+	double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->getInternalMergeProperties()->setLockToReachMergeConditionAttenuation(Attenuation);
+	NativeRef->Native->getInternalMergeProperties()->setLockToReachMergeConditionAttenuation(
+		Attenuation);
 }
 
 double FTrackBarrier::InternalMergeProperties_GetLockToReachMergeConditionAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getInternalMergeProperties()->getLockToReachMergeConditionAttenuation();
+	return NativeRef->Native->getInternalMergeProperties()
+		->getLockToReachMergeConditionAttenuation();
 }
 
 void FTrackBarrier::InternalMergeProperties_SetMaxAngleMergeCondition(double MaxAngleToMerge)

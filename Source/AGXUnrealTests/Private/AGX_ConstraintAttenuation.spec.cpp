@@ -26,6 +26,7 @@
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "UObject/Package.h"
 #include "UObject/UObjectGlobals.h"
 
 namespace AGX_ConstraintAttenuationSpec_helpers

@@ -734,8 +734,9 @@ double UAGX_ContactMaterial::GetAttenuation() const
 
 void UAGX_ContactMaterial::SetSpookDamping(double InSpookDamping)
 {
-	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_ContactMaterial::GetSpookDamping() const

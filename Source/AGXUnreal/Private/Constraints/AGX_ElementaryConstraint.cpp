@@ -104,8 +104,9 @@ double FAGX_ElementaryConstraint::GetElasticity() const
 
 void FAGX_ElementaryConstraint::SetSpookDamping(double InSpookDamping)
 {
-	SetAttenuation(FAGXUtilities::ConvertSpookDampingToAttenuation(
-		InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
+	SetAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			InSpookDamping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double FAGX_ElementaryConstraint::GetSpookDamping() const

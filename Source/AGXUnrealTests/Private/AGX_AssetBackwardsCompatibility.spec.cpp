@@ -513,8 +513,8 @@ void FAGX_TerrainMaterialSplitBackwardsCompatibilitySpec::Define()
 					   TEXT("ShapeMaterial Bulk Viscosity"),
 					   TempShapeMaterial->Bulk.Viscosity == 0.5);
 				   TestEqual(
-					   TEXT("ShapeMaterial Bulk Attenuation"),
-					   TempShapeMaterial->Bulk.Attenuation, LegacyDampingToAttenuation(0.075));
+					   TEXT("ShapeMaterial Bulk Attenuation"), TempShapeMaterial->Bulk.Attenuation,
+					   LegacyDampingToAttenuation(0.075));
 				   TestTrue(
 					   TEXT("ShapeMaterial Bulk MinElasticRestLength"),
 					   TempShapeMaterial->Bulk.MinElasticRestLength == 0.05);
