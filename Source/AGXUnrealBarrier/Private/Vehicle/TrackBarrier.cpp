@@ -639,6 +639,13 @@ void FTrackBarrier::GetPreviewData(
 	double Width, double Thickness, double InitialTensionDistance,
 	const TArray<FTrackBarrier::FTrackWheelDescription>& Wheels)
 {
+	if (Wheels.Num() == 0)
+	{
+		OutNodeTransforms.Reset();
+		OutNodeHalfExtents.Reset();
+		return;
+	}
+
 	using namespace agxVehicle;
 
 	// Create AGX TrackDesc.
