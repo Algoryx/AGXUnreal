@@ -145,20 +145,7 @@ FString FAGX_ImportRuntimeUtilities::RemoveModelNameFromBarrierName(
 		return BarrierName;
 
 	FString Name = BarrierName;
-	TArray<FString> Parts;
-	Context->RootModelName.ParseIntoArray(Parts, TEXT("."));
-
-	// The BarrierName does not always contain the whole RootModelNane which is typically
-	// on the form xxx.yyy. Sometimes BarrierName only gets the latter (yyy) part prepended.
-	// Therefore we go over each part one by one, from the left.
-	// Todo: see if we can find a clear cut way of knowing how the OpenPLXToAGXMapper generates
-	// the Native names.
-	for (const auto& Part : Parts)
-	{
-		Name.RemoveFromStart(Part);
-		Name.RemoveFromStart(".");
-	}
-
-	AGX_CHECK(!Name.IsEmpty());
+	Name.RemoveFromStart(Context->RootModelName);
+	Name.RemoveFromStart(".");
 	return Name;
 }
