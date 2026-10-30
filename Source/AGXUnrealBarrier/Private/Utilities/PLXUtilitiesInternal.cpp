@@ -21,6 +21,7 @@
 
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
+#include <agx/String.h>
 #include <agxSDK/Simulation.h>
 #include <agxSensor/IMU.h>
 #include <agxSensor/Lidar.h>
@@ -30,6 +31,8 @@
 // OpenPLX includes.
 #include "BeginAGXIncludes.h"
 #include "openplx/AGX/AGX_all.h"
+#include "openplx/LoadParams.h"
+#include "openplx/LoadResult.h"
 #include "openplx/OpenPlxContext.h"
 #include "openplx/OpenPlxContextInternal.h"
 #include "openplx/OpenPlxCoreApi.h"
@@ -90,6 +93,7 @@
 
 // Standard library includes.
 #include <unordered_set>
+#include <utility>
 
 namespace PLXUtilities_helpers
 {
@@ -142,7 +146,12 @@ namespace PLXUtilities_helpers
 
 		try
 		{
-			LoadedModel = openplx::Core::Api::loadModelFromFile(OpenPLXFile, {}, *Context);
+			// withPath moves from its argument, which must be allocated by AGX rather than Unreal.
+			const agx::String FilePath = OpenPLXFile;
+			std::string FilePathAGXAllocated = agxUtil::copyContainerMemory(FilePath);
+			auto Params = openplx::LoadParams().withModelNameAsNamePrefix(true);
+			LoadedModel =
+				openplx::load(*Context, Params.withPath(std::move(FilePathAGXAllocated))).root();
 		}
 		catch (const std::runtime_error& Excep)
 		{
