@@ -39,6 +39,7 @@
 #include "BeginAGXIncludes.h"
 #include <agxSensor/Camera.h>
 #include <agxSensor/CameraCMOSSensor.h>
+#include <agxSensor/CameraColorOutput.h>
 #include <agxSensor/CameraLensSingleElement.h>
 #include <agxSensor/CameraOutput.h>
 #include <agxSensor/LensDistortionBrownConrady.h>
