@@ -34,6 +34,7 @@
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
@@ -997,8 +998,9 @@ bool FReimportLargeModelCommand::Update()
 		}
 
 		Test.TestEqual(
-			"PrismaticToChange Damping", Constraint->GetSpookDamping(EGenericDofIndex::Rotational2),
-			202.0);
+			"PrismaticToChange Attenuation",
+			Constraint->GetAttenuation(EGenericDofIndex::Rotational2),
+			FAGXUtilities::ConvertSpookDampingToAttenuation(202.0, 1.0 / 60.0), 0.001);
 	}
 
 	// BallCToBeRemoved
@@ -1705,17 +1707,19 @@ public:
 			TEXT("Template Cylindrical compliance trans 2"), Cylindrical.Compliance.Translational_2,
 			Scale * 1.3);
 		AllCorrect &= TestEqual(
-			TEXT("Template Cylindrical Spook damping rotat 1"),
-			Cylindrical.SpookDamping.Rotational_1, Scale * 2.0);
+			TEXT("Template Cylindrical attenuation rotat 1"), Cylindrical.Attenuation.Rotational_1,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Template Cylindrical Spook damping rotat 2"),
-			Cylindrical.SpookDamping.Rotational_2, Scale * 2.1);
+			TEXT("Template Cylindrical attenuation rotat 2"), Cylindrical.Attenuation.Rotational_2,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.1, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Template Cylindrical Spook damping trans 1"),
-			Cylindrical.SpookDamping.Translational_1, Scale * 2.2);
+			TEXT("Template Cylindrical attenuation trans 1"),
+			Cylindrical.Attenuation.Translational_1,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.2, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Template Cylindrical Spook damping trans 2"),
-			Cylindrical.SpookDamping.Translational_2, Scale * 2.3);
+			TEXT("Template Cylindrical attenuation trans 2"),
+			Cylindrical.Attenuation.Translational_2,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.3, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Template Cylindrical rotational 1 force range"),
 			Cylindrical.ForceRange.Rotational_1, FAGX_RealInterval(Scale * 3.0, Scale * 4.0));
@@ -1739,8 +1743,8 @@ public:
 			TEXT("Template Cylindrical twist range compliance"),
 			Cylindrical.ScrewController.Compliance, Scale * 5.0);
 		AllCorrect &= TestEqual(
-			TEXT("Template Cylindrical twist range damping"),
-			Cylindrical.ScrewController.SpookDamping, Scale * 6.0);
+			TEXT("Template Cylindrical screw attenuation"), Cylindrical.ScrewController.Attenuation,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 6.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Template Cylindrical twist range force range"),
 			Cylindrical.ScrewController.ForceRange, FAGX_RealInterval(Scale * 7.0, Scale * 8.0));
@@ -1873,11 +1877,14 @@ public:
 		AllCorrect &=
 			TestEqual(TEXT("Compliance trans 3"), Ball.Compliance.Translational_3, Scale * 1.2);
 		AllCorrect &= TestEqual(
-			TEXT("Spook damping trans 1"), Ball.SpookDamping.Translational_1, Scale * 2.0);
+			TEXT("Attenuation trans 1"), Ball.Attenuation.Translational_1,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Spook damping trans 2"), Ball.SpookDamping.Translational_2, Scale * 2.1);
+			TEXT("Attenuation trans 2"), Ball.Attenuation.Translational_2,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.1, 1.0 / 60.0), 0.001);
 		AllCorrect &= TestEqual(
-			TEXT("Spook damping trans 3"), Ball.SpookDamping.Translational_3, Scale * 2.2);
+			TEXT("Attenuation trans 3"), Ball.Attenuation.Translational_3,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 2.2, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Force range 1"), Ball.ForceRange.Translational_1,
 			FAGX_RealInterval(Scale * 3.0, Scale * 4.0));
@@ -1895,7 +1902,8 @@ public:
 		AllCorrect &= TestEqual(
 			TEXT("Twist range compliance"), Ball.TwistRangeController.Compliance, Scale * 5.0);
 		AllCorrect &= TestEqual(
-			TEXT("Twist range damping"), Ball.TwistRangeController.SpookDamping, Scale * 6.0);
+			TEXT("Twist range attenuation"), Ball.TwistRangeController.Attenuation.Value,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(Scale * 6.0, 1.0 / 60.0), 0.001);
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Twist range force range"), Ball.TwistRangeController.ForceRange,
 			FAGX_RealInterval(Scale * 7.0, Scale * 8.0));
@@ -2118,8 +2126,8 @@ public:
 			TEXT("Twist range compliance"), Ball.TwistRangeController.Compliance,
 			ConstraintConstants::DefaultCompliance());
 		AllCorrect &= TestEqual(
-			TEXT("Twist range damping"), Ball.TwistRangeController.SpookDamping,
-			ConstraintConstants::DefaultSpookDamping());
+			TEXT("Twist range attenuation"), Ball.TwistRangeController.Attenuation.Value,
+			ConstraintConstants::DefaultAttenuation());
 		AllCorrect &= AgxAutomationCommon::TestEqual(
 			*this, TEXT("Twist range force range"), Ball.TwistRangeController.ForceRange,
 			ConstraintConstants::DefaultForceRange());

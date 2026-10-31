@@ -39,33 +39,36 @@ public:
 	bool IsInitialized() const;
 
 	// Real.
-	bool Send(const FOpenPLX_Input& Input, double Value);
-	bool Receive(const FOpenPLX_Output& Output, double& OutValue);
+	bool Send(const FOpenPLX_Input& Input, double Value, bool bConvertUnits = true);
+	bool Receive(const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits = true);
 
 	// Ranges / Vec2.
-	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value);
-	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool Send(const FOpenPLX_Input& Input, const FVector2D& Value, bool bConvertUnits = true);
+	bool Receive(const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits = true);
 
 	// Vectors / Vec3.
-	bool Send(const FOpenPLX_Input& Input, const FVector& Value);
-	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue);
+	bool Send(const FOpenPLX_Input& Input, const FVector& Value, bool bConvertUnits = true);
+	bool Receive(const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits = true);
 
 	// Integer.
-	bool Send(const FOpenPLX_Input& Input, int64 Value);
-	bool Receive(const FOpenPLX_Output& Output, int64& OutValue);
+	bool Send(const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits = true);
+	bool Receive(const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits = true);
 
 	// Boolean.
-	bool Send(const FOpenPLX_Input& Input, bool Value);
-	bool Receive(const FOpenPLX_Output& Output, bool& OutValue);
+	bool Send(const FOpenPLX_Input& Input, bool Value, bool bConvertUnits = true);
+	bool Receive(const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits = true);
 
 	FHeapControlInterfacePtr GetHeapControlInterface();
 	const FHeapControlInterfacePtr GetHeapControlInterface() const;
 
 	/// Lidar outputs.
-	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput);
+	bool ReceiveLidarOutput(
+		const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutOutput,
+		bool bConvertUnits = true);
 
 	/// IMU outputs.
-	bool ReceiveIMUOutput(const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput);
+	bool ReceiveIMUOutput(
+		const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutOutput, bool bConvertUnits = true);
 
 	void ReleaseNatives();
 

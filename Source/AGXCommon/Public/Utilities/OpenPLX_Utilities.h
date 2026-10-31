@@ -8,10 +8,19 @@
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 
+struct FOpenPLX_Input;
+struct FOpenPLX_Output;
 
 class AGXCOMMON_API FOpenPLX_Utilities
 {
 public:
+	static EOpenPLX_ValueLayout GetValueLayout(EOpenPLX_InputType Type);
+	static EOpenPLX_ValueLayout GetValueLayout(EOpenPLX_OutputType Type);
+
+	/** Return ValueLayout, or derive it from Type when ValueLayout is Unspecified. */
+	static EOpenPLX_ValueLayout GetResolvedValueLayout(const FOpenPLX_Input& Input);
+	static EOpenPLX_ValueLayout GetResolvedValueLayout(const FOpenPLX_Output& Output);
+
 	static bool IsRealType(EOpenPLX_InputType Type);
 	static bool IsRealType(EOpenPLX_OutputType Type);
 

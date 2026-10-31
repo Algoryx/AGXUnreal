@@ -241,30 +241,33 @@ bool UOpenPLX_SignalHandlerComponent::GetOutputFromType(
 	return false;
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendReal(const FOpenPLX_Input& Input, double Value)
+bool UOpenPLX_SignalHandlerComponent::SendReal(
+	const FOpenPLX_Input& Input, double Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsRealType(Input.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::Real)
 	{
 		LogTypeMismatchWarning("SendReal", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendRealInterface(const FOpenPLX_Input& Input, double Value)
+bool UOpenPLX_SignalHandlerComponent::SendRealInterface(
+	const FOpenPLX_Input& Input, double Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double Value)
+bool UOpenPLX_SignalHandlerComponent::SendRealByName(
+	FName NameOrAlias, double Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -277,36 +280,40 @@ bool UOpenPLX_SignalHandlerComponent::SendRealByName(FName NameOrAlias, double V
 		return false;
 	}
 
-	return SendReal(Input, Value);
+	return SendReal(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveReal(const FOpenPLX_Output& Output, double& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveReal(
+	const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsRealType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Real)
 	{
 		LogTypeMismatchWarning("ReceiveReal", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRealInterface(
-	const FOpenPLX_Output& Output, double& OutValue)
+	const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Real"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, double& Value)
+bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(
+	FName NameOrAlias, double& Value, bool bConvertUnits)
 {
+	Value = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -318,34 +325,36 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRealByName(FName NameOrAlias, doubl
 		return false;
 	}
 
-	return ReceiveReal(Output, Value);
+	return ReceiveReal(Output, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value)
+bool UOpenPLX_SignalHandlerComponent::SendRangeReal(
+	const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsRangeType(Input.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::RangeReal)
 	{
 		LogTypeMismatchWarning("SendRangeReal", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
-	const FOpenPLX_Input& Input, FVector2D Value)
+	const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVector2D Value)
+bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(
+	FName NameOrAlias, FVector2D Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -358,37 +367,40 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeRealByName(FName NameOrAlias, FVe
 		return false;
 	}
 
-	return SendRangeReal(Input, Value);
+	return SendRangeReal(Input, Value, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRangeReal(
-	const FOpenPLX_Output& Output, FVector2D& OutValue)
+	const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsRangeType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::RangeReal)
 	{
 		LogTypeMismatchWarning("ReceiveRangeReal", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealInterface(
-	const FOpenPLX_Output& Output, FVector2D& OutValue)
+	const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("RangeReal"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(
+	FName NameOrAlias, FVector2D& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -400,25 +412,27 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, 
 		return false;
 	}
 
-	return ReceiveRangeReal(Output, OutValue);
+	return ReceiveRangeReal(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendVector2(const FOpenPLX_Input& Input, FVector2D Value)
+bool UOpenPLX_SignalHandlerComponent::SendVector2(
+	const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::Vector2)
 	{
 		LogTypeMismatchWarning("SendVector2", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendVector2ByName(FName NameOrAlias, FVector2D Value)
+bool UOpenPLX_SignalHandlerComponent::SendVector2ByName(
+	FName NameOrAlias, FVector2D Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -431,28 +445,30 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2ByName(FName NameOrAlias, FVect
 		return false;
 	}
 
-	return SendVector2(Input, Value);
+	return SendVector2(Input, Value, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVector2(
-	const FOpenPLX_Output& Output, FVector2D& OutValue)
+	const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsVector2Type(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Vector2)
 	{
 		LogTypeMismatchWarning("ReceiveVector2", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVector2ByName(
-	FName NameOrAlias, FVector2D& OutValue)
+	FName NameOrAlias, FVector2D& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -464,53 +480,56 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVector2ByName(
 		return false;
 	}
 
-	return ReceiveVector2(Output, OutValue);
+	return ReceiveVector2(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVector2Interface(
-	const FOpenPLX_Output& Output, FVector2D& OutValue)
+	const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
-	const FOpenPLX_Input& Input, FVector2D Value)
+	const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector2"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
+bool UOpenPLX_SignalHandlerComponent::SendVector(
+	const FOpenPLX_Input& Input, FVector Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsVectorType(Input.Type))
+	if (!(FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::Vector3 ||
+		  FOpenPLX_Utilities::GetResolvedValueLayout(Input) == EOpenPLX_ValueLayout::RPY))
 	{
 		LogTypeMismatchWarning("SendVector", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
-	const FOpenPLX_Input& Input, FVector Value)
+	const FOpenPLX_Input& Input, FVector Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVector Value)
+bool UOpenPLX_SignalHandlerComponent::SendVectorByName(
+	FName NameOrAlias, FVector Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -523,37 +542,41 @@ bool UOpenPLX_SignalHandlerComponent::SendVectorByName(FName NameOrAlias, FVecto
 		return false;
 	}
 
-	return SendVector(Input, Value);
+	return SendVector(Input, Value, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVector(
-	const FOpenPLX_Output& Output, FVector& OutValue)
+	const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsVectorType(Output.Type))
+	if (!(FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::Vector3 ||
+		  FOpenPLX_Utilities::GetResolvedValueLayout(Output) == EOpenPLX_ValueLayout::RPY))
 	{
 		LogTypeMismatchWarning("ReceiveVector", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveVectorInterface(
-	const FOpenPLX_Output& Output, FVector& OutValue)
+	const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Vector"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVector& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(
+	FName NameOrAlias, FVector& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -565,33 +588,37 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVe
 		return false;
 	}
 
-	return ReceiveVector(Output, OutValue);
+	return ReceiveVector(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, int64 Value)
+bool UOpenPLX_SignalHandlerComponent::SendInteger(
+	const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsIntegerType(Input.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::Integer &&
+		FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::UnsignedInteger)
 	{
 		LogTypeMismatchWarning("SendInteger", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value)
+bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(
+	const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64 Value)
+bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(
+	FName NameOrAlias, int64 Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -604,36 +631,41 @@ bool UOpenPLX_SignalHandlerComponent::SendIntegerByName(FName NameOrAlias, int64
 		return false;
 	}
 
-	return SendInteger(Input, Value);
+	return SendInteger(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveInteger(
+	const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsIntegerType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Integer &&
+		FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::UnsignedInteger)
 	{
 		LogTypeMismatchWarning("ReceiveInteger", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerInterface(
-	const FOpenPLX_Output& Output, int64& OutValue)
+	const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Integer"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, int64& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(
+	FName NameOrAlias, int64& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -645,33 +677,36 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, in
 		return false;
 	}
 
-	return ReceiveInteger(Output, OutValue);
+	return ReceiveInteger(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, bool Value)
+bool UOpenPLX_SignalHandlerComponent::SendBoolean(
+	const FOpenPLX_Input& Input, bool Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsBooleanType(Input.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Input) != EOpenPLX_ValueLayout::Boolean)
 	{
 		LogTypeMismatchWarning("SendBoolean", Input.Name.ToString(), "Input");
 		return false;
 	}
 
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(const FOpenPLX_Input& Input, bool Value)
+bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(
+	const FOpenPLX_Input& Input, bool Value, bool bConvertUnits)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Input))
 		return false;
-	return SignalHandler.Send(Input, Value);
+	return SignalHandler.Send(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool Value)
+bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(
+	FName NameOrAlias, bool Value, bool bConvertUnits)
 {
 	FOpenPLX_Input Input;
 	const bool Found = GetInput(NameOrAlias, Input);
@@ -684,36 +719,40 @@ bool UOpenPLX_SignalHandlerComponent::SendBooleanByName(FName NameOrAlias, bool 
 		return false;
 	}
 
-	return SendBoolean(Input, Value);
+	return SendBoolean(Input, Value, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveBoolean(
+	const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsBooleanType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Boolean)
 	{
 		LogTypeMismatchWarning("ReceiveBoolean", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanInterface(
-	const FOpenPLX_Output& Output, bool& OutValue)
+	const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits)
 {
-	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	OutValue = {};
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (LogIfNotInitialized(SignalHandler, *GetName(), TEXT("Boolean"), Output))
 		return false;
-	return SignalHandler.Receive(Output, OutValue);
+	return SignalHandler.Receive(Output, OutValue, bConvertUnits);
 }
 
-bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bool& OutValue)
+bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(
+	FName NameOrAlias, bool& OutValue, bool bConvertUnits)
 {
+	OutValue = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -725,28 +764,30 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveBooleanByName(FName NameOrAlias, bo
 		return false;
 	}
 
-	return ReceiveBoolean(Output, OutValue);
+	return ReceiveBoolean(Output, OutValue, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutput(
-	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView)
+	const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView, bool bConvertUnits)
 {
+	OutView = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsLidarOutputType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::Lidar)
 	{
 		LogTypeMismatchWarning("ReceiveLidarOutput", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.ReceiveLidarOutput(Output, OutView);
+	return SignalHandler.ReceiveLidarOutput(Output, OutView, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(
-	FName NameOrAlias, FOpenPLXLidarOutputView& OutView)
+	FName NameOrAlias, FOpenPLXLidarOutputView& OutView, bool bConvertUnits)
 {
+	OutView = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -758,28 +799,30 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveLidarOutputByName(
 		return false;
 	}
 
-	return ReceiveLidarOutput(Output, OutView);
+	return ReceiveLidarOutput(Output, OutView, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutput(
-	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView)
+	const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView, bool bConvertUnits)
 {
+	OutView = {};
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
 	if (!SignalHandler.IsInitialized())
 		return false;
 
-	if (!FOpenPLX_Utilities::IsIMUOutputType(Output.Type))
+	if (FOpenPLX_Utilities::GetResolvedValueLayout(Output) != EOpenPLX_ValueLayout::IMU)
 	{
 		LogTypeMismatchWarning("ReceiveIMUOutput", Output.Name.ToString(), "Output");
 		return false;
 	}
 
-	return SignalHandler.ReceiveIMUOutput(Output, OutView);
+	return SignalHandler.ReceiveIMUOutput(Output, OutView, bConvertUnits);
 }
 
 bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(
-	FName NameOrAlias, FOpenPLXIMUOutputView& OutView)
+	FName NameOrAlias, FOpenPLXIMUOutputView& OutView, bool bConvertUnits)
 {
+	OutView = {};
 	FOpenPLX_Output Output;
 	const bool Found = GetOutput(NameOrAlias, Output);
 	if (!Found)
@@ -791,7 +834,7 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIMUOutputByName(
 		return false;
 	}
 
-	return ReceiveIMUOutput(Output, OutView);
+	return ReceiveIMUOutput(Output, OutView, bConvertUnits);
 }
 
 void UOpenPLX_SignalHandlerComponent::BeginPlay()

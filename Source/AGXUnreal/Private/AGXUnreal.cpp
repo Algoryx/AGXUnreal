@@ -12,11 +12,11 @@
 #include "Utilities/AGX_ObjectUtilities.h"
 
 // Unreal Engine includes.
-#include "UObject/CoreRedirects.h"
-#include "RenderGraphResources.h"
 #include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
+#include "RenderGraphResources.h"
 #include "ShaderCore.h"
+#include "UObject/CoreRedirects.h"
 
 #define LOCTEXT_NAMESPACE "FAGXUnrealModule"
 
@@ -102,6 +102,19 @@ void FAGXUnrealModule::RegisterCoreRedirects()
 		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_InputType"), TEXT("EOpenPLX_InputType"));
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Enum, TEXT("EPLX_OutputType"), TEXT("EOpenPLX_OutputType"));
+
+	// Redirect the renamed Unsupported signal type to Unknown.
+	Redirects
+		.Emplace_GetRef(
+			ECoreRedirectFlags::Type_Enum, TEXT("/Script/AGXCommon.EOpenPLX_InputType"),
+			TEXT("/Script/AGXCommon.EOpenPLX_InputType"))
+		.ValueChanges.Add(TEXT("Unsupported"), TEXT("Unknown"));
+	Redirects
+		.Emplace_GetRef(
+			ECoreRedirectFlags::Type_Enum, TEXT("/Script/AGXCommon.EOpenPLX_OutputType"),
+			TEXT("/Script/AGXCommon.EOpenPLX_OutputType"))
+		.ValueChanges.Add(TEXT("Unsupported"), TEXT("Unknown"));
+
 	Redirects.Emplace(
 		ECoreRedirectFlags::Type_Property,
 		TEXT("/Script/AGXUnreal.AGX_Simulation.bDeletePLXFileCopyOnBlueprintDeletion"),

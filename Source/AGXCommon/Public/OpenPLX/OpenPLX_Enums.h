@@ -8,10 +8,41 @@
 
 #include "OpenPLX_Enums.generated.h"
 
-UENUM()
+/** Operation performed by a virtual control. */
+UENUM(BlueprintType)
+enum class EOpenPLX_VirtualType : uint8
+{
+	None,
+	BroadcastInput,
+	AffineTransform1DInput,
+	AffineTransform1DOutput
+};
+
+/** Field layouts supported by OpenPLX input and output descriptors. */
+UENUM(BlueprintType)
+enum class EOpenPLX_ValueLayout : uint8
+{
+	/** No explicit layout; derive it from the effective signal type. */
+	Unspecified,
+	Unsupported,
+	Real,
+	Boolean,
+	Integer,
+	UnsignedInteger,
+	RangeReal,
+	Vector2,
+	Vector3,
+	RPY,
+	IMU,
+	Lidar
+};
+
+/** Effective input signal types, including types resolved for virtual inputs. */
+UENUM(BlueprintType)
 enum class EOpenPLX_InputType : uint8
 {
-	Unsupported UMETA(DisplayName = "Unsupported"),
+	/** The effective physical signal type could not be determined. */
+	Unknown,
 
 	/* Real Inputs */
 	AngleInput UMETA(DisplayName = "Angle Input [Real]"),
@@ -51,10 +82,12 @@ enum class EOpenPLX_InputType : uint8
 		DisplayName = "Torque Converter Lock Up Input [Boolean]") // Child of BoolInput
 };
 
-UENUM()
+/** Effective output signal types, including types resolved for virtual outputs. */
+UENUM(BlueprintType)
 enum class EOpenPLX_OutputType : uint8
 {
-	Unsupported UMETA(DisplayName = "Unsupported"),
+	/** The effective physical signal type could not be determined. */
+	Unknown,
 
 	/* Real Outputs */
 	AngleOutput UMETA(DisplayName = "Angle Output [Real]"),

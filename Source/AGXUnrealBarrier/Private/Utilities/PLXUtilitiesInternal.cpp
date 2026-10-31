@@ -17,6 +17,7 @@
 #include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
 #include "Utilities/OpenPLXUtilities.h"
+#include "Utilities/PLXControlMetadata.h"
 #include "Vehicle/SteeringBarrier.h"
 
 // AGX Dynamics includes.
@@ -232,9 +233,11 @@ TArray<FOpenPLX_Input> FPLXUtilitiesInternal::GetInputs(openplx::Physics3D::Syst
 
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfInputs, Input);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
-		EOpenPLX_InputType Type = GetInputType(*Input);
-		Inputs.Add(FOpenPLX_Input(ConvertStrToName(Input->getName()), FName(*Alias), Type));
-		if (Type == EOpenPLX_InputType::Unsupported)
+		FOpenPLX_Input Imported(
+			ConvertStrToName(Input->getName()), FName(*Alias), GetInputType(*Input));
+		PLXControlMetadata::Resolve(*Input, Imported);
+		Inputs.Add(Imported);
+		if (Imported.ValueLayout == EOpenPLX_ValueLayout::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -274,10 +277,12 @@ TArray<FOpenPLX_Output> FPLXUtilitiesInternal::GetOutputs(openplx::Physics3D::Sy
 
 		auto OptionalAlias = PLXUtilities_helpers::FindKeyByObject(SigInterfOutputs, Output);
 		const FString Alias = Convert(OptionalAlias.value_or(""s));
-		EOpenPLX_OutputType Type = GetOutputType(*Output);
-		Outputs.Add(FOpenPLX_Output(
-			ConvertStrToName(Output->getName()), FName(*Alias), Type, Output->enabled()));
-		if (Type == EOpenPLX_OutputType::Unsupported)
+		FOpenPLX_Output Imported(
+			ConvertStrToName(Output->getName()), FName(*Alias), GetOutputType(*Output),
+			Output->enabled());
+		PLXControlMetadata::Resolve(*Output, Imported);
+		Outputs.Add(Imported);
+		if (Imported.ValueLayout == EOpenPLX_ValueLayout::Unsupported)
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -381,7 +386,7 @@ EOpenPLX_InputType FPLXUtilitiesInternal::GetInputType(
 		return EOpenPLX_InputType::BoolInput;
 	}
 
-	return EOpenPLX_InputType::Unsupported;
+	return EOpenPLX_InputType::Unknown;
 }
 
 EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
@@ -545,7 +550,7 @@ EOpenPLX_OutputType FPLXUtilitiesInternal::GetOutputType(
 		return EOpenPLX_OutputType::LidarOutput;
 	}
 
-	return EOpenPLX_OutputType::Unsupported;
+	return EOpenPLX_OutputType::Unknown;
 }
 
 std::string FPLXUtilitiesInternal::BuildBundlePathsString(const TArray<FString>& Paths)
@@ -683,14 +688,15 @@ agxSDK::AssemblyRef FPLXUtilitiesInternal::MapRuntimeObjects(
 	auto ErrorReporter = std::make_shared<openplx::ErrorReporter>();
 
 	auto AgxObjectMap = agxopenplx::AgxObjectMap::create(
-		Assembly, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
+		Assembly, nullptr, nullptr, nullptr, agxopenplx::AgxObjectMapMode::Name);
 
 	// The DriveTrainMapper will create the DriveTrain object if the model contains one, and may
 	// also create new Constraints, which can be fetched via DriveTrainMapper.getMappedConstraints()
 	// (handled below). It does not create other things that we have to add explicitly to the
 	// Assembly or Simulation.
 	agxopenplx::OpenPlxDriveTrainMapper DriveTrainMapper(ErrorReporter, AgxObjectMap);
-	agxPowerLine::PowerLineRef PowerLine = DriveTrainMapper.mapDriveTrainIntoPowerLine(System);
+	agxPowerLine::PowerLineRef PowerLine =
+		DriveTrainMapper.mapDriveTrainIntoPowerLine(System, Simulation.GetTimeStep());
 
 	if (ErrorReporter->getErrorCount() > 0)
 	{

@@ -37,6 +37,7 @@ struct FHeapControlInterfacePtr
 struct FOpenPLXLidarOutputViewRef
 {
 	std::shared_ptr<openplx::Marshalling> Marshalling;
+	bool bConvertUnits {true};
 
 	FOpenPLXLidarOutputViewRef() = default;
 	FOpenPLXLidarOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)
@@ -48,6 +49,7 @@ struct FOpenPLXLidarOutputViewRef
 struct FOpenPLXIMUOutputViewRef
 {
 	std::shared_ptr<openplx::Marshalling> Marshalling;
+	bool bConvertUnits {true};
 
 	FOpenPLXIMUOutputViewRef() = default;
 	FOpenPLXIMUOutputViewRef(std::shared_ptr<openplx::Marshalling> InMarshalling)

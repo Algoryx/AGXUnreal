@@ -12,8 +12,7 @@
 #include "OpenPLX_Inputs.generated.h"
 
 /**
- * Struct representing an OpenPLX input, which may be written to by means of passing an OpenPLX
- * Input Signal connected to it.
+ * Describes an OpenPLX input by its model name, Signal Interface alias and effective signal type.
  */
 USTRUCT(BlueprintType)
 struct AGXCOMMON_API FOpenPLX_Input
@@ -29,12 +28,23 @@ struct AGXCOMMON_API FOpenPLX_Input
 	{
 	}
 
+	/** Full name of the input in the OpenPLX model. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Name;
 
+	/** Signal Interface alias, if present. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
 	FName Alias;
 
+	/** Effective signal type. Resolved from targets for virtual inputs; Unknown if unresolved. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "OpenPLX")
-	EOpenPLX_InputType Type {EOpenPLX_InputType::Unsupported};
+	EOpenPLX_InputType Type {EOpenPLX_InputType::Unknown};
+
+	/** Virtual control operation, or None for an ordinary input. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
+	EOpenPLX_VirtualType VirtualType {EOpenPLX_VirtualType::None};
+
+	/** Field layout, such as a scalar, range or vector. Unspecified derives the layout from Type. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "OpenPLX")
+	EOpenPLX_ValueLayout ValueLayout {EOpenPLX_ValueLayout::Unspecified};
 };

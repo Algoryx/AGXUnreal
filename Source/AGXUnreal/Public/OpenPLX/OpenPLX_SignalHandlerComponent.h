@@ -21,6 +21,11 @@ struct FOpenPLX_SignalHandlerNativeAddresses;
 /**
  * The signal handler Component is used send and receive OpenPLX Signals. It keeps track of all
  * Inputs and Outputs available in the model.
+ *
+ * Send/receive functions convert to/from Unreal units and coordinates by default. Disable
+ * Convert Units to pass model values unchanged. Unknown
+ * effective signal types require conversion to be disabled; the value layout must still match.
+ * Sensor output views retain this choice for subsequent reads.
  */
 UCLASS(
 	ClassGroup = "OpenPLX", Category = "OpenPLX", Meta = (BlueprintSpawnableComponent),
@@ -80,199 +85,233 @@ public:
 
 	/**
 	 * Uses the given Input to send a Signal of Real type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendReal(const FOpenPLX_Input& Input, double Value);
+	bool SendReal(const FOpenPLX_Input& Input, double Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendRealByName(FName NameOrAlias, double Value);
+	bool SendRealByName(FName NameOrAlias, double Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Real type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveReal(const FOpenPLX_Output& Output, double& OutValue);
+	bool ReceiveReal(const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveRealByName(FName NameOrAlias, double& Value);
+	bool ReceiveRealByName(FName NameOrAlias, double& Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Input to send a Signal of Real Range type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value);
+	bool SendRangeReal(const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Real Range type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendRangeRealByName(FName NameOrAlias, FVector2D Value);
+	bool SendRangeRealByName(FName NameOrAlias, FVector2D Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Real Range type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveRangeReal(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool ReceiveRangeReal(
+		const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Real Range type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue);
+	bool ReceiveRangeRealByName(FName NameOrAlias, FVector2D& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Input to send a Signal of Vector2 type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendVector2(const FOpenPLX_Input& Input, FVector2D Value);
+	bool SendVector2(const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Vector2 type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendVector2ByName(FName NameOrAlias, FVector2D Value);
+	bool SendVector2ByName(FName NameOrAlias, FVector2D Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Vector2 type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveVector2(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool ReceiveVector2(
+		const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Vector2 type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveVector2ByName(FName NameOrAlias, FVector2D& OutValue);
+	bool ReceiveVector2ByName(FName NameOrAlias, FVector2D& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Input to send a Signal of Vector type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendVector(const FOpenPLX_Input& Input, FVector Value);
+	bool SendVector(const FOpenPLX_Input& Input, FVector Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Vector type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendVectorByName(FName NameOrAlias, FVector Value);
+	bool SendVectorByName(FName NameOrAlias, FVector Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Vector type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue);
+	bool ReceiveVector(const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Vector type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveVectorByName(FName NameOrAlias, FVector& OutValue);
+	bool ReceiveVectorByName(FName NameOrAlias, FVector& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Input to send a Signal of Integer type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendInteger(const FOpenPLX_Input& Input, int64 Value);
+	bool SendInteger(const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Integer type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendIntegerByName(FName NameOrAlias, int64 Value);
+	bool SendIntegerByName(FName NameOrAlias, int64 Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Integer type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue);
+	bool ReceiveInteger(const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Integer type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveIntegerByName(FName NameOrAlias, int64& OutValue);
+	bool ReceiveIntegerByName(FName NameOrAlias, int64& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Input to send a Signal of Boolean type with the given Value.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendBoolean(const FOpenPLX_Input& Input, bool Value);
+	bool SendBoolean(const FOpenPLX_Input& Input, bool Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Input and use that to send a Signal of Boolean type.
 	 * Internally calls the 'GetInput' function to match the given Name or Alias string with the
 	 * Input to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool SendBooleanByName(FName NameOrAlias, bool Value);
+	bool SendBooleanByName(FName NameOrAlias, bool Value, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Boolean type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue);
+	bool ReceiveBoolean(const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Boolean type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveBooleanByName(FName NameOrAlias, bool& OutValue);
+	bool ReceiveBooleanByName(FName NameOrAlias, bool& OutValue, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of Lidar Output type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveLidarOutput(const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView);
+	bool ReceiveLidarOutput(
+		const FOpenPLX_Output& Output, FOpenPLXLidarOutputView& OutView, bool bConvertUnits = true);
 
 	/**
-	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Lidar Output type.
-	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
-	 * Output to use.
+	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of Lidar Output
+	 * type. Internally calls the 'GetOutput' function to match the given Name or Alias string with
+	 * the Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveLidarOutputByName(FName NameOrAlias, FOpenPLXLidarOutputView& OutView);
+	bool ReceiveLidarOutputByName(
+		FName NameOrAlias, FOpenPLXLidarOutputView& OutView, bool bConvertUnits = true);
 
 	/**
 	 * Uses the given Output to receive a Signal of IMU Output type.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveIMUOutput(const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView);
+	bool ReceiveIMUOutput(
+		const FOpenPLX_Output& Output, FOpenPLXIMUOutputView& OutView, bool bConvertUnits = true);
 
 	/**
 	 * Uses the Name Or Alias to get an Output and use that to receive a Signal of IMU Output type.
 	 * Internally calls the 'GetOutput' function to match the given Name or Alias string with the
 	 * Output to use.
+	 * @param bConvertUnits Convert units and coordinates; false passes model values unchanged.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "OpenPLX")
-	bool ReceiveIMUOutputByName(FName NameOrAlias, FOpenPLXIMUOutputView& OutView);
+	bool ReceiveIMUOutputByName(
+		FName NameOrAlias, FOpenPLXIMUOutputView& OutView, bool bConvertUnits = true);
 
 	UPROPERTY(Transient)
 	bool bShowDisabledOutputs {false};
@@ -293,62 +332,70 @@ public:
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendReal instead."))
-	bool SendRealInterface(const FOpenPLX_Input& Input, double Value);
+	bool SendRealInterface(const FOpenPLX_Input& Input, double Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveReal instead."))
-	bool ReceiveRealInterface(const FOpenPLX_Output& Output, double& OutValue);
+	bool ReceiveRealInterface(
+		const FOpenPLX_Output& Output, double& OutValue, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendRangeReal instead."))
-	bool SendRangeRealInterface(const FOpenPLX_Input& Input, FVector2D Value);
+	bool SendRangeRealInterface(
+		const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveRangeReal instead."))
-	bool ReceiveRangeRealInterface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool ReceiveRangeRealInterface(
+		const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveVector2 instead."))
-	bool ReceiveVector2Interface(const FOpenPLX_Output& Output, FVector2D& OutValue);
+	bool ReceiveVector2Interface(
+		const FOpenPLX_Output& Output, FVector2D& OutValue, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendVector2 instead."))
-	bool SendVector2Interface(const FOpenPLX_Input& Input, FVector2D Value);
+	bool SendVector2Interface(
+		const FOpenPLX_Input& Input, FVector2D Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendVector instead."))
-	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value);
+	bool SendVectorInterface(const FOpenPLX_Input& Input, FVector Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveVector instead."))
-	bool ReceiveVectorInterface(const FOpenPLX_Output& Output, FVector& OutValue);
+	bool ReceiveVectorInterface(
+		const FOpenPLX_Output& Output, FVector& OutValue, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendInteger instead."))
-	bool SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value);
+	bool SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveInteger instead."))
-	bool ReceiveIntegerInterface(const FOpenPLX_Output& Output, int64& OutValue);
+	bool ReceiveIntegerInterface(
+		const FOpenPLX_Output& Output, int64& OutValue, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use SendBoolean instead."))
-	bool SendBooleanInterface(const FOpenPLX_Input& Input, bool Value);
+	bool SendBooleanInterface(const FOpenPLX_Input& Input, bool Value, bool bConvertUnits = true);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
 		Meta = (DeprecatedFunction, DeprecationMessage = "Use ReceiveBoolean instead."))
-	bool ReceiveBooleanInterface(const FOpenPLX_Output& Output, bool& OutValue);
+	bool ReceiveBooleanInterface(
+		const FOpenPLX_Output& Output, bool& OutValue, bool bConvertUnits = true);
 
 private:
 	FOpenPLXSignalHandler SignalHandler;
