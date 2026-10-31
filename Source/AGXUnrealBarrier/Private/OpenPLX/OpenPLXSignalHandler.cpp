@@ -9,11 +9,13 @@
 #include "BarrierOnly/OpenPLX/OpenPLXRefs.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
 #include "OpenPLX/OpenPLXIMUOutputView.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "OpenPLX/OpenPLX_SignalHandlerNativeAddresses.h"
 #include "OpenPLX/OpenPLXMappingBarriersCollection.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/CameraBackendBarrier.h"
 #include "Sensors/SensorEnvironmentBarrier.h"
 #include "Sensors/SensorRef.h"
 #include "SimulationBarrier.h"
@@ -27,16 +29,19 @@
 #include "agxOpenPLX/AgxOpenPlxApi.h"
 #include "openplx/ControlDispatch.h"
 #include "openplx/ControlInterface.h"
+#include "openplx/DetachedControl.h"
 #include "openplx/HeapControlInterface.h"
 #include "openplx/Math/Vec3.h"
 #include "openplx/Physics/Signals/BoolInputSignal.h"
 #include "openplx/Physics/Signals/IntInputSignal.h"
 #include "openplx/Physics/Signals/RealInputSignal.h"
 #include "openplx/Physics/Signals/Vec3InputSignal.h"
+#include "openplx/Sensors/Signals/CameraColorOutput.h"
 #include "EndAGXIncludes.h"
 
 // Standard library includes.
 #include <cstdint>
+#include <utility>
 
 FOpenPLXSignalHandler::FOpenPLXSignalHandler()
 	: AssemblyRef {new FAssemblyRef()}
@@ -100,8 +105,9 @@ void FOpenPLXSignalHandler::Init(
 		return;
 	}
 
+	FOpenPLXSignalHandlerRuntimeData RuntimeData;
 	auto Metadata = std::make_shared<agxopenplx::AgxMetadata>();
-	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata);
+	FPLXUtilitiesInternal::MapSensorOutput(System, Barriers, Metadata, RuntimeData);
 
 	std::shared_ptr<agxopenplx::AgxObjectMap> AgxObjectMap;
 	if (FPLXUtilitiesInternal::HasInputs(System.get()) ||
@@ -146,9 +152,9 @@ void FOpenPLXSignalHandler::Init(
 	}
 
 	ControlInterface->prepare_controls();
-	ModelData->HeapControlInterfaces.insert(
-		{AssemblyRef->Native.get(),
-		 std::make_shared<openplx::HeapControlInterface>(ControlInterface)});
+	RuntimeData.HeapControlInterface = std::make_shared<openplx::HeapControlInterface>(ControlInterface);
+	ModelData->RuntimeDataByAssembly.insert(
+		{AssemblyRef->Native.get(), std::move(RuntimeData)});
 
 	bIsInitialized = true;
 }
@@ -397,6 +403,7 @@ namespace OpenPLXSignalHandler_helpers
 			case EOpenPLX_InputType::EnableInteractionInput:
 			case EOpenPLX_InputType::EngageInput:
 			case EOpenPLX_InputType::TorqueConverterLockUpInput:
+			case EOpenPLX_InputType::CameraCaptureInput:
 				return Value;
 		}
 
@@ -1222,23 +1229,143 @@ bool FOpenPLXSignalHandler::Receive(const FOpenPLX_Output& Output, bool& OutValu
 
 FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface()
 {
-	return const_cast<const FOpenPLXSignalHandler*>(this)->GetHeapControlInterface();
+	return std::as_const(*this).GetHeapControlInterface();
 }
 
 const FHeapControlInterfacePtr FOpenPLXSignalHandler::GetHeapControlInterface() const
 {
+	const FOpenPLXSignalHandlerRuntimeData* RuntimeData = GetRuntimeData();
+	return RuntimeData == nullptr ? FHeapControlInterfacePtr {nullptr} :
+		FHeapControlInterfacePtr {RuntimeData->HeapControlInterface.get()};
+}
+
+FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData()
+{
+	return const_cast<FOpenPLXSignalHandlerRuntimeData*>(
+		std::as_const(*this).GetRuntimeData());
+}
+
+const FOpenPLXSignalHandlerRuntimeData* FOpenPLXSignalHandler::GetRuntimeData() const
+{
 	if (ModelRegistry == nullptr)
-		return {nullptr};
+		return nullptr;
 
 	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 	if (ModelData == nullptr)
-		return {nullptr};
+		return nullptr;
 
-	auto It = ModelData->HeapControlInterfaces.find(AssemblyRef->Native.get());
-	if (It == ModelData->HeapControlInterfaces.end())
-		return {nullptr};
+	auto It = ModelData->RuntimeDataByAssembly.find(AssemblyRef->Native.get());
+	if (It == ModelData->RuntimeDataByAssembly.end())
+		return nullptr;
 
-	return {It->second.get()};
+	return &It->second;
+}
+
+bool FOpenPLXSignalHandler::ReceiveCameraColorOutput(
+	const FOpenPLX_Output& Output, FOpenPLXCameraColorOutputView& OutOutput)
+{
+	check(IsInitialized());
+
+	openplx::HeapControlInterface* Interface = GetHeapControlInterface();
+	if (Interface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Tried to receive Camera Color output '%s' ('%s') through "
+				"the Control Interface, but don't have a Control Interface pointer."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutOutput = FOpenPLXCameraColorOutputView();
+	FOpenPLXCameraColorOutputViewRef* OutputRef = OutOutput.GetNative();
+
+	const std::shared_ptr<openplx::ControlInterface>& ControlInterface =
+		Interface->get_control_interface();
+	if (ControlInterface == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get the Control Interface while receiving Camera "
+				"Color output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	const uint32 ControlKey =
+		ControlInterface->lookup_control_key_from_name(Convert(Output.Name.ToString()));
+	const std::shared_ptr<openplx::DetachedControl> Control =
+		ControlInterface->lookup_detached_control(ControlKey);
+	if (Control == nullptr || !Control->is_output())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get the output control for Camera Color output "
+				"'%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	OutputRef->CameraColorOutput =
+		std::dynamic_pointer_cast<openplx::Sensors::Signals::CameraColorOutput>(
+			Control->get_attached_reference());
+	if (OutputRef->CameraColorOutput == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: The output control for Camera Color output '%s' ('%s') "
+				"does not reference a CameraColorOutput."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	FOpenPLXSignalHandlerRuntimeData* RuntimeData = GetRuntimeData();
+	if (RuntimeData == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not get runtime data while receiving Camera Color "
+				"output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	const auto NativeOutputIt = RuntimeData->CameraColorOutputs.find(
+		OutputRef->CameraColorOutput.get());
+	if (NativeOutputIt == RuntimeData->CameraColorOutputs.end())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not find the native AGX Camera Color output for "
+				"OpenPLX output '%s' ('%s')."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	// prepare_read invokes the OpenPLX output handler. Stage first so that handler observes the
+	// frame currently held by the Unreal camera backend.
+	FCameraBackendBarrier::GetInstance().StageUnreadDataIfExists(
+		reinterpret_cast<uint64>(NativeOutputIt->second.get()));
+	OutputRef->Marshalling = Interface->prepare_read(Convert(Output.Name.ToString()));
+
+	if (!OutOutput.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"OpenPLX Signal Handler: Could not read Camera Color output '%s' ('%s') through "
+				"the Control Interface because a marshalling object could not be created."),
+			*Output.Name.ToString(), *Output.Alias.ToString());
+		return false;
+	}
+
+	return true;
 }
 
 bool FOpenPLXSignalHandler::ReceiveLidarOutput(
@@ -1312,7 +1439,7 @@ void FOpenPLXSignalHandler::ReleaseNatives()
 	FOpenPLXModelData* ModelData = ModelRegistry->GetModelData(ModelHandle);
 	if (ModelData)
 	{
-		ModelData->HeapControlInterfaces.erase(AssemblyRef->Native.get());
+		ModelData->RuntimeDataByAssembly.erase(AssemblyRef->Native.get());
 	}
 
 	ModelRegistry = nullptr;

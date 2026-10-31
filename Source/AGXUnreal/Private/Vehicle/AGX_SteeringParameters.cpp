@@ -48,12 +48,12 @@ bool UAGX_SteeringParameters::IsInstance() const
 
 UAGX_SteeringParameters* UAGX_SteeringParameters::GetInstance()
 {
-	return Instance.Get();
+	return IsInstance() ? this : Instance.Get();
 }
 
 UAGX_SteeringParameters* UAGX_SteeringParameters::GetAsset()
 {
-	return Asset.Get();
+	return IsInstance() ? Asset.Get() : this;
 }
 
 void UAGX_SteeringParameters::CommitToAsset()

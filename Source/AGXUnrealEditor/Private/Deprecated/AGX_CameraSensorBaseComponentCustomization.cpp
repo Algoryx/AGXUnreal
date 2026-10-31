@@ -1,11 +1,11 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_CameraSensorComponentCustomization.h"
+#include "Deprecated/AGX_CameraSensorBaseComponentCustomization.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"
-#include "Sensors/AGX_CameraSensorBase.h"
-#include "Sensors/AGX_CameraSensor8BitComponent.h"
+#include "Deprecated/AGX_CameraSensor8BitComponent.h"
+#include "Deprecated/AGX_CameraSensorBase.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_NotificationUtilities.h"
 #include "Utilities/AGX_ObjectUtilities.h"
@@ -21,14 +21,14 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SComboBox.h"
 
-#define LOCTEXT_NAMESPACE "FAGX_CameraSensorComponentCustomization"
+#define LOCTEXT_NAMESPACE "FAGX_CameraSensorBaseComponentCustomization"
 
-TSharedRef<IDetailCustomization> FAGX_CameraSensorComponentCustomization::MakeInstance()
+TSharedRef<IDetailCustomization> FAGX_CameraSensorBaseComponentCustomization::MakeInstance()
 {
-	return MakeShareable(new FAGX_CameraSensorComponentCustomization);
+	return MakeShareable(new FAGX_CameraSensorBaseComponentCustomization);
 }
 
-void FAGX_CameraSensorComponentCustomization::CustomizeDetails(
+void FAGX_CameraSensorBaseComponentCustomization::CustomizeDetails(
 	IDetailLayoutBuilder& InDetailBuilder)
 {
 	DetailBuilder = &InDetailBuilder;
@@ -63,7 +63,7 @@ void FAGX_CameraSensorComponentCustomization::CustomizeDetails(
 				"Generates and sets needed runtime Assets for this Camera Component given the FOV and Resolution.\n"
 				"Notice that this has to be done again if any of these settings are changed."
 				"If needed runtime Assets are already set, the existing Assets will be updated."))
-			.OnClicked(this, &FAGX_CameraSensorComponentCustomization::OnGenerateRuntimeAssetsButtonClicked)
+			.OnClicked(this, &FAGX_CameraSensorBaseComponentCustomization::OnGenerateRuntimeAssetsButtonClicked)
 		]
 	];
 	// clang-format on
@@ -71,7 +71,7 @@ void FAGX_CameraSensorComponentCustomization::CustomizeDetails(
 	InDetailBuilder.HideCategory(FName("Sockets"));
 }
 
-namespace AGX_CameraSensorComponentCustomization_helpers
+namespace AGX_CameraSensorBaseComponentCustomization_helpers
 {
 	UAGX_CameraSensorBase* GetCameraSensorComponent(IDetailLayoutBuilder* DetailBuilder)
 	{
@@ -151,9 +151,9 @@ namespace AGX_CameraSensorComponentCustomization_helpers
 	}
 }
 
-FReply FAGX_CameraSensorComponentCustomization::OnGenerateRuntimeAssetsButtonClicked()
+FReply FAGX_CameraSensorBaseComponentCustomization::OnGenerateRuntimeAssetsButtonClicked()
 {
-	using namespace AGX_CameraSensorComponentCustomization_helpers;
+	using namespace AGX_CameraSensorBaseComponentCustomization_helpers;
 	AGX_CHECK(DetailBuilder);
 
 	UAGX_CameraSensorBase* CameraComponent = GetCameraSensorComponent(DetailBuilder);

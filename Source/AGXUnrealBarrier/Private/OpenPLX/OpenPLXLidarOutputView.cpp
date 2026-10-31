@@ -86,7 +86,8 @@ namespace OpenPLXLidarOutputView_helpers
 			return true;
 
 		FWindowLayout Layout;
-		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
+		if (!PLXMarshallingUtilities::GetWindowLayout(
+				Marshalling, Layout, /*bRequireBuffer*/ true))
 			return false;
 
 		if (!CanConvert(Layout.NumWindows))
@@ -147,7 +148,8 @@ namespace OpenPLXLidarOutputView_helpers
 			return true;
 
 		FWindowLayout Layout;
-		if (!GetWindowLayout(Marshalling, Layout, /*bRequireBuffer*/ true))
+		if (!PLXMarshallingUtilities::GetWindowLayout(
+				Marshalling, Layout, /*bRequireBuffer*/ true))
 			return false;
 
 		if (!CanConvert(Layout.NumWindows))
@@ -534,11 +536,11 @@ namespace OpenPLXLidarOutputView_helpers
 }
 
 FOpenPLXLidarOutputView::FOpenPLXLidarOutputView()
-	: NativeRef {new FOpenPLXLidarOutputViewRef}
+	: NativeRef {new FOpenPLXMarshallingRef}
 {
 }
 
-FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXLidarOutputViewRef> Native)
+FOpenPLXLidarOutputView::FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -557,7 +559,8 @@ int32 FOpenPLXLidarOutputView::GetNumPoints() const
 		return 0;
 
 	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
+	if (!PLXMarshallingUtilities::GetWindowLayout(
+			*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
 		return 0;
 
 	if (!CanConvert(Layout.NumWindows))
@@ -580,7 +583,8 @@ bool FOpenPLXLidarOutputView::HasPositions() const
 		return false;
 
 	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
+	if (!PLXMarshallingUtilities::GetWindowLayout(
+			*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
 		return false;
 
 	const openplx::Field* XField = nullptr;
@@ -636,7 +640,8 @@ bool FOpenPLXLidarOutputView::HasRayPoses() const
 		return false;
 
 	FWindowLayout Layout;
-	if (!GetWindowLayout(*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
+	if (!PLXMarshallingUtilities::GetWindowLayout(
+			*NativeRef->Marshalling, Layout, /*bRequireBuffer*/ false))
 		return false;
 
 	std::array<const openplx::Field*, 12> Fields;
@@ -772,13 +777,13 @@ bool FOpenPLXLidarOutputView::MakePersistant()
 	return true;
 }
 
-FOpenPLXLidarOutputViewRef* FOpenPLXLidarOutputView::GetNative()
+FOpenPLXMarshallingRef* FOpenPLXLidarOutputView::GetNative()
 {
 	check(NativeRef);
 	return NativeRef.get();
 }
 
-const FOpenPLXLidarOutputViewRef* FOpenPLXLidarOutputView::GetNative() const
+const FOpenPLXMarshallingRef* FOpenPLXLidarOutputView::GetNative() const
 {
 	check(NativeRef);
 	return NativeRef.get();

@@ -10,7 +10,7 @@
 
 #include "OpenPLXLidarOutputView.generated.h"
 
-struct FOpenPLXLidarOutputViewRef;
+struct FOpenPLXMarshallingRef;
 
 struct AGXUNREALBARRIER_API FOpenPLXLidarPointReadFlags
 {
@@ -52,7 +52,7 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 	GENERATED_BODY()
 
 	FOpenPLXLidarOutputView();
-	FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXLidarOutputViewRef> Native);
+	FOpenPLXLidarOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native);
 
 	bool HasNative() const;
 
@@ -126,9 +126,9 @@ struct AGXUNREALBARRIER_API FOpenPLXLidarOutputView
 	 */
 	bool MakePersistant();
 
-	FOpenPLXLidarOutputViewRef* GetNative();
-	const FOpenPLXLidarOutputViewRef* GetNative() const;
+	FOpenPLXMarshallingRef* GetNative();
+	const FOpenPLXMarshallingRef* GetNative() const;
 
 private:
-	std::shared_ptr<FOpenPLXLidarOutputViewRef> NativeRef;
+	std::shared_ptr<FOpenPLXMarshallingRef> NativeRef;
 };

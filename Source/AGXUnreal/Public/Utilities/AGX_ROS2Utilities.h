@@ -2,19 +2,27 @@
 
 #pragma once
 
+// AGX Dynamics for Unreal includes.
+#include "Sensors/CameraOutputBarrier.h"
+
 // Unreal Engine includes.
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "AGX_ROS2Utilities.generated.h"
 
+struct FAGX_CameraOutputColor;
 struct FAGX_LidarOutputPositionData;
 struct FAGX_LidarOutputPositionIntensityData;
 struct FAGX_LidarScanPoint;
 struct FAGX_SensorMsgsImu;
 struct FAGX_SensorMsgsImage;
 struct FAGX_SensorMsgsPointCloud2;
+struct FOpenPLXCameraColorOutputView;
 struct FOpenPLXLidarOutputView;
+
+class FROS2PublisherBarrier;
+class UAGX_ROS2PublisherComponent;
 
 class AGXUNREAL_API FAGX_ROS2Utilities
 {
@@ -25,6 +33,18 @@ public:
 	static FAGX_SensorMsgsImage Convert(
 		const TArray<FFloat16Color>& Image, double TimeStamp, const FIntPoint& Resolution,
 		bool Grayscale);
+
+	static bool ConvertAndSend(
+		FAGX_CameraOutputColor& CameraOutput, FROS2PublisherBarrier& Publisher,
+		double TimeStamp, bool bMarkAsRead = false, const FString& FrameId = "");
+
+	static bool ConvertAndSend(
+		FCameraOutputBarrier& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
+
+	static bool ConvertAndSend(
+		const FOpenPLXCameraColorOutputView& View, FROS2PublisherBarrier& Publisher,
+		double TimeStamp, const FString& FrameId = "");
 };
 
 UCLASS(ClassGroup = "AGX ROS2 Utilities")
@@ -251,6 +271,60 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
 	static FAGX_SensorMsgsPointCloud2 ConvertOpenPLXLidarOutput(
 		UPARAM(Ref) FOpenPLXLidarOutputView& View, double TimeStamp, const FString& FrameId = "");
+
+	/**
+	 * Converts an OpenPLX Camera Color output view directly to a ROS2 sensor_msgs::Image message
+	 * and sends it using the given Publisher and Topic.
+	 *
+	 * The Image data is copied directly from the OpenPLX pixel buffer. UInt8 outputs use 8UC1,
+	 * 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or 32FC4 encoding.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
+	 * according to the given timestamp.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static bool ConvertAndSendOpenPLXCameraColorOutput(
+		const FOpenPLXCameraColorOutputView& View, UAGX_ROS2PublisherComponent* Publisher,
+		const FString& Topic, double TimeStamp, const FString& FrameId = "");
+
+	/**
+	 * Converts a Camera Color Output directly to a ROS2 sensor_msgs::Image message and sends it
+	 * using the given Publisher and Topic.
+	 *
+	 * The Image data is copied directly from the underlying Camera output data buffer. UInt8
+	 * outputs use 8UC1, 8UC2, 8UC3 or 8UC4 encoding. Float32 outputs use 32FC1, 32FC2, 32FC3 or
+	 * 32FC4 encoding.
+	 *
+	 * The timestamp written to the Header member of the sensor_msgs::Image message is set
+	 * according to the given timestamp.
+	 *
+	 * If Mark As Read is true, this function marks the Camera output data as read after it has been
+	 * copied into the ROS2 message.
+	 *
+	 * (Optional) the FrameId parameter corresponds to the frame_id of the std_msgs::Header message.
+	 * If not set, it will be an empty string.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static bool ConvertAndSendCameraOutput(
+		UPARAM(ref) FAGX_CameraOutputColor& CameraOutput,
+		UAGX_ROS2PublisherComponent* Publisher, const FString& Topic, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
+
+	/**
+	 * Converts a Camera Color output barrier directly to a ROS2 sensor_msgs::Image message and
+	 * sends it using the given Publisher and Topic.
+	 *
+	 * Returns false if the barrier has no native object or represents another Camera output type.
+	 * If Mark As Read is true, the output data is marked as read after a successful copy.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX ROS2")
+	static bool ConvertAndSendCameraOutputBarrier(
+		UPARAM(ref) FCameraOutputBarrier& CameraOutput,
+		UAGX_ROS2PublisherComponent* Publisher, const FString& Topic, double TimeStamp,
+		bool bMarkAsRead = false, const FString& FrameId = "");
 
 	/**
 	 * Takes Accelerometer and Gyroscope output from an IMU Sensor and creates a ROS2

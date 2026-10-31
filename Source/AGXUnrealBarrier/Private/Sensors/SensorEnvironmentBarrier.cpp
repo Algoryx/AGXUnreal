@@ -6,6 +6,7 @@
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "BarrierOnly/Wire/WireRef.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Sensors/RtAmbientMaterialBarrier.h"
@@ -81,6 +82,13 @@ void FSensorEnvironmentBarrier::ReleaseNative()
 {
 }
 
+bool FSensorEnvironmentBarrier::Add(FCameraBarrier& Camera)
+{
+	check(HasNative());
+	check(Camera.HasNative());
+	return Camera.AddToEnvironment(*this);
+}
+
 bool FSensorEnvironmentBarrier::Add(FLidarBarrier& Lidar)
 {
 	check(HasNative());
@@ -114,6 +122,71 @@ bool FSensorEnvironmentBarrier::Add(FWireBarrier& Wire)
 	check(HasNative());
 	check(Wire.HasNative());
 	return NativeRef->Native->add(Wire.GetNative()->Native);
+}
+
+bool FSensorEnvironmentBarrier::Contains(const FCameraBarrier& Camera) const
+{
+	check(HasNative());
+	check(Camera.HasNative());
+
+	const agxSensor::Camera* NativeCamera =
+		Camera.GetNative()->Native->asSafe<agxSensor::Camera>();
+	if (NativeCamera == nullptr)
+		return false;
+
+	for (const agxSensor::Camera* CameraInEnvironment :
+		 NativeRef->Native->findSystems<agxSensor::Camera>())
+	{
+		if (CameraInEnvironment == NativeCamera)
+			return true;
+	}
+
+	return false;
+}
+
+bool FSensorEnvironmentBarrier::Contains(const FLidarBarrier& Lidar) const
+{
+	check(HasNative());
+	check(Lidar.HasNative());
+
+	const agxSensor::Lidar* NativeLidar = Lidar.GetNative()->Native->asSafe<agxSensor::Lidar>();
+	if (NativeLidar == nullptr)
+		return false;
+
+	for (const agxSensor::Lidar* LidarInEnvironment :
+		 NativeRef->Native->findSystems<agxSensor::Lidar>())
+	{
+		if (LidarInEnvironment == NativeLidar)
+			return true;
+	}
+
+	return false;
+}
+
+bool FSensorEnvironmentBarrier::Contains(const FIMUBarrier& IMU) const
+{
+	check(HasNative());
+	check(IMU.HasNative());
+
+	const agxSensor::IMU* NativeIMU = IMU.GetNative()->Native->asSafe<agxSensor::IMU>();
+	if (NativeIMU == nullptr)
+		return false;
+
+	for (const agxSensor::IMU* IMUInEnvironment :
+		 NativeRef->Native->findSystems<agxSensor::IMU>())
+	{
+		if (IMUInEnvironment == NativeIMU)
+			return true;
+	}
+
+	return false;
+}
+
+bool FSensorEnvironmentBarrier::Remove(FCameraBarrier& Camera)
+{
+	check(HasNative());
+	check(Camera.HasNative());
+	return Camera.RemoveFromEnvironment(*this);
 }
 
 bool FSensorEnvironmentBarrier::Remove(FLidarBarrier& Lidar)

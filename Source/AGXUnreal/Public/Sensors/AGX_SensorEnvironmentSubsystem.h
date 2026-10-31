@@ -15,6 +15,7 @@
 
 class AAGX_Terrain;
 class AActor;
+class UAGX_CameraSensorComponent;
 class UAGX_IMUSensorComponent;
 class UAGX_LidarAmbientMaterial;
 class UAGX_LidarSensorComponent;
@@ -147,6 +148,9 @@ public:
 	 * Manually add a Lidar Sensor Component.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool AddCamera(UAGX_CameraSensorComponent* Camera);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool AddLidar(UAGX_LidarSensorComponent* Lidar);
 
 	/**
@@ -228,6 +232,9 @@ public:
 	 * Manually remove a Lidar Sensor Component from this Sensor Environment.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
+	bool RemoveCamera(UAGX_CameraSensorComponent* Camera);
+
+	UFUNCTION(BlueprintCallable, Category = "AGX Sensor Environment")
 	bool RemoveLidar(UAGX_LidarSensorComponent* Lidar);
 
 	/**
@@ -308,12 +315,14 @@ public:
 
 private:
 	void InitializeNative();
+	void UpdateTrackedCameras();
 	void UpdateTrackedLidars();
 	void UpdateTrackedIMUs();
 	void UpdateTrackedMeshes();
 	void UpdateTrackedInstancedMeshes();
 	void UpdateTrackedAGXMeshes();
 	bool UpdateAmbientMaterial();
+	void TickTrackedCameras() const;
 	void TickTrackedLidars() const;
 	void TickTrackedIMUs() const;
 
@@ -353,6 +362,7 @@ private:
 	void OnLidarEndOverlapAGXMeshComponent(UAGX_SimpleMeshComponent& Mesh);
 
 private:
+	TSet<TWeakObjectPtr<UAGX_CameraSensorComponent>> TrackedCameras;
 	TMap<TWeakObjectPtr<UAGX_LidarSensorComponent>, TWeakObjectPtr<USphereComponent>>
 		TrackedLidars;
 	TMap<TWeakObjectPtr<UStaticMeshComponent>, FAGX_RtShapeInstanceData> TrackedMeshes;

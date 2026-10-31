@@ -28,6 +28,7 @@ struct AGXUNREALBARRIER_API FOpenPLXMappingBarriersCollection
 	GENERATED_BODY()
 
 	TArray<FRigidBodyBarrier*> Bodies;
+	TArray<FSensorBarrier*> Cameras;
 	TArray<FConstraintBarrier*> Constraints;
 	TArray<FSensorBarrier*> IMUs;
 	TArray<FSensorBarrier*> Lidars;

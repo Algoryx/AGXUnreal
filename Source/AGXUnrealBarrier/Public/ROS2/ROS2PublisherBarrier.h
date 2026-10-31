@@ -10,6 +10,8 @@
 
 struct FAGX_ROS2Message;
 struct FAGX_ROS2Qos;
+struct FCameraOutputColorBarrier;
+struct FOpenPLXCameraColorOutputView;
 struct FROS2Publisher;
 
 class AGXUNREALBARRIER_API FROS2PublisherBarrier
@@ -36,6 +38,13 @@ public:
 	// Shorthand "Msg" in the function name due to strangeness where the SendMessage signature
 	// causes link error on Windows.
 	bool SendMsg(const FAGX_ROS2Message& Msg) const;
+
+	bool SendCameraColorOutput(
+		FCameraOutputColorBarrier& CameraOutput, double TimeStamp, bool bMarkAsRead,
+		const FString& FrameId) const;
+	bool SendCameraColorOutput(
+		const FOpenPLXCameraColorOutputView& View, double TimeStamp,
+		const FString& FrameId) const;
 
 private:
 	FROS2PublisherBarrier(const FROS2PublisherBarrier&) = delete;

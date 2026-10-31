@@ -15,11 +15,14 @@ struct FOpenPLXMaterialBarrier;
 
 class UAGX_CableComponent;
 class UAGX_CableProperties;
+class UAGX_CameraLensBase;
+class UAGX_CameraPhotodetectorBase;
 class UAGX_CollisionGroupDisablerComponent;
 class UAGX_ConstraintComponent;
 class UAGX_ContactMaterial;
 class UAGX_ContactMaterialRegistrarComponent;
 class UAGX_LidarModelParameters;
+class UAGX_LensDistortionBase;
 class UAGX_MergeSplitThresholdsBase;
 class UAGX_ModelSourceComponent;
 class UAGX_ObserverFrameComponent;
@@ -136,6 +139,16 @@ struct AGXUNREAL_API FAGX_ImportContext
 	// Lidar Model Parameters are unique per Lidar on import. The key is the GUID of the Lidar.
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_LidarModelParameters>> LidarModelParameters;
+
+	// Camera assets are unique per Camera on import. The key is the GUID of the Camera.
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_CameraPhotodetectorBase>> CameraPhotodetectors;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_CameraLensBase>> CameraLenses;
+
+	UPROPERTY(Transient)
+	TMap<FGuid, TObjectPtr<UAGX_LensDistortionBase>> LensDistortions;
 
 	UPROPERTY(Transient)
 	TMap<FGuid, TObjectPtr<UAGX_ShovelProperties>> ShovelProperties;

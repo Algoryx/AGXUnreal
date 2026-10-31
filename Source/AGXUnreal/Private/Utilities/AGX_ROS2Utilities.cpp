@@ -4,11 +4,16 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "OpenPLX/OpenPLXCameraColorOutputView.h"
 #include "OpenPLX/OpenPLXLidarOutputView.h"
 #include "ROS2/AGX_ROS2Messages.h"
+#include "ROS2/AGX_ROS2PublisherComponent.h"
+#include "ROS2/ROS2PublisherBarrier.h"
+#include "Sensors/AGX_CameraOutputColor.h"
 #include "Sensors/AGX_LidarOutputPosition.h"
 #include "Sensors/AGX_LidarOutputPositionIntensity.h"
 #include "Sensors/AGX_LidarScanPoint.h"
+#include "Sensors/CameraOutputColorBarrier.h"
 
 // Standard library includes.
 #include <cstring>
@@ -213,6 +218,56 @@ FAGX_SensorMsgsImage FAGX_ROS2Utilities::Convert(
 	}
 
 	return Msg;
+}
+
+bool FAGX_ROS2Utilities::ConvertAndSend(
+	FAGX_CameraOutputColor& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
+	bool bMarkAsRead, const FString& FrameId)
+{
+	FCameraOutputBarrier* Native = CameraOutput.GetNative();
+	if (Native == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera Color Output requires a native Camera output."));
+		return false;
+	}
+
+	return ConvertAndSend(*Native, Publisher, TimeStamp, bMarkAsRead, FrameId);
+}
+
+bool FAGX_ROS2Utilities::ConvertAndSend(
+	FCameraOutputBarrier& CameraOutput, FROS2PublisherBarrier& Publisher, double TimeStamp,
+	bool bMarkAsRead, const FString& FrameId)
+{
+	if (CameraOutput.HasNative() == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera output barrier requires a native Camera output."));
+		return false;
+	}
+
+	if (FCameraOutputColorBarrier::IsColorOutput(CameraOutput) == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera output barrier requires a Camera Color output, but "
+				 "received another Camera output type."));
+		return false;
+	}
+
+	FCameraOutputColorBarrier ColorOutput =
+		FCameraOutputColorBarrier::CreateFrom(CameraOutput);
+	return Publisher.SendCameraColorOutput(
+		ColorOutput, TimeStamp, bMarkAsRead, FrameId);
+}
+
+bool FAGX_ROS2Utilities::ConvertAndSend(
+	const FOpenPLXCameraColorOutputView& View, FROS2PublisherBarrier& Publisher,
+	double TimeStamp, const FString& FrameId)
+{
+	return Publisher.SendCameraColorOutput(View, TimeStamp, FrameId);
 }
 
 FAGX_BuiltinInterfacesTime UAGX_ROS2Utilities::ConvertTime(double TimeStamp)
@@ -483,6 +538,60 @@ FAGX_SensorMsgsPointCloud2 UAGX_ROS2Utilities::ConvertOpenPLXLidarOutput(
 	Msg.Width = NumPoints;
 	Msg.RowStep = Msg.Data.Num();
 	return Msg;
+}
+
+bool UAGX_ROS2Utilities::ConvertAndSendOpenPLXCameraColorOutput(
+	const FOpenPLXCameraColorOutputView& View, UAGX_ROS2PublisherComponent* Publisher,
+	const FString& Topic, double TimeStamp, const FString& FrameId)
+{
+	if (!IsValid(Publisher))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send OpenPLX Camera Color Output requires a ROS2 Publisher."));
+		return false;
+	}
+
+	FROS2PublisherBarrier* Barrier =
+		Publisher->GetOrCreateBarrier(EAGX_ROS2MessageType::SensorMsgsImage, Topic);
+	return Barrier != nullptr && FAGX_ROS2Utilities::ConvertAndSend(
+		View, *Barrier, TimeStamp, FrameId);
+}
+
+bool UAGX_ROS2Utilities::ConvertAndSendCameraOutput(
+	FAGX_CameraOutputColor& CameraOutput, UAGX_ROS2PublisherComponent* Publisher,
+	const FString& Topic, double TimeStamp, bool bMarkAsRead, const FString& FrameId)
+{
+	if (!IsValid(Publisher))
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera Color Output requires a ROS2 Publisher."));
+		return false;
+	}
+
+	FROS2PublisherBarrier* Barrier =
+		Publisher->GetOrCreateBarrier(EAGX_ROS2MessageType::SensorMsgsImage, Topic);
+	return Barrier != nullptr && FAGX_ROS2Utilities::ConvertAndSend(
+		CameraOutput, *Barrier, TimeStamp, bMarkAsRead, FrameId);
+}
+
+bool UAGX_ROS2Utilities::ConvertAndSendCameraOutputBarrier(
+	FCameraOutputBarrier& CameraOutput, UAGX_ROS2PublisherComponent* Publisher,
+	const FString& Topic, double TimeStamp, bool bMarkAsRead, const FString& FrameId)
+{
+	if (IsValid(Publisher) == false)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Convert and send Camera output barrier requires a ROS2 Publisher."));
+		return false;
+	}
+
+	FROS2PublisherBarrier* Barrier =
+		Publisher->GetOrCreateBarrier(EAGX_ROS2MessageType::SensorMsgsImage, Topic);
+	return Barrier != nullptr && FAGX_ROS2Utilities::ConvertAndSend(
+		CameraOutput, *Barrier, TimeStamp, bMarkAsRead, FrameId);
 }
 
 FAGX_SensorMsgsImu UAGX_ROS2Utilities::ConvertIMUData(
