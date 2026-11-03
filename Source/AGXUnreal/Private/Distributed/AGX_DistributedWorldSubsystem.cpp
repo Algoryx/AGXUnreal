@@ -2,11 +2,15 @@
 
 #include "Distributed/AGX_DistributedWorldSubsystem.h"
 
+// AGX Dynamics for Unreal includes.
+#include "AGX_InternalDelegateAccessor.h"
 #include "AGX_LogCategory.h"
 #include "AGX_RigidBodyComponent.h"
 #include "AGX_Simulation.h"
 #include "Distributed/AGX_DistributedScenarioAsset.h"
 #include "Distributed/AGX_DistributedSettings.h"
+
+// Unreal Engine includes.
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "HAL/PlatformTime.h"
@@ -41,11 +45,13 @@ void UAGX_DistributedWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	bInitializationAttempted = true;
 	if (Scenario->bLaunchWorldManager)
+	{
 		UE_LOG(
 			LogAGX, Warning,
 			TEXT(
 				"AGX Distributed WorldManager launch is not implemented; connecting to an external "
 				"manager."));
+	}
 
 	UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(&InWorld);
 	if (Simulation == nullptr || Simulation->GetNative() == nullptr)
@@ -60,6 +66,10 @@ void UAGX_DistributedWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			LogAGX, Log, TEXT("Starting AGX Distributed client; endpoint: %s"),
 			Scenario->ZenohEndpoint.IsEmpty() ? TEXT("default discovery")
 											  : *Scenario->ZenohEndpoint);
+		BoundSimulation = Simulation;
+		PostStepHandle =
+			FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+				.AddUObject(this, &UAGX_DistributedWorldSubsystem::CollectAndSendEntityUpdates);
 		Client.StartAndLoad();
 	}
 }
@@ -73,11 +83,77 @@ void UAGX_DistributedWorldSubsystem::Deinitialize()
 
 void UAGX_DistributedWorldSubsystem::ShutdownClient()
 {
+	if (UAGX_Simulation* Simulation = BoundSimulation.Get())
+	{
+		FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+			.Remove(PostStepHandle);
+	}
+
+	PostStepHandle.Reset();
+	BoundSimulation.Reset();
 	bShutdownRequested = true;
 	bSimulationRunning = false;
 	Client.Shutdown();
 	EntityActors.Reset();
 	ReportedUpdateErrors.Reset();
+	ReportedSendErrors.Reset();
+}
+
+void UAGX_DistributedWorldSubsystem::CollectAndSendEntityUpdates(double TimeStamp)
+{
+	check(IsInGameThread());
+	(void) TimeStamp;
+	if (bShutdownRequested || !Client.IsReady())
+		return;
+
+	TMap<uint64, TArray<FRigidBodyBarrier>> EntityBodies;
+	for (uint64 EntityId : Client.GetSimulatedEntities())
+	{
+		auto ReportError = [this, EntityId](const TCHAR* Reason)
+		{
+			if (!ReportedSendErrors.Contains(EntityId))
+			{
+				ReportedSendErrors.Add(EntityId);
+				UE_LOG(
+					LogAGX, Error, TEXT("AGX Distributed cannot send entity %llu: %s"), EntityId,
+					Reason);
+			}
+		};
+		const TWeakObjectPtr<AActor>* Entry = EntityActors.Find(EntityId);
+		AActor* Actor = Entry != nullptr ? Entry->Get() : nullptr;
+		if (!IsValid(Actor))
+		{
+			ReportError(TEXT("No live actor is registered for this entity."));
+			continue;
+		}
+
+		TArray<UAGX_RigidBodyComponent*> Bodies;
+		Actor->GetComponents<UAGX_RigidBodyComponent>(Bodies, true);
+		// Use the same body membership and ordering as processIncomingEntityUpdates.
+		Bodies.Sort([](const UAGX_RigidBodyComponent& Lhs, const UAGX_RigidBodyComponent& Rhs)
+					{ return Lhs.ImportName < Rhs.ImportName; });
+
+		TArray<FRigidBodyBarrier> Barriers;
+		Barriers.Reserve(Bodies.Num());
+		bool bComplete = true;
+		for (UAGX_RigidBodyComponent* Body : Bodies)
+		{
+			const FRigidBodyBarrier* Barrier = Body->GetNative();
+			if (Barrier == nullptr || !Barrier->HasNative())
+			{
+				ReportError(TEXT("The Blueprint rigid body has no AGX Dynamics representation."));
+				bComplete = false;
+				break;
+			}
+			Barriers.Add(*Barrier);
+		}
+		if (bComplete)
+		{
+			EntityBodies.Add(EntityId, MoveTemp(Barriers));
+			ReportedSendErrors.Remove(EntityId);
+		}
+	}
+	Client.SendEntityUpdates(EntityBodies);
 }
 
 void UAGX_DistributedWorldSubsystem::Tick(float DeltaTime)

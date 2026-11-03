@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RigidBodyBarrier.h"
 
 #include <memory>
 
@@ -57,6 +58,11 @@ public:
 	bool RequestPossession(uint64 EntityId, bool bPossess);
 	bool RequestSimulationAuthority(uint64 EntityId, bool bSimulate);
 	bool RouteSignal(uint64 EntityId, const FString& SignalName, double Value);
+
+	/** Copy of the native simulation-authority set; no native lock escapes this call. */
+	TArray<uint64> GetSimulatedEntities() const;
+	/** Publish complete body lists in AssemblySerializer order. Called on the game thread. */
+	void SendEntityUpdates(const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies);
 
 	void Shutdown();
 

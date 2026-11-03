@@ -18,6 +18,7 @@
 #include "BarrierOnly/AGXTypeConversions.h"
 
 #include <BeginAGXIncludes.h>
+#include <agx/RigidBody.h>
 #include <agxDistributed/AgxApplicationLayer.h>
 #include <EndAGXIncludes.h>
 
@@ -74,6 +75,44 @@ namespace
 		return true;
 	}
 
+	// Inverse of DecodeBodyTransforms. Read native matrices directly to preserve AGX units
+	// and handedness, without a round trip through Unreal transforms.
+	bool EncodeBodyTransforms(
+		const TArray<FRigidBodyBarrier>& Bodies, std::vector<uint8_t>& OutData)
+	{
+		for (const FRigidBodyBarrier& Body : Bodies)
+		{
+			if (!Body.HasNative())
+				return false;
+		}
+		OutData.clear();
+		OutData.reserve(8 + static_cast<size_t>(Bodies.Num()) * 16 * 8);
+		auto WriteUint64 = [&OutData](uint64 Value)
+		{
+			for (int32 Shift = 56; Shift >= 0; Shift -= 8)
+				OutData.push_back(static_cast<uint8_t>((Value >> Shift) & 0xff));
+		};
+		WriteUint64(static_cast<uint64>(Bodies.Num()));
+		for (const FRigidBodyBarrier& Body : Bodies)
+		{
+			const agx::AffineMatrix4x4 Matrix = Body.GetNative()->Native->getTransform();
+			for (int32 Row = 0; Row < 4; ++Row)
+			{
+				for (int32 Column = 0; Column < 4; ++Column)
+				{
+					const double Value = Matrix.getRow(Row)[Column];
+					if (!FMath::IsFinite(Value))
+						return false;
+					uint64 Bits;
+					static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
+					std::memcpy(&Bits, &Value, sizeof(Bits));
+					WriteUint64(Bits);
+				}
+			}
+		}
+		return true;
+	}
+
 	struct FEventQueue
 	{
 		void Push(FAGXDistributedEvent Event)
@@ -106,6 +145,41 @@ namespace
 			: AgxApplicationLayer(Simulation, Config)
 			, Events(std::move(InEvents))
 		{
+		}
+
+		TArray<uint64> GetSimulatedEntities()
+		{
+			TArray<uint64> Result;
+			auto Entities = getSimulatedEntities();
+			for (agxDistributed::EntityId Id : Entities.m_entityIds)
+				Result.Add(Id.getId());
+			return Result;
+		}
+
+		void SendEntityUpdates(const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies)
+		{
+			// Authority can change between collection and sending. Refresh the selection,
+			// then release its lock before serialization and network publication.
+			const TArray<uint64> SimulatedEntities = GetSimulatedEntities();
+			for (const auto& Entry : EntityBodies)
+			{
+				if (!SimulatedEntities.Contains(Entry.Key))
+					continue;
+				try
+				{
+					agxDistributed::EntityData Update;
+					Update.getTransform() = agx::AffineMatrix4x4();
+					if (!EncodeBodyTransforms(Entry.Value, Update.getAssetData()))
+						continue;
+					updateEntity(agxDistributed::EntityId(Entry.Key), std::move(Update));
+				}
+				catch (const std::exception& Error)
+				{
+					UE_LOG(
+						LogAGX, Error, TEXT("AGX Distributed failed to send entity %llu: %s"),
+						Entry.Key, UTF8_TO_TCHAR(Error.what()));
+				}
+			}
 		}
 
 		void applySignal(
@@ -174,7 +248,8 @@ namespace
 
 		void collectAndSendUpdates() override
 		{
-			// Q: Which native bodies belong to each entity, and when is their state safe to read?
+			// Unreal collects and sends through PostStepForwardInternal after the native step.
+			// Keep the base listener callback empty to avoid duplicate publication.
 		}
 
 		void onSimulationControlMessage(bool bStart) override
@@ -478,6 +553,22 @@ bool FDistributedApplicationBarrier::RouteSignal(
 			*FString(UTF8_TO_TCHAR(Error.what())));
 	}
 	return false;
+}
+
+TArray<uint64> FDistributedApplicationBarrier::GetSimulatedEntities() const
+{
+	check(IsInGameThread());
+	if (!IsReady() || Impl->Native == nullptr)
+		return {};
+	return Impl->Native->GetSimulatedEntities();
+}
+
+void FDistributedApplicationBarrier::SendEntityUpdates(
+	const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies)
+{
+	check(IsInGameThread());
+	if (IsReady() && Impl->Native != nullptr)
+		Impl->Native->SendEntityUpdates(EntityBodies);
 }
 
 void FDistributedApplicationBarrier::Shutdown()

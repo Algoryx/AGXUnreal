@@ -9,6 +9,7 @@
 #include "AGX_DistributedWorldSubsystem.generated.h"
 
 class UAGX_DistributedScenarioAsset;
+class UAGX_Simulation;
 class AActor;
 
 /** World-facing entry point for an AGX Distributed client. */
@@ -45,6 +46,7 @@ public:
 	bool IsConnected() const;
 
 private:
+	void CollectAndSendEntityUpdates(double TimeStamp);
 	void HandleEvent(const FAGXDistributedEvent& Event);
 	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
 	void processIncomingEntityUpdates(const FAGXDistributedEvent& Event);
@@ -52,6 +54,9 @@ private:
 	// Actors are owned by the world. Do not keep destroyed entities alive.
 	TMap<uint64, TWeakObjectPtr<AActor>> EntityActors;
 	TSet<uint64> ReportedUpdateErrors;
+	TSet<uint64> ReportedSendErrors;
+	TWeakObjectPtr<UAGX_Simulation> BoundSimulation;
+	FDelegateHandle PostStepHandle;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UAGX_DistributedScenarioAsset> Scenario;
