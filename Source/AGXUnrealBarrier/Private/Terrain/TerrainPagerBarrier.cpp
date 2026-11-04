@@ -17,6 +17,61 @@
 #include "Terrain/TerrainHeightFetcherBase.h"
 #include "Utilities/TerrainUtilities.h"
 
+// Native callbacks run during the simulation step. Never retain a pooled Terrain pointer.
+struct FTerrainPagerHeightCapture
+{
+	agxTerrain::TerrainPagerRef Pager;
+	agxTerrain::TerrainPager::TileCallback Load;
+	agxTerrain::TerrainPager::TileCallback Unload;
+
+	TArray<FTerrainPagerHeightSample> Pending;
+	int32 Loads = 0;
+	int32 Unloads = 0;
+
+	explicit FTerrainPagerHeightCapture(agxTerrain::TerrainPager* InPager)
+		: Pager(InPager)
+		, Load(
+			  [this](agxTerrain::TileId Id, agxTerrain::Terrain* Tile)
+			  {
+				  ++Loads;
+				  CopyTile(Id, Tile);
+			  })
+		, Unload(
+			  [this](agxTerrain::TileId Id, agxTerrain::Terrain* Tile)
+			  {
+				  ++Unloads;
+				  CopyTile(Id, Tile);
+			  })
+	{
+		Pager->tileLoadEvent.addCallback(&Load);
+		Pager->tileUnloadEvent.addCallback(&Unload);
+	}
+
+	~FTerrainPagerHeightCapture()
+	{
+		Pager->tileLoadEvent.removeCallback(&Load);
+		Pager->tileUnloadEvent.removeCallback(&Unload);
+	}
+
+	bool Owns(agxTerrain::TileId Id, const agx::Vec3& Position) const
+	{
+		return Pager->getTileSpecification().convertWorldCoordinateToTileId(Position) == Id;
+	}
+
+	void CopyTile(agxTerrain::TileId Id, agxTerrain::Terrain* Tile)
+	{
+		const int32 Resolution =
+			static_cast<int32>(Pager->getTileSpecification().getTileResolution());
+		for (int32 Y = 0; Y < Resolution; ++Y)
+			for (int32 X = 0; X < Resolution; ++X)
+			{
+				const auto Position = Tile->getSurfacePositionWorld(agx::Vec2i(X, Y));
+				if (Owns(Id, Position))
+					Pending.Add({ConvertDisplacement(Position)});
+			}
+	}
+};
+
 FTerrainPagerBarrier::FTerrainPagerBarrier()
 	: NativeRef {new FTerrainPagerRef}
 {
@@ -29,6 +84,8 @@ FTerrainPagerBarrier::FTerrainPagerBarrier(std::unique_ptr<FTerrainPagerRef> InN
 
 FTerrainPagerBarrier::FTerrainPagerBarrier(FTerrainPagerBarrier&& Other)
 	: NativeRef {std::move(Other.NativeRef)}
+	, DataSourceRef {std::move(Other.DataSourceRef)}
+	, HeightCapture {std::move(Other.HeightCapture)}
 {
 }
 
@@ -148,7 +205,56 @@ const FTerrainPagerRef* FTerrainPagerBarrier::GetNative() const
 void FTerrainPagerBarrier::ReleaseNative()
 {
 	check(HasNative());
+	if (HeightCapture != nullptr)
+	{
+		// setTerrainDataSource pauses the cache worker before replacing its data source.
+		// It must finish reading our height provider before its owning actor is destroyed.
+		NativeRef->Native->setTerrainDataSource(nullptr);
+		HeightCapture.reset();
+	}
 	NativeRef->Native = nullptr;
+}
+
+void FTerrainPagerBarrier::EnableHeightCapture()
+{
+	check(HasNative());
+	HeightCapture = std::make_unique<FTerrainPagerHeightCapture>(NativeRef->Native);
+	for (auto* Attachment : NativeRef->Native->getActiveTileAttachments())
+		if (Attachment != nullptr && Attachment->m_terrainTile != nullptr)
+			HeightCapture->CopyTile(
+				NativeRef->Native->getTileSpecification().convertWorldCoordinateToTileId(
+					Attachment->m_terrainTile->getPosition()),
+				Attachment->m_terrainTile);
+}
+
+TArray<FTerrainPagerHeightSample> FTerrainPagerBarrier::ConsumeHeightChanges()
+{
+	check(HeightCapture != nullptr);
+	TArray<FTerrainPagerHeightSample> Result = MoveTemp(HeightCapture->Pending);
+	// Active modified samples take precedence over copies of tiles that left the simulation.
+	for (auto* Attachment : NativeRef->Native->getActiveTileAttachments())
+	{
+		if (Attachment == nullptr || Attachment->m_terrainTile == nullptr)
+			continue;
+		agxTerrain::Terrain* Tile = Attachment->m_terrainTile;
+		const auto Id = NativeRef->Native->getTileSpecification().convertWorldCoordinateToTileId(
+			Tile->getPosition());
+		for (const auto& Index : Tile->getModifiedVertices())
+		{
+			const auto Position = Tile->getSurfacePositionWorld(Index);
+			if (HeightCapture->Owns(Id, Position))
+				Result.Add({ConvertDisplacement(Position)});
+		}
+	}
+	return Result;
+}
+
+FIntVector FTerrainPagerBarrier::GetHeightCaptureStatistics() const
+{
+	check(HeightCapture != nullptr);
+	return FIntVector(
+		HeightCapture->Loads, HeightCapture->Unloads,
+		static_cast<int32>(NativeRef->Native->getActiveTileAttachments().size()));
 }
 
 void FTerrainPagerBarrier::SetCanCollide(bool bCanCollide)

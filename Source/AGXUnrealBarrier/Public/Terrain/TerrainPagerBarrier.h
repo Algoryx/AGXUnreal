@@ -21,6 +21,13 @@ class FTerrainMaterialBarrier;
 
 struct FTerrainDataSourceRef;
 struct FTerrainPagerRef;
+struct FTerrainPagerHeightCapture;
+
+/** A copied solid-surface sample. Position and height are in world centimeters. */
+struct AGXUNREALBARRIER_API FTerrainPagerHeightSample
+{
+	FVector Position;
+};
 
 class AGXUNREALBARRIER_API FTerrainPagerBarrier
 {
@@ -89,10 +96,17 @@ public:
 
 	void OnTemplateTerrainChanged() const;
 
+	/** Opt-in sparse export. Copies complete tiles at load/unload and changes after each step. */
+	void EnableHeightCapture();
+	TArray<FTerrainPagerHeightSample> ConsumeHeightChanges();
+	/** Number of load callbacks, unload callbacks, and currently active native tiles. */
+	FIntVector GetHeightCaptureStatistics() const;
+
 private:
 	FTerrainPagerBarrier(const FTerrainPagerBarrier&) = delete;
 	void operator=(const FTerrainPagerBarrier&) = delete;
 
 	std::unique_ptr<FTerrainPagerRef> NativeRef;
 	std::unique_ptr<FTerrainDataSourceRef> DataSourceRef;
+	std::unique_ptr<FTerrainPagerHeightCapture> HeightCapture;
 };

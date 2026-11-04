@@ -55,6 +55,7 @@ class UAGX_SoilParticleRendererComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
+class UAGX_TerrainRVTComponent;
 class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
@@ -91,6 +92,10 @@ public:
 
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_SoilParticleRendererComponent* DefaultParticleRenderer;
+
+	/** Experimental sparse deformation rendering and independent native resolution. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Terrain Rendering")
+	UAGX_TerrainRVTComponent* RuntimeVirtualTexture;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCanCollide {true};

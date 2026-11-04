@@ -18,6 +18,7 @@
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_TerrainProperties.h"
+#include "Terrain/AGX_TerrainRVTComponent.h"
 #include "Terrain/AGX_TerrainSpriteComponent.h"
 #include "Terrain/AGX_TopEdgeComponent.h"
 #include "Terrain/ShovelBarrier.h"
@@ -66,7 +67,9 @@ AAGX_Terrain::AAGX_Terrain()
 	RootComponent = SpriteComponent;
 
 	TerrainBounds = CreateDefaultSubobject<UAGX_HeightFieldBoundsComponent>(TEXT("TerrainBounds"));
-	
+	RuntimeVirtualTexture =
+		CreateDefaultSubobject<UAGX_TerrainRVTComponent>(TEXT("RuntimeVirtualTexture"));
+
 	DefaultParticleRenderer =
 		CreateDefaultSubobject<UAGX_SoilParticleRendererComponent>(
 		TEXT("DefaultParticleRenderer"));
@@ -626,7 +629,10 @@ void AAGX_Terrain::BeginPlay()
 					{
 						if (bEnableDisplacementRendering)
 						{
-							UpdateDisplacementMap();
+							if (RuntimeVirtualTexture->bEnabled && HasNativeTerrainPager())
+								RuntimeVirtualTexture->Update(NativeTerrainPagerBarrier);
+							else if (!RuntimeVirtualTexture->bEnabled)
+								UpdateDisplacementMap();
 						}
 					});
 	}
@@ -635,13 +641,19 @@ void AAGX_Terrain::BeginPlay()
 void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Super::EndPlay(Reason);
+	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
+		FAGX_InternalDelegateAccessor::GetOnPostStepForwardInternal(*Simulation)
+			.Remove(PostStepForwardHandle);
 
 	if (HasNativeTerrainPager() && TerrainProperties != nullptr)
 		TerrainProperties->UnregisterTerrainPager(*this);
 
-	ClearDisplacementMap();
-	if (HasNative() && Reason != EEndPlayReason::EndPlayInEditor &&
-		Reason != EEndPlayReason::Quit && Reason != EEndPlayReason::LevelTransition)
+	if (!RuntimeVirtualTexture->bEnabled)
+		ClearDisplacementMap();
+	if (HasNative() &&
+		(RuntimeVirtualTexture->bEnabled ||
+		 (Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		  Reason != EEndPlayReason::LevelTransition)))
 	{
 		if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 		{
@@ -660,7 +672,9 @@ void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 	{
 		NativeTerrainPagerBarrier.ReleaseNative();
 	}
-	if (HasNative())
+	if (RuntimeVirtualTexture->bEnabled)
+		RuntimeVirtualTexture->Shutdown();
+	if (NativeBarrier.HasNative())
 	{
 		NativeBarrier.ReleaseNative();
 	}
@@ -678,6 +692,8 @@ void AAGX_Terrain::Tick(float DeltaTime)
 bool AAGX_Terrain::FetchHeights(
 	const FVector& WorldPosStart, int32 VertsX, int32 VertsY, TArray<float>& OutHeights)
 {
+	if (RuntimeVirtualTexture->bEnabled)
+		return RuntimeVirtualTexture->FetchHeights(WorldPosStart, VertsX, VertsY, OutHeights);
 	/*
 	 * This function will be called by the native Terrain Pager from a worker thread, meaning we
 	 * have to make sure that what we do here is thread safe. For example, we protect the
@@ -959,6 +975,18 @@ void AAGX_Terrain::InitializeNative()
 #endif
 
 	HeightFetcher.SetTerrain(this);
+	if (RuntimeVirtualTexture->bEnabled)
+	{
+		if (!bEnableTerrainPaging || !bEnableDisplacementRendering)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Terrain RVT requires Terrain Paging and displacement rendering."));
+			return;
+		}
+		if (!RuntimeVirtualTexture->Initialize(*SourceLandscape))
+			return;
+	}
 
 	if (!CreateNative())
 	{
@@ -993,6 +1021,8 @@ void AAGX_Terrain::InitializeNative()
 		FTerrainMaterialBarrier* DefaultTerrainMaterial =
 			TerrainMaterial != nullptr ? TerrainMaterial->GetTerrainMaterialNative() : nullptr;
 		NativeTerrainPagerBarrier.CreateTerrainDataSource(&HeightFetcher, DefaultTerrainMaterial);
+		if (RuntimeVirtualTexture->bEnabled)
+			NativeTerrainPagerBarrier.EnableHeightCapture();
 	}
 
 	if (!UpdateNativeShapeMaterial())
@@ -1063,6 +1093,8 @@ bool AAGX_Terrain::CreateNative()
 
 	NativeBarrier.SetRotation(Bounds->Transform.GetRotation());
 	NativeBarrier.SetPosition(Bounds->Transform.GetLocation());
+	if (RuntimeVirtualTexture->bEnabled)
+		RuntimeVirtualTexture->SetTerrainBounds(Bounds->Transform.GetLocation(), Bounds->HalfExtent);
 
 	NumVerticesX =
 		FMath::RoundToInt(Bounds->HalfExtent.X * 2.0 / SourceLandscape->GetActorScale().X) + 1;
@@ -1071,7 +1103,11 @@ bool AAGX_Terrain::CreateNative()
 
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
 
-	if (bEnableTerrainPaging)
+	if (RuntimeVirtualTexture->bEnabled)
+	{
+		// The RVT path stores coarse source heights and sparse deformation blocks instead.
+	}
+	else if (bEnableTerrainPaging)
 	{
 		OriginalHeights.SetNumZeroed(NumVerticesX * NumVerticesY);
 	}
@@ -1158,11 +1194,28 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
-	const auto QuadSize = SourceLandscape->GetActorScale().X;
+	const auto QuadSize = RuntimeVirtualTexture->bEnabled
+							  ? RuntimeVirtualTexture->TerrainVertexSpacing
+							  : SourceLandscape->GetActorScale().X;
 	const int32 TileNumVerticesSide =
 		FMath::RoundToInt(TerrainPagingSettings.TileSize / QuadSize) + 1;
 	const int32 TileOverlapVertices =
 		FMath::RoundToInt(TerrainPagingSettings.TileOverlap / QuadSize);
+	if (RuntimeVirtualTexture->bEnabled &&
+		(TileNumVerticesSide < 3 || TileOverlapVertices < 0 ||
+		 TileOverlapVertices >= TileNumVerticesSide - 1 ||
+		 !FMath::IsNearlyEqual(
+			 (TileNumVerticesSide - 1) * QuadSize, TerrainPagingSettings.TileSize, 0.001) ||
+		 !FMath::IsNearlyEqual(
+			 TileOverlapVertices * QuadSize, TerrainPagingSettings.TileOverlap, 0.001)))
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"Terrain RVT requires Tile Size and Tile Overlap to be integer multiples of "
+				"Terrain Vertex Spacing, with overlap smaller than the tile."));
+		return false;
+	}
 
 	NativeTerrainPagerBarrier.AllocateNative(
 		NativeBarrier, TileNumVerticesSide, TileOverlapVertices, QuadSize, MaxDepth);
@@ -1370,6 +1423,8 @@ void AAGX_Terrain::AddTerrainPagerBodies()
 
 void AAGX_Terrain::InitializeRendering()
 {
+	if (RuntimeVirtualTexture->bEnabled)
+		return;
 	if (bEnableDisplacementRendering)
 	{
 		InitializeDisplacementMap();

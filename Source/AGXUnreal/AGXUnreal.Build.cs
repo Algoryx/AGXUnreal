@@ -37,7 +37,7 @@ public class AGXUnreal : ModuleRules
 		// TODO: These were included before. Don't know why or where they came from. Remove?
 		//       "CoreUObject", "Engine", "Slate", "SlateCore"
 		PrivateDependencyModuleNames.AddRange(new string[] {
-			"RHI", "RenderCore", "Projects", "Json", "Landscape", "Slate",
+			"RHI", "RenderCore", "Renderer", "Projects", "Json", "Landscape", "Slate",
 			"SlateCore", "MeshDescription", "StaticMeshDescription"});
 
 		if (Target.bBuildEditor)
