@@ -677,7 +677,7 @@ namespace
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("Statistics value %llu for '%s' is too large, truncated to %d."),
-				(unsigned long long) ValueAgx, UTF8_TO_TCHAR(Name), MaxAllowed);
+				(unsigned long long) ValueAgx, UTF8_TO_TCHAR(Name), static_cast<int32>(MaxAllowed));
 			ValueAgx = MaxAllowed;
 		}
 		return static_cast<int32>(ValueAgx);

@@ -14,11 +14,13 @@
 #include "DetailLayoutBuilder.h"
 #include "EditorSupportDelegates.h"
 #include "Kismet2/ComponentEditorUtils.h"
+#include "Misc/EngineVersionComparison.h"
 #include "PropertyHandle.h"
 #include "PropertyPathHelpers.h"
 #include "ScopedTransaction.h"
 #include "UObject/Class.h"
 #include "UObject/NameTypes.h"
+#include "UObject/UnrealType.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Input/NumericTypeInterface.h"
 #include "Widgets/Input/SSpinBox.h"
@@ -35,6 +37,12 @@ TSharedRef<IPropertyTypeCustomization> FAGX_RealDetails::MakeInstance()
 
 namespace AGX_RealDetails_helpers
 {
+#if UE_VERSION_OLDER_THAN(5, 9, 0)
+	using FArrayIndicesMap = TMap<FString, int32>;
+#else
+	using FArrayIndicesMap = TMap<FPropertyChangeEventContainerKey, int32>;
+#endif
+
 	TArray<FProperty*> MakePropertyChain(const TSharedPtr<IPropertyHandle>& Handle);
 
 	// Helper function that ensures that the given Property path is formatted correctly even if
@@ -69,14 +77,14 @@ namespace AGX_RealDetails_helpers
 		return FixedPath;
 	}
 
-	TOptional<TMap<FString, int32>> GetArrayIndicesFromPropertyPath(const FString& PropertyPath)
+	TOptional<FArrayIndicesMap> GetArrayIndicesFromPropertyPath(const FString& PropertyPath)
 	{
 		if (!PropertyPath.Contains("["))
 		{
 			return {};
 		}
 
-		TMap<FString, int32> Res;
+		FArrayIndicesMap Res;
 		TArray<FString> Split;
 		PropertyPath.ParseIntoArray(Split, TEXT("."));
 		for (const FString& Property : Split)
@@ -536,8 +544,8 @@ void AGX_RealDetails_helpers::NewValueSet(
 	// PostEditChangeChainProperty below. This ensures we can do e.g. 'Event.GetArrayIndex());' from
 	// within PostEditChangeChainProperty and get the correct array index if this is party of an
 	// array.
-	TArray<TMap<FString, int32>> ArrayIndicesPerObject;
-	TOptional<TMap<FString, int32>> IndicesMapMaybe = GetArrayIndicesFromPropertyPath(ValuePath);
+	TArray<FArrayIndicesMap> ArrayIndicesPerObject;
+	TOptional<FArrayIndicesMap> IndicesMapMaybe = GetArrayIndicesFromPropertyPath(ValuePath);
 	if (IndicesMapMaybe)
 	{
 		for (int32 I = 0; I < SelectedObjects.Num(); ++I)

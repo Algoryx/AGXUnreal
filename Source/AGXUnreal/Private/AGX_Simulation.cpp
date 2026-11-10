@@ -1198,7 +1198,9 @@ void UAGX_Simulation::Step(double DeltaTime)
 			NumSteps = 0;
 			break;
 		default:
-			UE_LOG(LogAGX, Error, TEXT("Unknown step mode: %d"), StepMode);
+			UE_LOG(
+				LogAGX, Error, TEXT("Unknown step mode: %d"),
+				static_cast<int32>(StepMode.GetValue()));
 	}
 
 	SET_DWORD_STAT(STAT_AGXU_NumSteps, NumSteps);
