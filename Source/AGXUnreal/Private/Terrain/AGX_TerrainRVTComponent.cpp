@@ -253,6 +253,7 @@ struct FAGX_TerrainRVTState
 	FVector2D FetchMax;
 	FVector2D LandscapeSpacing;
 	double Spacing = 0.0;
+	double NormalSampleSpacing = 0.0;
 	FBlocks Levels[AGX_TerrainRVT_helpers::NumLevels];
 	TSharedRef<AGX_TerrainRVT_helpers::FRenderData, ESPMode::ThreadSafe> RenderData =
 		MakeShared<AGX_TerrainRVT_helpers::FRenderData, ESPMode::ThreadSafe>();
@@ -446,6 +447,9 @@ bool UAGX_TerrainRVTComponent::Initialize(ALandscape& Landscape, const FBox& Cov
 		Texture->GetProducerDescription(Desc, URuntimeVirtualTexture::FInitSettings(), Volume);
 	}
 	Desc.LayerFallbackColor[0] = FLinearColor(32768.0f / 65535.0f, 0, 0, 0);
+	State->NormalSampleSpacing = FMath::Max(
+		State->Size.X / (Desc.BlockWidthInTiles * Desc.TileSize),
+		State->Size.Y / (Desc.BlockHeightInTiles * Desc.TileSize));
 	State->RenderData->Min = FVector2D(State->Min);
 	State->RenderData->Size = FVector2D(State->Size);
 	State->RenderData->Spacing = TerrainVertexSpacing;
@@ -545,6 +549,9 @@ void UAGX_TerrainRVTComponent::RefreshLandscapeProxies()
 					continue;
 				Material->SetRuntimeVirtualTextureParameterValue(TEXT("AGX_Deformation"), Texture);
 				Material->SetScalarParameterValue(TEXT("AGX_DisplacementRange"), DisplacementRange);
+				// Normal reconstruction runs in the material, one finest RVT texel apart [cm].
+				Material->SetScalarParameterValue(
+					TEXT("AGX_NormalSampleSpacing"), State->NormalSampleSpacing);
 				Material->SetVectorParameterValue(
 					TEXT("AGX_CoverageMin"), FLinearColor(State->Min.X, State->Min.Y, 0.0f));
 				Material->SetVectorParameterValue(
