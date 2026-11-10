@@ -5,8 +5,10 @@
 // Unreal Engine includes.
 #include "Editor.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Landscape.h"
 #include "LandscapeInfo.h"
+#include "LandscapeProxy.h"
 #include "Materials/Material.h"
 #include "Materials/MaterialExpression.h"
 #include "Materials/MaterialInterface.h"
@@ -58,12 +60,17 @@ void UAGX_TerrainRVTEditorLibrary::BuildNanite(ALandscape* Landscape)
 {
 	if (Landscape == nullptr)
 		return;
-	if (FBoolProperty* Property =
-			FindFProperty<FBoolProperty>(Landscape->GetClass(), TEXT("bEnableNanite")))
-		Property->SetPropertyValue_InContainer(Landscape, true);
-	Landscape->PostEditChange();
-	Landscape->UpdateNaniteRepresentation(nullptr);
-	Landscape->MarkPackageDirty();
+	for (TActorIterator<ALandscapeProxy> It(Landscape->GetWorld()); It; ++It)
+	{
+		if (It->GetLandscapeGuid() != Landscape->GetLandscapeGuid())
+			continue;
+		if (FBoolProperty* Property =
+				FindFProperty<FBoolProperty>(It->GetClass(), TEXT("bEnableNanite")))
+			Property->SetPropertyValue_InContainer(*It, true);
+		It->PostEditChange();
+		It->UpdateNaniteRepresentation(nullptr);
+		It->MarkPackageDirty();
+	}
 }
 
 void UAGX_TerrainRVTEditorLibrary::ConnectNaniteDisplacement(

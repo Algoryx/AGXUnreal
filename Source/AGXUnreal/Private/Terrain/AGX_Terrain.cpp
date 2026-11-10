@@ -971,7 +971,8 @@ void AAGX_Terrain::InitializeNative()
 	}
 
 #if WITH_EDITOR
-	AGX_Terrain_helpers::WarnIfStreamingLandscape(*SourceLandscape, *this);
+	if (!RuntimeVirtualTexture->bEnabled)
+		AGX_Terrain_helpers::WarnIfStreamingLandscape(*SourceLandscape, *this);
 #endif
 
 	HeightFetcher.SetTerrain(this);
@@ -984,7 +985,21 @@ void AAGX_Terrain::InitializeNative()
 				TEXT("Terrain RVT requires Terrain Paging and displacement rendering."));
 			return;
 		}
-		if (!RuntimeVirtualTexture->Initialize(*SourceLandscape))
+		const auto Coverage = TerrainBounds->GetLandscapeAdjustedBounds();
+		if (!Coverage.IsSet())
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT(
+					"Terrain RVT requires finite Terrain Bounds. Disable Infinite "
+					"Bounds and set the Terrain actor location and Terrain Bounds Half Extent "
+					"before play."));
+			return;
+		}
+		const FVector Center = Coverage->Transform.GetLocation();
+		if (!RuntimeVirtualTexture->Initialize(
+				*SourceLandscape,
+				FBox(Center - Coverage->HalfExtent, Center + Coverage->HalfExtent)))
 			return;
 	}
 

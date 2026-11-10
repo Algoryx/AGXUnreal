@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 #include "Shapes/AGX_HeightFieldShapeComponent.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainRVTComponent.h"
 #include "Utilities/AGX_HeightFieldUtilities.h"
 
 // Unreal Engine includes.
@@ -98,16 +99,15 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 		return {};
 	}
 
-	int64 VertexCountX;
-	int64 VertexCountY;
-	std::tie(VertexCountX, VertexCountY) =
-		AGX_HeightFieldUtilities::GetLandscapeNumberOfVertsXY(Landscape);
-
 	// The position of the Terrain center in the Landscape's local coordinate system.
 	const FVector CenterPosLocal = [&]()
 	{
 		if (bInfiniteBounds)
 		{
+			int64 VertexCountX;
+			int64 VertexCountY;
+			std::tie(VertexCountX, VertexCountY) =
+				AGX_HeightFieldUtilities::GetLandscapeNumberOfVertsXY(Landscape);
 			return GetCenterPosInfiniteBounds(QuadSizeX, QuadSizeY, VertexCountX, VertexCountY);
 		}
 		else
@@ -140,6 +140,15 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 TOptional<UAGX_HeightFieldBoundsComponent::FHeightFieldBoundsInfo>
 UAGX_HeightFieldBoundsComponent::GetLandscapeAdjustedBounds() const
 {
+	if (const auto* Terrain = Cast<AAGX_Terrain>(GetOwner()))
+		if (Terrain->RuntimeVirtualTexture != nullptr && Terrain->RuntimeVirtualTexture->bEnabled)
+		{
+			// A fixed coverage box must not depend on which proxies happen to be loaded.
+			if (bInfiniteBounds || HalfExtent.ContainsNaN() ||
+				GetOwner()->GetActorLocation().ContainsNaN())
+				return {};
+			return GetUserSetBounds();
+		}
 	using namespace AGX_HeightFieldBoundsComponent_helpers;
 	TOptional<FTransformAndLandscape> TransformAndLandscape = GetLandscapeAndTransformFromOwner();
 	if (!TransformAndLandscape.IsSet())

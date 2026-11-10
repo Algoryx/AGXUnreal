@@ -24,7 +24,7 @@ struct FTerrainPagerHeightCapture
 	agxTerrain::TerrainPager::TileCallback Load;
 	agxTerrain::TerrainPager::TileCallback Unload;
 
-	TArray<FTerrainPagerHeightSample> Pending;
+	TMap<FIntPoint, TArray<FTerrainPagerHeightSample>> Pending;
 	int32 Loads = 0;
 	int32 Unloads = 0;
 
@@ -37,10 +37,10 @@ struct FTerrainPagerHeightCapture
 				  CopyTile(Id, Tile);
 			  })
 		, Unload(
-			  [this](agxTerrain::TileId Id, agxTerrain::Terrain* Tile)
+			  [this](agxTerrain::TileId Id, agxTerrain::Terrain*)
 			  {
 				  ++Unloads;
-				  CopyTile(Id, Tile);
+				  Pending.Remove(FIntPoint(Id.x(), Id.y()));
 			  })
 	{
 		Pager->tileLoadEvent.addCallback(&Load);
@@ -60,6 +60,9 @@ struct FTerrainPagerHeightCapture
 
 	void CopyTile(agxTerrain::TileId Id, agxTerrain::Terrain* Tile)
 	{
+		const FIntPoint TileId(Id.x(), Id.y());
+		auto& Samples = Pending.FindOrAdd(TileId);
+		Samples.Reset();
 		const int32 Resolution =
 			static_cast<int32>(Pager->getTileSpecification().getTileResolution());
 		for (int32 Y = 0; Y < Resolution; ++Y)
@@ -67,7 +70,7 @@ struct FTerrainPagerHeightCapture
 			{
 				const auto Position = Tile->getSurfacePositionWorld(agx::Vec2i(X, Y));
 				if (Owns(Id, Position))
-					Pending.Add({ConvertDisplacement(Position)});
+					Samples.Add({ConvertDisplacement(Position), TileId, true});
 			}
 	}
 };
@@ -230,8 +233,11 @@ void FTerrainPagerBarrier::EnableHeightCapture()
 TArray<FTerrainPagerHeightSample> FTerrainPagerBarrier::ConsumeHeightChanges()
 {
 	check(HeightCapture != nullptr);
-	TArray<FTerrainPagerHeightSample> Result = MoveTemp(HeightCapture->Pending);
-	// Active modified samples take precedence over copies of tiles that left the simulation.
+	TArray<FTerrainPagerHeightSample> Result;
+	for (auto& Tile : HeightCapture->Pending)
+		Result.Append(MoveTemp(Tile.Value));
+	HeightCapture->Pending.Reset();
+	// Changes take precedence over the complete snapshot captured at tile load.
 	for (auto* Attachment : NativeRef->Native->getActiveTileAttachments())
 	{
 		if (Attachment == nullptr || Attachment->m_terrainTile == nullptr)
@@ -243,9 +249,24 @@ TArray<FTerrainPagerHeightSample> FTerrainPagerBarrier::ConsumeHeightChanges()
 		{
 			const auto Position = Tile->getSurfacePositionWorld(Index);
 			if (HeightCapture->Owns(Id, Position))
-				Result.Add({ConvertDisplacement(Position)});
+				Result.Add({ConvertDisplacement(Position), FIntPoint(Id.x(), Id.y())});
 		}
 	}
+	return Result;
+}
+
+TArray<FIntPoint> FTerrainPagerBarrier::GetActiveHeightCaptureTileIds() const
+{
+	check(HeightCapture != nullptr);
+	TArray<FIntPoint> Result;
+	for (const auto* Attachment : NativeRef->Native->getActiveTileAttachments())
+		if (Attachment != nullptr && Attachment->m_terrainTile != nullptr)
+		{
+			const auto Id =
+				NativeRef->Native->getTileSpecification().convertWorldCoordinateToTileId(
+					Attachment->m_terrainTile->getPosition());
+			Result.Add(FIntPoint(Id.x(), Id.y()));
+		}
 	return Result;
 }
 

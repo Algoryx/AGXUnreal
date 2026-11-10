@@ -15,5 +15,5 @@ class AGXUNREAL_API UAGX_TerrainRuntimeVirtualTexture : public URuntimeVirtualTe
 
 public:
 	UAGX_TerrainRuntimeVirtualTexture(const FObjectInitializer& ObjectInitializer);
-	void Configure(int32 TileCountLog2);
+	void Configure(int32 TileCountLog2, int32 PageSize = 64);
 };

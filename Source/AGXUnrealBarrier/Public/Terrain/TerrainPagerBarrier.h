@@ -27,6 +27,10 @@ struct FTerrainPagerHeightCapture;
 struct AGXUNREALBARRIER_API FTerrainPagerHeightSample
 {
 	FVector Position;
+	/** Stable native tile identity; not a world coordinate. */
+	FIntPoint TileId;
+	/** Full snapshots also refresh unchanged/zero heights left in GPU pages by an earlier visit. */
+	bool bTileSnapshot = false;
 };
 
 class AGXUNREALBARRIER_API FTerrainPagerBarrier
@@ -96,9 +100,11 @@ public:
 
 	void OnTemplateTerrainChanged() const;
 
-	/** Opt-in sparse export. Copies complete tiles at load/unload and changes after each step. */
+	/** Opt-in sparse export. Copies complete tiles on load and changes after each step. */
 	void EnableHeightCapture();
 	TArray<FTerrainPagerHeightSample> ConsumeHeightChanges();
+	/** Used to discard rendering data for native tiles that have left the simulation. */
+	TArray<FIntPoint> GetActiveHeightCaptureTileIds() const;
 	/** Number of load callbacks, unload callbacks, and currently active native tiles. */
 	FIntVector GetHeightCaptureStatistics() const;
 
