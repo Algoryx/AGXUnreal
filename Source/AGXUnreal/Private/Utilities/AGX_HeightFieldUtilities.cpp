@@ -7,6 +7,7 @@
 #include "AGX_LogCategory.h"
 
 // Unreal Engine includes.
+#include "Engine/World.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Landscape.h"
 #include "LandscapeProxy.h"
@@ -401,4 +402,10 @@ bool AGX_HeightFieldUtilities::IsOpenWorldLandscape(const ALandscape& Landscape)
 	// This is just an observation that holds true for OpenWorldLandscapes, would be better
 	// with a more "correct" way of determining this.
 	return Landscape.LandscapeComponents.Num() == 0;
+}
+
+bool AGX_HeightFieldUtilities::IsPartitionedLandscape(const ALandscape& Landscape)
+{
+	const UWorld* World = Landscape.GetWorld();
+	return World != nullptr && World->IsPartitionedWorld();
 }

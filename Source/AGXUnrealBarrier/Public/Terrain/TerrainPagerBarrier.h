@@ -102,6 +102,8 @@ public:
 
 	/** Opt-in sparse export. Copies complete tiles on load and changes after each step. */
 	void EnableHeightCapture();
+	/** Queue fresh heights for all currently active tiles, e.g. after enabling a renderer. */
+	void RequestHeightCaptureSnapshot();
 	TArray<FTerrainPagerHeightSample> ConsumeHeightChanges();
 	/** Used to discard rendering data for native tiles that have left the simulation. */
 	TArray<FIntPoint> GetActiveHeightCaptureTileIds() const;

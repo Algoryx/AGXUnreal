@@ -7,7 +7,6 @@
 #include "AGX_LogCategory.h"
 #include "Shapes/AGX_HeightFieldShapeComponent.h"
 #include "Terrain/AGX_Terrain.h"
-#include "Terrain/AGX_TerrainRVTComponent.h"
 #include "Utilities/AGX_HeightFieldUtilities.h"
 
 // Unreal Engine includes.
@@ -80,6 +79,8 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 	}
 
 	const ALandscape& Landscape = TransformAndLandscape->Landscape;
+	const bool UseInfiniteBounds =
+		bInfiniteBounds && !AGX_HeightFieldUtilities::IsPartitionedLandscape(Landscape);
 	const double QuadSizeX = Landscape.GetActorScale().X;
 	const double QuadSizeY = Landscape.GetActorScale().Y;
 
@@ -88,7 +89,7 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 	const FTransform& TerrainTransform = TransformAndLandscape->Transform;
 
 	const FVector SelectedHalfExtent =
-		GetInfinateOrUserSelectedBounds(bInfiniteBounds, Landscape, HalfExtent);
+		GetInfinateOrUserSelectedBounds(UseInfiniteBounds, Landscape, HalfExtent);
 
 	if (SelectedHalfExtent.X <= 0.0 || SelectedHalfExtent.Y <= 0.0 || SelectedHalfExtent.Z <= 0.0)
 	{
@@ -102,7 +103,7 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 	// The position of the Terrain center in the Landscape's local coordinate system.
 	const FVector CenterPosLocal = [&]()
 	{
-		if (bInfiniteBounds)
+		if (UseInfiniteBounds)
 		{
 			int64 VertexCountX;
 			int64 VertexCountY;
@@ -141,14 +142,9 @@ TOptional<UAGX_HeightFieldBoundsComponent::FHeightFieldBoundsInfo>
 UAGX_HeightFieldBoundsComponent::GetLandscapeAdjustedBounds() const
 {
 	if (const auto* Terrain = Cast<AAGX_Terrain>(GetOwner()))
-		if (Terrain->RuntimeVirtualTexture != nullptr && Terrain->RuntimeVirtualTexture->bEnabled)
-		{
-			// A fixed coverage box must not depend on which proxies happen to be loaded.
-			if (bInfiniteBounds || HalfExtent.ContainsNaN() ||
-				GetOwner()->GetActorLocation().ContainsNaN())
-				return {};
-			return GetUserSetBounds();
-		}
+		if (Terrain->bEnableTerrainPaging && IsValid(Terrain->SourceLandscape) &&
+			AGX_HeightFieldUtilities::IsPartitionedLandscape(*Terrain->SourceLandscape))
+			return GetUserSetBounds(); // Fixed coverage cannot depend on loaded proxies.
 	using namespace AGX_HeightFieldBoundsComponent_helpers;
 	TOptional<FTransformAndLandscape> TransformAndLandscape = GetLandscapeAndTransformFromOwner();
 	if (!TransformAndLandscape.IsSet())
@@ -157,6 +153,8 @@ UAGX_HeightFieldBoundsComponent::GetLandscapeAdjustedBounds() const
 	}
 
 	const ALandscape& Landscape = TransformAndLandscape->Landscape;
+	const bool UseInfiniteBounds =
+		bInfiniteBounds && !AGX_HeightFieldUtilities::IsPartitionedLandscape(Landscape);
 	const double QuadSizeX = Landscape.GetActorScale().X;
 	const double QuadSizeY = Landscape.GetActorScale().Y;
 
@@ -171,7 +169,7 @@ UAGX_HeightFieldBoundsComponent::GetLandscapeAdjustedBounds() const
 	{ return LandscapeTransform.InverseTransformPositionNoScale(Position); };
 
 	const FVector SelectedHalfExtent =
-		GetInfinateOrUserSelectedBounds(bInfiniteBounds, Landscape, HalfExtent);
+		GetInfinateOrUserSelectedBounds(UseInfiniteBounds, Landscape, HalfExtent);
 
 	if (SelectedHalfExtent.X <= 0.0 || SelectedHalfExtent.Y <= 0.0 || SelectedHalfExtent.Z <= 0.0)
 	{
@@ -189,7 +187,7 @@ UAGX_HeightFieldBoundsComponent::GetLandscapeAdjustedBounds() const
 
 	const FVector CenterPosInLandscape = [&]()
 	{
-		if (bInfiniteBounds)
+		if (UseInfiniteBounds)
 		{
 			return GetCenterPosInfiniteBounds(QuadSizeX, QuadSizeY, VertexCountX, VertexCountY);
 		}
@@ -314,6 +312,14 @@ bool UAGX_HeightFieldBoundsComponent::CanEditChange(const FProperty* InProperty)
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
 	if (!SuperCanEditChange)
 		return false;
+
+	if (InProperty != nullptr &&
+		InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, bInfiniteBounds))
+	{
+		const auto Source = GetLandscapeAndTransformFromOwner();
+		if (Source.IsSet() && AGX_HeightFieldUtilities::IsPartitionedLandscape(Source->Landscape))
+			return false;
+	}
 
 	UWorld* World = GetWorld();
 	if (World == nullptr || !World->IsPlayInEditor())

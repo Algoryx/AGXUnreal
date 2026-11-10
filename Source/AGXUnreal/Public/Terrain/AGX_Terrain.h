@@ -13,38 +13,12 @@
 #include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
-#include "Misc/EngineVersionComparison.h"
 #include "Containers/Array.h"
 #include "CoreMinimal.h"
-#include "Misc/EngineVersionComparison.h"
-#if !UE_VERSION_OLDER_THAN(5, 2, 0)
-// Possible include loop in Unreal Engine.
-// - Engine/TextureRenderTarget2D.h
-// - RenderUtils.h
-// - RHIShaderPlatform.h
-//     Defines FStaticShaderPlatform, but includes RHIDefinitions.h first.
-// - RHIDefinitions.h
-// - DataDrivenShaderPlatformInfo.h
-//   Needs FStaticShaderPlatform so includes RHIShaderPlatform.h. But that file is already being
-//   included so ignored. So FStaticShaderPlatform will be defined soon, but it isn't yet. So
-//   the compile fails.
-//
-// We work around this by including DataDrivenShaderPlatformInfo.h ourselves before all of the
-// above. Now DataDrivenShaderPlatformInfo.h can include RHIShaderPlatform.h succesfully and
-// FStaticShaderPlatform is defined when DataDrivenShaderPlatformInfo.h needs it. When we include
-// DynamicMeshBuild.h shortly most of the include files are skipped because they have already been
-// included as part of DataDrivenShaderPlatformInfo.h here.
-#include "DataDrivenShaderPlatformInfo.h"
-#endif
-#include "Engine/TextureRenderTarget2D.h"
 #include "GameFramework/Actor.h"
-#if UE_VERSION_OLDER_THAN(5, 2, 0)
-#include "RHI.h"
-#else
-#include "RHITypes.h"
-#endif
 
 // Standard library includes.
+#include <memory>
 #include <mutex>
 
 #include "AGX_Terrain.generated.h"
@@ -55,11 +29,15 @@ class UAGX_SoilParticleRendererComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
-class UAGX_TerrainRVTComponent;
+class UAGX_TerrainLandscapeRendererBaseComponent;
+class UAGX_TerrainLandscapeRendererComponent;
+class UAGX_TerrainPartitionedLandscapeRendererComponent;
+struct FAGX_TerrainLandscapeData;
 class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class UTextureRenderTarget2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 
@@ -71,6 +49,7 @@ class AGXUNREAL_API AAGX_Terrain : public AActor
 public:
 	// Sets default values for this actor's properties
 	AAGX_Terrain();
+	virtual ~AAGX_Terrain();
 
 	/**
 	 * Enable or disable Terrrain computations.
@@ -93,9 +72,45 @@ public:
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_SoilParticleRendererComponent* DefaultParticleRenderer;
 
-	/** Experimental sparse deformation rendering and independent native resolution. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Terrain Rendering")
-	UAGX_TerrainRVTComponent* RuntimeVirtualTexture;
+	/** Default render-target renderer. Disable it when using a different Landscape renderer. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGX Terrain")
+	UAGX_TerrainLandscapeRendererComponent* DefaultLandscapeRenderer;
+
+	/** Override the native Terrain grid spacing when paging. Otherwise use the Landscape spacing.
+	 * Fixed before Play. */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Paging",
+		Meta = (EditCondition = "bEnableTerrainPaging"))
+	bool bOverrideTerrainResolution = false;
+
+	/** Native Terrain sample spacing [cm], independent of Landscape. Requires Terrain Paging. Fixed
+	 * before Play. */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Paging",
+		Meta =
+			(ClampMin = "1", EditCondition = "bEnableTerrainPaging && bOverrideTerrainResolution"))
+	double TerrainVertexSpacing = 25.0;
+
+	UFUNCTION(BlueprintPure, Category = "AGX Terrain Paging")
+	double GetTerrainVertexSpacing() const;
+
+	/** Tile loads, tile unloads and active tiles; available even with all renderers disabled. */
+	UFUNCTION(BlueprintPure, Category = "AGX Terrain Paging")
+	FIntVector GetTerrainPagingStatistics() const;
+
+	/** Collision snapshots retained for loaded components or active AGX tiles. Independent of
+	 * rendering. */
+	UPROPERTY(
+		VisibleAnywhere, BlueprintReadOnly, Transient, Category = "AGX Terrain Paging|Statistics")
+	int32 SourceSnapshotCount = 0;
+
+	UPROPERTY(
+		VisibleAnywhere, BlueprintReadOnly, Transient, Category = "AGX Terrain Paging|Statistics")
+	int64 UnavailableHeightRequests = 0;
+
+	/** The enabled Landscape renderer, or nullptr if none or more than one is enabled. */
+	UFUNCTION(BlueprintPure, Category = "AGX Terrain Rendering")
+	UAGX_TerrainLandscapeRendererBaseComponent* GetLandscapeRenderer() const;
 
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCanCollide {true};
@@ -221,34 +236,6 @@ public:
 	bool SetTerrainPagerRadii(
 		UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius);
 
-	/** Whether the height field rendering should be updated with deformation data. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
-	bool bEnableDisplacementRendering = true;
-
-	// TODO: Should try finding this from the material automatically!
-	/**
-	 * The Displacement Map Render Target which AGX Terrain will write height changes to.
-	 *
-	 * Requirements:
-	 *
-	 * 1. Used as Displacement Map for the AGX Landscape Material.
-	 * 2. Render Target Format must be "R16f".
-	 * 3. SizeX and SizeY must equal number of Landscape Vertices in respective dimension (Quads +
-	 * 1).
-	 * 4. Texture Address Mode should be Clamp.
-	 * 5. No Mip Maps.
-	 * 6. Texture Group should preferrably be either "RenderTarget" for smooth results,
-	 *    or "2D Pixels (unfiltered)" for more precise results.
-	 */
-	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableDisplacementRendering"))
-	UTextureRenderTarget2D* LandscapeDisplacementMap;
-
-	/** Whether shovel active zone should be rendered or not. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Debug Rendering")
-	bool bEnableActiveZoneRendering = false;
-
 	/**
 	 * If set to true, Terrain Paging will be used.
 	 * The Terrain Paging Settings should be configured accordingly.
@@ -312,18 +299,39 @@ private:
 	bool UpdateNativeTerrainProperties();
 	bool UpdateNativeShapeMaterial();
 
-	void InitializeRendering();
-	void InitializeDisplacementMap();
-	void UpdateLandscapeMaterialParameters();
-	void UpdateDisplacementMap();
-	void ClearDisplacementMap();
 	void UpdateParticlesArrays();
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
-	virtual void PostLoad() override;
 #endif
+	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Archive) override;
 
+	void EnforceFiniteLandscapeBounds();
+	void RefreshLandscapeData();
+	void UpdateLandscapeRendering();
+	bool UsesLandscapeDataCache() const;
+	bool EnsureLandscapeData();
+	// Fixed before the cache worker starts. The streaming worker reads only numeric snapshots.
+	bool bUseCachedHeightSource = false;
+	bool GetLandscapeBaseHeight(double X, double Y, float& Height) const;
+	bool CopyLandscapeSourceHeights(TArray<float>& Heights) const;
+	bool bRendererConflictReported = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UAGX_TerrainLandscapeRendererBaseComponent> ActiveLandscapeRenderer;
+	UPROPERTY(Transient)
+	TObjectPtr<UAGX_TerrainLandscapeRendererBaseComponent> FailedLandscapeRenderer;
+	std::shared_ptr<FAGX_TerrainLandscapeData> LandscapeData;
+
+	// Released properties deserialize into the default Landscape renderer in Serialize.
+	UPROPERTY()
+	bool bEnableDisplacementRendering_DEPRECATED = true;
+	UPROPERTY()
+	UTextureRenderTarget2D* LandscapeDisplacementMap_DEPRECATED;
+	UPROPERTY()
+	bool bEnableActiveZoneRendering_DEPRECATED = false;
+
+	friend class UAGX_TerrainLandscapeRendererComponent;
+	friend class UAGX_TerrainPartitionedLandscapeRendererComponent;
 	friend class FAGX_TerrainHeightFetcher;
 
 private:
@@ -374,14 +382,10 @@ private:
 	FDelegateHandle PostStepForwardHandle;
 
 	// Height field related variables.
-	std::mutex OriginalHeightsMutex;
+	mutable std::mutex OriginalHeightsMutex;
 	TArray<float> OriginalHeights;
-	TArray<float> CurrentHeights;
-	TArray<FFloat16> DisplacementData;
-	TArray<FUpdateTextureRegion2D> DisplacementMapRegions; // TODO: Remove!
 	int32 NumVerticesX = 0;
 	int32 NumVerticesY = 0;
-	bool DisplacementMapInitialized = false;
 
 	/**
 	 * Thread safe convenience function for reading heights from the source Landscape.

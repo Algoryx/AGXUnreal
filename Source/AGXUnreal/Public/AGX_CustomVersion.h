@@ -87,6 +87,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// Update to attenuation and friction compliance APIs throughout AGXUnreal.
 		DampingToAttenuation,
 
+		// Released Landscape rendering properties are now owned by the default renderer component.
+		LandscapeRenderingByRenderingComponents,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 

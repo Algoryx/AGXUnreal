@@ -1,9 +1,11 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Terrain/AGX_TerrainRVTComponent.h"
+#include "Terrain/LandscapeRendering/AGX_TerrainPartitionedLandscapeRendererComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_TerrainRuntimeVirtualTexture.h"
 #include "Terrain/TerrainPagerBarrier.h"
 
@@ -225,32 +227,15 @@ struct FAGX_TerrainRVTState
 {
 	struct FActiveTile
 	{
-		FBox2D Bounds {ForceInit};
 		TSet<FIntPoint> NonzeroIndices;
 		TMap<FIntPoint, FVector> Pending;
 	};
 	TMap<FIntPoint, FActiveTile> Tiles;
-	TSet<FIntPoint> LoadedSourceKeys;
-	struct FSourceChunk
-	{
-		int32 Quads = 0;
-		TArray<float> Heights;
-	};
-	// Published on the game thread. The native cache worker holds a read lock per fetch.
-	mutable FRWLock SourceLock;
-	TMap<FIntPoint, TSharedPtr<const FSourceChunk>> SourceChunks;
-	FVector2D LandscapeOrigin;
-	int32 ComponentQuads = 0;
-	std::atomic<int64> MissingSourceRequests {0};
-	int64 LastReportedMissingRequests = 0;
-	double LastMissingWarningTime = -5.0;
 	TSet<TWeakObjectPtr<UMaterialInstanceDynamic>> BoundMaterials;
 	using FBlocks = AGX_TerrainRVT_helpers::FBlocks;
 	FVector Min;
 	FVector Size;
 	FVector Origin;
-	FVector2D FetchMin;
-	FVector2D FetchMax;
 	FVector2D LandscapeSpacing;
 	double Spacing = 0.0;
 	double NormalSampleSpacing = 0.0;
@@ -259,46 +244,6 @@ struct FAGX_TerrainRVTState
 		MakeShared<AGX_TerrainRVT_helpers::FRenderData, ESPMode::ThreadSafe>();
 	TWeakObjectPtr<ALandscape> Landscape;
 	bool bReportedClipping = false;
-
-	// Caller must hold SourceLock when running outside the game thread.
-	bool TryBaseHeight(double X, double Y, float& Height) const
-	{
-		const double GX = (X - LandscapeOrigin.X) / LandscapeSpacing.X;
-		const double GY = (Y - LandscapeOrigin.Y) / LandscapeSpacing.Y;
-		const FIntPoint Key(
-			FMath::FloorToInt(GX / ComponentQuads), FMath::FloorToInt(GY / ComponentQuads));
-		// Shared edges may be supplied by either adjacent component, including outer edges.
-		for (int32 DY = 0; DY >= -1; --DY)
-			for (int32 DX = 0; DX >= -1; --DX)
-			{
-				const FIntPoint Candidate = Key + FIntPoint(DX, DY);
-				const double LX = GX - Candidate.X * ComponentQuads;
-				const double LY = GY - Candidate.Y * ComponentQuads;
-				if (LX < -0.00001 || LY < -0.00001 || LX > ComponentQuads + 0.00001 ||
-					LY > ComponentQuads + 0.00001)
-					continue;
-				const auto* Chunk = SourceChunks.Find(Candidate);
-				if (Chunk == nullptr)
-					continue;
-				const int32 Quads = (*Chunk)->Quads;
-				const double CX = FMath::Clamp(LX / ComponentQuads, 0.0, 1.0) * Quads;
-				const double CY = FMath::Clamp(LY / ComponentQuads, 0.0, 1.0) * Quads;
-				const int32 IX = FMath::Min(FMath::FloorToInt(CX), Quads - 1);
-				const int32 IY = FMath::Min(FMath::FloorToInt(CY), Quads - 1);
-				const int32 Side = Quads + 1;
-				const auto& H = (*Chunk)->Heights;
-				const float H00 = H[IX + IY * Side];
-				const float H10 = H[IX + 1 + IY * Side];
-				const float H01 = H[IX + (IY + 1) * Side];
-				const float H11 = H[IX + 1 + (IY + 1) * Side];
-				const double FX = CX - IX;
-				const double FY = CY - IY;
-				Height = FX > FY ? H00 + FX * (H10 - H00) + FY * (H11 - H10)
-								 : H00 + FY * (H01 - H00) + FX * (H11 - H01);
-				return true;
-			}
-		return false;
-	}
 };
 
 UAGX_TerrainRuntimeVirtualTexture::UAGX_TerrainRuntimeVirtualTexture(
@@ -321,32 +266,29 @@ void UAGX_TerrainRuntimeVirtualTexture::Configure(int32 TileCountLog2, int32 Pag
 	bContinuousUpdate = false;
 }
 
-UAGX_TerrainRVTComponent::UAGX_TerrainRVTComponent()
-{
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-}
+UAGX_TerrainPartitionedLandscapeRendererComponent::
+	~UAGX_TerrainPartitionedLandscapeRendererComponent() = default;
 
-UAGX_TerrainRVTComponent::~UAGX_TerrainRVTComponent() = default;
-
-#if WITH_EDITOR
-bool UAGX_TerrainRVTComponent::CanEditChange(const FProperty* Property) const
-{
-	if (GetWorld() != nullptr && GetWorld()->IsGameWorld() && Property != nullptr &&
-		(Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAGX_TerrainRVTComponent, bEnabled) ||
-		 Property->GetFName() ==
-			 GET_MEMBER_NAME_CHECKED(UAGX_TerrainRVTComponent, TerrainVertexSpacing) ||
-		 Property->GetFName() ==
-			 GET_MEMBER_NAME_CHECKED(UAGX_TerrainRVTComponent, DisplacementRange) ||
-		 Property->GetFName() == GET_MEMBER_NAME_CHECKED(UAGX_TerrainRVTComponent, PageSize)))
-		return false;
-	return Super::CanEditChange(Property);
-}
-#endif
-
-bool UAGX_TerrainRVTComponent::Initialize(ALandscape& Landscape, const FBox& Coverage)
+bool UAGX_TerrainPartitionedLandscapeRendererComponent::InitializeRenderer()
 {
 	using namespace AGX_TerrainRVT_helpers;
+	if (!Terrain->HasNativeTerrainPager() || !Terrain->EnsureLandscapeData() ||
+		!Terrain->SourceLandscape->IsNaniteEnabled())
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"Partitioned Landscape renderer requires Terrain Paging, an unrotated Landscape "
+				"with square cells, and Nanite."));
+		return false;
+	}
+	ALandscape& Landscape = *Terrain->SourceLandscape;
+	const auto Bounds = Terrain->TerrainBounds->GetLandscapeAdjustedBounds();
+	if (!Bounds.IsSet())
+		return false;
+	const FVector Center = Bounds->Transform.GetLocation();
+	const FBox Coverage(Center - Bounds->HalfExtent, Center + Bounds->HalfExtent);
+	const double TerrainVertexSpacing = Terrain->GetTerrainVertexSpacing();
 	check(IsInGameThread());
 	if (!Coverage.IsValid || Coverage.Min.ContainsNaN() || Coverage.Max.ContainsNaN() ||
 		Coverage.Max.X <= Coverage.Min.X || Coverage.Max.Y <= Coverage.Min.Y ||
@@ -401,16 +343,16 @@ bool UAGX_TerrainRVTComponent::Initialize(ALandscape& Landscape, const FBox& Cov
 			return false;
 		}
 	}
-	State = std::make_shared<FAGX_TerrainRVTState>();
-	State->Landscape = &Landscape;
-	State->Spacing = TerrainVertexSpacing;
-	State->LandscapeSpacing = FVector2D(Landscape.GetActorScale());
-	State->LandscapeOrigin = FVector2D(Landscape.LandscapeActorToWorld().GetLocation());
-	State->ComponentQuads = Landscape.ComponentSizeQuads;
-	State->Min = FVector(Coverage.Min.X, Coverage.Min.Y, Landscape.GetActorLocation().Z);
-	State->Size = FVector(Coverage.Max.X - Coverage.Min.X, Coverage.Max.Y - Coverage.Min.Y, 1.0);
-	const double DesiredSpacing = FMath::Min(TerrainVertexSpacing, State->LandscapeSpacing.X);
-	const double RequiredResolution = FMath::Max(State->Size.X, State->Size.Y) / DesiredSpacing;
+	RVTState = std::make_shared<FAGX_TerrainRVTState>();
+	RVTState->Landscape = &Landscape;
+	RVTState->Spacing = TerrainVertexSpacing;
+	RVTState->Origin = Terrain->NativeBarrier.GetPosition();
+	RVTState->LandscapeSpacing = FVector2D(Landscape.GetActorScale());
+	RVTState->Min = FVector(Coverage.Min.X, Coverage.Min.Y, Landscape.GetActorLocation().Z);
+	RVTState->Size = FVector(Coverage.Max.X - Coverage.Min.X, Coverage.Max.Y - Coverage.Min.Y, 1.0);
+	const double DesiredSpacing = FMath::Min(TerrainVertexSpacing, RVTState->LandscapeSpacing.X);
+	const double RequiredResolution =
+		FMath::Max(RVTState->Size.X, RVTState->Size.Y) / DesiredSpacing;
 	int32 TileLog2 = FMath::Max(
 		0, FMath::CeilToInt(FMath::Log2(FMath::Max(1.0, RequiredResolution / PageSize))));
 	if (TileLog2 > 12)
@@ -420,17 +362,18 @@ bool UAGX_TerrainRVTComponent::Initialize(ALandscape& Landscape, const FBox& Cov
 			TEXT(
 				"Terrain RVT requested resolution exceeds ordinary page-table limits. Adaptive "
 				"page tables are not implemented in this experiment."));
-		State.reset();
+		RVTState.reset();
 		return false;
 	}
-	Texture = NewObject<UAGX_TerrainRuntimeVirtualTexture>(this, NAME_None, RF_Transient);
-	Texture->Configure(TileLog2, PageSize);
-	FTransform Volume(FQuat::Identity, State->Min, State->Size);
+	TerrainRVTTexture = NewObject<UAGX_TerrainRuntimeVirtualTexture>(this, NAME_None, RF_Transient);
+	TerrainRVTTexture->Configure(TileLog2, PageSize);
+	FTransform Volume(FQuat::Identity, RVTState->Min, RVTState->Size);
 	FVTProducerDescription Desc;
-	Texture->GetProducerDescription(Desc, URuntimeVirtualTexture::FInitSettings(), Volume);
+	TerrainRVTTexture->GetProducerDescription(
+		Desc, URuntimeVirtualTexture::FInitSettings(), Volume);
 	// Aspect-ratio rounding and device-profile biases can lower density on either axis.
-	while (State->Size.X / (Desc.BlockWidthInTiles * Desc.TileSize) > DesiredSpacing ||
-		   State->Size.Y / (Desc.BlockHeightInTiles * Desc.TileSize) > DesiredSpacing)
+	while (RVTState->Size.X / (Desc.BlockWidthInTiles * Desc.TileSize) > DesiredSpacing ||
+		   RVTState->Size.Y / (Desc.BlockHeightInTiles * Desc.TileSize) > DesiredSpacing)
 	{
 		if (++TileLog2 > 12)
 		{
@@ -439,51 +382,46 @@ bool UAGX_TerrainRVTComponent::Initialize(ALandscape& Landscape, const FBox& Cov
 				TEXT(
 					"Terrain RVT cannot meet the requested sample density with this device profile "
 					"and page table."));
-			Texture = nullptr;
-			State.reset();
+			TerrainRVTTexture = nullptr;
+			RVTState.reset();
 			return false;
 		}
-		Texture->Configure(TileLog2, PageSize);
-		Texture->GetProducerDescription(Desc, URuntimeVirtualTexture::FInitSettings(), Volume);
+		TerrainRVTTexture->Configure(TileLog2, PageSize);
+		TerrainRVTTexture->GetProducerDescription(
+			Desc, URuntimeVirtualTexture::FInitSettings(), Volume);
 	}
 	Desc.LayerFallbackColor[0] = FLinearColor(32768.0f / 65535.0f, 0, 0, 0);
-	State->NormalSampleSpacing = FMath::Max(
-		State->Size.X / (Desc.BlockWidthInTiles * Desc.TileSize),
-		State->Size.Y / (Desc.BlockHeightInTiles * Desc.TileSize));
-	State->RenderData->Min = FVector2D(State->Min);
-	State->RenderData->Size = FVector2D(State->Size);
-	State->RenderData->Spacing = TerrainVertexSpacing;
-	State->RenderData->Range = DisplacementRange;
-	Texture->Initialize(
-		new FProducer(State->RenderData, Desc), Desc, Volume,
-		FBox(State->Min, State->Min + State->Size));
+	RVTState->NormalSampleSpacing = FMath::Max(
+		RVTState->Size.X / (Desc.BlockWidthInTiles * Desc.TileSize),
+		RVTState->Size.Y / (Desc.BlockHeightInTiles * Desc.TileSize));
+	RVTState->RenderData->Min = FVector2D(RVTState->Min);
+	RVTState->RenderData->Size = FVector2D(RVTState->Size);
+	RVTState->RenderData->Spacing = TerrainVertexSpacing;
+	RVTState->RenderData->GridOrigin = FVector2D(RVTState->Origin);
+	RVTState->RenderData->Range = DisplacementRange;
+	TerrainRVTTexture->Initialize(
+		new FProducer(RVTState->RenderData, Desc), Desc, Volume,
+		FBox(RVTState->Min, RVTState->Min + RVTState->Size));
 	VirtualResolution = static_cast<int32>(
 		FMath::Max(Desc.BlockWidthInTiles, Desc.BlockHeightInTiles) * Desc.TileSize);
 	RefreshLandscapeProxies();
-	SetComponentTickEnabled(true);
 	UE_LOG(
 		LogAGX, Display,
 		TEXT(
 			"Terrain RVT initialized: %dx%d virtual texels, native spacing %.3f cm, "
 			"source snapshots %d, G16 range +/-%.1f cm."),
-		VirtualResolution, VirtualResolution, TerrainVertexSpacing, SourceSnapshotCount,
+		VirtualResolution, VirtualResolution, TerrainVertexSpacing, Terrain->SourceSnapshotCount,
 		DisplacementRange);
 	return true;
 }
 
-FBox UAGX_TerrainRVTComponent::GetSourceBounds() const
-{
-	return State != nullptr ? FBox(State->Min, State->Min + State->Size) : FBox(ForceInit);
-}
-
-void UAGX_TerrainRVTComponent::RefreshLandscapeProxies()
+void UAGX_TerrainPartitionedLandscapeRendererComponent::RefreshLandscapeProxies()
 {
 	check(IsInGameThread());
-	if (State == nullptr || !State->Landscape.IsValid() || Texture == nullptr)
+	if (RVTState == nullptr || !RVTState->Landscape.IsValid() || TerrainRVTTexture == nullptr)
 		return;
-	const FGuid Guid = State->Landscape->GetLandscapeGuid();
-	State->LoadedSourceKeys.Reset();
-	for (auto It = State->BoundMaterials.CreateIterator(); It; ++It)
+	const FGuid Guid = RVTState->Landscape->GetLandscapeGuid();
+	for (auto It = RVTState->BoundMaterials.CreateIterator(); It; ++It)
 		if (!It->IsValid())
 			It.RemoveCurrent();
 	// Only loaded actors are inspected. No loading is requested here or by the native worker.
@@ -496,42 +434,6 @@ void UAGX_TerrainRVTComponent::RefreshLandscapeProxies()
 		{
 			if (!IsValid(Component) || !Component->IsRegistered())
 				continue;
-			if (Component->ComponentSizeQuads == State->ComponentQuads)
-			{
-				const FIntPoint Key = Component->GetSectionBase() / State->ComponentQuads;
-				const FVector2D Min =
-					State->LandscapeOrigin +
-					FVector2D(Component->GetSectionBase()) * State->LandscapeSpacing;
-				const FVector2D Max =
-					Min + FVector2D(State->ComponentQuads) * State->LandscapeSpacing;
-				const bool InCoverage = Max.X >= State->Min.X && Max.Y >= State->Min.Y &&
-										Min.X <= State->Min.X + State->Size.X &&
-										Min.Y <= State->Min.Y + State->Size.Y;
-				if (InCoverage)
-					State->LoadedSourceKeys.Add(Key);
-				auto* Collision = Component->GetCollisionComponent();
-				if (InCoverage && !State->SourceChunks.Contains(Key) && IsValid(Collision) &&
-					Collision->IsRegistered())
-				{
-					const int32 Quads = Collision->CollisionSizeQuads;
-					if (Quads <= 0)
-						continue;
-					const int32 Side = Quads + 1;
-					auto Chunk = MakeShared<FAGX_TerrainRVTState::FSourceChunk>();
-					Chunk->Quads = Quads;
-					Chunk->Heights.SetNumUninitialized(Side * Side);
-					// Runtime API reads the live complex collision heightfield, including exact
-					// edge vertices. It also handles nonzero collision mip levels without querying
-					// an adjacent, possibly unloaded proxy at shared edges.
-					if (Collision->FillHeightTile(Chunk->Heights, 0, Side) &&
-						!Chunk->Heights.ContainsByPredicate([](float Height)
-															{ return !FMath::IsFinite(Height); }))
-					{
-						FWriteScopeLock Lock(State->SourceLock);
-						State->SourceChunks.Add(Key, MoveTemp(Chunk));
-					}
-				}
-			}
 			// Runtime MID creation and texture binding; no Landscape heightmap edits or editor
 			// APIs.
 			if (Component->MaterialInstancesDynamic.IsEmpty())
@@ -545,20 +447,22 @@ void UAGX_TerrainRVTComponent::RefreshLandscapeProxies()
 			{
 				if (Material == nullptr)
 					continue;
-				if (State->BoundMaterials.Contains(Material))
+				if (RVTState->BoundMaterials.Contains(Material))
 					continue;
-				Material->SetRuntimeVirtualTextureParameterValue(TEXT("AGX_Deformation"), Texture);
+				Material->SetRuntimeVirtualTextureParameterValue(
+					TEXT("AGX_Deformation"), TerrainRVTTexture);
 				Material->SetScalarParameterValue(TEXT("AGX_DisplacementRange"), DisplacementRange);
 				// Normal reconstruction runs in the material, one finest RVT texel apart [cm].
 				Material->SetScalarParameterValue(
-					TEXT("AGX_NormalSampleSpacing"), State->NormalSampleSpacing);
+					TEXT("AGX_NormalSampleSpacing"), RVTState->NormalSampleSpacing);
 				Material->SetVectorParameterValue(
-					TEXT("AGX_CoverageMin"), FLinearColor(State->Min.X, State->Min.Y, 0.0f));
+					TEXT("AGX_CoverageMin"), FLinearColor(RVTState->Min.X, RVTState->Min.Y, 0.0f));
 				Material->SetVectorParameterValue(
-					TEXT("AGX_CoverageMax"),
-					FLinearColor(State->Min.X + State->Size.X, State->Min.Y + State->Size.Y, 0.0f));
+					TEXT("AGX_CoverageMax"), FLinearColor(
+												 RVTState->Min.X + RVTState->Size.X,
+												 RVTState->Min.Y + RVTState->Size.Y, 0.0f));
 				Material->SetScalarParameterValue(TEXT("AGX_RVTReady"), 1.0f);
-				State->BoundMaterials.Add(Material);
+				RVTState->BoundMaterials.Add(Material);
 			}
 		}
 		// Nanite's static mesh can retain shared editor/cooked material references. Override the
@@ -577,119 +481,31 @@ void UAGX_TerrainRVTComponent::RefreshLandscapeProxies()
 			}
 		}
 	}
-	PruneSourceSnapshots();
 }
 
-void UAGX_TerrainRVTComponent::PruneSourceSnapshots()
+double UAGX_TerrainPartitionedLandscapeRendererComponent::GetDisplacementAtLocation(
+	FVector Position) const
 {
-	TSet<FIntPoint> Needed = State->LoadedSourceKeys;
-	const FVector2D ComponentSize = State->LandscapeSpacing * State->ComponentQuads;
-	for (const auto& Entry : State->Tiles)
-	{
-		const FBox2D& Bounds = Entry.Value.Bounds;
-		if (!Bounds.bIsValid)
-			continue;
-		const FVector2D Min = (Bounds.Min - State->LandscapeOrigin) / ComponentSize;
-		const FVector2D Max = (Bounds.Max - State->LandscapeOrigin) / ComponentSize;
-		// Include shared-edge candidates used by TryBaseHeight.
-		for (int32 Y = FMath::FloorToInt(Min.Y) - 1; Y <= FMath::FloorToInt(Max.Y); ++Y)
-			for (int32 X = FMath::FloorToInt(Min.X) - 1; X <= FMath::FloorToInt(Max.X); ++X)
-				Needed.Add(FIntPoint(X, Y));
-	}
-	FWriteScopeLock Lock(State->SourceLock);
-	for (auto It = State->SourceChunks.CreateIterator(); It; ++It)
-		if (!Needed.Contains(It.Key()))
-			It.RemoveCurrent();
-	SourceSnapshotCount = State->SourceChunks.Num();
-}
-
-void UAGX_TerrainRVTComponent::TickComponent(
-	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	RefreshLandscapeProxies();
-	if (State == nullptr)
-		return;
-	UnavailableHeightRequests = State->MissingSourceRequests.load();
-	const double Now = GetWorld()->GetTimeSeconds();
-	if (UnavailableHeightRequests > State->LastReportedMissingRequests &&
-		Now - State->LastMissingWarningTime >= 5.0)
-	{
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT(
-				"Terrain RVT '%s' rejected %lld source height requests because "
-				"Landscape collision snapshots are not available. AGX will retry; simulation may "
-				"continue without terrain collision. Load Landscape proxies before tracked objects "
-				"arrive."),
-			*GetOwner()->GetName(), UnavailableHeightRequests - State->LastReportedMissingRequests);
-		State->LastReportedMissingRequests = UnavailableHeightRequests;
-		State->LastMissingWarningTime = Now;
-	}
-}
-
-void UAGX_TerrainRVTComponent::SetTerrainBounds(const FVector& Origin, const FVector& HalfExtent)
-{
-	check(State != nullptr);
-	State->Origin = Origin;
-	State->FetchMin = FVector2D(
-		FMath::Max(State->Min.X, Origin.X - HalfExtent.X),
-		FMath::Max(State->Min.Y, Origin.Y - HalfExtent.Y));
-	State->FetchMax = FVector2D(
-		FMath::Min(State->Min.X + State->Size.X, Origin.X + HalfExtent.X),
-		FMath::Min(State->Min.Y + State->Size.Y, Origin.Y + HalfExtent.Y));
-	// Before the first step/texture request. Render-thread data is otherwise updated by commands.
-	auto Data = State->RenderData;
-	ENQUEUE_RENDER_COMMAND(AGXTerrainRVTOrigin)([Data, Origin](FRHICommandListImmediate&)
-												{ Data->GridOrigin = FVector2D(Origin); });
-}
-
-bool UAGX_TerrainRVTComponent::FetchHeights(
-	const FVector& Start, int32 VertsX, int32 VertsY, TArray<float>& Heights) const
-{
-	// Called on the AGX worker. Never wait for proxy loading or game-thread work.
-	Heights.Reset();
-	if (State == nullptr || Start.X < State->FetchMin.X - 0.01 ||
-		Start.Y < State->FetchMin.Y - 0.01 ||
-		Start.X + (VertsX - 1) * State->Spacing > State->FetchMax.X + 0.01 ||
-		Start.Y + (VertsY - 1) * State->Spacing > State->FetchMax.Y + 0.01)
-		return false;
-	FReadScopeLock Lock(State->SourceLock);
-	Heights.Reserve(VertsX * VertsY);
-	for (int32 Y = VertsY - 1; Y >= 0; --Y)
-		for (int32 X = 0; X < VertsX; ++X)
-		{
-			float Height;
-			if (!State->TryBaseHeight(
-					Start.X + X * State->Spacing, Start.Y + Y * State->Spacing, Height))
-			{
-				++State->MissingSourceRequests;
-				Heights.Reset();
-				return false;
-			}
-			Heights.Add(Height - State->Origin.Z);
-		}
-	return true;
-}
-
-double UAGX_TerrainRVTComponent::GetDisplacementAtLocation(FVector Position) const
-{
-	if (State == nullptr)
+	if (RVTState == nullptr)
 		return 0.0;
-	const FVector Grid = (Position - State->Origin) / State->Spacing;
-	return AGX_TerrainRVT_helpers::Interpolate(State->Levels[0], Grid.X, Grid.Y);
+	const FVector Grid = (Position - RVTState->Origin) / RVTState->Spacing;
+	return AGX_TerrainRVT_helpers::Interpolate(RVTState->Levels[0], Grid.X, Grid.Y);
 }
 
-UAGX_TerrainRuntimeVirtualTexture* UAGX_TerrainRVTComponent::GetRuntimeVirtualTexture() const
+UAGX_TerrainRuntimeVirtualTexture*
+UAGX_TerrainPartitionedLandscapeRendererComponent::GetRuntimeVirtualTexture() const
 {
-	return Texture;
+	return TerrainRVTTexture;
 }
 
-void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
+void UAGX_TerrainPartitionedLandscapeRendererComponent::UpdateRenderer(
+	const TArray<FTerrainPagerHeightSample>& HeightChanges)
 {
 	using namespace AGX_TerrainRVT_helpers;
-	if (State == nullptr || Texture == nullptr)
+	if (RVTState == nullptr || TerrainRVTTexture == nullptr)
 		return;
+	RefreshLandscapeProxies();
+	FTerrainPagerBarrier& Pager = Terrain->NativeTerrainPagerBarrier;
 	const FIntVector Statistics = Pager.GetHeightCaptureStatistics();
 	TileLoads = Statistics.X;
 	TileUnloads = Statistics.Y;
@@ -703,15 +519,15 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		for (int32 Level = 0; Level < NumLevels; ++Level)
 		{
 			Dirty[Level].Add(BlockKey(Index));
-			Write(State->Levels[Level], Index, Delta);
+			Write(RVTState->Levels[Level], Index, Delta);
 			Index = FIntPoint(FloorDivide(Index.X, 2), FloorDivide(Index.Y, 2));
-			Delta = 0.25f * (Read(State->Levels[Level], Index * 2) +
-							 Read(State->Levels[Level], Index * 2 + FIntPoint(1, 0)) +
-							 Read(State->Levels[Level], Index * 2 + FIntPoint(0, 1)) +
-							 Read(State->Levels[Level], Index * 2 + FIntPoint(1, 1)));
+			Delta = 0.25f * (Read(RVTState->Levels[Level], Index * 2) +
+							 Read(RVTState->Levels[Level], Index * 2 + FIntPoint(1, 0)) +
+							 Read(RVTState->Levels[Level], Index * 2 + FIntPoint(0, 1)) +
+							 Read(RVTState->Levels[Level], Index * 2 + FIntPoint(1, 1)));
 		}
 	};
-	for (auto It = State->Tiles.CreateIterator(); It; ++It)
+	for (auto It = RVTState->Tiles.CreateIterator(); It; ++It)
 	{
 		if (Active.Contains(It.Key()))
 			continue;
@@ -722,13 +538,13 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		// history is retained for unloaded tiles; a future page request sees neutral terrain.
 	}
 	TArray<FTerrainPagerHeightSample> Samples;
-	for (auto& Tile : State->Tiles)
+	for (auto& Tile : RVTState->Tiles)
 	{
 		for (const auto& Pending : Tile.Value.Pending)
 			Samples.Add({Pending.Value, Tile.Key, true});
 		Tile.Value.Pending.Reset();
 	}
-	Samples.Append(Pager.ConsumeHeightChanges());
+	Samples.Append(HeightChanges);
 	// Separate edits remain separate invalidations. Group nearby samples without expanding
 	// every update to a whole block or to the box enclosing all tracked objects.
 	TMap<FIntPoint, FBox2D> Regions;
@@ -736,12 +552,11 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 	{
 		if (!Active.Contains(Sample.TileId))
 			continue;
-		auto& Tile = State->Tiles.FindOrAdd(Sample.TileId);
-		Tile.Bounds += FVector2D(Sample.Position);
-		const FVector Grid = (Sample.Position - State->Origin) / State->Spacing;
+		auto& Tile = RVTState->Tiles.FindOrAdd(Sample.TileId);
+		const FVector Grid = (Sample.Position - RVTState->Origin) / RVTState->Spacing;
 		const FIntPoint Index(FMath::RoundToInt(Grid.X), FMath::RoundToInt(Grid.Y));
 		float BaseHeight;
-		if (!State->TryBaseHeight(Sample.Position.X, Sample.Position.Y, BaseHeight))
+		if (!Terrain->GetLandscapeBaseHeight(Sample.Position.X, Sample.Position.Y, BaseHeight))
 		{
 			// Cached AGX tiles can return before their original Landscape proxy. Pending
 			// absolute heights are deduplicated per active tile and discarded on unload.
@@ -751,7 +566,8 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		float Delta = Sample.Position.Z - BaseHeight;
 		if (FMath::Abs(Delta) < 0.005f)
 			Delta = 0.0f;
-		const bool Changed = !FMath::IsNearlyEqual(Read(State->Levels[0], Index), Delta, 0.0001f);
+		const bool Changed =
+			!FMath::IsNearlyEqual(Read(RVTState->Levels[0], Index), Delta, 0.0001f);
 		if (!Changed && !Sample.bTileSnapshot)
 			continue;
 		auto& Region = Regions.FindOrAdd(BlockKey(Index), FBox2D(ForceInit));
@@ -763,7 +579,7 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 			Tile.NonzeroIndices.Remove(Index);
 		else
 			Tile.NonzeroIndices.Add(Index);
-		if (FMath::Abs(Delta) > DisplacementRange && !State->bReportedClipping)
+		if (FMath::Abs(Delta) > DisplacementRange && !RVTState->bReportedClipping)
 		{
 			UE_LOG(
 				LogAGX, Warning,
@@ -771,7 +587,7 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 					"Terrain RVT displacement exceeded its +/-%.1f cm encoding range. "
 					"Active CPU values are retained but rendering is clipped."),
 				DisplacementRange);
-			State->bReportedClipping = true;
+			RVTState->bReportedClipping = true;
 		}
 		SetDelta(Index, Delta);
 	}
@@ -786,7 +602,7 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		for (const FIntPoint Key : Dirty[Level])
 		{
 			TSharedPtr<FBlock, ESPMode::ThreadSafe> Copy;
-			if (const auto* Block = State->Levels[Level].Find(Key))
+			if (const auto* Block = RVTState->Levels[Level].Find(Key))
 			{
 				Copy = MakeShared<FBlock, ESPMode::ThreadSafe>();
 				*Copy = **Block;
@@ -794,15 +610,14 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 			Updates.Add({Level, Key, MoveTemp(Copy)});
 		}
 	ResidentCPUBlocks = 0;
-	for (const auto& Level : State->Levels)
+	for (const auto& Level : RVTState->Levels)
 		ResidentCPUBlocks += Level.Num();
-	ResidentCPUTiles = State->Tiles.Num();
+	ResidentCPUTiles = RVTState->Tiles.Num();
 	PendingHeightSamples = 0;
-	for (const auto& Tile : State->Tiles)
+	for (const auto& Tile : RVTState->Tiles)
 		PendingHeightSamples += Tile.Value.Pending.Num();
-	PruneSourceSnapshots();
-	ProducedPages = State->RenderData->ProducedPages.load();
-	FVector Camera = State->Origin;
+	ProducedPages = RVTState->RenderData->ProducedPages.load();
+	FVector Camera = RVTState->Origin;
 	if (const auto* Player = GetWorld()->GetFirstPlayerController())
 	{
 		FRotator Rotation;
@@ -821,8 +636,8 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		const double Distance = FVector2D::Distance(FVector2D(Camera), (WorldMin + WorldMax) * 0.5);
 		const int32 Mip =
 			FMath::Max(0, FMath::FloorToInt(FMath::Log2(FMath::Max(1.0, Distance / 15000.0))));
-		const FVector2D Min = (WorldMin - FVector2D(State->Min)) / FVector2D(State->Size);
-		const FVector2D Max = (WorldMax - FVector2D(State->Min)) / FVector2D(State->Size);
+		const FVector2D Min = (WorldMin - FVector2D(RVTState->Min)) / FVector2D(RVTState->Size);
+		const FVector2D Max = (WorldMax - FVector2D(RVTState->Min)) / FVector2D(RVTState->Size);
 		return FRequest {
 			{FMath::Clamp(Min.X, 0.0, 1.0), FMath::Clamp(Min.Y, 0.0, 1.0)},
 			{FMath::Clamp(Max.X, 0.0, 1.0), FMath::Clamp(Max.Y, 0.0, 1.0)},
@@ -830,19 +645,19 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 	};
 	// Vertex displacement sampling has feedback disabled. Request only active deformation;
 	// distant unloaded areas are best-effort GPU cache contents, not persistent visual storage.
-	for (const auto& Entry : State->Levels[0])
+	for (const auto& Entry : RVTState->Levels[0])
 	{
 		const FVector2D Min =
-			FVector2D(State->Origin) + FVector2D(Entry.Key) * (BlockSide * State->Spacing);
-		Requests.Add(MakeRequest(Min, Min + FVector2D(BlockSide * State->Spacing)));
+			FVector2D(RVTState->Origin) + FVector2D(Entry.Key) * (BlockSide * RVTState->Spacing);
+		Requests.Add(MakeRequest(Min, Min + FVector2D(BlockSide * RVTState->Spacing)));
 	}
 	for (const auto& Region : Regions)
 	{
 		// One native cell covers interpolation support. UE expands each mip's invalidation
 		// by its physical page border, including the coarser box-filtered samples.
 		const FRequest Request = MakeRequest(
-			Region.Value.Min - FVector2D(State->Spacing),
-			Region.Value.Max + FVector2D(State->Spacing));
+			Region.Value.Min - FVector2D(RVTState->Spacing),
+			Region.Value.Max + FVector2D(RVTState->Spacing));
 		if (Request.UV1.X > Request.UV0.X && Request.UV1.Y > Request.UV0.Y)
 		{
 			Invalidations.Add(Request);
@@ -850,8 +665,8 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 			Requests.Add(Request);
 		}
 	}
-	auto Data = State->RenderData;
-	auto* RuntimeTexture = Texture.Get();
+	auto Data = RVTState->RenderData;
+	auto* RuntimeTexture = TerrainRVTTexture.Get();
 	ENQUEUE_RENDER_COMMAND(AGXTerrainRVTUpdate)(
 		[Data, RuntimeTexture, Updates = MoveTemp(Updates), Requests = MoveTemp(Requests),
 		 Invalidations = MoveTemp(Invalidations)](FRHICommandListImmediate&) mutable
@@ -874,22 +689,37 @@ void UAGX_TerrainRVTComponent::Update(FTerrainPagerBarrier& Pager)
 		});
 }
 
-void UAGX_TerrainRVTComponent::Shutdown()
+void UAGX_TerrainPartitionedLandscapeRendererComponent::ShutdownRenderer()
 {
-	SetComponentTickEnabled(false);
-	if (State != nullptr)
+	if (RVTState != nullptr)
 	{
-		for (auto Material : State->BoundMaterials)
+		for (auto Material : RVTState->BoundMaterials)
 			if (Material.IsValid())
 			{
 				Material->SetScalarParameterValue(TEXT("AGX_RVTReady"), 0.0f);
 				Material->SetRuntimeVirtualTextureParameterValue(TEXT("AGX_Deformation"), nullptr);
 			}
 	}
-	if (Texture != nullptr)
-		Texture->Release();
+	if (TerrainRVTTexture != nullptr)
+		TerrainRVTTexture->Release();
 	// All commands capturing the texture UObject must finish before its reference is dropped.
 	FlushRenderingCommands();
-	Texture = nullptr;
-	State.reset();
+	TerrainRVTTexture = nullptr;
+	RVTState.reset();
+	ResidentCPUBlocks = 0;
+	ResidentCPUTiles = 0;
+	PendingHeightSamples = 0;
+	VirtualResolution = 0;
 }
+
+#if WITH_EDITOR
+bool UAGX_TerrainPartitionedLandscapeRendererComponent::CanEditChange(
+	const FProperty* Property) const
+{
+	if (GetWorld() != nullptr && GetWorld()->IsGameWorld() && Property != nullptr &&
+		(Property->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, DisplacementRange) ||
+		 Property->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, PageSize)))
+		return false;
+	return Super::CanEditChange(Property);
+}
+#endif

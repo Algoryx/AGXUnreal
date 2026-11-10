@@ -35,6 +35,7 @@ public:
 
 	/**
 	 * If set to true, the Height Field Bounds will be as large as any selected Landscape.
+	 * Only available for non-partitioned Landscapes. Partitioned Landscapes always use HalfExtent.
 	 * Notice that using smaller bounds may increase runtime performance.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Height Field Bounds")

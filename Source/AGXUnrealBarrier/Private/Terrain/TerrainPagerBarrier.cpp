@@ -222,6 +222,13 @@ void FTerrainPagerBarrier::EnableHeightCapture()
 {
 	check(HasNative());
 	HeightCapture = std::make_unique<FTerrainPagerHeightCapture>(NativeRef->Native);
+	RequestHeightCaptureSnapshot();
+}
+
+void FTerrainPagerBarrier::RequestHeightCaptureSnapshot()
+{
+	check(HasNative());
+	check(HeightCapture != nullptr);
 	for (auto* Attachment : NativeRef->Native->getActiveTileAttachments())
 		if (Attachment != nullptr && Attachment->m_terrainTile != nullptr)
 			HeightCapture->CopyTile(

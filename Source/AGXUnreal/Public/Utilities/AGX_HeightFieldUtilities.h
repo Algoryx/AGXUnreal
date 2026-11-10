@@ -23,5 +23,8 @@ namespace AGX_HeightFieldUtilities
 	// Size (outer bounds) [cm].
 	AGXUNREAL_API std::tuple<double, double> GetLandscapeSizeXY(const ALandscape& Landscape);
 
+	/** True for a source Landscape in a World Partition world, regardless of loaded proxies. */
+	AGXUNREAL_API bool IsPartitionedLandscape(const ALandscape& Landscape);
+
 	AGXUNREAL_API bool IsOpenWorldLandscape(const ALandscape& Landscape);
 }
