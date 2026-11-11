@@ -117,13 +117,38 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 		Controller.SetCompliance(static_cast<double>(Compliance));
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetStiffness(
+		UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller, double Stiffness)
+	{
+		Controller.SetStiffness(Stiffness);
+	}
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
 	static float GetCompliance(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetCompliance());
 	}
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
+	static double GetStiffness(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
+	{
+		return Controller.GetStiffness();
+	}
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetAttenuation(
+		UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller, double Attenuation)
+	{
+		Controller.SetAttenuation(Attenuation);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	static void SetSpookDamping(
 		UPARAM(ref) FAGX_ConstraintTargetSpeedController& Controller, float SpookDamping)
 	{
@@ -131,6 +156,17 @@ class AGXUNREAL_API UAGX_ConstraintTargetSpeedController_FL : public UBlueprintF
 	}
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller")
+	static double GetAttenuation(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
+	{
+		return Controller.GetAttenuation();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, BlueprintPure, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	static float GetSpookDamping(UPARAM(ref) const FAGX_ConstraintTargetSpeedController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpookDamping());

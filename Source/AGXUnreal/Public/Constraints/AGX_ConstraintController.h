@@ -59,20 +59,25 @@ struct AGXUNREAL_API FAGX_ConstraintController
 	double GetCompliance() const;
 
 	/**
-	 * Elasticity is defined as the inverse of compliance, so setting the compliance will modify
-	 * the compliance [N/m] or [Nm/rad].
+	 * Stiffness [N/m] or [Nm/rad] is the inverse of compliance.
 	 */
-	void SetElasticity(double InElasticity);
+	void SetStiffness(double InStiffness);
 
+	double GetStiffness() const;
+
+	// Legacy names use the original units.
+	void SetElasticity(double InElasticity);
 	double GetElasticity() const;
+	void SetSpookDamping(double InSpookDamping);
+	double GetSpookDamping() const;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Constraint Controller", Meta = (EditCondition = "bEnable"))
-	double SpookDamping;
+	double Attenuation;
 
-	void SetSpookDamping(double InSpookDamping);
+	void SetAttenuation(double InAttenuation);
 
-	double GetSpookDamping() const;
+	double GetAttenuation() const;
 
 	/**
 	 * The minimum and maximum force or torque that the constraint controller can produce [N] or
@@ -142,6 +147,9 @@ protected:
 	TUniquePtr<FConstraintControllerBarrier> NativeBarrier;
 
 private: // Deprecated functionality.
+	UPROPERTY()
+	double SpookDamping_DEPRECATED;
+
 	/**
 	 * The elasticity in a certain DOF. Measured in [N/m] for translational DOFs and [Nm/rad] for
 	 * rotational DOFs.
@@ -203,18 +211,46 @@ class AGXUNREAL_API UAGX_ConstraintController_FL : public UBlueprintFunctionLibr
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetStiffness(UPARAM(ref) FAGX_ConstraintController& Controller, double Stiffness)
+	{
+		Controller.SetStiffness(Stiffness);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetStiffness instead."))
 	static void SetElasticity(UPARAM(ref) FAGX_ConstraintController& Controller, float Elasticity)
 	{
 		Controller.SetElasticity(static_cast<double>(Elasticity));
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static double GetStiffness(UPARAM(ref) const FAGX_ConstraintController& Controller)
+	{
+		return Controller.GetStiffness();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetStiffness instead."))
 	static float GetElasticity(UPARAM(ref) const FAGX_ConstraintController& Controller)
 	{
 		return static_cast<float>(Controller.GetElasticity());
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static void SetAttenuation(
+		UPARAM(ref) FAGX_ConstraintController& Controller, double Attenuation)
+	{
+		Controller.SetAttenuation(Attenuation);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	static void SetSpookDamping(
 		UPARAM(ref) FAGX_ConstraintController& Controller, float SpookDamping)
 	{
@@ -222,6 +258,17 @@ class AGXUNREAL_API UAGX_ConstraintController_FL : public UBlueprintFunctionLibr
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
+	static double GetAttenuation(UPARAM(ref) const FAGX_ConstraintController& Controller)
+	{
+		return Controller.GetAttenuation();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Constraint Controller",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	static float GetSpookDamping(UPARAM(ref) const FAGX_ConstraintController& Controller)
 	{
 		return static_cast<float>(Controller.GetSpookDamping());
@@ -292,27 +339,27 @@ class AGXUNREAL_API UAGX_ConstraintController_FL : public UBlueprintFunctionLibr
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
-	static void SetElasticity(UPARAM(ref) FAGX_ConstraintController& Controller, float Elasticity)
+	static void SetStiffness(UPARAM(ref) FAGX_TYPE& Controller, double Stiffness)
 	{
-		Controller.SetElasticity(static_cast<double>(Elasticity));
+		Controller.SetStiffness(Stiffness);
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
-	static float GetElasticity(UPARAM(ref) const FAGX_ConstraintController& Controller)
+	static double GetStiffness(UPARAM(ref) const FAGX_TYPE& Controller)
 	{
-		return static_cast<float>(Controller.GetElasticity());
+		return Controller.GetStiffness();
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
-	static void SetSpookDamping(UPARAM(ref) FAGX_TYPE& Controller, float SpookDamping)
+	static void SetAttenuation(UPARAM(ref) FAGX_TYPE& Controller, double Attenuation)
 	{
-		Controller.SetSpookDamping(static_cast<double>(SpookDamping));
+		Controller.SetAttenuation(Attenuation);
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")
-	static float GetSpookDamping(UPARAM(ref) const FAGX_TYPE& Controller)
+	static double GetAttenuation(UPARAM(ref) const FAGX_TYPE& Controller)
 	{
-		return static_cast<float>(Controller.GetSpookDamping());
+		return Controller.GetAttenuation();
 	}
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Constraint Controller")

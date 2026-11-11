@@ -4,7 +4,10 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "AGX_Simulation.h"
 #include "AgxAutomationCommon.h"
+#include "Constraints/AGX_ConstraintConstants.h"
+#include "Utilities/AGXUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Constraints/AGX_HingeConstraintComponent.h"
 
@@ -76,6 +79,19 @@ bool FCheckImportedRealIntervals::Update()
 		return true;
 	}
 	UAGX_HingeConstraintComponent* Hinge = Hinges[0];
+
+	// This fixture omits damping, so both the constraint and its controllers must migrate
+	// their original defaults, not adopt the new attenuation default.
+	const double ExpectedAttenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
+		ConstraintConstants::DefaultSpookDamping(), GetDefault<UAGX_Simulation>()->TimeStep);
+	for (int32 I = 0; I < NumGenericDofs; ++I)
+		Test.TestEqual(
+			TEXT("Legacy constraint default attenuation"), Hinge->Attenuation[I],
+			ExpectedAttenuation);
+	for (FAGX_ConstraintController* Controller : Hinge->GetAllControllers())
+		Test.TestEqual(
+			TEXT("Legacy controller default attenuation"), Controller->Attenuation,
+			ExpectedAttenuation);
 
 	// Helper function that tests if a Range has the expected minimum and maximum values.
 	auto TestInterval =

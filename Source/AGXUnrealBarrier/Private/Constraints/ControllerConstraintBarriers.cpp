@@ -69,28 +69,28 @@ double FConstraintControllerBarrier::GetCompliance() const
 	return NativeRef->Native->getCompliance();
 }
 
-void FConstraintControllerBarrier::SetElasticity(double Elasticity)
+void FConstraintControllerBarrier::SetStiffness(double Stiffness)
 {
 	check(HasNative());
-	NativeRef->Native->setElasticity(Elasticity);
+	NativeRef->Native->setStiffness(Stiffness);
 }
 
-double FConstraintControllerBarrier::GetElasticity() const
+double FConstraintControllerBarrier::GetStiffness() const
 {
 	check(HasNative());
-	return NativeRef->Native->getElasticity();
+	return NativeRef->Native->getStiffness();
 }
 
-void FConstraintControllerBarrier::SetSpookDamping(double SpookDamping)
+void FConstraintControllerBarrier::SetAttenuation(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(SpookDamping);
+	NativeRef->Native->setAttenuation(Attenuation);
 }
 
-double FConstraintControllerBarrier::GetSpookDamping() const
+double FConstraintControllerBarrier::GetAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getDamping();
+	return NativeRef->Native->getAttenuation();
 }
 
 void FConstraintControllerBarrier::SetForceRange(FAGX_RealInterval ForceRange)

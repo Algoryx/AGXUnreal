@@ -42,6 +42,7 @@ public: // Function overrides.
 	//~ End IAGX_NativeOwner interface.
 
 	//~ Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 #if WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& Event) override;

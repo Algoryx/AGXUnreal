@@ -112,16 +112,16 @@ int32 FConstraintBarrier::GetSolveType() const
 	return int32(NativeRef->Native->getSolveType());
 }
 
-void FConstraintBarrier::SetElasticity(double Elasticity, int32 Dof)
+void FConstraintBarrier::SetStiffness(double Stiffness, int32 Dof)
 {
 	check(HasNative());
-	NativeRef->Native->setElasticity(Elasticity, Dof);
+	NativeRef->Native->setStiffness(Stiffness, Dof);
 }
 
-double FConstraintBarrier::GetElasticity(int32 Dof) const
+double FConstraintBarrier::GetStiffness(int32 Dof) const
 {
 	check(HasNative());
-	return NativeRef->Native->getElasticity(Dof);
+	return NativeRef->Native->getStiffness(Dof);
 }
 
 void FConstraintBarrier::SetCompliance(double Compliance, int32 Dof)
@@ -136,16 +136,16 @@ double FConstraintBarrier::GetCompliance(int32 Dof) const
 	return NativeRef->Native->getCompliance(Dof);
 }
 
-void FConstraintBarrier::SetSpookDamping(double SpookDamping, int32 Dof)
+void FConstraintBarrier::SetAttenuation(double Attenuation, int32 Dof)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(SpookDamping, Dof);
+	NativeRef->Native->setAttenuation(Attenuation, Dof);
 }
 
-double FConstraintBarrier::GetSpookDamping(int32 Dof) const
+double FConstraintBarrier::GetAttenuation(int32 Dof) const
 {
 	check(HasNative());
-	return NativeRef->Native->getDamping(Dof);
+	return NativeRef->Native->getAttenuation(Dof);
 }
 
 void FConstraintBarrier::SetForceRange(double Min, double Max, int32 Dof)

@@ -17,9 +17,7 @@
  * the Content Browser. Several Tracks can share the same Track Properties asset. Default values for
  * all properties has been taken from AGX Dynamics.
  */
-UCLASS(
-	ClassGroup = "AGX_Vehicle", Category = "AGX", BlueprintType,
-	AutoCollapseCategories = ("Hinge Compliance", "Hinge Spook Damping"))
+UCLASS(ClassGroup = "AGX_Vehicle", Category = "AGX", BlueprintType)
 class AGXUNREAL_API UAGX_TrackProperties : public UObject
 {
 	GENERATED_BODY()

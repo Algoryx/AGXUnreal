@@ -56,20 +56,25 @@ public: // Properties and property accessors.
 	double GetCompliance() const;
 
 	/**
-	 * Elasticity is defined as the inverse of compliance, so setting the elasticity will modify
-	 * the compliance and vice versa [N/m] or [Nm/rad].
+	 * Stiffness [N/m] or [Nm/rad] is the inverse of compliance.
 	 */
-	void SetElasticity(double InElasticity);
+	void SetStiffness(double InStiffness);
 
+	double GetStiffness() const;
+
+	// Legacy names use the original units.
+	void SetElasticity(double InElasticity);
 	double GetElasticity() const;
+	void SetSpookDamping(double InSpookDamping);
+	double GetSpookDamping() const;
 
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Constraint Controller", Meta = (EditCondition = "bEnable"))
-	FAGX_Real SpookDamping {ConstraintConstants::DefaultSpookDamping()};
+	FAGX_Real Attenuation {ConstraintConstants::DefaultAttenuation()};
 
-	void SetSpookDamping(double InSpookDamping);
+	void SetAttenuation(double InAttenuation);
 
-	double GetSpookDamping() const;
+	double GetAttenuation() const;
 
 	/**
 	 * The minimum and maximum force or torque that the constraint controller can produce [N] or
@@ -130,8 +135,15 @@ public: // Native management.
 	 */
 	void CopyFrom(const FElementaryConstraintBarrier& Source);
 
+	// Called by the owning Component after its reflected properties have been serialized.
+	void Serialize(FArchive& Archive);
+
 protected:
 	FElementaryConstraintBarrier Barrier;
+
+private:
+	UPROPERTY()
+	FAGX_Real SpookDamping_DEPRECATED {ConstraintConstants::DefaultSpookDamping()};
 };
 
 /**
@@ -176,6 +188,12 @@ class AGXUNREAL_API UAGX_ElementaryConstraint_FL : public UBlueprintFunctionLibr
 		return Constraint.SetCompliance(Compliance);
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static void SetStiffness(UPARAM(Ref) FAGX_ElementaryConstraint& Constraint, double Stiffness)
+	{
+		return Constraint.SetStiffness(Stiffness);
+	}
+
 	/**
 	 * Get the Compliance from othe Elementary Constraint. [m/N] for translational DOFs and [rad/Nm]
 	 * for rotational DOFs.
@@ -188,12 +206,30 @@ class AGXUNREAL_API UAGX_ElementaryConstraint_FL : public UBlueprintFunctionLibr
 		return Constraint.GetCompliance();
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static double GetStiffness(UPARAM(Ref) FAGX_ElementaryConstraint& Constraint)
+	{
+		return Constraint.GetStiffness();
+	}
+
 	/**
-	 * Set the Spook damping time of an Elementary Constraint [s].
-	 * @param Constraint Elementary Constraint to set Spook Damping on.
-	 * @param SpookDamping New Spook damping time.
+	 * Set the attenuation of an Elementary Constraint [steps].
+	 * @param Constraint Elementary Constraint to set Attenuation on.
+	 * @param Attenuation New attenuation.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static void SetAttenuation(
+		UPARAM(Ref) FAGX_ElementaryConstraint& Constraint, double Attenuation)
+	{
+		return Constraint.SetAttenuation(Attenuation);
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Elementary Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use SetAttenuation with the appropriate damping/attenuation conversion."))
 	static void SetSpookDamping(
 		UPARAM(Ref) FAGX_ElementaryConstraint& Constraint, double SpookDamping)
 	{
@@ -201,11 +237,22 @@ class AGXUNREAL_API UAGX_ElementaryConstraint_FL : public UBlueprintFunctionLibr
 	}
 
 	/**
-	 * Get the Spook damping time from the Elementary Constraint [s].
-	 * @param Constraint The Elementary Constraint to get Spook damping from.
-	 * @return The Spook damping of the Elementary Constraint.
+	 * Get the attenuation from the Elementary Constraint [steps].
+	 * @param Constraint The Elementary Constraint to get attenuation from.
+	 * @return The attenuation of the Elementary Constraint.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static double GetAttenuation(UPARAM(Ref) FAGX_ElementaryConstraint& Constraint)
+	{
+		return Constraint.GetAttenuation();
+	}
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Elementary Constraint",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage =
+				 "Use GetAttenuation with the appropriate damping/attenuation conversion."))
 	static double GetSpookDamping(UPARAM(Ref) FAGX_ElementaryConstraint& Constraint)
 	{
 		return Constraint.GetSpookDamping();
@@ -327,6 +374,12 @@ class AGXUNREAL_API UAGX_ElementaryConstraint_FL : public UBlueprintFunctionLibr
 		return Constraint.SetCompliance(Compliance);
 	}
 
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static void SetStiffness(UPARAM(Ref) FAGX_TYPE& Constraint, double Stiffness)
+	{
+		return Constraint.SetStiffness(Stiffness);
+	}
+
 	/**
 	 * Get the Compliance from othe Elementary Constraint. [m/N] for translational DOFs and [rad/Nm]
 	 * for rotational DOFs.
@@ -339,27 +392,33 @@ class AGXUNREAL_API UAGX_ElementaryConstraint_FL : public UBlueprintFunctionLibr
 		return Constraint.GetCompliance();
 	}
 
-	/**
-	 * Set the Spook damping time of an Elementary Constraint [s].
-	 * @param Constraint Elementary Constraint to set Spook Damping on.
-	 * @param SpookDamping New Spook damping time.
-	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
-	static void SetSpookDamping(
-		UPARAM(Ref) FAGX_TYPE& Constraint, double SpookDamping)
+	static double GetStiffness(UPARAM(Ref) FAGX_TYPE& Constraint)
 	{
-		return Constraint.SetSpookDamping(SpookDamping);
+		return Constraint.GetStiffness();
 	}
 
 	/**
-	 * Get the Spook damping time from the Elementary Constraint [s].
-	 * @param Constraint The Elementary Constraint to get Spook damping from.
-	 * @return The Spook damping of the Elementary Constraint.
+	 * Set the attenuation of an Elementary Constraint [steps].
+	 * @param Constraint Elementary Constraint to set Attenuation on.
+	 * @param Attenuation New attenuation.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
-	static double GetSpookDamping(UPARAM(Ref) FAGX_TYPE& Constraint)
+	static void SetAttenuation(
+		UPARAM(Ref) FAGX_TYPE& Constraint, double Attenuation)
 	{
-		return Constraint.GetSpookDamping();
+		return Constraint.SetAttenuation(Attenuation);
+	}
+
+	/**
+	 * Get the attenuation from the Elementary Constraint [steps].
+	 * @param Constraint The Elementary Constraint to get attenuation from.
+	 * @return The attenuation of the Elementary Constraint.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Elementary Constraint")
+	static double GetAttenuation(UPARAM(Ref) FAGX_TYPE& Constraint)
+	{
+		return Constraint.GetAttenuation();
 	}
 
 	/**

@@ -19,8 +19,7 @@ struct AGXUNREAL_API FAGX_ShapeMaterialSurfaceProperties
 	GENERATED_BODY()
 
 public:
-
-	bool operator==(const FAGX_ShapeMaterialSurfaceProperties& Other) const = default;
+	bool operator==(const FAGX_ShapeMaterialSurfaceProperties& Other) const;
 
 	/**
 	 * Specify if the friction should be used when solving contacts for this Material.
@@ -39,14 +38,13 @@ public:
 	FAGX_Real Roughness;
 
 	/**
-	 * Surface viscosity parameter telling how dry/wet the surface is. For larger values,
-	 * the surface is wetter, and contacting objects will creep more. It's like compliance
-	 * for the friction constraints.
+	 * Friction compliance controlling slip and creep between contacting surfaces.
+	 * Larger values allow more creep.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Material Surface Properties",
 		Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real Viscosity;
+	FAGX_Real FrictionCompliance;
 
 	/**
 	 * The attractive force between two colliding objects [N].
@@ -70,4 +68,9 @@ public:
 
 public:
 	FAGX_ShapeMaterialSurfaceProperties();
+	void Serialize(FArchive& Archive);
+
+private:
+	UPROPERTY()
+	FAGX_Real Viscosity_DEPRECATED;
 };

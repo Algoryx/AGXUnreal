@@ -5,15 +5,35 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_AssetGetterSetterImpl.h"
 #include "AGX_Check.h"
+#include "AGX_CustomVersion.h"
 #include "AGX_LogCategory.h"
-#include "AGX_Simulation.h"
 #include "AGX_PropertyChangedDispatcher.h"
+#include "AGX_Simulation.h"
+#include "Utilities/AGX_ObjectUtilities.h"
 #include "Utilities/AGX_StringUtilities.h"
+#include "Utilities/AGXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/TrackBarrier.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+#include "Serialization/Archive.h"
+#include "UObject/UObjectGlobals.h"
+
+void UAGX_TrackInternalMergeProperties::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	Archive.UsingCustomVersion(FAGX_CustomVersion::GUID);
+	if (ShouldUpgradeTo(Archive, FAGX_CustomVersion::DampingToAttenuation))
+	{
+		LockToReachMergeConditionAttenuation = FAGXUtilities::ConvertSpookDampingToAttenuation(
+			LockToReachMergeConditionSpookDamping_DEPRECATED,
+			GetDefault<UAGX_Simulation>()->TimeStep);
+#if WITH_EDITOR
+		FAGX_ObjectUtilities::MarkAssetDirty(*this);
+#endif
+	}
+}
 
 void UAGX_TrackInternalMergeProperties::PostInitProperties()
 {
@@ -48,7 +68,7 @@ void UAGX_TrackInternalMergeProperties::InitPropertyDispatcher()
 	ADD_DISPATCH(ContactReduction, SetContactReduction);
 	ADD_DISPATCH(bEnableLockToReachMergeCondition, SetLockToReachMergeConditionEnabled);
 	ADD_DISPATCH(LockToReachMergeConditionCompliance, SetLockToReachMergeConditionCompliance);
-	ADD_DISPATCH(LockToReachMergeConditionSpookDamping, SetLockToReachMergeConditionSpookDamping);
+	ADD_DISPATCH(LockToReachMergeConditionAttenuation, SetLockToReachMergeConditionAttenuation);
 	ADD_DISPATCH(MaxAngleMergeCondition, SetMaxAngleMergeCondition);
 #undef ADD_DISPATCH
 }
@@ -212,19 +232,32 @@ float UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionCompliance_
 	return static_cast<float>(GetLockToReachMergeConditionCompliance());
 }
 
-void UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionSpookDamping(double Damping)
+void UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionAttenuation(double Attenuation)
 {
 	AGX_TrackInternalMergeProperties_helpers::AssetSetter(
-		this, LockToReachMergeConditionSpookDamping.GetValue(), Damping,
-		&FTrackBarrier::InternalMergeProperties_SetLockToReachMergeConditionSpookDamping,
-		&UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionSpookDamping);
+		this, LockToReachMergeConditionAttenuation.GetValue(), Attenuation,
+		&FTrackBarrier::InternalMergeProperties_SetLockToReachMergeConditionAttenuation,
+		&UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionAttenuation);
+}
+
+double UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionAttenuation() const
+{
+	return AGX_TrackInternalMergeProperties_helpers::AssetGetter(
+		this, LockToReachMergeConditionAttenuation,
+		&UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionAttenuation);
+}
+
+void UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionSpookDamping(double Damping)
+{
+	SetLockToReachMergeConditionAttenuation(
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			Damping, GetDefault<UAGX_Simulation>()->TimeStep));
 }
 
 double UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionSpookDamping() const
 {
-	return AGX_TrackInternalMergeProperties_helpers::AssetGetter(
-		this, LockToReachMergeConditionSpookDamping,
-		&UAGX_TrackInternalMergeProperties::GetLockToReachMergeConditionSpookDamping);
+	return FAGXUtilities::ConvertAttenuationToSpookDamping(
+		GetLockToReachMergeConditionAttenuation(), GetDefault<UAGX_Simulation>()->TimeStep);
 }
 
 void UAGX_TrackInternalMergeProperties::SetLockToReachMergeConditionSpookDamping_BP(float Damping)
@@ -275,7 +308,7 @@ void UAGX_TrackInternalMergeProperties::CopyFrom(const UAGX_TrackInternalMergePr
 	COPY_PROPERTY(ContactReduction);
 	COPY_PROPERTY(bEnableLockToReachMergeCondition);
 	COPY_PROPERTY(LockToReachMergeConditionCompliance);
-	COPY_PROPERTY(LockToReachMergeConditionSpookDamping);
+	COPY_PROPERTY(LockToReachMergeConditionAttenuation);
 	COPY_PROPERTY(MaxAngleMergeCondition);
 #undef COPY_PROPERTY
 }
@@ -295,7 +328,7 @@ void UAGX_TrackInternalMergeProperties::CopyFrom(const FTrackBarrier& Source)
 	bEnableLockToReachMergeCondition =
 		Source.InternalMergeProperties_GetEnableLockToReachMergeCondition();
 	COPY_PROPERTY(LockToReachMergeConditionCompliance);
-	COPY_PROPERTY(LockToReachMergeConditionSpookDamping);
+	COPY_PROPERTY(LockToReachMergeConditionAttenuation);
 	COPY_PROPERTY(MaxAngleMergeCondition);
 #undef COPY_PROPERTY
 }
@@ -449,8 +482,8 @@ void UAGX_TrackInternalMergeProperties::UpdateNativeProperties(UAGX_TrackCompone
 		bEnableLockToReachMergeCondition);
 	TrackBarrier->InternalMergeProperties_SetLockToReachMergeConditionCompliance(
 		LockToReachMergeConditionCompliance);
-	TrackBarrier->InternalMergeProperties_SetLockToReachMergeConditionSpookDamping(
-		LockToReachMergeConditionSpookDamping);
+	TrackBarrier->InternalMergeProperties_SetLockToReachMergeConditionAttenuation(
+		LockToReachMergeConditionAttenuation);
 	TrackBarrier->InternalMergeProperties_SetMaxAngleMergeCondition(MaxAngleMergeCondition);
 }
 

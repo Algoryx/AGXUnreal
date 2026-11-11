@@ -63,14 +63,14 @@ public:
 	void SetSolveType(int32 SolveType);
 	int32 GetSolveType() const;
 
-	void SetElasticity(double Elasticity, int32 Dof);
-	double GetElasticity(int32 Dof) const;
+	void SetStiffness(double Stiffness, int32 Dof);
+	double GetStiffness(int32 Dof) const;
 
 	void SetCompliance(double Compliance, int32 Dof);
 	double GetCompliance(int32 Dof) const;
 
-	void SetSpookDamping(double SpookDamping, int32 Dof);
-	double GetSpookDamping(int32 Dof) const;
+	void SetAttenuation(double Attenuation, int32 Dof);
+	double GetAttenuation(int32 Dof) const;
 
 	void SetForceRange(double Min, double Max, int32 Dof);
 	void GetForceRange(double* Min, double* Max, int32 Dof) const;

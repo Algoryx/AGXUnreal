@@ -116,20 +116,20 @@ public:
 	double GetLockToReachMergeConditionCompliance() const;
 
 	/**
-	 * Damping of the hinge lock used to reach merge condition [s].
+	 * Attenuation of the hinge lock used to reach merge condition [steps].
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Track Internal Merge Properties",
 		Meta =
 			(EditCondition = "bEnableMerge && bEnableLockToReachMergeCondition",
 			 ClampMin = "0.0"))
-	FAGX_Real LockToReachMergeConditionSpookDamping {3.0 / 60.0};
+	FAGX_Real LockToReachMergeConditionAttenuation {3.0};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
-	void SetLockToReachMergeConditionSpookDamping(double Damping);
+	void SetLockToReachMergeConditionAttenuation(double Attenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Track Internal Merge Properties")
-	double GetLockToReachMergeConditionSpookDamping() const;
+	double GetLockToReachMergeConditionAttenuation() const;
 
 	/**
 	 * Maximum angle to trigger merge between nodes [deg].
@@ -171,6 +171,7 @@ public:
 	void UnregisterTargetTrack(UAGX_TrackComponent* Track);
 
 	// ~Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 	virtual void PostInitProperties() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
@@ -178,7 +179,18 @@ public:
 	// ~End UObject interface.
 
 public: // Deprecated functions.
+	// Legacy damping functions use seconds and the project simulation timestep.
 	// clang-format off
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetLockToReachMergeConditionAttenuation and ConvertSpookDampingToAttenuation."))
+	void SetLockToReachMergeConditionSpookDamping(double Damping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetLockToReachMergeConditionAttenuation and ConvertAttenuationToSpookDamping."))
+	double GetLockToReachMergeConditionSpookDamping() const;
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
@@ -194,14 +206,14 @@ public: // Deprecated functions.
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
-		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetLockToReachMergeConditionSpookDamping instead of SetLockToReachMergeConditionSpookDamping_BP"))
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetLockToReachMergeConditionAttenuation and ConvertSpookDampingToAttenuation."))
 	void SetLockToReachMergeConditionSpookDamping_BP(float Damping);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Track Internal Merge Properties",
 		Meta = (
 			DeprecatedFunction,
-			DeprecationMessage = "Use GetLockToReachMergeConditionSpookDamping instead of GetLockToReachMergeConditionSpookDamping_BP"))
+			DeprecationMessage = "Use GetLockToReachMergeConditionAttenuation and ConvertAttenuationToSpookDamping."))
 	float GetLockToReachMergeConditionSpookDamping_BP() const;
 
 	UFUNCTION(
@@ -232,4 +244,8 @@ private:
 	// List of tracks that this InternalMergeProperties should write to.
 	// \todo What happens if target track is in a BP Actor Instance that gets reconstructed?
 	TArray<TWeakObjectPtr<UAGX_TrackComponent>> TargetTracks;
+
+private: // Deprecated properties.
+	UPROPERTY()
+	FAGX_Real LockToReachMergeConditionSpookDamping_DEPRECATED {3.0 / 60.0};
 };

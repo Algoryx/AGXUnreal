@@ -200,10 +200,10 @@ public:
 	bool bEnableSurfaceFriction {true};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSurfaceFrictionEnabled(bool bInEnabled);
+	void SetEnableSurfaceFriction(bool bInEnabled);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	bool GetSurfaceFrictionEnabled();
+	bool GetEnableSurfaceFriction() const;
 
 	/**
 	 * Friction in all directions if 'Secondary Friction Coefficient' is disabled, else only in the
@@ -265,47 +265,47 @@ public:
 	double GetSecondaryFrictionCoefficient() const;
 
 	/**
-	 * Surface viscosity, telling how 'wet' the friction is between the colliding materials.
+	 * Friction compliance controlling slip and creep between the colliding materials.
 	 *
-	 * Represents all surface directions if 'Secondary Surface Viscosity' is disable, else only in
-	 * the primary direction.
+	 * Represents all surface directions if 'Secondary Friction Compliance' is disabled, else only
+	 * in the primary direction.
 	 */
 	UPROPERTY(EditAnywhere, Category = "Friction", Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SurfaceViscosity {5.0e-9};
+	FAGX_Real FrictionCompliance {5.0e-9};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSurfaceViscosity(double InSurfaceViscosity);
+	void SetFrictionCompliance(double InFrictionCompliance);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSurfaceViscosity() const;
+	double GetFrictionCompliance() const;
 
 	/**
-	 * Whether it should be possible to define surface viscosity per each of the two perpendicular
+	 * Whether it should be possible to define friction compliance per each of the two perpendicular
 	 * surface direction.
 	 *
-	 * If enabled, 'Surface Viscosity' represents the primary direction and 'Secondary Surface
-	 * Viscosity' represents the secondary direction.
+	 * If enabled, 'Friction Compliance' represents the primary direction and 'Secondary Friction
+	 * Compliance' represents the secondary direction.
 	 *
-	 * If disable, 'Surface Viscosity' represents all directions and 'Secondary Surface Viscosity'
-	 * is not used.
+	 * If disabled, 'Friction Compliance' represents all directions and 'Secondary Friction
+	 * Compliance' is not used.
 	 *
-	 * Note that secondary direction surface viscosity is only used by friction models that support
-	 * primary and secondary directions.
+	 * Note that secondary direction friction compliance is only used by friction models that
+	 * support primary and secondary directions.
 	 */
 	UPROPERTY(
 		EditAnywhere, Category = "Friction",
 		Meta = (EditCondition = "FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
-	bool bUseSecondarySurfaceViscosity {false};
+	bool bUseSecondaryFrictionCompliance {false};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetUseSecondarySurfaceViscosity(bool bInUseSecondarySurfaceViscosity);
+	void SetUseSecondaryFrictionCompliance(bool bInUseSecondaryFrictionCompliance);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	bool GetUseSecondarySurfaceViscosity() const;
+	bool GetUseSecondaryFrictionCompliance() const;
 
 	// clang-format off
 	/**
-	 * Surface viscosity in the secondary direction, if enabled.
+	 * Friction compliance in the secondary direction, if enabled.
 	 *
 	 * Only used by friction models that support primary and secondary directions.
 	 */
@@ -313,20 +313,20 @@ public:
 		EditAnywhere, Category = "Friction",
 		Meta =
 			(ClampMin = "0.0", UIMin = "0.0",
-			 EditCondition = "bUseSecondarySurfaceViscosity && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
-	FAGX_Real SecondarySurfaceViscosity {5.0e-9};
+			 EditCondition = "bUseSecondaryFrictionCompliance && FrictionModel != EAGX_FrictionModel::TerrainWheelForceModel"))
+	FAGX_Real SecondaryFrictionCompliance {5.0e-9};
 	// clang-format on
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity);
+	void SetSecondaryFrictionCompliance(double InSecondaryFrictionCompliance);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSecondarySurfaceViscosity() const;
+	double GetSecondaryFrictionCompliance() const;
 
 	// clang-format off
 	// Unreal Header Tool doesn't support line breaks in EditCondition.
 	/**
-	 * Primary friction/viscosity direction relative to Reference Frame.
+	 * Primary direction for friction and friction compliance relative to Reference Frame.
 	 * Secondary direction will be perpendicular to primary direction.
 	 *
 	 * Only used by Oriented Friction Models.
@@ -344,8 +344,8 @@ public:
 	 * Set the primary, or forward, direction of this Contact Material.
 	 *
 	 * For an oriented friction model this is the direction that uses the regular friction and
-	 * surface viscosity parameters. The secondary direction, a vector in the friction plane and
-	 * perpendicular to the primary direction, uses the secondary friction and surface viscosity,
+	 * friction compliance parameters. The secondary direction, a vector in the friction plane and
+	 * perpendicular to the primary direction, uses the secondary friction and friction compliance,
 	 * if either or both of them are enabled.
 	 *
 	 * The primary direction is only used by the oriented friction models.
@@ -433,17 +433,16 @@ public:
 	double GetYoungsModulus() const;
 
 	/**
-	 * Spook Damping which represents the time the contact constraint has to fulfill its violation
-	 * [s].
+	 * Attenuation of the contact constraint [steps].
 	 */
 	UPROPERTY(EditAnywhere, Category = "General", Meta = (ClampMin = "0.0", UIMin = "0.0"))
-	FAGX_Real SpookDamping {4.5 / 60.0};
+	FAGX_Real Attenuation {4.5};
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	void SetSpookDamping(double InSpookDamping);
+	void SetAttenuation(double InAttenuation);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Contact Material")
-	double GetSpookDamping() const;
+	double GetAttenuation() const;
 
 	/**
 	 * The attractive force between two colliding objects [N].
@@ -549,6 +548,55 @@ public:
 	// ~End UObject interface.
 
 public: // Deprecated functions.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetEnableSurfaceFriction instead."))
+	void SetSurfaceFrictionEnabled(bool bInEnabled);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetEnableSurfaceFriction instead."))
+	bool GetSurfaceFrictionEnabled();
+
+	// Legacy surface viscosity names are aliases; values are unchanged.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use SetFrictionCompliance instead."))
+	void SetSurfaceViscosity(double InSurfaceViscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta = (DeprecatedFunction, DeprecationMessage = "Use GetFrictionCompliance instead."))
+	double GetSurfaceViscosity() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetSecondaryFrictionCompliance instead."))
+	void SetSecondarySurfaceViscosity(double InSecondarySurfaceViscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetSecondaryFrictionCompliance instead."))
+	double GetSecondarySurfaceViscosity() const;
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetUseSecondaryFrictionCompliance instead."))
+	void SetUseSecondarySurfaceViscosity(bool bInUseSecondarySurfaceViscosity);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetUseSecondaryFrictionCompliance instead."))
+	bool GetUseSecondarySurfaceViscosity() const;
+
 	// clang-format off
 
 	UFUNCTION(
@@ -635,14 +683,14 @@ public: // Deprecated functions.
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetSurfaceViscosity instead of SetSurfaceViscosity_BP"))
+			 DeprecationMessage = "Use SetFrictionCompliance instead."))
 	void SetSurfaceViscosity_BP(float InSurfaceViscosity);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetSurfaceViscosity instead of GetSurfaceViscosity_BP"))
+			 DeprecationMessage = "Use GetFrictionCompliance instead."))
 	float GetSurfaceViscosity_BP() const;
 
 	UFUNCTION(
@@ -650,7 +698,7 @@ public: // Deprecated functions.
 		Meta =
 			(DeprecatedFunction,
 			 DeprecationMessage =
-				 "Use SetSecondarySurfaceViscosity instead of SetSecondarySurfaceViscosity_BP"))
+				 "Use SetSecondaryFrictionCompliance instead."))
 	void SetSecondarySurfaceViscosity_BP(float InSecondarySurfaceViscosity);
 
 	UFUNCTION(
@@ -658,7 +706,7 @@ public: // Deprecated functions.
 		Meta =
 			(DeprecatedFunction,
 			 DeprecationMessage =
-				 "Use GetSecondarySurfaceViscosity instead of GetSecondarySurfaceViscosity_BP"))
+				 "Use GetSecondaryFrictionCompliance instead."))
 	float GetSecondarySurfaceViscosity_BP() const;
 
 	UFUNCTION(
@@ -693,14 +741,14 @@ public: // Deprecated functions.
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use SetSpookDamping instead of SetSpookDamping_BP"))
+			 DeprecationMessage = "Use SetAttenuation and ConvertSpookDampingToAttenuation."))
 	void SetSpookDamping_BP(float InSpookDamping);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "AGX Contact Material",
 		Meta =
 			(DeprecatedFunction,
-			 DeprecationMessage = "Use GetSpookDamping instead of GetSpookDamping_BP"))
+			 DeprecationMessage = "Use GetAttenuation and ConvertAttenuationToSpookDamping."))
 	float GetSpookDamping_BP() const;
 
 	UFUNCTION(
@@ -733,6 +781,21 @@ public: // Deprecated functions.
 
 	// clang-format on
 
+	// Legacy functions use seconds and the project simulation timestep.
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use SetAttenuation and ConvertSpookDampingToAttenuation."))
+	void SetSpookDamping(double InSpookDamping);
+
+	UFUNCTION(
+		BlueprintCallable, Category = "AGX Contact Material",
+		Meta =
+			(DeprecatedFunction,
+			 DeprecationMessage = "Use GetAttenuation and ConvertAttenuationToSpookDamping."))
+	double GetSpookDamping() const;
+
 private:
 #if WITH_EDITOR
 	virtual void InitPropertyDispatcher();
@@ -741,6 +804,18 @@ private:
 	void CreateNative(const UAGX_ContactMaterialRegistrarComponent& Registrar);
 
 private:
+	UPROPERTY()
+	FAGX_Real SpookDamping_DEPRECATED {4.5 / 60.0};
+
+	UPROPERTY()
+	FAGX_Real SurfaceViscosity_DEPRECATED {5.0e-9};
+
+	UPROPERTY()
+	FAGX_Real SecondarySurfaceViscosity_DEPRECATED {5.0e-9};
+
+	UPROPERTY()
+	bool bUseSecondarySurfaceViscosity_DEPRECATED {false};
+
 	TWeakObjectPtr<UAGX_ContactMaterial> Asset;
 	TWeakObjectPtr<UAGX_ContactMaterial> Instance;
 	FContactMaterialBarrier NativeBarrier;

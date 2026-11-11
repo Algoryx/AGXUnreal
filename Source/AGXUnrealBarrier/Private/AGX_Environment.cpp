@@ -11,6 +11,7 @@
 #include "BeginAGXIncludes.h"
 #include <agx/Runtime.h>
 #include <agx/version.h>
+#include <agxIO/Environment.h>
 #include <agxUtil/agxUtil.h>
 #include "EndAGXIncludes.h"
 
@@ -259,6 +260,10 @@ void FAGX_Environment::SetupAGXDynamicsEnvironment()
 		return;
 	}
 
+#if AGX_VERSION_GREATER_OR_EQUAL(2, 43, 0, 0)
+	const bool bEnableEmbeddedComponents = AGX_ENVIRONMENT().getEnableEmbeddedComponents();
+#endif
+
 	// If AGX Dynamics is installed on this computer, agxIO.Environment.instance() will
 	// read data from the registry and add runtime and resource paths to
 	// the installed version (even if setup_env has not been called). Clear all, from registry
@@ -267,6 +272,11 @@ void FAGX_Environment::SetupAGXDynamicsEnvironment()
 	{
 		AGX_ENVIRONMENT().getFilePath((agxIO::Environment::Type) i).clear();
 	}
+
+#if AGX_VERSION_GREATER_OR_EQUAL(2, 43, 0, 0)
+	// Clearing the runtime paths also removes the virtual path to components embedded in agxCore.
+	AGX_ENVIRONMENT().setEnableEmbeddedComponents(bEnableEmbeddedComponents);
+#endif
 
 	// Point the AGX environment to the resources packed with the plugin.
 	AGX_ENVIRONMENT()
