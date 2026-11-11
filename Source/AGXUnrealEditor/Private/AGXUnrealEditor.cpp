@@ -55,6 +55,8 @@
 #include "Constraints/AGX_HingeConstraintActor.h"
 #include "Constraints/AGX_LockConstraintActor.h"
 #include "Constraints/AGX_PrismaticConstraintActor.h"
+#include "Distributed/AGX_DistributedAssetTypeActions.h"
+#include "Distributed/AGX_DistributedPlacementComponent.h"
 #include "Distributed/AGX_DistributedScenarioAssetTypeActions.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Import/AGX_ModelSourceComponentCustomization.h"
@@ -335,6 +337,8 @@ void FAGXUnrealEditorModule::RegisterAssetTypeActions()
 	RegisterAssetTypeAction(
 		AssetTools, MakeShareable(new FAGX_DistributedScenarioTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
+		AssetTools, MakeShareable(new FAGX_DistributedAssetTypeActions(AgxAssetCategoryBit)));
+	RegisterAssetTypeAction(
 		AssetTools,
 		MakeShareable(new FAGX_GenericHorizontalSweepParametersTypeActions(AgxAssetCategoryBit)));
 	RegisterAssetTypeAction(
@@ -408,6 +412,11 @@ void FAGXUnrealEditorModule::RegisterCustomizations()
 
 	PropertyModule.RegisterCustomPropertyTypeLayout(
 		FAGX_ComponentReference::StaticStruct()->GetFName(),
+		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
+			&FAGX_ComponentReferenceCustomization::MakeInstance));
+
+	PropertyModule.RegisterCustomPropertyTypeLayout(
+		FAGX_DistributedInstanceReference::StaticStruct()->GetFName(),
 		FOnGetPropertyTypeCustomizationInstance::CreateStatic(
 			&FAGX_ComponentReferenceCustomization::MakeInstance));
 
@@ -628,6 +637,8 @@ void FAGXUnrealEditorModule::UnregisterCustomizations()
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_ComponentReference::StaticStruct()->GetFName());
+	PropertyModule.UnregisterCustomPropertyTypeLayout(
+		FAGX_DistributedInstanceReference::StaticStruct()->GetFName());
 
 	PropertyModule.UnregisterCustomPropertyTypeLayout(
 		FAGX_ConstraintBodyAttachment::StaticStruct()->GetFName());

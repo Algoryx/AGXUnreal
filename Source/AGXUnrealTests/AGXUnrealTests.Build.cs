@@ -21,7 +21,7 @@ public class AGXUnrealTests : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
-			"Core", "Engine", "UnrealEd", "CoreUObject", "AGXCommon", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor"
+			"UMG", "SlateCore", "BlueprintGraph", "KismetCompiler", "Core", "Engine", "UnrealEd", "CoreUObject", "AGXCommon", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor"
 		});
 	}
 }

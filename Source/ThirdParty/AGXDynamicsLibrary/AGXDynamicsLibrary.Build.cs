@@ -301,6 +301,12 @@ public class AGXDynamicsLibrary : ModuleRules
 		// PublicAdditionalLibraries list. See
 		// https://docs.unrealengine.com/en-US/ProductionPipelines/BuildTools/UnrealBuildTool/ModuleFiles/index.html
 		Dictionary<string, LibSource> LinkLibFiles = new Dictionary<string, LibSource>();
+		if (Target.Platform == UnrealTargetPlatform.Linux && Target.bBuildDeveloperTools)
+		{
+			// Development transport tests instantiate the header-only Zenoh C++ wrapper,
+			// which calls Zenoh C directly rather than only through agxPhysics.
+			LinkLibFiles.Add("zenohc", LibSource.Dependencies);
+		}
 		LinkLibFiles.Add("agxPhysics", LibSource.AGX);
 		LinkLibFiles.Add("agxCore", LibSource.AGX);
 		LinkLibFiles.Add("agxHydraulics", LibSource.AGX);

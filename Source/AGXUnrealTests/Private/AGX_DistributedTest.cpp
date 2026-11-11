@@ -5,8 +5,23 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-	FDistributedBodyTransformDecodeTest,
-	"AGXUnreal.Editor.Distributed.BodyTransformDecode",
+	FDistributedControlMessagesTest,
+	"AGXUnreal.Editor.Distributed.ControlMessagesWithoutPhysicsStep",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDistributedControlMessagesTest::RunTest(const FString& Parameters)
+{
+	FString Error;
+	if (!FTestUtilities::TestDistributedControlMessages(Error))
+	{
+		AddError(Error);
+		return false;
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FDistributedBodyTransformDecodeTest, "AGXUnreal.Editor.Distributed.BodyTransformDecode",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FDistributedBodyTransformDecodeTest::RunTest(const FString& Parameters)
@@ -31,33 +46,48 @@ bool FDistributedBodyTransformDecodeTest::RunTest(const FString& Parameters)
 	SetValue(3, 2, 0x4008000000000000ULL); // 3
 
 	TArray<FTransform> Transforms;
-	TestTrue(TEXT("Valid example wire payload"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestTrue(
+		TEXT("Valid example wire payload"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	TestEqual(TEXT("Body count"), Transforms.Num(), 1);
 	if (Transforms.Num() == 1)
 	{
-		TestTrue(TEXT("Meters to centimeters and Y handedness"),
+		TestTrue(
+			TEXT("Meters to centimeters and Y handedness"),
 			Transforms[0].GetTranslation().Equals(FVector(100, -200, 300)));
-		TestTrue(TEXT("Rotation handedness"),
-			Transforms[0].GetRotation().RotateVector(FVector::ForwardVector).Equals(
-				FVector(0, -1, 0), 1.e-6));
+		TestTrue(
+			TEXT("Rotation handedness"), Transforms[0]
+											 .GetRotation()
+											 .RotateVector(FVector::ForwardVector)
+											 .Equals(FVector(0, -1, 0), 1.e-6));
 	}
 	Transforms.Reset();
 	SetValue(3, 0, 0x7ff0000000000000ULL); // infinity
-	TestFalse(TEXT("Non-finite matrix rejected"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestFalse(
+		TEXT("Non-finite matrix rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	Transforms.Reset();
 	SetValue(3, 0, 0x3ff0000000000000ULL);
 	Data[7] = 2;
-	TestFalse(TEXT("Count mismatch rejected"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestFalse(
+		TEXT("Count mismatch rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	Transforms.Reset();
 	Data[7] = 1;
 	Data.RemoveAt(Data.Num() - 1);
-	TestFalse(TEXT("Truncated matrix rejected"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestFalse(
+		TEXT("Truncated matrix rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	Transforms.Reset();
 	Data.Init(0xff, 8);
-	TestFalse(TEXT("Oversized count rejected without allocation"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestFalse(
+		TEXT("Oversized count rejected without allocation"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	Transforms.Reset();
 	Data.Reset();
-	TestFalse(TEXT("Missing header rejected"), FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestFalse(
+		TEXT("Missing header rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
 	return true;
 }
 #endif

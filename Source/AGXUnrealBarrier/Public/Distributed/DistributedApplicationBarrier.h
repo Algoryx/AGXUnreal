@@ -12,6 +12,8 @@ class FSimulationBarrier;
 enum class EAGXDistributedEventType : uint8
 {
 	Started,
+	RemoveEntity,
+	ReleaseInterestResult,
 	StartFailed,
 	SpawnEntity,
 	EntityUpdate,
@@ -30,6 +32,8 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	uint64 EntityId {MAX_uint64};
 	uint64 AssetId {MAX_uint64};
 	FString AssetPath;
+	FGuid RequestId;
+	bool bRequestedValue {false};
 	FTransform Transform;
 	/** World-space body transforms in AssemblySerializer order, not component discovery order. */
 	TArray<FTransform> BodyTransforms;
@@ -54,6 +58,13 @@ public:
 	bool IsReady() const;
 	FString GetNodeId() const;
 
+	bool ResolveAsset(const FString& Path, uint64& OutId) const;
+	FString GetScenarioId() const;
+	bool FindWorldObject(const FString& ObjectKey, uint64& OutEntityId) const;
+	bool EnsureEntity(
+		const FGuid& RequestId, uint64 AssetId, const FTransform& Transform,
+		const FString& ObjectKey);
+	bool ReleaseInterest(const FGuid& RequestId, const FString& ObjectKey);
 	bool RequestSpawn(const FString& AssetPath, const FTransform& Transform, bool bPossess);
 	bool RequestPossession(uint64 EntityId, bool bPossess);
 	bool RequestSimulationAuthority(uint64 EntityId, bool bSimulate);

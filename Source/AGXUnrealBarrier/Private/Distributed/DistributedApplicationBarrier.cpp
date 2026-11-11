@@ -2,24 +2,32 @@
 
 #include "Distributed/DistributedApplicationBarrier.h"
 
+// AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
+#include "BarrierOnly/AGXRefs.h"
+#include "BarrierOnly/AGXTypeConversions.h"
 #include "SimulationBarrier.h"
+#include "Utilities/TestUtilities.h"
 
+// Unreal Engine includes.
+#include "HAL/PlatformProcess.h"
+
+// Standard library includes.
 #include <chrono>
 #include <cstring>
 #include <future>
 #include <mutex>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
-#include "Utilities/TestUtilities.h"
-
-#include "BarrierOnly/AGXRefs.h"
-#include "BarrierOnly/AGXTypeConversions.h"
-
+// AGX Dynamics includes.
 #include <BeginAGXIncludes.h>
 #include <agx/RigidBody.h>
 #include <agxDistributed/AgxApplicationLayer.h>
+#if WITH_DEV_AUTOMATION_TESTS
+#include <agxDistributed/WorldManager.h>
+#endif
 #include <EndAGXIncludes.h>
 
 namespace
@@ -197,6 +205,13 @@ namespace
 		}
 
 	protected:
+		void onRemoveEntity(agxDistributed::EntityId Id) override
+		{
+			FAGXDistributedEvent Event;
+			Event.Type = EAGXDistributedEventType::RemoveEntity;
+			Event.EntityId = Id.getId();
+			Events->Push(MoveTemp(Event));
+		}
 		void instantiateAsset(
 			agxDistributed::EntityId EntityId, agxDistributed::AssetId AssetId,
 			agx::AffineMatrix4x4 AssetTransform) override
@@ -225,10 +240,9 @@ namespace
 			for (const agxDistributed::EntityId Id : UpdatedEntities)
 			{
 				std::vector<uint8_t> AssetData;
-				const bool Found = withEntity(Id, [&AssetData](const agxDistributed::Entity& Entity)
-				{
-					AssetData = Entity.getEntityData().getAssetData();
-				});
+				const bool Found = withEntity(
+					Id, [&AssetData](const agxDistributed::Entity& Entity)
+					{ AssetData = Entity.getEntityData().getAssetData(); });
 				// Spawn requests may carry no body state yet. Leave the spawn transform intact.
 				if (!Found || AssetData.empty())
 					continue;
@@ -295,6 +309,7 @@ struct FDistributedApplicationBarrier::FImpl
 	struct FPendingSpawn
 	{
 		FString AssetPath;
+		FGuid RequestId;
 		std::future<agxDistributed::EntityId> Future;
 	};
 
@@ -309,6 +324,12 @@ struct FDistributedApplicationBarrier::FImpl
 	std::shared_ptr<FEventQueue> Events {std::make_shared<FEventQueue>()};
 	std::future<void> StartFuture;
 	std::vector<FPendingSpawn> Spawns;
+	struct FPendingRelease
+	{
+		FGuid RequestId;
+		std::future<bool> Future;
+	};
+	std::vector<FPendingRelease> Releases;
 	std::vector<FPendingAssignment> Possessions;
 	std::vector<FPendingAssignment> Authorities;
 	bool bReady {false};
@@ -405,6 +426,7 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 		FAGXDistributedEvent Event;
 		Event.Type = EAGXDistributedEventType::SpawnRequestResult;
 		Event.AssetPath = It->AssetPath;
+		Event.RequestId = It->RequestId;
 		try
 		{
 			const agxDistributed::EntityId Id = It->Future.get();
@@ -432,10 +454,13 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 			FAGXDistributedEvent Event;
 			Event.Type = Type;
 			Event.EntityId = It->EntityId;
+			Event.bRequestedValue = It->bRequestedValue;
 			Event.Message = It->bRequestedValue ? TEXT("acquire") : TEXT("release");
 			try
 			{
 				Event.bAccepted = It->Future.get().second;
+				if (!Event.bAccepted)
+					Event.Message = TEXT("World Manager rejected the assignment request.");
 			}
 			catch (const std::exception& Error)
 			{
@@ -445,6 +470,27 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 			It = Pending.erase(It);
 		}
 	};
+	for (auto It = Impl->Releases.begin(); It != Impl->Releases.end();)
+	{
+		if (!FutureReady(It->Future.wait_for(0ms)))
+		{
+			++It;
+			continue;
+		}
+		FAGXDistributedEvent Event;
+		Event.Type = EAGXDistributedEventType::ReleaseInterestResult;
+		Event.RequestId = It->RequestId;
+		try
+		{
+			Event.bAccepted = It->Future.get();
+		}
+		catch (const std::exception& Error)
+		{
+			Event.Message = UTF8_TO_TCHAR(Error.what());
+		}
+		Impl->Events->Push(MoveTemp(Event));
+		It = Impl->Releases.erase(It);
+	}
 	PollAssignments(Impl->Possessions, EAGXDistributedEventType::PossessionResult);
 	PollAssignments(Impl->Authorities, EAGXDistributedEventType::SimulationAuthorityResult);
 	if (Impl->bReady && Impl->Native != nullptr)
@@ -454,6 +500,9 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 		Impl->Native->triggerNewEntitiesProcessing();
 		Impl->Native->triggerEntityUpdatesProcessing();
 		Impl->Native->triggerSignalProcessing();
+		// START must be processed while the Unreal stepper is paused. Depending on
+		// preCollide alone would require the very physics step START enables.
+		Impl->Native->triggerControlMessageProcessing();
 	}
 	Impl->Events->Drain(OutEvents);
 }
@@ -470,6 +519,63 @@ FString FDistributedApplicationBarrier::GetNodeId() const
 	return {};
 }
 
+bool FDistributedApplicationBarrier::ResolveAsset(const FString& Path, uint64& OutId) const
+{
+	if (!IsReady())
+		return false;
+	auto Id = Impl->Native->getScenarioInfo().findAssetId(TCHAR_TO_UTF8(*Path));
+	if (!Id.has_value())
+		return false;
+	OutId = Id->getId();
+	return true;
+}
+
+FString FDistributedApplicationBarrier::GetScenarioId() const
+{
+	return IsReady() ? UTF8_TO_TCHAR(Impl->Native->getScenarioInfo().getScenarioId().c_str())
+					 : FString();
+}
+
+bool FDistributedApplicationBarrier::EnsureEntity(
+	const FGuid& RequestId, uint64 AssetId, const FTransform& Transform, const FString& ObjectKey)
+{
+	if (!IsReady())
+		return false;
+	try
+	{
+		Impl->Spawns.push_back(
+			{FString(), RequestId,
+			 Impl->Native->ensureEntity(
+				 agxDistributed::AssetId(AssetId), Convert(Transform), TCHAR_TO_UTF8(*ObjectKey),
+				 TCHAR_TO_UTF8(*RequestId.ToString()))});
+		return true;
+	}
+	catch (const std::exception& Error)
+	{
+		UE_LOG(LogAGX, Error, TEXT("Ensure entity: %s"), UTF8_TO_TCHAR(Error.what()));
+	}
+	return false;
+}
+
+bool FDistributedApplicationBarrier::ReleaseInterest(
+	const FGuid& RequestId, const FString& ObjectKey)
+{
+	if (!IsReady())
+		return false;
+	try
+	{
+		Impl->Releases.push_back(
+			{RequestId, Impl->Native->releaseEntityInterest(
+							TCHAR_TO_UTF8(*ObjectKey), TCHAR_TO_UTF8(*RequestId.ToString()))});
+		return true;
+	}
+	catch (const std::exception& Error)
+	{
+		UE_LOG(LogAGX, Error, TEXT("Release interest: %s"), UTF8_TO_TCHAR(Error.what()));
+	}
+	return false;
+}
+
 bool FDistributedApplicationBarrier::RequestSpawn(
 	const FString& AssetPath, const FTransform& Transform, bool bPossess)
 {
@@ -479,7 +585,7 @@ bool FDistributedApplicationBarrier::RequestSpawn(
 	{
 		// Q: What initial rigid-body state should the spawn blob contain?
 		Impl->Spawns.push_back(
-			{AssetPath,
+			{AssetPath, FGuid(),
 			 Impl->Native->requestEntitySpawn(
 				 std::string(TCHAR_TO_UTF8(*AssetPath)), Convert(Transform), "", bPossess)});
 		return true;
@@ -580,6 +686,102 @@ void FDistributedApplicationBarrier::Shutdown()
 	}
 	Impl->bReady = false;
 	Impl->Spawns.clear();
+	Impl->Releases.clear();
 	Impl->Possessions.clear();
 	Impl->Authorities.clear();
 }
+
+bool FDistributedApplicationBarrier::FindWorldObject(
+	const FString& ObjectKey, uint64& OutEntityId) const
+{
+	if (!IsReady())
+		return false;
+	const auto Id = Impl->Native->findWorldObject(TCHAR_TO_UTF8(*ObjectKey));
+	if (!Id.has_value())
+		return false;
+	OutEntityId = Id->getId();
+	return true;
+}
+
+#if WITH_DEV_AUTOMATION_TESTS
+bool FTestUtilities::TestDistributedControlMessages(FString& OutError)
+{
+	try
+	{
+		FSimulationBarrier Simulation;
+		Simulation.AllocateNative();
+		const double InitialTime = Simulation.GetTimeStamp();
+		agxDistributed::Node::Config Config;
+		Config.addSetting("mode", "\"peer\"");
+		Config.addSetting("listen/endpoints", "[\"tcp/127.0.0.1:17590\"]");
+		Config.addSetting("scouting/multicast/enabled", "false");
+		agx::ref_ptr<agxDistributed::WorldManager> Manager =
+			new agxDistributed::WorldManager(agxDistributed::ScenarioInfo(), Config);
+		Manager->start();
+
+		auto PublisherConfig = zenoh::Config::create_default();
+		PublisherConfig.insert_json5("mode", "\"client\"");
+		PublisherConfig.insert_json5("connect/endpoints", "[\"tcp/127.0.0.1:17590\"]");
+		PublisherConfig.insert_json5("scouting/multicast/enabled", "false");
+		auto Publisher = zenoh::Session::open(std::move(PublisherConfig));
+		FDistributedApplicationBarrier Client;
+		if (!Client.Initialize(Simulation, TEXT("tcp/127.0.0.1:17590")))
+			throw std::runtime_error("Control test client initialization failed");
+		Client.StartAndLoad(5);
+		auto WaitFor = [](FDistributedApplicationBarrier& Barrier,
+						  TArray<FAGXDistributedEvent>& Pending, EAGXDistributedEventType Type)
+		{
+			const auto Deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+			while (std::chrono::steady_clock::now() < Deadline)
+			{
+				Barrier.Poll(Pending);
+				const int32 Index = Pending.IndexOfByPredicate(
+					[Type](const FAGXDistributedEvent& Event) { return Event.Type == Type; });
+				if (Index != INDEX_NONE)
+				{
+					Pending.RemoveAt(Index);
+					return;
+				}
+				FPlatformProcess::Sleep(0.005f);
+			}
+			throw std::runtime_error(
+				"Timed out waiting for a control event from world-tick polling without a physics "
+				"step");
+		};
+		TArray<FAGXDistributedEvent> Pending;
+		WaitFor(Client, Pending, EAGXDistributedEventType::Started);
+		auto Command = [&](const char* Action, EAGXDistributedEventType Expected)
+		{
+			Publisher.put(zenoh::KeyExpr("control/simulation"), zenoh::Bytes(Action));
+			WaitFor(Client, Pending, Expected);
+		};
+		Command("START", EAGXDistributedEventType::SimulationStart);
+		Command("STOP", EAGXDistributedEventType::SimulationPause);
+		Command("START", EAGXDistributedEventType::SimulationStart);
+		Command("PAUSE", EAGXDistributedEventType::SimulationPause);
+		Command("START", EAGXDistributedEventType::SimulationStart);
+
+		// A second client must also dispatch the cached START while physics is paused.
+		FDistributedApplicationBarrier LateClient;
+		if (!LateClient.Initialize(Simulation, TEXT("tcp/127.0.0.1:17590")))
+			throw std::runtime_error("Late control test client initialization failed");
+		LateClient.StartAndLoad(5);
+		TArray<FAGXDistributedEvent> LatePending;
+		WaitFor(LateClient, LatePending, EAGXDistributedEventType::Started);
+		WaitFor(LateClient, LatePending, EAGXDistributedEventType::SimulationStart);
+		Command("STOP", EAGXDistributedEventType::SimulationPause);
+		WaitFor(LateClient, LatePending, EAGXDistributedEventType::SimulationPause);
+		Publisher.put(zenoh::KeyExpr("control/shutdown"), zenoh::Bytes(""));
+		WaitFor(Client, Pending, EAGXDistributedEventType::ShutdownRequested);
+		WaitFor(LateClient, LatePending, EAGXDistributedEventType::ShutdownRequested);
+		if (Simulation.GetTimeStamp() != InitialTime)
+			throw std::runtime_error("Control test unexpectedly advanced physics time");
+		return true;
+	}
+	catch (const std::exception& Error)
+	{
+		OutError = UTF8_TO_TCHAR(Error.what());
+		return false;
+	}
+}
+#endif
