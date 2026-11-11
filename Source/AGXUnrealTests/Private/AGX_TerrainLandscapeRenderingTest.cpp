@@ -2,20 +2,29 @@
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Simulation.h"
+#include "AGX_TerrainLandscapeTestUtilities.h"
 #include "AgxAutomationCommon.h"
+#include "Terrain/AGX_LandscapeMaterialLibrary.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainLandscapeRendererComponent.h"
 #include "Terrain/AGX_TerrainNaniteDisplacementData.h"
 #include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/TerrainPagerBarrier.h"
 
 // Unreal Engine includes.
+#include "Components/PrimitiveComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/WorldPartitionStreamingSourceComponent.h"
+#include "DeviceProfiles/DeviceProfile.h"
+#include "DeviceProfiles/DeviceProfileManager.h"
 #include "Editor.h"
 #include "Engine/SceneCapture2D.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/TargetPoint.h"
+#include "Engine/TextureLODSettings.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformTime.h"
@@ -27,13 +36,12 @@
 #include "LandscapeInfo.h"
 #include "LandscapeNaniteComponent.h"
 #include "LandscapeStreamingProxy.h"
+#include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/AutomationTest.h"
 #include "Modules/ModuleManager.h"
 #include "RendererInterface.h"
 #include "RenderingThread.h"
-#include "Terrain/AGX_LandscapeMaterialLibrary.h"
-#include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Tests/AutomationCommon.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "VT/RuntimeVirtualTexture.h"
@@ -41,6 +49,46 @@
 
 namespace
 {
+	class FScopedTileCountBias
+	{
+	public:
+		explicit FScopedTileCountBias(int32 Bias)
+			: Group(
+				  UDeviceProfileManager::Get()
+					  .GetActiveProfile()
+					  ->GetTextureLODSettings()
+					  ->GetTextureLODGroup(TEXTUREGROUP_World))
+			, Original(Group.VirtualTextureTileCountBias)
+		{
+			Group.VirtualTextureTileCountBias = Bias;
+		}
+		~FScopedTileCountBias()
+		{
+			Group.VirtualTextureTileCountBias = Original;
+		}
+
+	private:
+		FTextureLODGroup& Group;
+		int32 Original;
+	};
+
+	class FRestoreTileCountBias final : public IAutomationLatentCommand
+	{
+	public:
+		explicit FRestoreTileCountBias(TSharedPtr<FScopedTileCountBias> InBias)
+			: Bias(InBias)
+		{
+		}
+		virtual bool Update() override
+		{
+			Bias.Reset();
+			return true;
+		}
+
+	private:
+		TSharedPtr<FScopedTileCountBias> Bias;
+	};
+
 	class FPrepareSlopedLandscape final : public IAutomationLatentCommand
 	{
 	public:
@@ -228,8 +276,9 @@ namespace
 	class FCheckLandscapeRendering final : public IAutomationLatentCommand
 	{
 	public:
-		explicit FCheckLandscapeRendering(FAutomationTestBase& InTest)
+		explicit FCheckLandscapeRendering(FAutomationTestBase& InTest, bool InCheckNormals = false)
 			: Test(InTest)
+			, bCheckNormals(InCheckNormals)
 		{
 		}
 		virtual bool Update() override
@@ -290,6 +339,26 @@ namespace
 					TInlineComponentArray<ULandscapeNaniteComponent*> Nanite(*It);
 					for (auto* Component : Nanite)
 					{
+						Test.TestTrue(TEXT("Nanite rendering is active"), Component->IsEnabled());
+						const auto& Sources = Component->GetSourceLandscapeComponents();
+						for (int32 Index = 0; Index < Sources.Num(); ++Index)
+							if (Sources[Index] != nullptr &&
+								!Sources[Index]->MaterialInstancesDynamic.IsEmpty())
+							{
+								Test.TestEqual(
+									TEXT("Nanite shares its source component's live material"),
+									Component->GetMaterial(Index),
+									static_cast<UMaterialInterface*>(
+										Sources[Index]->MaterialInstancesDynamic[0].Get()));
+								It->SetLandscapeMaterialScalarParameterValue(
+									TEXT("AGX_TestRuntimeParameter"), 0.375f);
+								auto* MID =
+									Cast<UMaterialInstanceDynamic>(Component->GetMaterial(Index));
+								Test.TestTrue(
+									TEXT("Gameplay material parameters reach Nanite"),
+									MID != nullptr && MID->K2_GetScalarParameterValue(TEXT(
+														  "AGX_TestRuntimeParameter")) == 0.375f);
+							}
 						UStaticMesh* Mesh = Component->GetStaticMesh();
 						auto* Metadata =
 							Mesh == nullptr
@@ -337,6 +406,7 @@ namespace
 					auto Baseline = Terrain->GetSourceTileSnapshot(Tile.Corner, Tile.SideVertices);
 					if (!Baseline.IsValid())
 						continue;
+					CaptureBaselines.Add(Tile.Id, Baseline);
 					for (int32 Index = 0; Index < Tile.Heights.Num(); ++Index)
 					{
 						const double Change =
@@ -371,7 +441,12 @@ namespace
 				Camera->CaptureSource = ESceneCaptureSource::SCS_SceneDepth;
 				Camera->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
 				for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+				{
 					Camera->ShowOnlyActorComponents(*It);
+					TInlineComponentArray<UPrimitiveComponent*> Components(*It);
+					for (auto* Component : Components)
+						Component->SetVisibleInSceneCaptureOnly(true);
+				}
 				Camera->TextureTarget = NewObject<UTextureRenderTarget2D>(Capture);
 				Camera->TextureTarget->InitCustomFormat(
 					CapturePixels, CapturePixels, PF_A32B32G32R32F, true);
@@ -464,6 +539,14 @@ namespace
 				Test.TestTrue(
 					TEXT("Evicted active pages regenerate without another physics edit"),
 					Renderer->GetGeneratedPageCount() > PagesBeforeEviction);
+				if (bCheckNormals)
+				{
+					Capture->GetCaptureComponent2D()->CaptureSource =
+						ESceneCaptureSource::SCS_Normal;
+					CaptureStart = FPlatformTime::Seconds();
+					Phase = 4;
+					return false;
+				}
 				Capture->Destroy();
 				UGameplayStatics::SetGamePaused(World, false);
 				Renderer->SetEnabled(false);
@@ -476,6 +559,116 @@ namespace
 				Phase = 2;
 				return false;
 			}
+			if (Phase >= 4 && Phase <= 6)
+			{
+				Capture->GetCaptureComponent2D()->CaptureScene();
+				if (FPlatformTime::Seconds() - CaptureStart < 1.0)
+					return false;
+				TArray<FLinearColor> Pixels;
+				Capture->GetCaptureComponent2D()
+					->TextureTarget->GameThread_GetRenderTargetResource()
+					->ReadLinearColorPixels(Pixels);
+				double AngleSum = 0;
+				int32 Checked = 0;
+				const FVector Detail =
+					Phase == 4 ? FVector::UpVector : FVector(0.2, 0.15, 1).GetSafeNormal();
+				for (int32 Row = 0; Row < CapturePixels; ++Row)
+					for (int32 Column = 0; Column < CapturePixels; ++Column)
+					{
+						const FVector Position =
+							CaptureCenter +
+							FVector(
+								(0.5 - (Row + 0.5) / CapturePixels) * CaptureWidth,
+								((Column + 0.5) / CapturePixels - 0.5) * CaptureWidth, 0);
+						for (const auto& Tile : CaptureTiles)
+						{
+							const FVector Local =
+								Frame.InverseTransformVectorNoScale(Position - Tile.Corner) /
+								Tile.Spacing;
+							if (Local.X < 1 || Local.Y < 1 || Local.X >= Tile.SideVertices - 3 ||
+								Local.Y >= Tile.SideVertices - 3)
+								continue;
+							const int32 X = FMath::FloorToInt(Local.X);
+							const int32 Y = FMath::FloorToInt(Local.Y);
+							const TArray<float>* Heights = &Tile.Heights;
+							if (Phase == 6)
+							{
+								const auto* Baseline = CaptureBaselines.Find(Tile.Id);
+								if (Baseline == nullptr)
+									continue;
+								Heights = &(*Baseline)->Heights;
+							}
+							auto Height = [&Tile, Heights](int32 I, int32 J)
+							{
+								return (
+									*Heights)[I + (Tile.SideVertices - 1 - J) * Tile.SideVertices];
+							};
+							auto Gradient = [&](int32 I, int32 J)
+							{
+								return FVector2D(
+										   Height(I + 1, J) - Height(I, J),
+										   Height(I, J + 1) - Height(I, J)) /
+									   Tile.Spacing;
+							};
+							const FVector2D G = FMath::Lerp(
+								FMath::Lerp(Gradient(X, Y), Gradient(X + 1, Y), Local.X - X),
+								FMath::Lerp(
+									Gradient(X, Y + 1), Gradient(X + 1, Y + 1), Local.X - X),
+								Local.Y - Y);
+							const FVector Surface =
+								Frame.TransformVectorNoScale(FVector(-G.X, -G.Y, 1))
+									.GetSafeNormal();
+							const FVector Expected =
+								FQuat::FindBetweenNormals(FVector::UpVector, Surface)
+									.RotateVector(Detail);
+							if (!Pixels.IsValidIndex(Column + Row * CapturePixels))
+								continue;
+							const FLinearColor Pixel = Pixels[Column + Row * CapturePixels];
+							const FVector Actual(Pixel.R, Pixel.G, Pixel.B);
+							if (Actual.SizeSquared() < 0.5)
+								continue;
+							AngleSum += FMath::RadiansToDegrees(
+								FMath::Acos(
+									FMath::Clamp(
+										FVector::DotProduct(Expected, Actual.GetSafeNormal()), -1.0,
+										1.0)));
+							++Checked;
+							break;
+						}
+					}
+				Test.TestTrue(TEXT("GPU shading-normal capture covers terrain"), Checked > 100);
+				Test.AddInfo(
+					FString::Printf(
+						TEXT("GPU shading normals%s: %d samples, mean angular error %.3f degrees"),
+						Phase == 6 ? TEXT(" outside Terrain Bounds")
+								   : (Phase == 5 ? TEXT(" with existing normal input") : TEXT("")),
+						Checked, AngleSum / FMath::Max(Checked, 1)));
+				Test.TestTrue(
+					TEXT("Shading normals agree with the native surface and preserve normal input"),
+					AngleSum / FMath::Max(Checked, 1) < 5.0);
+				if (Phase == 4)
+				{
+					for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+						It->SetLandscapeMaterialVectorParameterValue(
+							TEXT("AGX_TestNormal"),
+							FLinearColor(DetailNormal.X, DetailNormal.Y, DetailNormal.Z));
+					Phase = 5;
+					CaptureStart = FPlatformTime::Seconds();
+					return false;
+				}
+				if (Phase == 5)
+				{
+					for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+						It->SetLandscapeMaterialVectorParameterValue(
+							TEXT("AGX_TerrainHalfExtent"), FLinearColor::Transparent);
+					Phase = 6;
+					CaptureStart = FPlatformTime::Seconds();
+					return false;
+				}
+				Capture->Destroy();
+				UGameplayStatics::SetGamePaused(World, false);
+				return true;
+			}
 			if (Phase == 2)
 			{
 				if (Simulation->GetTimeStamp() < TimeDisabled + 0.5)
@@ -486,6 +679,22 @@ namespace
 				Test.TestTrue(
 					TEXT("Active native tiles survive renderer disablement"),
 					!Terrain->GetNativeTerrainPager()->GetActiveTileTransforms().IsEmpty());
+				for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+				{
+					It->bUseDynamicMaterialInstance = true;
+					for (ULandscapeComponent* Component : It->LandscapeComponents)
+					{
+						if (Component->MaterialInstancesDynamic.IsEmpty())
+							for (UMaterialInstanceConstant* Parent : Component->MaterialInstances)
+								Component->MaterialInstancesDynamic.Add(
+									UMaterialInstanceDynamic::Create(Parent, Component));
+						for (UMaterialInstanceDynamic* Material :
+							 Component->MaterialInstancesDynamic)
+							if (Material != nullptr)
+								Material->SetScalarParameterValue(
+									TEXT("AGX_TestExistingOverride"), 42.5f);
+					}
+				}
 				Renderer->SetEnabled(true);
 				Phase = 3;
 				return false;
@@ -495,11 +704,22 @@ namespace
 			Test.TestTrue(
 				TEXT("Re-enabled rendering restores the working set"),
 				Renderer->GetRetainedHeightBytes() > 0);
+			for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+				for (ULandscapeComponent* Component : It->LandscapeComponents)
+					for (UMaterialInstanceDynamic* Material : Component->MaterialInstancesDynamic)
+						if (Material != nullptr)
+							Test.TestEqual(
+								TEXT("Binding preserves existing runtime overrides"),
+								Material->K2_GetScalarParameterValue(
+									TEXT("AGX_TestExistingOverride")),
+								42.5f);
 			return true;
 		}
 
 	private:
 		FAutomationTestBase& Test;
+		bool bCheckNormals = false;
+		const FVector DetailNormal = FVector(0.2, 0.15, 1).GetSafeNormal();
 		double Start = 0.0;
 		double TimeDisabled = 0.0;
 		bool bEvicted = false;
@@ -509,6 +729,8 @@ namespace
 		FVector CaptureCenter;
 		FTransform Frame;
 		TArray<FTerrainTileHeights> CaptureTiles;
+		TMap<FIntPoint, TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe>>
+			CaptureBaselines;
 		double CaptureStart = 0;
 		static constexpr int32 CapturePixels = 128;
 		static constexpr double CaptureWidth = 160;
@@ -530,22 +752,41 @@ void FAGX_TerrainLandscapeRenderingTest::GetTests(
 	Commands.Add(TEXT("Slope"));
 	Names.Add(TEXT("WorldPartitionLandscape"));
 	Commands.Add(TEXT("/Game/Levels/TerrainLandscapePaging_WP"));
+	Names.Add(TEXT("CoarseSourceFinePhysics"));
+	Commands.Add(TEXT("Coarse"));
+	Names.Add(TEXT("CoarseCollisionMip"));
+	Commands.Add(TEXT("CoarseMip"));
+	Names.Add(TEXT("ShadingNormalsFlat"));
+	Commands.Add(TEXT("Normals"));
+	Names.Add(TEXT("ShadingNormalsSlope"));
+	Commands.Add(TEXT("NormalsSlope"));
+	Names.Add(TEXT("NegativeDeviceProfileBias"));
+	Commands.Add(TEXT("ProfileNegative"));
+	Names.Add(TEXT("PositiveDeviceProfileBias"));
+	Commands.Add(TEXT("ProfilePositive"));
 }
 
 bool FAGX_TerrainLandscapeRenderingTest::RunTest(const FString& Map)
 {
+	TSharedPtr<FScopedTileCountBias> ProfileBias;
+	if (Map.StartsWith(TEXT("Profile")))
+		ProfileBias = MakeShared<FScopedTileCountBias>(Map == TEXT("ProfileNegative") ? -2 : 1);
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(
-		(Map == TEXT("Slope") || Map == TEXT("Translated"))
-			? TEXT("/Game/Levels/TerrainLandscapePaging")
-			: Map));
-	if (Map == TEXT("Slope"))
+		(!Map.StartsWith(TEXT("/Game/"))) ? TEXT("/Game/Levels/TerrainLandscapePaging") : Map));
+	if (Map.StartsWith(TEXT("Coarse")) || Map.StartsWith(TEXT("Normals")))
+		ADD_LATENT_AUTOMATION_COMMAND(FAGX_PrepareLandscapeScenario(
+			*this, Map.StartsWith(TEXT("Coarse")), Map.StartsWith(TEXT("Normals")), false,
+			Map == TEXT("CoarseMip") ? 1 : 0));
+	if (Map == TEXT("Slope") || Map == TEXT("NormalsSlope") || Map.StartsWith(TEXT("Profile")))
 		ADD_LATENT_AUTOMATION_COMMAND(FPrepareSlopedLandscape(*this));
 	if (Map == TEXT("Translated"))
 		ADD_LATENT_AUTOMATION_COMMAND(FTranslateLandscapeFixture());
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckLandscapeRendering(*this));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckLandscapeRendering(*this, Map.StartsWith(TEXT("Normals"))));
 	if (Map.EndsWith(TEXT("_WP")))
 		ADD_LATENT_AUTOMATION_COMMAND(FCheckProxyStreaming(*this));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
+	if (ProfileBias.IsValid())
+		ADD_LATENT_AUTOMATION_COMMAND(FRestoreTileCountBias(ProfileBias));
 	return true;
 }

@@ -4,13 +4,13 @@
 
 // Unreal Engine includes.
 #include "CoreMinimal.h"
-#include "HAL/CriticalSection.h"
 #include "VirtualTexturing.h"
 
 // Standard library includes.
 #include <atomic>
 
-/** Only the active AGX tile working set. Shared with the producer; contains no UObjects. */
+/** Render-owned active AGX tiles. Commands publish changes; page generation never locks gameplay.
+ */
 struct FAGX_TerrainVirtualTextureData
 {
 	struct FTile
@@ -20,20 +20,30 @@ struct FAGX_TerrainVirtualTextureData
 		double Spacing = 0.0;
 		int32 Side = 0;
 		TArray<float> Heights;
+		struct FMip
+		{
+			int32 Side = 0;
+			TArray<float> Heights;
+		};
+		TArray<FMip> Mips;
+
+		/** Empty vertices rebuilds all levels. Otherwise update only affected parent samples. */
+		AGXUNREAL_API void UpdateMips(TConstArrayView<FIntPoint> Vertices = {});
 	};
-	FRWLock Lock;
 	TMap<FIntPoint, FTile> Tiles;
 	FTransform Frame;
 	FVector2D CoverageMin;
 	FVector2D CoverageSize;
+	FVector2D TerrainHalfExtent;
 	int32 MaxPagesPerFrame = 32;
 	std::atomic<int64> ProducedPages {0};
+	std::atomic<int64> RetainedHeightBytes {0};
 	std::atomic<double> LastProductionMilliseconds {0.0};
 
-	/** Current height [cm], plane derivatives dZ/dX and dZ/dY, validity. Caller holds a read lock.
-	 */
-	AGXUNREAL_API FVector4f
-	Sample(const FVector2D& Position, TConstArrayView<const FTile*> Candidates) const;
+	/** Height [cm], dZ/dX, dZ/dY, validity. Footprints > native spacing use box-filtered mips. */
+	AGXUNREAL_API FVector4f Sample(
+		const FVector2D& Position, TConstArrayView<const FTile*> Candidates,
+		double Footprint = 0.0) const;
 };
 
 IVirtualTexture* AGX_CreateTerrainVirtualTextureProducer(

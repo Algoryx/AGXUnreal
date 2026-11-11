@@ -6,14 +6,58 @@
 #include "HAL/PlatformTime.h"
 #include "Math/UnrealMathUtility.h"
 #include "Misc/EngineVersionComparison.h"
-#include "Misc/ScopeRWLock.h"
 #include "RenderGraphBuilder.h"
 #include "RenderTargetPool.h"
 #include "RHICommandList.h"
 #include "ShaderParameterStruct.h"
 
+void FAGX_TerrainVirtualTextureData::FTile::UpdateMips(TConstArrayView<FIntPoint> Vertices)
+{
+	Mips.Reserve(FMath::CeilLogTwo(Side));
+	TSet<FIntPoint> Dirty;
+	Dirty.Append(Vertices);
+	const TArray<float>* Source = &Heights;
+	int32 SourceSide = Side;
+	int32 Level = 0;
+	while (SourceSide > 1)
+	{
+		const int32 TargetSide = FMath::DivideAndRoundUp(SourceSide, 2);
+		if (!Mips.IsValidIndex(Level))
+			Mips.AddDefaulted();
+		auto& Target = Mips[Level];
+		const bool bFull = Vertices.IsEmpty() || Target.Side != TargetSide;
+		Target.Side = TargetSide;
+		Target.Heights.SetNumUninitialized(TargetSide * TargetSide);
+		TSet<FIntPoint> Parents;
+		if (!bFull)
+			for (const FIntPoint& Vertex : Dirty)
+				Parents.Add(Vertex / 2);
+		auto Filter = [&](int32 X, int32 Y)
+		{
+			float Sum = 0.f;
+			for (int32 DY = 0; DY < 2; ++DY)
+				for (int32 DX = 0; DX < 2; ++DX)
+					Sum += (*Source)
+						[FMath::Min(2 * X + DX, SourceSide - 1) +
+						 FMath::Min(2 * Y + DY, SourceSide - 1) * SourceSide];
+			Target.Heights[X + Y * TargetSide] = Sum * 0.25f;
+		};
+		if (bFull)
+			for (int32 Y = 0; Y < TargetSide; ++Y)
+				for (int32 X = 0; X < TargetSide; ++X)
+					Filter(X, Y);
+		else
+			for (const FIntPoint& Parent : Parents)
+				Filter(Parent.X, Parent.Y);
+		Dirty = MoveTemp(Parents);
+		Source = &Target.Heights;
+		SourceSide = TargetSide;
+		++Level;
+	}
+}
+
 FVector4f FAGX_TerrainVirtualTextureData::Sample(
-	const FVector2D& Position, TConstArrayView<const FTile*> Candidates) const
+	const FVector2D& Position, TConstArrayView<const FTile*> Candidates, double Footprint) const
 {
 	// Stable ownership of overlapping samples: select the tile with the deepest interior.
 	// This keeps border interpolation from switching unpredictably with TMap iteration order.
@@ -42,13 +86,25 @@ FVector4f FAGX_TerrainVirtualTextureData::Sample(
 	}
 	if (Best == nullptr)
 		return FVector4f(0.f, 0.f, 0.f, 0.f);
-	const int32 X = FMath::Min(FMath::FloorToInt(Coordinate.X), Best->Side - 2);
-	const int32 Y = FMath::Min(FMath::FloorToInt(Coordinate.Y), Best->Side - 2);
-	auto Height = [Best](int32 Column, int32 Row)
-	{
-		// Heights from AGX are stored with Y reversed relative to Unreal.
-		return Best->Heights[Column + (Best->Side - 1 - Row) * Best->Side];
-	};
+	const int32 Level = FMath::Clamp(
+		FMath::FloorToInt(FMath::Log2(FMath::Max(1.0, Footprint / Best->Spacing))), 0,
+		Best->Mips.Num());
+	const double Scale = static_cast<double>(1u << Level);
+	const int32 Side = Level == 0 ? Best->Side : Best->Mips[Level - 1].Side;
+	const auto& Heights = Level == 0 ? Best->Heights : Best->Mips[Level - 1].Heights;
+	// Parent texels are centered on their children's box footprint, in native (reversed Y) order.
+	Coordinate =
+		(FVector2D(Coordinate.X, Best->Side - 1 - Coordinate.Y) - FVector2D((Scale - 1.0) * 0.5)) /
+		Scale;
+	Coordinate.X = FMath::Clamp(Coordinate.X, 0.0, static_cast<double>(Side - 1));
+	Coordinate.Y = FMath::Clamp(Coordinate.Y, 0.0, static_cast<double>(Side - 1));
+	Coordinate.Y = Side - 1 - Coordinate.Y;
+	if (Side == 1)
+		return FVector4f(Heights[0], 0, 0, 1);
+	const int32 X = FMath::Min(FMath::FloorToInt(Coordinate.X), Side - 2);
+	const int32 Y = FMath::Min(FMath::FloorToInt(Coordinate.Y), Side - 2);
+	auto Height = [&Heights, Side](int32 Column, int32 Row)
+	{ return Heights[Column + (Side - 1 - Row) * Side]; };
 	const float H00 = Height(X, Y);
 	const float H10 = Height(X + 1, Y);
 	const float H01 = Height(X, Y + 1);
@@ -57,8 +113,8 @@ FVector4f FAGX_TerrainVirtualTextureData::Sample(
 	const float V = static_cast<float>(Coordinate.Y - Y);
 	return FVector4f(
 		FMath::Lerp(FMath::Lerp(H00, H10, U), FMath::Lerp(H01, H11, U), V),
-		FMath::Lerp(H10 - H00, H11 - H01, V) / Best->Spacing,
-		FMath::Lerp(H01 - H00, H11 - H10, U) / Best->Spacing, 1.f);
+		FMath::Lerp(H10 - H00, H11 - H01, V) / (Best->Spacing * Scale),
+		FMath::Lerp(H01 - H00, H11 - H10, U) / (Best->Spacing * Scale), 1.f);
 }
 
 namespace
@@ -120,7 +176,6 @@ namespace
 			const int32 Interior = Description.TileSize;
 			const int32 Border = Description.TileBorderSize;
 			const int32 Physical = Interior + 2 * Border;
-			FReadScopeLock Lock(Data->Lock);
 			for (const FPage& Page : Pages)
 			{
 				const uint32 X = FMath::ReverseMortonCode2(static_cast<uint32>(Page.Address));
@@ -158,7 +213,8 @@ namespace
 								FVector2D(
 									static_cast<double>(X) * Interior + Column - Border + 0.5,
 									static_cast<double>(Y) * Interior + Row - Border + 0.5);
-						Pixels[Column + Row * Physical] = Data->Sample(Position, Candidates);
+						Pixels[Column + Row * Physical] = Data->Sample(
+							Position, Candidates, FMath::Max(TexelSize.X, TexelSize.Y));
 					}
 				}
 				FRDGTextureRef Texture = GraphBuilder.RegisterExternalTexture(Page.Target);

@@ -495,6 +495,8 @@ bool AAGX_Terrain::CanEditChange(const FProperty* InProperty) const
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bEnableTerrainPaging))
 		return false;
+	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SimulationResolution))
+		return false;
 	else
 		return SuperCanEditChange;
 }

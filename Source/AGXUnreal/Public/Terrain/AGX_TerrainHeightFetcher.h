@@ -26,6 +26,8 @@ struct FAGX_TerrainSourceTile
 class AGXUNREAL_API FAGX_TerrainHeightFetcher : public FTerrainHeightFetcherBase
 {
 public:
+	FAGX_TerrainHeightFetcher();
+	virtual ~FAGX_TerrainHeightFetcher();
 	virtual bool FetchHeights(
 		const FVector& WorldPosStart, int32 VertsX, int32 VertsY,
 		TArray<float>& OutHeights) const override;
@@ -53,9 +55,9 @@ private:
 	};
 	mutable std::mutex SnapshotMutex;
 	mutable TMap<FIntPoint, FRequest> Requests;
-	// Game-thread-only incremental work: at most one additional tile (4 MiB).
-	TSharedPtr<FAGX_TerrainSourceTile, ESPMode::ThreadSafe> BuildingTile;
-	FIntPoint BuildingKey;
+	// One bounded asynchronous resampling job; it owns numeric data, never this fetcher.
+	struct FSourceCache;
+	TUniquePtr<FSourceCache> SourceCache;
 	uint64 ServiceFrame = 0;
 	uint64 LastServiceFrame = MAX_uint64;
 	FTransform SnapshotFrame;

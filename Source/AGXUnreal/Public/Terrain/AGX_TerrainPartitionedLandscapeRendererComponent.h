@@ -110,14 +110,22 @@ public:
 	void Update();
 	void Shutdown();
 
+#if WITH_EDITOR
+	virtual bool CanEditChange(const FProperty* Property) const override;
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
+#endif
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
+	virtual void TickComponent(
+		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
 
 private:
 	void BindProxy(ALandscapeProxy& Proxy);
 	void OnLevelAdded(ULevel* Level, UWorld* World);
 	void OnLevelRemoved(ULevel* Level, UWorld* World);
 	void Invalidate(const FVector2D& Min, const FVector2D& Max);
+	void RequestPages();
 	void RestoreMaterials(ULevel* Level = nullptr);
 	UPROPERTY(Transient)
 	URuntimeVirtualTexture* VirtualTexture = nullptr;
@@ -142,4 +150,5 @@ private:
 	TArray<TWeakObjectPtr<ALandscapeProxy>> PendingProxies;
 	bool bWarnedMaterial = false;
 	bool bWarnedPreparation = false;
+	bool bWarnedClipping = false;
 };

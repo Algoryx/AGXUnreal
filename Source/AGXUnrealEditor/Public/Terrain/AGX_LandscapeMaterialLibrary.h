@@ -26,7 +26,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Landscape Material")
 	static bool SetNaniteDisplacement(
 		UMaterial* Material, UMaterialExpression* Expression, int32 OutputIndex = 0,
-		float Magnitude = 1000.f, float Center = 0.5f, bool bClearLegacyOffsets = false);
+		float Magnitude = 50.f, float Center = 0.5f, bool bClearLegacyOffsets = false);
 
 	UFUNCTION(BlueprintPure, Category = "AGX Landscape Material")
 	static TArray<UMaterialExpression*> GetMaterialExpressions(UMaterial* Material);
@@ -41,7 +41,8 @@ public:
 		UMaterial* Material, UMaterialExpression* Previous, UMaterialExpression* Replacement,
 		int32 OutputIndex = 0);
 
-	/** Build vertical Nanite displacement data and retain original shading normals in UV6.
+	/** Build vertical Nanite displacement data and retain original shading normals in UV3.
+	 * UV3 replaces Nanite's YZ terrain-coordinate mapping; custom materials must reserve it.
 	 * IncludeUnloadedProxies processes a World Partition Landscape one proxy at a time.
 	 * SavePackages saves the generated mesh and affected proxy packages.
 	 */

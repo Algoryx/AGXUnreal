@@ -3,6 +3,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 // AGX Dynamics for Unreal includes.
+#include "Terrain/AGX_TerrainLandscapeSource.h"
 #include "Terrain/AGX_TerrainVirtualTexture.h"
 
 // Unreal Engine includes.
@@ -58,6 +59,89 @@ bool FAGX_TerrainVirtualTextureSamplingTest::RunTest(const FString&)
 	TestEqual(
 		TEXT("An evicted page with no active tile regenerates neutrally"),
 		Data.Sample(FVector2D::ZeroVector, Candidates).X, 0.f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FAGX_TerrainVirtualTextureMipTest, "AGXUnreal.TerrainLandscape.FilteredRVT",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+
+bool FAGX_TerrainVirtualTextureMipTest::RunTest(const FString&)
+{
+	FAGX_TerrainVirtualTextureData Data;
+	FAGX_TerrainVirtualTextureData::FTile Tile;
+	Tile.Id = FIntPoint::ZeroValue;
+	Tile.Corner = FVector2D::ZeroVector;
+	Tile.Side = 8;
+	Tile.Spacing = 20;
+	for (int32 Y = 0; Y < Tile.Side; ++Y)
+		for (int32 X = 0; X < Tile.Side; ++X)
+			Tile.Heights.Add((X + Y) % 2 == 0 ? -100.f : 100.f);
+	Tile.UpdateMips();
+	TArray<const FAGX_TerrainVirtualTextureData::FTile*> Candidates {&Tile};
+	TestEqual(
+		TEXT("Fine native vertices retain exact heights"),
+		Data.Sample(FVector2D::ZeroVector, Candidates).X, 100.f);
+	TestEqual(
+		TEXT("Coarse texels average alternating digging and piling instead of aliasing"),
+		Data.Sample(FVector2D(60, 60), Candidates, 40).X, 0.f);
+	Tile.Heights[0] += 40;
+	TArray<FIntPoint> Modified {FIntPoint::ZeroValue};
+	Tile.UpdateMips(Modified);
+	TestEqual(
+		TEXT("Incremental mip updates propagate through every parent"), Tile.Mips.Last().Heights[0],
+		40.f / 64.f);
+	for (int32 Y = 0; Y < Tile.Side; ++Y)
+		for (int32 X = 0; X < Tile.Side; ++X)
+			Tile.Heights[X + Y * Tile.Side] = 2.f * X + 4.f * (Tile.Side - 1 - Y);
+	Tile.UpdateMips();
+	const FVector4f Plane = Data.Sample(FVector2D(60, 60), Candidates, 40);
+	TestEqual(TEXT("Box filtering retains plane height"), Plane.X, 18.f);
+	TestEqual(TEXT("Box filtering retains X gradient"), Plane.Y, 0.1f);
+	TestEqual(TEXT("Box filtering retains Y gradient"), Plane.Z, 0.2f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FAGX_TerrainLandscapeSourceTest, "AGXUnreal.TerrainLandscape.CollisionGridResampling",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+
+bool FAGX_TerrainLandscapeSourceTest::RunTest(const FString&)
+{
+	FAGX_TerrainLandscapeSource Source;
+	Source.ComponentQuads = 4;
+	Source.Spacing = 25;
+	Source.LandscapeTransform = FTransform(
+		FRotator(0, 30, 0), FVector(20000000, -30000000, 5000000), FVector(200, 300, 100));
+	Source.Frame = FTransform(
+		Source.LandscapeTransform.GetRotation(), Source.LandscapeTransform.GetTranslation());
+	auto Chunk = MakeShared<FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>();
+	Chunk->Quads = 2; // Collision mip 1: fewer collision quads than Landscape quads.
+	Chunk->Heights = {0, 0, 0, 0, 100, 100, 0, 100, 100};
+	Source.Chunks.Add(FIntPoint::ZeroValue, Chunk);
+	float Height = -1;
+	const FVector Probe = Source.LandscapeTransform.TransformPosition(FVector(1, 0.5, 0));
+	TestTrue(
+		TEXT("Coarse collision data samples in a translated, rotated, nonuniform frame"),
+		Source.Sample(Probe, Height));
+	TestEqual(
+		TEXT("Triangle interpolation agrees with collision, rather than bilinear height"), Height,
+		25.f);
+	const FVector Edge = Source.LandscapeTransform.TransformPosition(FVector(4, 4, 0));
+	TestTrue(
+		TEXT("Outer component edge needs no adjacent loaded proxy"), Source.Sample(Edge, Height));
+	TestEqual(TEXT("Exact outer edge height"), Height, 100.f);
+	const auto Tile = Source.Resample(Source.Frame.GetTranslation(), 17, 17);
+	TestTrue(TEXT("Fine physics grid resamples immutable coarse source data"), Tile.IsValid());
+	if (Tile.IsValid())
+	{
+		TestEqual(TEXT("Complete native tile"), Tile->Heights.Num(), 17 * 17);
+		TestEqual(TEXT("Output uses AGX reversed Y row order"), Tile->Heights[0], 0.f);
+	}
+	Source.Chunks.Empty();
+	TestFalse(
+		TEXT("Missing source is recoverable, with no fabricated heights"),
+		Source.Resample(Source.Frame.GetTranslation(), 17, 17).IsValid());
 	return true;
 }
 

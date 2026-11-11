@@ -3,17 +3,39 @@
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_LogCategory.h"
-#include "Terrain/AGX_Terrain.h"
+#include "Terrain/AGX_TerrainLandscapeSource.h"
 
 // Unreal Engine includes.
+#include "Async/Async.h"
 #include "EngineGlobals.h"
 #include "HAL/PlatformTime.h"
 #include "Landscape.h"
+#include "LandscapeHeightfieldCollisionComponent.h"
+#include "LandscapeInfo.h"
+
+struct FAGX_TerrainHeightFetcher::FSourceCache
+{
+	struct FEntry
+	{
+		TSharedPtr<const FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe> Chunk;
+		uint64 LastUsedFrame = 0;
+	};
+	TMap<FIntPoint, FEntry> Chunks;
+	TFuture<TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe>> Job;
+	FIntPoint JobKey;
+};
+
+FAGX_TerrainHeightFetcher::FAGX_TerrainHeightFetcher()
+	: SourceCache(MakeUnique<FSourceCache>())
+{
+}
+
+FAGX_TerrainHeightFetcher::~FAGX_TerrainHeightFetcher() = default;
 
 bool FAGX_TerrainHeightFetcher::FetchHeights(
 	const FVector& WorldPosStart, int32 VertsX, int32 VertsY, TArray<float>& OutHeights) const
 {
+	OutHeights.Reset();
 	auto Snapshot = GetOrRequestSnapshot(WorldPosStart, VertsX, VertsY);
 	if (!Snapshot.IsValid())
 		return false;
@@ -63,15 +85,14 @@ FAGX_TerrainHeightFetcher::GetOrRequestSnapshot(
 	}
 	if (Requests.Num() >= MaxRequests)
 	{
-		// Evict the least recently used entry; native failures are retryable on the next step.
 		auto Oldest = Requests.CreateConstIterator();
 		FIntPoint OldestKey = Oldest.Key();
 		uint64 OldestFrame = Oldest.Value().LastUsedFrame;
-		for (auto It = Requests.CreateIterator(); It; ++It)
-			if (It.Value().LastUsedFrame < OldestFrame)
+		for (const auto& Entry : Requests)
+			if (Entry.Value.LastUsedFrame < OldestFrame)
 			{
-				OldestKey = It.Key();
-				OldestFrame = It.Value().LastUsedFrame;
+				OldestKey = Entry.Key;
+				OldestFrame = Entry.Value.LastUsedFrame;
 			}
 		Requests.Remove(OldestKey);
 	}
@@ -87,9 +108,20 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 		return;
 	LastServiceFrame = GFrameCounter;
 	TArray<TPair<FIntPoint, FRequest>> Pending;
+	int64 Bytes = 0;
 	{
 		std::lock_guard<std::mutex> Lock(SnapshotMutex);
 		ServiceFrame = GFrameCounter;
+		if (SourceCache->Job.IsValid() && SourceCache->Job.IsReady())
+		{
+			auto Tile = SourceCache->Job.Get();
+			SourceCache->Job = {};
+			if (Tile.IsValid())
+				if (FRequest* Request = Requests.Find(SourceCache->JobKey))
+					if (Request->Corner == Tile->Corner && Request->SizeX == Tile->SizeX &&
+						Request->SizeY == Tile->SizeY)
+						Request->Snapshot = Tile;
+		}
 		for (auto It = Requests.CreateIterator(); It; ++It)
 		{
 			if (GFrameCounter > It.Value().LastUsedFrame + 120)
@@ -97,102 +129,178 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 			else if (!It.Value().Snapshot.IsValid())
 				Pending.Emplace(It.Key(), It.Value());
 		}
+		for (const auto& Entry : Requests)
+			if (Entry.Value.Snapshot.IsValid())
+				Bytes += Entry.Value.Snapshot->Heights.GetAllocatedSize();
 	}
-	if (BuildingTile.IsValid() && !Pending.ContainsByPredicate(
-									  [this](const auto& Entry)
-									  {
-										  return Entry.Key == BuildingKey &&
-												 Entry.Value.Corner == BuildingTile->Corner &&
-												 Entry.Value.SizeX == BuildingTile->SizeX &&
-												 Entry.Value.SizeY == BuildingTile->SizeY;
-									  }))
-		BuildingTile.Reset();
-	Pending.StableSort(
-		[this](const auto& A, const auto& B)
-		{ return BuildingTile.IsValid() && A.Key == BuildingKey && B.Key != BuildingKey; });
+	for (auto It = SourceCache->Chunks.CreateIterator(); It; ++It)
+	{
+		if (GFrameCounter > It.Value().LastUsedFrame + 120)
+			It.RemoveCurrent();
+		else
+			Bytes += It.Value().Chunk->Heights.GetAllocatedSize();
+	}
+	// Completed tiles and collision chunks share the existing 32 MiB cache budget.
+	// A running job can additionally pin one cache generation and one output tile (<=4 MiB).
+	// Leave admission room for the largest supported component, even at a full cache.
+	while (Bytes > MaxSourceSnapshotBytes - MaxVerticesPerTile * sizeof(float))
+	{
+		uint64 OldestFrame = MAX_uint64;
+		FIntPoint OldestKey = FIntPoint::ZeroValue;
+		bool bChunk = false;
+		bool bFound = false;
+		for (const auto& Entry : SourceCache->Chunks)
+			if (Entry.Value.LastUsedFrame <= OldestFrame)
+			{
+				OldestFrame = Entry.Value.LastUsedFrame;
+				OldestKey = Entry.Key;
+				bChunk = bFound = true;
+			}
+		std::lock_guard<std::mutex> Lock(SnapshotMutex);
+		for (const auto& Entry : Requests)
+			if (Entry.Value.Snapshot.IsValid() && Entry.Value.LastUsedFrame <= OldestFrame)
+			{
+				OldestFrame = Entry.Value.LastUsedFrame;
+				OldestKey = Entry.Key;
+				bChunk = false;
+				bFound = true;
+			}
+		if (!bFound)
+			break;
+		if (bChunk)
+		{
+			Bytes -= SourceCache->Chunks[OldestKey].Chunk->Heights.GetAllocatedSize();
+			SourceCache->Chunks.Remove(OldestKey);
+		}
+		else
+		{
+			Bytes -= Requests[OldestKey].Snapshot->Heights.GetAllocatedSize();
+			Requests[OldestKey].Snapshot.Reset();
+		}
+	}
+	if (SourceCache->Job.IsValid() || Pending.IsEmpty())
+		return;
+	ULandscapeInfo* Info = Landscape.GetLandscapeInfo();
+	const int32 ComponentQuads = Landscape.ComponentSizeQuads;
+	if (Info == nullptr || ComponentQuads <= 0)
+		return;
+	// UE keys collision components by SectionBase / CollisionSizeQuads. Probe the small
+	// set of supported collision mips, verifying the section base before accepting a hit.
+	// No per-frame traversal of all loaded Landscape components is necessary.
+	auto FindCollision = [&](const FIntPoint& Key) -> ULandscapeHeightfieldCollisionComponent*
+	{
+		const FIntPoint Section = Key * ComponentQuads;
+		for (int32 Mip = 0; ((Landscape.SubsectionSizeQuads + 1) >> Mip) > 1; ++Mip)
+		{
+			const int32 Quads =
+				(((Landscape.SubsectionSizeQuads + 1) >> Mip) - 1) * Landscape.NumSubsections;
+			auto* Component = Info->XYtoCollisionComponentMap.FindRef(Section / Quads);
+			if (IsValid(Component) && Component->IsRegistered() &&
+				Component->GetSectionBase() == Section)
+				return Component;
+		}
+		return nullptr;
+	};
 	const double Start = FPlatformTime::Seconds();
 	int32 Samples = 0;
 	for (const auto& Entry : Pending)
 	{
-		const FRequest& Request = Entry.Value;
-		if (Samples >= 65536)
+		if (Samples >= 65536 || FPlatformTime::Seconds() - Start >= 0.004)
 			break;
-		if (!BuildingTile.IsValid())
-		{
-			BuildingKey = Entry.Key;
-			BuildingTile = MakeShared<FAGX_TerrainSourceTile, ESPMode::ThreadSafe>();
-			BuildingTile->Corner = Request.Corner;
-			BuildingTile->SizeX = Request.SizeX;
-			BuildingTile->SizeY = Request.SizeY;
-			BuildingTile->Heights.Reserve(Request.SizeX * Request.SizeY);
-		}
-		auto Tile = BuildingTile;
-		bool bAvailable = true;
-		while (Tile->Heights.Num() < Request.SizeX * Request.SizeY)
-		{
-			// Bound work inside a large tile too. Resume only on the game thread next frame.
-			if (Samples >= 65536 ||
-				((Samples & 63) == 0 && FPlatformTime::Seconds() - Start >= 0.004))
-				return;
-			const int32 Index = Tile->Heights.Num();
-			const int32 X = Index % Request.SizeX;
-			const int32 Y = Request.SizeY - 1 - Index / Request.SizeX;
-			const FVector Position =
-				Request.Corner + SnapshotFrame.TransformVectorNoScale(
-									 FVector(X * SnapshotSpacing, Y * SnapshotSpacing, 0.0));
-			++Samples;
-			const TOptional<float> Height = Landscape.GetHeightAtLocation(Position);
-			if (!Height.IsSet())
+		FAGX_TerrainLandscapeSource Source;
+		Source.LandscapeTransform = Landscape.LandscapeActorToWorld();
+		Source.Frame = SnapshotFrame;
+		Source.Spacing = SnapshotSpacing;
+		Source.ComponentQuads = ComponentQuads;
+		const FRequest& Request = Entry.Value;
+		FBox2D GridBounds(ForceInit);
+		for (int32 Y : {0, Request.SizeY - 1})
+			for (int32 X : {0, Request.SizeX - 1})
 			{
-				bAvailable = false;
-				break;
+				const FVector World =
+					Request.Corner + SnapshotFrame.TransformVectorNoScale(
+										 FVector(X * SnapshotSpacing, Y * SnapshotSpacing, 0));
+				const FVector Grid = Source.LandscapeTransform.InverseTransformPosition(World);
+				GridBounds += FVector2D(Grid.X, Grid.Y);
 			}
-			Tile->Heights.Add(
-				static_cast<float>(
-					SnapshotFrame
-						.InverseTransformPositionNoScale(FVector(Position.X, Position.Y, *Height))
-						.Z));
-		}
-		BuildingTile.Reset();
-		if (bAvailable)
-		{
-			std::lock_guard<std::mutex> Lock(SnapshotMutex);
-			if (FRequest* Current = Requests.Find(Entry.Key))
-				if (Current->Corner == Tile->Corner && Current->SizeX == Tile->SizeX &&
-					Current->SizeY == Tile->SizeY)
-					Current->Snapshot = Tile;
-			int64 Bytes = 0;
-			for (const auto& Cached : Requests)
-				if (Cached.Value.Snapshot.IsValid())
-					Bytes += Cached.Value.Snapshot->Heights.GetAllocatedSize();
-			while (Bytes > MaxSourceSnapshotBytes)
+		const FIntPoint Min(
+			FMath::FloorToInt(GridBounds.Min.X / ComponentQuads) - 1,
+			FMath::FloorToInt(GridBounds.Min.Y / ComponentQuads) - 1);
+		const FIntPoint Max(
+			FMath::FloorToInt(GridBounds.Max.X / ComponentQuads),
+			FMath::FloorToInt(GridBounds.Max.Y / ComponentQuads));
+		if (static_cast<int64>(Max.X - Min.X + 1) * (Max.Y - Min.Y + 1) > MaxRequests)
+			continue;
+		for (int32 Y = Min.Y; Y <= Max.Y; ++Y)
+			for (int32 X = Min.X; X <= Max.X; ++X)
 			{
-				FIntPoint OldestKey = FIntPoint::ZeroValue;
-				uint64 OldestFrame = MAX_uint64;
-				bool bFound = false;
-				for (const auto& Cached : Requests)
+				const FIntPoint Key(X, Y);
+				auto* Cached = SourceCache->Chunks.Find(Key);
+				if (Cached == nullptr && Samples < 65536 &&
+					FPlatformTime::Seconds() - Start < 0.004)
 				{
-					if (Cached.Key != Entry.Key && Cached.Value.Snapshot.IsValid() &&
-						Cached.Value.LastUsedFrame <= OldestFrame)
-					{
-						bFound = true;
-						OldestKey = Cached.Key;
-						OldestFrame = Cached.Value.LastUsedFrame;
-					}
+					auto* Collision = FindCollision(Key);
+					if (!IsValid(Collision) || !Collision->IsRegistered() ||
+						Collision->CollisionSizeQuads <= 0)
+						continue;
+					const int32 Side = Collision->CollisionSizeQuads + 1;
+					const int64 Count = static_cast<int64>(Side) * Side;
+					if (Count > MaxVerticesPerTile ||
+						Bytes + Count * sizeof(float) > MaxSourceSnapshotBytes)
+						continue;
+					auto Chunk =
+						MakeShared<FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>();
+					Chunk->Quads = Side - 1;
+					Chunk->Heights.SetNumUninitialized(static_cast<int32>(Count));
+					Samples += static_cast<int32>(Count);
+					// Runtime collision API includes exact edges and respects CollisionMipLevel.
+					// Each read is indivisible; check the time budget between component reads.
+					if (!Collision->FillHeightTile(Chunk->Heights, 0, Side) ||
+						Chunk->Heights.ContainsByPredicate([](float Height)
+														   { return !FMath::IsFinite(Height); }))
+						continue;
+					for (float& Height : Chunk->Heights)
+						Height = static_cast<float>(Height - SnapshotFrame.GetTranslation().Z);
+					Bytes += Chunk->Heights.GetAllocatedSize();
+					SourceCache->Chunks.Add(Key, {Chunk, GFrameCounter});
+					Cached = SourceCache->Chunks.Find(Key);
 				}
-				if (!bFound)
-					break;
-				Bytes -= Requests[OldestKey].Snapshot->Heights.GetAllocatedSize();
-				Requests.Remove(OldestKey);
+				if (Cached != nullptr)
+				{
+					Cached->LastUsedFrame = GFrameCounter;
+					Source.Chunks.Add(Key, Cached->Chunk);
+				}
 			}
-		}
+		bool bCornersAvailable = true;
+		for (int32 Y : {0, Request.SizeY - 1})
+			for (int32 X : {0, Request.SizeX - 1})
+			{
+				float Height;
+				bCornersAvailable &= Source.Sample(
+					Request.Corner + SnapshotFrame.TransformVectorNoScale(
+										 FVector(X * SnapshotSpacing, Y * SnapshotSpacing, 0)),
+					Height);
+			}
+		if (!bCornersAvailable)
+			continue;
+		SourceCache->JobKey = Entry.Key;
+		SourceCache->Job = Async(
+			EAsyncExecution::ThreadPool,
+			[Source = MoveTemp(Source), Corner = Request.Corner, SizeX = Request.SizeX,
+			 SizeY = Request.SizeY]()
+			{
+				TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:LandscapeSourceResampling"));
+				return Source.Resample(Corner, SizeX, SizeY);
+			});
+		break;
 	}
 }
 
 void FAGX_TerrainHeightFetcher::ResetSnapshots()
 {
 	check(IsInGameThread());
-	BuildingTile.Reset();
+	// Outstanding numeric jobs do not refer to the fetcher, Landscape, or world.
+	SourceCache = MakeUnique<FSourceCache>();
 	std::lock_guard<std::mutex> Lock(SnapshotMutex);
 	Requests.Empty();
 }

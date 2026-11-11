@@ -16,6 +16,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
 #include "Landscape.h"
 #include "LandscapeComponent.h"
@@ -23,18 +24,19 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "Misc/ScopeRWLock.h"
 #include "Modules/ModuleManager.h"
 #include "RendererInterface.h"
 #include "RenderingThread.h"
 #include "RHI.h"
+#include "UObject/UnrealType.h"
 #include "VT/RuntimeVirtualTexture.h"
 #include "VT/VirtualTexturePoolConfig.h"
 
 UAGX_TerrainPartitionedLandscapeRendererComponent::
 	UAGX_TerrainPartitionedLandscapeRendererComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bTickEvenWhenPaused = true;
 }
 
 UAGX_TerrainPartitionedLandscapeRendererComponent::
@@ -164,7 +166,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 			*Terrain->GetName());
 	}
 	const double RequiredPages = RequiredSamples(TexelSpacing) / PageSize;
-	const int32 TileCountLog2 =
+	int32 TileCountLog2 =
 		FMath::Clamp(FMath::CeilToInt(FMath::Log2(FMath::Max(1.0, RequiredPages))), 0, MaxLog2);
 	const FVector2D Size(static_cast<double>(PageSize) * (1 << TileCountLog2) * TexelSpacing);
 	const FVector2D CoverageMin = FirstVertex(TexelSpacing) - FVector2D(TexelSpacing * 0.5);
@@ -172,6 +174,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 	Data->Frame = Bounds->Transform;
 	Data->CoverageMin = CoverageMin;
 	Data->CoverageSize = Size;
+	Data->TerrainHalfExtent = Half;
 	Data->MaxPagesPerFrame = MaxPagesPerFrame;
 	UAGX_TerrainDisplacementVirtualTexture* RuntimeTexture =
 		NewObject<UAGX_TerrainDisplacementVirtualTexture>(this);
@@ -185,6 +188,29 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 	FVTProducerDescription Description;
 	RuntimeTexture->GetProducerDescription(
 		Description, URuntimeVirtualTexture::FInitSettings(), Volume);
+	// Compensate this producer's tile-count bias without changing project/device settings.
+	// The coverage must retain exactly the native-vertex/texel-center lattice on both axes.
+	const uint32 RequiredSide = static_cast<uint32>(PageSize) * (1u << TileCountLog2);
+	URuntimeVirtualTexture::FInitSettings InitSettings;
+	const uint32 EffectiveSide = Description.BlockWidthInTiles * Description.TileSize;
+	InitSettings.TileCountBias =
+		FMath::RoundToInt(FMath::Log2(static_cast<double>(RequiredSide) / EffectiveSide));
+	RuntimeTexture->GetProducerDescription(Description, InitSettings, Volume);
+	if (Description.TileSize != static_cast<uint32>(PageSize) ||
+		Description.BlockWidthInTiles * Description.TileSize != RequiredSide ||
+		Description.BlockHeightInTiles * Description.TileSize != RequiredSide)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"Terrain '%s' cannot preserve its RVT sampling lattice under "
+				"the active device profile. Check the virtual texture tile-size bias, coverage and "
+				"Page Size."),
+			*Terrain->GetName());
+		VirtualTexture = nullptr;
+		Data.Reset();
+		return;
+	}
 	Description.bPersistentHighestMip = true;
 	Description.bRequiresSinglePhysicalPool = true;
 	// Mask4 has an identity float4 shader unpack. The custom producer stores precise
@@ -269,72 +295,40 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 				"Landscape proxy '%s' has no Nanite rendering components. Enable Nanite and build "
 				"Landscape Nanite data before cooking."),
 			*Proxy.GetName());
-	TInlineComponentArray<UPrimitiveComponent*> Components(&Proxy);
-	for (UPrimitiveComponent* Primitive : Components)
+	// Bind the ordinary components first, then share their live MIDs with Nanite sections.
+	for (ULandscapeComponent* LandscapeComponent : Proxy.LandscapeComponents)
 	{
-		ULandscapeComponent* LandscapeComponent = Cast<ULandscapeComponent>(Primitive);
-		if (LandscapeComponent == nullptr && !Primitive->IsA<ULandscapeNaniteComponent>())
+		if (LandscapeComponent == nullptr)
 			continue;
-		bool bPrepared = true;
-		if (auto* Nanite = Cast<ULandscapeNaniteComponent>(Primitive))
-		{
-			UStaticMesh* Mesh = Nanite->GetStaticMesh();
-			const auto* Metadata =
-				Mesh == nullptr
-					? nullptr
-					: Cast<UAGX_TerrainNaniteDisplacementData>(Mesh->GetAssetUserDataOfClass(
-						  UAGX_TerrainNaniteDisplacementData::StaticClass()));
-			bPrepared = Mesh != nullptr && Metadata != nullptr && Metadata->IsCurrent(*Mesh);
-			if (!bPrepared && !bWarnedPreparation)
-			{
-				bWarnedPreparation = true;
-				UE_LOG(
-					LogAGX, Error,
-					TEXT(
-						"Landscape Nanite mesh '%s' needs AGX deformation preparation. Use AGX "
-						"Terrain mode's Prepare and Save Deformable Nanite after assigning the "
-						"deformable "
-						"material, then save before cooking."),
-					*GetNameSafe(Mesh));
-			}
-		}
+		UPrimitiveComponent* Primitive = LandscapeComponent;
 		FAGX_TerrainLandscapeMaterialBinding Binding;
 		Binding.Component = Primitive;
 		Binding.OriginalShadowCacheInvalidation =
 			static_cast<uint8>(Primitive->ShadowCacheInvalidationBehavior);
 		Primitive->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
 		TArray<UMaterialInterface*> Parents;
-		if (LandscapeComponent != nullptr)
-		{
-			Binding.OriginalPositiveZBoundsExtension = LandscapeComponent->PositiveZBoundsExtension;
-			Binding.OriginalNegativeZBoundsExtension = LandscapeComponent->NegativeZBoundsExtension;
-			LandscapeComponent->PositiveZBoundsExtension = FMath::Max(
-				LandscapeComponent->PositiveZBoundsExtension,
-				static_cast<float>(
-					DisplacementRange /
-					FMath::Max(
-						FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
-			LandscapeComponent->NegativeZBoundsExtension = FMath::Max(
-				LandscapeComponent->NegativeZBoundsExtension,
-				static_cast<float>(
-					DisplacementRange /
-					FMath::Max(
-						FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
-			LandscapeComponent->UpdateBounds();
-			for (UMaterialInstanceDynamic* Original : LandscapeComponent->MaterialInstancesDynamic)
-				Binding.OriginalMaterials.Add(Original);
-			for (UMaterialInterface* Material : LandscapeComponent->MaterialInstances)
-				Parents.Add(Material);
-		}
-		else
-		{
-			for (int32 Index = 0; Index < Primitive->GetNumMaterials(); ++Index)
-			{
-				UMaterialInterface* Original = Primitive->GetMaterial(Index);
-				Binding.OriginalMaterials.Add(Original);
-				Parents.Add(Original);
-			}
-		}
+		Binding.OriginalPositiveZBoundsExtension = LandscapeComponent->PositiveZBoundsExtension;
+		Binding.OriginalNegativeZBoundsExtension = LandscapeComponent->NegativeZBoundsExtension;
+		LandscapeComponent->PositiveZBoundsExtension = FMath::Max(
+			LandscapeComponent->PositiveZBoundsExtension,
+			static_cast<float>(
+				DisplacementRange /
+				FMath::Max(FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
+		LandscapeComponent->NegativeZBoundsExtension = FMath::Max(
+			LandscapeComponent->NegativeZBoundsExtension,
+			static_cast<float>(
+				DisplacementRange /
+				FMath::Max(FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
+		LandscapeComponent->UpdateBounds();
+		for (UMaterialInstanceDynamic* Original : LandscapeComponent->MaterialInstancesDynamic)
+			Binding.OriginalMaterials.Add(Original);
+		for (int32 Index = 0; Index < LandscapeComponent->MaterialInstances.Num(); ++Index)
+			Parents.Add(
+				LandscapeComponent->MaterialInstancesDynamic.IsValidIndex(Index) &&
+						LandscapeComponent->MaterialInstancesDynamic[Index] != nullptr
+					? static_cast<UMaterialInterface*>(
+						  LandscapeComponent->MaterialInstancesDynamic[Index].Get())
+					: LandscapeComponent->MaterialInstances[Index].Get());
 		for (int32 Index = 0; Index < Parents.Num(); ++Index)
 		{
 			UMaterialInterface* Parent = Parents[Index];
@@ -347,11 +341,10 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 				continue;
 			UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Parent, this);
 			if (PreviousDynamic != nullptr)
-				Material->CopyInterpParameters(PreviousDynamic);
+				Material->CopyMaterialUniformParameters(PreviousDynamic);
 			Material->SetRuntimeVirtualTextureParameterValue(
 				VirtualTextureParameter, VirtualTexture);
-			Material->SetScalarParameterValue(
-				TEXT("AGX_DeformationEnabled"), bPrepared ? 1.f : 0.f);
+			Material->SetScalarParameterValue(TEXT("AGX_DeformationEnabled"), 1.f);
 			Material->SetScalarParameterValue(TEXT("AGX_DisplacementRange"), DisplacementRange);
 			const FVector Origin = Data->Frame.GetTranslation();
 			const FVector3f OriginHigh(Origin);
@@ -371,6 +364,9 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 				TEXT("AGX_LandscapeAxisX"), FLinearColor(AxisX.X, AxisX.Y, AxisX.Z));
 			Material->SetVectorParameterValue(
 				TEXT("AGX_LandscapeAxisY"), FLinearColor(AxisY.X, AxisY.Y, AxisY.Z));
+			Material->SetVectorParameterValue(
+				TEXT("AGX_TerrainHalfExtent"),
+				FLinearColor(Data->TerrainHalfExtent.X, Data->TerrainHalfExtent.Y, 0, 0));
 			const double MinimumScale = FMath::Abs(Primitive->GetComponentScale().Z);
 			const double SupportedTravel =
 				FMath::Min(Scaling.Center, 1.f - Scaling.Center) * Scaling.Magnitude * MinimumScale;
@@ -397,13 +393,51 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 					*Parent->GetName());
 			}
 			Binding.Materials.Add(Material);
-			if (LandscapeComponent == nullptr)
-				Primitive->SetMaterial(Index, Material);
 		}
-		if (LandscapeComponent != nullptr)
+		LandscapeComponent->MaterialInstancesDynamic = Binding.Materials;
+		LandscapeComponent->MarkRenderStateDirty();
+		Bindings.Add(MoveTemp(Binding));
+	}
+	for (ULandscapeNaniteComponent* Nanite : NaniteComponents)
+	{
+		FAGX_TerrainLandscapeMaterialBinding Binding;
+		Binding.Component = Nanite;
+		Binding.OriginalShadowCacheInvalidation =
+			static_cast<uint8>(Nanite->ShadowCacheInvalidationBehavior);
+		Nanite->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+		for (int32 Index = 0; Index < Nanite->GetNumMaterials(); ++Index)
+			Binding.OriginalMaterials.Add(Nanite->GetMaterial(Index));
+		UStaticMesh* Mesh = Nanite->GetStaticMesh();
+		const auto* Metadata =
+			Mesh == nullptr
+				? nullptr
+				: Cast<UAGX_TerrainNaniteDisplacementData>(Mesh->GetAssetUserDataOfClass(
+					  UAGX_TerrainNaniteDisplacementData::StaticClass()));
+		const bool bPrepared = Metadata != nullptr && Metadata->IsCurrent(*Mesh);
+		if (!bPrepared && !bWarnedPreparation)
 		{
-			LandscapeComponent->MaterialInstancesDynamic = Binding.Materials;
-			LandscapeComponent->MarkRenderStateDirty();
+			bWarnedPreparation = true;
+			UE_LOG(
+				LogAGX, Error,
+				TEXT(
+					"Landscape Nanite mesh '%s' needs AGX deformation "
+					"preparation. Use AGX Terrain mode's Prepare and Save Deformable Nanite "
+					"after assigning the deformable material, then save before cooking."),
+				*GetNameSafe(Mesh));
+		}
+		const auto& Sources = Nanite->GetSourceLandscapeComponents();
+		for (int32 Index = 0; Index < Sources.Num(); ++Index)
+		{
+			ULandscapeComponent* Source = Sources[Index];
+			if (Source == nullptr || Source->MaterialInstancesDynamic.IsEmpty())
+				continue;
+			UMaterialInstanceDynamic* Material = Source->MaterialInstancesDynamic[0];
+			if (Material == nullptr)
+				continue;
+			Material->SetScalarParameterValue(
+				TEXT("AGX_DeformationEnabled"), bPrepared ? 1.f : 0.f);
+			Nanite->SetMaterial(Index, Material);
+			Binding.Materials.Add(Material);
 		}
 		Bindings.Add(MoveTemp(Binding));
 	}
@@ -422,19 +456,16 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()
 	for (auto It = OriginalDynamicMaterialFlags.CreateIterator(); It; ++It)
 		if (!It.Key().IsValid())
 			It.RemoveCurrent();
+
 	auto Updates = Terrain->GetNativeTerrainPager()->GetTileHeightUpdates(KnownTiles);
-	{
-		FWriteScopeLock Lock(Data->Lock);
-		for (auto It = Tiles.CreateIterator(); It; ++It)
+	TArray<FIntPoint> Removed;
+	for (auto It = Tiles.CreateIterator(); It; ++It)
+		if (!KnownTiles.Contains(It.Key()))
 		{
-			if (!KnownTiles.Contains(It.Key()))
-			{
-				// Deliberately preserve already produced GPU pages; AGX owns terrain history.
-				Data->Tiles.Remove(It.Key());
-				It.RemoveCurrent();
-			}
+			Removed.Add(It.Key());
+			It.RemoveCurrent();
 		}
-	}
+	TArray<FBox2D> Regions;
 	for (const FTerrainTileHeights& Update : Updates)
 	{
 		FTileState& Tile = Tiles.FindOrAdd(Update.Id);
@@ -447,69 +478,199 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()
 			Tile.Spacing = Update.Spacing;
 		}
 		else
-		{
 			for (int32 Index = 0; Index < Update.ModifiedVertices.Num(); ++Index)
 			{
 				const FIntPoint Vertex = Update.ModifiedVertices[Index];
 				Tile.Heights[Vertex.X + Vertex.Y * Tile.Side] = Update.Heights[Index];
 			}
+		const FVector Local = Data->Frame.InverseTransformPositionNoScale(Tile.Corner);
+		const FVector2D Corner(Local.X, Local.Y);
+		if (Update.bFullRefresh)
+			Regions.Emplace(
+				Corner - FVector2D(Tile.Spacing), Corner + FVector2D(Tile.Side * Tile.Spacing));
+		else
+		{
+			// Separate small edits rather than enclosing distant modified vertices in one box.
+			TMap<FIntPoint, FBox2D> Blocks;
+			for (const FIntPoint& Vertex : Update.ModifiedVertices)
+			{
+				const FVector2D Position =
+					Corner + FVector2D(Vertex.X, Tile.Side - 1 - Vertex.Y) * Tile.Spacing;
+				Blocks.FindOrAdd(Vertex / 64, FBox2D(ForceInit)) += Position;
+			}
+			for (const auto& Block : Blocks)
+				Regions.Emplace(
+					Block.Value.Min - FVector2D(Tile.Spacing),
+					Block.Value.Max + FVector2D(Tile.Spacing));
 		}
 	}
 	for (auto& Entry : Tiles)
 	{
-		FTileState& Tile = Entry.Value;
-		const FTerrainTileHeights* Update = Updates.FindByPredicate(
-			[&Entry](const auto& Candidate) { return Candidate.Id == Entry.Key; });
-		// Heights are absolute in the pager frame. A source baseline is optional diagnostic
-		// data, so a restored cached tile can render even before its source proxy arrives.
-		if (!Tile.Baseline.IsValid())
+		auto& Tile = Entry.Value;
+		const bool bNewBaseline = !Tile.Baseline.IsValid();
+		if (bNewBaseline)
 			Tile.Baseline = Terrain->GetSourceTileSnapshot(Tile.Corner, Tile.Side);
-		if (Update == nullptr && Data->Tiles.Contains(Entry.Key))
+		if (bWarnedClipping || !Tile.Baseline.IsValid())
 			continue;
-		const FVector LocalCorner = Data->Frame.InverseTransformPositionNoScale(Tile.Corner);
-		FVector2D DirtyMin(LocalCorner.X, LocalCorner.Y);
-		FVector2D DirtyMax = DirtyMin + FVector2D((Tile.Side - 1) * Tile.Spacing);
+		const auto* Update = Updates.FindByPredicate([&Entry](const auto& Candidate)
+													 { return Candidate.Id == Entry.Key; });
+		auto Check = [&](int32 Index)
 		{
-			FWriteScopeLock Lock(Data->Lock);
-			const bool bFull =
-				!Data->Tiles.Contains(Entry.Key) || (Update != nullptr && Update->bFullRefresh);
-			auto& RenderTile = Data->Tiles.FindOrAdd(Entry.Key);
-			RenderTile.Id = Entry.Key;
-			RenderTile.Corner = FVector2D(LocalCorner.X, LocalCorner.Y);
-			RenderTile.Spacing = Tile.Spacing;
-			RenderTile.Side = Tile.Side;
-			if (bFull)
-			{
-				RenderTile.Heights.SetNumUninitialized(Tile.Heights.Num());
-				for (int32 Index = 0; Index < Tile.Heights.Num(); ++Index)
-					RenderTile.Heights[Index] = Tile.Heights[Index];
-			}
-			else
-			{
-				DirtyMin = FVector2D(TNumericLimits<double>::Max());
-				DirtyMax = -DirtyMin;
-				for (const FIntPoint& Vertex : Update->ModifiedVertices)
-				{
-					const int32 Index = Vertex.X + Vertex.Y * Tile.Side;
-					RenderTile.Heights[Index] = Tile.Heights[Index];
-					const FVector2D Position =
-						RenderTile.Corner +
-						FVector2D(Vertex.X, Tile.Side - 1 - Vertex.Y) * Tile.Spacing;
-					DirtyMin = FVector2D(
-						FMath::Min(DirtyMin.X, Position.X), FMath::Min(DirtyMin.Y, Position.Y));
-					DirtyMax = FVector2D(
-						FMath::Max(DirtyMax.X, Position.X), FMath::Max(DirtyMax.Y, Position.Y));
-				}
-			}
-		}
-		// Include interpolation neighbors and the physical border. UE invalidates all affected
-		// mips.
-		const double Padding = FMath::Max(
-			Tile.Spacing, FMath::Max(Data->CoverageSize.X, Data->CoverageSize.Y) /
-							  VirtualTexture->GetSize() * 5.0);
-		Invalidate(DirtyMin - FVector2D(Padding), DirtyMax + FVector2D(Padding));
+			if (FMath::Abs(Tile.Heights[Index] - Tile.Baseline->Heights[Index]) > DisplacementRange)
+				bWarnedClipping = true;
+		};
+		if (bNewBaseline || (Update != nullptr && Update->bFullRefresh))
+			for (int32 Index = 0; Index < Tile.Heights.Num(); ++Index)
+				Check(Index);
+		else if (Update != nullptr)
+			for (const FIntPoint& Vertex : Update->ModifiedVertices)
+				Check(Vertex.X + Vertex.Y * Tile.Side);
+		if (bWarnedClipping)
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"Terrain '%s' deformation exceeds Displacement Range "
+					"(%.3f cm). Rendering clamps; physics and retained heights are unchanged. "
+					"Increase the renderer range and material displacement bounds before playing."),
+				*Terrain->GetName(), DisplacementRange);
 	}
+	if (!Updates.IsEmpty() || !Removed.IsEmpty())
+	{
+		ENQUEUE_RENDER_COMMAND(AGX_PublishTerrainHeights)(
+			[RenderData = Data.ToSharedRef(), Updates = MoveTemp(Updates),
+			 Removed = MoveTemp(Removed)](FRHICommandListImmediate&)
+			{
+				for (const FIntPoint& Id : Removed)
+					RenderData->Tiles.Remove(Id);
+				for (const FTerrainTileHeights& Update : Updates)
+				{
+					auto& Tile = RenderData->Tiles.FindOrAdd(Update.Id);
+					if (Update.bFullRefresh)
+					{
+						const FVector Local =
+							RenderData->Frame.InverseTransformPositionNoScale(Update.Corner);
+						Tile.Id = Update.Id;
+						Tile.Corner = FVector2D(Local.X, Local.Y);
+						Tile.Spacing = Update.Spacing;
+						Tile.Side = Update.SideVertices;
+						Tile.Heights = Update.Heights;
+						Tile.UpdateMips();
+					}
+					else
+					{
+						for (int32 Index = 0; Index < Update.ModifiedVertices.Num(); ++Index)
+						{
+							const FIntPoint Vertex = Update.ModifiedVertices[Index];
+							Tile.Heights[Vertex.X + Vertex.Y * Tile.Side] = Update.Heights[Index];
+						}
+						Tile.UpdateMips(Update.ModifiedVertices);
+					}
+				}
+				int64 Bytes = 0;
+				for (const auto& Entry : RenderData->Tiles)
+				{
+					Bytes += Entry.Value.Heights.GetAllocatedSize();
+					for (const auto& Mip : Entry.Value.Mips)
+						Bytes += Mip.Heights.GetAllocatedSize();
+				}
+				RenderData->RetainedHeightBytes = Bytes;
+			});
+	}
+	// UE expands each invalidation for the physical border at every affected mip.
+	for (const FBox2D& Region : Regions)
+		Invalidate(Region.Min, Region.Max);
 }
+
+void UAGX_TerrainPartitionedLandscapeRendererComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, TickFunction);
+	RequestPages();
+}
+
+void UAGX_TerrainPartitionedLandscapeRendererComponent::RequestPages()
+{
+	if (!Data.IsValid() || VirtualTexture == nullptr || Tiles.IsEmpty())
+		return;
+	TArray<FVector> Views;
+	for (auto It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+		if (It->IsValid() && It->Get()->IsLocalController())
+		{
+			FVector Position;
+			FRotator Rotation;
+			It->Get()->GetPlayerViewPoint(Position, Rotation);
+			Views.Add(Position);
+		}
+	struct FRequest
+	{
+		FVector2D Min;
+		FVector2D Max;
+		int32 Mip;
+	};
+	TArray<FRequest> Requests;
+	for (const auto& Entry : Tiles)
+	{
+		const auto& Tile = Entry.Value;
+		const double Side = (Tile.Side - 1) * Tile.Spacing;
+		const FVector Center =
+			Tile.Corner + Data->Frame.TransformVectorNoScale(FVector(Side * 0.5, Side * 0.5, 0));
+		double Distance = 0.0;
+		if (!Views.IsEmpty())
+		{
+			Distance = TNumericLimits<double>::Max();
+			for (const FVector& View : Views)
+				Distance = FMath::Min(Distance, FVector::Distance(View, Center));
+		}
+		// Conservative near-field requests, independently of material pixel-shader feedback.
+		// Include all local players; headless/capture-only worlds request the finest level.
+		const int32 Mip =
+			FMath::Max(0, FMath::FloorToInt(FMath::Log2(FMath::Max(1.0, Distance / 15000.0))));
+		const FVector Local = Data->Frame.InverseTransformPositionNoScale(Tile.Corner);
+		const FVector2D Min =
+			(FVector2D(Local.X, Local.Y) - Data->CoverageMin) / Data->CoverageSize;
+		const FVector2D Max = Min + FVector2D(Side) / Data->CoverageSize;
+		Requests.Add(
+			{FVector2D(FMath::Clamp(Min.X, 0.0, 1.0), FMath::Clamp(Min.Y, 0.0, 1.0)),
+			 FVector2D(FMath::Clamp(Max.X, 0.0, 1.0), FMath::Clamp(Max.Y, 0.0, 1.0)), Mip});
+	}
+	ENQUEUE_RENDER_COMMAND(AGX_RequestTerrainPages)(
+		[Texture = VirtualTexture, Requests = MoveTemp(Requests)](FRHICommandListImmediate&)
+		{
+			auto* Allocation = Texture->GetAllocatedVirtualTexture();
+			if (Allocation == nullptr)
+				return;
+			auto& Renderer = FModuleManager::GetModuleChecked<IRendererModule>(TEXT("Renderer"));
+			for (const auto& Request : Requests)
+				Renderer.RequestVirtualTextureTiles(
+					Allocation, FVector2D(1024, 1024), FVector2D::ZeroVector, FVector2D(1024, 1024),
+					Request.Min, Request.Max, Request.Mip);
+		});
+}
+
+#if WITH_EDITOR
+bool UAGX_TerrainPartitionedLandscapeRendererComponent::CanEditChange(
+	const FProperty* Property) const
+{
+	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
+	{
+		const FName Name = Property->GetFName();
+		if (Name == GET_MEMBER_NAME_CHECKED(ThisClass, PageSize) ||
+			Name == GET_MEMBER_NAME_CHECKED(ThisClass, DisplacementRange) ||
+			Name == GET_MEMBER_NAME_CHECKED(ThisClass, MaxPagesPerFrame) ||
+			Name == GET_MEMBER_NAME_CHECKED(ThisClass, VirtualTextureParameter))
+			return false;
+	}
+	return Super::CanEditChange(Property);
+}
+
+void UAGX_TerrainPartitionedLandscapeRendererComponent::PostEditChangeChainProperty(
+	FPropertyChangedChainEvent& Event)
+{
+	Super::PostEditChangeChainProperty(Event);
+	if (Event.GetPropertyName() == GET_MEMBER_NAME_CHECKED(ThisClass, bEnabled))
+		SetEnabled(bEnabled);
+}
+#endif
 
 void UAGX_TerrainPartitionedLandscapeRendererComponent::Invalidate(
 	const FVector2D& Min, const FVector2D& Max)
@@ -520,6 +681,8 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Invalidate(
 	ENQUEUE_RENDER_COMMAND(AGX_InvalidateTerrainRVT)(
 		[Texture, UVMin, UVMax](FRHICommandListImmediate&)
 		{
+			if (Texture->GetAllocatedVirtualTexture() == nullptr)
+				return;
 			FModuleManager::GetModuleChecked<IRendererModule>(TEXT("Renderer"))
 				.FlushVirtualTextureCache(
 					Texture->GetAllocatedVirtualTexture(), FVector2f(UVMin), FVector2f(UVMax));
@@ -585,6 +748,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Shutdown()
 	Terrain = nullptr;
 	bWarnedMaterial = false;
 	bWarnedPreparation = false;
+	bWarnedClipping = false;
 }
 
 int32 UAGX_TerrainPartitionedLandscapeRendererComponent::GetRetainedTileCount() const
@@ -602,11 +766,7 @@ int64 UAGX_TerrainPartitionedLandscapeRendererComponent::GetRetainedHeightBytes(
 			Bytes += Entry.Value.Baseline->Heights.GetAllocatedSize();
 	}
 	if (Data.IsValid())
-	{
-		FReadScopeLock Lock(Data->Lock);
-		for (const auto& Entry : Data->Tiles)
-			Bytes += Entry.Value.Heights.GetAllocatedSize();
-	}
+		Bytes += Data->RetainedHeightBytes.load();
 	return Bytes;
 }
 

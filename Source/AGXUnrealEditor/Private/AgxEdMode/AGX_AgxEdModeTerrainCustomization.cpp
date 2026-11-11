@@ -83,6 +83,8 @@ void FAGX_AgxEdModeTerrainCustomization::CustomizeDetails(IDetailLayoutBuilder& 
 					 "PrepareDeformableNaniteTooltip",
 					 "Prepare vertical displacement normals for selected Terrain sources or "
 					 "Landscape proxies. "
+					 "Reserves UV3 for source shading normals, replacing YZ terrain-coordinate "
+					 "mapping. "
 					 "Saves affected meshes and proxy packages. World Partition Terrain sources "
 					 "include unloaded proxies."))
 				 .IsEnabled_Lambda([]()
