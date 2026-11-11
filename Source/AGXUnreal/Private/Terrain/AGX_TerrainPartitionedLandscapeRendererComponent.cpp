@@ -61,6 +61,26 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 		return;
 	Terrain = &InTerrain;
 	// Keep the failed initialization associated with this enable cycle, avoiding per-frame logs.
+	if (!ValidateInitialization() || !CreateVirtualTexture())
+		return;
+	LevelAddedHandle =
+		FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAdded);
+	LevelRemovedHandle =
+		FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &ThisClass::OnLevelRemoved);
+	ActorSpawnedHandle = GetWorld()->AddOnActorSpawnedHandler(
+		FOnActorSpawned::FDelegate::CreateWeakLambda(
+			this,
+			[this](AActor* Actor)
+			{
+				if (ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(Actor))
+					PendingProxies.AddUnique(Proxy);
+			}));
+	for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
+		BindProxy(**It);
+}
+
+bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization() const
+{
 	if (!Terrain->HasNativeTerrainPager() || Terrain->TerrainBounds->bInfiniteBounds)
 	{
 		UE_LOG(
@@ -69,7 +89,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 				"Partitioned Landscape rendering requires Terrain Paging and finite Terrain Bounds "
 				"on '%s'."),
 			*Terrain->GetName());
-		return;
+		return false;
 	}
 	if (PageSize < 64 || PageSize > 1024 || !FMath::IsPowerOfTwo(PageSize) ||
 		!FMath::IsFinite(DisplacementRange) || DisplacementRange <= 0.0 || MaxPagesPerFrame < 1 ||
@@ -81,7 +101,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 				"Invalid partitioned renderer settings on '%s': page size must be a power of two "
 				"(64..1024), range positive and finite, pages/frame 1..256."),
 			*Terrain->GetName());
-		return;
+		return false;
 	}
 	for (const TCHAR* Setting : {TEXT("r.VirtualTextures"), TEXT("r.Nanite.Tessellation")})
 	{
@@ -94,7 +114,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 					"Partitioned Landscape rendering requires %s=1. Configure the project and "
 					"restart the editor before playing."),
 				Setting);
-			return;
+			return false;
 		}
 	}
 	if (!FDataDrivenShaderPlatformInfo::GetSupportsNanite(GMaxRHIShaderPlatform))
@@ -104,7 +124,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 			TEXT(
 				"Partitioned Landscape rendering requires a Nanite-capable shader platform. Use "
 				"DX12/SM6 on Windows."));
-		return;
+		return false;
 	}
 	for (TActorIterator<AAGX_Terrain> It(GetWorld()); It; ++It)
 	{
@@ -121,61 +141,22 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 						"Landscape '%s' already has an active partitioned Terrain renderer. Use "
 						"one renderer per Landscape in a world."),
 					*GetNameSafe(Terrain->SourceLandscape));
-				return;
+				return false;
 			}
 		}
 	}
+	return true;
+}
+
+bool UAGX_TerrainPartitionedLandscapeRendererComponent::CreateVirtualTexture()
+{
 	const auto Bounds = Terrain->TerrainBounds->GetUserSetBounds();
 	if (!Bounds.IsSet() || Terrain->SourceLandscape == nullptr)
-		return;
-	const double PhysicsSpacing = Terrain->GetSimulationResolution();
-	const double SourceSpacing = FMath::Min(
-		Terrain->SourceLandscape->GetActorScale3D().X,
-		Terrain->SourceLandscape->GetActorScale3D().Y);
-	// Native vertices must fall on RVT texel centers. Resampling onto an unrelated power-of-two
-	// lattice smooths sharp cuts and cannot provide accurate visual/physics agreement.
-	double TexelSpacing =
-		PhysicsSpacing / FMath::CeilToDouble(FMath::Max(1.0, PhysicsSpacing / SourceSpacing));
-	const FVector GridOrigin3D = Bounds->Transform.InverseTransformPositionNoScale(
-		Terrain->GetNativeTerrainPager()->GetTileGridOrigin());
-	const FVector2D GridOrigin(GridOrigin3D.X, GridOrigin3D.Y);
-	const FVector2D Half(Bounds->HalfExtent.X, Bounds->HalfExtent.Y);
-	auto FirstVertex = [&GridOrigin, &Half](double Spacing)
-	{
-		return GridOrigin + FVector2D(
-								FMath::FloorToDouble((-Half.X - GridOrigin.X) / Spacing),
-								FMath::FloorToDouble((-Half.Y - GridOrigin.Y) / Spacing)) *
-								Spacing;
-	};
-	auto RequiredSamples = [&Half, &FirstVertex](double Spacing)
-	{
-		const FVector2D First = FirstVertex(Spacing);
-		return FMath::CeilToDouble(FMath::Max(Half.X - First.X, Half.Y - First.Y) / Spacing) + 1.0;
-	};
-	const int32 MaxLog2 = URuntimeVirtualTexture::GetMaxTileCountLog2(false);
-	const double MaximumSide = static_cast<double>(PageSize) * (1 << MaxLog2);
-	if (RequiredSamples(TexelSpacing) > MaximumSide)
-	{
-		TexelSpacing *= FMath::Pow(
-			2.0, FMath::CeilToDouble(FMath::Log2(RequiredSamples(TexelSpacing) / MaximumSide)));
-		UE_LOG(
-			LogAGX, Warning,
-			TEXT(
-				"Terrain '%s' RVT density is clamped by UE's page table limit. Reduce coverage or "
-				"increase Page Size for accurate fine geometry."),
-			*Terrain->GetName());
-	}
-	const double RequiredPages = RequiredSamples(TexelSpacing) / PageSize;
-	int32 TileCountLog2 =
-		FMath::Clamp(FMath::CeilToInt(FMath::Log2(FMath::Max(1.0, RequiredPages))), 0, MaxLog2);
-	const FVector2D Size(static_cast<double>(PageSize) * (1 << TileCountLog2) * TexelSpacing);
-	const FVector2D CoverageMin = FirstVertex(TexelSpacing) - FVector2D(TexelSpacing * 0.5);
-	Data = MakeShared<FAGX_TerrainVirtualTextureData, ESPMode::ThreadSafe>();
-	Data->Frame = Bounds->Transform;
-	Data->CoverageMin = CoverageMin;
-	Data->CoverageSize = Size;
-	Data->TerrainHalfExtent = Half;
-	Data->MaxPagesPerFrame = MaxPagesPerFrame;
+		return false;
+	const int32 TileCountLog2 = ConfigureVirtualTextureCoverage(
+		Bounds->Transform, FVector2D(Bounds->HalfExtent.X, Bounds->HalfExtent.Y));
+	const FVector2D& CoverageMin = Data->CoverageMin;
+	const FVector2D& Size = Data->CoverageSize;
 	UAGX_TerrainDisplacementVirtualTexture* RuntimeTexture =
 		NewObject<UAGX_TerrainDisplacementVirtualTexture>(this);
 	RuntimeTexture->Configure(PageSize, TileCountLog2);
@@ -209,7 +190,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 			*Terrain->GetName());
 		VirtualTexture = nullptr;
 		Data.Reset();
-		return;
+		return false;
 	}
 	Description.bPersistentHighestMip = true;
 	Description.bRequiresSinglePhysicalPool = true;
@@ -244,20 +225,62 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 	VirtualTexture->Initialize(
 		AGX_CreateTerrainVirtualTextureProducer(Data.ToSharedRef(), Description), Description,
 		Volume, WorldBounds);
-	LevelAddedHandle =
-		FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAdded);
-	LevelRemovedHandle =
-		FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &ThisClass::OnLevelRemoved);
-	ActorSpawnedHandle = GetWorld()->AddOnActorSpawnedHandler(
-		FOnActorSpawned::FDelegate::CreateWeakLambda(
-			this,
-			[this](AActor* Actor)
-			{
-				if (ALandscapeProxy* Proxy = Cast<ALandscapeProxy>(Actor))
-					PendingProxies.AddUnique(Proxy);
-			}));
-	for (TActorIterator<ALandscapeProxy> It(GetWorld()); It; ++It)
-		BindProxy(**It);
+	return true;
+}
+
+int32 UAGX_TerrainPartitionedLandscapeRendererComponent::ConfigureVirtualTextureCoverage(
+	const FTransform& Frame, const FVector2D& HalfExtent)
+{
+	const double PhysicsSpacing = Terrain->GetSimulationResolution();
+	const double SourceSpacing = FMath::Min(
+		Terrain->SourceLandscape->GetActorScale3D().X,
+		Terrain->SourceLandscape->GetActorScale3D().Y);
+	// Native vertices must fall on RVT texel centers. Resampling onto an unrelated power-of-two
+	// lattice smooths sharp cuts and cannot provide accurate visual/physics agreement.
+	double TexelSpacing =
+		PhysicsSpacing / FMath::CeilToDouble(FMath::Max(1.0, PhysicsSpacing / SourceSpacing));
+	const FVector GridOrigin3D = Frame.InverseTransformPositionNoScale(
+		Terrain->GetNativeTerrainPager()->GetTileGridOrigin());
+	const FVector2D GridOrigin(GridOrigin3D.X, GridOrigin3D.Y);
+	auto FirstVertex = [&GridOrigin, &HalfExtent](double Spacing)
+	{
+		return GridOrigin + FVector2D(
+								FMath::FloorToDouble((-HalfExtent.X - GridOrigin.X) / Spacing),
+								FMath::FloorToDouble((-HalfExtent.Y - GridOrigin.Y) / Spacing)) *
+								Spacing;
+	};
+	auto RequiredSamples = [&HalfExtent, &FirstVertex](double Spacing)
+	{
+		const FVector2D First = FirstVertex(Spacing);
+		return FMath::CeilToDouble(
+				   FMath::Max(HalfExtent.X - First.X, HalfExtent.Y - First.Y) / Spacing) +
+			   1.0;
+	};
+	const int32 MaxLog2 = URuntimeVirtualTexture::GetMaxTileCountLog2(false);
+	const double MaximumSide = static_cast<double>(PageSize) * (1 << MaxLog2);
+	if (RequiredSamples(TexelSpacing) > MaximumSide)
+	{
+		TexelSpacing *= FMath::Pow(
+			2.0, FMath::CeilToDouble(FMath::Log2(RequiredSamples(TexelSpacing) / MaximumSide)));
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Terrain '%s' RVT density is clamped by UE's page table limit. Reduce coverage or "
+				"increase Page Size for accurate fine geometry."),
+			*Terrain->GetName());
+	}
+	const double RequiredPages = RequiredSamples(TexelSpacing) / PageSize;
+	int32 TileCountLog2 =
+		FMath::Clamp(FMath::CeilToInt(FMath::Log2(FMath::Max(1.0, RequiredPages))), 0, MaxLog2);
+	const FVector2D Size(static_cast<double>(PageSize) * (1 << TileCountLog2) * TexelSpacing);
+	const FVector2D CoverageMin = FirstVertex(TexelSpacing) - FVector2D(TexelSpacing * 0.5);
+	Data = MakeShared<FAGX_TerrainVirtualTextureData, ESPMode::ThreadSafe>();
+	Data->Frame = Frame;
+	Data->CoverageMin = CoverageMin;
+	Data->CoverageSize = Size;
+	Data->TerrainHalfExtent = HalfExtent;
+	Data->MaxPagesPerFrame = MaxPagesPerFrame;
+	return TileCountLog2;
 }
 
 void UAGX_TerrainPartitionedLandscapeRendererComponent::OnLevelAdded(ULevel* Level, UWorld* World)
@@ -296,151 +319,161 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 				"Landscape Nanite data before cooking."),
 			*Proxy.GetName());
 	// Bind the ordinary components first, then share their live MIDs with Nanite sections.
-	for (ULandscapeComponent* LandscapeComponent : Proxy.LandscapeComponents)
+	for (ULandscapeComponent* Component : Proxy.LandscapeComponents)
+		if (Component != nullptr)
+			BindLandscapeMaterials(*Component);
+	for (ULandscapeNaniteComponent* Component : NaniteComponents)
+		BindNaniteMaterials(*Component);
+}
+
+void UAGX_TerrainPartitionedLandscapeRendererComponent::BindLandscapeMaterials(
+	ULandscapeComponent& Component)
+{
+	UPrimitiveComponent* Primitive = &Component;
+	FAGX_TerrainLandscapeMaterialBinding Binding;
+	Binding.Component = Primitive;
+	Binding.OriginalShadowCacheInvalidation =
+		static_cast<uint8>(Primitive->ShadowCacheInvalidationBehavior);
+	Primitive->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+	TArray<UMaterialInterface*> Parents;
+	Binding.OriginalPositiveZBoundsExtension = Component.PositiveZBoundsExtension;
+	Binding.OriginalNegativeZBoundsExtension = Component.NegativeZBoundsExtension;
+	Component.PositiveZBoundsExtension = FMath::Max(
+		Component.PositiveZBoundsExtension,
+		static_cast<float>(
+			DisplacementRange /
+			FMath::Max(FMath::Abs(Component.GetComponentScale().Z), SMALL_NUMBER)));
+	Component.NegativeZBoundsExtension = FMath::Max(
+		Component.NegativeZBoundsExtension,
+		static_cast<float>(
+			DisplacementRange /
+			FMath::Max(FMath::Abs(Component.GetComponentScale().Z), SMALL_NUMBER)));
+	Component.UpdateBounds();
+	for (UMaterialInstanceDynamic* Original : Component.MaterialInstancesDynamic)
+		Binding.OriginalMaterials.Add(Original);
+	for (int32 Index = 0; Index < Component.MaterialInstances.Num(); ++Index)
+		Parents.Add(
+			Component.MaterialInstancesDynamic.IsValidIndex(Index) &&
+					Component.MaterialInstancesDynamic[Index] != nullptr
+				? static_cast<UMaterialInterface*>(Component.MaterialInstancesDynamic[Index].Get())
+				: Component.MaterialInstances[Index].Get());
+	for (UMaterialInterface* Parent : Parents)
 	{
-		if (LandscapeComponent == nullptr)
+		UMaterialInstanceDynamic* Material =
+			CreateLandscapeMaterial(Parent, FMath::Abs(Component.GetComponentScale().Z));
+		if (Material != nullptr)
+			Binding.Materials.Add(Material);
+	}
+	Component.MaterialInstancesDynamic = Binding.Materials;
+	Component.MarkRenderStateDirty();
+	Bindings.Add(MoveTemp(Binding));
+}
+
+UMaterialInstanceDynamic*
+UAGX_TerrainPartitionedLandscapeRendererComponent::CreateLandscapeMaterial(
+	UMaterialInterface* Parent, double VerticalScale)
+{
+	if (Parent == nullptr)
+		return nullptr;
+	UMaterialInstanceDynamic* PreviousDynamic = Cast<UMaterialInstanceDynamic>(Parent);
+	while (auto* DynamicParent = Cast<UMaterialInstanceDynamic>(Parent))
+		Parent = DynamicParent->Parent;
+	if (Parent == nullptr)
+		return nullptr;
+	UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Parent, this);
+	if (PreviousDynamic != nullptr)
+		Material->CopyMaterialUniformParameters(PreviousDynamic);
+	Material->SetRuntimeVirtualTextureParameterValue(VirtualTextureParameter, VirtualTexture);
+	Material->SetScalarParameterValue(TEXT("AGX_DeformationEnabled"), 1.f);
+	Material->SetScalarParameterValue(TEXT("AGX_DisplacementRange"), DisplacementRange);
+	const FVector Origin = Data->Frame.GetTranslation();
+	const FVector3f OriginHigh(Origin);
+	const FVector3f OriginLow(Origin - FVector(OriginHigh));
+	Material->SetVectorParameterValue(
+		TEXT("AGX_HeightOriginHigh"), FLinearColor(OriginHigh.X, OriginHigh.Y, OriginHigh.Z));
+	Material->SetVectorParameterValue(
+		TEXT("AGX_HeightOriginLow"), FLinearColor(OriginLow.X, OriginLow.Y, OriginLow.Z));
+	const FDisplacementScaling Scaling = Parent->GetDisplacementScaling();
+	Material->SetScalarParameterValue(
+		TEXT("AGX_DisplacementMagnitude"), FMath::Max(Scaling.Magnitude, SMALL_NUMBER));
+	Material->SetScalarParameterValue(TEXT("AGX_DisplacementCenter"), Scaling.Center);
+	const FVector AxisX = Data->Frame.GetUnitAxis(EAxis::X);
+	const FVector AxisY = Data->Frame.GetUnitAxis(EAxis::Y);
+	Material->SetVectorParameterValue(
+		TEXT("AGX_LandscapeAxisX"), FLinearColor(AxisX.X, AxisX.Y, AxisX.Z));
+	Material->SetVectorParameterValue(
+		TEXT("AGX_LandscapeAxisY"), FLinearColor(AxisY.X, AxisY.Y, AxisY.Z));
+	Material->SetVectorParameterValue(
+		TEXT("AGX_TerrainHalfExtent"),
+		FLinearColor(Data->TerrainHalfExtent.X, Data->TerrainHalfExtent.Y, 0, 0));
+	const double SupportedTravel =
+		FMath::Min(Scaling.Center, 1.f - Scaling.Center) * Scaling.Magnitude * VerticalScale;
+	if (SupportedTravel < DisplacementRange && !bWarnedMaterial)
+	{
+		bWarnedMaterial = true;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Landscape material '%s' displacement bounds permit %.3f cm in both "
+				"directions at the component's vertical scale; the renderer requests %.3f "
+				"cm. Increase the material magnitude or reduce Displacement Range. "
+				"Out-of-bounds material output clamps."),
+			*Parent->GetName(), SupportedTravel, DisplacementRange);
+	}
+	if (!Parent->IsTessellationEnabled() && !bWarnedMaterial)
+	{
+		bWarnedMaterial = true;
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Landscape material '%s' needs Nanite tessellation enabled, a signed "
+				"displacement range and the AGX deformation material function."),
+			*Parent->GetName());
+	}
+	return Material;
+}
+
+void UAGX_TerrainPartitionedLandscapeRendererComponent::BindNaniteMaterials(
+	ULandscapeNaniteComponent& Component)
+{
+	FAGX_TerrainLandscapeMaterialBinding Binding;
+	Binding.Component = &Component;
+	Binding.OriginalShadowCacheInvalidation =
+		static_cast<uint8>(Component.ShadowCacheInvalidationBehavior);
+	Component.ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
+	for (int32 Index = 0; Index < Component.GetNumMaterials(); ++Index)
+		Binding.OriginalMaterials.Add(Component.GetMaterial(Index));
+	UStaticMesh* Mesh = Component.GetStaticMesh();
+	const auto* Metadata =
+		Mesh == nullptr ? nullptr
+						: Cast<UAGX_TerrainNaniteDisplacementData>(Mesh->GetAssetUserDataOfClass(
+							  UAGX_TerrainNaniteDisplacementData::StaticClass()));
+	const bool bPrepared = Metadata != nullptr && Metadata->IsCurrent(*Mesh);
+	if (!bPrepared && !bWarnedPreparation)
+	{
+		bWarnedPreparation = true;
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"Landscape Nanite mesh '%s' needs AGX deformation "
+				"preparation. Use AGX Terrain mode's Prepare and Save Deformable Nanite "
+				"after assigning the deformable material, then save before cooking."),
+			*GetNameSafe(Mesh));
+	}
+	const auto& Sources = Component.GetSourceLandscapeComponents();
+	for (int32 Index = 0; Index < Sources.Num(); ++Index)
+	{
+		ULandscapeComponent* Source = Sources[Index];
+		if (Source == nullptr || Source->MaterialInstancesDynamic.IsEmpty())
 			continue;
-		UPrimitiveComponent* Primitive = LandscapeComponent;
-		FAGX_TerrainLandscapeMaterialBinding Binding;
-		Binding.Component = Primitive;
-		Binding.OriginalShadowCacheInvalidation =
-			static_cast<uint8>(Primitive->ShadowCacheInvalidationBehavior);
-		Primitive->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
-		TArray<UMaterialInterface*> Parents;
-		Binding.OriginalPositiveZBoundsExtension = LandscapeComponent->PositiveZBoundsExtension;
-		Binding.OriginalNegativeZBoundsExtension = LandscapeComponent->NegativeZBoundsExtension;
-		LandscapeComponent->PositiveZBoundsExtension = FMath::Max(
-			LandscapeComponent->PositiveZBoundsExtension,
-			static_cast<float>(
-				DisplacementRange /
-				FMath::Max(FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
-		LandscapeComponent->NegativeZBoundsExtension = FMath::Max(
-			LandscapeComponent->NegativeZBoundsExtension,
-			static_cast<float>(
-				DisplacementRange /
-				FMath::Max(FMath::Abs(LandscapeComponent->GetComponentScale().Z), SMALL_NUMBER)));
-		LandscapeComponent->UpdateBounds();
-		for (UMaterialInstanceDynamic* Original : LandscapeComponent->MaterialInstancesDynamic)
-			Binding.OriginalMaterials.Add(Original);
-		for (int32 Index = 0; Index < LandscapeComponent->MaterialInstances.Num(); ++Index)
-			Parents.Add(
-				LandscapeComponent->MaterialInstancesDynamic.IsValidIndex(Index) &&
-						LandscapeComponent->MaterialInstancesDynamic[Index] != nullptr
-					? static_cast<UMaterialInterface*>(
-						  LandscapeComponent->MaterialInstancesDynamic[Index].Get())
-					: LandscapeComponent->MaterialInstances[Index].Get());
-		for (int32 Index = 0; Index < Parents.Num(); ++Index)
-		{
-			UMaterialInterface* Parent = Parents[Index];
-			if (Parent == nullptr)
-				continue;
-			UMaterialInstanceDynamic* PreviousDynamic = Cast<UMaterialInstanceDynamic>(Parent);
-			while (auto* DynamicParent = Cast<UMaterialInstanceDynamic>(Parent))
-				Parent = DynamicParent->Parent;
-			if (Parent == nullptr)
-				continue;
-			UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Parent, this);
-			if (PreviousDynamic != nullptr)
-				Material->CopyMaterialUniformParameters(PreviousDynamic);
-			Material->SetRuntimeVirtualTextureParameterValue(
-				VirtualTextureParameter, VirtualTexture);
-			Material->SetScalarParameterValue(TEXT("AGX_DeformationEnabled"), 1.f);
-			Material->SetScalarParameterValue(TEXT("AGX_DisplacementRange"), DisplacementRange);
-			const FVector Origin = Data->Frame.GetTranslation();
-			const FVector3f OriginHigh(Origin);
-			const FVector3f OriginLow(Origin - FVector(OriginHigh));
-			Material->SetVectorParameterValue(
-				TEXT("AGX_HeightOriginHigh"),
-				FLinearColor(OriginHigh.X, OriginHigh.Y, OriginHigh.Z));
-			Material->SetVectorParameterValue(
-				TEXT("AGX_HeightOriginLow"), FLinearColor(OriginLow.X, OriginLow.Y, OriginLow.Z));
-			const FDisplacementScaling Scaling = Parent->GetDisplacementScaling();
-			Material->SetScalarParameterValue(
-				TEXT("AGX_DisplacementMagnitude"), FMath::Max(Scaling.Magnitude, SMALL_NUMBER));
-			Material->SetScalarParameterValue(TEXT("AGX_DisplacementCenter"), Scaling.Center);
-			const FVector AxisX = Data->Frame.GetUnitAxis(EAxis::X);
-			const FVector AxisY = Data->Frame.GetUnitAxis(EAxis::Y);
-			Material->SetVectorParameterValue(
-				TEXT("AGX_LandscapeAxisX"), FLinearColor(AxisX.X, AxisX.Y, AxisX.Z));
-			Material->SetVectorParameterValue(
-				TEXT("AGX_LandscapeAxisY"), FLinearColor(AxisY.X, AxisY.Y, AxisY.Z));
-			Material->SetVectorParameterValue(
-				TEXT("AGX_TerrainHalfExtent"),
-				FLinearColor(Data->TerrainHalfExtent.X, Data->TerrainHalfExtent.Y, 0, 0));
-			const double MinimumScale = FMath::Abs(Primitive->GetComponentScale().Z);
-			const double SupportedTravel =
-				FMath::Min(Scaling.Center, 1.f - Scaling.Center) * Scaling.Magnitude * MinimumScale;
-			if (SupportedTravel < DisplacementRange && !bWarnedMaterial)
-			{
-				bWarnedMaterial = true;
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT(
-						"Landscape material '%s' displacement bounds permit %.3f cm in both "
-						"directions at the component's vertical scale; the renderer requests %.3f "
-						"cm. Increase the material magnitude or reduce Displacement Range. "
-						"Out-of-bounds material output clamps."),
-					*Parent->GetName(), SupportedTravel, DisplacementRange);
-			}
-			if (!Parent->IsTessellationEnabled() && !bWarnedMaterial)
-			{
-				bWarnedMaterial = true;
-				UE_LOG(
-					LogAGX, Warning,
-					TEXT(
-						"Landscape material '%s' needs Nanite tessellation enabled, a signed "
-						"displacement range and the AGX deformation material function."),
-					*Parent->GetName());
-			}
-			Binding.Materials.Add(Material);
-		}
-		LandscapeComponent->MaterialInstancesDynamic = Binding.Materials;
-		LandscapeComponent->MarkRenderStateDirty();
-		Bindings.Add(MoveTemp(Binding));
+		UMaterialInstanceDynamic* Material = Source->MaterialInstancesDynamic[0];
+		if (Material == nullptr)
+			continue;
+		Material->SetScalarParameterValue(TEXT("AGX_DeformationEnabled"), bPrepared ? 1.f : 0.f);
+		Component.SetMaterial(Index, Material);
+		Binding.Materials.Add(Material);
 	}
-	for (ULandscapeNaniteComponent* Nanite : NaniteComponents)
-	{
-		FAGX_TerrainLandscapeMaterialBinding Binding;
-		Binding.Component = Nanite;
-		Binding.OriginalShadowCacheInvalidation =
-			static_cast<uint8>(Nanite->ShadowCacheInvalidationBehavior);
-		Nanite->ShadowCacheInvalidationBehavior = EShadowCacheInvalidationBehavior::Always;
-		for (int32 Index = 0; Index < Nanite->GetNumMaterials(); ++Index)
-			Binding.OriginalMaterials.Add(Nanite->GetMaterial(Index));
-		UStaticMesh* Mesh = Nanite->GetStaticMesh();
-		const auto* Metadata =
-			Mesh == nullptr
-				? nullptr
-				: Cast<UAGX_TerrainNaniteDisplacementData>(Mesh->GetAssetUserDataOfClass(
-					  UAGX_TerrainNaniteDisplacementData::StaticClass()));
-		const bool bPrepared = Metadata != nullptr && Metadata->IsCurrent(*Mesh);
-		if (!bPrepared && !bWarnedPreparation)
-		{
-			bWarnedPreparation = true;
-			UE_LOG(
-				LogAGX, Error,
-				TEXT(
-					"Landscape Nanite mesh '%s' needs AGX deformation "
-					"preparation. Use AGX Terrain mode's Prepare and Save Deformable Nanite "
-					"after assigning the deformable material, then save before cooking."),
-				*GetNameSafe(Mesh));
-		}
-		const auto& Sources = Nanite->GetSourceLandscapeComponents();
-		for (int32 Index = 0; Index < Sources.Num(); ++Index)
-		{
-			ULandscapeComponent* Source = Sources[Index];
-			if (Source == nullptr || Source->MaterialInstancesDynamic.IsEmpty())
-				continue;
-			UMaterialInstanceDynamic* Material = Source->MaterialInstancesDynamic[0];
-			if (Material == nullptr)
-				continue;
-			Material->SetScalarParameterValue(
-				TEXT("AGX_DeformationEnabled"), bPrepared ? 1.f : 0.f);
-			Nanite->SetMaterial(Index, Material);
-			Binding.Materials.Add(Material);
-		}
-		Bindings.Add(MoveTemp(Binding));
-	}
+	Bindings.Add(MoveTemp(Binding));
 }
 
 void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()

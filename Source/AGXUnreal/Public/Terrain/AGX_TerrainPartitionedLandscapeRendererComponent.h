@@ -10,6 +10,8 @@
 
 class AAGX_Terrain;
 class ALandscapeProxy;
+class ULandscapeComponent;
+class ULandscapeNaniteComponent;
 class ULevel;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
@@ -121,7 +123,14 @@ protected:
 		float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction) override;
 
 private:
+	bool ValidateInitialization() const;
+	bool CreateVirtualTexture();
+	int32 ConfigureVirtualTextureCoverage(const FTransform& Frame, const FVector2D& HalfExtent);
 	void BindProxy(ALandscapeProxy& Proxy);
+	void BindLandscapeMaterials(ULandscapeComponent& Component);
+	void BindNaniteMaterials(ULandscapeNaniteComponent& Component);
+	UMaterialInstanceDynamic* CreateLandscapeMaterial(
+		UMaterialInterface* Parent, double VerticalScale);
 	void OnLevelAdded(ULevel* Level, UWorld* World);
 	void OnLevelRemoved(ULevel* Level, UWorld* World);
 	void Invalidate(const FVector2D& Min, const FVector2D& Max);

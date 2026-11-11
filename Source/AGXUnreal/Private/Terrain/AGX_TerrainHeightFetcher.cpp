@@ -13,6 +13,32 @@
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeInfo.h"
 
+namespace
+{
+	constexpr double CollisionCaptureTimeBudgetSeconds = 0.004;
+	constexpr int32 CollisionCaptureSampleBudget = 65536;
+	constexpr uint64 SourceCacheExpiryFrames = 120;
+
+	// UE keys collision components by SectionBase / CollisionSizeQuads. Probe the small
+	// set of supported collision mips, verifying the section base before accepting a hit.
+	// No per-frame traversal of all loaded Landscape components is necessary.
+	ULandscapeHeightfieldCollisionComponent* FindCollisionComponent(
+		ALandscape& Landscape, ULandscapeInfo& Info, const FIntPoint& Key)
+	{
+		const FIntPoint Section = Key * Landscape.ComponentSizeQuads;
+		for (int32 Mip = 0; ((Landscape.SubsectionSizeQuads + 1) >> Mip) > 1; ++Mip)
+		{
+			const int32 Quads =
+				(((Landscape.SubsectionSizeQuads + 1) >> Mip) - 1) * Landscape.NumSubsections;
+			auto* Component = Info.XYtoCollisionComponentMap.FindRef(Section / Quads);
+			if (IsValid(Component) && Component->IsRegistered() &&
+				Component->GetSectionBase() == Section)
+				return Component;
+		}
+		return nullptr;
+	}
+}
+
 struct FAGX_TerrainHeightFetcher::FSourceCache
 {
 	struct FEntry
@@ -23,6 +49,26 @@ struct FAGX_TerrainHeightFetcher::FSourceCache
 	TMap<FIntPoint, FEntry> Chunks;
 	TFuture<TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe>> Job;
 	FIntPoint JobKey;
+
+	struct FCaptureBudget
+	{
+		int64 Bytes = 0;
+		int32 Samples = 0;
+		double StartSeconds = FPlatformTime::Seconds();
+
+		bool IsExhausted() const
+		{
+			return Samples >= CollisionCaptureSampleBudget ||
+				   FPlatformTime::Seconds() - StartSeconds >= CollisionCaptureTimeBudgetSeconds;
+		}
+	};
+	TSharedPtr<const FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>
+	CaptureCollisionChunk(
+		ULandscapeHeightfieldCollisionComponent& Collision, double HeightOrigin,
+		FCaptureBudget& Budget);
+	bool CollectCollisionChunks(
+		ALandscape& Landscape, ULandscapeInfo& Info, const FRequest& Request,
+		FAGX_TerrainLandscapeSource& Source, FCaptureBudget& Budget);
 };
 
 FAGX_TerrainHeightFetcher::FAGX_TerrainHeightFetcher()
@@ -112,30 +158,50 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 	{
 		std::lock_guard<std::mutex> Lock(SnapshotMutex);
 		ServiceFrame = GFrameCounter;
-		if (SourceCache->Job.IsValid() && SourceCache->Job.IsReady())
-		{
-			auto Tile = SourceCache->Job.Get();
-			SourceCache->Job = {};
-			if (Tile.IsValid())
-				if (FRequest* Request = Requests.Find(SourceCache->JobKey))
-					if (Request->Corner == Tile->Corner && Request->SizeX == Tile->SizeX &&
-						Request->SizeY == Tile->SizeY)
-						Request->Snapshot = Tile;
-		}
-		for (auto It = Requests.CreateIterator(); It; ++It)
-		{
-			if (GFrameCounter > It.Value().LastUsedFrame + 120)
-				It.RemoveCurrent();
-			else if (!It.Value().Snapshot.IsValid())
-				Pending.Emplace(It.Key(), It.Value());
-		}
-		for (const auto& Entry : Requests)
-			if (Entry.Value.Snapshot.IsValid())
-				Bytes += Entry.Value.Snapshot->Heights.GetAllocatedSize();
+		CompleteResamplingJob();
+		Bytes = CollectPendingRequests(Pending);
 	}
+	EvictSourceCache(Bytes);
+	if (SourceCache->Job.IsValid() || Pending.IsEmpty())
+		return;
+	ScheduleResamplingJob(Landscape, Pending, Bytes);
+}
+
+void FAGX_TerrainHeightFetcher::CompleteResamplingJob()
+{
+	if (SourceCache->Job.IsValid() && SourceCache->Job.IsReady())
+	{
+		auto Tile = SourceCache->Job.Get();
+		SourceCache->Job = {};
+		if (Tile.IsValid())
+			if (FRequest* Request = Requests.Find(SourceCache->JobKey))
+				if (Request->Corner == Tile->Corner && Request->SizeX == Tile->SizeX &&
+					Request->SizeY == Tile->SizeY)
+					Request->Snapshot = Tile;
+	}
+}
+
+int64 FAGX_TerrainHeightFetcher::CollectPendingRequests(TArray<TPair<FIntPoint, FRequest>>& Pending)
+{
+	int64 Bytes = 0;
+	for (auto It = Requests.CreateIterator(); It; ++It)
+	{
+		if (GFrameCounter > It.Value().LastUsedFrame + SourceCacheExpiryFrames)
+			It.RemoveCurrent();
+		else if (!It.Value().Snapshot.IsValid())
+			Pending.Emplace(It.Key(), It.Value());
+	}
+	for (const auto& Entry : Requests)
+		if (Entry.Value.Snapshot.IsValid())
+			Bytes += Entry.Value.Snapshot->Heights.GetAllocatedSize();
+	return Bytes;
+}
+
+void FAGX_TerrainHeightFetcher::EvictSourceCache(int64& Bytes)
+{
 	for (auto It = SourceCache->Chunks.CreateIterator(); It; ++It)
 	{
-		if (GFrameCounter > It.Value().LastUsedFrame + 120)
+		if (GFrameCounter > It.Value().LastUsedFrame + SourceCacheExpiryFrames)
 			It.RemoveCurrent();
 		else
 			Bytes += It.Value().Chunk->Heights.GetAllocatedSize();
@@ -178,34 +244,20 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 			Requests[OldestKey].Snapshot.Reset();
 		}
 	}
-	if (SourceCache->Job.IsValid() || Pending.IsEmpty())
-		return;
+}
+
+void FAGX_TerrainHeightFetcher::ScheduleResamplingJob(
+	ALandscape& Landscape, const TArray<TPair<FIntPoint, FRequest>>& Pending, int64 Bytes)
+{
 	ULandscapeInfo* Info = Landscape.GetLandscapeInfo();
 	const int32 ComponentQuads = Landscape.ComponentSizeQuads;
 	if (Info == nullptr || ComponentQuads <= 0)
 		return;
-	// UE keys collision components by SectionBase / CollisionSizeQuads. Probe the small
-	// set of supported collision mips, verifying the section base before accepting a hit.
-	// No per-frame traversal of all loaded Landscape components is necessary.
-	auto FindCollision = [&](const FIntPoint& Key) -> ULandscapeHeightfieldCollisionComponent*
-	{
-		const FIntPoint Section = Key * ComponentQuads;
-		for (int32 Mip = 0; ((Landscape.SubsectionSizeQuads + 1) >> Mip) > 1; ++Mip)
-		{
-			const int32 Quads =
-				(((Landscape.SubsectionSizeQuads + 1) >> Mip) - 1) * Landscape.NumSubsections;
-			auto* Component = Info->XYtoCollisionComponentMap.FindRef(Section / Quads);
-			if (IsValid(Component) && Component->IsRegistered() &&
-				Component->GetSectionBase() == Section)
-				return Component;
-		}
-		return nullptr;
-	};
-	const double Start = FPlatformTime::Seconds();
-	int32 Samples = 0;
+	FSourceCache::FCaptureBudget Budget;
+	Budget.Bytes = Bytes;
 	for (const auto& Entry : Pending)
 	{
-		if (Samples >= 65536 || FPlatformTime::Seconds() - Start >= 0.004)
+		if (Budget.IsExhausted())
 			break;
 		FAGX_TerrainLandscapeSource Source;
 		Source.LandscapeTransform = Landscape.LandscapeActorToWorld();
@@ -213,75 +265,7 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 		Source.Spacing = SnapshotSpacing;
 		Source.ComponentQuads = ComponentQuads;
 		const FRequest& Request = Entry.Value;
-		FBox2D GridBounds(ForceInit);
-		for (int32 Y : {0, Request.SizeY - 1})
-			for (int32 X : {0, Request.SizeX - 1})
-			{
-				const FVector World =
-					Request.Corner + SnapshotFrame.TransformVectorNoScale(
-										 FVector(X * SnapshotSpacing, Y * SnapshotSpacing, 0));
-				const FVector Grid = Source.LandscapeTransform.InverseTransformPosition(World);
-				GridBounds += FVector2D(Grid.X, Grid.Y);
-			}
-		const FIntPoint Min(
-			FMath::FloorToInt(GridBounds.Min.X / ComponentQuads) - 1,
-			FMath::FloorToInt(GridBounds.Min.Y / ComponentQuads) - 1);
-		const FIntPoint Max(
-			FMath::FloorToInt(GridBounds.Max.X / ComponentQuads),
-			FMath::FloorToInt(GridBounds.Max.Y / ComponentQuads));
-		if (static_cast<int64>(Max.X - Min.X + 1) * (Max.Y - Min.Y + 1) > MaxRequests)
-			continue;
-		for (int32 Y = Min.Y; Y <= Max.Y; ++Y)
-			for (int32 X = Min.X; X <= Max.X; ++X)
-			{
-				const FIntPoint Key(X, Y);
-				auto* Cached = SourceCache->Chunks.Find(Key);
-				if (Cached == nullptr && Samples < 65536 &&
-					FPlatformTime::Seconds() - Start < 0.004)
-				{
-					auto* Collision = FindCollision(Key);
-					if (!IsValid(Collision) || !Collision->IsRegistered() ||
-						Collision->CollisionSizeQuads <= 0)
-						continue;
-					const int32 Side = Collision->CollisionSizeQuads + 1;
-					const int64 Count = static_cast<int64>(Side) * Side;
-					if (Count > MaxVerticesPerTile ||
-						Bytes + Count * sizeof(float) > MaxSourceSnapshotBytes)
-						continue;
-					auto Chunk =
-						MakeShared<FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>();
-					Chunk->Quads = Side - 1;
-					Chunk->Heights.SetNumUninitialized(static_cast<int32>(Count));
-					Samples += static_cast<int32>(Count);
-					// Runtime collision API includes exact edges and respects CollisionMipLevel.
-					// Each read is indivisible; check the time budget between component reads.
-					if (!Collision->FillHeightTile(Chunk->Heights, 0, Side) ||
-						Chunk->Heights.ContainsByPredicate([](float Height)
-														   { return !FMath::IsFinite(Height); }))
-						continue;
-					for (float& Height : Chunk->Heights)
-						Height = static_cast<float>(Height - SnapshotFrame.GetTranslation().Z);
-					Bytes += Chunk->Heights.GetAllocatedSize();
-					SourceCache->Chunks.Add(Key, {Chunk, GFrameCounter});
-					Cached = SourceCache->Chunks.Find(Key);
-				}
-				if (Cached != nullptr)
-				{
-					Cached->LastUsedFrame = GFrameCounter;
-					Source.Chunks.Add(Key, Cached->Chunk);
-				}
-			}
-		bool bCornersAvailable = true;
-		for (int32 Y : {0, Request.SizeY - 1})
-			for (int32 X : {0, Request.SizeX - 1})
-			{
-				float Height;
-				bCornersAvailable &= Source.Sample(
-					Request.Corner + SnapshotFrame.TransformVectorNoScale(
-										 FVector(X * SnapshotSpacing, Y * SnapshotSpacing, 0)),
-					Height);
-			}
-		if (!bCornersAvailable)
+		if (!SourceCache->CollectCollisionChunks(Landscape, *Info, Request, Source, Budget))
 			continue;
 		SourceCache->JobKey = Entry.Key;
 		SourceCache->Job = Async(
@@ -294,6 +278,87 @@ void FAGX_TerrainHeightFetcher::ServiceRequests(ALandscape& Landscape)
 			});
 		break;
 	}
+}
+
+TSharedPtr<const FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>
+FAGX_TerrainHeightFetcher::FSourceCache::CaptureCollisionChunk(
+	ULandscapeHeightfieldCollisionComponent& Collision, double HeightOrigin, FCaptureBudget& Budget)
+{
+	const int32 Side = Collision.CollisionSizeQuads + 1;
+	const int64 Count = static_cast<int64>(Side) * Side;
+	if (Count > MaxVerticesPerTile || Budget.Bytes + Count * sizeof(float) > MaxSourceSnapshotBytes)
+		return nullptr;
+	auto Chunk = MakeShared<FAGX_TerrainLandscapeSource::FChunk, ESPMode::ThreadSafe>();
+	Chunk->Quads = Side - 1;
+	Chunk->Heights.SetNumUninitialized(static_cast<int32>(Count));
+	Budget.Samples += static_cast<int32>(Count);
+	// Runtime collision API includes exact edges and respects CollisionMipLevel.
+	// Each read is indivisible; check the time budget between component reads.
+	if (!Collision.FillHeightTile(Chunk->Heights, 0, Side) ||
+		Chunk->Heights.ContainsByPredicate([](float Height) { return !FMath::IsFinite(Height); }))
+		return nullptr;
+	for (float& Height : Chunk->Heights)
+		Height = static_cast<float>(Height - HeightOrigin);
+	Budget.Bytes += Chunk->Heights.GetAllocatedSize();
+	return Chunk;
+}
+
+bool FAGX_TerrainHeightFetcher::FSourceCache::CollectCollisionChunks(
+	ALandscape& Landscape, ULandscapeInfo& Info, const FRequest& Request,
+	FAGX_TerrainLandscapeSource& Source, FCaptureBudget& Budget)
+{
+	FBox2D GridBounds(ForceInit);
+	for (int32 Y : {0, Request.SizeY - 1})
+		for (int32 X : {0, Request.SizeX - 1})
+		{
+			const FVector World = Request.Corner + Source.Frame.TransformVectorNoScale(FVector(
+													   X * Source.Spacing, Y * Source.Spacing, 0));
+			const FVector Grid = Source.LandscapeTransform.InverseTransformPosition(World);
+			GridBounds += FVector2D(Grid.X, Grid.Y);
+		}
+	const FIntPoint Min(
+		FMath::FloorToInt(GridBounds.Min.X / Source.ComponentQuads) - 1,
+		FMath::FloorToInt(GridBounds.Min.Y / Source.ComponentQuads) - 1);
+	const FIntPoint Max(
+		FMath::FloorToInt(GridBounds.Max.X / Source.ComponentQuads),
+		FMath::FloorToInt(GridBounds.Max.Y / Source.ComponentQuads));
+	if (static_cast<int64>(Max.X - Min.X + 1) * (Max.Y - Min.Y + 1) > MaxRequests)
+		return false;
+	for (int32 Y = Min.Y; Y <= Max.Y; ++Y)
+		for (int32 X = Min.X; X <= Max.X; ++X)
+		{
+			const FIntPoint Key(X, Y);
+			auto* Cached = Chunks.Find(Key);
+			if (Cached == nullptr && !Budget.IsExhausted())
+			{
+				auto* Collision = FindCollisionComponent(Landscape, Info, Key);
+				if (!IsValid(Collision) || !Collision->IsRegistered() ||
+					Collision->CollisionSizeQuads <= 0)
+					continue;
+				auto Chunk =
+					CaptureCollisionChunk(*Collision, Source.Frame.GetTranslation().Z, Budget);
+				if (!Chunk.IsValid())
+					continue;
+				Chunks.Add(Key, {Chunk, GFrameCounter});
+				Cached = Chunks.Find(Key);
+			}
+			if (Cached != nullptr)
+			{
+				Cached->LastUsedFrame = GFrameCounter;
+				Source.Chunks.Add(Key, Cached->Chunk);
+			}
+		}
+	bool bCornersAvailable = true;
+	for (int32 Y : {0, Request.SizeY - 1})
+		for (int32 X : {0, Request.SizeX - 1})
+		{
+			float Height;
+			bCornersAvailable &= Source.Sample(
+				Request.Corner + Source.Frame.TransformVectorNoScale(
+									 FVector(X * Source.Spacing, Y * Source.Spacing, 0)),
+				Height);
+		}
+	return bCornersAvailable;
 }
 
 void FAGX_TerrainHeightFetcher::ResetSnapshots()

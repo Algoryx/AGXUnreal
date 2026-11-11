@@ -53,6 +53,13 @@ private:
 		uint64 LastUsedFrame;
 		TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe> Snapshot;
 	};
+	/** Caller holds SnapshotMutex while publishing completed work. */
+	void CompleteResamplingJob();
+	/** Caller holds SnapshotMutex while expiring and collecting requests. */
+	int64 CollectPendingRequests(TArray<TPair<FIntPoint, FRequest>>& Pending);
+	void EvictSourceCache(int64& Bytes);
+	void ScheduleResamplingJob(
+		ALandscape& Landscape, const TArray<TPair<FIntPoint, FRequest>>& Pending, int64 Bytes);
 	mutable std::mutex SnapshotMutex;
 	mutable TMap<FIntPoint, FRequest> Requests;
 	// One bounded asynchronous resampling job; it owns numeric data, never this fetcher.
