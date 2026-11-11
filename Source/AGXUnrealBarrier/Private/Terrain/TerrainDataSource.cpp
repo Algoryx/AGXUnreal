@@ -45,10 +45,18 @@ agxTerrain::TerrainDataSource::TerrainHeightType FTerrainDataSource::fetchTerrai
 void FTerrainDataSource::SetTerrainHeightFetcher(
 	FTerrainHeightFetcherBase* InHeightFetcher) noexcept
 {
+	OwnedHeightFetcher.Reset();
 	HeightFetcher = InHeightFetcher;
 }
 
 FTerrainHeightFetcherBase* FTerrainDataSource::GetTerrainHeightFetcher() const
 {
 	return HeightFetcher;
+}
+
+void FTerrainDataSource::SetOwnedTerrainHeightFetcher(
+	TSharedRef<FTerrainHeightFetcherBase, ESPMode::ThreadSafe> InHeightFetcher)
+{
+	OwnedHeightFetcher = InHeightFetcher;
+	HeightFetcher = OwnedHeightFetcher.Get();
 }

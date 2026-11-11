@@ -5,47 +5,19 @@
 // AGX Dynamics for Unreal includes.
 #include "AGX_Real.h"
 #include "Terrain/AGX_DelegateParticleData.h"
+#include "Terrain/AGX_Shovel.h"
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainPagingSettings.h"
-#include "Terrain/AGX_Shovel.h"
 #include "Terrain/TerrainBarrier.h"
 #include "Terrain/TerrainPagerBarrier.h"
 #include "Terrain/TerrainParticleTypes.h"
 
 // Unreal Engine includes.
-#include "Misc/EngineVersionComparison.h"
-#include "Containers/Array.h"
 #include "CoreMinimal.h"
-#include "Misc/EngineVersionComparison.h"
-#if !UE_VERSION_OLDER_THAN(5, 2, 0)
-// Possible include loop in Unreal Engine.
-// - Engine/TextureRenderTarget2D.h
-// - RenderUtils.h
-// - RHIShaderPlatform.h
-//     Defines FStaticShaderPlatform, but includes RHIDefinitions.h first.
-// - RHIDefinitions.h
-// - DataDrivenShaderPlatformInfo.h
-//   Needs FStaticShaderPlatform so includes RHIShaderPlatform.h. But that file is already being
-//   included so ignored. So FStaticShaderPlatform will be defined soon, but it isn't yet. So
-//   the compile fails.
-//
-// We work around this by including DataDrivenShaderPlatformInfo.h ourselves before all of the
-// above. Now DataDrivenShaderPlatformInfo.h can include RHIShaderPlatform.h succesfully and
-// FStaticShaderPlatform is defined when DataDrivenShaderPlatformInfo.h needs it. When we include
-// DynamicMeshBuild.h shortly most of the include files are skipped because they have already been
-// included as part of DataDrivenShaderPlatformInfo.h here.
-#include "DataDrivenShaderPlatformInfo.h"
-#endif
-#include "Engine/TextureRenderTarget2D.h"
 #include "GameFramework/Actor.h"
-#if UE_VERSION_OLDER_THAN(5, 2, 0)
-#include "RHI.h"
-#else
-#include "RHITypes.h"
-#endif
 
 // Standard library includes.
-#include <mutex>
+#include <limits>
 
 #include "AGX_Terrain.generated.h"
 
@@ -55,10 +27,13 @@ class UAGX_SoilParticleRendererComponent;
 class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
+class UAGX_TerrainLandscapeRendererComponent;
+class UAGX_TerrainPartitionedLandscapeRendererComponent;
 class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
+class UTextureRenderTarget2D;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 
@@ -92,6 +67,9 @@ public:
 	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
 	UAGX_SoilParticleRendererComponent* DefaultParticleRenderer;
 
+	UPROPERTY(Category = "AGX Terrain", VisibleAnywhere, BlueprintReadOnly)
+	UAGX_TerrainLandscapeRendererComponent* DefaultLandscapeRenderer;
+
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	bool bCanCollide {true};
 
@@ -102,17 +80,10 @@ public:
 	bool GetCanCollide() const;
 
 	/**
-	 * The Landscape that AGX Terrain will use as initialization data, and will also modify
-	 * in-game using a Displacement Map.
-	 *
-	 * Requirements:
-	 *
-	 * 1. Must use AGX Landscape Material or a derived material.
-	 * 2. Uniform resolution of LandscapeComponents.
-	 * 3. Only one Section per LandscapeComponent.
-	 * 4. Uniform resolution of Quads per LandscapeComponent.
-	 * 5. The Landscape Actor and AGX Terrain Actor must be centered at World Origin and have no
-	 * rotation.
+	 * Landscape supplying runtime collision heights. Partitioned sources require Terrain Paging
+	 * and finite Terrain Bounds. Arrange streaming sources around tracked bodies and shovels.
+	 * The partitioned renderer supports translation and yaw; pitch, roll and negative scale are
+	 * unsupported. Materials must be configured for the selected Landscape renderer.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
 	ALandscape* SourceLandscape;
@@ -217,7 +188,8 @@ public:
 		UAGX_ShovelComponent* Shovel, double InPreloadRadius, double InRequiredRadius);
 
 	/** Whether the height field rendering should be updated with deformation data. */
-	UPROPERTY(EditAnywhere, Category = "AGX Terrain Rendering")
+	UPROPERTY(
+		meta = (DeprecatedProperty, DeprecationMessage = "Use DefaultLandscapeRenderer.bEnabled."))
 	bool bEnableDisplacementRendering = true;
 
 	// TODO: Should try finding this from the material automatically!
@@ -236,8 +208,9 @@ public:
 	 *    or "2D Pixels (unfiltered)" for more precise results.
 	 */
 	UPROPERTY(
-		EditAnywhere, Category = "AGX Terrain Rendering",
-		Meta = (EditCondition = "bEnableDisplacementRendering"))
+		meta =
+			(DeprecatedProperty,
+			 DeprecationMessage = "Use DefaultLandscapeRenderer.LandscapeDisplacementMap."))
 	UTextureRenderTarget2D* LandscapeDisplacementMap;
 
 	/** Whether shovel active zone should be rendered or not. */
@@ -265,6 +238,22 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain", Meta = (EditCondition = "bEnableTerrainPaging"))
 	FAGX_TerrainPagingSettings TerrainPagingSettings;
+
+	/** Simulation grid spacing [cm]. Zero preserves the source Landscape X quad spacing.
+	 * Custom spacing requires Terrain Paging. Independent of RVT and Nanite geometry resolution.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain",
+		meta = (ClampMin = "0", Units = "cm"))
+	double SimulationResolution = 0.0;
+
+	UFUNCTION(BlueprintPure, Category = "AGX Terrain")
+	double GetSimulationResolution() const;
+
+	bool UsesPartitionedLandscapeRendering() const;
+	void ValidateLandscapeBounds();
+	TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe> GetSourceTileSnapshot(
+		const FVector& Corner, int32 Side) const;
 
 	bool HasNativeTerrainPager() const;
 
@@ -308,18 +297,17 @@ private:
 	bool UpdateNativeShapeMaterial();
 
 	void InitializeRendering();
-	void InitializeDisplacementMap();
-	void UpdateLandscapeMaterialParameters();
-	void UpdateDisplacementMap();
-	void ClearDisplacementMap();
+	void UpdateLandscapeRendering();
 	void UpdateParticlesArrays();
 #if WITH_EDITOR
 	void InitPropertyDispatcher();
-	virtual void PostLoad() override;
 #endif
+	virtual void PostActorCreated() override;
+	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Archive) override;
 
 	friend class FAGX_TerrainHeightFetcher;
+	friend class UAGX_TerrainLandscapeRendererComponent;
 
 private:
 	UPROPERTY(Transient)
@@ -365,31 +353,17 @@ private:
 	 */
 	FTerrainBarrier NativeBarrier;
 	FTerrainPagerBarrier NativeTerrainPagerBarrier;
-	FAGX_TerrainHeightFetcher HeightFetcher;
+	TSharedRef<FAGX_TerrainHeightFetcher, ESPMode::ThreadSafe> HeightFetcher =
+		MakeShared<FAGX_TerrainHeightFetcher, ESPMode::ThreadSafe>();
+	FDelegateHandle PreStepForwardHandle;
 	FDelegateHandle PostStepForwardHandle;
 
 	// Height field related variables.
-	std::mutex OriginalHeightsMutex;
-	TArray<float> OriginalHeights;
-	TArray<float> CurrentHeights;
-	TArray<FFloat16> DisplacementData;
-	TArray<FUpdateTextureRegion2D> DisplacementMapRegions; // TODO: Remove!
 	int32 NumVerticesX = 0;
 	int32 NumVerticesY = 0;
-	bool DisplacementMapInitialized = false;
-
-	/**
-	 * Thread safe convenience function for reading heights from the source Landscape.
-	 * The WorldPosStart is projected onto the Landscape and acts as the starting point (corner) of
-	 * the area that will be sampled (it does not snap to the nearest vertex). The steps between
-	 * height values are determined by the source Landscape quad size, and the number of steps by
-	 * VertsX and VertsY in the Landscape local positive X and Y direction respectively. The heights
-	 * are written to OutHeights in the ordering of AGX Dynamics.
-	 *
-	 * Returns true if the heights could be read, false otherwise.
-	 */
-	bool FetchHeights(
-		const FVector& WorldPosStart, int32 VertsX, int32 VertsY, TArray<float>& OutHeights);
+	bool bLastDeprecatedRenderingEnabled = true;
+	TWeakObjectPtr<UTextureRenderTarget2D> LastDeprecatedDisplacementMap;
+	bool bRendererConflictReported = false;
 
 	FTransform GetNativeTransform() const;
 

@@ -36,6 +36,8 @@ public:
 	/**
 	 * If set to true, the Height Field Bounds will be as large as any selected Landscape.
 	 * Notice that using smaller bounds may increase runtime performance.
+	 * Available only for non-partitioned sources. The RVT Landscape renderer also requires finite
+	 * bounds, including when its source is an ordinary Landscape.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Height Field Bounds")
 	bool bInfiniteBounds = false;

@@ -2,6 +2,10 @@
 
 #pragma once
 
+// Unreal Engine includes.
+#include "Containers/Map.h"
+#include "Math/IntPoint.h"
+
 // AGX Dynamics includes.
 #include "BeginAGXIncludes.h"
 #include <agx/Constraint.h>
@@ -253,6 +257,25 @@ struct FTerrainMaterialRef
 struct FTerrainPagerRef
 {
 	agxTerrain::TerrainPagerRef Native;
+	agxTerrain::TerrainPager::TileCallback TileLoaded;
+	agxTerrain::TerrainPager::TileCallback TileUnloaded;
+	TMap<FIntPoint, uint64> TileGenerations;
+	uint64 NextTileGeneration = 0;
+
+	~FTerrainPagerRef()
+	{
+		DisconnectTileCallbacks();
+	}
+
+	void DisconnectTileCallbacks()
+	{
+		if (Native != nullptr)
+		{
+			Native->tileLoadEvent.removeCallback(&TileLoaded);
+			Native->tileUnloadEvent.removeCallback(&TileUnloaded);
+		}
+		TileGenerations.Empty();
+	}
 
 	FTerrainPagerRef() = default;
 	FTerrainPagerRef(agxTerrain::TerrainPager* InNative)

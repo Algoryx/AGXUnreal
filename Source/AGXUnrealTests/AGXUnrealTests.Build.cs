@@ -1,6 +1,7 @@
 // Copyright 2026, Algoryx Simulation AB.
 
 
+using System.IO;
 using UnrealBuildTool;
 
 public class AGXUnrealTests : ModuleRules
@@ -20,8 +21,11 @@ public class AGXUnrealTests : ModuleRules
 		bLegacyPublicIncludePaths = false;
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Exercise the private RVT sampler without exposing its implementation as public API.
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "../AGXUnreal/Private"));
+
 		PrivateDependencyModuleNames.AddRange(new string[] {
-			"Core", "Engine", "UnrealEd", "CoreUObject", "AGXCommon", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor"
+			"Core", "Engine", "UnrealEd", "CoreUObject", "AGXCommon", "AGXUnreal", "AGXUnrealBarrier", "AGXUnrealEditor", "Landscape", "Foliage", "RenderCore", "Renderer", "RHI"
 		});
 	}
 }

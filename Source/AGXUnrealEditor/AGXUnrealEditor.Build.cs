@@ -34,7 +34,7 @@ public class AGXUnrealEditor : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"AGXDynamicsLibrary", "AssetTools", "CoreUObject", "DesktopPlatform", "EditorStyle", "Engine", "InputCore",
 			"Json", "LevelEditor", "PlacementMode", "Projects", "PropertyEditor", "PropertyPath", "RenderCore", "RHI",
-			"SceneOutliner", "Slate", "SlateCore", "SubobjectEditor", "UnrealEd", "MeshDescription"
+			"SceneOutliner", "Slate", "SlateCore", "SubobjectEditor", "UnrealEd", "MeshDescription", "StaticMeshDescription", "Landscape"
 		});
 
 #if UE_5_0_OR_LATER

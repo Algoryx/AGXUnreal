@@ -8,6 +8,7 @@
 class AGXUNREALBARRIER_API FTerrainHeightFetcherBase
 {
 public:
+	virtual ~FTerrainHeightFetcherBase() = default;
 	/**
 	 * Reads heights in a grid from a starting position. VertsX x VertsY number of heights are read
 	 * and written to the out variable.

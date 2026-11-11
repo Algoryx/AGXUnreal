@@ -10,6 +10,7 @@
 #include "Utilities/AGX_HeightFieldUtilities.h"
 
 // Unreal Engine includes.
+#include "Engine/World.h"
 #include "Landscape.h"
 
 // Standard library includes.
@@ -89,7 +90,8 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 	const FVector SelectedHalfExtent =
 		GetInfinateOrUserSelectedBounds(bInfiniteBounds, Landscape, HalfExtent);
 
-	if (SelectedHalfExtent.X <= 0.0 || SelectedHalfExtent.Y <= 0.0 || SelectedHalfExtent.Z <= 0.0)
+	if (SelectedHalfExtent.ContainsNaN() || SelectedHalfExtent.X <= 0.0 ||
+		SelectedHalfExtent.Y <= 0.0 || SelectedHalfExtent.Z <= 0.0)
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -100,8 +102,9 @@ UAGX_HeightFieldBoundsComponent::GetUserSetBounds() const
 
 	int64 VertexCountX;
 	int64 VertexCountY;
-	std::tie(VertexCountX, VertexCountY) =
-		AGX_HeightFieldUtilities::GetLandscapeNumberOfVertsXY(Landscape);
+	if (bInfiniteBounds)
+		std::tie(VertexCountX, VertexCountY) =
+			AGX_HeightFieldUtilities::GetLandscapeNumberOfVertsXY(Landscape);
 
 	// The position of the Terrain center in the Landscape's local coordinate system.
 	const FVector CenterPosLocal = [&]()
@@ -305,6 +308,15 @@ bool UAGX_HeightFieldBoundsComponent::CanEditChange(const FProperty* InProperty)
 	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
 	if (!SuperCanEditChange)
 		return false;
+	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ThisClass, bInfiniteBounds))
+	{
+		const auto Source = GetLandscapeAndTransformFromOwner();
+		const AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(GetOwner());
+		if ((Source.IsSet() && Source->Landscape.GetWorld() != nullptr &&
+			 Source->Landscape.GetWorld()->IsPartitionedWorld()) ||
+			(Terrain != nullptr && Terrain->UsesPartitionedLandscapeRendering()))
+			return false;
+	}
 
 	UWorld* World = GetWorld();
 	if (World == nullptr || !World->IsPlayInEditor())

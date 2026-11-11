@@ -12,6 +12,10 @@ class ALandscape;
 
 namespace AGX_HeightFieldUtilities
 {
+	/** Source heights in Landscape-local centimeters and AGX row order. StartPos is world space. */
+	AGXUNREAL_API TArray<float> GetHeights(
+		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY);
+
 	// StartPos is in world coordinate system.
 	AGXUNREAL_API FHeightFieldShapeBarrier CreateHeightField(
 		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY);

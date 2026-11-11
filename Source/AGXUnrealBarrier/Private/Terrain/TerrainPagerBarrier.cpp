@@ -3,8 +3,8 @@
 #include "Terrain/TerrainPagerBarrier.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGXBarrierFactories.h"
 #include "AGX_Check.h"
+#include "AGXBarrierFactories.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
 #include "Materials/ShapeMaterialBarrier.h"
@@ -104,6 +104,15 @@ void FTerrainPagerBarrier::AllocateNative(
 	NativeRef->Native = new agxTerrain::TerrainPager(
 		TileSideVertices, TileOverlapVerties, ElementSizeAGX, MaxDepthAGX, Position, Rotation,
 		TerrainBarrier.GetNative()->Native);
+	FTerrainPagerRef* Ref = NativeRef.get();
+	Ref->TileLoaded = agxTerrain::TerrainPager::TileCallback(
+		[Ref](agxTerrain::TileId Id, agxTerrain::Terrain*)
+		{ Ref->TileGenerations.Add(FIntPoint(Id.x(), Id.y()), ++Ref->NextTileGeneration); });
+	Ref->TileUnloaded = agxTerrain::TerrainPager::TileCallback(
+		[Ref](agxTerrain::TileId Id, agxTerrain::Terrain*)
+		{ Ref->TileGenerations.Remove(FIntPoint(Id.x(), Id.y())); });
+	Ref->Native->tileLoadEvent.addCallback(&Ref->TileLoaded);
+	Ref->Native->tileUnloadEvent.addCallback(&Ref->TileUnloaded);
 }
 
 void FTerrainPagerBarrier::CreateTerrainDataSource(
@@ -133,6 +142,15 @@ void FTerrainPagerBarrier::CreateTerrainDataSource(
 	NativeRef->Native->setTerrainDataSource(DataSourceRef->Native);
 }
 
+void FTerrainPagerBarrier::CreateTerrainDataSource(
+	TSharedRef<FTerrainHeightFetcherBase, ESPMode::ThreadSafe> HeightFetcher,
+	FTerrainMaterialBarrier* DefaultTerrainMaterial)
+{
+	CreateTerrainDataSource(&HeightFetcher.Get(), DefaultTerrainMaterial);
+	static_cast<FTerrainDataSource*>(DataSourceRef->Native.get())
+		->SetOwnedTerrainHeightFetcher(HeightFetcher);
+}
+
 FTerrainPagerRef* FTerrainPagerBarrier::GetNative()
 {
 	check(HasNative());
@@ -148,6 +166,7 @@ const FTerrainPagerRef* FTerrainPagerBarrier::GetNative() const
 void FTerrainPagerBarrier::ReleaseNative()
 {
 	check(HasNative());
+	NativeRef->DisconnectTileCallbacks();
 	NativeRef->Native = nullptr;
 }
 
@@ -401,6 +420,15 @@ FVector FTerrainPagerBarrier::GetReferencePoint() const
 	return ConvertDisplacement(NativeRef->Native->getTileSpecification().getReferencePoint());
 }
 
+FVector FTerrainPagerBarrier::GetTileGridOrigin() const
+{
+	check(HasNative());
+	const auto& Specification = NativeRef->Native->getTileSpecification();
+	const agx::Real Half = Specification.getTileSize() / 2.0;
+	return ConvertDisplacement(
+		Specification.convertTilePositionToWorld(agxTerrain::TileId(0, 0), agx::Vec2(-Half, Half)));
+}
+
 FQuat FTerrainPagerBarrier::GetReferenceRotation() const
 {
 	check(HasNative());
@@ -434,4 +462,67 @@ void FTerrainPagerBarrier::OnTemplateTerrainChanged() const
 {
 	check(HasNative());
 	NativeRef->Native->applyChangesToTemplateTerrain();
+}
+
+TArray<FTerrainTileHeights> FTerrainPagerBarrier::GetTileHeightUpdates(
+	TMap<FIntPoint, uint64>& KnownTiles) const
+{
+	check(HasNative());
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:TerrainTileHeightUpdates"));
+	TArray<FTerrainTileHeights> Result;
+	TMap<FIntPoint, uint64> Active;
+	const auto& Specification = NativeRef->Native->getTileSpecification();
+	const int32 Side = static_cast<int32>(Specification.getTileResolution());
+	const agx::Real HalfSize = Specification.getTileSize() / 2.0;
+	agx::FrameRef Frame = new agx::Frame();
+	Frame->setRotate(Specification.getReferenceRotation());
+	Frame->setTranslate(Specification.getReferencePoint());
+	for (const auto* Attachment : NativeRef->Native->getActiveTileAttachments())
+	{
+		if (Attachment == nullptr || Attachment->m_terrainTile == nullptr)
+			continue;
+		const agxTerrain::Terrain* Tile = Attachment->m_terrainTile;
+		const auto Id = Specification.convertWorldCoordinateToTileId(Tile->getPosition());
+		const FIntPoint Key(Id.x(), Id.y());
+		const uint64* Generation = NativeRef->TileGenerations.Find(Key);
+		const uint64 Identity =
+			Generation != nullptr ? *Generation : reinterpret_cast<uint64>(Tile);
+		Active.Add(Key, Identity);
+		const uint64* Previous = KnownTiles.Find(Key);
+		const bool bFullRefresh = Previous == nullptr || *Previous != Identity;
+		const auto& Modified = Tile->getModifiedVertices();
+		if (!bFullRefresh && Modified.empty())
+			continue;
+		FTerrainTileHeights& Update = Result.AddDefaulted_GetRef();
+		Update.Id = Key;
+		Update.Corner = ConvertDisplacement(
+			Specification.convertTilePositionToWorld(Id, agx::Vec2(-HalfSize, HalfSize)));
+		Update.SideVertices = Side;
+		Update.Spacing = ConvertDistanceToUnreal<double>(Tile->getElementSize());
+		Update.bFullRefresh = bFullRefresh;
+		const agx::Real Offset = Frame->transformPointToLocal(Tile->getPosition()).z();
+		const auto* HeightField = Tile->getHeightField();
+		if (bFullRefresh)
+		{
+			Update.Heights.Reserve(Side * Side);
+			for (int32 Y = 0; Y < Side; ++Y)
+				for (int32 X = 0; X < Side; ++X)
+					Update.Heights.Add(
+						ConvertDistanceToUnreal<float>(HeightField->getHeight(X, Y) + Offset));
+		}
+		else
+		{
+			Update.Heights.Reserve(Modified.size());
+			Update.ModifiedVertices.Reserve(Modified.size());
+			for (const auto& Vertex : Modified)
+			{
+				Update.ModifiedVertices.Emplace(Vertex.x(), Vertex.y());
+				Update.Heights.Add(
+					ConvertDistanceToUnreal<float>(
+						HeightField->getHeight(Vertex.x(), Vertex.y()) + Offset));
+			}
+		}
+	}
+	KnownTiles = MoveTemp(Active);
+	return Result;
 }

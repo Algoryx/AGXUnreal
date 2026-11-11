@@ -22,6 +22,18 @@ class FTerrainMaterialBarrier;
 struct FTerrainDataSourceRef;
 struct FTerrainPagerRef;
 
+/** Active tile state in the pager frame, in centimeters and AGX row order. No native ownership. */
+struct AGXUNREALBARRIER_API FTerrainTileHeights
+{
+	FIntPoint Id;
+	FVector Corner;
+	int32 SideVertices = 0;
+	double Spacing = 0.0;
+	bool bFullRefresh = false;
+	TArray<float> Heights;
+	TArray<FIntPoint> ModifiedVertices;
+};
+
 class AGXUNREALBARRIER_API FTerrainPagerBarrier
 {
 public:
@@ -34,8 +46,14 @@ public:
 	void AllocateNative(
 		FTerrainBarrier& TerrainBarrier, int32 TileSideVertices, int32 TileOverlapVerties,
 		double ElementSize, double MaxDepth);
+	/** Caller keeps a raw fetcher alive until all native paging references are released. */
 	void CreateTerrainDataSource(
 		FTerrainHeightFetcherBase* HeightFetcher, FTerrainMaterialBarrier* DefaultTerrainMaterial);
+
+	/** Keep source snapshots alive through outstanding native worker jobs and world teardown. */
+	void CreateTerrainDataSource(
+		TSharedRef<FTerrainHeightFetcherBase, ESPMode::ThreadSafe> HeightFetcher,
+		FTerrainMaterialBarrier* DefaultTerrainMaterial);
 	FTerrainPagerRef* GetNative();
 	const FTerrainPagerRef* GetNative() const;
 	void ReleaseNative();
@@ -83,9 +101,18 @@ public:
 		TArray<float>& OutHeights, int32 BoundVertsX, int32 BoundVertsY) const;
 
 	FVector GetReferencePoint() const;
+	/** First vertex of tile (0,0), defining the simulation lattice independent of active tiles
+	 * [world cm]. */
+	FVector GetTileGridOrigin() const;
 	FQuat GetReferenceRotation() const;
 
 	TArray<FTransform> GetActiveTileTransforms() const;
+
+	/**
+	 * Read after stepping. New or restored tiles always return their complete authoritative state;
+	 * known tiles return only changes. KnownTiles is pruned to the active set on every call.
+	 */
+	TArray<FTerrainTileHeights> GetTileHeightUpdates(TMap<FIntPoint, uint64>& KnownTiles) const;
 
 	void OnTemplateTerrainChanged() const;
 

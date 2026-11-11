@@ -318,7 +318,7 @@ namespace AGX_HeightFieldUtilities_helpers
 	}
 }
 
-TArray<float> GetHeights(
+TArray<float> AGX_HeightFieldUtilities::GetHeights(
 	ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY)
 {
 	using namespace AGX_HeightFieldUtilities_helpers;
