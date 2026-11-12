@@ -1,6 +1,6 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
@@ -32,30 +32,28 @@
 #include "VT/RuntimeVirtualTexture.h"
 #include "VT/VirtualTexturePoolConfig.h"
 
-UAGX_TerrainPartitionedLandscapeRendererComponent::
-	UAGX_TerrainPartitionedLandscapeRendererComponent()
+UAGX_TerrainRVTLandscapeRendererComponent::UAGX_TerrainRVTLandscapeRendererComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bTickEvenWhenPaused = true;
 }
 
-UAGX_TerrainPartitionedLandscapeRendererComponent::
-	~UAGX_TerrainPartitionedLandscapeRendererComponent() = default;
+UAGX_TerrainRVTLandscapeRendererComponent::~UAGX_TerrainRVTLandscapeRendererComponent() = default;
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::SetEnabled(bool bInEnabled)
+void UAGX_TerrainRVTLandscapeRendererComponent::SetEnabled(bool bInEnabled)
 {
 	bEnabled = bInEnabled;
 	if (!bEnabled)
 		Shutdown();
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::EndPlay(const EEndPlayReason::Type Reason)
+void UAGX_TerrainRVTLandscapeRendererComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Shutdown();
 	Super::EndPlay(Reason);
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain& InTerrain)
+void UAGX_TerrainRVTLandscapeRendererComponent::Initialize(AAGX_Terrain& InTerrain)
 {
 	if (Terrain != nullptr)
 		return;
@@ -79,14 +77,24 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Initialize(AAGX_Terrain&
 		BindProxy(**It);
 }
 
-bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization() const
+bool UAGX_TerrainRVTLandscapeRendererComponent::ValidateInitialization() const
 {
-	if (!Terrain->HasNativeTerrainPager() || Terrain->TerrainBounds->bInfiniteBounds)
+	if (!Terrain->HasNativeTerrainPager() && Terrain->GetLandscapeSourceHeightBytes() == 0)
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT(
-				"Partitioned Landscape rendering requires Terrain Paging and finite Terrain Bounds "
+				"Add the RVT Landscape Renderer to '%s' before creating its non-paged native "
+				"Terrain."),
+			*Terrain->GetName());
+		return false;
+	}
+	if (Terrain->TerrainBounds->bInfiniteBounds)
+	{
+		UE_LOG(
+			LogAGX, Error,
+			TEXT(
+				"RVT Landscape rendering requires finite Terrain Bounds "
 				"on '%s'."),
 			*Terrain->GetName());
 		return false;
@@ -98,7 +106,7 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization()
 		UE_LOG(
 			LogAGX, Error,
 			TEXT(
-				"Invalid partitioned renderer settings on '%s': page size must be a power of two "
+				"Invalid RVT renderer settings on '%s': page size must be a power of two "
 				"(64..1024), range positive and finite, pages/frame 1..256."),
 			*Terrain->GetName());
 		return false;
@@ -111,7 +119,7 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization()
 			UE_LOG(
 				LogAGX, Error,
 				TEXT(
-					"Partitioned Landscape rendering requires %s=1. Configure the project and "
+					"RVT Landscape rendering requires %s=1. Configure the project and "
 					"restart the editor before playing."),
 				Setting);
 			return false;
@@ -122,7 +130,7 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization()
 		UE_LOG(
 			LogAGX, Error,
 			TEXT(
-				"Partitioned Landscape rendering requires a Nanite-capable shader platform. Use "
+				"RVT Landscape rendering requires a Nanite-capable shader platform. Use "
 				"DX12/SM6 on Windows."));
 		return false;
 	}
@@ -138,7 +146,7 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization()
 				UE_LOG(
 					LogAGX, Error,
 					TEXT(
-						"Landscape '%s' already has an active partitioned Terrain renderer. Use "
+						"Landscape '%s' already has an active RVT Terrain renderer. Use "
 						"one renderer per Landscape in a world."),
 					*GetNameSafe(Terrain->SourceLandscape));
 				return false;
@@ -148,13 +156,19 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::ValidateInitialization()
 	return true;
 }
 
-bool UAGX_TerrainPartitionedLandscapeRendererComponent::CreateVirtualTexture()
+bool UAGX_TerrainRVTLandscapeRendererComponent::CreateVirtualTexture()
 {
 	const auto Bounds = Terrain->TerrainBounds->GetUserSetBounds();
 	if (!Bounds.IsSet() || Terrain->SourceLandscape == nullptr)
 		return false;
-	const int32 TileCountLog2 = ConfigureVirtualTextureCoverage(
-		Bounds->Transform, FVector2D(Bounds->HalfExtent.X, Bounds->HalfExtent.Y));
+	const bool bPaged = Terrain->HasNativeTerrainPager();
+	const FTransform Frame =
+		bPaged
+			? Bounds->Transform
+			: FTransform(Terrain->GetNative()->GetRotation(), Terrain->GetNative()->GetPosition());
+	const FVector2D HalfExtent = bPaged ? FVector2D(Bounds->HalfExtent.X, Bounds->HalfExtent.Y)
+										: Terrain->GetNative()->GetSize() * 0.5;
+	const int32 TileCountLog2 = ConfigureVirtualTextureCoverage(Frame, HalfExtent);
 	const FVector2D& CoverageMin = Data->CoverageMin;
 	const FVector2D& Size = Data->CoverageSize;
 	UAGX_TerrainDisplacementVirtualTexture* RuntimeTexture =
@@ -162,9 +176,8 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::CreateVirtualTexture()
 	RuntimeTexture->Configure(PageSize, TileCountLog2);
 	VirtualTexture = RuntimeTexture;
 	const FTransform Volume(
-		Bounds->Transform.GetRotation(),
-		Bounds->Transform.TransformPositionNoScale(
-			FVector(CoverageMin.X, CoverageMin.Y, -DisplacementRange)),
+		Frame.GetRotation(),
+		Frame.TransformPositionNoScale(FVector(CoverageMin.X, CoverageMin.Y, -DisplacementRange)),
 		FVector(Size.X, Size.Y, 2.0 * DisplacementRange));
 	FVTProducerDescription Description;
 	RuntimeTexture->GetProducerDescription(
@@ -221,17 +234,19 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::CreateVirtualTexture()
 		FBox(
 			FVector(CoverageMin.X, CoverageMin.Y, -DisplacementRange),
 			FVector(CoverageMin.X + Size.X, CoverageMin.Y + Size.Y, DisplacementRange))
-			.TransformBy(Bounds->Transform);
+			.TransformBy(Frame);
 	VirtualTexture->Initialize(
 		AGX_CreateTerrainVirtualTextureProducer(Data.ToSharedRef(), Description), Description,
 		Volume, WorldBounds);
 	return true;
 }
 
-int32 UAGX_TerrainPartitionedLandscapeRendererComponent::ConfigureVirtualTextureCoverage(
+int32 UAGX_TerrainRVTLandscapeRendererComponent::ConfigureVirtualTextureCoverage(
 	const FTransform& Frame, const FVector2D& HalfExtent)
 {
-	const double PhysicsSpacing = Terrain->GetSimulationResolution();
+	const double PhysicsSpacing = Terrain->HasNativeTerrainPager()
+									  ? Terrain->GetSimulationResolution()
+									  : Terrain->GetNative()->GetElementSize();
 	const double SourceSpacing = FMath::Min(
 		Terrain->SourceLandscape->GetActorScale3D().X,
 		Terrain->SourceLandscape->GetActorScale3D().Y);
@@ -240,7 +255,9 @@ int32 UAGX_TerrainPartitionedLandscapeRendererComponent::ConfigureVirtualTexture
 	double TexelSpacing =
 		PhysicsSpacing / FMath::CeilToDouble(FMath::Max(1.0, PhysicsSpacing / SourceSpacing));
 	const FVector GridOrigin3D = Frame.InverseTransformPositionNoScale(
-		Terrain->GetNativeTerrainPager()->GetTileGridOrigin());
+		Terrain->HasNativeTerrainPager()
+			? Terrain->GetNativeTerrainPager()->GetTileGridOrigin()
+			: Frame.TransformPositionNoScale(FVector(-HalfExtent.X, -HalfExtent.Y, 0)));
 	const FVector2D GridOrigin(GridOrigin3D.X, GridOrigin3D.Y);
 	auto FirstVertex = [&GridOrigin, &HalfExtent](double Spacing)
 	{
@@ -283,7 +300,7 @@ int32 UAGX_TerrainPartitionedLandscapeRendererComponent::ConfigureVirtualTexture
 	return TileCountLog2;
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::OnLevelAdded(ULevel* Level, UWorld* World)
+void UAGX_TerrainRVTLandscapeRendererComponent::OnLevelAdded(ULevel* Level, UWorld* World)
 {
 	if (World != GetWorld() || Level == nullptr)
 		return;
@@ -292,7 +309,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::OnLevelAdded(ULevel* Lev
 			PendingProxies.AddUnique(Proxy);
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::OnLevelRemoved(ULevel* Level, UWorld* World)
+void UAGX_TerrainRVTLandscapeRendererComponent::OnLevelRemoved(ULevel* Level, UWorld* World)
 {
 	if (World != GetWorld())
 		return;
@@ -302,7 +319,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::OnLevelRemoved(ULevel* L
 		{ return !Proxy.IsValid() || Level == nullptr || Proxy->GetLevel() == Level; });
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProxy& Proxy)
+void UAGX_TerrainRVTLandscapeRendererComponent::BindProxy(ALandscapeProxy& Proxy)
 {
 	if (!Data.IsValid() || Proxy.GetWorld() != GetWorld() ||
 		Proxy.GetLandscapeGuid() != Terrain->SourceLandscape->GetLandscapeGuid() ||
@@ -326,7 +343,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindProxy(ALandscapeProx
 		BindNaniteMaterials(*Component);
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::BindLandscapeMaterials(
+void UAGX_TerrainRVTLandscapeRendererComponent::BindLandscapeMaterials(
 	ULandscapeComponent& Component)
 {
 	UPrimitiveComponent* Primitive = &Component;
@@ -369,8 +386,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindLandscapeMaterials(
 	Bindings.Add(MoveTemp(Binding));
 }
 
-UMaterialInstanceDynamic*
-UAGX_TerrainPartitionedLandscapeRendererComponent::CreateLandscapeMaterial(
+UMaterialInstanceDynamic* UAGX_TerrainRVTLandscapeRendererComponent::CreateLandscapeMaterial(
 	UMaterialInterface* Parent, double VerticalScale)
 {
 	if (Parent == nullptr)
@@ -433,7 +449,7 @@ UAGX_TerrainPartitionedLandscapeRendererComponent::CreateLandscapeMaterial(
 	return Material;
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::BindNaniteMaterials(
+void UAGX_TerrainRVTLandscapeRendererComponent::BindNaniteMaterials(
 	ULandscapeNaniteComponent& Component)
 {
 	FAGX_TerrainLandscapeMaterialBinding Binding;
@@ -476,11 +492,11 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::BindNaniteMaterials(
 	Bindings.Add(MoveTemp(Binding));
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()
+void UAGX_TerrainRVTLandscapeRendererComponent::Update()
 {
-	if (!Data.IsValid() || Terrain == nullptr || !Terrain->HasNativeTerrainPager())
+	if (!Data.IsValid() || Terrain == nullptr || !Terrain->HasNative())
 		return;
-	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:PartitionedLandscapeUpdate"));
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("AGXUnreal:RVTLandscapeUpdate"));
 	for (auto Proxy : PendingProxies)
 		if (Proxy.IsValid())
 			BindProxy(*Proxy);
@@ -490,7 +506,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()
 		if (!It.Key().IsValid())
 			It.RemoveCurrent();
 
-	auto Updates = Terrain->GetNativeTerrainPager()->GetTileHeightUpdates(KnownTiles);
+	auto Updates = Terrain->GetLandscapeRenderUpdates(KnownTiles);
 	TArray<FIntPoint> Removed;
 	for (auto It = Tiles.CreateIterator(); It; ++It)
 		if (!KnownTiles.Contains(It.Key()))
@@ -614,14 +630,14 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Update()
 		Invalidate(Region.Min, Region.Max);
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::TickComponent(
+void UAGX_TerrainRVTLandscapeRendererComponent::TickComponent(
 	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* TickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, TickFunction);
 	RequestPages();
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::RequestPages()
+void UAGX_TerrainRVTLandscapeRendererComponent::RequestPages()
 {
 	if (!Data.IsValid() || VirtualTexture == nullptr || Tiles.IsEmpty())
 		return;
@@ -681,8 +697,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::RequestPages()
 }
 
 #if WITH_EDITOR
-bool UAGX_TerrainPartitionedLandscapeRendererComponent::CanEditChange(
-	const FProperty* Property) const
+bool UAGX_TerrainRVTLandscapeRendererComponent::CanEditChange(const FProperty* Property) const
 {
 	if (GetWorld() != nullptr && GetWorld()->IsGameWorld())
 	{
@@ -696,7 +711,7 @@ bool UAGX_TerrainPartitionedLandscapeRendererComponent::CanEditChange(
 	return Super::CanEditChange(Property);
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::PostEditChangeChainProperty(
+void UAGX_TerrainRVTLandscapeRendererComponent::PostEditChangeChainProperty(
 	FPropertyChangedChainEvent& Event)
 {
 	Super::PostEditChangeChainProperty(Event);
@@ -705,7 +720,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::PostEditChangeChainPrope
 }
 #endif
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::Invalidate(
+void UAGX_TerrainRVTLandscapeRendererComponent::Invalidate(
 	const FVector2D& Min, const FVector2D& Max)
 {
 	const FVector2D UVMin = (Min - Data->CoverageMin) / Data->CoverageSize;
@@ -722,7 +737,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Invalidate(
 		});
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::RestoreMaterials(ULevel* Level)
+void UAGX_TerrainRVTLandscapeRendererComponent::RestoreMaterials(ULevel* Level)
 {
 	Bindings.RemoveAll(
 		[Level](auto& Binding)
@@ -764,7 +779,7 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::RestoreMaterials(ULevel*
 	}
 }
 
-void UAGX_TerrainPartitionedLandscapeRendererComponent::Shutdown()
+void UAGX_TerrainRVTLandscapeRendererComponent::Shutdown()
 {
 	FWorldDelegates::LevelAddedToWorld.Remove(LevelAddedHandle);
 	FWorldDelegates::LevelRemovedFromWorld.Remove(LevelRemovedHandle);
@@ -784,12 +799,12 @@ void UAGX_TerrainPartitionedLandscapeRendererComponent::Shutdown()
 	bWarnedClipping = false;
 }
 
-int32 UAGX_TerrainPartitionedLandscapeRendererComponent::GetRetainedTileCount() const
+int32 UAGX_TerrainRVTLandscapeRendererComponent::GetRetainedTileCount() const
 {
 	return Tiles.Num();
 }
 
-int64 UAGX_TerrainPartitionedLandscapeRendererComponent::GetRetainedHeightBytes() const
+int64 UAGX_TerrainRVTLandscapeRendererComponent::GetRetainedHeightBytes() const
 {
 	int64 Bytes = 0;
 	for (const auto& Entry : Tiles)
@@ -800,10 +815,12 @@ int64 UAGX_TerrainPartitionedLandscapeRendererComponent::GetRetainedHeightBytes(
 	}
 	if (Data.IsValid())
 		Bytes += Data->RetainedHeightBytes.load();
+	if (Terrain != nullptr)
+		Bytes += Terrain->GetLandscapeSourceHeightBytes();
 	return Bytes;
 }
 
-FVector2D UAGX_TerrainPartitionedLandscapeRendererComponent::GetActiveDisplacementExtrema() const
+FVector2D UAGX_TerrainRVTLandscapeRendererComponent::GetActiveDisplacementExtrema() const
 {
 	FVector2D Extrema = FVector2D::ZeroVector;
 	for (const auto& Entry : Tiles)
@@ -818,12 +835,12 @@ FVector2D UAGX_TerrainPartitionedLandscapeRendererComponent::GetActiveDisplaceme
 	return Extrema;
 }
 
-int64 UAGX_TerrainPartitionedLandscapeRendererComponent::GetGeneratedPageCount() const
+int64 UAGX_TerrainRVTLandscapeRendererComponent::GetGeneratedPageCount() const
 {
 	return Data.IsValid() ? Data->ProducedPages.load() : 0;
 }
 
-double UAGX_TerrainPartitionedLandscapeRendererComponent::GetLastPageProductionMilliseconds() const
+double UAGX_TerrainRVTLandscapeRendererComponent::GetLastPageProductionMilliseconds() const
 {
 	return Data.IsValid() ? Data->LastProductionMilliseconds.load() : 0.0;
 }

@@ -4,7 +4,7 @@
 #include "AGX_Simulation.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_TerrainLandscapeRendererComponent.h"
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 
 // Unreal Engine includes.
 #include "Editor.h"
@@ -57,8 +57,7 @@ namespace
 				Renderer->LandscapeDisplacementMap = Texture;
 				It->bEnableDisplacementRendering = true;
 				It->LandscapeDisplacementMap = Texture;
-				TInlineComponentArray<UAGX_TerrainPartitionedLandscapeRendererComponent*> Others(
-					*It);
+				TInlineComponentArray<UAGX_TerrainRVTLandscapeRendererComponent*> Others(*It);
 				for (auto* Other : Others)
 					Other->SetEnabled(false);
 			}

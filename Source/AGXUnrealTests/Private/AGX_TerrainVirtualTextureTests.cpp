@@ -3,8 +3,11 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 // AGX Dynamics for Unreal includes.
+#include "Shapes/HeightFieldShapeBarrier.h"
 #include "Terrain/AGX_TerrainLandscapeSource.h"
+#include "Terrain/AGX_TerrainRVTHeightSource.h"
 #include "Terrain/AGX_TerrainVirtualTexture.h"
+#include "Terrain/TerrainBarrier.h"
 
 // Unreal Engine includes.
 #include "Misc/AutomationTest.h"
@@ -142,6 +145,70 @@ bool FAGX_TerrainLandscapeSourceTest::RunTest(const FString&)
 	TestFalse(
 		TEXT("Missing source is recoverable, with no fabricated heights"),
 		Source.Resample(Source.Frame.GetTranslation(), 17, 17).IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FAGX_TerrainFixedRVTSourceTest, "AGXUnreal.TerrainLandscape.FixedRVTSource",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+
+bool FAGX_TerrainFixedRVTSourceTest::RunTest(const FString&)
+{
+	constexpr int32 SizeX = 130;
+	constexpr int32 SizeY = 78;
+	TArray<float> Heights;
+	for (int32 Y = 0; Y < SizeY; ++Y)
+		for (int32 X = 0; X < SizeX; ++X)
+			Heights.Add(static_cast<float>(X + 10 * Y));
+	TArray<float> Minimum;
+	Minimum.Init(-10000, Heights.Num());
+	FTerrainBarrier Native;
+	Native.AllocateNative(SizeX, SizeY, 20, Heights, Minimum);
+	const FTransform Frame(FRotator(0, 30, 0), FVector(20000000, -30000000, 5000000));
+	FAGX_TerrainRVTHeightSource Source(Native, Frame);
+	TMap<FIntPoint, uint64> Known;
+	const auto Initial = Source.GetTileHeightUpdates(Native, Known);
+	TestEqual(TEXT("Rectangular heightfield uses six bounded chunks"), Initial.Num(), 6);
+	const auto* Edge =
+		Initial.FindByPredicate([](const auto& Tile) { return Tile.Id == FIntPoint(2, 1); });
+	TestNotNull(TEXT("Partial outer chunk"), Edge);
+	if (Edge == nullptr)
+		return false;
+	TestEqual(TEXT("Chunk includes gradient halos"), Edge->SideVertices, 67);
+	TestEqual(
+		TEXT("Outer padding clamps to the final native vertex"), Edge->Heights[66], Heights.Last());
+	TestEqual(
+		TEXT("Chunk rows use native reversed Y order"), Edge->Heights[66 * 67],
+		Heights[127 + 63 * SizeX]);
+	const auto Baseline = Source.GetSourceTileSnapshot(Edge->Corner, Edge->SideVertices);
+	TestTrue(TEXT("Baseline supports rotated large-world coordinates"), Baseline.IsValid());
+	if (Baseline.IsValid())
+		TestEqual(TEXT("Initial chunk exactly matches baseline"), Baseline->Heights, Edge->Heights);
+	for (float& Height : Heights)
+		Height += 123;
+	// The raw HeightField setter takes AGX rows; Terrain's getter returns Unreal rows.
+	TArray<float> NativeRows;
+	NativeRows.Reserve(Heights.Num());
+	for (int32 Y = SizeY - 1; Y >= 0; --Y)
+		for (int32 X = 0; X < SizeX; ++X)
+			NativeRows.Add(Heights[X + Y * SizeX]);
+	FHeightFieldShapeBarrier Shape = Native.GetHeightField();
+	Shape.SetHeights(NativeRows);
+	Known.Empty(); // Renderer re-enabled after missing physics updates.
+	const auto Restored = Source.GetTileHeightUpdates(Native, Known);
+	const auto* RestoredEdge =
+		Restored.FindByPredicate([](const auto& Tile) { return Tile.Id == FIntPoint(2, 1); });
+	TestNotNull(TEXT("Rebind refreshes the fixed working set"), RestoredEdge);
+	if (RestoredEdge != nullptr && Baseline.IsValid())
+	{
+		TestEqual(
+			TEXT("Rebind reads current authoritative heights"), RestoredEdge->Heights[66],
+			Heights.Last());
+		const auto Original =
+			Source.GetSourceTileSnapshot(RestoredEdge->Corner, RestoredEdge->SideVertices);
+		TestEqual(
+			TEXT("Rebind preserves the original baseline"), Original->Heights, Baseline->Heights);
+	}
 	return true;
 }
 

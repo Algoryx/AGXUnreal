@@ -15,7 +15,7 @@ class UTextureRenderTarget2D;
 
 /** Released rendering for non-partitioned Landscapes using a dense R16F render target.
  * Terrain Paging is supported on ordinary Landscapes. Partitioned sources require
- * UAGX_TerrainPartitionedLandscapeRendererComponent instead.
+ * UAGX_TerrainRVTLandscapeRendererComponent instead.
  */
 UCLASS(ClassGroup = "AGX_Terrain", Blueprintable, meta = (BlueprintSpawnableComponent))
 class AGXUNREAL_API UAGX_TerrainLandscapeRendererComponent : public UActorComponent

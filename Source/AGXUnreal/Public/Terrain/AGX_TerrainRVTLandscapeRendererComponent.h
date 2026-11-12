@@ -6,7 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "CoreMinimal.h"
 
-#include "AGX_TerrainPartitionedLandscapeRendererComponent.generated.h"
+#include "AGX_TerrainRVTLandscapeRendererComponent.generated.h"
 
 class AAGX_Terrain;
 class ALandscapeProxy;
@@ -36,18 +36,19 @@ struct FAGX_TerrainLandscapeMaterialBinding
 };
 
 /**
- * Bounded active-tile rendering through one fixed-coverage RVT and Nanite displacement.
- * Requires Terrain Paging, finite Terrain Bounds and cooked Nanite Landscape data.
- * Works with ordinary and World Partition Landscapes. It does not load streaming proxies.
+ * Landscape rendering through one fixed-coverage RVT and Nanite displacement.
+ * Requires finite Terrain Bounds and prepared Nanite Landscape data.
+ * Supports fixed or paged terrain on ordinary Landscapes, and paged terrain on
+ * World Partition Landscapes. It does not load streaming proxies.
  */
 UCLASS(ClassGroup = "AGX_Terrain", Blueprintable, meta = (BlueprintSpawnableComponent))
-class AGXUNREAL_API UAGX_TerrainPartitionedLandscapeRendererComponent : public UActorComponent
+class AGXUNREAL_API UAGX_TerrainRVTLandscapeRendererComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	UAGX_TerrainPartitionedLandscapeRendererComponent();
-	virtual ~UAGX_TerrainPartitionedLandscapeRendererComponent();
+	UAGX_TerrainRVTLandscapeRendererComponent();
+	virtual ~UAGX_TerrainRVTLandscapeRendererComponent();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain Rendering")
 	bool bEnabled = true;

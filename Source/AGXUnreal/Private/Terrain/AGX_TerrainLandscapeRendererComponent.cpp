@@ -65,7 +65,7 @@ bool UAGX_TerrainLandscapeRendererComponent::ValidateSource(const AAGX_Terrain& 
 		const FString Message = FString::Printf(
 			TEXT(
 				"AGX Terrain Landscape Renderer on '%s' supports only non-partitioned Landscapes. "
-				"Disable this component and use AGX Terrain Partitioned Landscape Renderer for "
+				"Disable this component and use AGX Terrain RVT Landscape Renderer for "
 				"Landscape '%s'. Terrain physics and paging are unaffected by this rendering "
 				"restriction."),
 			*InTerrain.GetName(), *Landscape->GetName());
@@ -95,7 +95,7 @@ void UAGX_TerrainLandscapeRendererComponent::Initialize(AAGX_Terrain& InTerrain)
 		UE_LOG(
 			LogAGX, Error,
 			TEXT(
-				"Legacy Landscape rendering exceeds the dense array limit. Use the partitioned "
+				"Legacy Landscape rendering exceeds the dense array limit. Use the RVT Landscape "
 				"renderer."));
 		return;
 	}

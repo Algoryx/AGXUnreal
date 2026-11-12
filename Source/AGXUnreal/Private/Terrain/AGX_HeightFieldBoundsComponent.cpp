@@ -314,7 +314,7 @@ bool UAGX_HeightFieldBoundsComponent::CanEditChange(const FProperty* InProperty)
 		const AAGX_Terrain* Terrain = Cast<AAGX_Terrain>(GetOwner());
 		if ((Source.IsSet() && Source->Landscape.GetWorld() != nullptr &&
 			 Source->Landscape.GetWorld()->IsPartitionedWorld()) ||
-			(Terrain != nullptr && Terrain->UsesPartitionedLandscapeRendering()))
+			(Terrain != nullptr && Terrain->UsesRVTLandscapeRendering()))
 			return false;
 	}
 

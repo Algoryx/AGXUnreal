@@ -9,7 +9,7 @@
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_LandscapeMaterialLibrary.h"
 #include "Terrain/AGX_Terrain.h"
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 #include "Terrain/TerrainPagerBarrier.h"
 
 // Unreal Engine includes.
@@ -136,7 +136,7 @@ namespace
 				return false;
 			auto* Simulation = UAGX_Simulation::GetFrom(Terrain);
 			auto* Renderer =
-				Terrain->FindComponentByClass<UAGX_TerrainPartitionedLandscapeRendererComponent>();
+				Terrain->FindComponentByClass<UAGX_TerrainRVTLandscapeRendererComponent>();
 			if (Simulation == nullptr || Renderer == nullptr || Simulation->GetTimeStamp() < 1)
 				return false;
 			int32 Proxies = 0;
@@ -210,7 +210,7 @@ namespace
 				return false;
 			auto* Simulation = UAGX_Simulation::GetFrom(Terrain);
 			auto* Renderer =
-				Terrain->FindComponentByClass<UAGX_TerrainPartitionedLandscapeRendererComponent>();
+				Terrain->FindComponentByClass<UAGX_TerrainRVTLandscapeRendererComponent>();
 			if (Simulation == nullptr || Renderer == nullptr || Simulation->GetTimeStamp() < 4)
 				return false;
 			if (Body == nullptr)

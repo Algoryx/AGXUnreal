@@ -18,8 +18,9 @@
 #include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
 #include "Terrain/AGX_TerrainLandscapeRendererComponent.h"
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
 #include "Terrain/AGX_TerrainProperties.h"
+#include "Terrain/AGX_TerrainRVTHeightSource.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 #include "Terrain/AGX_TerrainSpriteComponent.h"
 #include "Terrain/AGX_TopEdgeComponent.h"
 #include "Terrain/ParticleRendering/AGX_SoilParticleRendererComponent.h"
@@ -552,7 +553,7 @@ void AAGX_Terrain::InitPropertyDispatcher()
 		GET_MEMBER_NAME_CHECKED(ThisClass, SourceLandscape),
 		[](ThisClass* This)
 		{
-			if (!This->UsesPartitionedLandscapeRendering())
+			if (!This->UsesRVTLandscapeRendering())
 				AGX_Terrain_helpers::EnsureUseDynamicMaterialInstance(*This);
 		});
 
@@ -642,9 +643,8 @@ void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 	TInlineComponentArray<UAGX_TerrainLandscapeRendererComponent*> LegacyRenderers(this);
 	for (auto* Renderer : LegacyRenderers)
 		Renderer->Shutdown();
-	TInlineComponentArray<UAGX_TerrainPartitionedLandscapeRendererComponent*> PartitionedRenderers(
-		this);
-	for (auto* Renderer : PartitionedRenderers)
+	TInlineComponentArray<UAGX_TerrainRVTLandscapeRendererComponent*> RVTRenderers(this);
+	for (auto* Renderer : RVTRenderers)
 		Renderer->Shutdown();
 	if (UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(this))
 	{
@@ -674,6 +674,7 @@ void AAGX_Terrain::EndPlay(const EEndPlayReason::Type Reason)
 	if (NativeBarrier.HasNative())
 		NativeBarrier.ReleaseNative();
 	HeightFetcher->ResetSnapshots();
+	RVTHeightSource.Reset();
 	HeightFetcher->SetTerrain(nullptr);
 }
 
@@ -871,7 +872,7 @@ void AAGX_Terrain::InitializeNative()
 bool AAGX_Terrain::CreateNative()
 {
 	TOptional<UAGX_HeightFieldBoundsComponent::FHeightFieldBoundsInfo> Bounds =
-		(UsesPartitionedLandscapeRendering() ||
+		((bEnableTerrainPaging && UsesRVTLandscapeRendering()) ||
 		 (GetWorld() != nullptr && GetWorld()->IsPartitionedWorld()))
 			? TerrainBounds->GetUserSetBounds()
 			: TerrainBounds->GetLandscapeAdjustedBounds();
@@ -960,6 +961,9 @@ bool AAGX_Terrain::CreateNative()
 
 	if (!bEnableTerrainPaging)
 	{
+		if (UsesRVTLandscapeRendering())
+			RVTHeightSource =
+				MakeShared<FAGX_TerrainRVTHeightSource>(NativeBarrier, GetNativeTransform());
 		// We add this Terrain to the Simulation here only if we are not using TerrainPaging.
 		Simulation->Add(*this);
 	}
@@ -1264,9 +1268,9 @@ double AAGX_Terrain::GetSimulationResolution() const
 			   : (SourceLandscape != nullptr ? SourceLandscape->GetActorScale3D().X : 0.0);
 }
 
-bool AAGX_Terrain::UsesPartitionedLandscapeRendering() const
+bool AAGX_Terrain::UsesRVTLandscapeRendering() const
 {
-	TInlineComponentArray<UAGX_TerrainPartitionedLandscapeRendererComponent*> Renderers(this);
+	TInlineComponentArray<UAGX_TerrainRVTLandscapeRendererComponent*> Renderers(this);
 	return !Renderers.IsEmpty();
 }
 
@@ -1274,14 +1278,31 @@ void AAGX_Terrain::ValidateLandscapeBounds()
 {
 	if (TerrainBounds != nullptr && SourceLandscape != nullptr &&
 		((GetWorld() != nullptr && GetWorld()->IsPartitionedWorld()) ||
-		 UsesPartitionedLandscapeRendering()))
+		 UsesRVTLandscapeRendering()))
 		TerrainBounds->bInfiniteBounds = false;
 }
 
 TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe> AAGX_Terrain::GetSourceTileSnapshot(
 	const FVector& Corner, int32 Side) const
 {
+	if (RVTHeightSource.IsValid())
+		return RVTHeightSource->GetSourceTileSnapshot(Corner, Side);
 	return HeightFetcher->GetOrRequestSnapshot(Corner, Side, Side);
+}
+
+TArray<FTerrainTileHeights> AAGX_Terrain::GetLandscapeRenderUpdates(
+	TMap<FIntPoint, uint64>& KnownTiles)
+{
+	if (HasNativeTerrainPager())
+		return NativeTerrainPagerBarrier.GetTileHeightUpdates(KnownTiles);
+	return RVTHeightSource.IsValid()
+			   ? RVTHeightSource->GetTileHeightUpdates(NativeBarrier, KnownTiles)
+			   : TArray<FTerrainTileHeights>();
+}
+
+int64 AAGX_Terrain::GetLandscapeSourceHeightBytes() const
+{
+	return RVTHeightSource.IsValid() ? RVTHeightSource->GetRetainedBytes() : 0;
 }
 
 void AAGX_Terrain::UpdateLandscapeRendering()
@@ -1303,11 +1324,11 @@ void AAGX_Terrain::UpdateLandscapeRendering()
 	bLastDeprecatedRenderingEnabled = bEnableDisplacementRendering;
 	LastDeprecatedDisplacementMap = LandscapeDisplacementMap;
 	TInlineComponentArray<UAGX_TerrainLandscapeRendererComponent*> Legacy(this);
-	TInlineComponentArray<UAGX_TerrainPartitionedLandscapeRendererComponent*> Partitioned(this);
+	TInlineComponentArray<UAGX_TerrainRVTLandscapeRendererComponent*> RVT(this);
 	int32 EnabledCount = 0;
 	for (auto* Renderer : Legacy)
 		EnabledCount += Renderer->bEnabled ? 1 : 0;
-	for (auto* Renderer : Partitioned)
+	for (auto* Renderer : RVT)
 		EnabledCount += Renderer->bEnabled ? 1 : 0;
 	const bool bConflict = EnabledCount > 1;
 	if (bConflict && !bRendererConflictReported)
@@ -1328,7 +1349,7 @@ void AAGX_Terrain::UpdateLandscapeRendering()
 		else
 			Renderer->Shutdown();
 	}
-	for (auto* Renderer : Partitioned)
+	for (auto* Renderer : RVT)
 	{
 		if (Renderer->bEnabled && !bConflict)
 		{

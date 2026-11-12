@@ -28,12 +28,13 @@ class UAGX_TerrainMaterial;
 class UAGX_TerrainProperties;
 class UAGX_TerrainSpriteComponent;
 class UAGX_TerrainLandscapeRendererComponent;
-class UAGX_TerrainPartitionedLandscapeRendererComponent;
+class UAGX_TerrainRVTLandscapeRendererComponent;
 class UAGX_ShapeMaterial;
 class ALandscape;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class UTextureRenderTarget2D;
+class FAGX_TerrainRVTHeightSource;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FParticleDataMulticastDelegate, FDelegateParticleData&, ParticleData);
 
@@ -82,7 +83,7 @@ public:
 	/**
 	 * Landscape supplying runtime collision heights. Partitioned sources require Terrain Paging
 	 * and finite Terrain Bounds. Arrange streaming sources around tracked bodies and shovels.
-	 * The partitioned renderer supports translation and yaw; pitch, roll and negative scale are
+	 * The RVT renderer supports translation and yaw; pitch, roll and negative scale are
 	 * unsupported. Materials must be configured for the selected Landscape renderer.
 	 */
 	UPROPERTY(EditAnywhere, Category = "AGX Terrain")
@@ -250,10 +251,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AGX Terrain")
 	double GetSimulationResolution() const;
 
-	bool UsesPartitionedLandscapeRendering() const;
+	bool UsesRVTLandscapeRendering() const;
 	void ValidateLandscapeBounds();
 	TSharedPtr<const FAGX_TerrainSourceTile, ESPMode::ThreadSafe> GetSourceTileSnapshot(
 		const FVector& Corner, int32 Side) const;
+	/** Authoritative heights for either active native pager tiles or fixed rendering chunks. */
+	TArray<FTerrainTileHeights> GetLandscapeRenderUpdates(TMap<FIntPoint, uint64>& KnownTiles);
+	int64 GetLandscapeSourceHeightBytes() const;
 
 	bool HasNativeTerrainPager() const;
 
@@ -353,6 +357,7 @@ private:
 	 */
 	FTerrainBarrier NativeBarrier;
 	FTerrainPagerBarrier NativeTerrainPagerBarrier;
+	TSharedPtr<FAGX_TerrainRVTHeightSource> RVTHeightSource;
 	TSharedRef<FAGX_TerrainHeightFetcher, ESPMode::ThreadSafe> HeightFetcher =
 		MakeShared<FAGX_TerrainHeightFetcher, ESPMode::ThreadSafe>();
 	FDelegateHandle PreStepForwardHandle;

@@ -8,7 +8,7 @@
 #include "AGX_Simulation.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_TerrainNaniteDisplacementData.h"
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 
 // Unreal Engine includes.
 #include "DynamicRHI.h"
@@ -54,8 +54,7 @@ namespace
 			{
 				AAGX_Terrain& Terrain = **It;
 				auto* Renderer =
-					Terrain
-						.FindComponentByClass<UAGX_TerrainPartitionedLandscapeRendererComponent>();
+					Terrain.FindComponentByClass<UAGX_TerrainRVTLandscapeRendererComponent>();
 				if (Renderer == nullptr)
 					continue;
 				UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(&Terrain);

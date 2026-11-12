@@ -4,12 +4,13 @@
 #include "AGX_Simulation.h"
 #include "AGX_TerrainLandscapeTestUtilities.h"
 #include "AgxAutomationCommon.h"
+#include "Terrain/AGX_HeightFieldBoundsComponent.h"
 #include "Terrain/AGX_LandscapeMaterialLibrary.h"
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_TerrainHeightFetcher.h"
 #include "Terrain/AGX_TerrainLandscapeRendererComponent.h"
 #include "Terrain/AGX_TerrainNaniteDisplacementData.h"
-#include "Terrain/AGX_TerrainPartitionedLandscapeRendererComponent.h"
+#include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
 #include "Terrain/TerrainPagerBarrier.h"
 
 // Unreal Engine includes.
@@ -49,6 +50,30 @@
 
 namespace
 {
+	class FConfigureNonPagedTerrain final : public IAutomationLatentCommand
+	{
+	public:
+		explicit FConfigureNonPagedTerrain(bool bInRectangular)
+			: bRectangular(bInRectangular)
+		{
+		}
+		virtual bool Update() override
+		{
+			for (TActorIterator<AAGX_Terrain> It(GEditor->GetEditorWorldContext().World()); It;
+				 ++It)
+			{
+				It->SetEnableTerrainPaging(false);
+				It->SimulationResolution = 0;
+				if (bRectangular)
+					It->TerrainBounds->HalfExtent = FVector(1900, 1300, 100);
+			}
+			return true;
+		}
+
+	private:
+		bool bRectangular;
+	};
+
 	class FScopedTileCountBias
 	{
 	public:
@@ -276,9 +301,11 @@ namespace
 	class FCheckLandscapeRendering final : public IAutomationLatentCommand
 	{
 	public:
-		explicit FCheckLandscapeRendering(FAutomationTestBase& InTest, bool InCheckNormals = false)
+		explicit FCheckLandscapeRendering(
+			FAutomationTestBase& InTest, bool InCheckNormals = false, bool bInPaged = true)
 			: Test(InTest)
 			, bCheckNormals(InCheckNormals)
+			, bPaged(bInPaged)
 		{
 		}
 		virtual bool Update() override
@@ -300,10 +327,10 @@ namespace
 			if (Terrain == nullptr)
 				return false;
 			auto* Renderer =
-				Terrain->FindComponentByClass<UAGX_TerrainPartitionedLandscapeRendererComponent>();
+				Terrain->FindComponentByClass<UAGX_TerrainRVTLandscapeRendererComponent>();
 			if (Renderer == nullptr)
 			{
-				Test.AddError(TEXT("Example is missing its partitioned Landscape renderer."));
+				Test.AddError(TEXT("Example is missing its RVT Landscape renderer."));
 				return true;
 			}
 			UAGX_Simulation* Simulation = UAGX_Simulation::GetFrom(Terrain);
@@ -313,8 +340,9 @@ namespace
 			{
 				if (Renderer->GetRetainedTileCount() == 0 || Renderer->GetGeneratedPageCount() == 0)
 					return false;
-				Test.TestTrue(
-					TEXT("Physics and paging are active"), Terrain->HasNativeTerrainPager());
+				Test.TestTrue(TEXT("Terrain physics is active"), Terrain->HasNative());
+				Test.TestEqual(
+					TEXT("Expected paging mode"), Terrain->HasNativeTerrainPager(), bPaged);
 				Test.TestFalse(
 					TEXT("Legacy renderer is disabled"),
 					Terrain->DefaultLandscapeRenderer->IsEnabled());
@@ -396,10 +424,13 @@ namespace
 						Renderer->GetGeneratedPageCount(),
 						Renderer->GetLastPageProductionMilliseconds(), Extrema.X, Extrema.Y));
 				TMap<FIntPoint, uint64> Unseen;
-				CaptureTiles = Terrain->GetNativeTerrainPager()->GetTileHeightUpdates(Unseen);
-				Frame = FTransform(
-					Terrain->GetNativeTerrainPager()->GetReferenceRotation(),
-					Terrain->GetNativeTerrainPager()->GetReferencePoint());
+				CaptureTiles = Terrain->GetLandscapeRenderUpdates(Unseen);
+				Frame = bPaged ? FTransform(
+									 Terrain->GetNativeTerrainPager()->GetReferenceRotation(),
+									 Terrain->GetNativeTerrainPager()->GetReferencePoint())
+							   : FTransform(
+									 Terrain->GetNative()->GetRotation(),
+									 Terrain->GetNative()->GetPosition());
 				double LargestChange = 0.0;
 				for (const auto& Tile : CaptureTiles)
 				{
@@ -674,11 +705,14 @@ namespace
 				if (Simulation->GetTimeStamp() < TimeDisabled + 0.5)
 					return false;
 				Test.TestTrue(
-					TEXT("Disabling rendering does not stop paging"),
-					Terrain->HasNativeTerrainPager());
-				Test.TestTrue(
-					TEXT("Active native tiles survive renderer disablement"),
-					!Terrain->GetNativeTerrainPager()->GetActiveTileTransforms().IsEmpty());
+					TEXT("Disabling rendering does not stop physics"), Terrain->HasNative());
+				Test.TestEqual(
+					TEXT("Paging mode survives renderer disablement"),
+					Terrain->HasNativeTerrainPager(), bPaged);
+				if (bPaged)
+					Test.TestTrue(
+						TEXT("Active native tiles survive renderer disablement"),
+						!Terrain->GetNativeTerrainPager()->GetActiveTileTransforms().IsEmpty());
 				for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
 				{
 					It->bUseDynamicMaterialInstance = true;
@@ -704,6 +738,11 @@ namespace
 			Test.TestTrue(
 				TEXT("Re-enabled rendering restores the working set"),
 				Renderer->GetRetainedHeightBytes() > 0);
+			const FVector2D Restored = Renderer->GetActiveDisplacementExtrema();
+			if (!bPaged)
+				Test.TestTrue(
+					TEXT("Rebinding retains the original deformation baseline"),
+					Restored.X < -0.1 || Restored.Y > 0.1);
 			for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
 				for (ULandscapeComponent* Component : It->LandscapeComponents)
 					for (UMaterialInstanceDynamic* Material : Component->MaterialInstancesDynamic)
@@ -719,6 +758,7 @@ namespace
 	private:
 		FAutomationTestBase& Test;
 		bool bCheckNormals = false;
+		bool bPaged = true;
 		const FVector DetailNormal = FVector(0.2, 0.15, 1).GetSafeNormal();
 		double Start = 0.0;
 		double TimeDisabled = 0.0;
@@ -764,25 +804,42 @@ void FAGX_TerrainLandscapeRenderingTest::GetTests(
 	Commands.Add(TEXT("ProfileNegative"));
 	Names.Add(TEXT("PositiveDeviceProfileBias"));
 	Commands.Add(TEXT("ProfilePositive"));
+	Names.Add(TEXT("NonPagedLandscape"));
+	Commands.Add(TEXT("NonPaged"));
+	Names.Add(TEXT("NonPagedExample"));
+	Commands.Add(TEXT("/Game/Levels/TerrainLandscapeRVT_NonPaged"));
+	Names.Add(TEXT("NonPagedSlopedLandscape"));
+	Commands.Add(TEXT("NonPagedSlope"));
+	Names.Add(TEXT("NonPagedRectangularLandscape"));
+	Commands.Add(TEXT("NonPagedRectangular"));
+	Names.Add(TEXT("NonPagedTranslatedLandscape"));
+	Commands.Add(TEXT("NonPagedTranslated"));
+	Names.Add(TEXT("NonPagedShadingNormalsSlope"));
+	Commands.Add(TEXT("NonPagedNormalsSlope"));
 }
 
 bool FAGX_TerrainLandscapeRenderingTest::RunTest(const FString& Map)
 {
+	const bool bNonPaged = Map.StartsWith(TEXT("NonPaged")) || Map.EndsWith(TEXT("_NonPaged"));
 	TSharedPtr<FScopedTileCountBias> ProfileBias;
 	if (Map.StartsWith(TEXT("Profile")))
 		ProfileBias = MakeShared<FScopedTileCountBias>(Map == TEXT("ProfileNegative") ? -2 : 1);
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(
 		(!Map.StartsWith(TEXT("/Game/"))) ? TEXT("/Game/Levels/TerrainLandscapePaging") : Map));
-	if (Map.StartsWith(TEXT("Coarse")) || Map.StartsWith(TEXT("Normals")))
+	if (Map.StartsWith(TEXT("Coarse")) || Map.Contains(TEXT("Normals")))
 		ADD_LATENT_AUTOMATION_COMMAND(FAGX_PrepareLandscapeScenario(
-			*this, Map.StartsWith(TEXT("Coarse")), Map.StartsWith(TEXT("Normals")), false,
+			*this, Map.StartsWith(TEXT("Coarse")), Map.Contains(TEXT("Normals")), false,
 			Map == TEXT("CoarseMip") ? 1 : 0));
-	if (Map == TEXT("Slope") || Map == TEXT("NormalsSlope") || Map.StartsWith(TEXT("Profile")))
+	if (Map.Contains(TEXT("Slope")) || Map.StartsWith(TEXT("Profile")))
 		ADD_LATENT_AUTOMATION_COMMAND(FPrepareSlopedLandscape(*this));
-	if (Map == TEXT("Translated"))
+	if (Map.Contains(TEXT("Translated")))
 		ADD_LATENT_AUTOMATION_COMMAND(FTranslateLandscapeFixture());
+	if (bNonPaged && !Map.EndsWith(TEXT("_NonPaged")))
+		ADD_LATENT_AUTOMATION_COMMAND(
+			FConfigureNonPagedTerrain(Map == TEXT("NonPagedRectangular")));
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckLandscapeRendering(*this, Map.StartsWith(TEXT("Normals"))));
+	ADD_LATENT_AUTOMATION_COMMAND(
+		FCheckLandscapeRendering(*this, Map.Contains(TEXT("Normals")), !bNonPaged));
 	if (Map.EndsWith(TEXT("_WP")))
 		ADD_LATENT_AUTOMATION_COMMAND(FCheckProxyStreaming(*this));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
