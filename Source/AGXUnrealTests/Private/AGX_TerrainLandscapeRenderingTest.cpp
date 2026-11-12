@@ -53,8 +53,9 @@ namespace
 	class FConfigureNonPagedTerrain final : public IAutomationLatentCommand
 	{
 	public:
-		explicit FConfigureNonPagedTerrain(bool bInRectangular)
+		explicit FConfigureNonPagedTerrain(bool bInRectangular, double InSpacing = 0)
 			: bRectangular(bInRectangular)
+			, Spacing(InSpacing)
 		{
 		}
 		virtual bool Update() override
@@ -63,7 +64,7 @@ namespace
 				 ++It)
 			{
 				It->SetEnableTerrainPaging(false);
-				It->SimulationResolution = 0;
+				It->ElementSize = Spacing;
 				if (bRectangular)
 					It->TerrainBounds->HalfExtent = FVector(1900, 1300, 100);
 			}
@@ -72,6 +73,7 @@ namespace
 
 	private:
 		bool bRectangular;
+		double Spacing;
 	};
 
 	class FScopedTileCountBias
@@ -302,10 +304,12 @@ namespace
 	{
 	public:
 		explicit FCheckLandscapeRendering(
-			FAutomationTestBase& InTest, bool InCheckNormals = false, bool bInPaged = true)
+			FAutomationTestBase& InTest, bool InCheckNormals = false, bool bInPaged = true,
+			double InSpacing = 0)
 			: Test(InTest)
 			, bCheckNormals(InCheckNormals)
 			, bPaged(bInPaged)
+			, ExpectedSpacing(InSpacing)
 		{
 		}
 		virtual bool Update() override
@@ -343,6 +347,33 @@ namespace
 				Test.TestTrue(TEXT("Terrain physics is active"), Terrain->HasNative());
 				Test.TestEqual(
 					TEXT("Expected paging mode"), Terrain->HasNativeTerrainPager(), bPaged);
+				if (!bPaged && ExpectedSpacing > 0)
+				{
+					const FTerrainBarrier* Native = Terrain->GetNative();
+					Test.TestEqual(
+						TEXT("Custom native grid spacing"), Native->GetElementSize(),
+						ExpectedSpacing);
+					const auto Bounds = Terrain->TerrainBounds->GetLandscapeAdjustedBounds();
+					if (!Test.TestTrue(TEXT("Custom grid has source bounds"), Bounds.IsSet()))
+						return true;
+					const FVector2D Size = Native->GetSize();
+					Test.TestTrue(
+						TEXT("Custom grid fits inside the source"),
+						Size.X <= Bounds->HalfExtent.X * 2 + 0.001 &&
+							Size.Y <= Bounds->HalfExtent.Y * 2 + 0.001);
+					Test.TestTrue(
+						TEXT("Only the incomplete outer cells are omitted"),
+						Bounds->HalfExtent.X * 2 - Size.X < ExpectedSpacing + 0.001 &&
+							Bounds->HalfExtent.Y * 2 - Size.Y < ExpectedSpacing + 0.001);
+					const FVector ExpectedCorner = Bounds->Transform.TransformPositionNoScale(
+						FVector(-Bounds->HalfExtent.X, -Bounds->HalfExtent.Y, 0));
+					const FVector NativeCorner =
+						FTransform(Native->GetRotation(), Native->GetPosition())
+							.TransformPositionNoScale(FVector(-Size.X / 2, -Size.Y / 2, 0));
+					Test.TestTrue(
+						TEXT("Custom grid retains its source corner"),
+						NativeCorner.Equals(ExpectedCorner, 0.001));
+				}
 				Test.TestFalse(
 					TEXT("Legacy renderer is disabled"),
 					Terrain->DefaultLandscapeRenderer->IsEnabled());
@@ -759,6 +790,7 @@ namespace
 		FAutomationTestBase& Test;
 		bool bCheckNormals = false;
 		bool bPaged = true;
+		double ExpectedSpacing = 0;
 		const FVector DetailNormal = FVector(0.2, 0.15, 1).GetSafeNormal();
 		double Start = 0.0;
 		double TimeDisabled = 0.0;
@@ -816,11 +848,22 @@ void FAGX_TerrainLandscapeRenderingTest::GetTests(
 	Commands.Add(TEXT("NonPagedTranslated"));
 	Names.Add(TEXT("NonPagedShadingNormalsSlope"));
 	Commands.Add(TEXT("NonPagedNormalsSlope"));
+	Names.Add(TEXT("NonPagedFineResolution"));
+	Commands.Add(TEXT("NonPagedFine"));
+	Names.Add(TEXT("NonPagedFineResolutionSlope"));
+	Commands.Add(TEXT("NonPagedFineSlope"));
+	Names.Add(TEXT("NonPagedFineResolutionTranslatedSlope"));
+	Commands.Add(TEXT("NonPagedFineSlopeTranslated"));
+	Names.Add(TEXT("NonPagedCoarseResolution"));
+	Commands.Add(TEXT("NonPagedCoarse"));
 }
 
 bool FAGX_TerrainLandscapeRenderingTest::RunTest(const FString& Map)
 {
 	const bool bNonPaged = Map.StartsWith(TEXT("NonPaged")) || Map.EndsWith(TEXT("_NonPaged"));
+	const double Spacing = Map.StartsWith(TEXT("NonPagedFine")) ? 25.0
+						   : Map == TEXT("NonPagedCoarse")		? 175.0
+																: 0.0;
 	TSharedPtr<FScopedTileCountBias> ProfileBias;
 	if (Map.StartsWith(TEXT("Profile")))
 		ProfileBias = MakeShared<FScopedTileCountBias>(Map == TEXT("ProfileNegative") ? -2 : 1);
@@ -836,10 +879,10 @@ bool FAGX_TerrainLandscapeRenderingTest::RunTest(const FString& Map)
 		ADD_LATENT_AUTOMATION_COMMAND(FTranslateLandscapeFixture());
 	if (bNonPaged && !Map.EndsWith(TEXT("_NonPaged")))
 		ADD_LATENT_AUTOMATION_COMMAND(
-			FConfigureNonPagedTerrain(Map == TEXT("NonPagedRectangular")));
+			FConfigureNonPagedTerrain(Map == TEXT("NonPagedRectangular") || Spacing > 0, Spacing));
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
 	ADD_LATENT_AUTOMATION_COMMAND(
-		FCheckLandscapeRendering(*this, Map.Contains(TEXT("Normals")), !bNonPaged));
+		FCheckLandscapeRendering(*this, Map.Contains(TEXT("Normals")), !bNonPaged, Spacing));
 	if (Map.EndsWith(TEXT("_WP")))
 		ADD_LATENT_AUTOMATION_COMMAND(FCheckProxyStreaming(*this));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());

@@ -5,6 +5,7 @@
 #include "Terrain/AGX_Terrain.h"
 #include "Terrain/AGX_TerrainLandscapeRendererComponent.h"
 #include "Terrain/AGX_TerrainRVTLandscapeRendererComponent.h"
+#include "Terrain/TerrainBarrier.h"
 
 // Unreal Engine includes.
 #include "Editor.h"
@@ -19,8 +20,9 @@ namespace
 	class FConfigureLegacyTerrain final : public IAutomationLatentCommand
 	{
 	public:
-		explicit FConfigureLegacyTerrain(bool bInPaged)
+		explicit FConfigureLegacyTerrain(bool bInPaged, double InSpacing = 0)
 			: bPaged(bInPaged)
+			, Spacing(InSpacing)
 		{
 		}
 		virtual bool Update() override
@@ -29,6 +31,7 @@ namespace
 				 ++It)
 			{
 				It->SetEnableTerrainPaging(bPaged);
+				It->ElementSize = Spacing;
 				// This released fixture intentionally saved displacement rendering off.
 				It->bEnableDisplacementRendering = true;
 				It->DefaultLandscapeRenderer->SetEnabled(true);
@@ -38,6 +41,7 @@ namespace
 
 	private:
 		bool bPaged;
+		double Spacing;
 	};
 
 	class FConfigureRejectedLegacyTerrain final : public IAutomationLatentCommand
@@ -123,8 +127,9 @@ namespace
 	class FCheckLegacyTerrainRendering final : public IAutomationLatentCommand
 	{
 	public:
-		explicit FCheckLegacyTerrainRendering(FAutomationTestBase& InTest)
+		explicit FCheckLegacyTerrainRendering(FAutomationTestBase& InTest, double InSpacing = 0)
 			: Test(InTest)
+			, ExpectedSpacing(InSpacing)
 		{
 		}
 		virtual bool Update() override
@@ -165,6 +170,15 @@ namespace
 				if (Phase == 0 && Largest < 0.1)
 					return false; // Wait for the example shovel's first contact.
 				Test.TestTrue(TEXT("Terrain physics continues"), It->HasNative());
+				if (Phase == 0 && ExpectedSpacing > 0)
+				{
+					Test.TestEqual(
+						TEXT("Custom simulation spacing"), It->GetElementSize(), ExpectedSpacing);
+					if (!It->HasNativeTerrainPager())
+						Test.TestEqual(
+							TEXT("Custom native grid spacing"), It->GetNative()->GetElementSize(),
+							ExpectedSpacing);
+				}
 				if (Phase == 1)
 				{
 					Test.TestTrue(TEXT("Disabling clears the released target"), Largest < 0.01);
@@ -189,6 +203,7 @@ namespace
 
 	private:
 		FAutomationTestBase& Test;
+		double ExpectedSpacing = 0;
 		double Start = 0, ChangedAt = 0;
 		int32 Phase = 0;
 	};
@@ -205,6 +220,10 @@ void FAGX_LegacyTerrainRenderingTest::GetTests(
 	Commands.Add(TEXT("NonPaged"));
 	Names.Add(TEXT("Paged"));
 	Commands.Add(TEXT("Paged"));
+	Names.Add(TEXT("NonPagedCoarseResolution"));
+	Commands.Add(TEXT("NonPagedCoarse"));
+	Names.Add(TEXT("PagedCoarseResolution"));
+	Commands.Add(TEXT("PagedCoarse"));
 	Names.Add(TEXT("PartitionedRejected"));
 	Commands.Add(TEXT("PartitionedRejected"));
 }
@@ -225,9 +244,11 @@ bool FAGX_LegacyTerrainRenderingTest::RunTest(const FString& Mode)
 		return true;
 	}
 	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(TEXT("/Game/Tests/Test_TerrainPaging")));
-	ADD_LATENT_AUTOMATION_COMMAND(FConfigureLegacyTerrain(Mode == TEXT("Paged")));
+	// This fixture has 20 cm Landscape quads and a shovel sized for that grid.
+	const double Spacing = Mode.EndsWith(TEXT("Coarse")) ? 30.0 : 0.0;
+	ADD_LATENT_AUTOMATION_COMMAND(FConfigureLegacyTerrain(Mode.StartsWith(TEXT("Paged")), Spacing));
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIECommand(false));
-	ADD_LATENT_AUTOMATION_COMMAND(FCheckLegacyTerrainRendering(*this));
+	ADD_LATENT_AUTOMATION_COMMAND(FCheckLegacyTerrainRendering(*this, Spacing));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
 	return true;
 }

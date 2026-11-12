@@ -90,6 +90,19 @@ public:
 	ALandscape* SourceLandscape;
 
 	/**
+	 * Distance between terrain height points [cm]. Zero uses the source Landscape's X quad spacing.
+	 * Rendering deformation finer than the Landscape's vertex spacing requires the RVT Landscape
+	 * Renderer. Cannot be changed during Play.
+	 */
+	UPROPERTY(
+		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain",
+		meta = (ClampMin = "0", Units = "cm"))
+	double ElementSize = 0.0;
+
+	UFUNCTION(BlueprintPure, Category = "AGX Terrain")
+	double GetElementSize() const;
+
+	/**
 	 * The maximum depth of the terrain, from local origin [cm].
 	 * Should at least be deeper than the lowest height of the initial Landscape. Note that depth is
 	 * defined in the direction of the inverted Z-axis, which means that usually positive values are
@@ -239,17 +252,6 @@ public:
 	UPROPERTY(
 		EditAnywhere, Category = "AGX Terrain", Meta = (EditCondition = "bEnableTerrainPaging"))
 	FAGX_TerrainPagingSettings TerrainPagingSettings;
-
-	/** Simulation grid spacing [cm]. Zero preserves the source Landscape X quad spacing.
-	 * Custom spacing requires Terrain Paging. Independent of RVT and Nanite geometry resolution.
-	 */
-	UPROPERTY(
-		EditAnywhere, BlueprintReadOnly, Category = "AGX Terrain",
-		meta = (ClampMin = "0", Units = "cm"))
-	double SimulationResolution = 0.0;
-
-	UFUNCTION(BlueprintPure, Category = "AGX Terrain")
-	double GetSimulationResolution() const;
 
 	bool UsesRVTLandscapeRendering() const;
 	void ValidateLandscapeBounds();

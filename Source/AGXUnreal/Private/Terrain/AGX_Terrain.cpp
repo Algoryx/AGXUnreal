@@ -496,7 +496,7 @@ bool AAGX_Terrain::CanEditChange(const FProperty* InProperty) const
 		return false;
 	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, bEnableTerrainPaging))
 		return false;
-	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, SimulationResolution))
+	else if (Prop == GET_MEMBER_NAME_CHECKED(AAGX_Terrain, ElementSize))
 		return false;
 	else
 		return SuperCanEditChange;
@@ -796,20 +796,19 @@ void AAGX_Terrain::InitializeNative()
 
 	ValidateLandscapeBounds();
 	const bool bPartitionedSource = GetWorld() != nullptr && GetWorld()->IsPartitionedWorld();
-	const double Spacing = GetSimulationResolution();
+	const double Spacing = GetElementSize();
 	const FVector Scale = SourceLandscape->GetActorScale3D();
 	const FRotator Rotation = SourceLandscape->GetActorRotation();
-	if (!FMath::IsFinite(Spacing) || Spacing <= 0.0 || !FMath::IsFinite(SimulationResolution) ||
-		SimulationResolution < 0.0 || Scale.ContainsNaN() || Scale.X <= 0.0 || Scale.Y <= 0.0 ||
+	if (!FMath::IsFinite(Spacing) || Spacing <= 0.0 || !FMath::IsFinite(ElementSize) ||
+		ElementSize < 0.0 || Scale.ContainsNaN() || Scale.X <= 0.0 || Scale.Y <= 0.0 ||
 		Scale.Z <= 0.0 || !FMath::IsNearlyZero(Rotation.Pitch) ||
-		!FMath::IsNearlyZero(Rotation.Roll) || (bPartitionedSource && !bEnableTerrainPaging) ||
-		(SimulationResolution > 0.0 && !bEnableTerrainPaging))
+		!FMath::IsNearlyZero(Rotation.Roll) || (bPartitionedSource && !bEnableTerrainPaging))
 	{
 		UE_LOG(
 			LogAGX, Error,
 			TEXT(
 				"Terrain '%s' requires positive finite resolution and scale, an upright Landscape, "
-				"and Terrain Paging for partitioned sources or custom simulation resolution."),
+				"and Terrain Paging for partitioned sources."),
 			*GetName());
 		return;
 	}
@@ -903,9 +902,12 @@ bool AAGX_Terrain::CreateNative()
 		else
 		{
 			return AGX_HeightFieldUtilities::CreateHeightField(
-				*SourceLandscape, StartPos, Bounds->HalfExtent.X * 2.0, Bounds->HalfExtent.Y * 2.0);
+				*SourceLandscape, StartPos, Bounds->HalfExtent.X * 2.0, Bounds->HalfExtent.Y * 2.0,
+				ElementSize);
 		}
 	}();
+	if (!HeightField.HasNative())
+		return false; // Logging done by CreateHeightField.
 
 	NativeBarrier.AllocateNative(HeightField, MaxDepth);
 
@@ -922,26 +924,41 @@ bool AAGX_Terrain::CreateNative()
 	NativeBarrier.SetRotation(Bounds->Transform.GetRotation());
 	NativeBarrier.SetPosition(Bounds->Transform.GetLocation());
 
-	const double SpacingX = GetSimulationResolution();
-	const double SpacingY = bEnableTerrainPaging ? SpacingX : SourceLandscape->GetActorScale3D().Y;
-	const double GridX = Bounds->HalfExtent.X * 2.0 / SpacingX;
-	const double GridY = Bounds->HalfExtent.Y * 2.0 / SpacingY;
-	if (GridX > MAX_int32 - 1 || GridY > MAX_int32 - 1)
+	if (bEnableTerrainPaging)
 	{
-		UE_LOG(
-			LogAGX, Error,
-			TEXT("Terrain '%s' coverage exceeds the supported grid coordinate range."), *GetName());
-		return false;
+		const double Spacing = GetElementSize();
+		const double GridX = Bounds->HalfExtent.X * 2.0 / Spacing;
+		const double GridY = Bounds->HalfExtent.Y * 2.0 / Spacing;
+		if (GridX > MAX_int32 - 1 || GridY > MAX_int32 - 1)
+		{
+			UE_LOG(
+				LogAGX, Error,
+				TEXT("Terrain '%s' coverage exceeds the supported grid coordinate range."),
+				*GetName());
+			return false;
+		}
+		NumVerticesX = FMath::RoundToInt(GridX) + 1;
+		NumVerticesY = FMath::RoundToInt(GridY) + 1;
 	}
-	NumVerticesX = FMath::RoundToInt(GridX) + 1;
-	NumVerticesY = FMath::RoundToInt(GridY) + 1;
+	else
+	{
+		NumVerticesX = NativeBarrier.GetGridSizeX();
+		NumVerticesY = NativeBarrier.GetGridSizeY();
+		if (ElementSize > 0.0)
+		{
+			// The fitted grid keeps its lower corner, even if spacing does not divide the bounds.
+			const FVector2D Size = NativeBarrier.GetSize();
+			NativeBarrier.SetPosition(Bounds->Transform.TransformPositionNoScale(
+				FVector(Size.X / 2 - Bounds->HalfExtent.X, Size.Y / 2 - Bounds->HalfExtent.Y, 0)));
+		}
+	}
 
 	NativeBarrier.AddCollisionGroups(CollisionGroups);
 
 	if (bEnableTerrainPaging)
 		HeightFetcher->ConfigureSnapshots(
 			Bounds->Transform, FVector2D(Bounds->HalfExtent.X, Bounds->HalfExtent.Y),
-			GetSimulationResolution());
+			GetElementSize());
 
 	// Create the AGX Dynamics instance for the terrain.
 	// Note that the AGX Dynamics Terrain messes with the solver parameters on add, parameters that
@@ -1017,7 +1034,7 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
-	const double QuadSize = GetSimulationResolution();
+	const double QuadSize = GetElementSize();
 	if (!FMath::IsFinite(TerrainPagingSettings.TileSize) ||
 		!FMath::IsFinite(TerrainPagingSettings.TileOverlap) ||
 		TerrainPagingSettings.TileSize / QuadSize < 1.5 ||
@@ -1261,10 +1278,10 @@ void AAGX_Terrain::InitializeRendering()
 	UpdateLandscapeRendering();
 }
 
-double AAGX_Terrain::GetSimulationResolution() const
+double AAGX_Terrain::GetElementSize() const
 {
-	return SimulationResolution > 0.0
-			   ? SimulationResolution
+	return ElementSize > 0.0
+			   ? ElementSize
 			   : (SourceLandscape != nullptr ? SourceLandscape->GetActorScale3D().X : 0.0);
 }
 

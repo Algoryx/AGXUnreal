@@ -136,12 +136,13 @@ namespace AGX_HeightFieldUtilities_helpers
 	// will measure along the world z-axis (instead of the Landscapes local z-axis as it should)
 	// such that sharp peaks will be cut off and tilted.
 	TArray<float> GetHeigtsUsingApi(
-		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY)
+		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY,
+		double Spacing)
 	{
 		UE_LOG(LogAGX, Log, TEXT("About to read Landscape heights using Landscape API."));
 
-		const auto QuadSideSizeX = Landscape.GetActorScale().X;
-		const auto QuadSideSizeY = Landscape.GetActorScale().Y;
+		const double QuadSideSizeX = Spacing > 0.0 ? Spacing : Landscape.GetActorScale().X;
+		const double QuadSideSizeY = Spacing > 0.0 ? Spacing : Landscape.GetActorScale().Y;
 		const int32 ResolutionX = FMath::RoundToInt(LengthX / QuadSideSizeX);
 		const int32 ResolutionY = FMath::RoundToInt(LengthY / QuadSideSizeY);
 		const int32 VerticesSideX = ResolutionX + 1;
@@ -226,11 +227,12 @@ namespace AGX_HeightFieldUtilities_helpers
 	// is slower but can handle any Landscape orientation, which is not the case for
 	// AGX_HeightFieldUtilities_helpers::GetHeigtsUsingApi (see comment above that function).
 	TArray<float> GetHeightsUsingRayCasts(
-		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY)
+		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY,
+		double Spacing)
 	{
 		UE_LOG(LogAGX, Log, TEXT("About to read Landscape heights with ray casting."));
-		const auto QuadSideSizeX = Landscape.GetActorScale().X;
-		const auto QuadSideSizeY = Landscape.GetActorScale().Y;
+		const double QuadSideSizeX = Spacing > 0.0 ? Spacing : Landscape.GetActorScale().X;
+		const double QuadSideSizeY = Spacing > 0.0 ? Spacing : Landscape.GetActorScale().Y;
 		const int32 ResolutionX = FMath::RoundToInt(LengthX / QuadSideSizeX);
 		const int32 ResolutionY = FMath::RoundToInt(LengthY / QuadSideSizeY);
 		const int32 VerticesSideX = ResolutionX + 1;
@@ -319,7 +321,7 @@ namespace AGX_HeightFieldUtilities_helpers
 }
 
 TArray<float> AGX_HeightFieldUtilities::GetHeights(
-	ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY)
+	ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY, double Spacing)
 {
 	using namespace AGX_HeightFieldUtilities_helpers;
 	const FRotator LandsapeRotation = Landscape.GetActorRotation();
@@ -328,23 +330,20 @@ TArray<float> AGX_HeightFieldUtilities::GetHeights(
 	{
 		// If the Landscape is not rotated around x or y, we can use the Landscape API to read the
 		// heights which is much faster than ray-casting.
-		return GetHeigtsUsingApi(Landscape, StartPos, LengthX, LengthY);
+		return GetHeigtsUsingApi(Landscape, StartPos, LengthX, LengthY, Spacing);
 	}
 	else
 	{
-		return GetHeightsUsingRayCasts(Landscape, StartPos, LengthX, LengthY);
+		return GetHeightsUsingRayCasts(Landscape, StartPos, LengthX, LengthY, Spacing);
 	}
 }
 
 FHeightFieldShapeBarrier AGX_HeightFieldUtilities::CreateHeightField(
-	ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY)
+	ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY, double Spacing)
 {
 	const FVector LandscapeScale = Landscape.GetActorScale();
-
-	TArray<float> Heights;
-	Heights = GetHeights(Landscape, StartPos, LengthX, LengthY);
-	const auto QuadSideSize = LandscapeScale.X;
-	if (!FMath::IsNearlyEqual(LandscapeScale.X, LandscapeScale.Y))
+	const double QuadSideSize = Spacing > 0.0 ? Spacing : LandscapeScale.X;
+	if (Spacing == 0.0 && !FMath::IsNearlyEqual(LandscapeScale.X, LandscapeScale.Y))
 	{
 		UE_LOG(
 			LogAGX, Warning,
@@ -354,8 +353,21 @@ FHeightFieldShapeBarrier AGX_HeightFieldUtilities::CreateHeightField(
 			*Landscape.GetName(), LandscapeScale.X, LandscapeScale.Y, QuadSideSize);
 	}
 
-	const int32 ResolutionX = FMath::RoundToInt(LengthX / QuadSideSize) + 1;
-	const int32 ResolutionY = FMath::RoundToInt(LengthY / QuadSideSize) + 1;
+	// Custom spacing need not divide the source bounds. Keep every sample inside them.
+	const double QuadsX = Spacing > 0.0 ? FMath::FloorToDouble(LengthX / QuadSideSize + 1.e-8)
+										: FMath::RoundToDouble(LengthX / QuadSideSize);
+	const double QuadsY = Spacing > 0.0 ? FMath::FloorToDouble(LengthY / QuadSideSize + 1.e-8)
+										: FMath::RoundToDouble(LengthY / QuadSideSize);
+	if (!FMath::IsFinite(QuadsX) || !FMath::IsFinite(QuadsY) || QuadsX < 1 || QuadsY < 1 ||
+		QuadsX >= MAX_int32 - 1 || QuadsY >= MAX_int32 - 1 ||
+		(QuadsX + 1) * (QuadsY + 1) > MAX_int32)
+	{
+		UE_LOG(
+			LogAGX, Error, TEXT("Height Field dimensions exceed the supported dense grid range."));
+		return {};
+	}
+	const int32 ResolutionX = static_cast<int32>(QuadsX) + 1;
+	const int32 ResolutionY = static_cast<int32>(QuadsY) + 1;
 
 	// Terrain sets a very strict x-y tile scale equivalence check internally which may get
 	// triggered if the given LengthX and LengthY are not exact down to double floating point
@@ -363,6 +375,14 @@ FHeightFieldShapeBarrier AGX_HeightFieldUtilities::CreateHeightField(
 	// to ensure they are accurate.
 	const double LengthXDoublePrecision = static_cast<double>(ResolutionX - 1) * QuadSideSize;
 	const double LengthYDoublePrecision = static_cast<double>(ResolutionY - 1) * QuadSideSize;
+	const TArray<float> Heights = GetHeights(
+		Landscape, StartPos, Spacing > 0.0 ? LengthXDoublePrecision : LengthX,
+		Spacing > 0.0 ? LengthYDoublePrecision : LengthY, Spacing);
+	if (Heights.Num() != ResolutionX * ResolutionY)
+	{
+		UE_LOG(LogAGX, Error, TEXT("Height Field sampling did not match the requested grid."));
+		return {};
+	}
 
 	FHeightFieldShapeBarrier HeightField;
 	HeightField.AllocateNative(

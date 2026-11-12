@@ -102,12 +102,11 @@ void UAGX_TerrainLandscapeRendererComponent::Initialize(AAGX_Terrain& InTerrain)
 	if (!Terrain->bEnableTerrainPaging)
 	{
 		const FTransform Frame = Terrain->GetNativeTransform();
-		const double Spacing = Terrain->GetSimulationResolution();
-		const FVector Size(
-			(NumVerticesX - 1) * Spacing,
-			(NumVerticesY - 1) * Terrain->SourceLandscape->GetActorScale3D().Y, 0);
+		const FVector2D NativeSize = Terrain->NativeBarrier.GetSize();
+		const FVector Size(NativeSize.X, NativeSize.Y, 0);
 		const TArray<float> Source = AGX_HeightFieldUtilities::GetHeights(
-			*Terrain->SourceLandscape, Frame.TransformPositionNoScale(-Size / 2.0), Size.X, Size.Y);
+			*Terrain->SourceLandscape, Frame.TransformPositionNoScale(-Size / 2.0), Size.X, Size.Y,
+			Terrain->ElementSize);
 		if (Source.Num() != NumVerticesX * NumVerticesY)
 		{
 			UE_LOG(
@@ -238,7 +237,7 @@ void UAGX_TerrainLandscapeRendererComponent::UpdateDisplacementMap()
 	{
 		const auto Updates = Terrain->NativeTerrainPagerBarrier.GetTileHeightUpdates(KnownTiles);
 		const FTransform Frame = Terrain->GetNativeTransform();
-		const double Spacing = Terrain->GetSimulationResolution();
+		const double Spacing = Terrain->GetElementSize();
 		for (const FTerrainTileHeights& Tile : Updates)
 		{
 			auto Baseline = Terrain->GetSourceTileSnapshot(Tile.Corner, Tile.SideVertices);
@@ -337,13 +336,13 @@ void UAGX_TerrainLandscapeRendererComponent::UpdateLandscapeMaterialParameters()
 	// It is the Landscape material's responsibility to declare and implement displacement map
 	// sampling and passing on to World Position Offset.
 
-	const double QuadSideSizeX = Terrain->GetSimulationResolution();
-	const double QuadSideSizeY =
-		Terrain->bEnableTerrainPaging ? QuadSideSizeX : Terrain->SourceLandscape->GetActorScale().Y;
-
-	// This assumes that the Terrain and Landscape resolution (quad size) is the same.
-	const double TerrainSizeX = static_cast<double>(NumVerticesX - 1) * QuadSideSizeX;
-	const double TerrainSizeY = static_cast<double>(NumVerticesY - 1) * QuadSideSizeY;
+	const double QuadSideSizeX = Terrain->GetElementSize();
+	const FVector2D Size =
+		Terrain->bEnableTerrainPaging
+			? FVector2D((NumVerticesX - 1) * QuadSideSizeX, (NumVerticesY - 1) * QuadSideSizeX)
+			: Terrain->NativeBarrier.GetSize();
+	const double TerrainSizeX = Size.X;
+	const double TerrainSizeY = Size.Y;
 
 	const FVector TerrainCenterGlobal = Terrain->NativeBarrier.GetPosition();
 

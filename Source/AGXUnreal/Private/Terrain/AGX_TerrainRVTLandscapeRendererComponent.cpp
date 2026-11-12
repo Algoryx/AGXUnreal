@@ -222,7 +222,7 @@ bool UAGX_TerrainRVTLandscapeRendererComponent::CreateVirtualTexture()
 			"independent."),
 		*Terrain->GetName(), Description.BlockWidthInTiles * Description.TileSize,
 		Description.BlockHeightInTiles * Description.TileSize, PageSize, PoolConfig.SizeInMegabyte,
-		Terrain->GetSimulationResolution());
+		Terrain->GetElementSize());
 	if (VirtualTexturePool::GetPoolAutoGrow())
 		UE_LOG(
 			LogAGX, Display,
@@ -245,7 +245,7 @@ int32 UAGX_TerrainRVTLandscapeRendererComponent::ConfigureVirtualTextureCoverage
 	const FTransform& Frame, const FVector2D& HalfExtent)
 {
 	const double PhysicsSpacing = Terrain->HasNativeTerrainPager()
-									  ? Terrain->GetSimulationResolution()
+									  ? Terrain->GetElementSize()
 									  : Terrain->GetNative()->GetElementSize();
 	const double SourceSpacing = FMath::Min(
 		Terrain->SourceLandscape->GetActorScale3D().X,

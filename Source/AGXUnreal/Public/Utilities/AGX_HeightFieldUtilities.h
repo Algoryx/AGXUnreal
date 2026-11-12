@@ -12,13 +12,21 @@ class ALandscape;
 
 namespace AGX_HeightFieldUtilities
 {
-	/** Source heights in Landscape-local centimeters and AGX row order. StartPos is world space. */
+	/**
+	 * Source heights in Landscape-local centimeters and AGX row order. StartPos is world space.
+	 * Spacing [cm] overrides the sampling grid in both axes; zero uses the Landscape spacing.
+	 */
 	AGXUNREAL_API TArray<float> GetHeights(
-		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY);
+		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY,
+		double Spacing = 0.0);
 
-	// StartPos is in world coordinate system.
+	/**
+	 * StartPos is world space. Positive Spacing [cm] creates a uniform grid fitted inside the
+	 * requested lengths, anchored at StartPos. Zero preserves the Landscape's quad spacing.
+	 */
 	AGXUNREAL_API FHeightFieldShapeBarrier CreateHeightField(
-		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY);
+		ALandscape& Landscape, const FVector& StartPos, double LengthX, double LengthY,
+		double Spacing = 0.0);
 
 	// Overall resolution using outer bounds (i.e. holes does not affect this value unless a
 	// complete part if a side has been removed using the Landscape tool.

@@ -44,7 +44,7 @@ bool FAGX_PrepareLandscapeScenario::Update()
 			Landscape->SetActorScale3D(FVector(200, 200, Landscape->GetActorScale3D().Z));
 			Landscape->SetActorLocation(
 				Anchor - Landscape->GetActorTransform().TransformVector(Local));
-			Terrain.SimulationResolution = 25;
+			Terrain.ElementSize = 25;
 			Terrain.TerrainBounds->HalfExtent = FVector(40000, 40000, 100);
 			Terrain.TerrainPagingSettings.TileSize = 2400;
 			Terrain.TerrainPagingSettings.TileOverlap = 800;
@@ -89,7 +89,7 @@ bool FAGX_PrepareLandscapeScenario::Update()
 		Test.AddInfo(
 			FString::Printf(
 				TEXT("Scenario: source=%.0f cm, physics=%.0f cm, collision mip=%d"),
-				Landscape->GetActorScale3D().X, Terrain.GetSimulationResolution(), CollisionMip));
+				Landscape->GetActorScale3D().X, Terrain.GetElementSize(), CollisionMip));
 		return true;
 	}
 	Test.AddError(TEXT("Landscape scenario has no Terrain."));
