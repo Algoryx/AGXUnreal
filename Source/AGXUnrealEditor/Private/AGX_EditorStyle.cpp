@@ -229,6 +229,12 @@ TSharedRef<class FSlateStyleSet> FAGX_EditorStyle::Create()
 		"ClassIcon.AGX_TerrainMaterialPatchComponent",
 		new IMAGE_BRUSH("Icons/terrain_material_32x32", IconSize16));
 	Style->Set(
+		"ClassIcon.AGX_TerrainLandscapeRendererComponent",
+		new IMAGE_BRUSH("Icons/terrain_renderer_32x32", IconSize16));
+	Style->Set(
+		"ClassIcon.AGX_TerrainRVTLandscapeRendererComponent",
+		new IMAGE_BRUSH("Icons/terrain_renderer_32x32", IconSize16));
+	Style->Set(
 		"ClassIcon.AGX_TopEdgeComponent", new IMAGE_BRUSH("Icons/deprecated_32x32", IconSize16));
 	Style->Set(
 		"ClassIcon.AGX_MovableTerrainComponent",
