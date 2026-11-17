@@ -47,13 +47,13 @@ public: // AGX Dynamics accessors.
 	void SetCompliance(double InCompliance);
 	double GetCompliance(int32 InRow = 0) const;
 
-	void SetElasticity(double Elasticity, int Row);
-	void SetElasticity(double elasticity);
-	double GetElasticity(int32 row = 0) const;
+	void SetStiffness(double Stiffness, int Row);
+	void SetStiffness(double Stiffness);
+	double GetStiffness(int32 Row = 0) const;
 
-	void SetSpookDamping(double InDamping, int32 InRow);
-	void SetSpookDamping(double InDamping);
-	double GetSpookDamping(int32 InRow = 0) const;
+	void SetAttenuation(double InAttenuation, int32 InRow);
+	void SetAttenuation(double InAttenuation);
+	double GetAttenuation(int32 InRow = 0) const;
 
 	void SetForceRange(FDoubleInterval InForceRange, int32 InRow = 0);
 	void SetForceRange(FAGX_RealInterval InForceRange, int32 InRow = 0);

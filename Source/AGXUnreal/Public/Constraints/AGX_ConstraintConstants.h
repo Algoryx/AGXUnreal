@@ -36,9 +36,15 @@ public:
 		return 1.0 / StrongCompliance();
 	};
 
+	// Retained unchanged for omitted defaults in older serialized constraints.
 	static constexpr double DefaultSpookDamping()
 	{
 		return 2.0 / 60.0;
+	}
+
+	static constexpr double DefaultAttenuation()
+	{
+		return 2.0;
 	}
 
 	static FAGX_RealInterval DefaultForceRange()

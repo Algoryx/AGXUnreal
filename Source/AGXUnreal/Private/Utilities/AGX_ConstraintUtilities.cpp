@@ -213,11 +213,9 @@ void FAGX_ConstraintUtilities::AddControllerPropertyCallbacks(
 		{ GetController(EditedObject)->SetCompliance(GetController(EditedObject)->Compliance); });
 
 	PropertyDispatcher.Add(
-		Member, GET_MEMBER_NAME_CHECKED(FAGX_ConstraintController, SpookDamping),
+		Member, GET_MEMBER_NAME_CHECKED(FAGX_ConstraintController, Attenuation),
 		[GetController](UConstraintClass* EditedObject)
-		{
-			GetController(EditedObject)->SetSpookDamping(GetController(EditedObject)->SpookDamping);
-		});
+		{ GetController(EditedObject)->SetAttenuation(GetController(EditedObject)->Attenuation); });
 
 	PropertyDispatcher.Add(
 		Member, GET_MEMBER_NAME_CHECKED(FAGX_ConstraintController, ForceRange),

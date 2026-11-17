@@ -28,6 +28,7 @@
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_EditorUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
+#include "Utilities/AGXUtilities.h"
 #include "Vehicle/AGX_TrackComponent.h"
 #include "Vehicle/AGX_TrackInternalMergeProperties.h"
 #include "Vehicle/AGX_TrackProperties.h"
@@ -2090,15 +2091,23 @@ bool FCheckConstraintDynamicParametersImportedCommand::Update()
 		104.0);
 	// Rotational 3 is not supported for AGX::Hinge.
 
-	// SpookDamping.
+	// Attenuation. The archived scene used damping and a 60 Hz timestep.
+	// Allow for float precision in the timestep stored by older AGX versions.
 	Test.TestEqual(
-		TEXT("Translational 1 damping"), Constraint->SpookDamping.Translational_1, 200.0);
+		TEXT("Translational 1 attenuation"), Constraint->Attenuation.Translational_1,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(200.0, 1.0 / 60.0), 0.001);
 	Test.TestEqual(
-		TEXT("Translational 2 damping"), Constraint->SpookDamping.Translational_2, 201.0);
+		TEXT("Translational 2 attenuation"), Constraint->Attenuation.Translational_2,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(201.0, 1.0 / 60.0), 0.001);
 	Test.TestEqual(
-		TEXT("Translational 3 damping"), Constraint->SpookDamping.Translational_3, 202.0);
-	Test.TestEqual(TEXT("Rotational 1 damping"), Constraint->SpookDamping.Rotational_1, 203.0);
-	Test.TestEqual(TEXT("Rotational 2 damping"), Constraint->SpookDamping.Rotational_2, 204.0);
+		TEXT("Translational 3 attenuation"), Constraint->Attenuation.Translational_3,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(202.0, 1.0 / 60.0), 0.001);
+	Test.TestEqual(
+		TEXT("Rotational 1 attenuation"), Constraint->Attenuation.Rotational_1,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(203.0, 1.0 / 60.0), 0.001);
+	Test.TestEqual(
+		TEXT("Rotational 2 attenuation"), Constraint->Attenuation.Rotational_2,
+		FAGXUtilities::ConvertSpookDampingToAttenuation(204.0, 1.0 / 60.0), 0.001);
 	// Rotational 3 is not supported for AGX::Hinge.
 
 	// Force range.
@@ -2639,10 +2648,11 @@ bool FCheckContactMaterialsImportedCommand::Update()
 		"Cm1 contact reduction bin resolution", (*Cm1)->ContactReduction.ContactReductionLevel,
 		EAGX_ContactReductionLevel::Moderate);
 	Test.TestEqual("Cm1 friction coefficient", (*Cm1)->FrictionCoefficient, 0.11);
-	Test.TestEqual("Cm1 surface viscosity", (*Cm1)->SurfaceViscosity, 0.12);
+	Test.TestEqual("Cm1 friction compliance", (*Cm1)->FrictionCompliance, 0.12);
 	Test.TestEqual("Cm1 restitution", (*Cm1)->Restitution, 0.13);
 	Test.TestEqual("Cm1 youngs modulus", (*Cm1)->YoungsModulus, 123451234.0);
-	Test.TestEqual("Cm1 damping", (*Cm1)->SpookDamping, 0.14);
+	// The archive was exported with the viewer default timestep, 1/60 s.
+	Test.TestTrue("Cm1 attenuation", FMath::IsNearlyEqual((*Cm1)->Attenuation.Value, 8.4, 1.e-6));
 	Test.TestEqual("Cm1 adhesive force", (*Cm1)->AdhesiveForce, 0.15);
 	Test.TestEqual("Cm1 adhesive overlap", (*Cm1)->AdhesiveOverlap, AgxToUnrealDistance(0.16));
 
@@ -2674,10 +2684,10 @@ bool FCheckContactMaterialsImportedCommand::Update()
 		"Cm2 contact reduction bin resolution", (*Cm2)->ContactReduction.ContactReductionLevel,
 		EAGX_ContactReductionLevel::Minimal);
 	Test.TestEqual("Cm2 friction coefficient", (*Cm2)->FrictionCoefficient, 0.21);
-	Test.TestEqual("Cm2 surface viscosity", (*Cm2)->SurfaceViscosity, 0.22);
+	Test.TestEqual("Cm2 friction compliance", (*Cm2)->FrictionCompliance, 0.22);
 	Test.TestEqual("Cm2 restitution", (*Cm2)->Restitution, 0.23);
 	Test.TestEqual("Cm2 youngs modulus", (*Cm2)->YoungsModulus, 101010101.0);
-	Test.TestEqual("Cm2 damping", (*Cm2)->SpookDamping, 0.24);
+	Test.TestTrue("Cm2 attenuation", FMath::IsNearlyEqual((*Cm2)->Attenuation.Value, 14.4, 1.e-6));
 	Test.TestEqual("Cm2 adhesive force", (*Cm2)->AdhesiveForce, 0.25);
 	Test.TestEqual("Cm2 adhesive overlap", (*Cm2)->AdhesiveOverlap, AgxToUnrealDistance(0.26));
 
@@ -3356,8 +3366,9 @@ bool FCheckTrackImportedCommand::Update()
 			"Lock to Reach Merge Condition Compliance",
 			Track->InternalMergeProperties->LockToReachMergeConditionCompliance, 1e-11);
 		Test.TestEqual(
-			"Lock to Reach Merge Condition Damping",
-			Track->InternalMergeProperties->LockToReachMergeConditionSpookDamping, 0.05);
+			"Lock to Reach Merge Condition Attenuation",
+			Track->InternalMergeProperties->LockToReachMergeConditionAttenuation.Value,
+			FAGXUtilities::ConvertSpookDampingToAttenuation(0.05, 1.0 / 60.0), 0.001);
 		Test.TestEqual(
 			"Max Angle Merge Condition", Track->InternalMergeProperties->MaxAngleMergeCondition,
 			FMath::RadiansToDegrees(0.00001));
@@ -4319,9 +4330,14 @@ bool FCheckCableImportedCommand::Update()
 	if (Properties == nullptr)
 		return true;
 
-	Test.TestEqual("DampingBend", Properties->SpookDampingBend, 0.034);
-	Test.TestEqual("DampingTwist", Properties->SpookDampingTwist, 0.032);
-	Test.TestEqual("DampingStretch", Properties->SpookDampingStretch, 0.035);
+	// The legacy archive uses the AGX viewer default timestep, 1/60 s. Allow for the
+	// floating-point precision of the timestep stored by the viewer.
+	Test.TestTrue(
+		"AttenuationBend", FMath::IsNearlyEqual(Properties->AttenuationBend, 2.04, 1.e-6));
+	Test.TestTrue(
+		"AttenuationTwist", FMath::IsNearlyEqual(Properties->AttenuationTwist, 1.92, 1.e-6));
+	Test.TestTrue(
+		"AttenuationStretch", FMath::IsNearlyEqual(Properties->AttenuationStretch, 2.1, 1.e-6));
 
 	Test.TestEqual("PoissonsRatioBend", Properties->PoissonsRatioBend, 0.34);
 	Test.TestEqual("PoissonsRatioTwist", Properties->PoissonsRatioTwist, 0.325);
