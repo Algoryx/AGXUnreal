@@ -17,6 +17,8 @@ public:
 #if WITH_DEV_AUTOMATION_TESTS
 	/** Exercise real control transport and barrier polling without a physics step. */
 	static bool TestDistributedControlMessages(FString& OutError);
+	/** Exercise state serialization, authority broadcasts and release over real transport. */
+	static bool TestDistributedEntityState(FString& OutError);
 #endif
 	static FString ConvertToAGXUuidStr(const FGuid& Guid);
 

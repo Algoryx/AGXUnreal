@@ -24,7 +24,8 @@
 // AGX Dynamics includes.
 #include <BeginAGXIncludes.h>
 #include <agx/RigidBody.h>
-#include <agxDistributed/AgxApplicationLayer.h>
+#include <agxDistributed/Client.h>
+#include <agxSDK/Simulation.h>
 #if WITH_DEV_AUTOMATION_TESTS
 #include <agxDistributed/WorldManager.h>
 #endif
@@ -32,12 +33,14 @@
 
 namespace
 {
-	// Matches examples/agxDistributed/AssemblySerializer.h: big-endian uint64 count,
-	// followed by 16 big-endian IEEE-754 doubles per body, in AGX matrix row order.
-	bool DecodeBodyTransforms(const std::vector<uint8_t>& Data, TArray<FTransform>& OutTransforms)
+	// Matches AssemblySerializer: uint64 count, then 12 doubles (4x3 matrix),
+	// and six floats (linear and angular velocity) per body, all big-endian.
+	bool DecodeBodyTransforms(
+		const std::vector<uint8_t>& Data, TArray<FTransform>& OutTransforms,
+		TArray<FVector>* OutVelocities = nullptr, TArray<FVector>* OutAngularVelocities = nullptr)
 	{
 		constexpr size_t HeaderSize = 8;
-		constexpr size_t MatrixSize = 16 * 8;
+		constexpr size_t MatrixSize = 12 * 8 + 6 * 4;
 		if (Data.size() < HeaderSize)
 			return false;
 
@@ -63,7 +66,7 @@ namespace
 			for (int32 RowIndex = 0; RowIndex < 4; ++RowIndex)
 			{
 				agx::Vec4 Row;
-				for (int32 Column = 0; Column < 4; ++Column)
+				for (int32 Column = 0; Column < 3; ++Column)
 				{
 					const uint64 Bits = ReadUint64();
 					double Value;
@@ -73,12 +76,35 @@ namespace
 						return false;
 					Row[Column] = Value;
 				}
+				Row[3] = RowIndex == 3 ? 1.0 : 0.0;
 				Matrix.setRow(RowIndex, Row);
 			}
 			const FTransform Transform = Convert(Matrix);
 			if (Transform.ContainsNaN() || !Transform.GetRotation().IsNormalized())
 				return false;
 			OutTransforms.Add(Transform);
+			auto ReadVelocity = [&Data, &Offset]()
+			{
+				agx::Vec3 Value;
+				for (int32 Axis = 0; Axis < 3; ++Axis)
+				{
+					uint32 Bits = 0;
+					for (int32 Byte = 0; Byte < 4; ++Byte)
+						Bits = (Bits << 8) | Data[Offset++];
+					float Component;
+					std::memcpy(&Component, &Bits, sizeof(Component));
+					Value[Axis] = Component;
+				}
+				return Value;
+			};
+			const agx::Vec3 Velocity = ReadVelocity();
+			const agx::Vec3 AngularVelocity = ReadVelocity();
+			if (!Velocity.isFinite() || !AngularVelocity.isFinite())
+				return false;
+			if (OutVelocities != nullptr)
+				OutVelocities->Add(ConvertDisplacement(Velocity));
+			if (OutAngularVelocities != nullptr)
+				OutAngularVelocities->Add(ConvertAngularVelocity(AngularVelocity));
 		}
 		return true;
 	}
@@ -94,7 +120,7 @@ namespace
 				return false;
 		}
 		OutData.clear();
-		OutData.reserve(8 + static_cast<size_t>(Bodies.Num()) * 16 * 8);
+		OutData.reserve(8 + static_cast<size_t>(Bodies.Num()) * (12 * 8 + 6 * 4));
 		auto WriteUint64 = [&OutData](uint64 Value)
 		{
 			for (int32 Shift = 56; Shift >= 0; Shift -= 8)
@@ -106,7 +132,7 @@ namespace
 			const agx::AffineMatrix4x4 Matrix = Body.GetNative()->Native->getTransform();
 			for (int32 Row = 0; Row < 4; ++Row)
 			{
-				for (int32 Column = 0; Column < 4; ++Column)
+				for (int32 Column = 0; Column < 3; ++Column)
 				{
 					const double Value = Matrix.getRow(Row)[Column];
 					if (!FMath::IsFinite(Value))
@@ -117,6 +143,23 @@ namespace
 					WriteUint64(Bits);
 				}
 			}
+			auto WriteVelocity = [&OutData](const agx::Vec3& Value)
+			{
+				for (int32 Axis = 0; Axis < 3; ++Axis)
+				{
+					const float Component = static_cast<float>(Value[Axis]);
+					if (!FMath::IsFinite(Component))
+						return false;
+					uint32 Bits;
+					std::memcpy(&Bits, &Component, sizeof(Bits));
+					for (int32 Shift = 24; Shift >= 0; Shift -= 8)
+						OutData.push_back(static_cast<uint8_t>(Bits >> Shift));
+				}
+				return true;
+			};
+			if (!WriteVelocity(Body.GetNative()->Native->getVelocity()) ||
+				!WriteVelocity(Body.GetNative()->Native->getAngularVelocity()))
+				return false;
 		}
 		return true;
 	}
@@ -144,15 +187,106 @@ namespace
 		std::vector<FAGXDistributedEvent> Events;
 	};
 
-	class FUnrealApplicationLayer final : public agxDistributed::AgxApplicationLayer
+	class FUnrealApplicationLayer final : public agxDistributed::Client
 	{
 	public:
 		FUnrealApplicationLayer(
 			agxSDK::Simulation& Simulation, const agxDistributed::Node::Config& Config,
 			std::shared_ptr<FEventQueue> InEvents)
-			: AgxApplicationLayer(Simulation, Config)
+			: Client(Config)
+			, Simulation(Simulation)
 			, Events(std::move(InEvents))
 		{
+		}
+
+		~FUnrealApplicationLayer() override
+		{
+			closeSession();
+		}
+
+		// Unreal owns body creation, safe points and motion control. Use Client rather than
+		// AgxApplicationLayer, whose synchronizer requires native entity assemblies.
+		std::future<void> startAndLoad(std::string Identity, size_t Timeout)
+		{
+			AsyncRefPin Pin(this);
+			return std::async(
+				std::launch::async,
+				[this, Identity = std::move(Identity), Timeout, Pin = std::move(Pin)]() mutable
+				{
+					start(Timeout).get();
+					requestMembership(std::move(Identity)).get();
+					loadWorld();
+					registerControlCallback(
+						[this](std::string Key, std::string Action)
+						{
+							if (Key == "control/simulation")
+							{
+								if (Action == "START")
+									onSimulationControlMessage(true);
+								else if (Action == "STOP" || Action == "PAUSE")
+									onSimulationControlMessage(false);
+							}
+							else if (Key == "control/shutdown")
+								onShutdownControlMessage();
+						});
+					queryControlMessages();
+				});
+		}
+
+		void shutdownApplicationLayer()
+		{
+			closeSession();
+		}
+
+		void RegisterEntityBodies(uint64 Id, const TArray<FRigidBodyBarrier>& Bodies)
+		{
+			RegisteredBodies.Add(Id, Bodies);
+		}
+
+		void PollEvents(TArray<FAGXDistributedEvent>& OutEvents)
+		{
+			setLocalSimulationTime(Simulation.getTimeStamp());
+			checkForStaleEntityData();
+			TArray<FAGXDistributedEvent> Ready;
+			Events->Drain(Ready);
+			for (const FAGXDistributedEvent& Event : Ready)
+			{
+				if (Event.Type == EAGXDistributedEventType::SimulationAuthorityChanged &&
+					Event.bWasSimulating)
+					requestSerializedState(
+						agxDistributed::EntityId(Event.EntityId), Event.bAssigned);
+				if (Event.Type == EAGXDistributedEventType::SimulationAuthorityChanged &&
+					isPossessed(agxDistributed::EntityId(Event.EntityId)))
+					if (const auto* Signals = LocalSignals.Find(Event.EntityId))
+						for (const auto& Signal : *Signals)
+							routeSignal(
+								agxDistributed::EntityId(Event.EntityId),
+								TCHAR_TO_UTF8(*Signal.Key), Signal.Value);
+				if (Event.Type == EAGXDistributedEventType::RemoveEntity)
+				{
+					RegisteredBodies.Remove(Event.EntityId);
+					LocalSignals.Remove(Event.EntityId);
+				}
+			}
+			OutEvents.Append(MoveTemp(Ready));
+		}
+
+		void routeSignal(agxDistributed::EntityId Id, const std::string& Name, double Value)
+		{
+			if (!isPossessed(Id))
+				return;
+			LocalSignals.FindOrAdd(Id.getId()).Add(UTF8_TO_TCHAR(Name.c_str()), Value);
+			if (isSimulated(Id))
+				applySignal(Id, Name, Value);
+			else
+			{
+				zenoh::ext::Serializer Writer;
+				Writer.serialize(Name);
+				Writer.serialize(Value);
+				getSession()->put(
+					"world/entities/" + std::to_string(Id.getId()) + "/signal",
+					std::move(Writer).finish());
+			}
 		}
 
 		TArray<uint64> GetSimulatedEntities()
@@ -166,32 +300,16 @@ namespace
 
 		void SendEntityUpdates(const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies)
 		{
-			// Authority can change between collection and sending. Refresh the selection,
-			// then release its lock before serialization and network publication.
-			const TArray<uint64> SimulatedEntities = GetSimulatedEntities();
+			setLocalSimulationTime(Simulation.getTimeStamp());
 			for (const auto& Entry : EntityBodies)
 			{
-				if (!SimulatedEntities.Contains(Entry.Key))
-					continue;
-				try
-				{
-					agxDistributed::EntityData Update;
-					Update.getTransform() = agx::AffineMatrix4x4();
-					if (!EncodeBodyTransforms(Entry.Value, Update.getAssetData()))
-						continue;
-					updateEntity(agxDistributed::EntityId(Entry.Key), std::move(Update));
-				}
-				catch (const std::exception& Error)
-				{
-					UE_LOG(
-						LogAGX, Error, TEXT("AGX Distributed failed to send entity %llu: %s"),
-						Entry.Key, UTF8_TO_TCHAR(Error.what()));
-				}
+				RegisterEntityBodies(Entry.Key, Entry.Value);
+				if (isSimulated(agxDistributed::EntityId(Entry.Key)))
+					requestSerializedState(agxDistributed::EntityId(Entry.Key), true);
 			}
 		}
 
-		void applySignal(
-			agxDistributed::EntityId EntityId, const std::string& Name, double Value) override
+		void applySignal(agxDistributed::EntityId EntityId, const std::string& Name, double Value)
 		{
 			// Q: Should signals be queued for the Unreal OpenPLX handler or applied through
 			// a native handler during this AGX simulation callback?
@@ -200,11 +318,79 @@ namespace
 			(void) Value;
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Unreal Application Layer received signal %s for entity %d: %f"),
+				TEXT("Unreal Application Layer received signal %s for entity %llu: %f"),
 				UTF8_TO_TCHAR(Name.c_str()), EntityId.getId(), Value);
 		}
 
 	protected:
+		bool requestSerializedState(agxDistributed::EntityId Id, bool bAssigned) override
+		{
+			check(IsInGameThread());
+			const auto* Bodies = RegisteredBodies.Find(Id.getId());
+			if (Bodies == nullptr || !withEntity(Id, [](const agxDistributed::Entity&) {}))
+				return false;
+			try
+			{
+				agxDistributed::EntityData Update;
+				Update.getTransform() = agx::AffineMatrix4x4();
+				Update.getFlags() = bAssigned ? agxDistributed::EntityData::ASSIGNED_ENTITY : 0;
+				if (!EncodeBodyTransforms(*Bodies, Update.getAssetData()))
+					return false;
+				return updateEntity(Id, std::move(Update));
+			}
+			catch (const std::exception& Error)
+			{
+				UE_LOG(
+					LogAGX, Error, TEXT("AGX Distributed failed to serialize entity %llu: %s"),
+					Id.getId(), UTF8_TO_TCHAR(Error.what()));
+				return false;
+			}
+		}
+
+		void onSpawnEntity(agxDistributed::EntityId Id) override
+		{
+			withEntity(
+				Id,
+				[this, Id](const agxDistributed::Entity& Entity)
+				{
+					instantiateAsset(
+						Id, Entity.getAssetId(), Entity.getEntityData().getTransform());
+				});
+			onEntityUpdate(Id);
+		}
+
+		void onEntityUpdate(agxDistributed::EntityId Id) override
+		{
+			processIncomingEntityUpdates({Id});
+		}
+
+		void onEntitySimulationAuthority(
+			agxDistributed::EntityId Id, AuthorityChangeType Change) override
+		{
+			FAGXDistributedEvent Event;
+			Event.Type = EAGXDistributedEventType::SimulationAuthorityChanged;
+			Event.EntityId = Id.getId();
+			Event.bWasSimulating = Change == AuthorityChangeType::LOST_TO_OTHER ||
+								   Change == AuthorityChangeType::LOST_TO_UNASSIGNED;
+			Event.bAssigned = Change != AuthorityChangeType::LOST_TO_UNASSIGNED &&
+							  Change != AuthorityChangeType::REMOTE_BECAME_UNASSIGNED;
+			Events->Push(MoveTemp(Event));
+		}
+
+		void onStaleEntityData(agxDistributed::EntityId Id) override
+		{
+			FAGXDistributedEvent Event;
+			Event.Type = EAGXDistributedEventType::StaleEntityState;
+			Event.EntityId = Id.getId();
+			Events->Push(MoveTemp(Event));
+		}
+
+		void onEntityControlSignal(
+			agxDistributed::EntityId Id, const std::string& Name, double Value) override
+		{
+			// Signal application is not implemented yet; log without accessing UObjects.
+			applySignal(Id, Name, Value);
+		}
 		void onRemoveEntity(agxDistributed::EntityId Id) override
 		{
 			FAGXDistributedEvent Event;
@@ -214,7 +400,7 @@ namespace
 		}
 		void instantiateAsset(
 			agxDistributed::EntityId EntityId, agxDistributed::AssetId AssetId,
-			agx::AffineMatrix4x4 AssetTransform) override
+			agx::AffineMatrix4x4 AssetTransform)
 		{
 			FAGXDistributedEvent Event;
 			Event.Type = EAGXDistributedEventType::SpawnEntity;
@@ -234,15 +420,19 @@ namespace
 			Events->Push(MoveTemp(Event));
 		}
 
-		void processIncomingEntityUpdates(
-			std::vector<agxDistributed::EntityId>&& UpdatedEntities) override
+		void processIncomingEntityUpdates(std::vector<agxDistributed::EntityId>&& UpdatedEntities)
 		{
 			for (const agxDistributed::EntityId Id : UpdatedEntities)
 			{
 				std::vector<uint8_t> AssetData;
+				uint32 Flags = 0;
 				const bool Found = withEntity(
-					Id, [&AssetData](const agxDistributed::Entity& Entity)
-					{ AssetData = Entity.getEntityData().getAssetData(); });
+					Id,
+					[&AssetData, &Flags](const agxDistributed::Entity& Entity)
+					{
+						AssetData = Entity.getEntityData().getAssetData();
+						Flags = Entity.getEntityData().getFlags();
+					});
 				// Spawn requests may carry no body state yet. Leave the spawn transform intact.
 				if (!Found || AssetData.empty())
 					continue;
@@ -250,31 +440,29 @@ namespace
 				FAGXDistributedEvent Event;
 				Event.Type = EAGXDistributedEventType::EntityUpdate;
 				Event.EntityId = Id.getId();
-				if (!DecodeBodyTransforms(AssetData, Event.BodyTransforms))
+				Event.bAssigned = (Flags & agxDistributed::EntityData::ASSIGNED_ENTITY) != 0;
+				if (!DecodeBodyTransforms(
+						AssetData, Event.BodyTransforms, &Event.BodyVelocities,
+						&Event.BodyAngularVelocities))
 				{
 					Event.BodyTransforms.Reset();
 					Event.Message = TEXT("Invalid AssemblySerializer body transform payload.");
 				}
-				// Also used by AGX's pre-collide listener: never touch UObjects here.
+				// Called from middleware callbacks: never touch UObjects here.
 				Events->Push(MoveTemp(Event));
 			}
 		}
 
-		void collectAndSendUpdates() override
+		void onSimulationControlMessage(bool bStart)
 		{
-			// Unreal collects and sends through PostStepForwardInternal after the native step.
-			// Keep the base listener callback empty to avoid duplicate publication.
-		}
-
-		void onSimulationControlMessage(bool bStart) override
-		{
+			setNodeStatus(bStart ? "SIMULATING" : "PAUSED");
 			FAGXDistributedEvent Event;
 			Event.Type = bStart ? EAGXDistributedEventType::SimulationStart
 								: EAGXDistributedEventType::SimulationPause;
 			Events->Push(MoveTemp(Event));
 		}
 
-		void onShutdownControlMessage() override
+		void onShutdownControlMessage()
 		{
 			FAGXDistributedEvent Event;
 			Event.Type = EAGXDistributedEventType::ShutdownRequested;
@@ -282,6 +470,9 @@ namespace
 		}
 
 	private:
+		agxSDK::Simulation& Simulation;
+		TMap<uint64, TArray<FRigidBodyBarrier>> RegisteredBodies;
+		TMap<uint64, TMap<FString, double>> LocalSignals;
 		std::shared_ptr<FEventQueue> Events;
 	};
 
@@ -494,17 +685,9 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 	PollAssignments(Impl->Possessions, EAGXDistributedEventType::PossessionResult);
 	PollAssignments(Impl->Authorities, EAGXDistributedEventType::SimulationAuthorityResult);
 	if (Impl->bReady && Impl->Native != nullptr)
-	{
-		// Drain AGX's network queues on the game thread even when physics is paused.
-		// Q: Should this happen before each AGX step instead of from the world tick?
-		Impl->Native->triggerNewEntitiesProcessing();
-		Impl->Native->triggerEntityUpdatesProcessing();
-		Impl->Native->triggerSignalProcessing();
-		// START must be processed while the Unreal stepper is paused. Depending on
-		// preCollide alone would require the very physics step START enables.
-		Impl->Native->triggerControlMessageProcessing();
-	}
-	Impl->Events->Drain(OutEvents);
+		Impl->Native->PollEvents(OutEvents);
+	else
+		Impl->Events->Drain(OutEvents);
 }
 
 bool FDistributedApplicationBarrier::IsReady() const
@@ -669,6 +852,14 @@ TArray<uint64> FDistributedApplicationBarrier::GetSimulatedEntities() const
 	return Impl->Native->GetSimulatedEntities();
 }
 
+void FDistributedApplicationBarrier::RegisterEntityBodies(
+	uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies)
+{
+	check(IsInGameThread());
+	if (IsReady() && Impl->Native != nullptr)
+		Impl->Native->RegisterEntityBodies(EntityId, Bodies);
+}
+
 void FDistributedApplicationBarrier::SendEntityUpdates(
 	const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies)
 {
@@ -702,6 +893,180 @@ bool FDistributedApplicationBarrier::FindWorldObject(
 	OutEntityId = Id->getId();
 	return true;
 }
+
+#if WITH_DEV_AUTOMATION_TESTS
+bool FTestUtilities::TestDistributedEntityState(FString& OutError)
+{
+	try
+	{
+		FSimulationBarrier SimulationA, SimulationB;
+		SimulationA.AllocateNative();
+		SimulationB.AllocateNative();
+		agxDistributed::Node::Config Config;
+		Config.addSetting("mode", "\"peer\"");
+		Config.addSetting("listen/endpoints", "[\"tcp/127.0.0.1:17591\"]");
+		Config.addSetting("scouting/multicast/enabled", "false");
+		agxDistributed::ScenarioInfo Scenario;
+		Scenario.addAssetPath("Car.openplx");
+		agx::ref_ptr<agxDistributed::WorldManager> Manager =
+			new agxDistributed::WorldManager(Scenario, Config);
+		Manager->start();
+		FDistributedApplicationBarrier A, B;
+		if (!A.Initialize(SimulationA, TEXT("tcp/127.0.0.1:17591")) ||
+			!B.Initialize(SimulationB, TEXT("tcp/127.0.0.1:17591")))
+			throw std::runtime_error("State test initialization failed");
+		A.StartAndLoad(5);
+		B.StartAndLoad(5);
+		TArray<FAGXDistributedEvent> EventsA, EventsB;
+		auto WaitFor = [&](auto Predicate)
+		{
+			const auto Deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+			while (std::chrono::steady_clock::now() < Deadline)
+			{
+				A.Poll(EventsA);
+				B.Poll(EventsB);
+				if (Predicate())
+					return;
+				FPlatformProcess::Sleep(0.005f);
+			}
+			throw std::runtime_error("Timed out waiting for distributed entity state/authority");
+		};
+		auto Require = [](bool Condition, const char* Message)
+		{
+			if (!Condition)
+				throw std::runtime_error(Message);
+		};
+		WaitFor([&] { return A.IsReady() && B.IsReady(); });
+		const FGuid Request = FGuid::NewGuid();
+		Require(
+			A.EnsureEntity(Request, 0, FTransform::Identity, TEXT("state-test")),
+			"Ensure submission failed");
+		uint64 Id = MAX_uint64;
+		WaitFor(
+			[&]
+			{
+				for (const auto& Event : EventsA)
+					if (Event.Type == EAGXDistributedEventType::SpawnRequestResult &&
+						Event.RequestId == Request && Event.bAccepted)
+						Id = Event.EntityId;
+				return Id != MAX_uint64 &&
+					   EventsB.ContainsByPredicate(
+						   [&](const auto& Event)
+						   {
+							   return Event.Type == EAGXDistributedEventType::SpawnEntity &&
+									  Event.EntityId == Id;
+						   });
+			});
+		FRigidBodyBarrier BodyA, BodyB;
+		BodyA.AllocateNative();
+		BodyB.AllocateNative();
+		BodyA.SetPosition(FVector(100, -200, 300));
+		BodyA.SetVelocity(FVector(400, -500, 600));
+		BodyA.SetAngularVelocity(FVector(10, -20, 30));
+		// Independent wire assertion: AGX velocity (4, 5, 6) m/s as big-endian floats.
+		std::vector<uint8_t> Wire;
+		Require(
+			EncodeBodyTransforms({BodyA}, Wire) && Wire.size() == 128 && Wire[7] == 1,
+			"Encoded body layout differs");
+		const uint8_t ExpectedVelocity[] = {0x40, 0x80, 0, 0, 0x40, 0xa0, 0, 0, 0x40, 0xc0, 0, 0};
+		Require(
+			std::memcmp(Wire.data() + 8 + 96, ExpectedVelocity, sizeof(ExpectedVelocity)) == 0,
+			"Encoded velocity byte order differs from AssemblySerializer");
+		A.RegisterEntityBodies(Id, {BodyA});
+		B.RegisterEntityBodies(Id, {BodyB});
+		Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
+		WaitFor([&] { return A.GetSimulatedEntities().Contains(Id); });
+		WaitFor(
+			[&]
+			{
+				return EventsB.ContainsByPredicate(
+					[&](const auto& Event)
+					{
+						return Event.Type == EAGXDistributedEventType::SimulationAuthorityChanged &&
+							   Event.EntityId == Id;
+					});
+			});
+		EventsA.Reset();
+		EventsB.Reset();
+		A.SendEntityUpdates({{Id, {BodyA}}});
+		FAGXDistributedEvent State;
+		auto FindState = [&](bool bAssigned)
+		{
+			for (const auto& Event : EventsB)
+				if (Event.Type == EAGXDistributedEventType::EntityUpdate && Event.EntityId == Id &&
+					Event.bAssigned == bAssigned)
+				{
+					State = Event;
+					return true;
+				}
+			return false;
+		};
+		WaitFor([&] { return FindState(true); });
+		Require(
+			State.Message.IsEmpty() && State.BodyTransforms.Num() == 1 &&
+				State.BodyVelocities.Num() == 1 && State.BodyAngularVelocities.Num() == 1,
+			"Invalid body state payload");
+		Require(
+			State.BodyTransforms[0].GetTranslation().Equals(FVector(100, -200, 300)),
+			"Body transform conversion differs");
+		Require(
+			State.BodyVelocities[0].Equals(FVector(400, -500, 600), 0.001),
+			"Linear velocity conversion differs");
+		Require(
+			State.BodyAngularVelocities[0].Equals(FVector(10, -20, 30), 0.001),
+			"Angular velocity conversion differs");
+		EventsB.Reset();
+		Require(A.RequestSimulationAuthority(Id, false), "Release submission failed");
+		WaitFor([&] { return !A.GetSimulatedEntities().Contains(Id) && FindState(false); });
+		EventsA.Reset();
+		Require(B.RequestSimulationAuthority(Id, true), "Transfer acquisition failed");
+		WaitFor(
+			[&]
+			{
+				return B.GetSimulatedEntities().Contains(Id) &&
+					   EventsA.ContainsByPredicate(
+						   [&](const auto& Event)
+						   {
+							   return Event.Type ==
+										  EAGXDistributedEventType::SimulationAuthorityChanged &&
+									  Event.EntityId == Id;
+						   });
+			});
+		// No updates arrive from B: simulation time advancing beyond the native timeout must stop
+		// prediction.
+		SimulationA.GetNative()->Native->setTimeStamp(10);
+		WaitFor(
+			[&]
+			{
+				return EventsA.ContainsByPredicate(
+					[&](const auto& Event)
+					{
+						return Event.Type == EAGXDistributedEventType::StaleEntityState &&
+							   Event.EntityId == Id;
+					});
+			});
+		Require(A.ReleaseInterest(Request, TEXT("state-test")), "Removal submission failed");
+		WaitFor(
+			[&]
+			{
+				return EventsB.ContainsByPredicate(
+					[&](const auto& Event)
+					{
+						return Event.Type == EAGXDistributedEventType::RemoveEntity &&
+							   Event.EntityId == Id;
+					});
+			});
+		A.Shutdown();
+		B.Shutdown();
+		return true;
+	}
+	catch (const std::exception& Error)
+	{
+		OutError = UTF8_TO_TCHAR(Error.what());
+		return false;
+	}
+}
+#endif
 
 #if WITH_DEV_AUTOMATION_TESTS
 bool FTestUtilities::TestDistributedControlMessages(FString& OutError)

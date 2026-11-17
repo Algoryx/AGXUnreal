@@ -20,6 +20,8 @@ enum class EAGXDistributedEventType : uint8
 	SpawnRequestResult,
 	PossessionResult,
 	SimulationAuthorityResult,
+	SimulationAuthorityChanged,
+	StaleEntityState,
 	SimulationStart,
 	SimulationPause,
 	ShutdownRequested
@@ -37,6 +39,11 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	FTransform Transform;
 	/** World-space body transforms in AssemblySerializer order, not component discovery order. */
 	TArray<FTransform> BodyTransforms;
+	/** World-space velocities in Unreal units (cm/s and degrees/s). */
+	TArray<FVector> BodyVelocities;
+	TArray<FVector> BodyAngularVelocities;
+	bool bAssigned {false};
+	bool bWasSimulating {false};
 	FString Message;
 	bool bAccepted {false};
 };
@@ -52,7 +59,7 @@ public:
 	FDistributedApplicationBarrier& operator=(const FDistributedApplicationBarrier&) = delete;
 
 	bool Initialize(FSimulationBarrier& Simulation, const FString& ZenohEndpoint);
-	/** Must be called on the game thread; AGX attaches its simulation listener synchronously. */
+	/** Start asynchronous connection and world loading from the game thread. */
 	void StartAndLoad(int32 TimeoutSeconds = 60);
 	void Poll(TArray<FAGXDistributedEvent>& OutEvents);
 	bool IsReady() const;
@@ -72,6 +79,8 @@ public:
 
 	/** Copy of the native simulation-authority set; no native lock escapes this call. */
 	TArray<uint64> GetSimulatedEntities() const;
+	/** Register bodies for final-state serialization during authority release/transfer. */
+	void RegisterEntityBodies(uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies);
 	/** Publish complete body lists in AssemblySerializer order. Called on the game thread. */
 	void SendEntityUpdates(const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies);
 

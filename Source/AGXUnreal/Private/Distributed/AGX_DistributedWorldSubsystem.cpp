@@ -276,6 +276,24 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 		case EAGXDistributedEventType::EntityUpdate:
 			processIncomingEntityUpdates(Event);
 			break;
+		case EAGXDistributedEventType::SimulationAuthorityChanged:
+			if (!RemovedEntityIds.Contains(Event.EntityId))
+				ApplySimulationAuthority(Event.EntityId);
+			break;
+		case EAGXDistributedEventType::StaleEntityState:
+			if (!Client.GetSimulatedEntities().Contains(Event.EntityId))
+				if (const auto* Entry = EntityActors.Find(Event.EntityId))
+					if (AActor* Actor = Entry->Get())
+					{
+						TArray<UAGX_RigidBodyComponent*> Bodies;
+						Actor->GetComponents<UAGX_RigidBodyComponent>(Bodies, true);
+						for (auto* Body : Bodies)
+						{
+							Body->SetVelocity(FVector::ZeroVector);
+							Body->SetAngularVelocity(FVector::ZeroVector);
+						}
+					}
+			break;
 		case EAGXDistributedEventType::RemoveEntity:
 		{
 			RemovedEntityIds.Add(Event.EntityId);
@@ -457,8 +475,17 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	Bodies.Sort([](const UAGX_RigidBodyComponent& A, const UAGX_RigidBodyComponent& B)
 				{ return A.ImportName < B.ImportName; });
 	auto& Original = OriginalMotionControls.FindOrAdd(Event.EntityId);
+	TArray<FRigidBodyBarrier> Barriers;
 	for (UAGX_RigidBodyComponent* Body : Bodies)
+	{
 		Original.Add(Body->GetMotionControl());
+		// Spawn completion must also make final-state serialization possible before the first step.
+		FRigidBodyBarrier* NativeBody = Body->GetOrCreateNative();
+		if (NativeBody != nullptr && NativeBody->HasNative())
+			Barriers.Add(*NativeBody);
+	}
+	if (Barriers.Num() == Bodies.Num())
+		Client.RegisterEntityBodies(Event.EntityId, Barriers);
 	ApplySimulationAuthority(Event.EntityId);
 }
 
@@ -494,7 +521,8 @@ void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDist
 
 	TArray<UAGX_RigidBodyComponent*> Bodies;
 	Actor->GetComponents<UAGX_RigidBodyComponent>(Bodies, true);
-	if (Bodies.Num() != Event.BodyTransforms.Num())
+	if (Bodies.Num() != Event.BodyTransforms.Num() || Bodies.Num() != Event.BodyVelocities.Num() ||
+		Bodies.Num() != Event.BodyAngularVelocities.Num())
 	{
 		ReportError(TEXT("Serialized body count does not match the Blueprint rigid body count."));
 		return;
@@ -521,6 +549,9 @@ void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDist
 		// Do not set the scene component transform: its normal synchronization reads AGX later.
 		Body->SetPosition(Event.BodyTransforms[I].GetTranslation());
 		Body->SetRotation(Event.BodyTransforms[I].GetRotation());
+		Body->SetVelocity(Event.bAssigned ? Event.BodyVelocities[I] : FVector::ZeroVector);
+		Body->SetAngularVelocity(
+			Event.bAssigned ? Event.BodyAngularVelocities[I] : FVector::ZeroVector);
 		ReportedUpdateErrors.Remove(Event.EntityId);
 	}
 }
