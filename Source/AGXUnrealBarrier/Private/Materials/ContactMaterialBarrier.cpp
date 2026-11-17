@@ -420,16 +420,16 @@ double FContactMaterialBarrier::GetRestitution() const
 	return NativeRef->Native->getRestitution();
 }
 
-void FContactMaterialBarrier::SetSurfaceFrictionEnabled(bool bEnabled)
+void FContactMaterialBarrier::SetEnableSurfaceFriction(bool bEnabled)
 {
 	check(HasNative());
 	NativeRef->Native->setEnableSurfaceFriction(bEnabled);
 }
 
-bool FContactMaterialBarrier::GetSurfaceFrictionEnabled() const
+bool FContactMaterialBarrier::GetEnableSurfaceFriction() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceFrictionEnabled();
+	return NativeRef->Native->getEnableSurfaceFriction();
 }
 
 void FContactMaterialBarrier::SetFrictionCoefficient(double Coefficient)
@@ -479,50 +479,50 @@ double FContactMaterialBarrier::GetSecondaryFrictionCoefficient() const
 	return NativeRef->Native->getFrictionCoefficient(agx::ContactMaterial::SECONDARY_DIRECTION);
 }
 
-void FContactMaterialBarrier::SetSurfaceViscosity(double Viscosity)
+void FContactMaterialBarrier::SetFrictionCompliance(double Compliance)
 {
 	check(HasNative());
-	NativeRef->Native->setSurfaceViscosity(
-		Viscosity, agx::ContactMaterial::BOTH_PRIMARY_AND_SECONDARY);
+	NativeRef->Native->setFrictionCompliance(
+		Compliance, agx::ContactMaterial::BOTH_PRIMARY_AND_SECONDARY);
 }
 
-void FContactMaterialBarrier::SetPrimarySurfaceViscosity(double Viscosity)
+void FContactMaterialBarrier::SetPrimaryFrictionCompliance(double Compliance)
 {
 	check(HasNative());
-	NativeRef->Native->setSurfaceViscosity(Viscosity, agx::ContactMaterial::PRIMARY_DIRECTION);
+	NativeRef->Native->setFrictionCompliance(Compliance, agx::ContactMaterial::PRIMARY_DIRECTION);
 }
 
-void FContactMaterialBarrier::SetSecondarySurfaceViscosity(double Viscosity)
+void FContactMaterialBarrier::SetSecondaryFrictionCompliance(double Compliance)
 {
 	check(HasNative());
-	NativeRef->Native->setSurfaceViscosity(Viscosity, agx::ContactMaterial::SECONDARY_DIRECTION);
+	NativeRef->Native->setFrictionCompliance(Compliance, agx::ContactMaterial::SECONDARY_DIRECTION);
 }
 
-void FContactMaterialBarrier::SetSurfaceViscosity(
-	double Viscosity, bool bPrimaryDirection, bool bSecondaryDirection)
+void FContactMaterialBarrier::SetFrictionCompliance(
+	double Compliance, bool bPrimaryDirection, bool bSecondaryDirection)
 {
 	check(HasNative());
 	const agx::ContactMaterial::FrictionDirection NativeDirection =
 		ConvertDirectionToAgx(bPrimaryDirection, bSecondaryDirection);
-	NativeRef->Native->setSurfaceViscosity(Viscosity, NativeDirection);
+	NativeRef->Native->setFrictionCompliance(Compliance, NativeDirection);
 }
 
-double FContactMaterialBarrier::GetSurfaceViscosity() const
+double FContactMaterialBarrier::GetFrictionCompliance() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceViscosity();
+	return NativeRef->Native->getFrictionCompliance();
 }
 
-double FContactMaterialBarrier::GetPrimarySurfaceViscosity() const
+double FContactMaterialBarrier::GetPrimaryFrictionCompliance() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceViscosity(agx::ContactMaterial::PRIMARY_DIRECTION);
+	return NativeRef->Native->getFrictionCompliance(agx::ContactMaterial::PRIMARY_DIRECTION);
 }
 
-double FContactMaterialBarrier::GetSecondarySurfaceViscosity() const
+double FContactMaterialBarrier::GetSecondaryFrictionCompliance() const
 {
 	check(HasNative());
-	return NativeRef->Native->getSurfaceViscosity(agx::ContactMaterial::SECONDARY_DIRECTION);
+	return NativeRef->Native->getFrictionCompliance(agx::ContactMaterial::SECONDARY_DIRECTION);
 }
 
 bool FContactMaterialBarrier::SetPrimaryDirection(const FVector& Direction)
@@ -760,16 +760,16 @@ double FContactMaterialBarrier::GetYoungsModulus() const
 	return NativeRef->Native->getYoungsModulus();
 }
 
-void FContactMaterialBarrier::SetSpookDamping(double SpookDamping)
+void FContactMaterialBarrier::SetAttenuation(double Attenuation)
 {
 	check(HasNative());
-	NativeRef->Native->setDamping(SpookDamping);
+	NativeRef->Native->setAttenuation(Attenuation);
 }
 
-double FContactMaterialBarrier::GetSpookDamping() const
+double FContactMaterialBarrier::GetAttenuation() const
 {
 	check(HasNative());
-	return NativeRef->Native->getDamping();
+	return NativeRef->Native->getAttenuation();
 }
 
 void FContactMaterialBarrier::SetMinElasticRestLength(double MinElasticRestLength)

@@ -21,14 +21,14 @@ struct AGXUNREALBARRIER_API FCablePropertiesBarrier
 	FCablePropertiesBarrier();
 	FCablePropertiesBarrier(std::shared_ptr<FCablePropertiesRef> Native);
 
-	void SetSpookDampingBend(double SpookDamping);
-	double GetSpookDampingBend() const;
+	void SetAttenuationBend(double Attenuation);
+	double GetAttenuationBend() const;
 
-	void SetSpookDampingTwist(double SpookDamping);
-	double GetSpookDampingTwist() const;
+	void SetAttenuationTwist(double Attenuation);
+	double GetAttenuationTwist() const;
 
-	void SetSpookDampingStretch(double SpookDamping);
-	double GetSpookDampingStretch() const;
+	void SetAttenuationStretch(double Attenuation);
+	double GetAttenuationStretch() const;
 
 	void SetPoissonsRatioBend(double PoissonsRatio);
 	double GetPoissonsRatioBend() const;

@@ -41,8 +41,8 @@ public:
 	void SetBulkViscosity(double Viscosity);
 	double GetBulkViscosity() const;
 
-	void SetSpookDamping(double SpookDamping);
-	double GetSpookDamping() const;
+	void SetAttenuation(double Attenuation);
+	double GetAttenuation() const;
 
 	void SetMinMaxElasticRestLength(double MinElasticRestLength, double MaxElasticRestLength);
 	double GetMinElasticRestLength() const;
@@ -56,8 +56,8 @@ public:
 	void SetRoughness(double Roughness);
 	double GetRoughness() const;
 
-	void SetSurfaceViscosity(double Viscosity);
-	double GetSurfaceViscosity() const;
+	void SetFrictionCompliance(double Compliance);
+	double GetFrictionCompliance() const;
 
 	void SetAdhesion(double AdhesiveForce, double AdhesiveOverlap);
 	double GetAdhesiveForce() const;
@@ -71,11 +71,11 @@ public:
 	double GetYoungsModulusBend() const;
 	void SetYoungsModulusBend(double YoungsModulus) const;
 
-	double GetSpookDampingStretch() const;
-	void SetSpookDampingStretch(double Damping) const;
+	double GetAttenuationStretch() const;
+	void SetAttenuationStretch(double Attenuation) const;
 
-	double GetSpookDampingBend() const;
-	void SetSpookDampingBend(double Damping) const;
+	double GetAttenuationBend() const;
+	void SetAttenuationBend(double Attenuation) const;
 
 	FGuid GetGuid() const;
 

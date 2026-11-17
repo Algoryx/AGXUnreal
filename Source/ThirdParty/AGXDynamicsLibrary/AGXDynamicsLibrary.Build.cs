@@ -247,12 +247,12 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("agx-nt-ros2", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastcdr*", LibSource.Dependencies);
 		RuntimeLibFiles.Add("fastrtps*", LibSource.Dependencies);
+		RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 
 		// OpenPLX runtime library files:
 		RuntimeLibFiles.Add("agxOpenPLX", LibSource.AGX);
 		RuntimeLibFiles.Add("agxOpenPLXBundle", LibSource.AGX);
 		RuntimeLibFiles.Add("click", LibSource.Dependencies);
-		RuntimeLibFiles.Add("fmt", LibSource.Dependencies);
 		RuntimeLibFiles.Add("hash-library", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-core", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-kernel", LibSource.Dependencies);
@@ -274,11 +274,9 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
-		RuntimeLibFiles.Add("spdlog", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
-			RuntimeLibFiles.Add("ddsc", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
 
@@ -294,6 +292,9 @@ public class AGXDynamicsLibrary : ModuleRules
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
 			RuntimeLibFiles.Add("jpeg", LibSource.Dependencies);
 			RuntimeLibFiles.Add("OIS", LibSource.Dependencies);
+			RuntimeLibFiles.Add("tbb12", LibSource.Dependencies);
+			RuntimeLibFiles.Add("openplx-usdplugin", LibSource.Dependencies);
+			RuntimeLibFiles.Add("usd_ms", LibSource.Dependencies);
 		}
 
 		// List of link-time libraries from AGX Dynamics and its dependencies
@@ -926,8 +927,11 @@ public class AGXDynamicsLibrary : ModuleRules
 		{
 			string Source = InstalledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
 			string Dest = BundledAGXResources.RuntimeLibraryPath(string.Empty, LibSource.MaterialLibrary, true);
+			// Local AGX builds include internal terrain materials that are not part of the distribution.
+			List<string> FilesToIgnore = new List<string>
+				{ Path.Combine("TerrainMaterials", "internal") + Path.DirectorySeparatorChar };
 
-			if (!CopyDirectoryRecursively(Source, Dest))
+			if (!CopyDirectoryRecursively(Source, Dest, FilesToIgnore))
 			{
 				CleanBundledAGXDynamicsResources();
 				return;

@@ -65,6 +65,12 @@ void UAGX_BallConstraintComponent::SetNativeAddress(uint64 NativeAddress)
 
 //~ Begin UObject interface.
 
+void UAGX_BallConstraintComponent::Serialize(FArchive& Archive)
+{
+	Super::Serialize(Archive);
+	TwistRangeController.Serialize(Archive);
+}
+
 #if WITH_EDITOR
 
 void UAGX_BallConstraintComponent::PostInitProperties()

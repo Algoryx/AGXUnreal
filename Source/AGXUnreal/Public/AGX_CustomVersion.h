@@ -84,6 +84,9 @@ struct AGXUNREAL_API FAGX_CustomVersion
 		// implementation.
 		TrackReducedOrderTrackImplementation,
 
+		// Update to attenuation and friction compliance APIs throughout AGXUnreal.
+		DampingToAttenuation,
+
 		// <----- New versions can be added above this line. ----->
 		VersionPlusOne,
 
