@@ -313,6 +313,12 @@ namespace
 					registerControlCallback(
 						[this](std::string Key, std::string Action)
 						{
+							ON_SCOPE_EXIT
+							{
+								agxUtil::freeContainerMemory(Key);
+								agxUtil::freeContainerMemory(Action);
+							};
+
 							if (Key == "control/simulation")
 							{
 								if (Action == "START")
