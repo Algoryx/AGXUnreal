@@ -432,11 +432,22 @@ namespace
 				return false;
 			try
 			{
+				// Finish encoding with Unreal's allocator before making the native-owned copy.
+				std::vector<uint8_t> EncodedData;
+				if (!EncodeBodyTransforms(*Bodies, EncodedData))
+					return false;
+
 				agxDistributed::EntityData Update;
+				ON_SCOPE_EXIT
+				{
+					// Release any native buffer not consumed by updateEntity, including on
+					// exceptions.
+					agxUtil::freeContainerMemory(Update.getAssetData());
+				};
 				Update.getTransform() = agx::AffineMatrix4x4();
 				Update.getFlags() = bAssigned ? agxDistributed::EntityData::ASSIGNED_ENTITY : 0;
-				if (!EncodeBodyTransforms(*Bodies, Update.getAssetData()))
-					return false;
+				// Move the AGX-allocated copy into Update; do not grow its buffer in Unreal.
+				Update.getAssetData() = agxUtil::copyContainerMemory(EncodedData);
 				return updateEntity(Id, std::move(Update));
 			}
 			catch (const std::exception& Error)
