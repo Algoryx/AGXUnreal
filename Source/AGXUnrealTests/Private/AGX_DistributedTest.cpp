@@ -43,28 +43,37 @@ bool FDistributedBodyTransformDecodeTest::RunTest(const FString& Parameters)
 {
 	// Explicit wire values rather than a round-trip through a matching serializer.
 	TArray<uint8> Data;
-	Data.Init(0, 8 + 120);
-	Data[7] = 1;
-	auto SetValue = [&Data](int32 Row, int32 Column, uint64 Bits)
+	Data.Init(0, 32 + 2 * 38);
+	Data[7] = 2;
+	auto SetDouble = [&Data](int32 Offset, uint64 Bits)
 	{
-		const int32 Offset = 8 + (Row * 3 + Column) * 8;
 		for (int32 Byte = 0; Byte < 8; ++Byte)
-			Data[Offset + Byte] = static_cast<uint8_t>(Bits >> (56 - Byte * 8));
+			Data[Offset + Byte] = static_cast<uint8>(Bits >> (56 - Byte * 8));
 	};
-	// AGX row-vector matrix: 90 degrees about Z and translation (1, 2, 3) meters.
-	SetValue(0, 1, 0x3ff0000000000000ULL); // 1
-	SetValue(1, 0, 0xbff0000000000000ULL); // -1
-	SetValue(2, 2, 0x3ff0000000000000ULL);
-	SetValue(3, 0, 0x3ff0000000000000ULL);
-	SetValue(3, 1, 0x4000000000000000ULL); // 2
-	SetValue(3, 2, 0x4008000000000000ULL); // 3
+	auto SetInt16 = [&Data](int32 Offset, uint16 Bits)
+	{
+		Data[Offset] = static_cast<uint8>(Bits >> 8);
+		Data[Offset + 1] = static_cast<uint8>(Bits);
+	};
+	// Reference position (1, 2, 3) metres; first body has zero deltas and a
+	// quantized 90-degree Z quaternion (0, 0, 23170, 23170) / 32767.
+	SetDouble(8, 0x3ff0000000000000ULL);
+	SetDouble(16, 0x4000000000000000ULL);
+	SetDouble(24, 0x4008000000000000ULL);
+	SetInt16(42, 0x5a82);
+	SetInt16(44, 0x5a82);
+	// Second body: deltas (-1, 0.5, 32.767) metres and identity rotation.
+	SetInt16(70, 0xfc18);
+	SetInt16(72, 0x01f4);
+	SetInt16(74, 0x7fff);
+	SetInt16(82, 0x7fff);
 
 	TArray<FTransform> Transforms;
 	TestTrue(
 		TEXT("Valid example wire payload"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
-	TestEqual(TEXT("Body count"), Transforms.Num(), 1);
-	if (Transforms.Num() == 1)
+	TestEqual(TEXT("Body count"), Transforms.Num(), 2);
+	if (Transforms.Num() == 2)
 	{
 		TestTrue(
 			TEXT("Meters to centimeters and Y handedness"),
@@ -74,44 +83,98 @@ bool FDistributedBodyTransformDecodeTest::RunTest(const FString& Parameters)
 											 .GetRotation()
 											 .RotateVector(FVector::ForwardVector)
 											 .Equals(FVector(0, -1, 0), 1.e-6));
+		TestTrue(
+			TEXT("Signed millimetre deltas"),
+			Transforms[1].GetTranslation().Equals(FVector(0, -250, 3576.7), 1.e-6));
 	}
-	// Current protocol must reject the old 16-double, transform-only body representation.
+	const TArray<uint8> ValidData = Data;
+	// Full-precision fallback on the second body: absolute position (64, 2, 3) metres.
+	SetInt16(70, 0x8000);
+	SetInt16(72, 0x8000);
+	SetInt16(74, 0x8000);
+	Data.InsertZeroed(76, 24);
+	SetDouble(76, 0x4050000000000000ULL);
+	SetDouble(84, 0x4000000000000000ULL);
+	SetDouble(92, 0x4008000000000000ULL);
+	TestTrue(
+		TEXT("Escaped absolute position accepted"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	if (Transforms.Num() == 2)
+		TestTrue(
+			TEXT("Escaped position is absolute"),
+			Transforms[1].GetTranslation().Equals(FVector(6400, -200, 300)));
+	const TArray<uint8> EscapedData = Data;
+	SetDouble(76, 0x7ff0000000000000ULL);
+	TestFalse(
+		TEXT("Non-finite escaped position rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	for (int32 Size = 0; Size < EscapedData.Num(); ++Size)
+	{
+		Data = EscapedData;
+		Data.SetNum(Size);
+		TestFalse(
+			FString::Printf(TEXT("Truncated escaped payload rejected at byte %d"), Size),
+			FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	}
+	// Reject both previous matrix layouts.
 	TArray<uint8> OldData;
+	OldData.Init(0, 8 + 120);
+	OldData[7] = 1;
+	TestFalse(
+		TEXT("Old 12-double protocol rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(OldData, Transforms));
 	OldData.Init(0, 8 + 128);
 	OldData[7] = 1;
 	TestFalse(
-		TEXT("Old protocol rejected"),
+		TEXT("Old 16-double protocol rejected"),
 		FTestUtilities::DecodeDistributedBodyTransforms(OldData, Transforms));
 	// A float infinity in the linear velocity must also be rejected.
-	Data[8 + 96] = 0x7f;
-	Data[8 + 97] = 0x80;
+	Data = ValidData;
+	Data[46] = 0x7f;
+	Data[47] = 0x80;
 	TestFalse(
 		TEXT("Non-finite velocity rejected"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
-	Data[8 + 96] = 0;
-	Data[8 + 97] = 0;
-	Transforms.Reset();
-	SetValue(3, 0, 0x7ff0000000000000ULL); // infinity
+	Data = ValidData;
+	SetDouble(8, 0x7ff0000000000000ULL);
 	TestFalse(
-		TEXT("Non-finite matrix rejected"),
+		TEXT("Non-finite reference position rejected"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
-	Transforms.Reset();
-	SetValue(3, 0, 0x3ff0000000000000ULL);
-	Data[7] = 2;
+	Data = ValidData;
+	SetInt16(32, 0x8000);
+	TestFalse(
+		TEXT("Partial position escape rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	Data = ValidData;
+	SetInt16(42, 0);
+	SetInt16(44, 0);
+	TestFalse(
+		TEXT("Zero quaternion rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	Data = ValidData;
+	Data[7] = 3;
 	TestFalse(
 		TEXT("Count mismatch rejected"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
-	Transforms.Reset();
-	Data[7] = 1;
+	Data = ValidData;
 	Data.RemoveAt(Data.Num() - 1);
 	TestFalse(
-		TEXT("Truncated matrix rejected"),
+		TEXT("Truncated body rejected"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
-	Transforms.Reset();
-	Data.Init(0xff, 8);
+	Data = ValidData;
+	Data.Add(0);
+	TestFalse(
+		TEXT("Trailing bytes rejected"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	Data.Init(0xff, 32);
 	TestFalse(
 		TEXT("Oversized count rejected without allocation"),
 		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	Data.Init(0, 32);
+	TestTrue(
+		TEXT("Empty assembly accepted"),
+		FTestUtilities::DecodeDistributedBodyTransforms(Data, Transforms));
+	TestEqual(TEXT("Empty assembly has no transforms"), Transforms.Num(), 0);
 	Transforms.Reset();
 	Data.Reset();
 	TestFalse(

@@ -11,11 +11,15 @@
 
 // Unreal Engine includes.
 #include "HAL/PlatformProcess.h"
+#include "Misc/ScopeExit.h"
 
 // Standard library includes.
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <future>
+#include <limits>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -23,9 +27,13 @@
 
 // AGX Dynamics includes.
 #include <BeginAGXIncludes.h>
+#include <agx/AffineMatrix4x4.h>
+#include <agx/Quat.h>
 #include <agx/RigidBody.h>
+#include <agx/Vec3.h>
 #include <agxDistributed/Client.h>
 #include <agxSDK/Simulation.h>
+#include <agxUtil/agxUtil.h>
 #if WITH_DEV_AUTOMATION_TESTS
 #include <agxDistributed/WorldManager.h>
 #endif
@@ -33,15 +41,22 @@
 
 namespace
 {
-	// Matches AssemblySerializer: uint64 count, then 12 doubles (4x3 matrix),
-	// and six floats (linear and angular velocity) per body, all big-endian.
+	constexpr size_t BodyStateHeaderSize = 8 + 3 * 8;
+	constexpr size_t BodyStateSize = 3 * 2 + 4 * 2 + 6 * 4;
+	constexpr double PositionScale = 1000.0;
+	constexpr double RotationScale = 32767.0;
+	constexpr double MaxPositionDelta = 32.767;
+	constexpr uint16 PositionEscape = 0x8000;
+
+	// Matches examples/agxDistributed/AssemblySerializer.h: uint64 count, three double
+	// reference coordinates, then per body: three int16 millimetre deltas, four int16
+	// quaternion components and six float velocities, all big-endian. Three 0x8000
+	// deltas instead precede three double absolute coordinates for distant bodies.
 	bool DecodeBodyTransforms(
 		const std::vector<uint8_t>& Data, TArray<FTransform>& OutTransforms,
 		TArray<FVector>* OutVelocities = nullptr, TArray<FVector>* OutAngularVelocities = nullptr)
 	{
-		constexpr size_t HeaderSize = 8;
-		constexpr size_t MatrixSize = 12 * 8 + 6 * 4;
-		if (Data.size() < HeaderSize)
+		if (Data.size() < BodyStateHeaderSize)
 			return false;
 
 		size_t Offset = 0;
@@ -52,34 +67,74 @@ namespace
 				Value = (Value << 8) | Data[Offset++];
 			return Value;
 		};
+		auto ReadDouble = [&ReadUint64]()
+		{
+			const uint64 Bits = ReadUint64();
+			double Value;
+			static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
+			std::memcpy(&Value, &Bits, sizeof(Value));
+			return Value;
+		};
+		auto ReadUint16 = [&Data, &Offset]()
+		{
+			const uint16 Value = static_cast<uint16>(Data[Offset]) << 8 | Data[Offset + 1];
+			Offset += 2;
+			return Value;
+		};
+		auto SignedDelta = [](uint16 Value)
+		{
+			return Value <= MAX_int16 ? static_cast<int32>(Value)
+									  : static_cast<int32>(Value) - 65536;
+		};
 
 		const uint64 Count = ReadUint64();
-		// Validate before allocation or reading any matrix, without overflowing Count * MatrixSize.
-		if ((Data.size() - HeaderSize) % MatrixSize != 0 ||
-			Count != (Data.size() - HeaderSize) / MatrixSize || Count > MAX_int32)
+		// Bound allocation by the minimum record size without overflowing Count * BodyStateSize.
+		if (Count > MAX_int32 || Count > (Data.size() - BodyStateHeaderSize) / BodyStateSize)
+			return false;
+
+		agx::Vec3 ReferencePosition;
+		for (int32 Axis = 0; Axis < 3; ++Axis)
+			ReferencePosition[Axis] = ReadDouble();
+		if (!ReferencePosition.isFinite())
 			return false;
 
 		OutTransforms.Reserve(static_cast<int32>(Count));
 		for (uint64 Body = 0; Body < Count; ++Body)
 		{
-			agx::AffineMatrix4x4 Matrix;
-			for (int32 RowIndex = 0; RowIndex < 4; ++RowIndex)
+			if (Data.size() - Offset < BodyStateSize)
+				return false;
+			uint16 Delta[3];
+			for (int32 Axis = 0; Axis < 3; ++Axis)
+				Delta[Axis] = ReadUint16();
+			agx::Vec3 Position;
+			if (Delta[0] == PositionEscape && Delta[1] == PositionEscape &&
+				Delta[2] == PositionEscape)
 			{
-				agx::Vec4 Row;
-				for (int32 Column = 0; Column < 3; ++Column)
-				{
-					const uint64 Bits = ReadUint64();
-					double Value;
-					static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
-					std::memcpy(&Value, &Bits, sizeof(Value));
-					if (!FMath::IsFinite(Value))
-						return false;
-					Row[Column] = Value;
-				}
-				Row[3] = RowIndex == 3 ? 1.0 : 0.0;
-				Matrix.setRow(RowIndex, Row);
+				if (Data.size() - Offset < BodyStateSize - 3 * 2 + 3 * 8)
+					return false;
+				for (int32 Axis = 0; Axis < 3; ++Axis)
+					Position[Axis] = ReadDouble();
 			}
-			const FTransform Transform = Convert(Matrix);
+			else
+			{
+				for (int32 Axis = 0; Axis < 3; ++Axis)
+				{
+					if (Delta[Axis] == PositionEscape)
+						return false;
+					Position[Axis] =
+						ReferencePosition[Axis] + SignedDelta(Delta[Axis]) / PositionScale;
+				}
+			}
+			if (!Position.isFinite())
+				return false;
+			agx::Quat Rotation;
+			for (int32 Component = 0; Component < 4; ++Component)
+				Rotation[Component] = SignedDelta(ReadUint16()) / RotationScale;
+			const double RotationLength = Rotation.normalize();
+			if (!FMath::IsFinite(RotationLength) ||
+				RotationLength <= std::numeric_limits<double>::epsilon())
+				return false;
+			const FTransform Transform = Convert(agx::AffineMatrix4x4(Rotation, Position));
 			if (Transform.ContainsNaN() || !Transform.GetRotation().IsNormalized())
 				return false;
 			OutTransforms.Add(Transform);
@@ -106,11 +161,11 @@ namespace
 			if (OutAngularVelocities != nullptr)
 				OutAngularVelocities->Add(ConvertAngularVelocity(AngularVelocity));
 		}
-		return true;
+		return Offset == Data.size();
 	}
 
-	// Inverse of DecodeBodyTransforms. Read native matrices directly to preserve AGX units
-	// and handedness, without a round trip through Unreal transforms.
+	// Inverse of DecodeBodyTransforms. Callers supply bodies in AssemblySerializer's name order.
+	// Read native state directly to preserve AGX units and handedness.
 	bool EncodeBodyTransforms(
 		const TArray<FRigidBodyBarrier>& Bodies, std::vector<uint8_t>& OutData)
 	{
@@ -120,28 +175,67 @@ namespace
 				return false;
 		}
 		OutData.clear();
-		OutData.reserve(8 + static_cast<size_t>(Bodies.Num()) * (12 * 8 + 6 * 4));
+		OutData.reserve(BodyStateHeaderSize + static_cast<size_t>(Bodies.Num()) * BodyStateSize);
+		auto WriteUint16 = [&OutData](uint16 Value)
+		{
+			OutData.push_back(static_cast<uint8_t>(Value >> 8));
+			OutData.push_back(static_cast<uint8_t>(Value & 0xff));
+		};
 		auto WriteUint64 = [&OutData](uint64 Value)
 		{
 			for (int32 Shift = 56; Shift >= 0; Shift -= 8)
 				OutData.push_back(static_cast<uint8_t>((Value >> Shift) & 0xff));
 		};
+		auto WritePosition = [&WriteUint64](const agx::Vec3& Position)
+		{
+			for (int32 Axis = 0; Axis < 3; ++Axis)
+			{
+				const double Value = Position[Axis];
+				uint64 Bits;
+				static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
+				std::memcpy(&Bits, &Value, sizeof(Bits));
+				WriteUint64(Bits);
+			}
+		};
 		WriteUint64(static_cast<uint64>(Bodies.Num()));
+		const agx::Vec3 ReferencePosition =
+			Bodies.IsEmpty() ? agx::Vec3() : Bodies[0].GetNative()->Native->getPosition();
+		if (!ReferencePosition.isFinite())
+			return false;
+		WritePosition(ReferencePosition);
 		for (const FRigidBodyBarrier& Body : Bodies)
 		{
-			const agx::AffineMatrix4x4 Matrix = Body.GetNative()->Native->getTransform();
-			for (int32 Row = 0; Row < 4; ++Row)
+			const agx::Vec3 Position = Body.GetNative()->Native->getPosition();
+			if (!Position.isFinite())
+				return false;
+			const agx::Vec3 Delta = Position - ReferencePosition;
+			bool bFitsInInt16 = true;
+			for (int32 Axis = 0; Axis < 3; ++Axis)
+				bFitsInInt16 &= FMath::IsFinite(Delta[Axis]) && Delta[Axis] >= -MaxPositionDelta &&
+								Delta[Axis] <= MaxPositionDelta;
+			if (bFitsInInt16)
 			{
-				for (int32 Column = 0; Column < 3; ++Column)
+				for (int32 Axis = 0; Axis < 3; ++Axis)
 				{
-					const double Value = Matrix.getRow(Row)[Column];
-					if (!FMath::IsFinite(Value))
-						return false;
-					uint64 Bits;
-					static_assert(sizeof(Value) == sizeof(Bits), "Expected 64-bit doubles");
-					std::memcpy(&Bits, &Value, sizeof(Bits));
-					WriteUint64(Bits);
+					const int16 Millimetres = static_cast<int16>(std::lround(Delta[Axis] * PositionScale));
+					WriteUint16(static_cast<uint16>(Millimetres));
 				}
+			}
+			else
+			{
+				for (int32 Axis = 0; Axis < 3; ++Axis)
+					WriteUint16(PositionEscape);
+				WritePosition(Position);
+			}
+			const agx::Quat Rotation = Body.GetNative()->Native->getRotation();
+			for (int32 Component = 0; Component < 4; ++Component)
+			{
+				if (!FMath::IsFinite(Rotation[Component]))
+					return false;
+				const double Value =
+					std::clamp(static_cast<double>(Rotation[Component]), -1.0, 1.0);
+				const int16 Quantized = static_cast<int16>(std::lround(Value * RotationScale));
+				WriteUint16(static_cast<uint16>(Quantized));
 			}
 			auto WriteVelocity = [&OutData](const agx::Vec3& Value)
 			{
@@ -966,12 +1060,38 @@ bool FTestUtilities::TestDistributedEntityState(FString& OutError)
 		// Independent wire assertion: AGX velocity (4, 5, 6) m/s as big-endian floats.
 		std::vector<uint8_t> Wire;
 		Require(
-			EncodeBodyTransforms({BodyA}, Wire) && Wire.size() == 128 && Wire[7] == 1,
+			EncodeBodyTransforms({BodyA}, Wire) && Wire.size() == 70 && Wire[7] == 1,
 			"Encoded body layout differs");
+		const uint8_t ExpectedPosition[] = {0x3f, 0xf0, 0, 0, 0, 0, 0, 0, // 1
+											0x40, 0x00, 0, 0, 0, 0, 0, 0, // 2
+											0x40, 0x08, 0, 0, 0, 0, 0, 0}; // 3
+		Require(
+			std::memcmp(Wire.data() + 8, ExpectedPosition, sizeof(ExpectedPosition)) == 0,
+			"Encoded reference position differs from AssemblySerializer");
+		const uint8_t ExpectedPose[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x7f, 0xff};
+		Require(
+			std::memcmp(Wire.data() + 32, ExpectedPose, sizeof(ExpectedPose)) == 0,
+			"Encoded position deltas or quaternion differ from AssemblySerializer");
 		const uint8_t ExpectedVelocity[] = {0x40, 0x80, 0, 0, 0x40, 0xa0, 0, 0, 0x40, 0xc0, 0, 0};
 		Require(
-			std::memcmp(Wire.data() + 8 + 96, ExpectedVelocity, sizeof(ExpectedVelocity)) == 0,
+			std::memcmp(Wire.data() + 46, ExpectedVelocity, sizeof(ExpectedVelocity)) == 0,
 			"Encoded velocity byte order differs from AssemblySerializer");
+		BodyB.SetPosition(FVector(0, -250, 300));
+		Require(
+			EncodeBodyTransforms({BodyA, BodyB}, Wire) && Wire.size() == 108,
+			"Encoded two-body layout differs");
+		const uint8_t ExpectedDelta[] = {0xfc, 0x18, 0x01, 0xf4, 0, 0};
+		Require(
+			std::memcmp(Wire.data() + 70, ExpectedDelta, sizeof(ExpectedDelta)) == 0,
+			"Encoded signed millimetre deltas differ from AssemblySerializer");
+		BodyB.SetPosition(FVector(6400, -200, 300));
+		Require(
+			EncodeBodyTransforms({BodyA, BodyB}, Wire) && Wire.size() == 132,
+			"Encoded escaped position layout differs");
+		const uint8_t ExpectedEscape[] = {0x80, 0, 0x80, 0, 0x80, 0, 0x40, 0x50, 0, 0, 0, 0, 0, 0};
+		Require(
+			std::memcmp(Wire.data() + 70, ExpectedEscape, sizeof(ExpectedEscape)) == 0,
+			"Encoded absolute position differs from AssemblySerializer");
 		A.RegisterEntityBodies(Id, {BodyA});
 		B.RegisterEntityBodies(Id, {BodyB});
 		Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
