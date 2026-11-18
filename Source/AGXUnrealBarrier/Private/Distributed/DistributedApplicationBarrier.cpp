@@ -22,6 +22,7 @@
 #include <limits>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -826,11 +827,23 @@ bool FDistributedApplicationBarrier::EnsureEntity(
 		return false;
 	try
 	{
+		// AGX destroys these by-value parameters, so their buffers must be allocated there.
+		std::string ObjectKeyAGX = agxUtil::copyContainerMemory(Convert(ObjectKey));
+		ON_SCOPE_EXIT
+		{
+			// Also release any buffers left here if an exception prevents ownership transfer.
+			agxUtil::freeContainerMemory(ObjectKeyAGX);
+		};
+		std::string InterestIdAGX = agxUtil::copyContainerMemory(Convert(RequestId.ToString()));
+		ON_SCOPE_EXIT
+		{
+			agxUtil::freeContainerMemory(InterestIdAGX);
+		};
 		Impl->Spawns.push_back(
 			{FString(), RequestId,
 			 Impl->Native->ensureEntity(
-				 agxDistributed::AssetId(AssetId), Convert(Transform), TCHAR_TO_UTF8(*ObjectKey),
-				 TCHAR_TO_UTF8(*RequestId.ToString()))});
+				 agxDistributed::AssetId(AssetId), Convert(Transform), std::move(ObjectKeyAGX),
+				 std::move(InterestIdAGX))});
 		return true;
 	}
 	catch (const std::exception& Error)
@@ -847,9 +860,20 @@ bool FDistributedApplicationBarrier::ReleaseInterest(
 		return false;
 	try
 	{
+		// Match EnsureEntity's allocator ownership when releasing the same interest.
+		std::string ObjectKeyAGX = agxUtil::copyContainerMemory(Convert(ObjectKey));
+		ON_SCOPE_EXIT
+		{
+			agxUtil::freeContainerMemory(ObjectKeyAGX);
+		};
+		std::string InterestIdAGX = agxUtil::copyContainerMemory(Convert(RequestId.ToString()));
+		ON_SCOPE_EXIT
+		{
+			agxUtil::freeContainerMemory(InterestIdAGX);
+		};
 		Impl->Releases.push_back(
 			{RequestId, Impl->Native->releaseEntityInterest(
-							TCHAR_TO_UTF8(*ObjectKey), TCHAR_TO_UTF8(*RequestId.ToString()))});
+							std::move(ObjectKeyAGX), std::move(InterestIdAGX))});
 		return true;
 	}
 	catch (const std::exception& Error)
