@@ -274,14 +274,12 @@ public class AGXDynamicsLibrary : ModuleRules
 		RuntimeLibFiles.Add("openplx-urdfplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("openplx-visualimportplugin", LibSource.Dependencies);
 		RuntimeLibFiles.Add("orocos*", LibSource.Dependencies);
+		RuntimeLibFiles.Add("zenohc", LibSource.Dependencies);
 		if (Target.Platform == UnrealTargetPlatform.Linux) {
 			// Additional libraries in the AGX Dynamics bundle on Linux.
 			RuntimeLibFiles.Add("libcudart.so.13", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libzmq.so.5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("protobuf", LibSource.Dependencies);
-
-			// Unsure how Zenoh should be handled on non-Linux. We might make this global later.
-			RuntimeLibFiles.Add("zenohc", LibSource.Dependencies);
 		}
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
@@ -302,12 +300,6 @@ public class AGXDynamicsLibrary : ModuleRules
 		// PublicAdditionalLibraries list. See
 		// https://docs.unrealengine.com/en-US/ProductionPipelines/BuildTools/UnrealBuildTool/ModuleFiles/index.html
 		Dictionary<string, LibSource> LinkLibFiles = new Dictionary<string, LibSource>();
-		if (Target.Platform == UnrealTargetPlatform.Linux && Target.bBuildDeveloperTools)
-		{
-			// Development transport tests instantiate the header-only Zenoh C++ wrapper,
-			// which calls Zenoh C directly rather than only through agxPhysics.
-			LinkLibFiles.Add("zenohc", LibSource.Dependencies);
-		}
 		LinkLibFiles.Add("agxPhysics", LibSource.AGX);
 		LinkLibFiles.Add("agxCore", LibSource.AGX);
 		LinkLibFiles.Add("agxHydraulics", LibSource.AGX);
@@ -319,6 +311,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		LinkLibFiles.Add("agxVehicle", LibSource.AGX);
 		LinkLibFiles.Add("agxROS2", LibSource.AGX);
 		LinkLibFiles.Add("agx-nt-ros2", LibSource.Dependencies);
+		LinkLibFiles.Add("zenohc", LibSource.Dependencies);
 
 		// OpenPLX libs, located in the same dir as AGX libs.
 		LinkLibFiles.Add("agxOpenPLX", LibSource.AGX);
