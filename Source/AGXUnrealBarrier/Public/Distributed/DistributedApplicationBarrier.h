@@ -24,7 +24,8 @@ enum class EAGXDistributedEventType : uint8
 	StaleEntityState,
 	SimulationStart,
 	SimulationPause,
-	ShutdownRequested
+	ShutdownRequested,
+	ControlSignal
 };
 
 /** A copy of an AGX Distributed event that is safe to pass to the Unreal-facing module. */
@@ -46,6 +47,8 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	bool bWasSimulating {false};
 	FString Message;
 	bool bAccepted {false};
+	FString SignalName;
+	double SignalValue {0.0};
 };
 
 /** Owns the native AGX Distributed client without exposing AGX headers to AGXUnreal. */
@@ -73,7 +76,9 @@ public:
 		const FString& ObjectKey);
 	bool ReleaseInterest(const FGuid& RequestId, const FString& ObjectKey);
 	bool RequestSpawn(const FString& AssetPath, const FTransform& Transform, bool bPossess);
-	bool RequestPossession(uint64 EntityId, bool bPossess);
+	bool RequestPossession(uint64 EntityId, bool bPossess, const FGuid& RequestId = FGuid());
+	/** True if this client currently possesses the entity. */
+	bool IsPossessed(uint64 EntityId) const;
 	bool RequestSimulationAuthority(uint64 EntityId, bool bSimulate);
 	bool RouteSignal(uint64 EntityId, const FString& SignalName, double Value);
 

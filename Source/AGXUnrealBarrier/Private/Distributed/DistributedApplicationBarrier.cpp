@@ -412,15 +412,13 @@ namespace
 
 		void applySignal(agxDistributed::EntityId EntityId, const std::string& Name, double Value)
 		{
-			// Q: Should signals be queued for the Unreal OpenPLX handler or applied through
-			// a native handler during this AGX simulation callback?
-			(void) EntityId;
-			(void) Name;
-			(void) Value;
-			UE_LOG(
-				LogAGX, Warning,
-				TEXT("Unreal Application Layer received signal %s for entity %llu: %f"),
-				UTF8_TO_TCHAR(Name.c_str()), EntityId.getId(), Value);
+			// Network callbacks must not access UObjects. Local signals use the same delivery path.
+			FAGXDistributedEvent Event;
+			Event.Type = EAGXDistributedEventType::ControlSignal;
+			Event.EntityId = EntityId.getId();
+			Event.SignalName = UTF8_TO_TCHAR(Name.c_str());
+			Event.SignalValue = Value;
+			Events->Push(MoveTemp(Event));
 		}
 
 	protected:
@@ -500,7 +498,6 @@ namespace
 		void onEntityControlSignal(
 			agxDistributed::EntityId Id, const std::string& Name, double Value) override
 		{
-			// Signal application is not implemented yet; log without accessing UObjects.
 			applySignal(Id, Name, Value);
 		}
 		void onRemoveEntity(agxDistributed::EntityId Id) override
@@ -621,6 +618,7 @@ struct FDistributedApplicationBarrier::FImpl
 		uint64 EntityId;
 		bool bRequestedValue;
 		std::future<std::pair<agxDistributed::EntityId, bool>> Future;
+		FGuid RequestId;
 	};
 
 	agx::ref_ptr<FUnrealApplicationLayer> Native;
@@ -758,6 +756,7 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 			Event.Type = Type;
 			Event.EntityId = It->EntityId;
 			Event.bRequestedValue = It->bRequestedValue;
+			Event.RequestId = It->RequestId;
 			Event.Message = It->bRequestedValue ? TEXT("acquire") : TEXT("release");
 			try
 			{
@@ -917,16 +916,24 @@ bool FDistributedApplicationBarrier::RequestSpawn(
 	return false;
 }
 
-bool FDistributedApplicationBarrier::RequestPossession(uint64 EntityId, bool bPossess)
+bool FDistributedApplicationBarrier::RequestPossession(
+	uint64 EntityId, bool bPossess, const FGuid& RequestId)
 {
+	check(IsInGameThread());
 	if (!IsReady() || EntityId == MAX_uint64)
+		return false;
+	if (std::any_of(
+			Impl->Possessions.begin(), Impl->Possessions.end(),
+			[EntityId](const auto& Pending) { return Pending.EntityId == EntityId; }) ||
+		(!bPossess && !IsPossessed(EntityId)))
 		return false;
 	try
 	{
 		Impl->Possessions.push_back(
 			{EntityId, bPossess,
 			 Impl->Native->agxDistributed::Client::requestPossession(
-				 agxDistributed::EntityId(EntityId), bPossess)});
+				 agxDistributed::EntityId(EntityId), bPossess),
+			 RequestId});
 		return true;
 	}
 	catch (const std::exception& Error)
@@ -936,6 +943,13 @@ bool FDistributedApplicationBarrier::RequestPossession(uint64 EntityId, bool bPo
 			*FString(UTF8_TO_TCHAR(Error.what())));
 	}
 	return false;
+}
+
+bool FDistributedApplicationBarrier::IsPossessed(uint64 EntityId) const
+{
+	check(IsInGameThread());
+	return IsReady() && Impl->Native != nullptr && EntityId != MAX_uint64 &&
+		   Impl->Native->isPossessed(agxDistributed::EntityId(EntityId));
 }
 
 bool FDistributedApplicationBarrier::RequestSimulationAuthority(uint64 EntityId, bool bSimulate)
@@ -1030,6 +1044,31 @@ bool FDistributedApplicationBarrier::FindWorldObject(
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
+bool FTestUtilities::WithDistributedTestManager(
+	uint16 Port, TFunctionRef<bool()> Test, FString& OutError)
+{
+	try
+	{
+		FSimulationBarrier Simulation;
+		Simulation.AllocateNative();
+		agxDistributed::Node::Config Config;
+		Config.addSetting("mode", "\"peer\"");
+		Config.addSetting("listen/endpoints", "[\"tcp/127.0.0.1:" + std::to_string(Port) + "\"]");
+		Config.addSetting("scouting/multicast/enabled", "false");
+		agxDistributed::ScenarioInfo Scenario;
+		Scenario.addAssetPath("Car.openplx");
+		agx::ref_ptr<agxDistributed::WorldManager> Manager =
+			new agxDistributed::WorldManager(Scenario, Config);
+		Manager->start();
+		return Test();
+	}
+	catch (const std::exception& Error)
+	{
+		OutError = UTF8_TO_TCHAR(Error.what());
+		return false;
+	}
+}
+
 bool FTestUtilities::TestDistributedEntityState(FString& OutError)
 {
 	try
@@ -1147,6 +1186,42 @@ bool FTestUtilities::TestDistributedEntityState(FString& OutError)
 							   Event.EntityId == Id;
 					});
 			});
+		EventsA.Reset();
+		EventsB.Reset();
+		// Input possession on B must be independent of simulation authority on A.
+		const FGuid PossessionRequestId = FGuid::NewGuid();
+		Require(B.RequestPossession(Id, true, PossessionRequestId), "Possession submission failed");
+		Require(!B.RequestPossession(Id, true), "Overlapping possession request was accepted");
+		auto HasPossessionResult =
+			[&](const TArray<FAGXDistributedEvent>& Events, bool bPossess, bool bAccepted)
+		{
+			return Events.ContainsByPredicate(
+				[&](const auto& Event)
+				{
+					return Event.Type == EAGXDistributedEventType::PossessionResult &&
+						   Event.EntityId == Id && Event.bRequestedValue == bPossess &&
+						   Event.bAccepted == bAccepted;
+				});
+		};
+		WaitFor([&] { return HasPossessionResult(EventsB, true, true) && B.IsPossessed(Id); });
+		Require(
+			EventsB.ContainsByPredicate(
+				[&](const auto& Event)
+				{
+					return Event.Type == EAGXDistributedEventType::PossessionResult &&
+						   Event.RequestId == PossessionRequestId && Event.bAccepted;
+				}),
+			"Possession completion lost its request ID");
+		Require(A.RequestPossession(Id, true), "Competing possession submission failed");
+		WaitFor([&] { return HasPossessionResult(EventsA, true, false); });
+		Require(
+			!A.IsPossessed(Id) && !A.RequestPossession(Id, false),
+			"Non-possessor could release another node's control");
+		Require(
+			A.GetSimulatedEntities().Contains(Id) && !B.GetSimulatedEntities().Contains(Id),
+			"Possession changed simulation authority");
+		Require(B.RequestPossession(Id, false), "Possession release submission failed");
+		WaitFor([&] { return HasPossessionResult(EventsB, false, true) && !B.IsPossessed(Id); });
 		EventsA.Reset();
 		EventsB.Reset();
 		A.SendEntityUpdates({{Id, {BodyA}}});

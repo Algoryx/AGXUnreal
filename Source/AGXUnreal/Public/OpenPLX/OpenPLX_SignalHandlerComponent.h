@@ -13,8 +13,12 @@
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_Outputs.h"
 
+// Standard library includes.
+#include <memory>
+
 #include "OpenPLX_SignalHandlerComponent.generated.h"
 
+class FOpenPLX_SignalRerouter;
 struct FAGX_ImportContext;
 struct FOpenPLX_SignalHandlerNativeAddresses;
 
@@ -278,6 +282,7 @@ public:
 	bool bShowDisabledOutputs {false};
 
 	//~ Begin UActorComponent Interface
+	virtual void InitializeComponent() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	virtual TStructOnScope<FActorComponentInstanceData> GetComponentInstanceData() const override;
@@ -289,6 +294,24 @@ public:
 
 	void SetNativeAddresses(const FOpenPLX_SignalHandlerNativeAddresses& Addresses);
 	FOpenPLX_SignalHandlerNativeAddresses GetNativeAddresses() const;
+
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnInitializing, UOpenPLX_SignalHandlerComponent&);
+
+	/** Emitted before BeginPlay. This notification is global; listeners must filter by world. */
+	static FOnInitializing& OnInitializing();
+
+	/**
+	 * Share ownership of a signal rerouter. Pass nullptr to restore local sending.
+	 * When set, outgoing Send functions use it exclusively, including when it rejects an input.
+	 */
+	void SetSignalRerouter(std::shared_ptr<FOpenPLX_SignalRerouter> InSignalRerouter);
+
+	/**
+	 * Apply a Real input directly to this model, without invoking the rerouter. Game thread only.
+	 * For incoming external inputs; the caller must establish local simulation authority.
+	 * Value uses the same Unreal units as SendReal; the barrier performs OpenPLX conversion.
+	 */
+	bool ApplyRealLocally(const FOpenPLX_Input& Input, double Value);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",
@@ -352,4 +375,5 @@ public:
 
 private:
 	FOpenPLXSignalHandler SignalHandler;
+	std::shared_ptr<FOpenPLX_SignalRerouter> SignalRerouter {nullptr};
 };

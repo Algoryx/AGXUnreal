@@ -11,6 +11,9 @@
 #include "Distributed/AGX_DistributedAsset.h"
 #include "Distributed/AGX_DistributedSpawnBubbleComponent.h"
 #include "Distributed/AGX_DistributedSettings.h"
+#include "Distributed/OpenPLX_DistributedSignalRerouter.h"
+#include "OpenPLX/OpenPLX_Inputs.h"
+#include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
@@ -26,6 +29,8 @@ bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UAGX_DistributedWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	SignalHandlerInitializingHandle = UOpenPLX_SignalHandlerComponent::OnInitializing().AddUObject(
+		this, &ThisClass::OnSignalHandlerInitializing);
 	const UAGX_DistributedSettings* Settings = GetDefault<UAGX_DistributedSettings>();
 	if (!Settings->Scenario.IsNull())
 		Scenario = Settings->Scenario.LoadSynchronous();
@@ -74,6 +79,8 @@ void UAGX_DistributedWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 void UAGX_DistributedWorldSubsystem::Deinitialize()
 {
+	UOpenPLX_SignalHandlerComponent::OnInitializing().Remove(SignalHandlerInitializingHandle);
+	SignalHandlerInitializingHandle.Reset();
 	ShutdownClient();
 	Scenario = nullptr;
 	Super::Deinitialize();
@@ -96,14 +103,22 @@ void UAGX_DistributedWorldSubsystem::ShutdownClient()
 		CompleteSpawn(
 			Id, EAGX_DistributedSpawnState::Cancelled, TEXT("Distributed world is shutting down."));
 	SpawnRequests.Reset();
+	// Remove pending requests before invoking callbacks, which may call back into this subsystem.
+	auto PendingPossessions = MoveTemp(PossessionRequests);
+	PossessionRequests.Reset();
+	for (const auto& Request : PendingPossessions)
+		Request.Value.Callback.ExecuteIfBound(
+			false, Request.Value.Entity.Get(), TEXT("The distributed client is shutting down."));
 	EntityErrors.Reset();
 	RemovedEntityIds.Reset();
 	DeferredSpawnEvents.Reset();
 	DeferredEntityUpdates.Reset();
+	DeferredControlSignals.Reset();
 	OriginalMotionControls.Reset();
 	bSimulationRunning = false;
 	Client.Shutdown();
 	EntityActors.Reset();
+	ActorSignalRerouters.Reset();
 	ReportedUpdateErrors.Reset();
 	ReportedSendErrors.Reset();
 }
@@ -185,6 +200,12 @@ void UAGX_DistributedWorldSubsystem::Tick(float DeltaTime)
 			if (!RemovedEntityIds.Contains(Event.EntityId))
 				DeferredEntityUpdates.Add(Event.EntityId, Event);
 		}
+		else if (Event.Type == EAGXDistributedEventType::ControlSignal)
+		{
+			if (!RemovedEntityIds.Contains(Event.EntityId) && !Event.SignalName.IsEmpty())
+				DeferredControlSignals.FindOrAdd(Event.EntityId)
+					.Add(FName(*Event.SignalName), Event.SignalValue);
+		}
 		else
 			HandleEvent(Event);
 		if (bShutdownRequested)
@@ -200,6 +221,16 @@ void UAGX_DistributedWorldSubsystem::Tick(float DeltaTime)
 		if (EntityActors.Contains(It.Key()))
 		{
 			processIncomingEntityUpdates(It.Value());
+			It.RemoveCurrent();
+		}
+		else if (EntityErrors.Contains(It.Key()))
+			It.RemoveCurrent();
+	}
+	for (auto It = DeferredControlSignals.CreateIterator(); It; ++It)
+	{
+		if (EntityActors.Contains(It.Key()))
+		{
+			ApplyControlSignals(It.Key(), It.Value());
 			It.RemoveCurrent();
 		}
 		else if (EntityErrors.Contains(It.Key()))
@@ -238,6 +269,59 @@ bool UAGX_DistributedWorldSubsystem::RequestSpawn(
 bool UAGX_DistributedWorldSubsystem::RequestPossession(int64 EntityId, bool bPossess)
 {
 	return EntityId >= 0 && Client.RequestPossession(static_cast<uint64>(EntityId), bPossess);
+}
+
+FGuid UAGX_DistributedWorldSubsystem::RequestActorPossession(
+	AActor* Entity, bool bPossess, FAGX_DistributedPossessionCallback Callback)
+{
+	check(IsInGameThread());
+	int64 EntityId = -1;
+	if (bShutdownRequested || !Client.IsReady() || !GetEntityIdForActor(Entity, EntityId))
+		return FGuid();
+	const FGuid RequestId = FGuid::NewGuid();
+	if (!Client.RequestPossession(static_cast<uint64>(EntityId), bPossess, RequestId))
+		return FGuid();
+	PossessionRequests.Add(RequestId, {Entity, MoveTemp(Callback)});
+	return RequestId;
+}
+
+void UAGX_DistributedWorldSubsystem::CompletePossession(const FAGXDistributedEvent& Event)
+{
+	FPendingPossession Request;
+	if (!PossessionRequests.RemoveAndCopyValue(Event.RequestId, Request))
+		return;
+	if (!Request.Entity.IsValid())
+	{
+		if (Event.bAccepted && Event.bRequestedValue)
+			RequestPossession(static_cast<int64>(Event.EntityId), false);
+		Request.Callback.ExecuteIfBound(
+			false, nullptr, TEXT("The target Actor was destroyed before possession completed."));
+		return;
+	}
+	Request.Callback.ExecuteIfBound(
+		Event.bAccepted, Request.Entity.Get(), Event.bAccepted ? FString() : Event.Message);
+}
+
+bool UAGX_DistributedWorldSubsystem::IsPossessed(int64 EntityId) const
+{
+	return EntityId >= 0 && Client.IsPossessed(static_cast<uint64>(EntityId));
+}
+
+bool UAGX_DistributedWorldSubsystem::GetEntityIdForActor(const AActor* Actor, int64& EntityId) const
+{
+	EntityId = -1;
+	if (!IsValid(Actor) || Actor->GetWorld() != GetWorld())
+		return false;
+	for (const auto& Entry : EntityActors)
+	{
+		if (Entry.Value.Get() == Actor && Entry.Key <= static_cast<uint64>(MAX_int64) &&
+			!RemovedEntityIds.Contains(Entry.Key))
+		{
+			EntityId = static_cast<int64>(Entry.Key);
+			return true;
+		}
+	}
+	return false;
 }
 
 bool UAGX_DistributedWorldSubsystem::RequestSimulationAuthority(int64 EntityId, bool bSimulate)
@@ -300,12 +384,16 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			DeferredSpawnEvents.RemoveAll([&](const FAGXDistributedEvent& Spawn)
 										  { return Spawn.EntityId == Event.EntityId; });
 			DeferredEntityUpdates.Remove(Event.EntityId);
+			DeferredControlSignals.Remove(Event.EntityId);
 			EntityErrors.Remove(Event.EntityId);
 			ReportedUpdateErrors.Remove(Event.EntityId);
 			ReportedSendErrors.Remove(Event.EntityId);
 			if (auto* Entry = EntityActors.Find(Event.EntityId))
+			{
+				ActorSignalRerouters.Remove(*Entry);
 				if (AActor* Actor = Entry->Get())
 					Actor->Destroy();
+			}
 			EntityActors.Remove(Event.EntityId);
 			for (auto& Pair : SpawnRequests)
 				if (Pair.Value.Result.EntityId == static_cast<int64>(Event.EntityId))
@@ -346,6 +434,13 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			break;
 		case EAGXDistributedEventType::PossessionResult:
 		case EAGXDistributedEventType::SimulationAuthorityResult:
+			if (Event.Type == EAGXDistributedEventType::PossessionResult)
+			{
+				CompletePossession(Event);
+				OnPossessionCompleted.Broadcast(
+					Event.RequestId, static_cast<int64>(Event.EntityId), Event.bRequestedValue,
+					Event.bAccepted, Event.bAccepted ? FString() : Event.Message);
+			}
 			if (Event.Type == EAGXDistributedEventType::SimulationAuthorityResult)
 			{
 				if (Event.bAccepted)
@@ -387,6 +482,16 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	{
 		if (Existing->IsValid())
 			return;
+		ActorSignalRerouters.Remove(*Existing);
+		EntityActors.Remove(Event.EntityId);
+	}
+	if (Event.EntityId > static_cast<uint64>(MAX_int64))
+	{
+		EntityErrors.Add(Event.EntityId, TEXT("The entity ID exceeds the supported Unreal range."));
+		UE_LOG(
+			LogAGX, Error, TEXT("Cannot spawn distributed entity %llu: unsupported entity ID."),
+			Event.EntityId);
+		return;
 	}
 
 	UWorld* World = GetWorld();
@@ -450,9 +555,23 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	FActorSpawnParameters Params;
 	// The distributed scenario determines placement, including overlapping actors.
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	const auto Rerouter =
+		std::make_shared<FOpenPLX_DistributedSignalRerouter>(static_cast<int64>(Event.EntityId));
+	TWeakObjectPtr<AActor> PendingActor;
+	// Register before Blueprint components initialize, so their initialization notifications can
+	// obtain the same rerouter before any BeginPlay callbacks run.
+	Params.CustomPreSpawnInitalization =
+		[this, EntityId = Event.EntityId, Rerouter, &PendingActor](AActor* SpawnedActor)
+	{
+		PendingActor = SpawnedActor;
+		EntityActors.Add(EntityId, SpawnedActor);
+		ActorSignalRerouters.Add(PendingActor, Rerouter);
+	};
 	AActor* Actor = World->SpawnActor<AActor>(ActorClass, Event.Transform, Params);
 	if (Actor == nullptr)
 	{
+		ActorSignalRerouters.Remove(PendingActor);
+		EntityActors.Remove(Event.EntityId);
 		EntityErrors.Add(Event.EntityId, TEXT("Unreal failed to create the entity Actor."));
 		UE_LOG(
 			LogAGX, Error,
@@ -461,7 +580,6 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 		return;
 	}
 
-	EntityActors.Add(Event.EntityId, Actor);
 	ReportedUpdateErrors.Remove(Event.EntityId);
 
 	UE_LOG(
@@ -487,6 +605,79 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	if (Barriers.Num() == Bodies.Num())
 		Client.RegisterEntityBodies(Event.EntityId, Barriers);
 	ApplySimulationAuthority(Event.EntityId);
+}
+
+void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
+	uint64 EntityId, const TMap<FName, double>& Signals)
+{
+	check(IsInGameThread());
+	if (bShutdownRequested || RemovedEntityIds.Contains(EntityId) ||
+		!Client.GetSimulatedEntities().Contains(EntityId))
+		return;
+	const auto* Entry = EntityActors.Find(EntityId);
+	AActor* Actor = Entry != nullptr ? Entry->Get() : nullptr;
+	if (!IsValid(Actor))
+		return;
+
+	TArray<UOpenPLX_SignalHandlerComponent*> Handlers;
+	Actor->GetComponents<UOpenPLX_SignalHandlerComponent>(Handlers, true);
+	Handlers.RemoveAll([this, Actor](const auto* Handler)
+					   { return !IsValid(Handler) || FindSignalHandlerEntity(*Handler) != Actor; });
+	for (const auto& Signal : Signals)
+	{
+		UOpenPLX_SignalHandlerComponent* Receiver = nullptr;
+		const FOpenPLX_Input* Input = nullptr;
+		bool bAmbiguous = false;
+		for (auto* Handler : Handlers)
+		{
+			const FOpenPLX_Input* Found = Handler->Inputs.Find(Signal.Key);
+			if (Found == nullptr)
+				continue;
+			if (Receiver != nullptr)
+			{
+				bAmbiguous = true;
+				break;
+			}
+			Receiver = Handler;
+			Input = Found;
+		}
+		if (Receiver == nullptr || bAmbiguous)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("AGX Distributed cannot apply signal '%s' to entity %llu: %s."),
+				*Signal.Key.ToString(), EntityId,
+				bAmbiguous ? TEXT("input name matches multiple signal handlers")
+						   : TEXT("no matching input"));
+			continue;
+		}
+		if (!Receiver->ApplyRealLocally(*Input, Signal.Value))
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("AGX Distributed could not apply Real signal '%s' to entity %llu."),
+				*Signal.Key.ToString(), EntityId);
+	}
+}
+
+AActor* UAGX_DistributedWorldSubsystem::FindSignalHandlerEntity(
+	const UOpenPLX_SignalHandlerComponent& Component) const
+{
+	// Child Actor handlers belong to the nearest registered distributed machine.
+	for (AActor* Actor = Component.GetOwner(); Actor != nullptr; Actor = Actor->GetParentActor())
+	{
+		if (ActorSignalRerouters.Contains(Actor))
+			return Actor;
+	}
+	return nullptr;
+}
+
+void UAGX_DistributedWorldSubsystem::OnSignalHandlerInitializing(
+	UOpenPLX_SignalHandlerComponent& Component)
+{
+	if (bShutdownRequested || Component.GetWorld() != GetWorld())
+		return;
+	if (AActor* Actor = FindSignalHandlerEntity(Component))
+		Component.SetSignalRerouter(ActorSignalRerouters.FindChecked(Actor));
 }
 
 void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDistributedEvent& Event)

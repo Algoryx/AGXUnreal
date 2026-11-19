@@ -8,9 +8,14 @@
 #include "Distributed/DistributedApplicationBarrier.h"
 #include "Subsystems/WorldSubsystem.h"
 
+// Standard library includes.
+#include <memory>
+
 #include "AGX_DistributedWorldSubsystem.generated.h"
 
+class FOpenPLX_SignalRerouter;
 class UAGX_DistributedScenarioAsset;
+class UOpenPLX_SignalHandlerComponent;
 
 USTRUCT()
 struct FAGX_DistributedPendingSpawn
@@ -31,6 +36,11 @@ struct FAGX_DistributedPendingSpawn
 class UAGX_Simulation;
 class AActor;
 class UAGX_DistributedSpawnBubbleComponent;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(
+	FAGX_DistributedPossessionCompleted, FGuid, RequestId, int64, EntityId, bool, bPossess, bool,
+	bAccepted, const FString&, ErrorMessage);
+DECLARE_DELEGATE_ThreeParams(FAGX_DistributedPossessionCallback, bool, AActor*, const FString&);
 
 /** World-facing entry point for an AGX Distributed client. */
 UCLASS()
@@ -60,6 +70,8 @@ public:
 	FAGX_DistributedSpawnCompleted OnSpawnCompleted;
 	UPROPERTY(BlueprintAssignable, Category = "AGX Distributed")
 	FAGX_DistributedAuthorityCompleted OnSimulationAuthorityCompleted;
+	UPROPERTY(BlueprintAssignable, Category = "AGX Distributed")
+	FAGX_DistributedPossessionCompleted OnPossessionCompleted;
 
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -80,8 +92,23 @@ public:
 				 "Use Spawn Distributed Entity for queued spawning and Actor-ready completion."))
 	bool RequestSpawn(const FString& AssetPath, FTransform Transform, bool bPossess = true);
 
+	/** Submit a request. OnPossessionCompleted reports acceptance; simulation authority is
+	 * unchanged. */
 	UFUNCTION(BlueprintCallable, Category = "AGX Distributed")
 	bool RequestPossession(int64 EntityId, bool bPossess);
+
+	/**
+	 * Request Actor possession with one completion callback. Returns an invalid ID if submission
+	 * fails. Completion is delivered on a subsequent world tick, or when the client shuts down.
+	 */
+	FGuid RequestActorPossession(
+		AActor* Entity, bool bPossess, FAGX_DistributedPossessionCallback Callback);
+
+	/** Find the entity corresponding to a registered Actor in this world. Failure returns -1. */
+	bool GetEntityIdForActor(const AActor* Actor, int64& EntityId) const;
+
+	/** True if this client currently possesses the entity. */
+	bool IsPossessed(int64 EntityId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Distributed")
 	bool RequestSimulationAuthority(int64 EntityId, bool bSimulate);
@@ -93,11 +120,19 @@ public:
 	bool IsConnected() const;
 
 private:
+	struct FPendingPossession
+	{
+		TWeakObjectPtr<AActor> Entity;
+		FAGX_DistributedPossessionCallback Callback;
+	};
+
 	FString QualifyObjectKey(const FString& Key) const;
 	void ProcessSpawnRequests();
 	void CompleteSpawn(
 		FGuid RequestId, EAGX_DistributedSpawnState State, const FString& Error = FString());
 	void ApplySimulationAuthority(uint64 EntityId);
+	void CompletePossession(const FAGXDistributedEvent& Event);
+	TMap<FGuid, FPendingPossession> PossessionRequests;
 	UPROPERTY(Transient) TMap<FGuid, FAGX_DistributedPendingSpawn> SpawnRequests;
 	TSet<TWeakObjectPtr<UAGX_DistributedSpawnBubbleComponent>> SpawnBubbles;
 	TSet<uint64> RemovedEntityIds;
@@ -108,10 +143,17 @@ private:
 	void CollectAndSendEntityUpdates(double TimeStamp);
 	void HandleEvent(const FAGXDistributedEvent& Event);
 	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
+	void ApplyControlSignals(uint64 EntityId, const TMap<FName, double>& Signals);
+	AActor* FindSignalHandlerEntity(const UOpenPLX_SignalHandlerComponent& Component) const;
+	void OnSignalHandlerInitializing(UOpenPLX_SignalHandlerComponent& Component);
 	void processIncomingEntityUpdates(const FAGXDistributedEvent& Event);
 
 	// Actors are owned by the world. Do not keep destroyed entities alive.
 	TMap<uint64, TWeakObjectPtr<AActor>> EntityActors;
+	/** Latest Real input values retained while their entity's Actor is waiting to spawn. */
+	TMap<uint64, TMap<FName, double>> DeferredControlSignals;
+	TMap<TWeakObjectPtr<AActor>, std::shared_ptr<FOpenPLX_SignalRerouter>> ActorSignalRerouters;
+	FDelegateHandle SignalHandlerInitializingHandle;
 	TSet<uint64> ReportedUpdateErrors;
 	TSet<uint64> ReportedSendErrors;
 	TWeakObjectPtr<UAGX_Simulation> BoundSimulation;
