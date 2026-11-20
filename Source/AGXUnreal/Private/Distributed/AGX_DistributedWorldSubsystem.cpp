@@ -560,7 +560,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	TWeakObjectPtr<AActor> PendingActor;
 	// Register before Blueprint components initialize, so their initialization notifications can
 	// obtain the same rerouter before any BeginPlay callbacks run.
-	Params.CustomPreSpawnInitalization =
+	Params.CustomPreSpawnInitialization =
 		[this, EntityId = Event.EntityId, Rerouter, &PendingActor](AActor* SpawnedActor)
 	{
 		PendingActor = SpawnedActor;
