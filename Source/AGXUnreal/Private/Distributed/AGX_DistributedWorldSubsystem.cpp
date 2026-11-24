@@ -19,6 +19,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "HAL/PlatformTime.h"
+#include "Misc/EngineVersionComparison.h"
 
 bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -560,7 +561,11 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	TWeakObjectPtr<AActor> PendingActor;
 	// Register before Blueprint components initialize, so their initialization notifications can
 	// obtain the same rerouter before any BeginPlay callbacks run.
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
+	Params.CustomPreSpawnInitalization =
+#else
 	Params.CustomPreSpawnInitialization =
+#endif
 		[this, EntityId = Event.EntityId, Rerouter, &PendingActor](AActor* SpawnedActor)
 	{
 		PendingActor = SpawnedActor;
