@@ -952,16 +952,23 @@ bool FDistributedApplicationBarrier::IsPossessed(uint64 EntityId) const
 		   Impl->Native->isPossessed(agxDistributed::EntityId(EntityId));
 }
 
-bool FDistributedApplicationBarrier::RequestSimulationAuthority(uint64 EntityId, bool bSimulate)
+bool FDistributedApplicationBarrier::RequestSimulationAuthority(
+	uint64 EntityId, bool bSimulate, const FGuid& RequestId)
 {
+	check(IsInGameThread());
 	if (!IsReady() || EntityId == MAX_uint64)
+		return false;
+	if (std::any_of(
+			Impl->Authorities.begin(), Impl->Authorities.end(),
+			[EntityId](const auto& Pending) { return Pending.EntityId == EntityId; }))
 		return false;
 	try
 	{
 		Impl->Authorities.push_back(
 			{EntityId, bSimulate,
 			 Impl->Native->agxDistributed::Client::requestSimulationAuthority(
-				 agxDistributed::EntityId(EntityId), bSimulate)});
+				 agxDistributed::EntityId(EntityId), bSimulate),
+			 RequestId});
 		return true;
 	}
 	catch (const std::exception& Error)

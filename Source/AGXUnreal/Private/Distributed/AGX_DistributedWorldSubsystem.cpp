@@ -19,6 +19,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "HAL/PlatformTime.h"
+#include "Misc/EngineVersionComparison.h"
 
 bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -107,6 +108,11 @@ void UAGX_DistributedWorldSubsystem::ShutdownClient()
 	auto PendingPossessions = MoveTemp(PossessionRequests);
 	PossessionRequests.Reset();
 	for (const auto& Request : PendingPossessions)
+		Request.Value.Callback.ExecuteIfBound(
+			false, Request.Value.Entity.Get(), TEXT("The distributed client is shutting down."));
+	auto PendingAuthorities = MoveTemp(SimulationAuthorityRequests);
+	SimulationAuthorityRequests.Reset();
+	for (const auto& Request : PendingAuthorities)
 		Request.Value.Callback.ExecuteIfBound(
 			false, Request.Value.Entity.Get(), TEXT("The distributed client is shutting down."));
 	EntityErrors.Reset();
@@ -330,6 +336,60 @@ bool UAGX_DistributedWorldSubsystem::RequestSimulationAuthority(int64 EntityId, 
 		   Client.RequestSimulationAuthority(static_cast<uint64>(EntityId), bSimulate);
 }
 
+bool UAGX_DistributedWorldSubsystem::TryGetActorPossession(
+	const AActor* Actor, bool& bHasPossession) const
+{
+	bHasPossession = false;
+	int64 EntityId = -1;
+	if (bShutdownRequested || !Client.IsReady() || !GetEntityIdForActor(Actor, EntityId))
+		return false;
+	bHasPossession = Client.IsPossessed(static_cast<uint64>(EntityId));
+	return true;
+}
+
+bool UAGX_DistributedWorldSubsystem::TryGetActorSimulationAuthority(
+	const AActor* Actor, bool& bHasSimulationAuthority) const
+{
+	bHasSimulationAuthority = false;
+	int64 EntityId = -1;
+	if (bShutdownRequested || !Client.IsReady() || !GetEntityIdForActor(Actor, EntityId))
+		return false;
+	bHasSimulationAuthority = Client.GetSimulatedEntities().Contains(static_cast<uint64>(EntityId));
+	return true;
+}
+
+FGuid UAGX_DistributedWorldSubsystem::RequestActorSimulationAuthority(
+	AActor* Entity, bool bSimulate, FAGX_DistributedSimulationAuthorityCallback Callback)
+{
+	check(IsInGameThread());
+	int64 EntityId = -1;
+	if (bShutdownRequested || !Client.IsReady() || !GetEntityIdForActor(Entity, EntityId))
+		return FGuid();
+	const FGuid RequestId = FGuid::NewGuid();
+	if (!Client.RequestSimulationAuthority(static_cast<uint64>(EntityId), bSimulate, RequestId))
+		return FGuid();
+	SimulationAuthorityRequests.Add(RequestId, {Entity, MoveTemp(Callback)});
+	return RequestId;
+}
+
+void UAGX_DistributedWorldSubsystem::CompleteSimulationAuthority(const FAGXDistributedEvent& Event)
+{
+	FPendingSimulationAuthority Request;
+	if (!SimulationAuthorityRequests.RemoveAndCopyValue(Event.RequestId, Request))
+		return;
+	if (!Request.Entity.IsValid())
+	{
+		if (Event.bAccepted && Event.bRequestedValue)
+			RequestSimulationAuthority(static_cast<int64>(Event.EntityId), false);
+		Request.Callback.ExecuteIfBound(
+			false, nullptr,
+			TEXT("The target Actor was destroyed before simulation authority completed."));
+		return;
+	}
+	Request.Callback.ExecuteIfBound(
+		Event.bAccepted, Request.Entity.Get(), Event.bAccepted ? FString() : Event.Message);
+}
+
 bool UAGX_DistributedWorldSubsystem::RouteSignal(
 	int64 EntityId, const FString& SignalName, double Value)
 {
@@ -445,6 +505,7 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			{
 				if (Event.bAccepted)
 					ApplySimulationAuthority(Event.EntityId);
+				CompleteSimulationAuthority(Event);
 				OnSimulationAuthorityCompleted.Broadcast(
 					static_cast<int64>(Event.EntityId), Event.bRequestedValue, Event.bAccepted,
 					Event.bAccepted
@@ -560,7 +621,11 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	TWeakObjectPtr<AActor> PendingActor;
 	// Register before Blueprint components initialize, so their initialization notifications can
 	// obtain the same rerouter before any BeginPlay callbacks run.
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
+	Params.CustomPreSpawnInitalization =
+#else
 	Params.CustomPreSpawnInitialization =
+#endif
 		[this, EntityId = Event.EntityId, Rerouter, &PendingActor](AActor* SpawnedActor)
 	{
 		PendingActor = SpawnedActor;

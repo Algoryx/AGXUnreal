@@ -79,7 +79,8 @@ public:
 	bool RequestPossession(uint64 EntityId, bool bPossess, const FGuid& RequestId = FGuid());
 	/** True if this client currently possesses the entity. */
 	bool IsPossessed(uint64 EntityId) const;
-	bool RequestSimulationAuthority(uint64 EntityId, bool bSimulate);
+	bool RequestSimulationAuthority(
+		uint64 EntityId, bool bSimulate, const FGuid& RequestId = FGuid());
 	bool RouteSignal(uint64 EntityId, const FString& SignalName, double Value);
 
 	/** Copy of the native simulation-authority set; no native lock escapes this call. */
