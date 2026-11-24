@@ -41,6 +41,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(
 	FAGX_DistributedPossessionCompleted, FGuid, RequestId, int64, EntityId, bool, bPossess, bool,
 	bAccepted, const FString&, ErrorMessage);
 DECLARE_DELEGATE_ThreeParams(FAGX_DistributedPossessionCallback, bool, AActor*, const FString&);
+DECLARE_DELEGATE_ThreeParams(
+	FAGX_DistributedSimulationAuthorityCallback, bool, AActor*, const FString&);
 
 /** World-facing entry point for an AGX Distributed client. */
 UCLASS()
@@ -110,8 +112,32 @@ public:
 	/** True if this client currently possesses the entity. */
 	bool IsPossessed(int64 EntityId) const;
 
+	/**
+	 * Query this client's input possession of a registered Actor.
+	 * Returns false if the client is unavailable or the Actor is invalid or unregistered.
+	 * bHasPossession is false on failure.
+	 */
+	UFUNCTION(BlueprintPure, Category = "AGX Distributed")
+	bool TryGetActorPossession(const AActor* Actor, bool& bHasPossession) const;
+
+	/**
+	 * Query this client's simulation authority over a registered Actor.
+	 * Returns false if the client is unavailable or the Actor is invalid or unregistered.
+	 * bHasSimulationAuthority is false on failure.
+	 */
+	UFUNCTION(BlueprintPure, Category = "AGX Distributed")
+	bool TryGetActorSimulationAuthority(const AActor* Actor, bool& bHasSimulationAuthority) const;
+
 	UFUNCTION(BlueprintCallable, Category = "AGX Distributed")
 	bool RequestSimulationAuthority(int64 EntityId, bool bSimulate);
+
+	/**
+	 * Request Actor simulation authority with one completion callback, without changing possession.
+	 * Returns an invalid ID if submission fails. Completion is delivered on a subsequent world
+	 * tick, or when the client shuts down.
+	 */
+	FGuid RequestActorSimulationAuthority(
+		AActor* Entity, bool bSimulate, FAGX_DistributedSimulationAuthorityCallback Callback);
 
 	UFUNCTION(BlueprintCallable, Category = "AGX Distributed")
 	bool RouteSignal(int64 EntityId, const FString& SignalName, double Value);
@@ -125,6 +151,11 @@ private:
 		TWeakObjectPtr<AActor> Entity;
 		FAGX_DistributedPossessionCallback Callback;
 	};
+	struct FPendingSimulationAuthority
+	{
+		TWeakObjectPtr<AActor> Entity;
+		FAGX_DistributedSimulationAuthorityCallback Callback;
+	};
 
 	FString QualifyObjectKey(const FString& Key) const;
 	void ProcessSpawnRequests();
@@ -132,7 +163,9 @@ private:
 		FGuid RequestId, EAGX_DistributedSpawnState State, const FString& Error = FString());
 	void ApplySimulationAuthority(uint64 EntityId);
 	void CompletePossession(const FAGXDistributedEvent& Event);
+	void CompleteSimulationAuthority(const FAGXDistributedEvent& Event);
 	TMap<FGuid, FPendingPossession> PossessionRequests;
+	TMap<FGuid, FPendingSimulationAuthority> SimulationAuthorityRequests;
 	UPROPERTY(Transient) TMap<FGuid, FAGX_DistributedPendingSpawn> SpawnRequests;
 	TSet<TWeakObjectPtr<UAGX_DistributedSpawnBubbleComponent>> SpawnBubbles;
 	TSet<uint64> RemovedEntityIds;
