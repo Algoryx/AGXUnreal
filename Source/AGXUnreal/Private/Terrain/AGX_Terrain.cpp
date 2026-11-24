@@ -361,14 +361,64 @@ bool AAGX_Terrain::GetEnableTerrainPaging() const
 	return bEnableTerrainPaging;
 }
 
-bool AAGX_Terrain::HasNative() const
+bool AAGX_Terrain::AddTrackedBody(
+	UAGX_RigidBodyComponent* Body, double PreloadRadius, double RequiredRadius)
 {
-	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
+	if (Body == nullptr)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("(None) Body passed to AGX Terrain > Add Tracked Body."));
+		return false;
+	}
+
+	FAGX_TerrainPagingBodyReference* Entry =
+		TerrainPagingSettings.TrackedRigidBodies.FindByPredicate(
+			[Body](const FAGX_TerrainPagingBodyReference& TrackedBody)
+			{ return TrackedBody.RigidBody.GetRigidBody() == Body; });
+	const bool Existed = Entry != nullptr;
+	if (!Existed)
+	{
+		Entry = &TerrainPagingSettings.TrackedRigidBodies.AddDefaulted_GetRef();
+		Entry->RigidBody.SetComponent(Body);
+	}
+
+	Entry->PreloadRadius = PreloadRadius;
+	Entry->RequiredRadius = RequiredRadius;
+
+	if (HasNativeTerrainPager() && !Body->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"AGX Terrain > Add Tracked Body called with a Rigid Body that does not have a "
+				"native when a Terrain Pager native has already been created. The AGX Dynamics "
+				"Rigid Body will not be registered with the AGX Dynamics Terrain Pager."));
+	}
+
+	if (HasNativeTerrainPager() && Body->HasNative())
+	{
+		if (Existed)
+		{
+			NativeTerrainPagerBarrier.SetTileLoadRadii(
+				Body->GetNativeByRef(), RequiredRadius, PreloadRadius);
+		}
+		else
+		{
+			NativeTerrainPagerBarrier.AddRigidBody(
+				Body->GetNativeByRef(), RequiredRadius, PreloadRadius);
+		}
+	}
+
+	return true;
 }
 
 bool AAGX_Terrain::HasNativeTerrainPager() const
 {
 	return NativeTerrainPagerBarrier.HasNative();
+}
+
+bool AAGX_Terrain::HasNative() const
+{
+	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
 }
 
 FTerrainBarrier* AAGX_Terrain::GetOrCreateNative()
