@@ -14,12 +14,17 @@
 #include "Distributed/OpenPLX_DistributedSignalRerouter.h"
 #include "OpenPLX/OpenPLX_Inputs.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "Utilities/OpenPLX_Utilities.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/EngineVersionComparison.h"
+
+// Standard library includes.
+#include <type_traits>
+#include <variant>
 
 bool UAGX_DistributedWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -393,6 +398,12 @@ void UAGX_DistributedWorldSubsystem::CompleteSimulationAuthority(const FAGXDistr
 bool UAGX_DistributedWorldSubsystem::RouteSignal(
 	int64 EntityId, const FString& SignalName, double Value)
 {
+	return RouteSignalValue(EntityId, SignalName, Value);
+}
+
+bool UAGX_DistributedWorldSubsystem::RouteSignalValue(
+	int64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value)
+{
 	return EntityId >= 0 && Client.RouteSignal(static_cast<uint64>(EntityId), SignalName, Value);
 }
 
@@ -673,7 +684,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 }
 
 void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
-	uint64 EntityId, const TMap<FName, double>& Signals)
+	uint64 EntityId, const TMap<FName, FAGXDistributedSignalValue>& Signals)
 {
 	check(IsInGameThread());
 	if (bShutdownRequested || RemovedEntityIds.Contains(EntityId) ||
@@ -716,10 +727,28 @@ void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
 						   : TEXT("no matching input"));
 			continue;
 		}
-		if (!Receiver->ApplyRealLocally(*Input, Signal.Value))
+		const bool bApplied = std::visit(
+			[Receiver, Input](const auto& Value)
+			{
+				using T = std::decay_t<decltype(Value)>;
+				if constexpr (std::is_same_v<T, double>)
+					return Receiver->ApplyRealLocally(*Input, Value);
+				else if constexpr (std::is_same_v<T, int64>)
+					return Receiver->ApplyIntegerLocally(*Input, Value);
+				else if constexpr (std::is_same_v<T, bool>)
+					return Receiver->ApplyBooleanLocally(*Input, Value);
+				else if constexpr (std::is_same_v<T, FVector2D>)
+					return FOpenPLX_Utilities::IsRangeType(Input->Type)
+							   ? Receiver->ApplyRangeRealLocally(*Input, Value)
+							   : Receiver->ApplyVector2Locally(*Input, Value);
+				else
+					return Receiver->ApplyVectorLocally(*Input, Value);
+			},
+			Signal.Value);
+		if (!bApplied)
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("AGX Distributed could not apply Real signal '%s' to entity %llu."),
+				TEXT("AGX Distributed could not apply signal '%s' to entity %llu."),
 				*Signal.Key.ToString(), EntityId);
 	}
 }

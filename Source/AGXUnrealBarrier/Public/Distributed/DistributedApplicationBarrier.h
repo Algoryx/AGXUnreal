@@ -6,8 +6,12 @@
 #include "RigidBodyBarrier.h"
 
 #include <memory>
+#include <variant>
 
 class FSimulationBarrier;
+
+/** Signal payload in Unreal units, matching UOpenPLX_SignalHandlerComponent. */
+using FAGXDistributedSignalValue = std::variant<double, int64, bool, FVector2D, FVector>;
 
 enum class EAGXDistributedEventType : uint8
 {
@@ -48,7 +52,7 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	FString Message;
 	bool bAccepted {false};
 	FString SignalName;
-	double SignalValue {0.0};
+	FAGXDistributedSignalValue SignalValue {0.0};
 };
 
 /** Owns the native AGX Distributed client without exposing AGX headers to AGXUnreal. */
@@ -81,7 +85,8 @@ public:
 	bool IsPossessed(uint64 EntityId) const;
 	bool RequestSimulationAuthority(
 		uint64 EntityId, bool bSimulate, const FGuid& RequestId = FGuid());
-	bool RouteSignal(uint64 EntityId, const FString& SignalName, double Value);
+	bool RouteSignal(
+		uint64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value);
 
 	/** Copy of the native simulation-authority set; no native lock escapes this call. */
 	TArray<uint64> GetSimulatedEntities() const;

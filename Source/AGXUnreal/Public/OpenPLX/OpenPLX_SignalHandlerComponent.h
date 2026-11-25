@@ -306,12 +306,13 @@ public:
 	 */
 	void SetSignalRerouter(std::shared_ptr<FOpenPLX_SignalRerouter> InSignalRerouter);
 
-	/**
-	 * Apply a Real input directly to this model, without invoking the rerouter. Game thread only.
-	 * For incoming external inputs; the caller must establish local simulation authority.
-	 * Value uses the same Unreal units as SendReal; the barrier performs OpenPLX conversion.
-	 */
+	/** Apply an input directly, without invoking the rerouter. */
 	bool ApplyRealLocally(const FOpenPLX_Input& Input, double Value);
+	bool ApplyRangeRealLocally(const FOpenPLX_Input& Input, FVector2D Value);
+	bool ApplyVector2Locally(const FOpenPLX_Input& Input, FVector2D Value);
+	bool ApplyVectorLocally(const FOpenPLX_Input& Input, FVector Value);
+	bool ApplyIntegerLocally(const FOpenPLX_Input& Input, int64 Value);
+	bool ApplyBooleanLocally(const FOpenPLX_Input& Input, bool Value);
 
 	UFUNCTION(
 		BlueprintCallable, Category = "OpenPLX",

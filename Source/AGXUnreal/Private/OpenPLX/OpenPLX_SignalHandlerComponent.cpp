@@ -358,9 +358,7 @@ bool UOpenPLX_SignalHandlerComponent::SendRangeReal(const FOpenPLX_Input& Input,
 
 	if (SignalRerouter != nullptr)
 		return SignalRerouter->SendRangeReal(GetWorld(), Input, Value);
-	if (!SignalHandler.IsInitialized())
-		return false;
-	return SignalHandler.Send(Input, Value);
+	return ApplyRangeRealLocally(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendRangeRealInterface(
@@ -432,6 +430,36 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveRangeRealByName(FName NameOrAlias, 
 	return ReceiveRangeReal(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ApplyRangeRealLocally(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	check(IsInGameThread());
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+	if (!FOpenPLX_Utilities::IsRangeType(Input.Type))
+	{
+		LogTypeMismatchWarning("ApplyRangeRealLocally", Input.Name.ToString(), "Input");
+		return false;
+	}
+	return SignalHandler.Send(Input, Value);
+}
+
+bool UOpenPLX_SignalHandlerComponent::ApplyVector2Locally(
+	const FOpenPLX_Input& Input, FVector2D Value)
+{
+	check(IsInGameThread());
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+	if (!FOpenPLX_Utilities::IsVector2Type(Input.Type))
+	{
+		LogTypeMismatchWarning("ApplyVector2Locally", Input.Name.ToString(), "Input");
+		return false;
+	}
+	return SignalHandler.Send(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendVector2(const FOpenPLX_Input& Input, FVector2D Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -443,9 +471,7 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2(const FOpenPLX_Input& Input, F
 
 	if (SignalRerouter != nullptr)
 		return SignalRerouter->SendVector2(GetWorld(), Input, Value);
-	if (!SignalHandler.IsInitialized())
-		return false;
-	return SignalHandler.Send(Input, Value);
+	return ApplyVector2Locally(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVector2ByName(FName NameOrAlias, FVector2D Value)
@@ -518,6 +544,20 @@ bool UOpenPLX_SignalHandlerComponent::SendVector2Interface(
 	return SignalHandler.Send(Input, Value);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ApplyVectorLocally(const FOpenPLX_Input& Input, FVector Value)
+{
+	check(IsInGameThread());
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+	if (!FOpenPLX_Utilities::IsVectorType(Input.Type))
+	{
+		LogTypeMismatchWarning("ApplyVectorLocally", Input.Name.ToString(), "Input");
+		return false;
+	}
+	return SignalHandler.Send(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FVector Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -529,9 +569,7 @@ bool UOpenPLX_SignalHandlerComponent::SendVector(const FOpenPLX_Input& Input, FV
 
 	if (SignalRerouter != nullptr)
 		return SignalRerouter->SendVector(GetWorld(), Input, Value);
-	if (!SignalHandler.IsInitialized())
-		return false;
-	return SignalHandler.Send(Input, Value);
+	return ApplyVectorLocally(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendVectorInterface(
@@ -603,6 +641,20 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveVectorByName(FName NameOrAlias, FVe
 	return ReceiveVector(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ApplyIntegerLocally(const FOpenPLX_Input& Input, int64 Value)
+{
+	check(IsInGameThread());
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+	if (!FOpenPLX_Utilities::IsIntegerType(Input.Type))
+	{
+		LogTypeMismatchWarning("ApplyIntegerLocally", Input.Name.ToString(), "Input");
+		return false;
+	}
+	return SignalHandler.Send(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, int64 Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -614,9 +666,7 @@ bool UOpenPLX_SignalHandlerComponent::SendInteger(const FOpenPLX_Input& Input, i
 
 	if (SignalRerouter != nullptr)
 		return SignalRerouter->SendInteger(GetWorld(), Input, Value);
-	if (!SignalHandler.IsInitialized())
-		return false;
-	return SignalHandler.Send(Input, Value);
+	return ApplyIntegerLocally(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendIntegerInterface(const FOpenPLX_Input& Input, int64 Value)
@@ -686,6 +736,20 @@ bool UOpenPLX_SignalHandlerComponent::ReceiveIntegerByName(FName NameOrAlias, in
 	return ReceiveInteger(Output, OutValue);
 }
 
+bool UOpenPLX_SignalHandlerComponent::ApplyBooleanLocally(const FOpenPLX_Input& Input, bool Value)
+{
+	check(IsInGameThread());
+	using namespace OpenPLX_SignalHandlerComponent_helpers;
+	if (!SignalHandler.IsInitialized())
+		return false;
+	if (!FOpenPLX_Utilities::IsBooleanType(Input.Type))
+	{
+		LogTypeMismatchWarning("ApplyBooleanLocally", Input.Name.ToString(), "Input");
+		return false;
+	}
+	return SignalHandler.Send(Input, Value);
+}
+
 bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, bool Value)
 {
 	using namespace OpenPLX_SignalHandlerComponent_helpers;
@@ -697,9 +761,7 @@ bool UOpenPLX_SignalHandlerComponent::SendBoolean(const FOpenPLX_Input& Input, b
 
 	if (SignalRerouter != nullptr)
 		return SignalRerouter->SendBoolean(GetWorld(), Input, Value);
-	if (!SignalHandler.IsInitialized())
-		return false;
-	return SignalHandler.Send(Input, Value);
+	return ApplyBooleanLocally(Input, Value);
 }
 
 bool UOpenPLX_SignalHandlerComponent::SendBooleanInterface(const FOpenPLX_Input& Input, bool Value)

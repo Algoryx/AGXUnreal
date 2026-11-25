@@ -5,6 +5,21 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FDistributedTypedSignalsTest, "AGXUnreal.Editor.Distributed.TypedSignals",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDistributedTypedSignalsTest::RunTest(const FString& Parameters)
+{
+	FString Error;
+	if (!FTestUtilities::TestDistributedSignals(Error))
+	{
+		AddError(Error);
+		return false;
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FDistributedEntityStateTest, "AGXUnreal.Editor.Distributed.EntityStateAndAuthority",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

@@ -142,6 +142,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AGX Distributed")
 	bool RouteSignal(int64 EntityId, const FString& SignalName, double Value);
 
+	/** C++ routing entry point for all OpenPLX payloads. Blueprint callers use the signal handler.
+	 */
+	bool RouteSignalValue(
+		int64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value);
+
 	UFUNCTION(BlueprintPure, Category = "AGX Distributed")
 	bool IsConnected() const;
 
@@ -176,7 +181,8 @@ private:
 	void CollectAndSendEntityUpdates(double TimeStamp);
 	void HandleEvent(const FAGXDistributedEvent& Event);
 	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
-	void ApplyControlSignals(uint64 EntityId, const TMap<FName, double>& Signals);
+	void ApplyControlSignals(
+		uint64 EntityId, const TMap<FName, FAGXDistributedSignalValue>& Signals);
 	AActor* FindSignalHandlerEntity(const UOpenPLX_SignalHandlerComponent& Component) const;
 	void OnSignalHandlerInitializing(UOpenPLX_SignalHandlerComponent& Component);
 	void processIncomingEntityUpdates(const FAGXDistributedEvent& Event);
@@ -184,7 +190,7 @@ private:
 	// Actors are owned by the world. Do not keep destroyed entities alive.
 	TMap<uint64, TWeakObjectPtr<AActor>> EntityActors;
 	/** Latest Real input values retained while their entity's Actor is waiting to spawn. */
-	TMap<uint64, TMap<FName, double>> DeferredControlSignals;
+	TMap<uint64, TMap<FName, FAGXDistributedSignalValue>> DeferredControlSignals;
 	TMap<TWeakObjectPtr<AActor>, std::shared_ptr<FOpenPLX_SignalRerouter>> ActorSignalRerouters;
 	FDelegateHandle SignalHandlerInitializingHandle;
 	TSet<uint64> ReportedUpdateErrors;

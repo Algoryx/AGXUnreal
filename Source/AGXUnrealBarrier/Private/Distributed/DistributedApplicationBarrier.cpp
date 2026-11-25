@@ -23,6 +23,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -31,8 +32,10 @@
 #include <agx/AffineMatrix4x4.h>
 #include <agx/Quat.h>
 #include <agx/RigidBody.h>
+#include <agx/Vec2.h>
 #include <agx/Vec3.h>
 #include <agxDistributed/Client.h>
+#include <agxDistributed/SignalValue.h>
 #include <agxSDK/Simulation.h>
 #include <agxUtil/agxUtil.h>
 #if WITH_DEV_AUTOMATION_TESTS
@@ -372,7 +375,9 @@ namespace
 			OutEvents.Append(MoveTemp(Ready));
 		}
 
-		void routeSignal(agxDistributed::EntityId Id, const std::string& Name, double Value)
+		void routeSignal(
+			agxDistributed::EntityId Id, const std::string& Name,
+			const agxDistributed::SignalValue& Value)
 		{
 			if (!isPossessed(Id))
 				return;
@@ -381,12 +386,7 @@ namespace
 				applySignal(Id, Name, Value);
 			else
 			{
-				zenoh::ext::Serializer Writer;
-				Writer.serialize(Name);
-				Writer.serialize(Value);
-				getSession()->put(
-					"world/entities/" + std::to_string(Id.getId()) + "/signal",
-					std::move(Writer).finish());
+				publishControlSignal(Id, Name, Value);
 			}
 		}
 
@@ -410,14 +410,31 @@ namespace
 			}
 		}
 
-		void applySignal(agxDistributed::EntityId EntityId, const std::string& Name, double Value)
+		void applySignal(
+			agxDistributed::EntityId EntityId, const std::string& Name,
+			const agxDistributed::SignalValue& Value)
 		{
 			// Network callbacks must not access UObjects. Local signals use the same delivery path.
 			FAGXDistributedEvent Event;
 			Event.Type = EAGXDistributedEventType::ControlSignal;
 			Event.EntityId = EntityId.getId();
 			Event.SignalName = UTF8_TO_TCHAR(Name.c_str());
-			Event.SignalValue = Value;
+			// Copy components without changing units; the receiving signal-handler barrier
+			// performs the same OpenPLX conversion as a local Send call.
+			Event.SignalValue = std::visit(
+				[](const auto& Payload) -> FAGXDistributedSignalValue
+				{
+					using T = std::decay_t<decltype(Payload)>;
+					if constexpr (std::is_same_v<T, agx::Vec2>)
+						return FVector2D(Payload.x(), Payload.y());
+					else if constexpr (std::is_same_v<T, agx::Vec3>)
+						return FVector(Payload.x(), Payload.y(), Payload.z());
+					else if constexpr (std::is_same_v<T, int64_t>)
+						return static_cast<int64>(Payload);
+					else
+						return Payload;
+				},
+				Value);
 			Events->Push(MoveTemp(Event));
 		}
 
@@ -496,7 +513,8 @@ namespace
 		}
 
 		void onEntityControlSignal(
-			agxDistributed::EntityId Id, const std::string& Name, double Value) override
+			agxDistributed::EntityId Id, const std::string& Name,
+			const agxDistributed::SignalValue& Value) override
 		{
 			applySignal(Id, Name, Value);
 		}
@@ -581,7 +599,7 @@ namespace
 	private:
 		agxSDK::Simulation& Simulation;
 		TMap<uint64, TArray<FRigidBodyBarrier>> RegisteredBodies;
-		TMap<uint64, TMap<FString, double>> LocalSignals;
+		TMap<uint64, TMap<FString, agxDistributed::SignalValue>> LocalSignals;
 		std::shared_ptr<FEventQueue> Events;
 	};
 
@@ -981,14 +999,29 @@ bool FDistributedApplicationBarrier::RequestSimulationAuthority(
 }
 
 bool FDistributedApplicationBarrier::RouteSignal(
-	uint64 EntityId, const FString& SignalName, double Value)
+	uint64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value)
 {
 	if (!IsReady() || EntityId == MAX_uint64 || SignalName.IsEmpty())
 		return false;
 	try
 	{
+		const agxDistributed::SignalValue NativeValue = std::visit(
+			[](const auto& Payload) -> agxDistributed::SignalValue
+			{
+				using T = std::decay_t<decltype(Payload)>;
+				if constexpr (std::is_same_v<T, FVector2D>)
+					return agx::Vec2(Payload.X, Payload.Y);
+				else if constexpr (std::is_same_v<T, FVector>)
+					return agx::Vec3(Payload.X, Payload.Y, Payload.Z);
+				else if constexpr (std::is_same_v<T, int64>)
+					return static_cast<int64_t>(Payload);
+				else
+					return Payload;
+			},
+			Value);
 		Impl->Native->routeSignal(
-			agxDistributed::EntityId(EntityId), std::string(TCHAR_TO_UTF8(*SignalName)), Value);
+			agxDistributed::EntityId(EntityId), std::string(TCHAR_TO_UTF8(*SignalName)),
+			NativeValue);
 		return true;
 	}
 	catch (const std::exception& Error)
@@ -1391,5 +1424,124 @@ bool FTestUtilities::TestDistributedControlMessages(FString& OutError)
 		OutError = UTF8_TO_TCHAR(Error.what());
 		return false;
 	}
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+bool FTestUtilities::TestDistributedSignals(FString& OutError)
+{
+	return WithDistributedTestManager(
+		17592,
+		[&]
+		{
+			FSimulationBarrier SimulationA, SimulationB;
+			SimulationA.AllocateNative();
+			SimulationB.AllocateNative();
+			FDistributedApplicationBarrier A, B;
+			auto Require = [](bool Condition, const char* Message)
+			{
+				if (!Condition)
+					throw std::runtime_error(Message);
+			};
+			Require(
+				A.Initialize(SimulationA, TEXT("tcp/127.0.0.1:17592")),
+				"Client A initialization failed");
+			Require(
+				B.Initialize(SimulationB, TEXT("tcp/127.0.0.1:17592")),
+				"Client B initialization failed");
+			A.StartAndLoad(5);
+			B.StartAndLoad(5);
+			TArray<FAGXDistributedEvent> EventsA, EventsB;
+			auto WaitFor = [&](auto Predicate)
+			{
+				const auto Deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+				while (std::chrono::steady_clock::now() < Deadline)
+				{
+					A.Poll(EventsA);
+					B.Poll(EventsB);
+					if (Predicate())
+						return;
+					FPlatformProcess::Sleep(0.005f);
+				}
+				throw std::runtime_error("Timed out waiting for typed distributed signal delivery");
+			};
+			WaitFor([&] { return A.IsReady() && B.IsReady(); });
+			const FGuid Request = FGuid::NewGuid();
+			Require(
+				A.EnsureEntity(Request, 0, FTransform::Identity, TEXT("typed-signals")),
+				"Ensure failed");
+			uint64 Id = MAX_uint64;
+			WaitFor(
+				[&]
+				{
+					for (const auto& Event : EventsA)
+						if (Event.Type == EAGXDistributedEventType::SpawnRequestResult &&
+							Event.RequestId == Request && Event.bAccepted)
+							Id = Event.EntityId;
+					return Id != MAX_uint64 &&
+						   EventsB.ContainsByPredicate(
+							   [&](const auto& Event)
+							   {
+								   return Event.Type == EAGXDistributedEventType::SpawnEntity &&
+										  Event.EntityId == Id;
+							   });
+				});
+			A.RegisterEntityBodies(Id, {});
+			B.RegisterEntityBodies(Id, {});
+			Require(A.RequestPossession(Id, true), "Possession submission failed");
+			Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
+			WaitFor([&] { return A.IsPossessed(Id) && A.GetSimulatedEntities().Contains(Id); });
+
+			const TMap<FString, FAGXDistributedSignalValue> Expected = {
+				{TEXT("throttle"), 0.375},
+				{TEXT("gear"), int64(-3)},
+				{TEXT("integer_max"), int64(MAX_int64)},
+				{TEXT("integer_min"), int64(MIN_int64)},
+				{TEXT("enabled"), true},
+				{TEXT("disabled"), false},
+				{TEXT("range"), FVector2D(-123.5, 987.25)},
+				{TEXT("vector"), FVector(1.25, -2.5, 3.75)}};
+			auto Send = [&]
+			{
+				for (const auto& Signal : Expected)
+					Require(
+						A.RouteSignal(Id, Signal.Key, Signal.Value), "Signal submission failed");
+			};
+			auto Matches = [&](const TArray<FAGXDistributedEvent>& Events)
+			{
+				for (const auto& Signal : Expected)
+					if (!Events.ContainsByPredicate(
+							[&](const auto& Event)
+							{
+								return Event.Type == EAGXDistributedEventType::ControlSignal &&
+									   Event.EntityId == Id && Event.SignalName == Signal.Key &&
+									   Event.SignalValue == Signal.Value;
+							}))
+						return false;
+				return true;
+			};
+			EventsA.Reset();
+			Send();
+			WaitFor([&] { return Matches(EventsA); });
+
+			EventsB.Reset();
+			Require(A.RequestSimulationAuthority(Id, false), "Authority release failed");
+			WaitFor([&] { return !A.GetSimulatedEntities().Contains(Id); });
+			Require(B.RequestSimulationAuthority(Id, true), "Remote authority request failed");
+			WaitFor([&] { return B.GetSimulatedEntities().Contains(Id) && Matches(EventsB); });
+			EventsB.Reset();
+			Send();
+			WaitFor([&] { return Matches(EventsB); });
+
+			EventsA.Reset();
+			Require(B.RequestSimulationAuthority(Id, false), "Remote release failed");
+			WaitFor([&] { return !B.GetSimulatedEntities().Contains(Id); });
+			Require(A.RequestSimulationAuthority(Id, true), "Local reacquisition failed");
+			WaitFor([&] { return A.GetSimulatedEntities().Contains(Id) && Matches(EventsA); });
+			A.Shutdown();
+			B.Shutdown();
+			return true;
+		},
+		OutError);
 }
 #endif

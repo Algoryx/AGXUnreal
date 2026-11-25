@@ -22,6 +22,8 @@ public:
 	static bool TestDistributedControlMessages(FString& OutError);
 	/** Exercise state serialization, authority broadcasts and release over real transport. */
 	static bool TestDistributedEntityState(FString& OutError);
+	/** Exercise typed signal transport, exact payloads and authority-handoff replay. */
+	static bool TestDistributedSignals(FString& OutError);
 #endif
 	static FString ConvertToAGXUuidStr(const FGuid& Guid);
 

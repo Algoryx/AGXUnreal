@@ -3,11 +3,23 @@
 #include "Distributed/OpenPLX_DistributedSignalRerouter.h"
 
 // AGX Dynamics for Unreal includes.
-#include "AGX_LogCategory.h"
 #include "Distributed/AGX_DistributedWorldSubsystem.h"
 
 // Unreal Engine includes.
 #include "Engine/World.h"
+
+namespace
+{
+	bool RouteSignal(
+		UWorld* World, int64 EntityId, const FOpenPLX_Input& Input,
+		const FAGXDistributedSignalValue& Value)
+	{
+		UAGX_DistributedWorldSubsystem* Subsystem =
+			World != nullptr ? World->GetSubsystem<UAGX_DistributedWorldSubsystem>() : nullptr;
+		return Subsystem != nullptr && Subsystem->IsPossessed(EntityId) &&
+			   Subsystem->RouteSignalValue(EntityId, Input.Name.ToString(), Value);
+	}
+}
 
 FOpenPLX_DistributedSignalRerouter::FOpenPLX_DistributedSignalRerouter(int64 InEntityId)
 	: EntityId(InEntityId)
@@ -17,49 +29,35 @@ FOpenPLX_DistributedSignalRerouter::FOpenPLX_DistributedSignalRerouter(int64 InE
 bool FOpenPLX_DistributedSignalRerouter::SendReal(
 	UWorld* World, const FOpenPLX_Input& Input, double Value)
 {
-	UAGX_DistributedWorldSubsystem* Subsystem =
-		World != nullptr ? World->GetSubsystem<UAGX_DistributedWorldSubsystem>() : nullptr;
-	if (Subsystem == nullptr || !Subsystem->IsPossessed(EntityId))
-		return false;
-	return Subsystem->RouteSignal(EntityId, Input.Name.ToString(), Value);
+	return RouteSignal(World, EntityId, Input, Value);
 }
 
-bool FOpenPLX_DistributedSignalRerouter::SendRangeReal(UWorld*, const FOpenPLX_Input&, FVector2D)
+bool FOpenPLX_DistributedSignalRerouter::SendRangeReal(
+	UWorld* World, const FOpenPLX_Input& Input, FVector2D Value)
 {
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("FOpenPLX_DistributedSignalRerouter::SendRangeReal is not implemented."));
-	return false;
+	return RouteSignal(World, EntityId, Input, Value);
 }
 
-bool FOpenPLX_DistributedSignalRerouter::SendVector2(UWorld*, const FOpenPLX_Input&, FVector2D)
+bool FOpenPLX_DistributedSignalRerouter::SendVector2(
+	UWorld* World, const FOpenPLX_Input& Input, FVector2D Value)
 {
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("FOpenPLX_DistributedSignalRerouter::SendVector2 is not implemented."));
-	return false;
+	return RouteSignal(World, EntityId, Input, Value);
 }
 
-bool FOpenPLX_DistributedSignalRerouter::SendVector(UWorld*, const FOpenPLX_Input&, FVector)
+bool FOpenPLX_DistributedSignalRerouter::SendVector(
+	UWorld* World, const FOpenPLX_Input& Input, FVector Value)
 {
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("FOpenPLX_DistributedSignalRerouter::SendVector is not implemented."));
-	return false;
+	return RouteSignal(World, EntityId, Input, Value);
 }
 
-bool FOpenPLX_DistributedSignalRerouter::SendInteger(UWorld*, const FOpenPLX_Input&, int64)
+bool FOpenPLX_DistributedSignalRerouter::SendInteger(
+	UWorld* World, const FOpenPLX_Input& Input, int64 Value)
 {
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("FOpenPLX_DistributedSignalRerouter::SendInteger is not implemented."));
-	return false;
+	return RouteSignal(World, EntityId, Input, Value);
 }
 
-bool FOpenPLX_DistributedSignalRerouter::SendBoolean(UWorld*, const FOpenPLX_Input&, bool)
+bool FOpenPLX_DistributedSignalRerouter::SendBoolean(
+	UWorld* World, const FOpenPLX_Input& Input, bool Value)
 {
-	UE_LOG(
-		LogAGX, Warning,
-		TEXT("FOpenPLX_DistributedSignalRerouter::SendBoolean is not implemented."));
-	return false;
+	return RouteSignal(World, EntityId, Input, Value);
 }
