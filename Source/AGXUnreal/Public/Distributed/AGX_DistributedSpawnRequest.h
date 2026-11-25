@@ -15,7 +15,8 @@ enum class EAGX_DistributedSpawnState : uint8
 	Submitted,
 	Succeeded,
 	Failed,
-	Cancelled
+	Cancelled,
+	Registering
 };
 
 /** One local caller's interest in a distributed world object. */
@@ -35,7 +36,7 @@ struct AGXUNREAL_API FAGX_DistributedSpawnOptions
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Distributed")
 	bool bRequestSimulationAuthority {false};
-	/** Seconds allowed for joining, submission and local Actor creation. */
+	/** Seconds allowed for joining, asset registration, submission and local Actor creation. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Distributed", meta = (ClampMin = "1"))
 	double TimeoutSeconds {120.0};
 };

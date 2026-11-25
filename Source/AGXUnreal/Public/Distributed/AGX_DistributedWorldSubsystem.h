@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AGX_RigidBodyComponent.h"
+#include "Distributed/AGX_DistributedEnums.h"
 #include "Distributed/AGX_DistributedSpawnRequest.h"
 #include "Distributed/DistributedApplicationBarrier.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -25,6 +26,10 @@ struct FAGX_DistributedPendingSpawn
 	UPROPERTY() FAGX_DistributedSpawnResult Result;
 	FAGX_DistributedSpawnCallback Callback;
 	FString QualifiedKey;
+	FString AssetPath;
+	EAGX_DistributedAssetType AssetType {EAGX_DistributedAssetType::Possessable};
+	uint64 AssetId {MAX_uint64};
+	bool bRegistrationRequested {false};
 	double Deadline {0.0};
 	double NextReleaseAttempt {0.0};
 	bool bSubmitted {false};

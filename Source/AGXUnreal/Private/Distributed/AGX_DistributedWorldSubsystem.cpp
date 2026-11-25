@@ -482,6 +482,26 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 					Request->NextReleaseAttempt = FPlatformTime::Seconds() + 2.0;
 			}
 			break;
+		case EAGXDistributedEventType::AssetRegistrationResult:
+			if (auto* Request = SpawnRequests.Find(Event.RequestId))
+			{
+				// ProcessSpawnRequests owns deadline completion, even if a reply arrives late.
+				if (Request->bReleaseRequested || FPlatformTime::Seconds() > Request->Deadline)
+					break;
+				if (Event.bAccepted && Event.AssetId != MAX_uint64)
+					Request->AssetId = Event.AssetId;
+				else
+				{
+					CompleteSpawn(
+						Event.RequestId, EAGX_DistributedSpawnState::Failed,
+						FString::Printf(
+							TEXT("Could not register asset '%s': %s"), *Event.AssetPath,
+							Event.Message.IsEmpty() ? TEXT("World Manager rejected registration.")
+													: *Event.Message));
+					ReleaseSpawn(Event.RequestId);
+				}
+			}
+			break;
 		case EAGXDistributedEventType::SpawnRequestResult:
 			if (auto* Request = SpawnRequests.Find(Event.RequestId))
 			{
@@ -578,7 +598,8 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 
 	const TSoftClassPtr<AActor>* Mapped = nullptr;
 	for (const UAGX_DistributedAsset* Asset : Scenario->Assets)
-		if (Asset != nullptr && Asset->AssetPath == Event.AssetPath)
+		if (Asset != nullptr &&
+			Asset->AssetPath.Equals(Event.AssetPath, ESearchCase::CaseSensitive))
 		{
 			Mapped = &Asset->ActorClass;
 			break;
@@ -587,7 +608,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	if (Mapped == nullptr)
 		for (const auto& Pair : SpawnRequests)
 			if (Pair.Value.Options.Asset != nullptr &&
-				Pair.Value.Options.Asset->AssetPath == Event.AssetPath)
+				Pair.Value.AssetPath.Equals(Event.AssetPath, ESearchCase::CaseSensitive))
 			{
 				Mapped = &Pair.Value.Options.Asset->ActorClass;
 				break;
@@ -904,6 +925,8 @@ FGuid UAGX_DistributedWorldSubsystem::QueueSpawn(
 	const FGuid Id = FGuid::NewGuid();
 	FAGX_DistributedPendingSpawn Request;
 	Request.Options = Options;
+	Request.AssetPath = Options.Asset->AssetPath;
+	Request.AssetType = Options.Asset->AssetType;
 	Request.Result.RequestId = Id;
 	Request.Callback = MoveTemp(Callback);
 	Request.Deadline = FPlatformTime::Seconds() + Options.TimeoutSeconds;
@@ -1008,7 +1031,9 @@ void UAGX_DistributedWorldSubsystem::ProcessSpawnRequests()
 		{
 			CompleteSpawn(
 				Id, EAGX_DistributedSpawnState::Failed,
-				TEXT("Timed out waiting for connection, spawn reply or local Actor."));
+				TEXT(
+					"Timed out waiting for connection, asset registration, spawn reply or local "
+					"Actor."));
 			ReleaseSpawn(Id);
 			continue;
 		}
@@ -1016,23 +1041,35 @@ void UAGX_DistributedWorldSubsystem::ProcessSpawnRequests()
 			continue;
 		if (!Request->bSubmitted)
 		{
+			// Waiting registrations consume no submission budget and must not block other assets.
+			if (Request->bRegistrationRequested && Request->AssetId == MAX_uint64)
+				continue;
 			if (Submissions >= FMath::Max(1, Scenario->MaxSpawnRequestsPerTick))
 				continue;
 			++Submissions;
-			uint64 AssetId;
-			if (!Client.ResolveAsset(Request->Options.Asset->AssetPath, AssetId))
+			if (Request->AssetId == MAX_uint64)
 			{
-				CompleteSpawn(
-					Id, EAGX_DistributedSpawnState::Failed,
-					TEXT("Asset path is not present in the connected World Manager's library."));
-				ReleaseSpawn(Id);
+				if (!Request->bRegistrationRequested)
+				{
+					Request->bRegistrationRequested =
+						Client.RegisterAsset(Id, Request->AssetPath, Request->AssetType);
+					if (Request->bRegistrationRequested)
+						Request->Result.State = EAGX_DistributedSpawnState::Registering;
+					else
+					{
+						CompleteSpawn(
+							Id, EAGX_DistributedSpawnState::Failed,
+							TEXT("Could not submit asset registration."));
+						ReleaseSpawn(Id);
+					}
+				}
 				continue;
 			}
 			const FString Key =
 				Request->Options.ObjectKey.IsEmpty() ? Id.ToString() : Request->Options.ObjectKey;
 			Request->QualifiedKey = QualifyObjectKey(Key);
-			Request->bSubmitted =
-				Client.EnsureEntity(Id, AssetId, Request->Options.Transform, Request->QualifiedKey);
+			Request->bSubmitted = Client.EnsureEntity(
+				Id, Request->AssetId, Request->Options.Transform, Request->QualifiedKey);
 			if (!Request->bSubmitted)
 			{
 				CompleteSpawn(

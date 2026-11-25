@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1"))
 	int32 MaxActorCreationsPerTick {16};
 
-	/** Register all descriptors used by this scenario, including assets spawned by other nodes. */
+	/** Local mappings for all assets this client may receive. Network registration is lazy. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Assets")
 	TArray<TObjectPtr<UAGX_DistributedAsset>> Assets;
 
@@ -52,7 +52,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Assets")
 	TMap<FString, TSoftClassPtr<AActor>> AssetBlueprints;
 
-	/** Scenario asset ID to imported Blueprint. Takes precedence over the path mapping. */
+	/** Legacy mapping for prepopulated catalogs with fixed IDs. Prefer path-based descriptors. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Assets")
 	TMap<int64, TSoftClassPtr<AActor>> AssetBlueprintsById;
 

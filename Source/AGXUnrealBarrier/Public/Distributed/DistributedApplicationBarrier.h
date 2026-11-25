@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Distributed/AGX_DistributedEnums.h"
 #include "RigidBodyBarrier.h"
 
 #include <memory>
@@ -22,6 +23,7 @@ enum class EAGXDistributedEventType : uint8
 	SpawnEntity,
 	EntityUpdate,
 	SpawnRequestResult,
+	AssetRegistrationResult,
 	PossessionResult,
 	SimulationAuthorityResult,
 	SimulationAuthorityChanged,
@@ -73,6 +75,9 @@ public:
 	FString GetNodeId() const;
 
 	bool ResolveAsset(const FString& Path, uint64& OutId) const;
+	/** Resolve or register an asset asynchronously. Matching in-flight requests share one query.
+	 * AssetRegistrationResult is delivered by Poll, including for locally known assets. */
+	bool RegisterAsset(const FGuid& RequestId, const FString& Path, EAGX_DistributedAssetType Type);
 	FString GetScenarioId() const;
 	bool FindWorldObject(const FString& ObjectKey, uint64& OutEntityId) const;
 	bool EnsureEntity(

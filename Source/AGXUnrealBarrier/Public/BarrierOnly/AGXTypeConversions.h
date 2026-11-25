@@ -13,6 +13,7 @@
 #include "Constraints/AGX_Constraint2DOFFreeDOF.h"
 #include "Constraints/AGX_ConstraintEnumsCommon.h"
 #include "Contacts/AGX_ContactEnums.h"
+#include "Distributed/AGX_DistributedEnums.h"
 #include "Materials/AGX_ContactMaterialEnums.h"
 #include "RigidBodyBarrier.h"
 #include "Sensors/AGX_CustomPatternInterval.h"
@@ -47,6 +48,7 @@
 #include <agx/Vec2.h>
 #include <agx/Vec3.h>
 #include <agxCollide/Contacts.h>
+#include <agxDistributed/ScenarioInfo.h>
 #include <agxModel/TwoBodyTire.h>
 #include <agxSensor/LidarModelOusterOS.h>
 #include <agxSensor/LidarRayAngleGaussianNoise.h>
@@ -994,6 +996,51 @@ inline agx::Vec3Vector ConvertVertices(const TArray<FVector>& Vertices)
 	}
 
 	return VerticesAGX;
+}
+
+//
+// Enumerations, Distributed.
+//
+
+inline agxDistributed::ScenarioAssetType Convert(EAGX_DistributedAssetType Type)
+{
+	switch (Type)
+	{
+		case EAGX_DistributedAssetType::Static:
+			return agxDistributed::ScenarioAssetType::STATIC;
+		case EAGX_DistributedAssetType::Dynamic:
+			return agxDistributed::ScenarioAssetType::DYNAMIC;
+		case EAGX_DistributedAssetType::Possessable:
+			return agxDistributed::ScenarioAssetType::POSSESSABLE;
+		default:
+			UE_LOG(
+				LogAGX, Error,
+				TEXT(
+					"Conversion failed: Tried to convert an unknown EAGX_DistributedAssetType "
+					"literal to an agxDistributed::ScenarioAssetType. Returning POSSESSABLE."));
+			return agxDistributed::ScenarioAssetType::POSSESSABLE;
+	}
+}
+
+inline EAGX_DistributedAssetType Convert(agxDistributed::ScenarioAssetType Type)
+{
+	switch (Type)
+	{
+		case agxDistributed::ScenarioAssetType::STATIC:
+			return EAGX_DistributedAssetType::Static;
+		case agxDistributed::ScenarioAssetType::DYNAMIC:
+			return EAGX_DistributedAssetType::Dynamic;
+		case agxDistributed::ScenarioAssetType::POSSESSABLE:
+			return EAGX_DistributedAssetType::Possessable;
+		default:
+			UE_LOG(
+				LogAGX, Error,
+				TEXT(
+					"Conversion failed: Tried to convert an unknown "
+					"agxDistributed::ScenarioAssetType "
+					"literal to an EAGX_DistributedAssetType. Returning Possessable."));
+			return EAGX_DistributedAssetType::Possessable;
+	}
 }
 
 //

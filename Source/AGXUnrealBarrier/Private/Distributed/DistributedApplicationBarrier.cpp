@@ -533,8 +533,12 @@ namespace
 			Event.Type = EAGXDistributedEventType::SpawnEntity;
 			Event.EntityId = EntityId.getId();
 			Event.AssetId = AssetId.getId();
-			Event.AssetPath =
-				FString(UTF8_TO_TCHAR(getScenarioInfo().getAssetPath(AssetId).c_str()));
+			std::string NativePath = getScenarioInfo().getAssetPath(AssetId);
+			ON_SCOPE_EXIT
+			{
+				agxUtil::freeContainerMemory(NativePath);
+			};
+			Event.AssetPath = Convert(NativePath);
 			Event.Transform = Convert(AssetTransform);
 			// Spawn events precede the initial update event in the same queue. Actor creation
 			// and native body registration happen when the world subsystem drains it.
@@ -631,6 +635,54 @@ struct FDistributedApplicationBarrier::FImpl
 		std::future<agxDistributed::EntityId> Future;
 	};
 
+	struct FRegisteringAsset
+	{
+		FString Path;
+		EAGX_DistributedAssetType Type;
+		std::shared_future<agxDistributed::AssetId> Future;
+	};
+	struct FPendingRegistration
+	{
+		FGuid RequestId;
+		FString Path;
+		std::shared_future<agxDistributed::AssetId> Future;
+	};
+	struct FPendingLegacySpawn
+	{
+		FString Path;
+		FTransform Transform;
+		bool bPossess;
+		std::shared_future<agxDistributed::AssetId> Registration;
+	};
+
+	std::shared_future<agxDistributed::AssetId> RegisterAsset(
+		const FString& Path, EAGX_DistributedAssetType Type)
+	{
+		const auto NativeType = Convert(Type);
+		const auto& Scenario = Native->getScenarioInfo();
+		if (const auto Id = Scenario.findAssetId(TCHAR_TO_UTF8(*Path)))
+		{
+			if (Scenario.getAssetType(*Id) != NativeType)
+				throw std::runtime_error("Asset path already registered with a different type.");
+			std::promise<agxDistributed::AssetId> Promise;
+			Promise.set_value(*Id);
+			return Promise.get_future().share();
+		}
+		for (const auto& Pending : RegisteringAssets)
+			if (Pending.Path.Equals(Path, ESearchCase::CaseSensitive) && Pending.Type == Type)
+				return Pending.Future;
+
+		// AGX owns the by-value string. Allocate its buffer using the native allocator.
+		std::string NativePath = agxUtil::copyContainerMemory(Convert(Path));
+		ON_SCOPE_EXIT
+		{
+			agxUtil::freeContainerMemory(NativePath);
+		};
+		auto Future = Native->registerAsset(std::move(NativePath), NativeType).share();
+		RegisteringAssets.push_back({Path, Type, Future});
+		return Future;
+	}
+
 	struct FPendingAssignment
 	{
 		uint64 EntityId;
@@ -643,6 +695,9 @@ struct FDistributedApplicationBarrier::FImpl
 	std::shared_ptr<FEventQueue> Events {std::make_shared<FEventQueue>()};
 	std::future<void> StartFuture;
 	std::vector<FPendingSpawn> Spawns;
+	std::vector<FRegisteringAsset> RegisteringAssets;
+	std::vector<FPendingRegistration> Registrations;
+	std::vector<FPendingLegacySpawn> LegacySpawns;
 	struct FPendingRelease
 	{
 		FGuid RequestId;
@@ -734,6 +789,66 @@ void FDistributedApplicationBarrier::Poll(TArray<FAGXDistributedEvent>& OutEvent
 		}
 		Impl->Events->Push(MoveTemp(Event));
 	}
+
+	for (auto It = Impl->Registrations.begin(); It != Impl->Registrations.end();)
+	{
+		if (!FutureReady(It->Future.wait_for(0ms)))
+		{
+			++It;
+			continue;
+		}
+		FAGXDistributedEvent Event;
+		Event.Type = EAGXDistributedEventType::AssetRegistrationResult;
+		Event.RequestId = It->RequestId;
+		Event.AssetPath = It->Path;
+		try
+		{
+			const auto Id = It->Future.get();
+			Event.AssetId = Id.getId();
+			Event.bAccepted = Id.isValid();
+		}
+		catch (const std::exception& Error)
+		{
+			Event.Message = UTF8_TO_TCHAR(Error.what());
+		}
+		Impl->Events->Push(MoveTemp(Event));
+		It = Impl->Registrations.erase(It);
+	}
+	for (auto It = Impl->LegacySpawns.begin(); It != Impl->LegacySpawns.end();)
+	{
+		if (!FutureReady(It->Registration.wait_for(0ms)))
+		{
+			++It;
+			continue;
+		}
+		try
+		{
+			It->Registration.get();
+			std::string NativePath = agxUtil::copyContainerMemory(Convert(It->Path));
+			ON_SCOPE_EXIT
+			{
+				agxUtil::freeContainerMemory(NativePath);
+			};
+			Impl->Spawns.push_back(
+				{It->Path, FGuid(),
+				 Impl->Native->requestEntitySpawn(
+					 std::move(NativePath), Convert(It->Transform), "", It->bPossess)});
+		}
+		catch (const std::exception& Error)
+		{
+			FAGXDistributedEvent Event;
+			Event.Type = EAGXDistributedEventType::SpawnRequestResult;
+			Event.AssetPath = It->Path;
+			Event.Message = UTF8_TO_TCHAR(Error.what());
+			Impl->Events->Push(MoveTemp(Event));
+		}
+		It = Impl->LegacySpawns.erase(It);
+	}
+	Impl->RegisteringAssets.erase(
+		std::remove_if(
+			Impl->RegisteringAssets.begin(), Impl->RegisteringAssets.end(),
+			[](const auto& Pending) { return FutureReady(Pending.Future.wait_for(0ms)); }),
+		Impl->RegisteringAssets.end());
 
 	for (auto It = Impl->Spawns.begin(); It != Impl->Spawns.end();)
 	{
@@ -842,10 +957,38 @@ bool FDistributedApplicationBarrier::ResolveAsset(const FString& Path, uint64& O
 	return true;
 }
 
+bool FDistributedApplicationBarrier::RegisterAsset(
+	const FGuid& RequestId, const FString& Path, EAGX_DistributedAssetType Type)
+{
+	check(IsInGameThread());
+	if (!IsReady() || !RequestId.IsValid() || Path.IsEmpty())
+		return false;
+	try
+	{
+		Impl->Registrations.push_back({RequestId, Path, Impl->RegisterAsset(Path, Type)});
+	}
+	catch (const std::exception& Error)
+	{
+		FAGXDistributedEvent Event;
+		Event.Type = EAGXDistributedEventType::AssetRegistrationResult;
+		Event.RequestId = RequestId;
+		Event.AssetPath = Path;
+		Event.Message = UTF8_TO_TCHAR(Error.what());
+		Impl->Events->Push(MoveTemp(Event));
+	}
+	return true;
+}
+
 FString FDistributedApplicationBarrier::GetScenarioId() const
 {
-	return IsReady() ? UTF8_TO_TCHAR(Impl->Native->getScenarioInfo().getScenarioId().c_str())
-					 : FString();
+	if (!IsReady())
+		return {};
+	std::string NativeId = Impl->Native->getScenarioInfo().getScenarioId();
+	ON_SCOPE_EXIT
+	{
+		agxUtil::freeContainerMemory(NativeId);
+	};
+	return Convert(NativeId);
 }
 
 bool FDistributedApplicationBarrier::EnsureEntity(
@@ -918,11 +1061,14 @@ bool FDistributedApplicationBarrier::RequestSpawn(
 		return false;
 	try
 	{
-		// Q: What initial rigid-body state should the spawn blob contain?
-		Impl->Spawns.push_back(
-			{AssetPath, FGuid(),
-			 Impl->Native->requestEntitySpawn(
-				 std::string(TCHAR_TO_UTF8(*AssetPath)), Convert(Transform), "", bPossess)});
+		// The legacy string API has no category argument. Preserve a known category;
+		// previously unknown assets use the native registration default, Possessable.
+		auto Type = EAGX_DistributedAssetType::Possessable;
+		const auto& Scenario = Impl->Native->getScenarioInfo();
+		if (const auto Id = Scenario.findAssetId(TCHAR_TO_UTF8(*AssetPath)))
+			Type = Convert(Scenario.getAssetType(*Id));
+		Impl->LegacySpawns.push_back(
+			{AssetPath, Transform, bPossess, Impl->RegisterAsset(AssetPath, Type)});
 		return true;
 	}
 	catch (const std::exception& Error)
@@ -1066,6 +1212,9 @@ void FDistributedApplicationBarrier::Shutdown()
 	}
 	Impl->bReady = false;
 	Impl->Spawns.clear();
+	Impl->Registrations.clear();
+	Impl->RegisteringAssets.clear();
+	Impl->LegacySpawns.clear();
 	Impl->Releases.clear();
 	Impl->Possessions.clear();
 	Impl->Authorities.clear();
@@ -1085,7 +1234,7 @@ bool FDistributedApplicationBarrier::FindWorldObject(
 
 #if WITH_DEV_AUTOMATION_TESTS
 bool FTestUtilities::WithDistributedTestManager(
-	uint16 Port, TFunctionRef<bool()> Test, FString& OutError)
+	uint16 Port, TFunctionRef<bool()> Test, FString& OutError, bool bEmptyCatalog)
 {
 	try
 	{
@@ -1096,7 +1245,16 @@ bool FTestUtilities::WithDistributedTestManager(
 		Config.addSetting("listen/endpoints", "[\"tcp/127.0.0.1:" + std::to_string(Port) + "\"]");
 		Config.addSetting("scouting/multicast/enabled", "false");
 		agxDistributed::ScenarioInfo Scenario;
-		Scenario.addAssetPath("Car.openplx");
+		// Exercise native string ownership beyond the standard library's small-string buffer.
+		std::string ScenarioId = agxUtil::copyContainerMemory(
+			Convert(FString(TEXT("AGXUnrealDistributedAutomationScenario"))));
+		ON_SCOPE_EXIT
+		{
+			agxUtil::freeContainerMemory(ScenarioId);
+		};
+		Scenario.setScenarioId(std::move(ScenarioId));
+		if (!bEmptyCatalog)
+			Scenario.addAssetPath("Car.openplx");
 		agx::ref_ptr<agxDistributed::WorldManager> Manager =
 			new agxDistributed::WorldManager(Scenario, Config);
 		Manager->start();

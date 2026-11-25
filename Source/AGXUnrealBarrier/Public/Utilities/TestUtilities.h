@@ -15,9 +15,9 @@ class AGXUNREALBARRIER_API FTestUtilities
 {
 public:
 #if WITH_DEV_AUTOMATION_TESTS
-	/** Run a test with a private in-process WorldManager advertising Car.openplx. */
+	/** Run a test with a private manager, optionally starting with an empty asset catalog. */
 	static bool WithDistributedTestManager(
-		uint16 Port, TFunctionRef<bool()> Test, FString& OutError);
+		uint16 Port, TFunctionRef<bool()> Test, FString& OutError, bool bEmptyCatalog = false);
 	/** Exercise real control transport and barrier polling without a physics step. */
 	static bool TestDistributedControlMessages(FString& OutError);
 	/** Exercise state serialization, authority broadcasts and release over real transport. */
