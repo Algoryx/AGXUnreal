@@ -266,6 +266,19 @@ public:
 		EditAnywhere, Category = "AGX Terrain", Meta = (EditCondition = "bEnableTerrainPaging"))
 	FAGX_TerrainPagingSettings TerrainPagingSettings;
 
+	/**
+	 * Make the Terrain Pager load terrain tiles near the given Rigid Body.
+	 *
+	 * Can also be used to update the radii used for an already registered Rigid Body.
+	 *
+	 * @param Body The body to track.
+	 * @param PreloadRadius The radius within which terrain tiles will start to preload.
+	 * @param RequiredRadius The radius within which terrain tiles must be loaded.
+	 * @return True if the body is now tracked, false otherwise.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "AGX Terrain|Paging Settings")
+	bool AddTrackedBody(UAGX_RigidBodyComponent* Body, double PreloadRadius, double RequiredRadius);
+
 	bool HasNativeTerrainPager() const;
 
 	/**

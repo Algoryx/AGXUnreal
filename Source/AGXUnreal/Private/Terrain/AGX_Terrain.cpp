@@ -66,10 +66,9 @@ AAGX_Terrain::AAGX_Terrain()
 	RootComponent = SpriteComponent;
 
 	TerrainBounds = CreateDefaultSubobject<UAGX_HeightFieldBoundsComponent>(TEXT("TerrainBounds"));
-	
+
 	DefaultParticleRenderer =
-		CreateDefaultSubobject<UAGX_SoilParticleRendererComponent>(
-		TEXT("DefaultParticleRenderer"));
+		CreateDefaultSubobject<UAGX_SoilParticleRendererComponent>(TEXT("DefaultParticleRenderer"));
 
 	// Set render targets and niagara system from plugin by default to reduce manual steps when
 	// using Terrain.
@@ -92,8 +91,9 @@ AAGX_Terrain::AAGX_Terrain()
 
 	AssignDefault(
 		LandscapeDisplacementMap,
-		TEXT("TextureRenderTarget2D'/AGXUnreal/Terrain/Rendering/HeightField/"
-			 "RT_LandscapeDisplacementMap.RT_LandscapeDisplacementMap'"));
+		TEXT(
+			"TextureRenderTarget2D'/AGXUnreal/Terrain/Rendering/HeightField/"
+			"RT_LandscapeDisplacementMap.RT_LandscapeDisplacementMap'"));
 }
 
 void AAGX_Terrain::SetEnabled(bool InEnabled)
@@ -361,14 +361,64 @@ bool AAGX_Terrain::GetEnableTerrainPaging() const
 	return bEnableTerrainPaging;
 }
 
-bool AAGX_Terrain::HasNative() const
+bool AAGX_Terrain::AddTrackedBody(
+	UAGX_RigidBodyComponent* Body, double PreloadRadius, double RequiredRadius)
 {
-	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
+	if (Body == nullptr)
+	{
+		UE_LOG(LogAGX, Warning, TEXT("(None) Body passed to AGX Terrain > Add Tracked Body."));
+		return false;
+	}
+
+	FAGX_TerrainPagingBodyReference* Entry =
+		TerrainPagingSettings.TrackedRigidBodies.FindByPredicate(
+			[Body](const FAGX_TerrainPagingBodyReference& TrackedBody)
+			{ return TrackedBody.RigidBody.GetRigidBody() == Body; });
+	const bool Existed = Entry != nullptr;
+	if (!Existed)
+	{
+		Entry = &TerrainPagingSettings.TrackedRigidBodies.AddDefaulted_GetRef();
+		Entry->RigidBody.SetComponent(Body);
+	}
+
+	Entry->PreloadRadius = PreloadRadius;
+	Entry->RequiredRadius = RequiredRadius;
+
+	if (HasNativeTerrainPager() && !Body->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"AGX Terrain > Add Tracked Body called with a Rigid Body that does not have a "
+				"native when a Terrain Pager native has already been created. The AGX Dynamics "
+				"Rigid Body will not be registered with the AGX Dynamics Terrain Pager."));
+	}
+
+	if (HasNativeTerrainPager() && Body->HasNative())
+	{
+		if (Existed)
+		{
+			NativeTerrainPagerBarrier.SetTileLoadRadii(
+				Body->GetNativeByRef(), RequiredRadius, PreloadRadius);
+		}
+		else
+		{
+			NativeTerrainPagerBarrier.AddRigidBody(
+				Body->GetNativeByRef(), RequiredRadius, PreloadRadius);
+		}
+	}
+
+	return true;
 }
 
 bool AAGX_Terrain::HasNativeTerrainPager() const
 {
 	return NativeTerrainPagerBarrier.HasNative();
+}
+
+bool AAGX_Terrain::HasNative() const
+{
+	return NativeBarrier.HasNative() && (!bEnableTerrainPaging || HasNativeTerrainPager());
 }
 
 FTerrainBarrier* AAGX_Terrain::GetOrCreateNative()
@@ -781,8 +831,9 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("Cannot create shovel: Shovel Actor '%s' in terrain '%s' could not be created "
-					 "because the configured shovel body '%s' does not exist in the shovel Actor."),
+				TEXT(
+					"Cannot create shovel: Shovel Actor '%s' in terrain '%s' could not be created "
+					"because the configured shovel body '%s' does not exist in the shovel Actor."),
 				*OwningActor->GetName(), TerrainName, *BodyName);
 
 			return nullptr;
@@ -814,8 +865,9 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Unable to find Shovel Component '%s' in Rigid Body '%s'. Make sure it has "
-					 "been added as a child to the Rigid Body."),
+				TEXT(
+					"Unable to find Shovel Component '%s' in Rigid Body '%s'. Make sure it has "
+					"been added as a child to the Rigid Body."),
 				*std::remove_pointer<TPtr>::type::StaticClass()->GetName(), *Body.GetName());
 		}
 
@@ -832,8 +884,9 @@ namespace
 		{
 			UE_LOG(
 				LogAGX, Error,
-				TEXT("The shovel '%s' in the AGX Terrain '%s' is invalid because it doesn't have "
-					 "exactly one '%s'"),
+				TEXT(
+					"The shovel '%s' in the AGX Terrain '%s' is invalid because it doesn't have "
+					"exactly one '%s'"),
 				*Owner->GetName(), TerrainName, *TType::StaticClass()->GetName());
 			return nullptr;
 		}
@@ -870,12 +923,13 @@ namespace AGX_Terrain_helpers
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("AGX Terrain '%s' detected that the source Landscape '%s' doesn't have any "
-					 "Streaming Proxies in a level with World Partition enabled and World Settings "
-					 "> Enable Streaming ticked. This is a sign that AGX Terrain may not be able "
-					 "to initialize itself. If initialization fails either disable World Partition "
-					 "Streaming in the World Settings panel or disable Is Spatially Loaded on the "
-					 "Landscape Streaming Proxies overlapping the AGX Terrain bounds"),
+				TEXT(
+					"AGX Terrain '%s' detected that the source Landscape '%s' doesn't have any "
+					"Streaming Proxies in a level with World Partition enabled and World Settings "
+					"> Enable Streaming ticked. This is a sign that AGX Terrain may not be able "
+					"to initialize itself. If initialization fails either disable World Partition "
+					"Streaming in the World Settings panel or disable Is Spatially Loaded on the "
+					"Landscape Streaming Proxies overlapping the AGX Terrain bounds"),
 				*Terrain.GetActorLabel(), *Landscape.GetActorLabel());
 			return;
 		}
@@ -923,12 +977,13 @@ namespace AGX_Terrain_helpers
 			return;
 
 		const FString Message = FString::Printf(
-			TEXT("AGX Terrain '%s' detected that the source Landscape '%s' uses World Partition "
-				 "streaming. This is only supported by AGX Terrain if the Landscape Streaming "
-				 "Proxies that overlap the Terrain bounds are loaded on Begin Play. Either untick "
-				 "Enable Streaming in the World Settings or untick Is Spatially Loaded on all "
-				 "Landscape Streaming Proxies near and around the Terrain. The Output Log contains "
-				 "a list of proxies that need to have Is Spatially Loaded disabled."),
+			TEXT(
+				"AGX Terrain '%s' detected that the source Landscape '%s' uses World Partition "
+				"streaming. This is only supported by AGX Terrain if the Landscape Streaming "
+				"Proxies that overlap the Terrain bounds are loaded on Begin Play. Either untick "
+				"Enable Streaming in the World Settings or untick Is Spatially Loaded on all "
+				"Landscape Streaming Proxies near and around the Terrain. The Output Log contains "
+				"a list of proxies that need to have Is Spatially Loaded disabled."),
 			*GetLabelSafe(&Terrain), *Landscape.GetActorLabel());
 		FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
 	}
@@ -984,8 +1039,9 @@ void AAGX_Terrain::InitializeNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("UpdateNativeTerrainMaterial returned false in AGX_Terrain '%s'. "
-				 "Ensure the selected Terrain Material is valid."),
+			TEXT(
+				"UpdateNativeTerrainMaterial returned false in AGX_Terrain '%s'. "
+				"Ensure the selected Terrain Material is valid."),
 			*GetName());
 	}
 	if (HasNativeTerrainPager())
@@ -999,8 +1055,9 @@ void AAGX_Terrain::InitializeNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("UpdateNativeShapeMaterial returned false in AGX_Terrain '%s'. "
-				 "Ensure the selected Shape Material is valid."),
+			TEXT(
+				"UpdateNativeShapeMaterial returned false in AGX_Terrain '%s'. "
+				"Ensure the selected Shape Material is valid."),
 			*GetName());
 	}
 
@@ -1022,8 +1079,9 @@ bool AAGX_Terrain::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Unable to create Terrain native for '%s'; the given Terrain Bounds was "
-				 "invalid."),
+			TEXT(
+				"Unable to create Terrain native for '%s'; the given Terrain Bounds was "
+				"invalid."),
 			*GetName());
 		return false;
 	}
@@ -1055,8 +1113,9 @@ bool AAGX_Terrain::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Unable to create Terrain native for '%s'. The Output log may include more "
-				 "details."),
+			TEXT(
+				"Unable to create Terrain native for '%s'. The Output log may include more "
+				"details."),
 			*GetName());
 		return false;
 	}
@@ -1095,8 +1154,9 @@ bool AAGX_Terrain::CreateNative()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Terrain '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
-				 "returned nullptr."),
+			TEXT(
+				"Terrain '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
+				"returned nullptr."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
@@ -1139,8 +1199,9 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("CreateNativeTerrainPager called on Terrain '%s' which doesn't use Terrain "
-				 "Paging."),
+			TEXT(
+				"CreateNativeTerrainPager called on Terrain '%s' which doesn't use Terrain "
+				"Paging."),
 			*GetName());
 		return false;
 	}
@@ -1152,9 +1213,10 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("DeleteParticlesOutsideBounds was set to true while using Terrain Paging. This "
-				 "combination is not supported. DeleteParticlesOutsideBounds will be set to "
-				 "false."));
+			TEXT(
+				"DeleteParticlesOutsideBounds was set to true while using Terrain Paging. This "
+				"combination is not supported. DeleteParticlesOutsideBounds will be set to "
+				"false."));
 		TerrainProperties->SetDeleteParticlesOutsideBounds(false);
 	}
 
@@ -1171,8 +1233,9 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Unable to create Terrain Pager native for '%s'. The Output log may include more "
-				 "details."),
+			TEXT(
+				"Unable to create Terrain Pager native for '%s'. The Output log may include more "
+				"details."),
 			*GetName());
 		return false;
 	}
@@ -1182,8 +1245,9 @@ bool AAGX_Terrain::CreateNativeTerrainPager()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Terrain '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
-				 "returned nullptr."),
+			TEXT(
+				"Terrain '%s' in '%s' tried to get Simulation, but UAGX_Simulation::GetFrom "
+				"returned nullptr."),
 			*GetName(), *GetLabelSafe(GetOwner()));
 		return false;
 	}
@@ -1201,8 +1265,9 @@ void AAGX_Terrain::CreateNativeShovels()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("CreateNativeShovels called on Terrain '%s' which doesn't have a native "
-				 "representation."),
+			TEXT(
+				"CreateNativeShovels called on Terrain '%s' which doesn't have a native "
+				"representation."),
 			*GetName());
 	}
 
@@ -1228,17 +1293,19 @@ void AAGX_Terrain::CreateNativeShovels()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Deprecation warning: AGX Terrain '%s': AAGX_Terrain::Shovels has been deprecated "
-				 "and will be removed in a future release. Use AAGX_Terrain::ShovelComponents "
-				 "instead."),
+			TEXT(
+				"Deprecation warning: AGX Terrain '%s': AAGX_Terrain::Shovels has been deprecated "
+				"and will be removed in a future release. Use AAGX_Terrain::ShovelComponents "
+				"instead."),
 			*GetLabelSafe(this));
 
 		if (Shovel.RigidBodyActor == nullptr)
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("A shovel in the AGX Terrain '%s' is invalid because it does not reference "
-					 "any Actor."),
+				TEXT(
+					"A shovel in the AGX Terrain '%s' is invalid because it does not reference "
+					"any Actor."),
 				*GetName());
 			continue;
 		}
@@ -1282,8 +1349,9 @@ void AAGX_Terrain::CreateNativeShovels()
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Terrain '%s' rejected shovel '%s'. Reversing edge directions and trying "
-					 "again."),
+				TEXT(
+					"Terrain '%s' rejected shovel '%s'. Reversing edge directions and trying "
+					"again."),
 				*GetName(), *Actor->GetName());
 			std::swap(TopEdgeLine.v1, TopEdgeLine.v2);
 			std::swap(CuttingEdgeLine.v1, CuttingEdgeLine.v2);
@@ -1294,15 +1362,17 @@ void AAGX_Terrain::CreateNativeShovels()
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Terrain '%s' rejected shovel '%s' after edge direction flip. Abandoning "
-						 "shovel."),
+					TEXT(
+						"Terrain '%s' rejected shovel '%s' after edge direction flip. Abandoning "
+						"shovel."),
 					*GetName(), *Actor->GetName());
 				continue;
 			}
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("Shovel with reversed edges added successfully. Consider flipping the edges "
-					 "in the editor."));
+				TEXT(
+					"Shovel with reversed edges added successfully. Consider flipping the edges "
+					"in the editor."));
 		}
 
 		UE_LOG(
@@ -1320,8 +1390,9 @@ void AAGX_Terrain::CreateNativeShovels()
 			if (ShovelComponent == nullptr)
 			{
 				const FString Message = FString::Printf(
-					TEXT("AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
-						 "reference a valid Shovel."),
+					TEXT(
+						"AGX Terrain '%s' have a Shovel reference to '%s' in '%s' that does not "
+						"reference a valid Shovel."),
 					*GetLabelSafe(this), *ShovelRef.Shovel.Name.ToString(),
 					*GetLabelSafe(ShovelRef.Shovel.OwningActor));
 				FAGX_NotificationUtilities::ShowNotification(Message, SNotificationItem::CS_Fail);
@@ -1333,9 +1404,10 @@ void AAGX_Terrain::CreateNativeShovels()
 			{
 				UE_LOG(
 					LogAGX, Error,
-					TEXT("Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
-						 "representation. Ignoring this shovel. It will not be able to deform the "
-						 "Terrain."),
+					TEXT(
+						"Shovel '%s' in AGX Terrain '%s' could not create AGX Dynamics "
+						"representation. Ignoring this shovel. It will not be able to deform the "
+						"Terrain."),
 					*ShovelComponent->GetName(), *GetLabelSafe(this));
 				continue;
 			}
@@ -1394,8 +1466,9 @@ bool AAGX_Terrain::UpdateNativeTerrainMaterial()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Cannot update native Terrain material because don't have a world to create "
-				 "the material instance in."));
+			TEXT(
+				"Cannot update native Terrain material because don't have a world to create "
+				"the material instance in."));
 		return false;
 	}
 
@@ -1427,8 +1500,9 @@ bool AAGX_Terrain::UpdateNativeTerrainProperties()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("Cannot update native Terrain Properties because don't have a world to create "
-				 "the Properties instance in."));
+			TEXT(
+				"Cannot update native Terrain Properties because don't have a world to create "
+				"the Properties instance in."));
 		return false;
 	}
 
@@ -1478,8 +1552,9 @@ void AAGX_Terrain::InitializeDisplacementMap()
 	{
 		UE_LOG(
 			LogAGX, Warning,
-			TEXT("No landscape displacement map configured for terrain '%s'. Terrain rendering "
-				 "will not include height updates."),
+			TEXT(
+				"No landscape displacement map configured for terrain '%s'. Terrain rendering "
+				"will not include height updates."),
 			*GetName());
 		return;
 	}
@@ -1498,9 +1573,10 @@ void AAGX_Terrain::InitializeDisplacementMap()
 	{
 		UE_LOG(
 			LogAGX, Log,
-			TEXT("The size of the Displacement Map render target (%dx%d) for "
-				 "AGX Terrain '%s' does not match the vertices in the Terrain (%dx%d). "
-				 "Resizing the displacement map."),
+			TEXT(
+				"The size of the Displacement Map render target (%dx%d) for "
+				"AGX Terrain '%s' does not match the vertices in the Terrain (%dx%d). "
+				"Resizing the displacement map."),
 			LandscapeDisplacementMap->SizeX, LandscapeDisplacementMap->SizeY, *GetLabelSafe(this),
 			NumVerticesX, NumVerticesY);
 
@@ -1511,8 +1587,9 @@ void AAGX_Terrain::InitializeDisplacementMap()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Landscape displacement map for terrain '%s' could not be resized. "
-				 "Expected size is %dx%d, current size is %dx%d. There may be rendering issues."),
+			TEXT(
+				"Landscape displacement map for terrain '%s' could not be resized. "
+				"Expected size is %dx%d, current size is %dx%d. There may be rendering issues."),
 			*GetName(), NumVerticesX, NumVerticesY, LandscapeDisplacementMap->SizeX,
 			LandscapeDisplacementMap->SizeY);
 	}
@@ -1528,8 +1605,9 @@ void AAGX_Terrain::InitializeDisplacementMap()
 	{
 		UE_LOG(
 			LogAGX, Error,
-			TEXT("Could not allocate resource for Landscape Displacement Map for AGX Terrain '%s'. "
-				 "There may be rendering issues."),
+			TEXT(
+				"Could not allocate resource for Landscape Displacement Map for AGX Terrain '%s'. "
+				"There may be rendering issues."),
 			*GetLabelSafe(this));
 		return;
 	}
@@ -1623,15 +1701,15 @@ void AAGX_Terrain::UpdateParticlesArrays()
 		return;
 	}
 
-
 	// Copy data with holes.
-	// 
+	//
 	// TODO: Change the way this data broadcasting is done by letting the user
-	// request only the subset of data that the user wants.This is to avoid fetching, 
+	// request only the subset of data that the user wants.This is to avoid fetching,
 	// converting, packing, and passing data that will never be looked at. Right now
-	// we fetch everything but may not look at everything. 
+	// we fetch everything but may not look at everything.
 	EParticleDataFlags ToInclude = EParticleDataFlags::Positions | EParticleDataFlags::Rotations |
-								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities | EParticleDataFlags::Masses;
+								   EParticleDataFlags::Radii | EParticleDataFlags::Velocities |
+								   EParticleDataFlags::Masses;
 	const FParticleDataById ParticleData =
 		bEnableTerrainPaging ? NativeTerrainPagerBarrier.GetParticleDataById(ToInclude)
 							 : NativeBarrier.GetParticleDataById(ToInclude);
@@ -1655,7 +1733,8 @@ void AAGX_Terrain::UpdateParticlesArrays()
 	for (int32 I = 0; I < NumParticles; ++I)
 	{
 		data.PositionsAndRadii[I] = FVector4(Positions[I], Radii[I]);
-		data.Orientations[I] = FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
+		data.Orientations[I] =
+			FVector4(Rotations[I].X, Rotations[I].Y, Rotations[I].Z, Rotations[I].W);
 		data.VelocitiesAndMasses[I] =
 			FVector4(Velocities[I].X, Velocities[I].Y, Velocities[I].Z, Masses[I]);
 		data.Exists[I] = Exists[I];
@@ -1784,18 +1863,19 @@ void AAGX_Terrain::ShowShapeMaterialWarning() const
 		return;
 
 	const FString Msg = FString::Printf(
-		TEXT("Important!\n\nIt was detected that the AGX Terrain Actor '%s' references an AGX "
-			 "Terrain Material but no Shape Material. The surface properties of a Terrain is "
-			 "no longer described by the Terrain Material, but instead is described by a "
-			 "separate Shape Material that can be assigned from the Terrain Actor's Details "
-			 "Panel.\n\nIt is recommended to open the Terrain Material and use the 'Create "
-			 "Shape Material' button to generate a Shape Material containing the Terrain "
-			 "surface properties of the Terrain Material and then assign it to the Terrain "
-			 "Actor. Note that this also affects all Contact Materials referencing a Terrain "
-			 "Material; these should be updated to point to a Shape Material generated from "
-			 "the previously pointed to Terrain Material.\n\nThis information is also "
-			 "available in the Changelog in the User Manual.\n\nTo disable this warning, "
-			 "simply re-save the Level that contains this Terrain Actor."),
+		TEXT(
+			"Important!\n\nIt was detected that the AGX Terrain Actor '%s' references an AGX "
+			"Terrain Material but no Shape Material. The surface properties of a Terrain is "
+			"no longer described by the Terrain Material, but instead is described by a "
+			"separate Shape Material that can be assigned from the Terrain Actor's Details "
+			"Panel.\n\nIt is recommended to open the Terrain Material and use the 'Create "
+			"Shape Material' button to generate a Shape Material containing the Terrain "
+			"surface properties of the Terrain Material and then assign it to the Terrain "
+			"Actor. Note that this also affects all Contact Materials referencing a Terrain "
+			"Material; these should be updated to point to a Shape Material generated from "
+			"the previously pointed to Terrain Material.\n\nThis information is also "
+			"available in the Changelog in the User Manual.\n\nTo disable this warning, "
+			"simply re-save the Level that contains this Terrain Actor."),
 		*GetName());
 
 	FAGX_NotificationUtilities::ShowDialogBoxWithWarning(Msg);
