@@ -127,6 +127,9 @@ void UAGX_DistributedWorldSubsystem::ShutdownClient()
 	DeferredControlSignals.Reset();
 	OriginalMotionControls.Reset();
 	bSimulationRunning = false;
+	for (const auto& Pair : EntityActors)
+		if (AActor* Actor = Pair.Value.Get())
+			Actor->OnEndPlay.RemoveDynamic(this, &ThisClass::OnEntityEndPlay);
 	Client.Shutdown();
 	EntityActors.Reset();
 	ActorSignalRerouters.Reset();
@@ -597,11 +600,13 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	}
 
 	const TSoftClassPtr<AActor>* Mapped = nullptr;
+	double ProximityRadius = 600.0;
 	for (const UAGX_DistributedAsset* Asset : Scenario->Assets)
 		if (Asset != nullptr &&
 			Asset->AssetPath.Equals(Event.AssetPath, ESearchCase::CaseSensitive))
 		{
 			Mapped = &Asset->ActorClass;
+			ProximityRadius = Asset->SimulationAuthoritySensorRadius;
 			break;
 		}
 	// A queued descriptor can resolve a locally requested asset even before the catalog is updated.
@@ -611,6 +616,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 				Pair.Value.AssetPath.Equals(Event.AssetPath, ESearchCase::CaseSensitive))
 			{
 				Mapped = &Pair.Value.Options.Asset->ActorClass;
+				ProximityRadius = Pair.Value.Options.Asset->SimulationAuthoritySensorRadius;
 				break;
 			}
 	if (Mapped == nullptr && Event.AssetId <= static_cast<uint64>(MAX_int64))
@@ -662,6 +668,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	{
 		PendingActor = SpawnedActor;
 		EntityActors.Add(EntityId, SpawnedActor);
+		SpawnedActor->OnEndPlay.AddUniqueDynamic(this, &ThisClass::OnEntityEndPlay);
 		ActorSignalRerouters.Add(PendingActor, Rerouter);
 	};
 	AActor* Actor = World->SpawnActor<AActor>(ActorClass, Event.Transform, Params);
@@ -691,17 +698,43 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 				{ return A.ImportName < B.ImportName; });
 	auto& Original = OriginalMotionControls.FindOrAdd(Event.EntityId);
 	TArray<FRigidBodyBarrier> Barriers;
+	FVector OriginSum = FVector::ZeroVector;
 	for (UAGX_RigidBodyComponent* Body : Bodies)
 	{
 		Original.Add(Body->GetMotionControl());
+
 		// Spawn completion must also make final-state serialization possible before the first step.
 		FRigidBodyBarrier* NativeBody = Body->GetOrCreateNative();
 		if (NativeBody != nullptr && NativeBody->HasNative())
+		{
 			Barriers.Add(*NativeBody);
+			OriginSum += Body->GetPosition();
+		}
 	}
 	if (Barriers.Num() == Bodies.Num())
-		Client.RegisterEntityBodies(Event.EntityId, Barriers);
+	{
+		const FVector Center = Bodies.IsEmpty() ? Event.Transform.GetLocation()
+												: OriginSum / static_cast<double>(Bodies.Num());
+		Client.RegisterEntityBodies(Event.EntityId, Barriers, Center, ProximityRadius);
+	}
 	ApplySimulationAuthority(Event.EntityId);
+}
+
+void UAGX_DistributedWorldSubsystem::OnEntityEndPlay(AActor* Actor, EEndPlayReason::Type Reason)
+{
+	(void) Reason;
+	for (auto It = EntityActors.CreateIterator(); It; ++It)
+		if (It.Value().Get() == Actor)
+		{
+			const uint64 Id = It.Key();
+			Client.UnregisterEntityBodies(Id);
+			OriginalMotionControls.Remove(Id);
+			DeferredEntityUpdates.Remove(Id);
+			DeferredControlSignals.Remove(Id);
+			ActorSignalRerouters.Remove(It.Value());
+			It.RemoveCurrent();
+			break;
+		}
 }
 
 void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
@@ -889,6 +922,16 @@ FGuid UAGX_DistributedWorldSubsystem::QueueSpawn(
 	if (Options.Asset->AssetPath.IsEmpty())
 	{
 		UE_LOG(LogAGX, Warning, TEXT("Cannot queue distributed spawn: the asset path is empty."));
+		return FGuid();
+	}
+	if (!FMath::IsFinite(Options.Asset->SimulationAuthoritySensorRadius) ||
+		Options.Asset->SimulationAuthoritySensorRadius < 0)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT(
+				"Cannot queue distributed spawn: proximity radius must be finite and "
+				"nonnegative."));
 		return FGuid();
 	}
 	if (Options.Asset->ActorClass.IsNull())

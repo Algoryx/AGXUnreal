@@ -58,6 +58,8 @@
 #include "Distributed/AGX_DistributedAssetTypeActions.h"
 #include "Distributed/AGX_DistributedPlacementComponent.h"
 #include "Distributed/AGX_DistributedScenarioAssetTypeActions.h"
+#include "Distributed/AGX_DistributedSpawnPointComponentVisualizer.h"
+#include "Distributed/AGX_DistributedSpawnPointVisualizerComponent.h"
 #include "Import/AGX_ModelSourceComponent.h"
 #include "Import/AGX_ModelSourceComponentCustomization.h"
 #include "Materials/AGX_ContactMaterialAssetTypeActions.h"
@@ -761,6 +763,10 @@ void FAGXUnrealEditorModule::RegisterComponentVisualizers()
 		MakeShareable(new FAGX_ConstraintFrameComponentVisualizer));
 
 	RegisterComponentVisualizer(
+		UAGX_DistributedSpawnPointVisualizerComponent::StaticClass()->GetFName(),
+		MakeShareable(new FAGX_DistributedSpawnPointComponentVisualizer));
+
+	RegisterComponentVisualizer(
 		UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName(),
 		MakeShareable(new FAGX_HeightFieldBoundsComponentVisualizer));
 
@@ -819,6 +825,8 @@ void FAGXUnrealEditorModule::UnregisterComponentVisualizers()
 	UnregisterComponentVisualizer(UAGX_CameraSensorBase::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_ConstraintFrameComponent::StaticClass()->GetFName());
+	UnregisterComponentVisualizer(
+		UAGX_DistributedSpawnPointVisualizerComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_HeightFieldBoundsComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_IMUSensorComponent::StaticClass()->GetFName());
 	UnregisterComponentVisualizer(UAGX_LidarSensorComponent::StaticClass()->GetFName());

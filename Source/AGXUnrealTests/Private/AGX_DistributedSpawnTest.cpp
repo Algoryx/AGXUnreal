@@ -6,6 +6,7 @@
 #include "Distributed/AGX_DistributedPlacementComponent.h"
 #include "Distributed/AGX_DistributedSpawnBubbleComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SCS_Node.h"
@@ -14,6 +15,7 @@
 #include "Distributed/AGX_DistributedSettings.h"
 #include "Distributed/AGX_DistributedSpawnAsync.h"
 #include "Distributed/AGX_DistributedSpawnPoint.h"
+#include "Distributed/AGX_DistributedSpawnPointVisualizerComponent.h"
 #include "Distributed/AGX_DistributedWorldSubsystem.h"
 #include "AGX_RigidBodyActor.h"
 #include "AGX_RigidBodyComponent.h"
@@ -275,6 +277,13 @@ bool FDistributedAuthoringTest::RunTest(const FString& Parameters)
 	Asset->ActorClass = AAGX_RigidBodyActor::StaticClass();
 	Asset->AssetPath = TEXT("Car.openplx");
 	auto* Marker = World->SpawnActor<AAGX_DistributedSpawnPoint>();
+	TestEqual(
+		TEXT("Default proximity radius is 600 cm"), Asset->SimulationAuthoritySensorRadius, 600.0);
+	auto* Visualizer =
+		Marker->FindComponentByClass<UAGX_DistributedSpawnPointVisualizerComponent>();
+	TestNotNull(TEXT("Spawn point owns a proximity visualizer"), Visualizer);
+	if (Visualizer != nullptr)
+		TestTrue(TEXT("Proximity visualization is editor-only"), Visualizer->IsEditorOnly());
 	Marker->Asset = Asset;
 	Marker->RefreshPreview();
 	TArray<UAGX_RigidBodyComponent*> Bodies;
@@ -356,6 +365,106 @@ bool FDistributedAuthoringTest::RunTest(const FString& Parameters)
 	World->DestroyWorld(false);
 	return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FDistributedProximityCenterTest, "AGXUnreal.Editor.Distributed.ProximityCenter",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDistributedProximityCenterTest::RunTest(const FString& Parameters)
+{
+	UWorld* World = UWorld::CreateWorld(EWorldType::Editor, false, TEXT("DistributedCenterWorld"));
+	auto* Parent = FKismetEditorUtilities::CreateBlueprint(
+		AAGX_RigidBodyActor::StaticClass(), GetTransientPackage(),
+		MakeUniqueObjectName(
+			GetTransientPackage(), UBlueprint::StaticClass(), TEXT("CenterParent")),
+		BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	auto* Offset = Parent->SimpleConstructionScript->CreateNode(
+		USceneComponent::StaticClass(), TEXT("Offset"));
+	auto* OffsetTemplate = CastChecked<USceneComponent>(Offset->ComponentTemplate);
+	OffsetTemplate->SetRelativeLocation(FVector(-300, 100, 0));
+	OffsetTemplate->SetRelativeRotation(FRotator(0, 90, 0));
+	Parent->SimpleConstructionScript->AddNode(Offset);
+	Offset->SetParent(Parent->GeneratedClass->GetDefaultObject<AActor>()->GetRootComponent());
+	auto AddBody = [](USimpleConstructionScript* SCS, const TCHAR* Name, const FVector& Location)
+	{
+		USCS_Node* Node = SCS->CreateNode(UAGX_RigidBodyComponent::StaticClass(), FName(Name));
+		CastChecked<UAGX_RigidBodyComponent>(Node->ComponentTemplate)
+			->SetRelativeLocation(Location);
+		return Node;
+	};
+	Offset->AddChildNode(
+		AddBody(Parent->SimpleConstructionScript, TEXT("First"), FVector(100, 0, 0)));
+	Offset->AddChildNode(
+		AddBody(Parent->SimpleConstructionScript, TEXT("Second"), FVector(0, 100, 0)));
+	FKismetEditorUtilities::CompileBlueprint(Parent);
+	if (Parent->Status != BS_UpToDate)
+	{
+		AddError(TEXT("Parent Blueprint did not compile."));
+		World->DestroyWorld(false);
+		return false;
+	}
+
+	auto* Child = FKismetEditorUtilities::CreateBlueprint(
+		Parent->GeneratedClass, GetTransientPackage(),
+		MakeUniqueObjectName(GetTransientPackage(), UBlueprint::StaticClass(), TEXT("CenterChild")),
+		BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
+	auto* Third = AddBody(Child->SimpleConstructionScript, TEXT("Third"), FVector(0, 0, 300));
+	Child->SimpleConstructionScript->AddNode(Third);
+	Third->SetParent(Offset);
+	FKismetEditorUtilities::CompileBlueprint(Child);
+	if (Child->Status != BS_UpToDate)
+	{
+		AddError(TEXT("Child Blueprint did not compile."));
+		World->DestroyWorld(false);
+		return false;
+	}
+
+	auto* Asset = NewObject<UAGX_DistributedAsset>();
+	Asset->ActorClass = Child->GeneratedClass;
+	const FTransform Placement(FRotator(0, 37, 0), FVector(1200, -800, 250));
+	auto* Marker = World->SpawnActor<AAGX_DistributedSpawnPoint>(
+		AAGX_DistributedSpawnPoint::StaticClass(), Placement);
+	Marker->Asset = Asset;
+
+	// Four equally weighted origins: native root, two nested bodies, and a child-Blueprint body
+	// attached to the inherited, rotated Offset component. Their Actor-space mean is known.
+	const FVector Expected = Placement.TransformPosition(FVector(-250, 100, 75));
+	TestTrue(
+		TEXT("Preview averages complete native and inherited template transforms"),
+		Marker->GetProximitySensorCenter().Equals(Expected, 1.e-6));
+	AActor* Actual = World->SpawnActor<AActor>(Child->GeneratedClass, Placement);
+	if (Actual == nullptr)
+	{
+		AddError(TEXT("Could not instantiate the model to compare its rigid-body origins."));
+		World->DestroyWorld(false);
+		return false;
+	}
+	TArray<UAGX_RigidBodyComponent*> Bodies;
+	Actual->GetComponents(Bodies, true);
+	TestEqual(TEXT("Fixture has four instantiated bodies"), Bodies.Num(), 4);
+	FVector Sum = FVector::ZeroVector;
+	for (const auto* Body : Bodies)
+	{
+		TestFalse(TEXT("Editor inspection creates no native bodies"), Body->HasNative());
+		Sum += Body->GetPosition();
+	}
+	if (!Bodies.IsEmpty())
+		TestTrue(
+			TEXT("Preview matches mean used by runtime registration"),
+			Marker->GetProximitySensorCenter().Equals(
+				Sum / static_cast<double>(Bodies.Num()), 1.e-6));
+
+	Asset->ActorClass = AActor::StaticClass();
+	TestTrue(
+		TEXT("No bodies falls back to spawn origin"),
+		Marker->GetProximitySensorCenter().Equals(Placement.GetLocation()));
+	Marker->Asset = nullptr;
+	TestTrue(
+		TEXT("No asset falls back to spawn origin"),
+		Marker->GetProximitySensorCenter().Equals(Placement.GetLocation()));
+	World->DestroyWorld(false);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FDistributedGarageWidgetTest, "AGXUnreal.Editor.Distributed.GarageWidget",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

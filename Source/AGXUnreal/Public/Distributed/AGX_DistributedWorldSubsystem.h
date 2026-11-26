@@ -7,6 +7,7 @@
 #include "Distributed/AGX_DistributedEnums.h"
 #include "Distributed/AGX_DistributedSpawnRequest.h"
 #include "Distributed/DistributedApplicationBarrier.h"
+#include "Engine/EngineTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 
 // Standard library includes.
@@ -190,6 +191,9 @@ private:
 		uint64 EntityId, const TMap<FName, FAGXDistributedSignalValue>& Signals);
 	AActor* FindSignalHandlerEntity(const UOpenPLX_SignalHandlerComponent& Component) const;
 	void OnSignalHandlerInitializing(UOpenPLX_SignalHandlerComponent& Component);
+
+	UFUNCTION()
+	void OnEntityEndPlay(AActor* Actor, EEndPlayReason::Type Reason);
 	void processIncomingEntityUpdates(const FAGXDistributedEvent& Event);
 
 	// Actors are owned by the world. Do not keep destroyed entities alive.

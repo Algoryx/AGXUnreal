@@ -18,12 +18,19 @@ public:
 	/** Run a test with a private manager, optionally starting with an empty asset catalog. */
 	static bool WithDistributedTestManager(
 		uint16 Port, TFunctionRef<bool()> Test, FString& OutError, bool bEmptyCatalog = false);
+
 	/** Exercise real control transport and barrier polling without a physics step. */
 	static bool TestDistributedControlMessages(FString& OutError);
+
 	/** Exercise state serialization, authority broadcasts and release over real transport. */
 	static bool TestDistributedEntityState(FString& OutError);
+
 	/** Exercise typed signal transport, exact payloads and authority-handoff replay. */
 	static bool TestDistributedSignals(FString& OutError);
+
+	/** Exercise actual proximity contacts, grouping, separation, possession and sensor cleanup. */
+	static bool TestDistributedProximity(FString& OutError);
+	static bool TestDistributedProximityDelayedSeparation(FString& OutError);
 #endif
 	static FString ConvertToAGXUuidStr(const FGuid& Guid);
 

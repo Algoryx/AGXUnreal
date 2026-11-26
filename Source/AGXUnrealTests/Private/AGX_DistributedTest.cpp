@@ -4,6 +4,38 @@
 #include "Misc/AutomationTest.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FDistributedProximityTest, "AGXUnreal.Editor.Distributed.Proximity",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDistributedProximityTest::RunTest(const FString& Parameters)
+{
+	FString Error;
+	if (!FTestUtilities::TestDistributedProximity(Error))
+	{
+		AddError(Error);
+		return false;
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+	FDistributedProximityDelayedSeparationTest,
+	"AGXUnreal.Editor.Distributed.ProximityDelayedSeparation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FDistributedProximityDelayedSeparationTest::RunTest(const FString& Parameters)
+{
+	FString Error;
+	if (!FTestUtilities::TestDistributedProximityDelayedSeparation(Error))
+	{
+		AddError(Error);
+		return false;
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 	FDistributedTypedSignalsTest, "AGXUnreal.Editor.Distributed.TypedSignals",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

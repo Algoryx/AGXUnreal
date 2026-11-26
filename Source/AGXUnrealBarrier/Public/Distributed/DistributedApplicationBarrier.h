@@ -95,8 +95,15 @@ public:
 
 	/** Copy of the native simulation-authority set; no native lock escapes this call. */
 	TArray<uint64> GetSimulatedEntities() const;
-	/** Register bodies for final-state serialization during authority release/transfer. */
-	void RegisterEntityBodies(uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies);
+
+	/** Register bodies for final-state serialization and a proximity sensor.
+	 * ProximityCenter is the initial world-space center [cm]; ProximityRadius is the radius [cm].
+	 * The sensor follows the heaviest body. */
+	void RegisterEntityBodies(
+		uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies, const FVector& ProximityCenter,
+		double ProximityRadius = 600.0);
+	/** Queue local sensor/body-reference cleanup. Does not despawn the distributed entity. */
+	void UnregisterEntityBodies(uint64 EntityId);
 	/** Publish complete body lists in AssemblySerializer order. Called on the game thread. */
 	void SendEntityUpdates(const TMap<uint64, TArray<FRigidBodyBarrier>>& EntityBodies);
 

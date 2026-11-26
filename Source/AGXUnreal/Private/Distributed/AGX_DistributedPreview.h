@@ -13,3 +13,6 @@ struct FAGX_DistributedPreviewMesh
 };
 /** Reads templates only. Never constructs the source Actor or its AGX components. */
 TArray<FAGX_DistributedPreviewMesh> AGX_GetDistributedPreview(const UAGX_DistributedAsset* Asset);
+
+/** Unweighted mean of rigid-body template origins in Actor space [cm]. No bodies gives zero. */
+FVector AGX_GetDistributedProximityCenter(const UAGX_DistributedAsset* Asset);

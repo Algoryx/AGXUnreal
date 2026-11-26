@@ -1,6 +1,7 @@
 // Copyright 2026, Algoryx Simulation AB.
 
 #include "Distributed/DistributedApplicationBarrier.h"
+#include "DistributedProximitySensors.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
@@ -11,6 +12,7 @@
 
 // Unreal Engine includes.
 #include "HAL/PlatformProcess.h"
+#include "HAL/PlatformTime.h"
 #include "Misc/ScopeExit.h"
 
 // Standard library includes.
@@ -34,6 +36,9 @@
 #include <agx/RigidBody.h>
 #include <agx/Vec2.h>
 #include <agx/Vec3.h>
+#include <agxCollide/Box.h>
+#include <agxCollide/Geometry.h>
+#include <agxCollide/Sphere.h>
 #include <agxDistributed/Client.h>
 #include <agxDistributed/SignalValue.h>
 #include <agxSDK/Simulation.h>
@@ -295,6 +300,7 @@ namespace
 			, Simulation(Simulation)
 			, Events(std::move(InEvents))
 		{
+			Proximity = std::make_unique<FDistributedProximitySensors>(Simulation, *this);
 		}
 
 		~FUnrealApplicationLayer() override
@@ -339,16 +345,34 @@ namespace
 
 		void shutdownApplicationLayer()
 		{
+			Proximity->Reset();
+			RegisteredBodies.Reset();
+			PendingBodyRemovals.Reset();
 			closeSession();
 		}
 
-		void RegisterEntityBodies(uint64 Id, const TArray<FRigidBodyBarrier>& Bodies)
+		void RegisterEntityBodies(
+			uint64 Id, const TArray<FRigidBodyBarrier>& Bodies, const FVector& Center,
+			double Radius)
 		{
 			RegisteredBodies.Add(Id, Bodies);
+			Proximity->Register(Id, Bodies, Center, Radius);
+		}
+		void UnregisterEntityBodies(uint64 Id)
+		{
+			PendingBodyRemovals.Add(Id);
 		}
 
 		void PollEvents(TArray<FAGXDistributedEvent>& OutEvents)
 		{
+			for (const uint64 Id : PendingBodyRemovals)
+			{
+				Proximity->Unregister(Id);
+				RegisteredBodies.Remove(Id);
+				LocalSignals.Remove(Id);
+			}
+			PendingBodyRemovals.Reset();
+			Proximity->Poll();
 			setLocalSimulationTime(Simulation.getTimeStamp());
 			checkForStaleEntityData();
 			TArray<FAGXDistributedEvent> Ready;
@@ -362,12 +386,16 @@ namespace
 				if (Event.Type == EAGXDistributedEventType::SimulationAuthorityChanged &&
 					isPossessed(agxDistributed::EntityId(Event.EntityId)))
 					if (const auto* Signals = LocalSignals.Find(Event.EntityId))
-						for (const auto& Signal : *Signals)
+					{
+						const auto Replay = *Signals;
+						for (const auto& Signal : Replay)
 							routeSignal(
 								agxDistributed::EntityId(Event.EntityId),
 								TCHAR_TO_UTF8(*Signal.Key), Signal.Value);
+					}
 				if (Event.Type == EAGXDistributedEventType::RemoveEntity)
 				{
+					Proximity->Unregister(Event.EntityId);
 					RegisteredBodies.Remove(Event.EntityId);
 					LocalSignals.Remove(Event.EntityId);
 				}
@@ -404,7 +432,7 @@ namespace
 			setLocalSimulationTime(Simulation.getTimeStamp());
 			for (const auto& Entry : EntityBodies)
 			{
-				RegisterEntityBodies(Entry.Key, Entry.Value);
+				RegisteredBodies.Add(Entry.Key, Entry.Value);
 				if (isSimulated(agxDistributed::EntityId(Entry.Key)))
 					requestSerializedState(agxDistributed::EntityId(Entry.Key), true);
 			}
@@ -603,6 +631,8 @@ namespace
 	private:
 		agxSDK::Simulation& Simulation;
 		TMap<uint64, TArray<FRigidBodyBarrier>> RegisteredBodies;
+		TSet<uint64> PendingBodyRemovals;
+		std::unique_ptr<FDistributedProximitySensors> Proximity;
 		TMap<uint64, TMap<FString, agxDistributed::SignalValue>> LocalSignals;
 		std::shared_ptr<FEventQueue> Events;
 	};
@@ -1188,11 +1218,19 @@ TArray<uint64> FDistributedApplicationBarrier::GetSimulatedEntities() const
 }
 
 void FDistributedApplicationBarrier::RegisterEntityBodies(
-	uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies)
+	uint64 EntityId, const TArray<FRigidBodyBarrier>& Bodies, const FVector& ProximityCenter,
+	double ProximityRadius)
 {
 	check(IsInGameThread());
 	if (IsReady() && Impl->Native != nullptr)
-		Impl->Native->RegisterEntityBodies(EntityId, Bodies);
+		Impl->Native->RegisterEntityBodies(EntityId, Bodies, ProximityCenter, ProximityRadius);
+}
+
+void FDistributedApplicationBarrier::UnregisterEntityBodies(uint64 EntityId)
+{
+	check(IsInGameThread());
+	if (Impl->Native != nullptr)
+		Impl->Native->UnregisterEntityBodies(EntityId);
 }
 
 void FDistributedApplicationBarrier::SendEntityUpdates(
@@ -1370,8 +1408,8 @@ bool FTestUtilities::TestDistributedEntityState(FString& OutError)
 		Require(
 			std::memcmp(Wire.data() + 70, ExpectedEscape, sizeof(ExpectedEscape)) == 0,
 			"Encoded absolute position differs from AssemblySerializer");
-		A.RegisterEntityBodies(Id, {BodyA});
-		B.RegisterEntityBodies(Id, {BodyB});
+		A.RegisterEntityBodies(Id, {BodyA}, BodyA.GetPosition());
+		B.RegisterEntityBodies(Id, {BodyB}, BodyB.GetPosition());
 		Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
 		WaitFor([&] { return A.GetSimulatedEntities().Contains(Id); });
 		WaitFor(
@@ -1644,8 +1682,8 @@ bool FTestUtilities::TestDistributedSignals(FString& OutError)
 										  Event.EntityId == Id;
 							   });
 				});
-			A.RegisterEntityBodies(Id, {});
-			B.RegisterEntityBodies(Id, {});
+			A.RegisterEntityBodies(Id, {}, FVector::ZeroVector);
+			B.RegisterEntityBodies(Id, {}, FVector::ZeroVector);
 			Require(A.RequestPossession(Id, true), "Possession submission failed");
 			Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
 			WaitFor([&] { return A.IsPossessed(Id) && A.GetSimulatedEntities().Contains(Id); });
@@ -1701,5 +1739,301 @@ bool FTestUtilities::TestDistributedSignals(FString& OutError)
 			return true;
 		},
 		OutError);
+}
+#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+static bool RunDistributedProximityTest(FString& OutError, bool bDelaySeparation)
+{
+	try
+	{
+		FSimulationBarrier SimulationA, SimulationB;
+		SimulationA.AllocateNative();
+		SimulationB.AllocateNative();
+		SimulationA.GetNative()->Native->setUniformGravity(agx::Vec3());
+		SimulationB.GetNative()->Native->setUniformGravity(agx::Vec3());
+		agxDistributed::Node::Config Config;
+		Config.addSetting("mode", "\"peer\"");
+		Config.addSetting(
+			"listen/endpoints",
+			bDelaySeparation ? "[\"tcp/127.0.0.1:17597\"]" : "[\"tcp/127.0.0.1:17596\"]");
+		Config.addSetting("scouting/multicast/enabled", "false");
+		agx::ref_ptr<agxDistributed::WorldManager> Manager =
+			new agxDistributed::WorldManager(agxDistributed::ScenarioInfo(), Config);
+		Manager->start();
+		FDistributedApplicationBarrier A, B;
+		auto Check = [&](bool bCondition, const TCHAR* Message)
+		{
+			if (!bCondition)
+				OutError = Message;
+			return bCondition;
+		};
+		const FString Endpoint =
+			bDelaySeparation ? TEXT("tcp/127.0.0.1:17597") : TEXT("tcp/127.0.0.1:17596");
+		if (!Check(
+				A.Initialize(SimulationA, Endpoint) && B.Initialize(SimulationB, Endpoint),
+				TEXT("Proximity client initialization failed.")))
+			return false;
+		A.StartAndLoad(5);
+		B.StartAndLoad(5);
+		TArray<FAGXDistributedEvent> EventsA, EventsB;
+		auto Wait = [&](TFunctionRef<bool()> Predicate)
+		{
+			const double Deadline = FPlatformTime::Seconds() + 8.0;
+			while (FPlatformTime::Seconds() < Deadline)
+			{
+				A.Poll(EventsA);
+				B.Poll(EventsB);
+				if (Predicate())
+					return true;
+				FPlatformProcess::Sleep(0.005f);
+			}
+			return false;
+		};
+		if (!Check(
+				Wait([&] { return A.IsReady() && B.IsReady(); }),
+				TEXT("Proximity clients did not join.")))
+			return false;
+		const FGuid AssetRequest = FGuid::NewGuid();
+		A.RegisterAsset(
+			AssetRequest, TEXT("ProximityTest.openplx"), EAGX_DistributedAssetType::Possessable);
+		uint64 AssetId = MAX_uint64;
+		if (!Check(
+				Wait([&] { return A.ResolveAsset(TEXT("ProximityTest.openplx"), AssetId); }),
+				TEXT("Proximity asset registration failed.")))
+			return false;
+		const FGuid LeftRequest = FGuid::NewGuid(), RightRequest = FGuid::NewGuid();
+		A.EnsureEntity(
+			LeftRequest, AssetId, FTransform(FVector(-500, 0, 0)), TEXT("proximity-left"));
+		B.EnsureEntity(
+			RightRequest, AssetId, FTransform(FVector(500, 0, 0)), TEXT("proximity-right"));
+		uint64 Left = MAX_uint64, Right = MAX_uint64;
+		if (!Check(
+				Wait(
+					[&]
+					{
+						for (const auto* Events : {&EventsA, &EventsB})
+							for (const auto& Event : *Events)
+								if (Event.Type == EAGXDistributedEventType::SpawnRequestResult &&
+									Event.bAccepted)
+								{
+									if (Event.RequestId == LeftRequest)
+										Left = Event.EntityId;
+									if (Event.RequestId == RightRequest)
+										Right = Event.EntityId;
+								}
+						return Left != MAX_uint64 && Right != MAX_uint64;
+					}),
+				TEXT("Proximity entities did not spawn.")))
+			return false;
+		auto AddBody = [](FSimulationBarrier& Simulation, const FVector& Position)
+		{
+			FRigidBodyBarrier Body;
+			Body.AllocateNative();
+			Body.SetPosition(Position);
+			Body.GetNative()->Native->add(
+				new agxCollide::Geometry(new agxCollide::Box(1, 1, 1)),
+				agx::AffineMatrix4x4::translate(agx::Vec3(0.4, 0.2, 0.1)));
+			Simulation.GetNative()->Native->add(Body.GetNative()->Native);
+			return Body;
+		};
+		auto ALeft = AddBody(SimulationA, FVector(-500, 0, 0));
+		auto ARight = AddBody(SimulationA, FVector(500, 0, 0));
+		auto BLeft = AddBody(SimulationB, FVector(-500, 0, 0));
+		auto BRight = AddBody(SimulationB, FVector(500, 0, 0));
+		A.RegisterEntityBodies(Left, {ALeft}, FVector(-500, 0, 0), 225.0);
+		A.RegisterEntityBodies(Right, {ARight}, FVector(500, 0, 0), 225.0);
+		B.RegisterEntityBodies(Left, {BLeft}, FVector(-500, 0, 0), 225.0);
+		B.RegisterEntityBodies(Right, {BRight}, FVector(500, 0, 0), 225.0);
+		if (!Check(
+				ALeft.GetNative()->Native->getGeometries().size() == 2 &&
+					ARight.GetNative()->Native->getGeometries().size() == 2,
+				TEXT("Sensor geometries were not attached to the bodies.")))
+			return false;
+
+		// The configured 225 cm radius must reach AGX as exactly 2.25 m, without bounds padding.
+		for (const auto* Body : {&ALeft, &ARight, &BLeft, &BRight})
+			for (const auto& Geometry : Body->GetNative()->Native->getGeometries())
+				if (Geometry->isSensor())
+				{
+					const auto* Sphere = Geometry->getShape()->as<agxCollide::Sphere>();
+					if (!Check(
+							Sphere != nullptr && FMath::IsNearlyEqual(Sphere->getRadius(), 2.25),
+							TEXT("Sensor did not use the exact configured radius in AGX units.")))
+						return false;
+					if (!Check(
+							agx::equivalent(
+								Geometry->getPosition(), Body->GetNative()->Native->getPosition()),
+							TEXT("Offset physics bounds moved the configured sensor center.")))
+						return false;
+				}
+
+		// Registering twice must not add a second sphere.
+		A.RegisterEntityBodies(Left, {ALeft}, FVector(-500, 0, 0), 225.0);
+		if (!Check(
+				ALeft.GetNative()->Native->getGeometries().size() == 2,
+				TEXT("Sensor registration was not idempotent.")))
+			return false;
+		A.RequestSimulationAuthority(Left, true);
+		B.RequestSimulationAuthority(Right, true);
+		A.RequestPossession(Left, true);
+		B.RequestPossession(Right, true);
+		if (!Check(
+				Wait(
+					[&]
+					{
+						return A.GetSimulatedEntities().Contains(Left) &&
+							   B.GetSimulatedEntities().Contains(Right) && A.IsPossessed(Left) &&
+							   B.IsPossessed(Right);
+					}),
+				TEXT("Initial proximity roles were not assigned.")))
+			return false;
+		ALeft.SetMotionControl(EAGX_MotionControl::MC_DYNAMICS);
+		ARight.SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
+		BLeft.SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
+		BRight.SetMotionControl(EAGX_MotionControl::MC_DYNAMICS);
+		SimulationA.GetNative()->Native->stepForward();
+		SimulationB.GetNative()->Native->stepForward();
+		A.Poll(EventsA);
+		B.Poll(EventsB);
+		if (!Check(
+				!A.GetSimulatedEntities().Contains(Right) &&
+					!B.GetSimulatedEntities().Contains(Left),
+				TEXT("Separated bodies were grouped.")))
+			return false;
+
+		// The preferred node is independent of which client submits the first overlap.
+		const bool bPreferA = A.GetNodeId().Compare(B.GetNodeId(), ESearchCase::CaseSensitive) < 0;
+		auto& Winner = bPreferA ? A : B;
+		auto& Loser = bPreferA ? B : A;
+		auto& WinnerSimulation = bPreferA ? SimulationA : SimulationB;
+		auto& LoserSimulation = bPreferA ? SimulationB : SimulationA;
+		auto& WinnerRight = bPreferA ? ARight : BRight;
+		auto& LoserRight = bPreferA ? BRight : ARight;
+		auto& WinnerEvents = bPreferA ? EventsA : EventsB;
+		auto& LoserEvents = bPreferA ? EventsB : EventsA;
+		auto OriginalOwners = [&]
+		{
+			return A.GetSimulatedEntities().Contains(Left) &&
+				   !A.GetSimulatedEntities().Contains(Right) &&
+				   B.GetSimulatedEntities().Contains(Right) &&
+				   !B.GetSimulatedEntities().Contains(Left);
+		};
+		for (int32 Cycle = 0; Cycle < (bDelaySeparation ? 3 : 1); ++Cycle)
+		{
+			ALeft.SetMotionControl(EAGX_MotionControl::MC_DYNAMICS);
+			ARight.SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
+			BLeft.SetMotionControl(EAGX_MotionControl::MC_KINEMATICS);
+			BRight.SetMotionControl(EAGX_MotionControl::MC_DYNAMICS);
+
+			// Explicit 225 cm radii make sensors overlap at 3.8 m while the physical
+			// boxes remain separated.
+			ARight.SetPosition(FVector(-120, 0, 0));
+			BRight.SetPosition(FVector(-120, 0, 0));
+			if (!bDelaySeparation || Cycle == 0)
+				WinnerSimulation.GetNative()->Native->stepForward();
+			LoserSimulation.GetNative()->Native->stepForward();
+
+			// Let the eventual losing client submit before it can lose authority.
+			// Later cycles require its fresh impact to start the next merge.
+			Loser.Poll(LoserEvents);
+			if (!Check(
+					Wait(
+						[&]
+						{
+							const auto Simulated = Winner.GetSimulatedEntities();
+							return Simulated.Contains(Left) && Simulated.Contains(Right) &&
+								   Loser.GetSimulatedEntities().IsEmpty();
+						}),
+					TEXT("Sensor overlap did not move both entities to the preferred client.")))
+				return false;
+			if (!Check(
+					A.IsPossessed(Left) && B.IsPossessed(Right),
+					TEXT("Proximity transfer changed input possession.")))
+				return false;
+
+			ALeft.SetMotionControl(
+				bPreferA ? EAGX_MotionControl::MC_DYNAMICS : EAGX_MotionControl::MC_KINEMATICS);
+			ARight.SetMotionControl(
+				bPreferA ? EAGX_MotionControl::MC_DYNAMICS : EAGX_MotionControl::MC_KINEMATICS);
+			BLeft.SetMotionControl(
+				bPreferA ? EAGX_MotionControl::MC_KINEMATICS : EAGX_MotionControl::MC_DYNAMICS);
+			BRight.SetMotionControl(
+				bPreferA ? EAGX_MotionControl::MC_KINEMATICS : EAGX_MotionControl::MC_DYNAMICS);
+			if (bDelaySeparation && Cycle > 0)
+			{
+				WinnerSimulation.GetNative()->Native->stepForward();
+				Winner.Poll(WinnerEvents);
+			}
+
+			WinnerRight.SetPosition(FVector(500, 0, 0));
+			WinnerSimulation.GetNative()->Native->stepForward();
+			if (!bDelaySeparation)
+			{
+				LoserRight.SetPosition(FVector(500, 0, 0));
+				LoserSimulation.GetNative()->Native->stepForward();
+			}
+			if (!Check(
+					Wait(OriginalOwners),
+					TEXT("Sensor separation did not restore the original owners.")))
+				return false;
+
+			// The losing replica has not stepped: its overlap is deliberately stale
+			// while authority returns. Network polling must not re-arm that overlap.
+			if (bDelaySeparation)
+			{
+				const double ObserveUntil = FPlatformTime::Seconds() + 0.5;
+				do
+				{
+					A.Poll(EventsA);
+					B.Poll(EventsB);
+					if (!Check(
+							OriginalOwners(), TEXT(
+												  "Stale overlap re-merged the entities after "
+												  "authority was restored.")))
+						return false;
+					FPlatformProcess::Sleep(0.005f);
+				} while (FPlatformTime::Seconds() < ObserveUntil);
+				LoserRight.SetPosition(FVector(500, 0, 0));
+				LoserSimulation.GetNative()->Native->stepForward();
+				Loser.Poll(LoserEvents);
+				if (!Check(
+						OriginalOwners(), TEXT("Delayed separation changed restored authority.")))
+					return false;
+			}
+		}
+		A.UnregisterEntityBodies(Left);
+		A.UnregisterEntityBodies(Right);
+		A.UnregisterEntityBodies(Left);
+		A.Poll(EventsA);
+		if (!Check(
+				ALeft.GetNative()->Native->getGeometries().size() == 1 &&
+					ARight.GetNative()->Native->getGeometries().size() == 1,
+				TEXT("Unregister did not detach sensor geometry.")))
+			return false;
+		B.Shutdown();
+		if (!Check(
+				BLeft.GetNative()->Native->getGeometries().size() == 1 &&
+					BRight.GetNative()->Native->getGeometries().size() == 1,
+				TEXT("Shutdown did not detach remaining sensors.")))
+			return false;
+		A.Shutdown();
+		return true;
+	}
+	catch (const std::exception& Error)
+	{
+		OutError = UTF8_TO_TCHAR(Error.what());
+		return false;
+	}
+}
+
+bool FTestUtilities::TestDistributedProximity(FString& OutError)
+{
+	return RunDistributedProximityTest(OutError, false);
+}
+
+bool FTestUtilities::TestDistributedProximityDelayedSeparation(FString& OutError)
+{
+	return RunDistributedProximityTest(OutError, true);
 }
 #endif

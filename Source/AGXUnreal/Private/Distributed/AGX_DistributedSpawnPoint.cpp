@@ -1,13 +1,18 @@
 // Copyright 2026, Algoryx Simulation AB.
 
 #include "Distributed/AGX_DistributedSpawnPoint.h"
+
+// AGX Dynamics for Unreal includes.
 #include "AGX_LogCategory.h"
 #include "Distributed/AGX_DistributedAsset.h"
+#include "Distributed/AGX_DistributedPreview.h"
+#include "Distributed/AGX_DistributedSpawnPointVisualizerComponent.h"
 #include "Distributed/AGX_DistributedWorldSubsystem.h"
+
+// Unreal Engine includes.
+#include "Components/ArrowComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Distributed/AGX_DistributedPreview.h"
-#include "Components/ArrowComponent.h"
 #include "Engine/World.h"
 
 AAGX_DistributedSpawnPoint::AAGX_DistributedSpawnPoint()
@@ -16,6 +21,10 @@ AAGX_DistributedSpawnPoint::AAGX_DistributedSpawnPoint()
 	auto* Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("SpawnDirection"));
 	Arrow->SetupAttachment(RootComponent);
 	Arrow->SetHiddenInGame(true);
+#if WITH_EDITORONLY_DATA
+	ProximityVisualizer = CreateDefaultSubobject<UAGX_DistributedSpawnPointVisualizerComponent>(
+		TEXT("ProximityVisualizer"));
+#endif
 }
 void AAGX_DistributedSpawnPoint::PostLoad()
 {
@@ -40,6 +49,11 @@ void AAGX_DistributedSpawnPoint::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 	RefreshPreview();
 }
+FVector AAGX_DistributedSpawnPoint::GetProximitySensorCenter() const
+{
+	return GetActorTransform().TransformPosition(AGX_GetDistributedProximityCenter(Asset));
+}
+
 void AAGX_DistributedSpawnPoint::RefreshPreview()
 {
 	for (UStaticMeshComponent* Mesh : PreviewComponents)
