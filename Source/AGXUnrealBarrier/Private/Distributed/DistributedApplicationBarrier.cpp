@@ -7,7 +7,9 @@
 #include "AGX_LogCategory.h"
 #include "BarrierOnly/AGXRefs.h"
 #include "BarrierOnly/AGXTypeConversions.h"
+#include "OpenPLX/OpenPLX_Inputs.h"
 #include "SimulationBarrier.h"
+#include "Utilities/OpenPLXSignalConversions.h"
 #include "Utilities/TestUtilities.h"
 
 // Unreal Engine includes.
@@ -50,6 +52,33 @@
 
 namespace
 {
+	TOptional<agxDistributed::SignalValue> ConvertControlInputToNative(
+		const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value)
+	{
+		return std::visit(
+			[&Input](const auto& Payload) -> TOptional<agxDistributed::SignalValue>
+			{
+				using T = std::decay_t<decltype(Payload)>;
+				const auto Converted = [&]
+				{
+					if constexpr (std::is_same_v<T, double>)
+						return FOpenPLXSignalConversions::ConvertRealToPLX(Input, Payload);
+					else if constexpr (std::is_same_v<T, int64>)
+						return FOpenPLXSignalConversions::ConvertIntegerToPLX(Input, Payload);
+					else if constexpr (std::is_same_v<T, bool>)
+						return FOpenPLXSignalConversions::ConvertBooleanToPLX(Input, Payload);
+					else if constexpr (std::is_same_v<T, FVector2D>)
+						return FOpenPLXSignalConversions::ConvertVector2ToPLXValue(Input, Payload);
+					else
+						return FOpenPLXSignalConversions::ConvertVector3ToPLXValue(Input, Payload);
+				}();
+				if (!Converted.IsSet())
+					return {};
+				return agxDistributed::SignalValue(*Converted);
+			},
+			Value);
+	}
+
 	constexpr size_t BodyStateHeaderSize = 8 + 3 * 8;
 	constexpr size_t BodyStateSize = 3 * 2 + 4 * 2 + 6 * 4;
 	constexpr double PositionScale = 1000.0;
@@ -447,8 +476,8 @@ namespace
 			Event.Type = EAGXDistributedEventType::ControlSignal;
 			Event.EntityId = EntityId.getId();
 			Event.SignalName = UTF8_TO_TCHAR(Name.c_str());
-			// Copy components without changing units; the receiving signal-handler barrier
-			// performs the same OpenPLX conversion as a local Send call.
+
+			// Keep OpenPLX conventions until the game thread resolves the receiving input type.
 			Event.SignalValue = std::visit(
 				[](const auto& Payload) -> FAGXDistributedSignalValue
 				{
@@ -1175,29 +1204,19 @@ bool FDistributedApplicationBarrier::RequestSimulationAuthority(
 }
 
 bool FDistributedApplicationBarrier::RouteSignal(
-	uint64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value)
+	uint64 EntityId, const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value)
 {
-	if (!IsReady() || EntityId == MAX_uint64 || SignalName.IsEmpty())
+	check(IsInGameThread());
+	if (!IsReady() || EntityId == MAX_uint64 || Input.Name.IsNone())
 		return false;
 	try
 	{
-		const agxDistributed::SignalValue NativeValue = std::visit(
-			[](const auto& Payload) -> agxDistributed::SignalValue
-			{
-				using T = std::decay_t<decltype(Payload)>;
-				if constexpr (std::is_same_v<T, FVector2D>)
-					return agx::Vec2(Payload.X, Payload.Y);
-				else if constexpr (std::is_same_v<T, FVector>)
-					return agx::Vec3(Payload.X, Payload.Y, Payload.Z);
-				else if constexpr (std::is_same_v<T, int64>)
-					return static_cast<int64_t>(Payload);
-				else
-					return Payload;
-			},
-			Value);
+		const auto NativeValue = ConvertControlInputToNative(Input, Value);
+		if (!NativeValue.IsSet())
+			return false;
 		Impl->Native->routeSignal(
-			agxDistributed::EntityId(EntityId), std::string(TCHAR_TO_UTF8(*SignalName)),
-			NativeValue);
+			agxDistributed::EntityId(EntityId), std::string(TCHAR_TO_UTF8(*Input.Name.ToString())),
+			*NativeValue);
 		return true;
 	}
 	catch (const std::exception& Error)
@@ -1207,6 +1226,36 @@ bool FDistributedApplicationBarrier::RouteSignal(
 			*FString(UTF8_TO_TCHAR(Error.what())));
 	}
 	return false;
+}
+
+TOptional<FAGXDistributedSignalValue> FDistributedApplicationBarrier::ConvertIncomingSignal(
+	const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value)
+{
+	return std::visit(
+		[&Input](const auto& Payload) -> TOptional<FAGXDistributedSignalValue>
+		{
+			using T = std::decay_t<decltype(Payload)>;
+			const auto Converted = [&]
+			{
+				if constexpr (std::is_same_v<T, double>)
+					return FOpenPLXSignalConversions::ConvertRealInputToUnreal(Input, Payload);
+				else if constexpr (std::is_same_v<T, int64>)
+					return FOpenPLXSignalConversions::ConvertIntegerInputToUnreal(
+						Input, static_cast<int64_t>(Payload));
+				else if constexpr (std::is_same_v<T, bool>)
+					return FOpenPLXSignalConversions::ConvertBooleanInputToUnreal(Input, Payload);
+				else if constexpr (std::is_same_v<T, FVector2D>)
+					return FOpenPLXSignalConversions::ConvertVector2InputToUnreal(
+						Input, agx::Vec2(Payload.X, Payload.Y));
+				else
+					return FOpenPLXSignalConversions::ConvertVector3InputToUnreal(
+						Input, agx::Vec3(Payload.X, Payload.Y, Payload.Z));
+			}();
+			if (!Converted.IsSet())
+				return {};
+			return FAGXDistributedSignalValue(*Converted);
+		},
+		Value);
 }
 
 TArray<uint64> FDistributedApplicationBarrier::GetSimulatedEntities() const
@@ -1688,30 +1737,87 @@ bool FTestUtilities::TestDistributedSignals(FString& OutError)
 			Require(A.RequestSimulationAuthority(Id, true), "Authority submission failed");
 			WaitFor([&] { return A.IsPossessed(Id) && A.GetSimulatedEntities().Contains(Id); });
 
-			const TMap<FString, FAGXDistributedSignalValue> Expected = {
-				{TEXT("throttle"), 0.375},
-				{TEXT("gear"), int64(-3)},
-				{TEXT("integer_max"), int64(MAX_int64)},
-				{TEXT("integer_min"), int64(MIN_int64)},
-				{TEXT("enabled"), true},
-				{TEXT("disabled"), false},
-				{TEXT("range"), FVector2D(-123.5, 987.25)},
-				{TEXT("vector"), FVector(1.25, -2.5, 3.75)}};
+			constexpr double Pi = 3.14159265358979323846;
+			struct FSignalCase
+			{
+				EOpenPLX_InputType Type;
+				FAGXDistributedSignalValue Unreal;
+				FAGXDistributedSignalValue Native;
+			};
+			const TMap<FString, FSignalCase> Signals = {
+				{TEXT("throttle"), {EOpenPLX_InputType::FractionInput, 0.375, 0.375}},
+				{TEXT("gear"), {EOpenPLX_InputType::IntInput, int64(-3), int64(-3)}},
+				{TEXT("integer_max"),
+				 {EOpenPLX_InputType::IntInput, int64(MAX_int64), int64(MAX_int64)}},
+				{TEXT("integer_min"),
+				 {EOpenPLX_InputType::IntInput, int64(MIN_int64), int64(MIN_int64)}},
+				{TEXT("enabled"), {EOpenPLX_InputType::EnableInteractionInput, true, true}},
+				{TEXT("disabled"), {EOpenPLX_InputType::BoolInput, false, false}},
+				{TEXT("range"),
+				 {EOpenPLX_InputType::ForceRangeInput, FVector2D(-123.5, 987.25),
+				  FVector2D(-123.5, 987.25)}},
+				{TEXT("torque_range"),
+				 {EOpenPLX_InputType::TorqueRangeInput, FVector2D(-25, 75), FVector2D(-25, 75)}},
+				{TEXT("vector"),
+				 {EOpenPLX_InputType::LinearVelocity3DInput, FVector(100, -200, 300),
+				  FVector(1, 2, 3)}},
+				{TEXT("angle"), {EOpenPLX_InputType::AngleInput, 180.0, Pi}},
+				{TEXT("angular_velocity"),
+				 {EOpenPLX_InputType::AngularVelocity1DInput, -90.0, -Pi / 2.0}},
+				{TEXT("position"), {EOpenPLX_InputType::Position1DInput, 250.0, 2.5}},
+				{TEXT("linear_velocity"),
+				 {EOpenPLX_InputType::LinearVelocity1DInput, -125.0, -1.25}},
+				{TEXT("angular_vector"),
+				 {EOpenPLX_InputType::AngularVelocity3DInput, FVector(180, 90, -45),
+				  FVector(Pi, -Pi / 2.0, Pi / 4.0)}},
+				{TEXT("torque_vector"),
+				 {EOpenPLX_InputType::Torque3DInput, FVector(10, -20, 30), FVector(10, 20, -30)}}};
+			auto ValuesMatch = [](const FAGXDistributedSignalValue& Actual,
+								  const FAGXDistributedSignalValue& Expected)
+			{
+				return std::visit(
+					[&Actual](const auto& Payload)
+					{
+						using T = std::decay_t<decltype(Payload)>;
+						const T* Found = std::get_if<T>(&Actual);
+						if (Found == nullptr)
+							return false;
+						if constexpr (std::is_same_v<T, double>)
+							return FMath::IsNearlyEqual(*Found, Payload, 1.e-10);
+						else if constexpr (
+							std::is_same_v<T, FVector> || std::is_same_v<T, FVector2D>)
+							return Found->Equals(Payload, 1.e-10);
+						else
+							return *Found == Payload;
+					},
+					Expected);
+			};
 			auto Send = [&]
 			{
-				for (const auto& Signal : Expected)
+				for (const auto& Signal : Signals)
+				{
+					const FName Name(*Signal.Key);
+					const FOpenPLX_Input Input(Name, Name, Signal.Value.Type);
 					Require(
-						A.RouteSignal(Id, Signal.Key, Signal.Value), "Signal submission failed");
+						A.RouteSignal(Id, Input, Signal.Value.Unreal), "Signal submission failed");
+				}
 			};
 			auto Matches = [&](const TArray<FAGXDistributedEvent>& Events)
 			{
-				for (const auto& Signal : Expected)
+				for (const auto& Signal : Signals)
 					if (!Events.ContainsByPredicate(
 							[&](const auto& Event)
 							{
-								return Event.Type == EAGXDistributedEventType::ControlSignal &&
-									   Event.EntityId == Id && Event.SignalName == Signal.Key &&
-									   Event.SignalValue == Signal.Value;
+								if (Event.Type != EAGXDistributedEventType::ControlSignal ||
+									Event.EntityId != Id || Event.SignalName != Signal.Key ||
+									!ValuesMatch(Event.SignalValue, Signal.Value.Native))
+									return false;
+								const FName Name(*Signal.Key);
+								const FOpenPLX_Input Input(Name, Name, Signal.Value.Type);
+								const auto Unreal =
+									FDistributedApplicationBarrier::ConvertIncomingSignal(
+										Input, Event.SignalValue);
+								return Unreal.IsSet() && ValuesMatch(*Unreal, Signal.Value.Unreal);
 							}))
 						return false;
 				return true;

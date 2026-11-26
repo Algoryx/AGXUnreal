@@ -133,6 +133,7 @@ void UAGX_DistributedWorldSubsystem::ShutdownClient()
 	Client.Shutdown();
 	EntityActors.Reset();
 	ActorSignalRerouters.Reset();
+	CachedSignalHandlers.Reset();
 	ReportedUpdateErrors.Reset();
 	ReportedSendErrors.Reset();
 }
@@ -407,7 +408,19 @@ bool UAGX_DistributedWorldSubsystem::RouteSignal(
 bool UAGX_DistributedWorldSubsystem::RouteSignalValue(
 	int64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value)
 {
-	return EntityId >= 0 && Client.RouteSignal(static_cast<uint64>(EntityId), SignalName, Value);
+	check(IsInGameThread());
+	if (EntityId < 0 || SignalName.IsEmpty())
+		return false;
+	const FOpenPLX_Input* Input = nullptr;
+	return FindSignalHandler(static_cast<uint64>(EntityId), FName(*SignalName), Input) != nullptr &&
+		   RouteSignalValue(EntityId, *Input, Value);
+}
+
+bool UAGX_DistributedWorldSubsystem::RouteSignalValue(
+	int64 EntityId, const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value)
+{
+	check(IsInGameThread());
+	return EntityId >= 0 && Client.RouteSignal(static_cast<uint64>(EntityId), Input, Value);
 }
 
 bool UAGX_DistributedWorldSubsystem::IsConnected() const
@@ -465,6 +478,7 @@ void UAGX_DistributedWorldSubsystem::HandleEvent(const FAGXDistributedEvent& Eve
 			if (auto* Entry = EntityActors.Find(Event.EntityId))
 			{
 				ActorSignalRerouters.Remove(*Entry);
+				CachedSignalHandlers.Remove(*Entry);
 				if (AActor* Actor = Entry->Get())
 					Actor->Destroy();
 			}
@@ -578,6 +592,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 		if (Existing->IsValid())
 			return;
 		ActorSignalRerouters.Remove(*Existing);
+		CachedSignalHandlers.Remove(*Existing);
 		EntityActors.Remove(Event.EntityId);
 	}
 	if (Event.EntityId > static_cast<uint64>(MAX_int64))
@@ -675,6 +690,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	if (Actor == nullptr)
 	{
 		ActorSignalRerouters.Remove(PendingActor);
+		CachedSignalHandlers.Remove(PendingActor);
 		EntityActors.Remove(Event.EntityId);
 		EntityErrors.Add(Event.EntityId, TEXT("Unreal failed to create the entity Actor."));
 		UE_LOG(
@@ -685,6 +701,9 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 	}
 
 	ReportedUpdateErrors.Remove(Event.EntityId);
+
+	// Construction and initialization may have added handlers after an early lookup.
+	CachedSignalHandlers.Remove(Actor);
 
 	UE_LOG(
 		LogAGX, Log,
@@ -723,6 +742,7 @@ void UAGX_DistributedWorldSubsystem::HandleSpawnEntityEvent(const FAGXDistribute
 void UAGX_DistributedWorldSubsystem::OnEntityEndPlay(AActor* Actor, EEndPlayReason::Type Reason)
 {
 	(void) Reason;
+	CachedSignalHandlers.Remove(Actor);
 	for (auto It = EntityActors.CreateIterator(); It; ++It)
 		if (It.Value().Get() == Actor)
 		{
@@ -749,36 +769,22 @@ void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
 	if (!IsValid(Actor))
 		return;
 
-	TArray<UOpenPLX_SignalHandlerComponent*> Handlers;
-	Actor->GetComponents<UOpenPLX_SignalHandlerComponent>(Handlers, true);
-	Handlers.RemoveAll([this, Actor](const auto* Handler)
-					   { return !IsValid(Handler) || FindSignalHandlerEntity(*Handler) != Actor; });
 	for (const auto& Signal : Signals)
 	{
-		UOpenPLX_SignalHandlerComponent* Receiver = nullptr;
 		const FOpenPLX_Input* Input = nullptr;
-		bool bAmbiguous = false;
-		for (auto* Handler : Handlers)
-		{
-			const FOpenPLX_Input* Found = Handler->Inputs.Find(Signal.Key);
-			if (Found == nullptr)
-				continue;
-			if (Receiver != nullptr)
-			{
-				bAmbiguous = true;
-				break;
-			}
-			Receiver = Handler;
-			Input = Found;
-		}
-		if (Receiver == nullptr || bAmbiguous)
+		auto* Receiver = FindSignalHandler(EntityId, Signal.Key, Input);
+		if (Receiver == nullptr)
+			continue;
+		const auto UnrealValue =
+			FDistributedApplicationBarrier::ConvertIncomingSignal(*Input, Signal.Value);
+		if (!UnrealValue.IsSet())
 		{
 			UE_LOG(
 				LogAGX, Warning,
-				TEXT("AGX Distributed cannot apply signal '%s' to entity %llu: %s."),
-				*Signal.Key.ToString(), EntityId,
-				bAmbiguous ? TEXT("input name matches multiple signal handlers")
-						   : TEXT("no matching input"));
+				TEXT(
+					"AGX Distributed could not convert signal '%s' for entity %llu to Unreal "
+					"conventions."),
+				*Signal.Key.ToString(), EntityId);
 			continue;
 		}
 		const bool bApplied = std::visit(
@@ -798,13 +804,74 @@ void UAGX_DistributedWorldSubsystem::ApplyControlSignals(
 				else
 					return Receiver->ApplyVectorLocally(*Input, Value);
 			},
-			Signal.Value);
+			*UnrealValue);
 		if (!bApplied)
 			UE_LOG(
 				LogAGX, Warning,
 				TEXT("AGX Distributed could not apply signal '%s' to entity %llu."),
 				*Signal.Key.ToString(), EntityId);
 	}
+}
+
+UOpenPLX_SignalHandlerComponent* UAGX_DistributedWorldSubsystem::FindSignalHandler(
+	uint64 EntityId, FName SignalName, const FOpenPLX_Input*& OutInput)
+{
+	check(IsInGameThread());
+	OutInput = nullptr;
+	const auto* Entry = EntityActors.Find(EntityId);
+	AActor* Actor = Entry != nullptr ? Entry->Get() : nullptr;
+	if (!IsValid(Actor) || Actor->IsActorBeingDestroyed())
+		return nullptr;
+
+	auto* Handlers = CachedSignalHandlers.Find(Actor);
+	if (Handlers == nullptr)
+	{
+		TInlineComponentArray<UOpenPLX_SignalHandlerComponent*> Components;
+		Actor->GetComponents(Components, true);
+		auto& Cached = CachedSignalHandlers.Add(Actor);
+		for (auto* Handler : Components)
+			if (IsValid(Handler) && !Handler->IsBeingDestroyed() &&
+				FindSignalHandlerEntity(*Handler) == Actor)
+				Cached.Add(Handler);
+		Handlers = &Cached;
+	}
+
+	UOpenPLX_SignalHandlerComponent* Receiver = nullptr;
+	for (const auto& WeakHandler : *Handlers)
+	{
+		auto* Handler = WeakHandler.Get();
+
+		// DestroyComponent marks a component as being destroyed before EndPlay or weak-pointer
+		// invalidation. All lookup and delivery runs on the game thread.
+		if (Handler == nullptr || Handler->IsBeingDestroyed() || !Handler->IsRegistered())
+			continue;
+		const AActor* Owner = Handler->GetOwner();
+		if (!IsValid(Owner) || Owner->IsActorBeingDestroyed() ||
+			FindSignalHandlerEntity(*Handler) != Actor)
+			continue;
+		const FOpenPLX_Input* Found = Handler->Inputs.Find(SignalName);
+		if (Found == nullptr)
+			continue;
+		if (Receiver != nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"AGX Distributed cannot resolve signal '%s' for entity %llu: input name "
+					"matches multiple signal handlers."),
+				*SignalName.ToString(), EntityId);
+			OutInput = nullptr;
+			return nullptr;
+		}
+		Receiver = Handler;
+		OutInput = Found;
+	}
+	if (Receiver == nullptr)
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("AGX Distributed cannot resolve signal '%s' for entity %llu: no matching input."),
+			*SignalName.ToString(), EntityId);
+	return Receiver;
 }
 
 AActor* UAGX_DistributedWorldSubsystem::FindSignalHandlerEntity(
@@ -825,7 +892,10 @@ void UAGX_DistributedWorldSubsystem::OnSignalHandlerInitializing(
 	if (bShutdownRequested || Component.GetWorld() != GetWorld())
 		return;
 	if (AActor* Actor = FindSignalHandlerEntity(Component))
+	{
+		CachedSignalHandlers.Remove(Actor);
 		Component.SetSignalRerouter(ActorSignalRerouters.FindChecked(Actor));
+	}
 }
 
 void UAGX_DistributedWorldSubsystem::processIncomingEntityUpdates(const FAGXDistributedEvent& Event)

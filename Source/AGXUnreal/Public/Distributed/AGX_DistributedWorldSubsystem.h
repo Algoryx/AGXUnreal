@@ -16,6 +16,7 @@
 #include "AGX_DistributedWorldSubsystem.generated.h"
 
 class FOpenPLX_SignalRerouter;
+struct FOpenPLX_Input;
 class UAGX_DistributedScenarioAsset;
 class UOpenPLX_SignalHandlerComponent;
 
@@ -153,6 +154,10 @@ public:
 	bool RouteSignalValue(
 		int64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value);
 
+	/** Route a resolved input in Unreal units and coordinates; conversion is mandatory. */
+	bool RouteSignalValue(
+		int64 EntityId, const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value);
+
 	UFUNCTION(BlueprintPure, Category = "AGX Distributed")
 	bool IsConnected() const;
 
@@ -189,6 +194,8 @@ private:
 	void HandleSpawnEntityEvent(const FAGXDistributedEvent& Event);
 	void ApplyControlSignals(
 		uint64 EntityId, const TMap<FName, FAGXDistributedSignalValue>& Signals);
+	UOpenPLX_SignalHandlerComponent* FindSignalHandler(
+		uint64 EntityId, FName SignalName, const FOpenPLX_Input*& OutInput);
 	AActor* FindSignalHandlerEntity(const UOpenPLX_SignalHandlerComponent& Component) const;
 	void OnSignalHandlerInitializing(UOpenPLX_SignalHandlerComponent& Component);
 
@@ -200,6 +207,9 @@ private:
 	TMap<uint64, TWeakObjectPtr<AActor>> EntityActors;
 	/** Latest Real input values retained while their entity's Actor is waiting to spawn. */
 	TMap<uint64, TMap<FName, FAGXDistributedSignalValue>> DeferredControlSignals;
+
+	TMap<TWeakObjectPtr<AActor>, TArray<TWeakObjectPtr<UOpenPLX_SignalHandlerComponent>>>
+		CachedSignalHandlers;
 	TMap<TWeakObjectPtr<AActor>, std::shared_ptr<FOpenPLX_SignalRerouter>> ActorSignalRerouters;
 	FDelegateHandle SignalHandlerInitializingHandle;
 	TSet<uint64> ReportedUpdateErrors;

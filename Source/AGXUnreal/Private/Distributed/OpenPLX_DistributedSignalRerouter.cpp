@@ -17,7 +17,7 @@ namespace
 		UAGX_DistributedWorldSubsystem* Subsystem =
 			World != nullptr ? World->GetSubsystem<UAGX_DistributedWorldSubsystem>() : nullptr;
 		return Subsystem != nullptr && Subsystem->IsPossessed(EntityId) &&
-			   Subsystem->RouteSignalValue(EntityId, Input.Name.ToString(), Value);
+			   Subsystem->RouteSignalValue(EntityId, Input, Value);
 	}
 }
 

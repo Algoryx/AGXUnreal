@@ -10,8 +10,10 @@
 #include <variant>
 
 class FSimulationBarrier;
+struct FOpenPLX_Input;
 
-/** Signal payload in Unreal units, matching UOpenPLX_SignalHandlerComponent. */
+/** Signal storage: routing takes Unreal conventions; received events contain OpenPLX
+ * conventions until ConvertIncomingSignal converts them using their resolved input type. */
 using FAGXDistributedSignalValue = std::variant<double, int64, bool, FVector2D, FVector>;
 
 enum class EAGXDistributedEventType : uint8
@@ -54,6 +56,8 @@ struct AGXUNREALBARRIER_API FAGXDistributedEvent
 	FString Message;
 	bool bAccepted {false};
 	FString SignalName;
+
+	/** OpenPLX units and coordinates, stored without conversion in Unreal scalar/vector types. */
 	FAGXDistributedSignalValue SignalValue {0.0};
 };
 
@@ -90,8 +94,14 @@ public:
 	bool IsPossessed(uint64 EntityId) const;
 	bool RequestSimulationAuthority(
 		uint64 EntityId, bool bSimulate, const FGuid& RequestId = FGuid());
+
+	/** Convert an Unreal input to OpenPLX conventions before caching and routing it. */
 	bool RouteSignal(
-		uint64 EntityId, const FString& SignalName, const FAGXDistributedSignalValue& Value);
+		uint64 EntityId, const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value);
+
+	/** Convert an incoming OpenPLX control value to Unreal conventions using its resolved input. */
+	static TOptional<FAGXDistributedSignalValue> ConvertIncomingSignal(
+		const FOpenPLX_Input& Input, const FAGXDistributedSignalValue& Value);
 
 	/** Copy of the native simulation-authority set; no native lock escapes this call. */
 	TArray<uint64> GetSimulatedEntities() const;
