@@ -87,6 +87,7 @@ public:
 	virtual void CopyFrom(const FConstraintBarrier& Barrier, FAGX_ImportContext* Context) override;
 
 	//~ Begin UObject interface.
+	virtual void Serialize(FArchive& Archive) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& Event) override;
 	virtual void PostInitProperties() override;

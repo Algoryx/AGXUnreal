@@ -35,6 +35,7 @@
 #include "Shapes/AGX_BoxShapeComponent.h"
 #include "Shapes/AGX_SphereShapeComponent.h"
 #include "Terrain/AGX_Terrain.h"
+#include "Utilities/AGXUtilities.h"
 
 // Unreal Engine includes.
 #include "Components/StaticMeshComponent.h"
@@ -219,7 +220,10 @@ bool FCheckTwistRangeCommand::Update()
 	Test.TestEqual(TEXT("Ball Constraint RangeMax"), DetailsTwist.GetRangeMax(), 10.0);
 	Test.TestEqual(TEXT("Ball Constraint Enable"), DetailsTwist.GetEnable(), true);
 	Test.TestEqual(TEXT("Ball Constraint Compliance"), DetailsTwist.GetCompliance(), 1e-9);
-	Test.TestEqual(TEXT("Ball Constraint SpookDamping"), DetailsTwist.GetSpookDamping(), 0.04);
+	Test.TestEqual(
+		TEXT("Ball Constraint Attenuation"), DetailsTwist.GetAttenuation(),
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			0.04, GetDefault<UAGX_Simulation>()->TimeStep));
 	Test.TestEqual(TEXT("Ball Constraint ForceRangeMin"), DetailsTwist.GetForceRangeMin(), -1000.0);
 	Test.TestEqual(TEXT("Ball Constraint ForceRangeMax"), DetailsTwist.GetForceRangeMax(), 1000.0);
 
@@ -232,7 +236,10 @@ bool FCheckTwistRangeCommand::Update()
 	Test.TestEqual(TEXT("Ball Constraint RangeMax"), BpTwist.GetRangeMax(), 20.0);
 	Test.TestEqual(TEXT("Ball Constraint Enable"), BpTwist.GetEnable(), true);
 	Test.TestEqual(TEXT("Ball Constraint Compliance"), BpTwist.GetCompliance(), 1e-9);
-	Test.TestEqual(TEXT("Ball Constraint SpookDamping"), BpTwist.GetSpookDamping(), 0.035);
+	Test.TestEqual(
+		TEXT("Ball Constraint Attenuation"), BpTwist.GetAttenuation(),
+		FAGXUtilities::ConvertSpookDampingToAttenuation(
+			0.035, GetDefault<UAGX_Simulation>()->TimeStep));
 	Test.TestEqual(TEXT("Ball Constraint ForceRangeMin"), BpTwist.GetForceRangeMin(), -2000.0);
 	Test.TestEqual(TEXT("Ball Constraint ForceRangeMax"), BpTwist.GetForceRangeMax(), 2000.0);
 

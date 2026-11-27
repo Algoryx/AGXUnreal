@@ -118,9 +118,9 @@ namespace
 						AGXBarrierFactories::CreateCapsuleShapeBarrier(Capsule));
 					break;
 				}
-				case agxCollide::Shape::TIRE_SHAPE:
+				case agxCollide::Shape::TERRAIN_WHEEL:
 				{
-					// Shape::TIRE_SHAPE is not really used publically in AGX API's; its used
+					// Shape::TERRAIN_WHEEL is not really used publically in AGX API's; its used
 					// internally by TerrainWheel and still uses type Cylinder.
 					agxCollide::Cylinder* Cylinder {Shape->as<agxCollide::Cylinder>()};
 					OutSimObjects.GetCylinderShapes().Add(
@@ -825,7 +825,7 @@ bool FAGXSimObjectsReader::ReadOpenPLXFile(
 	OutSimObjects.GetOpenPLXInputs() = FPLXUtilitiesInternal::GetInputs(System.get());
 	OutSimObjects.GetOpenPLXOutputs() = FPLXUtilitiesInternal::GetOutputs(System.get());
 
-	std::string SceneNamePLX = Result.scene()->getType()->getNameWithNamespace(".");
+	std::string SceneNamePLX = Result.scene()->getTypeNameWithNamespace(".");
 	OutSimObjects.SetModelName(Convert(SceneNamePLX));
 	agxUtil::freeContainerMemory(SceneNamePLX);
 
