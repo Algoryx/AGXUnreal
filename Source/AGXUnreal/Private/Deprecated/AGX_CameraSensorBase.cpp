@@ -1,6 +1,6 @@
 // Copyright 2026, Algoryx Simulation AB.
 
-#include "Sensors/AGX_CameraSensorBase.h"
+#include "Deprecated/AGX_CameraSensorBase.h"
 
 // AGX Dynamics for Unreal includes.
 #include "AGX_Check.h"

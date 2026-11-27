@@ -68,12 +68,13 @@ namespace AGX_WithEditorWrappers
  * @param PropertyName The name of the property to set. May be a StructName.MemberVariableName identifier.
  * @param InVar The new value to assign to the property.
  * @param SetFunc The name of the function to call to set the value, both on an instance and a Barrier.
+ * @param InstanceName The name of the Instance member or variable.
  * @param HasNativeFunc Function to call in order to determine if the Barrier has a Native.
  * @param NativeName The name of the Barrier member variable.
  * @param BarrierMemberAccess The operator to use to access member functions in the Barrier, either '.' or '->'.
  */
  #define AGX_ASSET_SETTER_IMPL_INTERNAL( \
-	PropertyName, InVar, SetFunc, HasNativeFunc, NativeName, BarrierMemberAccess) \
+	PropertyName, InVar, SetFunc, InstanceName, HasNativeFunc, NativeName, BarrierMemberAccess) \
 { \
 	if (IsInstance()) \
 	{ \
@@ -85,9 +86,9 @@ namespace AGX_WithEditorWrappers
 	} \
 	else \
 	{ \
-		if (Instance != nullptr) \
+		if (InstanceName != nullptr) \
 		{ \
-			Instance->SetFunc(InVar); \
+			InstanceName->SetFunc(InVar); \
 		} \
 		else \
 		{ \
@@ -105,7 +106,7 @@ namespace AGX_WithEditorWrappers
  * @param SetFunc The name of the function to call to set the value, both on an instance and a Barrier.
  */
 #define AGX_ASSET_SETTER_IMPL_POINTER(PropertyName, InVar, SetFunc) \
-	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, HasNative, NativeBarrier, ->)
+	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, Instance, HasNative, NativeBarrier, ->)
 
 /**
  * @brief Set a new Property value on one of our asset/instance types, where the NativeBarrier is held by-value.
@@ -114,7 +115,7 @@ namespace AGX_WithEditorWrappers
  * @param SetFunc The name of the function to call to set the value, both on an instance and a Barrier.
  */
 #define AGX_ASSET_SETTER_IMPL_VALUE(PropertyName, InVar, SetFunc) \
-	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, HasNative, NativeBarrier, .)
+	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, Instance, HasNative, NativeBarrier, .)
 
 /**
  * @brief Set a property where the setter function name is Set<PropertyName>.
@@ -137,7 +138,7 @@ namespace AGX_WithEditorWrappers
  * @param SetFunc The name of the function to call to set the value, both on an instance and a Barrier.
  */
 #define AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_POINTER(PropertyName, InVar, SetFunc, HasNativeFunc, NativeName) \
-	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, HasNativeFunc, NativeName, ->)
+	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, Instance, HasNativeFunc, NativeName, ->)
 
 /**
  * @brief Set a new Property value on one of our asset/instance types, where there are two NativeBarriers
@@ -147,7 +148,7 @@ namespace AGX_WithEditorWrappers
  * @param SetFunc The name of the function to call to set the value, both on an instance and a Barrier.
  */
 #define AGX_ASSET_SETTER_DUAL_NATIVE_IMPL_VALUE(PropertyName, InVar, SetFunc, HasNativeFunc, NativeName) \
-	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, HasNativeFunc, NativeName, .)
+	AGX_ASSET_SETTER_IMPL_INTERNAL(PropertyName, InVar, SetFunc, Instance, HasNativeFunc, NativeName, .)
 
 
 /**
@@ -164,11 +165,11 @@ namespace AGX_WithEditorWrappers
  *   - The only thing we can do is return the property member.
  */
 #define AGX_ASSET_GETTER_IMPL_INTERNAL( \
-	PropertyName, GetFunc, HasNativeFunc, NativeName, BarrierMemberAccess) \
+	PropertyName, GetFunc, InstanceName, HasNativeFunc, NativeName, BarrierMemberAccess) \
 { \
-	if (Instance != nullptr) \
+	if (InstanceName != nullptr) \
 	{ \
-		return Instance->GetFunc(); \
+		return InstanceName->GetFunc(); \
 	} \
 	if (HasNativeFunc()) \
 	{ \
@@ -178,10 +179,10 @@ namespace AGX_WithEditorWrappers
 }
 
 #define AGX_ASSET_GETTER_IMPL_POINTER(PropertyName, GetFunc) \
-	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNative, NativeBarrier, ->)
+	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, Instance, HasNative, NativeBarrier, ->)
 
 #define AGX_ASSET_GETTER_IMPL_VALUE(PropertyName, GetFunc) \
-	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNative, NativeBarrier, .)
+	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, Instance, HasNative, NativeBarrier, .)
 
 /**
  * @brief Get a property where the getter function name is Get<PropertyName>.
@@ -197,9 +198,9 @@ namespace AGX_WithEditorWrappers
 	AGX_ASSET_GETTER_IMPL_VALUE(b##PropertyName, Get##PropertyName)
 
 #define AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_POINTER(PropertyName, GetFunc, HasNativeFunc, NativeName) \
-	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNativeFunc, NativeName, ->)
+	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, Instance, HasNativeFunc, NativeName, ->)
 
 #define AGX_ASSET_GETTER_DUAL_NATIVE_IMPL_VALUE(PropertyName, GetFunc, HasNativeFunc, NativeName) \
-	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, HasNativeFunc, NativeName, .)
+	AGX_ASSET_GETTER_IMPL_INTERNAL(PropertyName, GetFunc, Instance, HasNativeFunc, NativeName, .)
 
 // clang-format on

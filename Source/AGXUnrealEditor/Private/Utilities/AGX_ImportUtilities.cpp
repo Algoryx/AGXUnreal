@@ -245,6 +245,21 @@ FString FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName()
 	return FString("LidarModelParameters");
 }
 
+FString FAGX_ImportUtilities::GetImportCameraPhotodetectorDirectoryName()
+{
+	return FString("CameraPhotodetectors");
+}
+
+FString FAGX_ImportUtilities::GetImportCameraLensDirectoryName()
+{
+	return FString("CameraLenses");
+}
+
+FString FAGX_ImportUtilities::GetImportLensDistortionDirectoryName()
+{
+	return FString("LensDistortions");
+}
+
 FString FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName()
 {
 	return FString("SteeringParameters");
@@ -338,6 +353,27 @@ AGXUNREALEDITOR_API_TEMPLATE FString
 FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_LidarModelParameters>()
 {
 	return GetImportLidarModelParametersDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_CameraPhotodetectorBase>()
+{
+	return GetImportCameraPhotodetectorDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_CameraLensBase>()
+{
+	return GetImportCameraLensDirectoryName();
+}
+
+template <>
+AGXUNREALEDITOR_API_TEMPLATE FString
+FAGX_ImportUtilities::GetImportAssetDirectoryName<UAGX_LensDistortionBase>()
+{
+	return GetImportLensDistortionDirectoryName();
 }
 
 template <>

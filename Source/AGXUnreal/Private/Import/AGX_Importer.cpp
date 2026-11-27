@@ -35,8 +35,10 @@
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
 #include "OpenPLX/OpenPLXMaterialBarrier.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
 #include "Sensors/AGX_LidarSensorComponent.h"
+#include "Sensors/CameraBarrier.h"
 #include "Sensors/IMUBarrier.h"
 #include "Sensors/LidarBarrier.h"
 #include "Shapes/AnyShapeBarrier.h"
@@ -785,7 +787,11 @@ EAGX_ImportResult UAGX_Importer::AddComponents(
 		{
 			T.EnterProgressFrame(
 				1.f, FText::FromString(FString::Printf(TEXT("Processing: %s"), *Sensor.GetName())));
-			if (FLidarBarrier::IsLidar(Sensor))
+			if (FCameraBarrier::IsCamera(Sensor))
+			{
+				Res |= AddCamera(Sensor, OutActor);
+			}
+			else if (FLidarBarrier::IsLidar(Sensor))
 			{
 				Res |= AddLidar(Sensor, OutActor);
 			}
@@ -877,6 +883,21 @@ EAGX_ImportResult UAGX_Importer::AddShovel(const FShovelBarrier& Shovel, AActor&
 	using namespace AGX_Importer_helpers;
 	auto Parent = GetOwningRigidBodyOrRoot(Shovel, Context, OutActor);
 	return AddComponent<UAGX_ShovelComponent, FShovelBarrier>(Shovel, *Parent, OutActor);
+}
+
+EAGX_ImportResult UAGX_Importer::AddCamera(const FSensorBarrier& Sensor, AActor& OutActor)
+{
+	const FCameraBarrier& Camera = static_cast<const FCameraBarrier&>(Sensor);
+	FRigidBodyBarrier BodyBarrier = Camera.GetRigidBody();
+	USceneComponent* Parent = OutActor.GetRootComponent();
+	if (BodyBarrier.HasNative())
+	{
+		UAGX_RigidBodyComponent* Body = Context.RigidBodies.FindRef(BodyBarrier.GetGuid());
+		check(Body != nullptr);
+		Parent = Body;
+	}
+
+	return AddComponent<UAGX_CameraSensorComponent, FSensorBarrier>(Sensor, *Parent, OutActor);
 }
 
 EAGX_ImportResult UAGX_Importer::AddLidar(const FSensorBarrier& Sensor, AActor& OutActor)

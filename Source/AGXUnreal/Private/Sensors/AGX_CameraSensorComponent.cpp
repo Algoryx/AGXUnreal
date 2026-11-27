@@ -1,0 +1,2081 @@
+// Copyright 2026, Algoryx Simulation AB.
+
+/*
+ * Unreal rendering side of agxSensor::Camera. The native camera uses the PhotoDetector and
+ * CameraLens assets, while CameraBackendPropagator forwards AGX settings and capture callbacks to
+ * this component. OwnedCaptureComponent2D renders the scene; CaptureSourceOverride instead uses
+ * the user's existing capture component/target without applying our optics or lens distortion.
+ *
+ * One camera can have several outputs. OutputRenderContexts is keyed by native output address;
+ * each context holds its scene render target, derived projection/distortion settings, dynamic
+ * material instances, per-pass render targets and CaptureHelper readback slots. Settings updates
+ * refresh these contexts. For owned captures, sensor size and focal length determine projection,
+ * and distortion can enlarge the internal scene target beyond the requested output resolution.
+ *
+ * RequestCapture selects the output's context, configures the owned capture source for it, and
+ * executes the capture/material-pass chain. It then enqueues a GPU copy of the final target into
+ * a reusable staging texture and writes a GPU fence. Requests are skipped if no readback slot is
+ * free. Slots are shared with queued render commands and track progress between the threads.
+ *
+ * TickComponent calls PollCaptures, which enqueues render-thread fence checks. Completed copies
+ * are mapped, stripped of row padding/unused channels and copied into the backend's locked raw
+ * data slot. The slot is then reusable. Publishing these pixels into the AGX output buffer is a
+ * separate, later StageUnreadDataIfExists operation, so requesting a capture does not immediately
+ * make pixels available. Blueprint reconstruction rebuilds runtime capture resources and contexts.
+ */
+
+#include "Sensors/AGX_CameraSensorComponent.h"
+
+// AGX Dynamics for Unreal includes.
+#include "AGX_Check.h"
+#include "AGX_LogCategory.h"
+#include "AGX_PropertyChangedDispatcher.h"
+#include "Import/AGX_ImportContext.h"
+#include "Sensors/AGX_CameraBackend.h"
+#include "Sensors/AGX_CameraCMOSSensor.h"
+#include "Sensors/AGX_CameraLensBase.h"
+#include "Sensors/AGX_CameraLensSingleElement.h"
+#include "Sensors/AGX_CameraOutputBase.h"
+#include "Sensors/AGX_CameraPhotodetectorBase.h"
+#include "Sensors/AGX_LensDistortionBrownConrady.h"
+#include "Sensors/AGX_SensorEnvironmentSubsystem.h"
+#include "Sensors/CameraBackendBarrier.h"
+#include "Sensors/CameraBarrier.h"
+#include "Sensors/CameraCMOSSensorBarrier.h"
+#include "Sensors/CameraLensBarrier.h"
+#include "Sensors/CameraLensSingleElementBarrier.h"
+#include "Sensors/CameraOutputBarrier.h"
+#include "Sensors/CameraOutputColorBarrier.h"
+#include "Sensors/CameraPhotodetectorBarrier.h"
+#include "Sensors/LensDistortionBrownConradyBarrier.h"
+#include "Utilities/AGX_ImportRuntimeUtilities.h"
+#include "Utilities/AGX_NotificationUtilities.h"
+#include "Utilities/AGX_ObjectUtilities.h"
+#include "Utilities/AGX_StringUtilities.h"
+
+// Unreal Engine includes.
+#include "CanvasItem.h"
+#include "CollisionQueryParams.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/Canvas.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
+#include "Kismet/KismetRenderingLibrary.h"
+#include "Math/UnrealMath.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
+#include "Misc/EngineVersionComparison.h"
+#include "PixelFormat.h"
+#include "RHI.h"
+#include "RHICommandList.h"
+#include "RenderingThread.h"
+#include "SceneView.h"
+#include "TextureResource.h"
+
+UAGX_CameraSensorComponent::UAGX_CameraSensorComponent()
+{
+	NativeBarrier.Reset(new FCameraBarrier());
+	PrimaryComponentTick.bCanEverTick = true;
+
+	static const TCHAR* CameraPass1AssetPath = TEXT(
+		"Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass1.MI_AGX_Camera_Pass1'");
+	if (UMaterialInterface* CameraPass1 =
+			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass1AssetPath))
+	{
+		MaterialPasses.Add(CameraPass1);
+	}
+
+	static const TCHAR* CameraPass2AssetPath = TEXT(
+		"Material'/AGXUnreal/Sensor/Camera/Materials/MI_AGX_Camera_Pass2.MI_AGX_Camera_Pass2'");
+	if (UMaterialInterface* CameraPass2 =
+			FAGX_ObjectUtilities::GetAssetFromPath<UMaterialInterface>(CameraPass2AssetPath))
+	{
+		MaterialPasses.Add(CameraPass2);
+	}
+}
+
+namespace AGX_CameraSensorComponent_helpers
+{
+	// AGX caps its lens distortion resolution scale at 8.0. Use the same bound for
+	// projection overscan so it cannot create an unbounded Scene Render Target.
+	constexpr double MaximumLensDistortionScale = 8.0;
+
+	void SetLocalScope(UAGX_CameraSensorComponent& Component)
+	{
+		AActor* const Owner = FAGX_ObjectUtilities::GetRootParentActor(Component);
+		Component.CaptureSourceOverride.LocalScope = Owner;
+	}
+
+	float CalculateHorizontalFOVDegrees(double SensorWidth, double FocalLength)
+	{
+		if (SensorWidth <= 0.0 || FocalLength <= 0.0)
+			return 0.0f;
+
+		return static_cast<float>(
+			FMath::RadiansToDegrees(2.0 * FMath::Atan(SensorWidth / (2.0 * FocalLength))));
+	}
+
+	const UAGX_CameraCMOSSensor& GetCMOSSensorOrDefault(const UAGX_CameraSensorComponent& Component)
+	{
+		if (const UAGX_CameraCMOSSensor* Sensor =
+				Cast<UAGX_CameraCMOSSensor>(Component.PhotoDetector))
+		{
+			return *Sensor;
+		}
+
+		return *GetDefault<UAGX_CameraCMOSSensor>();
+	}
+
+	const UAGX_CameraLensSingleElement& GetCameraLensSingleElementOrDefault(
+		const UAGX_CameraSensorComponent& Component)
+	{
+		if (const UAGX_CameraLensSingleElement* Lens =
+				Cast<UAGX_CameraLensSingleElement>(Component.CameraLens))
+		{
+			return *Lens;
+		}
+
+		return *GetDefault<UAGX_CameraLensSingleElement>();
+	}
+
+	double CalculateAutofocusDistance(
+		const USceneCaptureComponent2D& SceneCapture, double MinimumFocusDistance)
+	{
+		// For SceneCaptureComponent2D, FocalDistance of zero disables it.
+		const double ClampedMinimumFocusDistance = FMath::Max(0.1, MinimumFocusDistance);
+
+		UWorld* World = SceneCapture.GetWorld();
+		if (World == nullptr)
+			return ClampedMinimumFocusDistance;
+
+		const FVector Start = SceneCapture.GetComponentLocation();
+		const FVector Direction = SceneCapture.GetForwardVector().GetSafeNormal();
+		if (Direction.IsNearlyZero())
+			return ClampedMinimumFocusDistance;
+
+		FCollisionQueryParams QueryParams(
+			SCENE_QUERY_STAT(AGXCameraAutofocus), /*bTraceComplex*/ true);
+		constexpr double AutofocusTraceDistance = 1000000.0; // A bit arbitrarily chosen.
+		const FVector End = Start + Direction * AutofocusTraceDistance;
+		FHitResult Hit;
+		if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, QueryParams))
+			return FMath::Max(ClampedMinimumFocusDistance, static_cast<double>(Hit.Distance));
+
+		return FMath::Max(ClampedMinimumFocusDistance, AutofocusTraceDistance);
+	}
+
+	void UpdateLensFocalDistance(
+		USceneCaptureComponent2D& SceneCapture, bool bUseAutofocus, double MinimumFocusDistance,
+		double FocusDistance)
+	{
+		FPostProcessSettings& PostProcessSettings = SceneCapture.PostProcessSettings;
+		if (bUseAutofocus)
+		{
+			PostProcessSettings.DepthOfFieldFocalDistance =
+				static_cast<float>(CalculateAutofocusDistance(SceneCapture, MinimumFocusDistance));
+		}
+		else
+		{
+			PostProcessSettings.DepthOfFieldFocalDistance = static_cast<float>(FocusDistance);
+		}
+	}
+
+	void UpdateLensFocalDistance(
+		USceneCaptureComponent2D& SceneCapture, const UAGX_CameraLensSingleElement& Lens)
+	{
+		UpdateLensFocalDistance(
+			SceneCapture, Lens.GetUseAutofocus(), Lens.GetMinimumFocusDistance(),
+			Lens.GetFocusDistance());
+	}
+
+	EPixelFormat GetRenderTargetPixelFormat(ETextureRenderTargetFormat RenderTargetFormat)
+	{
+		// Unreal's RTF_RGBA8 defaults to BGRA. Raw camera output must retain RGBA channel order.
+		return RenderTargetFormat == ETextureRenderTargetFormat::RTF_RGBA8 ? PF_R8G8B8A8 :
+			GetPixelFormatFromRenderTargetFormat(RenderTargetFormat);
+	}
+
+	bool ValidateRenderTargetSize(double Width, double Height, EPixelFormat PixelFormat)
+	{
+		const int32 MaxDimension = static_cast<int32>(GMaxTextureDimensions);
+		if (!FMath::IsFinite(Width) || !FMath::IsFinite(Height) || Width <= 0.0 || Height <= 0.0 ||
+			Width > MaxDimension || Height > MaxDimension)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera render target size %.3fx%.3f is invalid. Dimensions must be positive, "
+					 "finite, and no greater than the RHI limit of %d pixels."),
+				Width, Height, MaxDimension);
+			return false;
+		}
+
+		const int64 NumPixels = FMath::CeilToInt64(Width) * FMath::CeilToInt64(Height);
+		const int32 BytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
+		// Divide the limit first so the size check itself cannot overflow.
+		if (BytesPerPixel <= 0 || NumPixels > TNumericLimits<int32>::Max() / BytesPerPixel)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera render target size %.3fx%.3f with pixel format '%s' exceeds the "
+					 "camera buffer limit of %d bytes or has an invalid pixel size."),
+				Width, Height, GPixelFormats[PixelFormat].Name, TNumericLimits<int32>::Max());
+			return false;
+		}
+
+		return true;
+	}
+
+	TOptional<ETextureRenderTargetFormat> GetRenderTargetFormat(
+		EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
+	{
+		if (ChannelCount < 1 || ChannelCount > 4)
+			return {};
+
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				switch (ChannelCount)
+				{
+					case 1:
+						return ETextureRenderTargetFormat::RTF_R8;
+					case 2:
+						return ETextureRenderTargetFormat::RTF_RG8;
+					default:
+						return ETextureRenderTargetFormat::RTF_RGBA8;
+				}
+
+			case EAGX_CameraOutputChannelType::F32:
+				switch (ChannelCount)
+				{
+					case 1:
+						return ETextureRenderTargetFormat::RTF_R32f;
+					case 2:
+						return ETextureRenderTargetFormat::RTF_RG32f;
+					default:
+						return ETextureRenderTargetFormat::RTF_RGBA32f;
+				}
+
+			default:
+				return {};
+		}
+	}
+
+	TOptional<int32> GetChannelSize(EAGX_CameraOutputChannelType ChannelType)
+	{
+		switch (ChannelType)
+		{
+			case EAGX_CameraOutputChannelType::U8:
+				return sizeof(uint8);
+			case EAGX_CameraOutputChannelType::F32:
+				return sizeof(float);
+			default:
+				return {};
+		}
+	}
+
+	constexpr int32 CreateByteMask(uint32 A, uint32 B, uint32 C, uint32 D)
+	{
+		return A | (B << 8) | (C << 16) | (D << 24);
+	}
+
+	void CopyFourBytePixelsToThreeBytePixels(
+		const uint8* SourceData, uint8* DestinationData, int32 SourcePitch, int32 DestinationPitch,
+		int32 Width, int32 Height)
+	{
+		constexpr int32 SourceBytesPerPixel = 4;
+		constexpr int32 DestinationBytesPerPixel = 3;
+		constexpr int32 PixelsPerVector = sizeof(VectorRegister4Int) / SourceBytesPerPixel;
+		constexpr int32 ScalarTailPixels = 2;
+		static_assert(PixelsPerVector == 4);
+
+		// The final four bytes of the vector are zero-filled. Keep at least two pixels in the
+		// scalar tail so that its writes overwrite those bytes without extending past a row.
+		constexpr uint32 ZeroFill = 0x80;
+		const VectorRegister4Int PackMask = MakeVectorRegisterInt(
+			CreateByteMask(0, 1, 2, 4), CreateByteMask(5, 6, 8, 9),
+			CreateByteMask(10, 12, 13, 14),
+			CreateByteMask(ZeroFill, ZeroFill, ZeroFill, ZeroFill));
+		const int32 SimdWidth = Width > ScalarTailPixels ?
+			(Width - ScalarTailPixels) & ~(PixelsPerVector - 1) : 0;
+
+		for (int32 Row = 0; Row < Height; ++Row)
+		{
+			const uint8* SourcePixel = SourceData;
+			uint8* DestinationPixel = DestinationData;
+			int32 Column = 0;
+			for (; Column < SimdWidth; Column += PixelsPerVector)
+			{
+				const VectorRegister4Int SourceVector = VectorIntLoad(SourcePixel);
+				const VectorRegister4Int PackedVector = VectorShuffleByte4(SourceVector, PackMask);
+				VectorIntStore(PackedVector, DestinationPixel);
+				SourcePixel += PixelsPerVector * SourceBytesPerPixel;
+				DestinationPixel += PixelsPerVector * DestinationBytesPerPixel;
+			}
+
+			for (; Column < Width; ++Column)
+			{
+				DestinationPixel[0] = SourcePixel[0];
+				DestinationPixel[1] = SourcePixel[1];
+				DestinationPixel[2] = SourcePixel[2];
+				SourcePixel += SourceBytesPerPixel;
+				DestinationPixel += DestinationBytesPerPixel;
+			}
+
+			SourceData += SourcePitch;
+			DestinationData += DestinationPitch;
+		}
+	}
+
+	FLensDistortionBrownConradyBarrier GetLensDistortionBrownConradyBarrier(
+		const UAGX_CameraSensorComponent& Component)
+	{
+		if (Component.CameraLens == nullptr)
+			return FLensDistortionBrownConradyBarrier();
+
+		const UAGX_CameraLensSingleElement* SingleElementLens =
+			Cast<UAGX_CameraLensSingleElement>(Component.CameraLens);
+		if (SingleElementLens == nullptr)
+			return FLensDistortionBrownConradyBarrier();
+
+		const FCameraLensSingleElementBarrier* LensBarrier =
+			SingleElementLens->GetNativeAsSingleElement();
+		if (LensBarrier == nullptr)
+			return FLensDistortionBrownConradyBarrier();
+
+		return LensBarrier->GetLensDistortionBrownConrady();
+	}
+
+	FVector2D GetDistortedPoint(
+		const FVector2D& Point, double K1, double K2, double K3, double P1, double P2)
+	{
+		const double X = Point.X;
+		const double Y = Point.Y;
+		const double R2 = X * X + Y * Y;
+		const double R4 = R2 * R2;
+		const double R6 = R4 * R2;
+		const double Radial = 1.0 + K1 * R2 + K2 * R4 + K3 * R6;
+
+		return FVector2D(
+			X * Radial + 2.0 * P1 * X * Y + P2 * (R2 + 2.0 * X * X),
+			Y * Radial + P1 * (R2 + 2.0 * Y * Y) + 2.0 * P2 * X * Y);
+	}
+
+	FVector4 CalculateBrownConradyJacobian(
+		const FVector2D& Point, double K1, double K2, double K3, double P1, double P2)
+	{
+		const double X = Point.X;
+		const double Y = Point.Y;
+		const double R2 = X * X + Y * Y;
+		const double R4 = R2 * R2;
+		const double R6 = R4 * R2;
+		const double Radial = 1.0 + K1 * R2 + K2 * R4 + K3 * R6;
+		const double RadialDerivative = K1 + 2.0 * K2 * R2 + 3.0 * K3 * R4;
+		const double OffDiagonal = 2.0 * X * Y * RadialDerivative + 2.0 * P1 * X + 2.0 * P2 * Y;
+
+		return FVector4(
+			Radial + 2.0 * X * X * RadialDerivative + 2.0 * P1 * Y + 6.0 * P2 * X, OffDiagonal,
+			OffDiagonal, Radial + 2.0 * Y * Y * RadialDerivative + 6.0 * P1 * Y + 2.0 * P2 * X);
+	}
+
+	bool CalculateLensDistortionScales(
+		const FLensDistortionBrownConradyBarrier* LensDistortion, FVector2D& OutProjectionScale,
+		FVector2D& OutResolutionScale)
+	{
+		OutProjectionScale = FVector2D(1.0, 1.0);
+		OutResolutionScale = FVector2D(1.0, 1.0);
+
+		if (LensDistortion == nullptr || !LensDistortion->HasNative())
+			return true;
+
+		const double K1 = LensDistortion->GetK1();
+		const double K2 = LensDistortion->GetK2();
+		const double K3 = LensDistortion->GetK3();
+		const double P1 = LensDistortion->GetP1();
+		const double P2 = LensDistortion->GetP2();
+		if (K1 == 0.0 && K2 == 0.0 && K3 == 0.0 && P1 == 0.0 && P2 == 0.0)
+			return true;
+
+		for (int32 X = -1; X <= 1; ++X)
+		{
+			for (int32 Y = -1; Y <= 1; ++Y)
+			{
+				if (X == 0 && Y == 0)
+					continue;
+
+				const FVector2D Point(static_cast<double>(X), static_cast<double>(Y));
+				const FVector2D DistortedPoint = GetDistortedPoint(Point, K1, K2, K3, P1, P2);
+				if (!FMath::IsFinite(DistortedPoint.X) || !FMath::IsFinite(DistortedPoint.Y))
+				{
+					return false;
+				}
+
+				if (X != 0)
+				{
+					if (FMath::Abs(DistortedPoint.X) < 1.0e-12)
+					{
+						return false;
+					}
+
+					const double ScaleX = 1.0 / DistortedPoint.X;
+					if (!FMath::IsFinite(ScaleX))
+					{
+						return false;
+					}
+					OutProjectionScale.X = FMath::Max(OutProjectionScale.X, ScaleX);
+				}
+
+				if (Y != 0)
+				{
+					if (FMath::Abs(DistortedPoint.Y) < 1.0e-12)
+					{
+						return false;
+					}
+
+					const double ScaleY = 1.0 / DistortedPoint.Y;
+					if (!FMath::IsFinite(ScaleY))
+					{
+						return false;
+					}
+					OutProjectionScale.Y = FMath::Max(OutProjectionScale.Y, ScaleY);
+				}
+			}
+		}
+
+		constexpr int32 HalfSamples = 4;
+		for (int32 X = -HalfSamples; X < HalfSamples; ++X)
+		{
+			for (int32 Y = -HalfSamples; Y < HalfSamples; ++Y)
+			{
+				const FVector2D Point(
+					static_cast<double>(X) / static_cast<double>(HalfSamples),
+					static_cast<double>(Y) / static_cast<double>(HalfSamples));
+				const FVector4 Jacobian = CalculateBrownConradyJacobian(Point, K1, K2, K3, P1, P2);
+				if (!FMath::IsFinite(Jacobian.X) || !FMath::IsFinite(Jacobian.Y) ||
+					!FMath::IsFinite(Jacobian.Z) || !FMath::IsFinite(Jacobian.W))
+				{
+					return false;
+				}
+
+				const double ScaleX = FMath::Max(FMath::Abs(Jacobian.X), FMath::Abs(Jacobian.Z));
+				const double ScaleY = FMath::Max(FMath::Abs(Jacobian.Y), FMath::Abs(Jacobian.W));
+				OutResolutionScale.X = FMath::Max(OutResolutionScale.X, ScaleX);
+				OutResolutionScale.Y = FMath::Max(OutResolutionScale.Y, ScaleY);
+			}
+		}
+
+		OutResolutionScale.X = FMath::Min(OutResolutionScale.X, MaximumLensDistortionScale);
+		OutResolutionScale.Y = FMath::Min(OutResolutionScale.Y, MaximumLensDistortionScale);
+		return true;
+	}
+
+	FMatrix MakeSceneCaptureProjectionMatrix(double TanHalfFOVX, double TanHalfFOVY)
+	{
+		return FReversedZPerspectiveMatrix(
+			FMath::Atan(TanHalfFOVX), FMath::Atan(TanHalfFOVY), 1.0f, 1.0f, GNearClippingPlane,
+			GNearClippingPlane);
+	}
+
+	template <typename TAsset>
+	TAsset* CreateCameraAsset(FAGX_ImportContext& Context)
+	{
+		TAsset* Asset = NewObject<TAsset>(
+			Context.Outer, TAsset::StaticClass(), NAME_None, RF_Public | RF_Standalone);
+		if (Asset == nullptr)
+			return nullptr;
+
+		FAGX_ImportRuntimeUtilities::OnAssetTypeCreated(*Asset, Context.SessionGuid);
+		return Asset;
+	}
+}
+
+void UAGX_CameraSensorComponent::AddMaterialPass(UMaterialInterface* Material)
+{
+	MaterialPasses.Add(Material);
+	UpdateAllOutputCaptureSettings();
+}
+
+void UAGX_CameraSensorComponent::SetUseLinearColorSpace(bool bInUseLinearColorSpace)
+{
+	bUseLinearColorSpace = bInUseLinearColorSpace;
+	UpdateAllOutputCaptureSettings();
+}
+
+bool UAGX_CameraSensorComponent::GetUseLinearColorSpace() const
+{
+	return bUseLinearColorSpace;
+}
+
+bool UAGX_CameraSensorComponent::SetMaterialPass(int32 Index, UMaterialInterface* Material)
+{
+	if (!MaterialPasses.IsValidIndex(Index))
+		return false;
+
+	if (MaterialPasses[Index].Get() == Material)
+		return true;
+
+	MaterialPasses[Index] = Material;
+	UpdateAllOutputCaptureSettings();
+	return true;
+}
+
+bool UAGX_CameraSensorComponent::RemoveMaterialPass(UMaterialInterface* Material)
+{
+	const int32 NumRemoved =
+		MaterialPasses.RemoveAll([Material](const TObjectPtr<UMaterialInterface>& ExistingMaterial)
+								 { return ExistingMaterial.Get() == Material; });
+
+	if (NumRemoved > 0)
+		UpdateAllOutputCaptureSettings();
+
+	return NumRemoved > 0;
+}
+
+bool UAGX_CameraSensorComponent::RemoveMaterialPassAt(int32 Index)
+{
+	if (!MaterialPasses.IsValidIndex(Index))
+		return false;
+
+	MaterialPasses.RemoveAt(Index);
+	UpdateAllOutputCaptureSettings();
+	return true;
+}
+
+void UAGX_CameraSensorComponent::ClearMaterialPasses()
+{
+	if (MaterialPasses.IsEmpty())
+		return;
+
+	MaterialPasses.Empty();
+	UpdateAllOutputCaptureSettings();
+}
+
+FName UAGX_CameraSensorComponent::GetInputTextureParameterName()
+{
+	static const FName Name(TEXT("InputTexture"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetGammaParameterName()
+{
+	static const FName Name(TEXT("Gamma"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetUseLinearColorSpaceParameterName()
+{
+	static const FName Name(TEXT("UseLinearColorSpace"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow0ParameterName()
+{
+	static const FName Name(TEXT("CM_Row0"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow1ParameterName()
+{
+	static const FName Name(TEXT("CM_Row1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow2ParameterName()
+{
+	static const FName Name(TEXT("CM_Row2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetColorMappingRow3ParameterName()
+{
+	static const FName Name(TEXT("CM_Row3"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK1ParameterName()
+{
+	static const FName Name(TEXT("LD_K1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK2ParameterName()
+{
+	static const FName Name(TEXT("LD_K2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionK3ParameterName()
+{
+	static const FName Name(TEXT("LD_K3"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionP1ParameterName()
+{
+	static const FName Name(TEXT("LD_P1"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionP2ParameterName()
+{
+	static const FName Name(TEXT("LD_P2"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionProjectionScaleXParameterName()
+{
+	static const FName Name(TEXT("LD_ProjectionScaleX"));
+	return Name;
+}
+
+FName UAGX_CameraSensorComponent::GetLensDistortionProjectionScaleYParameterName()
+{
+	static const FName Name(TEXT("LD_ProjectionScaleY"));
+	return Name;
+}
+
+void UAGX_CameraSensorComponent::UpdateNativeTransform()
+{
+	if (HasNative())
+		GetNativeAsCamera()->SetTransform(GetComponentTransform());
+}
+
+bool UAGX_CameraSensorComponent::AddOutput(FAGX_CameraOutputBase& InOutput)
+{
+	if (bOpenPLXImported)
+	{
+		FAGX_NotificationUtilities::ShowNotification(
+			FString::Printf(
+				TEXT("Outputs cannot be manually added to Camera Sensor '%s' in '%s' because it "
+					 "was imported from an OpenPLX file which define its outputs. OpenPLX outputs "
+					 "are added automatically at BeginPlay for this Camera Sensor."),
+				*GetName(), *GetLabelSafe(GetOwner())),
+			SNotificationItem::CS_Fail);
+		return false;
+	}
+
+	FCameraBarrier* Native = GetNativeAsCamera();
+	if (Native == nullptr)
+		return false;
+
+	FCameraOutputBarrier* OutputNative = InOutput.GetOrCreateNative();
+	if (OutputNative == nullptr)
+		return false;
+
+	Native->AddOutput(*OutputNative);
+
+	// If SetCameraColorOutput would have been triggered in the CameraBackend on AddOutput,
+	// we this would be handled for us in OnBackendSetCameraColorOutput. But that gets called
+	// later, and the user may need the Output RenderTarget on BeginPlay, therfore we call this
+	// here immediately to ensure we are all set up.
+	if (FCameraOutputColorBarrier::IsColorOutput(*OutputNative))
+	{
+		FCameraOutputColorBarrier& ColorOutputNative =
+			static_cast<FCameraOutputColorBarrier&>(*OutputNative);
+		UpdateOutputCaptureSettings(ColorOutputNative);
+	}
+
+	return true;
+}
+
+TArray<FCameraOutputBarrier> UAGX_CameraSensorComponent::GetOutputBarriers() const
+{
+	const FCameraBarrier* Camera = GetNativeAsCamera();
+	if (Camera == nullptr)
+		return {};
+
+	return Camera->GetOutputs();
+}
+
+void UAGX_CameraSensorComponent::SetCaptureSourceOverride(
+	USceneCaptureComponent2D* InCaptureSourceOverride)
+{
+	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
+	CaptureSourceOverride.SetComponent(InCaptureSourceOverride);
+
+	UWorld* World = GetWorld();
+	if (World == nullptr || !World->IsGameWorld() || !HasNative())
+		return;
+
+	SetupSceneCapture();
+	UpdateAllOutputCaptureSettings();
+}
+
+bool UAGX_CameraSensorComponent::HasCaptureSourceOverride() const
+{
+	return CaptureSourceOverride.GetSceneCaptureComponent2D() != nullptr;
+}
+
+USceneCaptureComponent2D* UAGX_CameraSensorComponent::GetCaptureSource() const
+{
+	if (USceneCaptureComponent2D* CaptureSource =
+			CaptureSourceOverride.GetSceneCaptureComponent2D())
+	{
+		return CaptureSource;
+	}
+
+	return OwnedCaptureComponent2D;
+}
+
+bool UAGX_CameraSensorComponent::IsCameraSensorValid() const
+{
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr || !HasNative())
+		return false;
+
+	if (HasCaptureSourceOverride() && CaptureSource->TextureTarget == nullptr)
+		return false;
+
+	return true;
+}
+
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::RenderMaterialPasses(
+	FCameraOutputRenderContext& OutputRenderContext,
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr)
+		return nullptr;
+
+	AGX_CHECK(OutputRenderContext.SceneRenderTarget != nullptr);
+	if (OutputRenderContext.SceneRenderTarget == nullptr)
+		return nullptr;
+
+	if (!CaptureSource->bCaptureEveryFrame)
+		CaptureSource->CaptureScene();
+
+	UTexture* InputTexture = OutputRenderContext.SceneRenderTarget.Get();
+	UTextureRenderTarget2D* FinalRenderTarget = OutputRenderContext.SceneRenderTarget.Get();
+	AGX_CHECK(
+		OutputRenderContext.MaterialInstances.Num() == OutputRenderContext.RenderTargets.Num());
+	for (int32 Index = 0; Index < OutputRenderContext.MaterialInstances.Num(); ++Index)
+	{
+		UMaterialInstanceDynamic* MaterialInstance = OutputRenderContext.MaterialInstances[Index];
+		if (MaterialInstance == nullptr)
+			continue;
+
+		AGX_CHECK(OutputRenderContext.RenderTargets.IsValidIndex(Index));
+		if (!OutputRenderContext.RenderTargets.IsValidIndex(Index) ||
+			OutputRenderContext.RenderTargets[Index] == nullptr)
+			continue;
+
+		UTextureRenderTarget2D* OutputRenderTarget = OutputRenderContext.RenderTargets[Index].Get();
+		MaterialInstance->SetTextureParameterValue(GetInputTextureParameterName(), InputTexture);
+
+		UCanvas* Canvas = nullptr;
+		FVector2D CanvasSize(0.0f, 0.0f);
+		FDrawToRenderTargetContext DrawContext;
+		UKismetRenderingLibrary::BeginDrawCanvasToRenderTarget(
+			this, OutputRenderTarget, Canvas, CanvasSize, DrawContext);
+
+		if (Canvas != nullptr)
+		{
+			FCanvasTileItem Item(
+				FVector2D::ZeroVector, MaterialInstance->GetRenderProxy(),
+				FVector2D(OutputRenderTarget->SizeX, OutputRenderTarget->SizeY),
+				FVector2D(0.0f, 0.0f), FVector2D(1.0f, 1.0f));
+			Item.BlendMode = SE_BLEND_Opaque;
+			Canvas->DrawItem(Item);
+		}
+
+		UKismetRenderingLibrary::EndDrawCanvasToRenderTarget(this, DrawContext);
+
+		FinalRenderTarget = OutputRenderTarget;
+		InputTexture = FinalRenderTarget;
+	}
+
+	return FinalRenderTarget;
+}
+
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::GetOutputRenderTarget(
+	const FAGX_CameraOutputColor& Output, int32 MaterialPassIndex) const
+{
+	const FCameraOutputBarrier* Native = Output.GetNative();
+	if (Native == nullptr)
+		return nullptr;
+
+	const FCameraOutputRenderContext* Context =
+		OutputRenderContexts.Find(Native->GetNativeAddress());
+	if (Context == nullptr)
+		return nullptr;
+
+	if (MaterialPassIndex != -1)
+	{
+		if (!Context->RenderTargets.IsValidIndex(MaterialPassIndex))
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' in '%s' cannot get Material Pass Render Target "
+					 "at index %d because it has %d Material Passes."),
+				*GetName(), *GetLabelSafe(GetOwner()), MaterialPassIndex,
+				Context->RenderTargets.Num());
+			return nullptr;
+		}
+
+		return Context->RenderTargets[MaterialPassIndex].Get();
+	}
+
+	for (int32 Index = Context->RenderTargets.Num() - 1; Index >= 0; --Index)
+	{
+		if (Context->RenderTargets[Index] != nullptr)
+			return Context->RenderTargets[Index].Get();
+	}
+
+	return Context->SceneRenderTarget.Get();
+}
+
+FCameraOutputRenderContext* UAGX_CameraSensorComponent::GetOrCreateOutputRenderContext(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	if (!OutputColorBarrier.HasNative())
+		return nullptr;
+
+	return &OutputRenderContexts.FindOrAdd(OutputColorBarrier.GetNativeAddress());
+}
+
+FCameraOutputRenderContext* UAGX_CameraSensorComponent::UpdateOutputCaptureSettings(
+	const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings)
+{
+	FCameraOutputRenderContext* OutputRenderContext =
+		GetOrCreateOutputRenderContext(OutputColorBarrier);
+	if (OutputRenderContext == nullptr)
+		return nullptr;
+
+	if (!UpdateOutputRenderContextNoParams(*OutputRenderContext, OutputColorBarrier, bLogWarnings))
+	{
+		return nullptr;
+	}
+
+	UpdateMaterialParametersFrom(OutputColorBarrier, OutputRenderContext->MaterialInstances);
+	FLensDistortionBrownConradyBarrier LensDistortionBarrier;
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr = nullptr;
+	if (!HasCaptureSourceOverride())
+	{
+		LensDistortionBarrier =
+			AGX_CameraSensorComponent_helpers::GetLensDistortionBrownConradyBarrier(*this);
+		LensDistortionBarrierPtr =
+			LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr;
+	}
+	UpdateMaterialParametersFrom(
+		LensDistortionBarrierPtr,
+		OutputRenderContext->DistortionProjectionScale, OutputRenderContext->MaterialInstances);
+	return OutputRenderContext;
+}
+
+void UAGX_CameraSensorComponent::UpdateAllOutputCaptureSettings()
+{
+	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	if (CameraBarrier == nullptr)
+		return;
+
+	TArray<FCameraOutputBarrier> OutputBarriers = CameraBarrier->GetOutputs();
+	for (FCameraOutputBarrier& OutputBarrier : OutputBarriers)
+	{
+		if (!FCameraOutputColorBarrier::IsColorOutput(OutputBarrier))
+			continue;
+
+		const FCameraOutputColorBarrier OutputColorBarrier =
+			FCameraOutputColorBarrier::CreateFrom(OutputBarrier);
+		UpdateOutputCaptureSettings(OutputColorBarrier);
+	}
+}
+
+void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
+	const FCameraOutputColorBarrier& OutputColorBarrier,
+	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
+{
+	const double Gamma = OutputColorBarrier.GetGamma();
+	const FAGX_ColorMappingMatrix ColorMappingMatrix = OutputColorBarrier.GetColorMappingMatrix();
+	for (auto& Material : OutMaterials)
+	{
+		if (Material == nullptr)
+			continue;
+
+		Material->SetScalarParameterValue(GetGammaParameterName(), Gamma);
+		Material->SetScalarParameterValue(
+			GetUseLinearColorSpaceParameterName(), bUseLinearColorSpace ? 1.0f : 0.0f);
+		Material->SetVectorParameterValue(GetColorMappingRow0ParameterName(), ColorMappingMatrix.Row0);
+		Material->SetVectorParameterValue(GetColorMappingRow1ParameterName(), ColorMappingMatrix.Row1);
+		Material->SetVectorParameterValue(GetColorMappingRow2ParameterName(), ColorMappingMatrix.Row2);
+		Material->SetVectorParameterValue(GetColorMappingRow3ParameterName(), ColorMappingMatrix.Row3);
+	}
+}
+
+void UAGX_CameraSensorComponent::UpdateMaterialParametersFrom(
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrier,
+	const FVector2D& DistortionProjectionScale,
+	TArray<TObjectPtr<UMaterialInstanceDynamic>>& OutMaterials)
+{
+	const bool bHasLensDistortion =
+		LensDistortionBarrier != nullptr && LensDistortionBarrier->HasNative();
+	double K1 = 0.0;
+	double K2 = 0.0;
+	double K3 = 0.0;
+	double P1 = 0.0;
+	double P2 = 0.0;
+	double ProjectionScaleX = 1.0;
+	double ProjectionScaleY = 1.0;
+	if (bHasLensDistortion)
+	{
+		K1 = LensDistortionBarrier->GetK1();
+		K2 = LensDistortionBarrier->GetK2();
+		K3 = LensDistortionBarrier->GetK3();
+		P1 = LensDistortionBarrier->GetP1();
+		P2 = LensDistortionBarrier->GetP2();
+		ProjectionScaleX = DistortionProjectionScale.X;
+		ProjectionScaleY = DistortionProjectionScale.Y;
+	}
+
+	for (auto& Material : OutMaterials)
+	{
+		if (Material == nullptr)
+			continue;
+
+		Material->SetScalarParameterValue(GetLensDistortionK1ParameterName(), K1);
+		Material->SetScalarParameterValue(GetLensDistortionK2ParameterName(), K2);
+		Material->SetScalarParameterValue(GetLensDistortionK3ParameterName(), K3);
+		Material->SetScalarParameterValue(GetLensDistortionP1ParameterName(), P1);
+		Material->SetScalarParameterValue(GetLensDistortionP2ParameterName(), P2);
+		Material->SetScalarParameterValue(
+			GetLensDistortionProjectionScaleXParameterName(), ProjectionScaleX);
+		Material->SetScalarParameterValue(
+			GetLensDistortionProjectionScaleYParameterName(), ProjectionScaleY);
+	}
+}
+
+bool UAGX_CameraSensorComponent::UpdateOutputRenderContextNoParams(
+	FCameraOutputRenderContext& OutputRenderContext,
+	const FCameraOutputColorBarrier& OutputColorBarrier, bool bLogWarnings)
+{
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	const auto LogWarning = [this, bLogWarnings](const TCHAR* Message)
+	{
+		if (!bLogWarnings)
+			return;
+
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot update Output Render Context: %s"),
+			*GetName(), *GetLabelSafe(GetOwner()), Message);
+	};
+
+	if (!OutputColorBarrier.HasNative())
+	{
+		LogWarning(TEXT("the Camera Color Output does not have a native output."));
+		return false;
+	}
+
+	USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+	if (CaptureSource == nullptr)
+	{
+		LogWarning(TEXT("there is no valid Scene Capture Component 2D."));
+		return false;
+	}
+
+	const FIntPoint OutputResolution = OutputColorBarrier.GetResolution();
+	if (!FAGX_CameraOutputBase::IsResolutionValid(OutputResolution))
+	{
+		LogWarning(TEXT("the Camera Color Output resolution is invalid."));
+		return false;
+	}
+
+	const UAGX_CameraCMOSSensor& CMOSSensor = GetCMOSSensorOrDefault(*this);
+	const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
+	const float UncompensatedFOVAngle =
+		CalculateHorizontalFOVDegrees(CMOSSensor.GetSize().X, Lens.GetFocalLength());
+	float SceneCaptureFOVAngle = UncompensatedFOVAngle;
+	FVector2D SceneResolution(OutputResolution.X, OutputResolution.Y);
+	FVector2D DistortionProjectionScale(1.0, 1.0);
+	FVector2D DistortionResolutionScale(1.0, 1.0);
+	bool bDistortionSettingsAreValid = true;
+	FLensDistortionBrownConradyBarrier LensDistortionBarrier;
+	const FLensDistortionBrownConradyBarrier* LensDistortionBarrierPtr = nullptr;
+	if (!HasCaptureSourceOverride() && MaterialPasses.Num() > 0)
+	{
+		LensDistortionBarrier = GetLensDistortionBrownConradyBarrier(*this);
+		LensDistortionBarrierPtr =
+			LensDistortionBarrier.HasNative() ? &LensDistortionBarrier : nullptr;
+		bDistortionSettingsAreValid = CalculateLensDistortionScales(
+			LensDistortionBarrierPtr, DistortionProjectionScale, DistortionResolutionScale);
+		if (DistortionProjectionScale.X > MaximumLensDistortionScale ||
+			DistortionProjectionScale.Y > MaximumLensDistortionScale)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' is clamping lens distortion projection scale "
+					 "for Color Output 0x%llx from (%.6f, %.6f) to (%.6f, %.6f) to limit "
+					 "Scene Render Target resolution."),
+				*GetName(), static_cast<unsigned long long>(OutputColorBarrier.GetNativeAddress()),
+				DistortionProjectionScale.X, DistortionProjectionScale.Y,
+				FMath::Min(DistortionProjectionScale.X, MaximumLensDistortionScale),
+				FMath::Min(DistortionProjectionScale.Y, MaximumLensDistortionScale));
+			DistortionProjectionScale.X =
+				FMath::Min(DistortionProjectionScale.X, MaximumLensDistortionScale);
+			DistortionProjectionScale.Y =
+				FMath::Min(DistortionProjectionScale.Y, MaximumLensDistortionScale);
+		}
+	}
+
+	const double BaseTanHalfFOVX =
+		FMath::Tan(FMath::DegreesToRadians(static_cast<double>(UncompensatedFOVAngle) * 0.5));
+	const double BaseTanHalfFOVY = CMOSSensor.GetSize().Y / (2.0 * Lens.GetFocalLength());
+	if (bDistortionSettingsAreValid && BaseTanHalfFOVX > 0.0 && BaseTanHalfFOVY > 0.0)
+	{
+		const double SceneTanHalfFOVX = BaseTanHalfFOVX * DistortionProjectionScale.X;
+		const double SceneTanHalfFOVY = BaseTanHalfFOVY * DistortionProjectionScale.Y;
+		SceneCaptureFOVAngle =
+			static_cast<float>(FMath::RadiansToDegrees(2.0 * FMath::Atan(SceneTanHalfFOVX)));
+		// Preserve output pixel density after the material pass crops the overscanned capture.
+		SceneResolution = FVector2D(
+			static_cast<double>(OutputResolution.X) * DistortionProjectionScale.X *
+				DistortionResolutionScale.X,
+			static_cast<double>(OutputResolution.Y) * DistortionProjectionScale.Y *
+				DistortionResolutionScale.Y);
+		OutputRenderContext.SceneCaptureProjectionMatrix =
+			MakeSceneCaptureProjectionMatrix(SceneTanHalfFOVX, SceneTanHalfFOVY);
+		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix = true;
+	}
+	else
+	{
+		DistortionProjectionScale = FVector2D(1.0, 1.0);
+		DistortionResolutionScale = FVector2D(1.0, 1.0);
+		OutputRenderContext.SceneCaptureProjectionMatrix = FMatrix::Identity;
+		OutputRenderContext.bUseCustomSceneCaptureProjectionMatrix = false;
+	}
+
+	if (SceneCaptureFOVAngle > 0.0f)
+		OutputRenderContext.SceneCaptureFOVAngle = SceneCaptureFOVAngle;
+	OutputRenderContext.DistortionProjectionScale = DistortionProjectionScale;
+	OutputRenderContext.DistortionResolutionScale = DistortionResolutionScale;
+
+	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
+	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
+	const TOptional<ETextureRenderTargetFormat> OutputRenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!OutputRenderTargetFormat.IsSet())
+	{
+		LogWarning(TEXT("the Camera Color Output channel type or channel count is unsupported."));
+		return false;
+	}
+
+	const bool bHasMaterialPass = MaterialPasses.ContainsByPredicate(
+		[](const TObjectPtr<UMaterialInterface>& Material) { return Material != nullptr; });
+	// Material passes can remap any source color channel into an output channel. Their input must
+	// therefore retain all scene color channels, even when the native output has fewer channels.
+	const uint8 SceneCaptureChannelCount = bHasMaterialPass ? 4 : ChannelCount;
+	const TOptional<ETextureRenderTargetFormat> SceneCaptureRenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(
+			ChannelType, SceneCaptureChannelCount);
+	if (!SceneCaptureRenderTargetFormat.IsSet())
+	{
+		LogWarning(TEXT("the Scene Capture Render Target format is unsupported."));
+		return false;
+	}
+
+	// Validate both target layouts before converting dimensions or allocating any render targets.
+	if (!ValidateRenderTargetSize(
+			OutputResolution.X, OutputResolution.Y,
+			GetRenderTargetPixelFormat(OutputRenderTargetFormat.GetValue())))
+	{
+		return false;
+	}
+	if (!HasCaptureSourceOverride() &&
+		!ValidateRenderTargetSize(
+			SceneResolution.X, SceneResolution.Y,
+			GetRenderTargetPixelFormat(SceneCaptureRenderTargetFormat.GetValue())))
+	{
+		return false;
+	}
+	OutputRenderContext.SceneCaptureResolution = HasCaptureSourceOverride() ? OutputResolution :
+		FIntPoint(FMath::CeilToInt(SceneResolution.X), FMath::CeilToInt(SceneResolution.Y));
+
+	auto EnsureRenderTarget =
+		[this, ChannelType](
+			TObjectPtr<UTextureRenderTarget2D>& RenderTarget, const FIntPoint& Resolution,
+			uint8 TargetChannelCount, ETextureRenderTargetFormat TargetFormat)
+	{
+		const EPixelFormat TargetPixelFormat = GetRenderTargetPixelFormat(TargetFormat);
+		if (RenderTarget == nullptr)
+		{
+			RenderTarget = CreateRenderTarget(Resolution, ChannelType, TargetChannelCount);
+			return RenderTarget != nullptr;
+		}
+
+		if (RenderTarget->GetFormat() != TargetPixelFormat)
+		{
+			RenderTarget->RenderTargetFormat = TargetFormat;
+			RenderTarget->InitCustomFormat(Resolution.X, Resolution.Y, TargetPixelFormat, true);
+		}
+		else if (RenderTarget->SizeX != Resolution.X || RenderTarget->SizeY != Resolution.Y)
+			RenderTarget->ResizeTarget(Resolution.X, Resolution.Y);
+
+		return true;
+	};
+
+	if (HasCaptureSourceOverride())
+	{
+		OutputRenderContext.SceneRenderTarget = CaptureSource->TextureTarget;
+	}
+	else
+	{
+		if (!EnsureRenderTarget(
+				OutputRenderContext.SceneRenderTarget, OutputRenderContext.SceneCaptureResolution,
+				SceneCaptureChannelCount, SceneCaptureRenderTargetFormat.GetValue()))
+		{
+			LogWarning(TEXT("failed to create the Scene Render Target."));
+			return false;
+		}
+	}
+
+	if (OutputRenderContext.MaterialInstances.Num() != MaterialPasses.Num())
+		OutputRenderContext.MaterialInstances.SetNum(MaterialPasses.Num());
+
+	for (int32 Index = 0; Index < MaterialPasses.Num(); ++Index)
+	{
+		UMaterialInterface* Material = MaterialPasses[Index].Get();
+		TObjectPtr<UMaterialInstanceDynamic>& MaterialInstance =
+			OutputRenderContext.MaterialInstances[Index];
+		if (Material == nullptr)
+		{
+			if (MaterialInstance != nullptr)
+				MaterialInstance = nullptr;
+			continue;
+		}
+
+		if (MaterialInstance == nullptr || MaterialInstance->Parent.Get() != Material)
+			MaterialInstance = UMaterialInstanceDynamic::Create(Material, this);
+	}
+
+	if (OutputRenderContext.RenderTargets.Num() != OutputRenderContext.MaterialInstances.Num())
+		OutputRenderContext.RenderTargets.SetNum(OutputRenderContext.MaterialInstances.Num());
+
+	for (int32 Index = 0; Index < OutputRenderContext.MaterialInstances.Num(); ++Index)
+	{
+		TObjectPtr<UTextureRenderTarget2D>& RenderTarget = OutputRenderContext.RenderTargets[Index];
+		if (OutputRenderContext.MaterialInstances[Index] == nullptr)
+		{
+			if (RenderTarget != nullptr)
+				RenderTarget = nullptr;
+			continue;
+		}
+
+		if (!EnsureRenderTarget(
+				RenderTarget, OutputResolution, ChannelCount, OutputRenderTargetFormat.GetValue()))
+		{
+			LogWarning(TEXT("failed to create a Material Pass Render Target."));
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool UAGX_CameraSensorComponent::RequestCapture(const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+	if (CameraBarrier == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because it does "
+				 "not have a native Camera."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!OutputColorBarrier.HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because the "
+				 "Camera Color Output does not have a native output."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	FCameraOutputRenderContext* OutputRenderContext =
+		OutputRenderContexts.Find(OutputColorBarrier.GetNativeAddress());
+	if (OutputRenderContext == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because the "
+				 "Camera Color Output does not have a render context."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (OutputRenderContext->SceneRenderTarget == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because the "
+				 "Camera Color Output render context does not have a Scene Render Target."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return false;
+	}
+
+	if (!HasCaptureSourceOverride())
+	{
+		USceneCaptureComponent2D* CaptureSource = GetCaptureSource();
+		if (CaptureSource == nullptr)
+		{
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT("Camera Sensor Component '%s' in '%s' cannot request a capture because it "
+					 "does not have a Scene Capture Component 2D."),
+				*GetName(), *GetLabelSafe(GetOwner()));
+			return false;
+		}
+
+		if (OutputRenderContext->SceneCaptureFOVAngle > 0.0f &&
+			!FMath::IsNearlyEqual(
+				CaptureSource->FOVAngle, OutputRenderContext->SceneCaptureFOVAngle))
+		{
+			CaptureSource->FOVAngle = OutputRenderContext->SceneCaptureFOVAngle;
+		}
+		CaptureSource->bUseCustomProjectionMatrix =
+			OutputRenderContext->bUseCustomSceneCaptureProjectionMatrix;
+		if (OutputRenderContext->bUseCustomSceneCaptureProjectionMatrix)
+			CaptureSource->CustomProjectionMatrix =
+				OutputRenderContext->SceneCaptureProjectionMatrix;
+		CaptureSource->TextureTarget = OutputRenderContext->SceneRenderTarget;
+
+		const UAGX_CameraLensSingleElement& Lens = GetCameraLensSingleElementOrDefault(*this);
+		if (Lens.GetUseAutofocus())
+			UpdateLensFocalDistance(*CaptureSource, Lens);
+	}
+
+	FAGX_CameraSensorCaptureDataPtr Slot = OutputRenderContext->CaptureHelper.GetFreeSlot();
+	if (!Slot.IsValid()) // No free slots, deny the request.
+		return false;
+
+	UTextureRenderTarget2D* FinalRenderTarget =
+		RenderMaterialPasses(*OutputRenderContext, OutputColorBarrier);
+	if (FinalRenderTarget == nullptr)
+		return false; // Slot is still "Free" for future requests.
+
+	const EPixelFormat PixelFormat = FinalRenderTarget->GetFormat();
+	const EAGX_CameraOutputChannelType ChannelType = OutputColorBarrier.GetChannelType();
+	const uint8 ChannelCount = OutputColorBarrier.GetChannelCount();
+	const TOptional<ETextureRenderTargetFormat> OutputFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!OutputFormat.IsSet())
+		return false;
+
+	const EPixelFormat ExpectedPixelFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(OutputFormat.GetValue());
+	if (PixelFormat != ExpectedPixelFormat)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' cannot read back Render Target '%s' "
+				 "because pixel format '%s' does not match the Camera Color Output's required "
+				 "format '%s'. When using CaptureSourceOverride without active material passes, "
+				 "use a matching render target format or add a material pass."),
+			*GetName(), *GetLabelSafe(GetOwner()), *FinalRenderTarget->GetName(),
+			GPixelFormats[PixelFormat].Name, GPixelFormats[ExpectedPixelFormat].Name);
+		return false; // Slot is still "Free" for future requests.
+	}
+
+	const FIntPoint ImageSize {FinalRenderTarget->SizeX, FinalRenderTarget->SizeY};
+	// Owned targets are validated during setup. A directly read override can be resized externally.
+	if (HasCaptureSourceOverride() &&
+		FinalRenderTarget == OutputRenderContext->SceneRenderTarget.Get() &&
+		!AGX_CameraSensorComponent_helpers::ValidateRenderTargetSize(
+			ImageSize.X, ImageSize.Y, PixelFormat))
+		return false;
+
+	FTextureRenderTargetResource* FinalRenderTargetResource =
+		FinalRenderTarget->GameThread_GetRenderTargetResource();
+
+	if (FinalRenderTargetResource == nullptr)
+		return false; // Slot is still "Free" for future requests.
+
+	const FString NameBase = GetName();
+	Slot->SetState(EAGX_CameraSensorSlotState::CaptureRequested); // We claim the slot.
+	Slot->OutputNativeAddress = OutputColorBarrier.GetNativeAddress();
+	Slot->ChannelType = ChannelType;
+	Slot->ChannelCount = ChannelCount;
+	ENQUEUE_RENDER_COMMAND(AGXCameraCaptureRequest)
+	(
+		[FinalRenderTargetResource, Slot, NameBase, ImageSize,
+		 PixelFormat](FRHICommandListImmediate& RHICmdList)
+		{
+			const bool bNeedsNewStagingTexture = !Slot->StagingTexture.IsValid() ||
+												 Slot->StagingTexture->GetSizeXY() != ImageSize ||
+												 Slot->StagingTexture->GetFormat() != PixelFormat;
+			if (bNeedsNewStagingTexture)
+			{
+				const FRHITextureCreateDesc Desc =
+					FRHITextureCreateDesc::Create2D(
+						*FString::Printf(TEXT("%s CameraCaptureStagingTexture"), *NameBase))
+						.SetExtent(ImageSize.X, ImageSize.Y)
+						.SetFormat(PixelFormat)
+						.SetFlags(ETextureCreateFlags::Shared | ETextureCreateFlags::CPUReadback);
+
+#if UE_VERSION_OLDER_THAN(5, 8, 0)
+				Slot->StagingTexture = RHICreateTexture(Desc);
+#else
+				Slot->StagingTexture = RHICmdList.CreateTexture(Desc);
+#endif
+			}
+
+			if (!Slot->StagingTexture.IsValid())
+			{
+				// Fail. Give back the slot for future requests.
+				Slot->CopyFence.SafeRelease();
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+				return;
+			}
+
+			FRHITexture* SourceTexture = FinalRenderTargetResource->GetRenderTargetTexture();
+			if (SourceTexture == nullptr)
+			{
+				// Fail. Give back the slot for future requests.
+				Slot->CopyFence.SafeRelease();
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+				return;
+			}
+
+			RHICmdList.Transition(
+				FRHITransitionInfo(SourceTexture, ERHIAccess::Unknown, ERHIAccess::CopySrc));
+			RHICmdList.CopyTexture(SourceTexture, Slot->StagingTexture, FRHICopyTextureInfo());
+
+			Slot->CopyFence.SafeRelease();
+			Slot->CopyFence = RHICreateGPUFence(TEXT("AGXCameraCaptureCopyFence"));
+			RHICmdList.WriteGPUFence(Slot->CopyFence);
+			Slot->SetState(EAGX_CameraSensorSlotState::AwaitingCopyFence);
+		});
+
+	return true;
+}
+
+void UAGX_CameraSensorComponent::PollCaptures()
+{
+	TArray<FAGX_CameraSensorCaptureDataPtr> Slots;
+	for (auto& Pair : OutputRenderContexts)
+	{
+		Slots.Append(Pair.Value.CaptureHelper.GetAwaitingCopyFenceSlots());
+	}
+
+	if (Slots.Num() == 0)
+		return; // Nothing to do yet.
+
+	for (FAGX_CameraSensorCaptureDataPtr& Slot : Slots)
+	{
+		if (!Slot.IsValid())
+			continue;
+
+		Slot->SetState(EAGX_CameraSensorSlotState::PollCopyFence); // Claim slot for polling.
+	}
+
+	ENQUEUE_RENDER_COMMAND(AGXCameraPollCapture)
+	(
+		[Slots](FRHICommandListImmediate& RHICmdList)
+		{
+			for (const FAGX_CameraSensorCaptureDataPtr& Slot : Slots)
+			{
+				if (!Slot.IsValid())
+					continue;
+
+				if (Slot->GetState() != EAGX_CameraSensorSlotState::PollCopyFence)
+					continue;
+
+				if (!Slot->StagingTexture.IsValid() || !Slot->CopyFence.IsValid())
+				{
+					// Fail. Give back the slot for future requests.
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				if (!Slot->CopyFence->Poll())
+				{
+					// Not yet ready, put slot back to AwaitingCopyFence and it will be processed
+					// again next call to this function.
+					Slot->SetState(EAGX_CameraSensorSlotState::AwaitingCopyFence);
+					continue;
+				}
+
+				// At this point the StagingTexture has been written to on the GPU and we are ready
+				// to read the pixel data from it.
+				void* PixelBuffer = nullptr;
+				int32 SurfaceWidth = 0;
+				int32 SurfaceHeight = 0;
+
+				// This does not copy bytes into PixelBuffer, it simply assigns the pointer so that
+				// we can read off of it from the CPU. This ptr becomes invalid after the
+				// UnmapStagingSurface call further down.
+				GDynamicRHI->RHIMapStagingSurface(
+					Slot->StagingTexture, Slot->CopyFence, PixelBuffer, SurfaceWidth, SurfaceHeight,
+					RHICmdList.GetGPUMask().ToIndex());
+
+				if (PixelBuffer == nullptr)
+				{
+					// Fail. Give back the slot for future requests.
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const FIntPoint ImageSize = Slot->StagingTexture->GetSizeXY();
+				const int32 LogicalWidth = ImageSize.X;
+				const int32 LogicalHeight = ImageSize.Y;
+				const EPixelFormat PixelFormat = Slot->StagingTexture->GetFormat();
+				const int32 SourceBytesPerPixel = GPixelFormats[PixelFormat].BlockBytes;
+				const TOptional<int32> ChannelSize =
+					AGX_CameraSensorComponent_helpers::GetChannelSize(Slot->ChannelType);
+				const int32 ChannelCount = static_cast<int32>(Slot->ChannelCount);
+				if (LogicalWidth <= 0 || LogicalHeight <= 0 || SourceBytesPerPixel <= 0 ||
+					SurfaceWidth < LogicalWidth || SurfaceHeight < LogicalHeight ||
+					!ChannelSize.IsSet() || ChannelCount < 1 || ChannelCount > 4)
+				{
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int32 DestinationBytesPerPixel = ChannelSize.GetValue() * ChannelCount;
+				if (DestinationBytesPerPixel > SourceBytesPerPixel)
+				{
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int64 SourcePitch64 = static_cast<int64>(SurfaceWidth) * SourceBytesPerPixel;
+				const int64 DestinationPitch64 =
+					static_cast<int64>(LogicalWidth) * DestinationBytesPerPixel;
+				if (SourcePitch64 > TNumericLimits<int32>::Max() ||
+					DestinationPitch64 > TNumericLimits<int32>::Max() / LogicalHeight)
+				{
+					UE_LOG(
+						LogAGX, Warning,
+						TEXT("Camera readback size %dx%d exceeds the camera row or buffer limit of "
+							 "%d bytes. The capture will be discarded."),
+						LogicalWidth, LogicalHeight, TNumericLimits<int32>::Max());
+					RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+					Slot->CopyFence.SafeRelease();
+					Slot->SetState(EAGX_CameraSensorSlotState::Free);
+					continue;
+				}
+
+				const int32 SourcePitch = static_cast<int32>(SourcePitch64);
+				const int32 DestinationPitch = static_cast<int32>(DestinationPitch64);
+				const int32 NumBytes = static_cast<int32>(DestinationPitch64 * LogicalHeight);
+
+				{
+					FCameraOutputRawDataWriteAccess OutputRawData =
+						FCameraBackendBarrier::GetInstance().LockOutputRawDataForWrite(
+							Slot->OutputNativeAddress);
+					if (OutputRawData.Get() == nullptr)
+					{
+						RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+						Slot->CopyFence.SafeRelease();
+						Slot->SetState(EAGX_CameraSensorSlotState::Free);
+						continue;
+					}
+
+					OutputRawData->Resolution = ImageSize;
+					OutputRawData->PixelFormat = PixelFormat;
+					OutputRawData->IsUnread = true;
+
+					OutputRawData->RawData.SetNumUninitialized(NumBytes, EAllowShrinking::No);
+					if (SurfaceWidth == LogicalWidth &&
+						SourceBytesPerPixel == DestinationBytesPerPixel)
+					{
+						FMemory::Memcpy(OutputRawData->RawData.GetData(), PixelBuffer, NumBytes);
+					}
+					else
+					{
+						const uint8* SourceRow = static_cast<const uint8*>(PixelBuffer);
+						uint8* DestinationRow = OutputRawData->RawData.GetData();
+						if (SourceBytesPerPixel == DestinationBytesPerPixel)
+						{
+							for (int32 Row = 0; Row < LogicalHeight; ++Row)
+							{
+								FMemory::Memcpy(DestinationRow, SourceRow, DestinationPitch);
+								SourceRow += SourcePitch;
+								DestinationRow += DestinationPitch;
+							}
+						}
+						else if (SourceBytesPerPixel == 4 && DestinationBytesPerPixel == 3)
+						{
+							AGX_CameraSensorComponent_helpers::CopyFourBytePixelsToThreeBytePixels(
+								SourceRow, DestinationRow, SourcePitch, DestinationPitch, LogicalWidth,
+								LogicalHeight);
+						}
+						else
+						{
+							for (int32 Row = 0; Row < LogicalHeight; ++Row)
+							{
+								const uint8* SourcePixel = SourceRow;
+								uint8* DestinationPixel = DestinationRow;
+								for (int32 Column = 0; Column < LogicalWidth; ++Column)
+								{
+									FMemory::Memcpy(
+										DestinationPixel, SourcePixel, DestinationBytesPerPixel);
+									SourcePixel += SourceBytesPerPixel;
+									DestinationPixel += DestinationBytesPerPixel;
+								}
+
+								SourceRow += SourcePitch;
+								DestinationRow += DestinationPitch;
+							}
+						}
+					}
+				}
+
+				RHICmdList.UnmapStagingSurface(Slot->StagingTexture);
+				Slot->CopyFence.SafeRelease();
+
+				// We are done, give back the slot.
+				Slot->SetState(EAGX_CameraSensorSlotState::Free);
+			}
+		});
+}
+
+FSensorBarrier* UAGX_CameraSensorComponent::CreateNativeImpl()
+{
+	Super::CreateNativeImpl();
+
+	AGX_CHECK(!HasNative());
+	if (HasNative())
+		return GetNativeAsCamera();
+
+	auto CameraBackend = UAGX_CameraBackend::GetFrom(this);
+	AGX_CHECK(CameraBackend != nullptr);
+	if (CameraBackend == nullptr)
+		return nullptr;
+
+	auto CameraBackendBarrier = CameraBackend->GetOrCreateNative();
+	if (CameraBackendBarrier == nullptr || !CameraBackendBarrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("UAGX_CameraSensorComponent::CreateNativeImpl called on Camera Sensor Component "
+				 "'%s' in '%s' but the Camera Backend does not have a valid Native Object. Native "
+				 "Camera Sensor will not be created."),
+			*GetName(), *GetLabelSafe(GetOwner()));
+		return nullptr;
+	}
+
+	FCameraBarrier* CameraBarrier = static_cast<FCameraBarrier*>(NativeBarrier.Get());
+	if (CameraBarrier == nullptr)
+		return nullptr;
+
+	UpdateCameraPhotoDetector();
+	UpdateCameraLens();
+	FCameraLensBarrier* LensBarrier =
+		CameraLens != nullptr && CameraLens->HasNative() ? CameraLens->GetNative() : nullptr;
+	FCameraPhotodetectorBarrier* PhotoDetectorBarrier =
+		PhotoDetector != nullptr && PhotoDetector->HasNative() ? PhotoDetector->GetNative()
+															   : nullptr;
+
+	CameraBarrier->AllocateNative(GetComponentTransform(), LensBarrier, PhotoDetectorBarrier);
+	SetupCameraBackendPropagator();
+	if (HasNative())
+		UpdateNativeProperties();
+
+	return CameraBarrier;
+}
+
+void UAGX_CameraSensorComponent::CopyFrom(
+	const FSensorBarrier& Barrier, FAGX_ImportContext* Context)
+{
+	Super::CopyFrom(Barrier, Context);
+
+	if (Context == nullptr || !Context->bStoreObjects)
+		return;
+
+	const FCameraBarrier& CameraBarrier = static_cast<const FCameraBarrier&>(Barrier);
+	const FCameraCMOSSensorBarrier CMOSSensorBarrier = CameraBarrier.GetCMOSSensor();
+	if (CMOSSensorBarrier.HasNative())
+	{
+		UAGX_CameraCMOSSensor* CMOSSensor =
+			AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_CameraCMOSSensor>(*Context);
+		if (CMOSSensor != nullptr)
+		{
+			CMOSSensor->CopyFrom(CameraBarrier, Context);
+			PhotoDetector = CMOSSensor;
+		}
+	}
+
+	const FCameraLensSingleElementBarrier LensBarrier = CameraBarrier.GetLensSingleElement();
+	UAGX_CameraLensSingleElement* Lens = nullptr;
+	if (LensBarrier.HasNative())
+	{
+		Lens = AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_CameraLensSingleElement>(
+			*Context);
+		if (Lens != nullptr)
+		{
+			Lens->CopyFrom(CameraBarrier, Context);
+			CameraLens = Lens;
+		}
+	}
+
+	const FLensDistortionBrownConradyBarrier LensDistortionBarrier =
+		CameraBarrier.GetLensDistortionBrownConrady();
+	if (Lens != nullptr && LensDistortionBarrier.HasNative())
+	{
+		UAGX_LensDistortionBrownConrady* LensDistortion =
+			AGX_CameraSensorComponent_helpers::CreateCameraAsset<UAGX_LensDistortionBrownConrady>(*Context);
+		if (LensDistortion != nullptr)
+		{
+			LensDistortion->CopyFrom(CameraBarrier, Context);
+			Lens->LensDistortion = LensDistortion;
+		}
+	}
+}
+
+void UAGX_CameraSensorComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GIsReconstructingBlueprintInstances)
+		return;
+
+	if (!HasNative())
+		CreateNativeImpl();
+
+	if (HasNative())
+	{
+		SetupSceneCapture();
+
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddCamera(this);
+		}
+	}
+}
+
+void UAGX_CameraSensorComponent::EndPlay(const EEndPlayReason::Type Reason)
+{
+	if (!GIsReconstructingBlueprintInstances && HasNative() &&
+		Reason != EEndPlayReason::EndPlayInEditor && Reason != EEndPlayReason::Quit &&
+		Reason != EEndPlayReason::LevelTransition)
+	{
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->RemoveCamera(this);
+		}
+	}
+
+	Super::EndPlay(Reason);
+}
+
+void UAGX_CameraSensorComponent::PostApplyToComponent()
+{
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	Super::PostApplyToComponent();
+
+	if (GIsReconstructingBlueprintInstances && HasNative() && GetWorld() &&
+		GetWorld()->IsGameWorld())
+	{
+		// Dynamic Components are not carried over when a Blueprint instance is reconstructed
+		// during Play, so recreate the runtime Scene Capture Component on the new instance.
+		FCameraBarrier* CameraBarrier = GetNativeAsCamera();
+		if (CameraBarrier == nullptr)
+			return;
+
+		if (auto Se = UAGX_SensorEnvironmentSubsystem::GetFrom(this))
+		{
+			Se->AddCamera(this);
+		}
+
+		CameraBarrier->RegisterWithBackend();
+		SetupCameraBackendPropagator();
+		SetupSceneCapture();
+
+		OutputRenderContexts.Empty();
+		TArray<FCameraOutputBarrier> OutputBarriers = CameraBarrier->GetOutputs();
+		for (FCameraOutputBarrier& OutputBarrier : OutputBarriers)
+		{
+			OutputBarrier.RegisterWithBackend(*CameraBarrier);
+			if (!FCameraOutputColorBarrier::IsColorOutput(OutputBarrier))
+				continue;
+
+			FCameraOutputColorBarrier OutputColorBarrier =
+				FCameraOutputColorBarrier::CreateFrom(OutputBarrier);
+			FCameraOutputRenderContext* OutputRenderContext =
+				UpdateOutputCaptureSettings(OutputColorBarrier);
+			if (OutputRenderContext == nullptr)
+				continue;
+		}
+	}
+}
+
+void UAGX_CameraSensorComponent::TickComponent(
+	float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	PollCaptures();
+}
+
+void UAGX_CameraSensorComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	Super::OnComponentDestroyed(bDestroyingHierarchy);
+
+	if (OwnedCaptureComponent2D != nullptr)
+	{
+		OwnedCaptureComponent2D->DestroyComponent();
+		OwnedCaptureComponent2D = nullptr;
+	}
+
+	OutputRenderContexts.Empty();
+}
+
+#if WITH_EDITOR
+bool UAGX_CameraSensorComponent::CanEditChange(const FProperty* InProperty) const
+{
+	const bool SuperCanEditChange = Super::CanEditChange(InProperty);
+	if (!SuperCanEditChange)
+		return false;
+
+	if (InProperty == nullptr)
+		return SuperCanEditChange;
+
+	const bool bIsPlaying = GetWorld() && GetWorld()->IsGameWorld();
+	if (bIsPlaying)
+	{
+		static const TArray<FName> PropertiesNotEditableDuringPlay {
+			GET_MEMBER_NAME_CHECKED(ThisClass, PhotoDetector),
+			GET_MEMBER_NAME_CHECKED(ThisClass, CameraLens)};
+
+		if (PropertiesNotEditableDuringPlay.Contains(InProperty->GetFName()))
+			return false;
+	}
+
+	return SuperCanEditChange;
+}
+
+void UAGX_CameraSensorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Event)
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>::Get().Trigger(Event);
+
+	Super::PostEditChangeChainProperty(Event);
+}
+
+void UAGX_CameraSensorComponent::PostInitProperties()
+{
+	Super::PostInitProperties();
+	InitPropertyDispatcher();
+}
+#endif
+
+void UAGX_CameraSensorComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// On Register is called after object initialization has completed, so it is safe to set the
+	// local scope used by Component References.
+	AGX_CameraSensorComponent_helpers::SetLocalScope(*this);
+}
+
+FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera()
+{
+	if (!HasNative())
+		return nullptr;
+
+	return static_cast<FCameraBarrier*>(NativeBarrier.Get());
+}
+
+const FCameraBarrier* UAGX_CameraSensorComponent::GetNativeAsCamera() const
+{
+	if (!HasNative())
+		return nullptr;
+
+	return static_cast<const FCameraBarrier*>(NativeBarrier.Get());
+}
+
+void UAGX_CameraSensorComponent::MarkOutputAsRead()
+{
+	if (bOpenPLXImported)
+		return; // OpenPLX imported sensors outputs are handled with OpenPLX signals.
+
+	if (HasNative())
+		GetNativeAsCamera()->MarkOutputAsRead();
+}
+
+void UAGX_CameraSensorComponent::UpdateNativeProperties()
+{
+	AGX_CHECK(HasNative());
+
+	Super::UpdateNativeProperties();
+	UpdateNativeTransform();
+}
+
+void UAGX_CameraSensorComponent::SetupSceneCapture()
+{
+	if (HasCaptureSourceOverride())
+	{
+		if (OwnedCaptureComponent2D != nullptr)
+		{
+			OwnedCaptureComponent2D->DestroyComponent();
+			OwnedCaptureComponent2D = nullptr;
+		}
+		return;
+	}
+
+	if (OwnedCaptureComponent2D != nullptr)
+		return;
+
+	AActor* Owner = GetOwner();
+	if (Owner == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+		return;
+
+	// No CaptureSourceOverride set by the user, create a USceneCaptureComponent2D that we own
+	// completely and use that when rendering.
+
+	OwnedCaptureComponent2D =
+		NewObject<USceneCaptureComponent2D>(this, FName(TEXT("SceneCaptureComponent2D")));
+	OwnedCaptureComponent2D->CreationMethod = EComponentCreationMethod::Native;
+	OwnedCaptureComponent2D->SetCanEverAffectNavigation(false);
+	OwnedCaptureComponent2D->PrimitiveRenderMode =
+		ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
+	OwnedCaptureComponent2D->CaptureSource = ESceneCaptureSource::SCS_FinalColorHDR;
+	OwnedCaptureComponent2D->bCaptureEveryFrame = false;
+	OwnedCaptureComponent2D->bCaptureOnMovement = false;
+	OwnedCaptureComponent2D->bAlwaysPersistRenderingState = true;
+	OwnedCaptureComponent2D->PostProcessBlendWeight = 1.0f;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraISO = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_CameraShutterSpeed = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	OwnedCaptureComponent2D->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureBias = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFstop = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldSensorWidth = true;
+	OwnedCaptureComponent2D->PostProcessSettings.bOverride_DepthOfFieldFocalDistance = true;
+	OwnedCaptureComponent2D->RegisterComponent();
+	OwnedCaptureComponent2D->AttachToComponent(
+		this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+}
+
+void UAGX_CameraSensorComponent::SetupCameraBackendPropagator()
+{
+	CameraBackendPropagator.SetCameraSensor(this);
+
+	if (FCameraBarrier* CameraBarrier = GetNativeAsCamera())
+		CameraBarrier->SetBackendPropagator(&CameraBackendPropagator);
+}
+
+void UAGX_CameraSensorComponent::UpdateCameraPhotoDetector()
+{
+	if (PhotoDetector == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	UAGX_CameraPhotodetectorBase* Instance = PhotoDetector->GetOrCreateInstance(World);
+	if (Instance == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a PhotoDetector instance "
+				 "from '%s'. Default AGX CMOS Sensor will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *PhotoDetector->GetName());
+		return;
+	}
+
+	PhotoDetector = Instance;
+
+	FCameraPhotodetectorBarrier* Barrier = PhotoDetector->GetOrCreateNative();
+	if (Barrier == nullptr || !Barrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a native PhotoDetector "
+				 "from instance '%s'. Default AGX CMOS Sensor will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *PhotoDetector->GetName());
+	}
+}
+
+void UAGX_CameraSensorComponent::UpdateCameraLens()
+{
+	if (CameraLens == nullptr)
+		return;
+
+	UWorld* World = GetWorld();
+	UAGX_CameraLensBase* Instance = CameraLens->GetOrCreateInstance(World);
+	if (Instance == nullptr)
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a CameraLens instance "
+				 "from '%s'. Default AGX single element lens will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *CameraLens->GetName());
+		return;
+	}
+
+	CameraLens = Instance;
+
+	FCameraLensBarrier* Barrier = CameraLens->GetOrCreateNative();
+	if (Barrier == nullptr || !Barrier->HasNative())
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' in '%s' failed to create a native CameraLens "
+				 "from instance '%s'. Default AGX single element lens will be used."),
+			*GetName(), *GetLabelSafe(GetOwner()), *CameraLens->GetName());
+	}
+}
+
+UTextureRenderTarget2D* UAGX_CameraSensorComponent::CreateRenderTarget(
+	const FIntPoint& InResolution, EAGX_CameraOutputChannelType ChannelType, uint8 ChannelCount)
+{
+	const TOptional<ETextureRenderTargetFormat> RenderTargetFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetFormat(ChannelType, ChannelCount);
+	if (!RenderTargetFormat.IsSet())
+		return nullptr;
+
+	const EPixelFormat PixelFormat =
+		AGX_CameraSensorComponent_helpers::GetRenderTargetPixelFormat(RenderTargetFormat.GetValue());
+
+	UTextureRenderTarget2D* RenderTarget = NewObject<UTextureRenderTarget2D>(this);
+	RenderTarget->bGPUSharedFlag = true;
+	RenderTarget->SRGB = false;
+	RenderTarget->RenderTargetFormat = RenderTargetFormat.GetValue();
+	RenderTarget->InitCustomFormat(InResolution.X, InResolution.Y, PixelFormat, true);
+	return RenderTarget;
+}
+
+#if WITH_EDITOR
+void UAGX_CameraSensorComponent::InitPropertyDispatcher()
+{
+	FAGX_PropertyChangedDispatcher<ThisClass>& PropertyDispatcher =
+		FAGX_PropertyChangedDispatcher<ThisClass>::Get();
+	if (PropertyDispatcher.IsInitialized())
+		return;
+
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(bUseLinearColorSpace),
+		[](ThisClass* This)
+		{
+			This->SetUseLinearColorSpace(This->bUseLinearColorSpace);
+		});
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(MaterialPasses),
+		[](ThisClass* This) { This->UpdateAllOutputCaptureSettings(); });
+	PropertyDispatcher.Add(
+		AGX_MEMBER_NAME(CaptureSourceOverride),
+		[](ThisClass* This)
+		{
+			This->SetCaptureSourceOverride(
+				This->CaptureSourceOverride.GetSceneCaptureComponent2D());
+		});
+}
+#endif
+
+/// Camera Backend Callbacks.
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensSingleElement(
+	const FCameraLensSingleElementBarrier& LensBarrier)
+{
+	using namespace AGX_CameraSensorComponent_helpers;
+
+	if (HasCaptureSourceOverride())
+		return; // Never modify users camera.
+
+	USceneCaptureComponent2D* SceneCapture = OwnedCaptureComponent2D.Get();
+	AGX_CHECK(SceneCapture != nullptr);
+	if (SceneCapture == nullptr)
+		return;
+
+	UpdateAllOutputCaptureSettings();
+
+	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
+	PostProcessSettings.DepthOfFieldFstop = static_cast<float>(LensBarrier.GetFStop());
+
+	UpdateLensFocalDistance(
+		*SceneCapture, LensBarrier.GetUseAutofocus(), LensBarrier.GetMinimumFocusDistance(),
+		LensBarrier.GetFocusDistance());
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraCMOSSensor(
+	const FCameraCMOSSensorBarrier& CMOSBarrier)
+{
+	if (HasCaptureSourceOverride())
+		return; // Never modify users camera.
+
+	USceneCaptureComponent2D* SceneCapture = OwnedCaptureComponent2D.Get();
+	AGX_CHECK(SceneCapture != nullptr);
+	if (SceneCapture == nullptr)
+		return;
+
+	UpdateAllOutputCaptureSettings();
+
+	FPostProcessSettings& PostProcessSettings = SceneCapture->PostProcessSettings;
+	const bool AutoExposure = CMOSBarrier.GetUseAutoExposure();
+	PostProcessSettings.AutoExposureMethod =
+		AutoExposure ? EAutoExposureMethod::AEM_Histogram : EAutoExposureMethod::AEM_Manual;
+
+	if (AutoExposure)
+		PostProcessSettings.AutoExposureBias = 1;
+	else
+		PostProcessSettings.AutoExposureBias = CMOSBarrier.GetExposureCompensation();
+
+	PostProcessSettings.AutoExposureMaxBrightness = CMOSBarrier.GetDynamicRange();
+	PostProcessSettings.CameraISO = CMOSBarrier.GetISO();
+	// AGX stores shutter duration [s], whereas Unreal uses its reciprocal [1/s].
+	const double ShutterDuration = CMOSBarrier.GetShutterSpeed();
+	const double ReciprocalShutterSpeed = ShutterDuration > 0.0 ? 1.0 / ShutterDuration : 0.0;
+	if (FMath::IsFinite(ReciprocalShutterSpeed) &&
+		ReciprocalShutterSpeed >= TNumericLimits<float>::Min() &&
+		ReciprocalShutterSpeed <= TNumericLimits<float>::Max())
+	{
+		PostProcessSettings.CameraShutterSpeed = static_cast<float>(ReciprocalShutterSpeed);
+	}
+	else
+	{
+		UE_LOG(
+			LogAGX, Warning,
+			TEXT("Camera Sensor Component '%s' cannot apply shutter duration %g s to Unreal. "
+				 "Its reciprocal must be a positive, finite float. The previous setting is kept."),
+			*GetName(), ShutterDuration);
+	}
+	PostProcessSettings.DepthOfFieldSensorWidth =
+		static_cast<float>(CMOSBarrier.GetSize().X * /*to mm*/ 10.0);
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionNone()
+{
+	if (CameraLens != nullptr)
+		CameraLens->LensDistortion = nullptr;
+
+	UpdateAllOutputCaptureSettings();
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraLensDistortionBrownConrady(
+	const FLensDistortionBrownConradyBarrier& /*LensDistortionBarrier*/)
+{
+	UpdateAllOutputCaptureSettings();
+}
+
+void UAGX_CameraSensorComponent::OnBackendSetCameraColorOutput(
+	const FCameraOutputColorBarrier& OutputColorBarrier)
+{
+	UpdateOutputCaptureSettings(OutputColorBarrier);
+}
+
+void UAGX_CameraSensorComponent::OnBackendRequestCapture(const FCameraOutputBarrier& OutputBarrier)
+{
+	if (!FCameraOutputColorBarrier::IsColorOutput(OutputBarrier))
+		return;
+
+	const FCameraOutputColorBarrier& ColorOutputBarrier =
+		static_cast<const FCameraOutputColorBarrier&>(OutputBarrier);
+	RequestCapture(ColorOutputBarrier);
+}

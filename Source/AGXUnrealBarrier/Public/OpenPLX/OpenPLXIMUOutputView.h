@@ -10,7 +10,7 @@
 
 #include "OpenPLXIMUOutputView.generated.h"
 
-struct FOpenPLXIMUOutputViewRef;
+struct FOpenPLXMarshallingRef;
 
 /**
  * View into IMU output data received through OpenPLX.
@@ -26,7 +26,7 @@ struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
 	GENERATED_BODY()
 
 	FOpenPLXIMUOutputView();
-	FOpenPLXIMUOutputView(std::shared_ptr<FOpenPLXIMUOutputViewRef> Native);
+	FOpenPLXIMUOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native);
 
 	bool HasNative() const;
 
@@ -56,9 +56,9 @@ struct AGXUNREALBARRIER_API FOpenPLXIMUOutputView
 	 */
 	bool MakePersistant();
 
-	FOpenPLXIMUOutputViewRef* GetNative();
-	const FOpenPLXIMUOutputViewRef* GetNative() const;
+	FOpenPLXMarshallingRef* GetNative();
+	const FOpenPLXMarshallingRef* GetNative() const;
 
 private:
-	std::shared_ptr<FOpenPLXIMUOutputViewRef> NativeRef;
+	std::shared_ptr<FOpenPLXMarshallingRef> NativeRef;
 };

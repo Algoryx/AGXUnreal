@@ -15,6 +15,7 @@
 #include "Contacts/AGX_ContactEnums.h"
 #include "Materials/AGX_ContactMaterialEnums.h"
 #include "RigidBodyBarrier.h"
+#include "Sensors/AGX_CameraEnums.h"
 #include "Sensors/AGX_CustomPatternInterval.h"
 #include "Sensors/AGX_LidarEnums.h"
 #include "Terrain/AGX_ShovelEnums.h"
@@ -48,6 +49,7 @@
 #include <agx/Vec3.h>
 #include <agxCollide/Contacts.h>
 #include <agxModel/TwoBodyTire.h>
+#include <agxSensor/CameraColorOutput.h>
 #include <agxSensor/LidarModelOusterOS.h>
 #include <agxSensor/LidarRayAngleGaussianNoise.h>
 #include <agxSensor/LidarRayPatternGenerator.h>
@@ -1160,6 +1162,65 @@ inline EAGX_WheelJointSecondaryConstraint Convert(agxVehicle::WheelJoint::Second
 			"enum literal to a EAGX_WheelJointSecondaryConstraint enum literal, but got "
 			"unsupported or unknown enum literal. Returning Steering."));
 	return EAGX_WheelJointSecondaryConstraint::Steering;
+}
+
+//
+// Enumerations, Camera.
+//
+
+inline agxSensor::CameraColorOutput::ChannelType Convert(EAGX_CameraOutputChannelType Type)
+{
+	switch (Type)
+	{
+		case EAGX_CameraOutputChannelType::UNSUPPORTED:
+			UE_LOG(
+				LogAGX, Warning,
+				TEXT(
+					"Conversion warning: Tried to convert "
+					"EAGX_CameraOutputChannelType::UNSUPPORTED to "
+					"agxSensor::CameraColorOutput::ChannelType. Returning U8."));
+			return agxSensor::CameraColorOutput::U8;
+		case EAGX_CameraOutputChannelType::U8:
+			return agxSensor::CameraColorOutput::U8;
+		case EAGX_CameraOutputChannelType::F32:
+			return agxSensor::CameraColorOutput::F32;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"EAGX_CameraOutputChannelType literal with unknown value to "
+			"an agxSensor::CameraColorOutput::ChannelType literal."));
+	return agxSensor::CameraColorOutput::U8;
+}
+
+inline EAGX_CameraOutputChannelType Convert(agxSensor::CameraColorOutput::ChannelType Type)
+{
+	switch (Type)
+	{
+		case agxSensor::CameraColorOutput::U8:
+			return EAGX_CameraOutputChannelType::U8;
+		case agxSensor::CameraColorOutput::F32:
+			return EAGX_CameraOutputChannelType::F32;
+		case agxSensor::CameraColorOutput::I8:
+		case agxSensor::CameraColorOutput::I16:
+		case agxSensor::CameraColorOutput::U16:
+		case agxSensor::CameraColorOutput::I32:
+		case agxSensor::CameraColorOutput::U32:
+		case agxSensor::CameraColorOutput::I64:
+		case agxSensor::CameraColorOutput::U64:
+		case agxSensor::CameraColorOutput::F64:
+			return EAGX_CameraOutputChannelType::UNSUPPORTED;
+	}
+
+	UE_LOG(
+		LogAGX, Error,
+		TEXT(
+			"Conversion failed: Tried to convert an "
+			"agxSensor::CameraColorOutput::ChannelType literal with unknown value to "
+			"an EAGX_CameraOutputChannelType literal."));
+	return EAGX_CameraOutputChannelType::UNSUPPORTED;
 }
 
 //

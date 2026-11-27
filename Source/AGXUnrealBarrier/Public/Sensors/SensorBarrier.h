@@ -31,7 +31,7 @@ struct AGXUNREALBARRIER_API FSensorBarrier
 	bool HasNative() const;
 	FSensorRef* GetNative();
 	const FSensorRef* GetNative() const;
-	void ReleaseNative();
+	virtual void ReleaseNative();
 
 	void SetEnabled(bool Enabled);
 	bool GetEnabled() const;

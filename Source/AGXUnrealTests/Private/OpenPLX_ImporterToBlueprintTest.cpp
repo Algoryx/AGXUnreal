@@ -9,7 +9,11 @@
 #include "Import/AGX_ImporterToEditor.h"
 #include "Import/AGX_ImportSettings.h"
 #include "Import/AGX_ModelSourceComponent.h"
+#include "Sensors/AGX_CameraCMOSSensor.h"
+#include "Sensors/AGX_CameraLensSingleElement.h"
+#include "Sensors/AGX_CameraSensorComponent.h"
 #include "Sensors/AGX_IMUSensorComponent.h"
+#include "Sensors/AGX_LensDistortionBrownConrady.h"
 #include "Utilities/AGX_BlueprintUtilities.h"
 #include "Utilities/AGX_ImportUtilities.h"
 #include "Utilities/OpenPLXUtilities.h"
@@ -619,6 +623,134 @@ private:
 namespace
 {
 	FOpenPLX_ImporterToBlueprint_SensorsIMUTest OpenPLX_ImporterToBlueprint_SensorsIMUTest;
+}
+
+//
+// sensors_color_camera test starts here.
+//
+
+DEFINE_LATENT_AUTOMATION_COMMAND_TWO_PARAMETER(
+	FCheckSensorsColorCameraImportedCommand,
+	OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState&, State, FAutomationTestBase&, Test);
+
+bool FCheckSensorsColorCameraImportedCommand::Update()
+{
+	Test.TestNotNull(TEXT("Blueprint"), State.Blueprint);
+	if (State.Blueprint == nullptr)
+		return true;
+
+	TArray<UActorComponent*> Components =
+		FAGX_BlueprintUtilities::GetTemplateComponents(*State.Blueprint, EAGX_Inherited::Include);
+
+	// SceneRoot, 1 Rigid Body, 1 Camera, 1 OpenPLXSignalHandler, 1 ModelSource.
+	Test.TestEqual(TEXT("sensors_color_camera num Components"), Components.Num(), 5);
+
+	UAGX_CameraSensorComponent* Camera =
+		AgxAutomationCommon::GetByName<UAGX_CameraSensorComponent>(
+			Components, *FAGX_BlueprintUtilities::ToTemplateComponentName(TEXT("camera__logic")));
+	Test.TestNotNull(TEXT("sensors_color_camera Camera Component"), Camera);
+	if (Camera == nullptr)
+		return true;
+
+	Test.TestTrue(
+		TEXT("sensors_color_camera Camera imported from OpenPLX"), Camera->bOpenPLXImported);
+
+	UAGX_CameraCMOSSensor* CMOSSensor = Cast<UAGX_CameraCMOSSensor>(Camera->PhotoDetector);
+	Test.TestNotNull(TEXT("sensors_color_camera Camera CMOS Sensor"), CMOSSensor);
+	if (CMOSSensor != nullptr)
+	{
+		Test.TestEqual(
+			TEXT("sensors_color_camera Camera CMOS Sensor size"), CMOSSensor->Size,
+			FVector2D(0.86, 0.5));
+		Test.TestEqual(TEXT("sensors_color_camera Camera CMOS Sensor ISO"), CMOSSensor->ISO, 100.0);
+		Test.TestEqual(
+			TEXT("sensors_color_camera Camera CMOS Sensor shutter speed"),
+			CMOSSensor->ShutterSpeed, 10.0e-3);
+		Test.TestTrue(
+			TEXT("sensors_color_camera Camera CMOS Sensor uses auto exposure"),
+			CMOSSensor->bUseAutoExposure);
+		Test.TestEqual(
+			TEXT("sensors_color_camera Camera CMOS Sensor dynamic range"),
+			CMOSSensor->DynamicRange, 5.0);
+	}
+
+	UAGX_CameraLensSingleElement* Lens =
+		Cast<UAGX_CameraLensSingleElement>(Camera->CameraLens);
+	Test.TestNotNull(TEXT("sensors_color_camera Camera Lens"), Lens);
+	if (Lens == nullptr)
+		return true;
+
+	Test.TestEqual(TEXT("sensors_color_camera Camera Lens focal length"), Lens->FocalLength, 0.3);
+	Test.TestEqual(TEXT("sensors_color_camera Camera Lens f-stop"), Lens->FStop, 2.0);
+	Test.TestTrue(TEXT("sensors_color_camera Camera Lens uses autofocus"), Lens->bUseAutofocus);
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens minimum focus distance"),
+		Lens->MinimumFocusDistance, 1.0);
+
+	UAGX_LensDistortionBrownConrady* LensDistortion =
+		Cast<UAGX_LensDistortionBrownConrady>(Lens->LensDistortion);
+	Test.TestNotNull(TEXT("sensors_color_camera Camera Lens Distortion"), LensDistortion);
+	if (LensDistortion == nullptr)
+		return true;
+
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens Distortion K1"), LensDistortion->K1, 0.08);
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens Distortion K2"), LensDistortion->K2, 0.005);
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens Distortion K3"), LensDistortion->K3, -0.0001);
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens Distortion P1"), LensDistortion->P1, 0.0001);
+	Test.TestEqual(
+		TEXT("sensors_color_camera Camera Lens Distortion P2"), LensDistortion->P2, 0.0002);
+
+	return true;
+}
+
+class FOpenPLX_ImporterToBlueprint_SensorsColorCameraTest final
+	: public AgxAutomationCommon::FAgxAutomationTest
+{
+public:
+	FOpenPLX_ImporterToBlueprint_SensorsColorCameraTest()
+		: AgxAutomationCommon::FAgxAutomationTest(
+			  TEXT("FOpenPLX_ImporterToBlueprint_SensorsColorCameraTest"),
+			  TEXT("AGXUnreal.Editor.OpenPLX.ImporterToBlueprint.SensorsColorCamera"))
+	{
+		State.OpenPLXFile = TEXT("OpenPLX/sensors_color_camera/sensors_color_camera.openplx");
+		State.ExpectedCopiedOpenPLXFiles = {TEXT("sensors_color_camera.openplx")};
+		State.ExpectedImportedAssetsExcludingBaseBP = {
+			TEXT("Blueprint"),
+			TEXT("CameraLenses"),
+			TEXT("CameraPhotodetectors"),
+			TEXT("LensDistortions"),
+			TEXT("BP_sensors_color_camera.uasset"),
+			TEXT("CameraCMOSSensor_cameralogic.uasset"),
+			TEXT("CameraLensSingleElement_cameralogic.uasset"),
+			TEXT("LensDistortionBrownConrady_cameralogic.uasset")};
+	}
+
+protected:
+	bool RunTest(const FString& Parameters) override
+	{
+		using namespace OpenPLX_ImporterToBlueprintTest_helpers;
+
+		BAIL_TEST_IF_NOT_EDITOR(false)
+
+		AddCommonOpenPLXImportCommands(State, *this);
+		ADD_LATENT_AUTOMATION_COMMAND(FCheckSensorsColorCameraImportedCommand(State, *this));
+		AddCommonOpenPLXCleanupCommands(State, *this);
+
+		return true;
+	}
+
+private:
+	OpenPLX_ImporterToBlueprintTest_helpers::FOpenPLXImportState State;
+};
+
+namespace
+{
+	FOpenPLX_ImporterToBlueprint_SensorsColorCameraTest
+		OpenPLX_ImporterToBlueprint_SensorsColorCameraTest;
 }
 
 namespace OpenPLX_ImporterToBlueprintTest_AgxIcon_helpers

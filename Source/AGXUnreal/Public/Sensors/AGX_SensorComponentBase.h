@@ -91,7 +91,7 @@ public:
 	FSensorBarrier* GetNative();
 	const FSensorBarrier* GetNative() const;
 
-	void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
+	virtual void CopyFrom(const FSensorBarrier& Barrier, FAGX_ImportContext* Context);
 
 	//~ Begin UActorComponent Interface
 	virtual void BeginPlay() override;

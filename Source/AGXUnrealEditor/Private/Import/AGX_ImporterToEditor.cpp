@@ -21,7 +21,10 @@
 #include "Materials/AGX_ShapeMaterial.h"
 #include "OpenPLX/OpenPLX_RenderUtilities.h"
 #include "OpenPLX/OpenPLX_SignalHandlerComponent.h"
+#include "Sensors/AGX_CameraCMOSSensor.h"
+#include "Sensors/AGX_CameraLensSingleElement.h"
 #include "Sensors/AGX_LidarModelParameters.h"
+#include "Sensors/AGX_LensDistortionBrownConrady.h"
 #include "Sensors/AGX_SensorComponentBase.h"
 #include "Shapes/AGX_ShapeComponent.h"
 #include "Terrain/AGX_ShovelComponent.h"
@@ -175,6 +178,15 @@ namespace AGX_ImporterToEditor_helpers
 
 		if constexpr (std::is_same_v<T, UAGX_LidarModelParameters>)
 			return FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_CameraPhotodetectorBase>)
+			return FAGX_ImportUtilities::GetImportCameraPhotodetectorDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_CameraLensBase>)
+			return FAGX_ImportUtilities::GetImportCameraLensDirectoryName();
+
+		if constexpr (std::is_same_v<T, UAGX_LensDistortionBase>)
+			return FAGX_ImportUtilities::GetImportLensDistortionDirectoryName();
 
 		if constexpr (std::is_same_v<T, UAGX_SteeringParameters>)
 			return FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName();
@@ -721,6 +733,20 @@ namespace AGX_ImporterToEditor_helpers
 				RootDirectory,
 				FAGX_ImportUtilities::GetImportLidarModelParametersDirectoryName())));
 
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_CameraPhotodetectorBase>(
+			FPaths::Combine(
+				RootDirectory, FAGX_ImportUtilities::GetImportCameraPhotodetectorDirectoryName())));
+
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_CameraLensBase>(
+			FPaths::Combine(
+				RootDirectory,
+				FAGX_ImportUtilities::GetImportCameraLensDirectoryName())));
+
+		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_LensDistortionBase>(
+			FPaths::Combine(
+				RootDirectory,
+				FAGX_ImportUtilities::GetImportLensDistortionDirectoryName())));
+
 		CollectForRemoval(FAGX_EditorUtilities::FindAssets<UAGX_SteeringParameters>(FPaths::Combine(
 			RootDirectory, FAGX_ImportUtilities::GetImportSteeringParametersDirectoryName())));
 
@@ -844,6 +870,27 @@ namespace AGX_ImporterToEditor_helpers
 		for (const auto& [Guid, Lmp] : Context->LidarModelParameters)
 		{
 			WriteAssetToDisk(RootDir, LidarModelParametersAssetType, *Lmp, *Context);
+		}
+
+		const FString LensDistortionAssetType =
+			FAGX_ImportUtilities::GetImportLensDistortionDirectoryName();
+		for (const auto& [Guid, LensDistortion] : Context->LensDistortions)
+		{
+			WriteAssetToDisk(RootDir, LensDistortionAssetType, *LensDistortion, *Context);
+		}
+
+		const FString CameraLensAssetType =
+			FAGX_ImportUtilities::GetImportCameraLensDirectoryName();
+		for (const auto& [Guid, Lens] : Context->CameraLenses)
+		{
+			WriteAssetToDisk(RootDir, CameraLensAssetType, *Lens, *Context);
+		}
+
+		const FString CameraCMOSSensorAssetType =
+			FAGX_ImportUtilities::GetImportCameraPhotodetectorDirectoryName();
+		for (const auto& [Guid, CMOSSensor] : Context->CameraPhotodetectors)
+		{
+			WriteAssetToDisk(RootDir, CameraCMOSSensorAssetType, *CMOSSensor, *Context);
 		}
 
 		const FString SteeringParametersAssetType =
@@ -1037,6 +1084,15 @@ namespace AGX_ImporterToEditor_helpers
 			DestroyIfOwnedByContextOuter(Obj);
 
 		for (auto& [Unused, Obj] : Context.LidarModelParameters)
+			DestroyIfOwnedByContextOuter(Obj);
+
+		for (auto& [Unused, Obj] : Context.LensDistortions)
+			DestroyIfOwnedByContextOuter(Obj);
+
+		for (auto& [Unused, Obj] : Context.CameraLenses)
+			DestroyIfOwnedByContextOuter(Obj);
+
+		for (auto& [Unused, Obj] : Context.CameraPhotodetectors)
 			DestroyIfOwnedByContextOuter(Obj);
 
 		for (auto& [Unused, Obj] : Context.SteeringParameters)
@@ -1585,6 +1641,30 @@ EAGX_ImportResult FAGX_ImporterToEditor::UpdateAssets(
 	for (const auto& [Guid, Lmp] : Context.LidarModelParameters)
 	{
 		const auto A = UpdateOrCreateAsset(*Lmp, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	for (const auto& [Guid, LensDistortion] : Context.LensDistortions)
+	{
+		const auto A = UpdateOrCreateAsset(*LensDistortion, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	for (const auto& [Guid, Lens] : Context.CameraLenses)
+	{
+		const auto A = UpdateOrCreateAsset(*Lens, Context);
+		AGX_CHECK(A != nullptr);
+		if (A == nullptr)
+			Result |= EAGX_ImportResult::RecoverableErrorsOccured;
+	}
+
+	for (const auto& [Guid, CMOSSensor] : Context.CameraPhotodetectors)
+	{
+		const auto A = UpdateOrCreateAsset(*CMOSSensor, Context);
 		AGX_CHECK(A != nullptr);
 		if (A == nullptr)
 			Result |= EAGX_ImportResult::RecoverableErrorsOccured;

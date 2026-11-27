@@ -30,11 +30,11 @@ namespace OpenPLXIMUOutputView_helpers
 }
 
 FOpenPLXIMUOutputView::FOpenPLXIMUOutputView()
-	: NativeRef {new FOpenPLXIMUOutputViewRef}
+	: NativeRef {new FOpenPLXMarshallingRef}
 {
 }
 
-FOpenPLXIMUOutputView::FOpenPLXIMUOutputView(std::shared_ptr<FOpenPLXIMUOutputViewRef> Native)
+FOpenPLXIMUOutputView::FOpenPLXIMUOutputView(std::shared_ptr<FOpenPLXMarshallingRef> Native)
 	: NativeRef(std::move(Native))
 {
 	check(NativeRef);
@@ -130,13 +130,13 @@ bool FOpenPLXIMUOutputView::MakePersistant()
 	return true;
 }
 
-FOpenPLXIMUOutputViewRef* FOpenPLXIMUOutputView::GetNative()
+FOpenPLXMarshallingRef* FOpenPLXIMUOutputView::GetNative()
 {
 	check(NativeRef);
 	return NativeRef.get();
 }
 
-const FOpenPLXIMUOutputViewRef* FOpenPLXIMUOutputView::GetNative() const
+const FOpenPLXMarshallingRef* FOpenPLXIMUOutputView::GetNative() const
 {
 	check(NativeRef);
 	return NativeRef.get();
