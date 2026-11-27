@@ -268,7 +268,7 @@ public class AGXDynamicsLibrary : ModuleRules
 		if (Target.Platform == UnrealTargetPlatform.Win64) {
 			// Additional libraries in the AGX Dynamics bundle on Windows.
 			RuntimeLibFiles.Add("gdal", LibSource.Dependencies);
-			RuntimeLibFiles.Add("libzmq-v143-mt-4_3_5", LibSource.Dependencies);
+			RuntimeLibFiles.Add("libzmq-v*-mt-4_3_5", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libprotobuf", LibSource.Dependencies);
 			RuntimeLibFiles.Add("zlib", LibSource.Dependencies);
 			RuntimeLibFiles.Add("libpng16", LibSource.Dependencies);
